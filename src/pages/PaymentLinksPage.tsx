@@ -319,7 +319,7 @@ export default function PaymentLinksPage() {
             <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
               <RefreshCw className="w-3.5 h-3.5" />Actualizar
             </Button>
-            <Button onClick={() => setOpen(true)} className="gradient-gold text-primary-foreground font-semibold shadow-gold gap-1.5">
+            <Button onClick={() => setOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-gold gap-1.5">
               <Plus className="w-4 h-4" />Nuevo link
             </Button>
           </div>
@@ -631,7 +631,7 @@ export default function PaymentLinksPage() {
             )}
 
             <div className="flex gap-2 pt-1">
-              <Button onClick={handleCreate} disabled={saving || total <= 0 || !customerName.trim()} className="gradient-gold text-primary-foreground font-semibold flex-1">
+              <Button onClick={handleCreate} disabled={saving || total <= 0 || !customerName.trim()} className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold flex-1">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Plus className="w-4 h-4 mr-1.5" />}
                 Crear link
               </Button>

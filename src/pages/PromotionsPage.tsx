@@ -420,7 +420,7 @@ export default function PromotionsPage() {
 
             <SheetFooter>
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
-              <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
+              <Button className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5" onClick={handleSave} disabled={saving}>
                 {saving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                 {editing ? 'Guardar' : 'Crear promoción'}
               </Button>

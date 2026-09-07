@@ -255,7 +255,7 @@ export default function CouponsPage() {
         title="Cupones"
         description="Códigos para tienda y recuperación — sin inventar descuentos en el cliente."
         actions={
-          <Button size="sm" className="gap-1.5 gradient-gold text-primary-foreground" onClick={openCreate}>
+          <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={openCreate}>
             <Plus className="w-3.5 h-3.5" /> Nuevo Cupón
           </Button>
         }
@@ -294,7 +294,7 @@ export default function CouponsPage() {
         <div className="text-center py-20">
           <Tag className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
           <p className="text-muted-foreground">Sin cupones creados todavía</p>
-          <Button size="sm" className="mt-4 gradient-gold text-primary-foreground" onClick={openCreate}>
+          <Button size="sm" className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90" onClick={openCreate}>
             <Plus className="w-3.5 h-3.5 mr-1.5" /> Crear primer cupón
           </Button>
         </div>
@@ -589,7 +589,7 @@ export default function CouponsPage() {
             <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setFormOpen(false)}>Cancelar</Button>
               <Button
-                className="flex-1 gradient-gold text-primary-foreground"
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                 disabled={saving || !form.code.trim() || !form.discountValue}
                 onClick={handleSave}
               >

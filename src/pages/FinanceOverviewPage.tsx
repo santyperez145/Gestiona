@@ -65,19 +65,19 @@ export default function FinanceOverviewPage() {
     <div className="space-y-6">
       <PageHeader
         icon={ReceiptText}
-        eyebrow="Finance · Mendel-depth"
+        eyebrow="Finance · Control de gasto"
         title="Resumen"
         description={`Documentos, caja y puentes al Core para ${activeOrg?.name || 'tu organización'} — sin duplicar ventas ni stock.`}
         actions={(
-          <Button asChild variant="secondary" className="!border-teal-600/20 !bg-teal-600 !text-white shadow-[0_10px_22px_-14px_rgba(13,148,136,.8)] hover:!bg-teal-700">
+          <Button asChild className="bg-teal-700 text-white hover:bg-teal-800">
             <Link to="/finance/documentos"><FileStack className="h-3.5 w-3.5" />Ver bandeja</Link>
           </Button>
         )}
       />
 
-      <section className="rounded-[14px] border border-teal-500/20 bg-gradient-to-br from-teal-500/[0.08] via-card to-card p-5 sm:p-7">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Operación conectada</p>
-        <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Documentos que terminan en datos revisables</h2>
+      <section className="finance-overview-hero border border-border bg-card p-5 sm:p-6">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Operación conectada</p>
+        <h2 className="mt-2 max-w-xl text-xl font-bold tracking-tight sm:text-2xl">Documentos que terminan en datos revisables</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Cada comprobante se vincula con proveedor, compra, obligación y movimiento contable.
           Compras y gastos se operan en el Core: acá no se duplican pantallas.
@@ -103,7 +103,7 @@ export default function FinanceOverviewPage() {
       ) : !snapshot ? (
         <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Actualizando indicadores...</div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+        <div className="finance-metric-ledger grid grid-cols-2 gap-px overflow-hidden border border-border bg-border lg:grid-cols-6">
           <Metric
             icon={Building2}
             label="Proveedores"
@@ -148,19 +148,19 @@ export default function FinanceOverviewPage() {
         </div>
       )}
 
-      <section className="rounded-[12px] border border-teal-500/20 bg-card p-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Foco</p>
+      <section className="border border-border bg-card p-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Foco</p>
         <h2 className="mt-1 text-sm font-semibold">Hasta cinco movimientos con evidencia</h2>
         <p className="mt-1 text-xs text-muted-foreground">Solo prioridades accionables. Cada ítem abre la cola exacta.</p>
         {foco.length > 0 ? (
-          <ol className="mt-4 space-y-2">
+          <ol className="mt-4 divide-y divide-border border border-border">
             {foco.map((item, i) => (
               <li key={`${item.to}-${item.label}`}>
                 <Link
                   to={item.to}
-                  className="flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/15 px-3 py-2.5 hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+                  className="flex items-start gap-3 bg-background px-3 py-2.5 hover:bg-teal-500/[0.05]"
                 >
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-500/10 text-[10px] font-bold text-teal-700 dark:text-teal-300">{i + 1}</span>
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center bg-teal-700 text-[10px] font-bold text-white">{i + 1}</span>
                   <span className="min-w-0">
                     <span className="block text-xs font-medium">{item.label}</span>
                     <span className="mt-0.5 block text-[11px] text-muted-foreground">{item.detail}</span>
@@ -170,13 +170,13 @@ export default function FinanceOverviewPage() {
             ))}
           </ol>
         ) : snapshot ? (
-          <p className="mt-4 rounded-[8px] border border-border/50 bg-muted/10 px-3 py-3 text-xs text-muted-foreground">
+          <p className="mt-4 border border-border bg-muted/10 px-3 py-3 text-xs text-muted-foreground">
             Nada urgente ahora. Cuando llegue un documento o una obligación, aparece acá.
           </p>
         ) : null}
       </section>
 
-      <section className="rounded-[12px] border border-border/70 bg-card p-5">
+      <section className="border border-border bg-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Operación central · sin duplicar</p>
@@ -190,7 +190,7 @@ export default function FinanceOverviewPage() {
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <Link
             to="/gastos"
-            className="group flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 transition-colors hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+            className="group flex items-start gap-3 border border-border bg-background p-3 hover:border-teal-700/35 hover:bg-teal-500/[0.04]"
           >
             <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
             <span className="min-w-0 flex-1">
@@ -204,7 +204,7 @@ export default function FinanceOverviewPage() {
 
           <Link
             to="/ordenes-compra"
-            className="group flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 transition-colors hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+            className="group flex items-start gap-3 border border-border bg-background p-3 hover:border-teal-700/35 hover:bg-teal-500/[0.04]"
           >
             <ShoppingCart className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
             <span className="min-w-0 flex-1">
@@ -218,7 +218,7 @@ export default function FinanceOverviewPage() {
 
           <Link
             to="/libro"
-            className="group flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 transition-colors hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+            className="group flex items-start gap-3 border border-border bg-background p-3 hover:border-teal-700/35 hover:bg-teal-500/[0.04]"
           >
             <BookOpenCheck className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
             <span className="min-w-0 flex-1">
@@ -232,7 +232,7 @@ export default function FinanceOverviewPage() {
 
           <Link
             to="/banco"
-            className="group flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 transition-colors hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+            className="group flex items-start gap-3 border border-border bg-background p-3 hover:border-teal-700/35 hover:bg-teal-500/[0.04]"
           >
             <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
             <span className="min-w-0 flex-1">
@@ -247,24 +247,24 @@ export default function FinanceOverviewPage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
-        <section className="rounded-[12px] border border-border/70 bg-card p-5">
-          <div className="flex items-center gap-2"><BookOpenCheck className="h-4 w-4 text-teal-500" /><h2 className="text-sm font-semibold">Flujo de trabajo</h2></div>
-          <div className="mt-4 space-y-3">
+        <section className="border border-border bg-card p-5">
+          <div className="flex items-center gap-2"><BookOpenCheck className="h-4 w-4 text-teal-700 dark:text-teal-300" /><h2 className="text-sm font-semibold">Flujo de trabajo</h2></div>
+          <div className="mt-4 space-y-2">
             {[
               ['1', 'Ingresar', 'Archivo privado y original inmutable.'],
               ['2', 'Extraer', 'Campos con confianza y proveedor intercambiable.'],
               ['3', 'Validar', 'CUIT, importes, impuestos, duplicados y esquema.'],
               ['4', 'Aprobar', 'Una persona confirma antes de crear compra u obligación.'],
             ].map(([step, title, detail]) => (
-              <div key={step} className="flex gap-3 rounded-[8px] border border-border/50 bg-muted/15 p-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-500/10 text-[10px] font-bold text-teal-600 dark:text-teal-300">{step}</span>
+              <div key={step} className="flex gap-3 border border-border bg-background p-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-teal-700 text-[10px] font-bold text-white">{step}</span>
                 <div><p className="text-xs font-medium">{title}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{detail}</p></div>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="rounded-[12px] border border-amber-500/20 bg-amber-500/[0.04] p-5">
+        <section className="border border-border bg-card p-5">
           <h2 className="text-sm font-semibold">Alcance actual</h2>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">La carga asistida hoy ayuda a precompletar compras. La validación final siempre requiere revisión humana antes de impactar la operación.</p>
           <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
@@ -295,12 +295,10 @@ function Metric({
   href?: string | null;
   attention?: boolean;
 }) {
-  const className = `rounded-[10px] border bg-card p-3.5 transition-colors ${
+  const className = `bg-card p-3.5 ${
     wide ? 'col-span-2 lg:col-span-2' : ''
   } ${
-    attention
-      ? 'border-amber-500/35 hover:border-amber-500/50'
-      : 'border-border/70 hover:border-teal-500/30'
+    attention ? 'shadow-[inset_0_2px_0_0_hsl(38_92%_50%)]' : ''
   } ${href ? 'block hover:bg-teal-500/[0.04]' : ''}`;
 
   const body = (

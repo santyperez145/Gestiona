@@ -83,7 +83,7 @@ function LocationForm({
         <span className="text-sm">Es el local principal</span>
       </label>
       <div className="flex gap-2 pt-2">
-        <Button type="submit" className="flex-1 gradient-gold text-primary-foreground font-semibold" disabled={saving}>
+        <Button type="submit" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" disabled={saving}>
           {saving ? "Guardando…" : "Guardar"}
         </Button>
         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
@@ -254,7 +254,7 @@ function TransferDialog({
       <div className="flex gap-2 pt-2">
         <Button
           type="submit"
-          className="flex-1 gradient-gold text-primary-foreground font-semibold"
+          className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
           disabled={saving || !selectedItem || Number(qty) < 1 || Number(qty) > maxDisponible}
         >
           <ArrowLeftRight className="w-4 h-4 mr-1.5" />{saving ? "Transfiriendo…" : "Transferir"}
@@ -357,7 +357,7 @@ function AdjustVariantStockDialog({
         <Input value={notes} onChange={event => setNotes(event.target.value)} placeholder="Ingreso, conteo, corrección…" />
       </div>
       <div className="flex gap-2 pt-2">
-        <Button type="submit" className="flex-1 gradient-gold text-primary-foreground font-semibold" disabled={saving || !locationId || !variantId || newStock === ""}>
+        <Button type="submit" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" disabled={saving || !locationId || !variantId || newStock === ""}>
           <Package className="w-4 h-4 mr-1.5" />{saving ? "Ajustando…" : "Guardar stock"}
         </Button>
         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
@@ -490,7 +490,7 @@ export default function LocationsPage() {
             <ArrowLeftRight className="w-4 h-4 mr-2" />Transferir stock
           </Button>
         )}
-        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => { setEditingLoc(null); setShowForm(true); }}>
+        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-gold" onClick={() => { setEditingLoc(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />Nuevo local
         </Button>
       </div>

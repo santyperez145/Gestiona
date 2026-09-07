@@ -492,7 +492,7 @@ export default function CashSessionPage() {
               />
             </div>
           </div>
-          <Button onClick={openCaja} disabled={submitting} className="gradient-gold text-primary-foreground gap-2">
+          <Button onClick={openCaja} disabled={submitting} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
             <Unlock className="w-4 h-4" />{submitting ? "Abriendo..." : "Abrir caja"}
           </Button>
         </div>
