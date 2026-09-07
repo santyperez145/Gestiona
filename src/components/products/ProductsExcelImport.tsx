@@ -268,7 +268,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
       <div className="sticky top-0 z-20 flex items-start justify-between gap-3 border-b border-border/70 bg-card/95 px-4 py-4 pr-3 backdrop-blur sm:px-7">
         <div className="flex items-start gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
           <FileSpreadsheet className="h-5 w-5 text-primary" />
-        </div><div><h3 className="font-semibold">Migrar catálogo</h3><p className="text-xs text-muted-foreground">Shopify, Tiendanube, Empretienda o planilla propia</p></div></div>
+        </div><div><h3 className="font-semibold tracking-tight">Migrar catálogo</h3><p className="text-xs text-muted-foreground">Shopify y Tiendanube por columnas; Empretienda por nombre de archivo hasta certificar plantilla</p></div></div>
         <Button variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar"><X className="h-4 w-4" /></Button>
       </div>
 

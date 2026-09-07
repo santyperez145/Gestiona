@@ -991,8 +991,9 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       </div>
       <PageHeader
         icon={Package}
+        eyebrow="Commerce · Vitrina"
         title={isPublic ? businessName : 'Catálogo'}
-        description={`${plural(filtered.length, "producto")} disponibles${vitrina?.kind === "tienda" ? ". El enlace que compartís abre la tienda, donde se cobra." : ""}`}
+        description={`${plural(filtered.length, "producto")} disponibles${vitrina?.kind === "tienda" ? ". El enlace que compartís abre la tienda, donde se cobra." : " · stock único con la tienda online"}`}
         actions={
           <div className="flex flex-wrap gap-2">
             {!isPublic && (

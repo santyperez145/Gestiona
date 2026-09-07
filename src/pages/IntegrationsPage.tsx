@@ -334,7 +334,7 @@ export default function IntegrationsPage() {
           <div>
             <h2 className="font-semibold">Migrar catálogo a Nerqia</h2>
             <p className="text-xs text-muted-foreground">
-              Shopify, Tiendanube, Empretienda o una planilla propia, con validación previa.
+              Shopify y Tiendanube por columnas; Empretienda por nombre de archivo (revisá el mapeo). Planilla propia también.
             </p>
           </div>
         </div>
