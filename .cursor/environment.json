@@ -1,0 +1,14 @@
+{
+  "name": "Nerqia Commerce OS",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "bash .cursor/dev.sh",
+      "description": "Servidor Vite (frontend) en http://localhost:8080. Usa los secretos VITE_SUPABASE_* si están cargados; si no, cae a placeholders públicos para que la UI levante."
+    }
+  ],
+  "ports": [
+    { "name": "vite", "port": 8080 }
+  ]
+}
