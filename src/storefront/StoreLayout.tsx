@@ -295,10 +295,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <Menu className="w-5 h-5" />
           </button>
 
-          <Link to={base || "/"} className="storefront-brand flex items-center gap-2 min-w-0 shrink-0">
+          <Link to={base || "/"} className="storefront-brand flex items-center gap-2.5 min-w-0 shrink-0">
             <span
-              className="relative h-8 w-8 shrink-0 rounded grid place-items-center overflow-hidden text-sm font-bold"
-              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))" }}
+              className="relative h-9 w-9 shrink-0 grid place-items-center overflow-hidden text-sm font-bold"
+              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
               {(store?.name ?? "T").charAt(0).toUpperCase()}
               {store?.logo_url && (
@@ -313,7 +313,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               )}
             </span>
             <span
-              className="font-semibold truncate max-w-[9rem] sm:max-w-none"
+              className="storefront-brand__name font-semibold truncate max-w-[9rem] sm:max-w-[14rem] tracking-tight"
               style={{ color: "hsl(var(--st-header-fg))" }}
             >
               {store?.name}
@@ -419,8 +419,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <ShoppingBag className="w-5 h-5" />
             {cartCount > 0 && (
               <span
-                className="absolute -top-0.5 -right-0.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full text-[10px] font-bold grid place-items-center"
-                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", boxShadow: "0 0 0 2px hsl(var(--st-header))" }}
+                className="absolute -top-0.5 -right-0.5 min-w-[1.15rem] h-[1.15rem] px-1 text-[10px] font-bold grid place-items-center"
+                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", boxShadow: "0 0 0 2px hsl(var(--st-header))", borderRadius: "calc(var(--st-radius) * 0.55)" }}
               >
                 {cartCount}
               </span>
