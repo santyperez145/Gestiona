@@ -4307,17 +4307,18 @@
   }
 
   .storefront-products__toolbar {
-    padding-bottom: 1rem;
+    padding-bottom: 1.15rem;
     border-bottom: 1px solid hsl(var(--st-border) / 0.78);
+    margin-bottom: 0.35rem;
   }
 
   .storefront-filter-panel {
     align-self: start;
     position: sticky;
     top: 5.5rem;
-    padding: 1rem;
-    border: 1px solid hsl(var(--st-border));
-    border-radius: var(--st-radius);
+    padding: 1.1rem;
+    border: 1px solid hsl(var(--st-border) / 0.75);
+    border-radius: calc(var(--st-radius) + 4px);
     background: hsl(var(--st-surface) / 0.72);
   }
 

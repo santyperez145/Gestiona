@@ -256,6 +256,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   Nerqia
                 </p>
                 <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-[9px] uppercase tracking-[0.12em] text-primary/80 font-semibold">Commerce OS</span>
                   <span className="truncate text-[9px] text-muted-foreground" title={config.businessName}>{config.businessName}</span>
                   <span className={`inline-flex shrink-0 items-center rounded-[4px] border px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-wide ${roleBadgeClass}`}>{roleLabel}</span>
                 </div>

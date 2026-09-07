@@ -270,12 +270,13 @@ export default function HallazgosView() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Brain}
-        title="IA Insights"
-        description="Hallazgos accionables sobre stock, ventas, clientes y margen de tu negocio."
+        eyebrow="Commerce · Inteligencia"
+        title="Hallazgos"
+        description="Oportunidades accionables de stock, ventas y margen — ≤5 focos, no un feed infinito."
         actions={
-          <div className="flex flex-wrap items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+          <div className="flex flex-wrap items-center gap-1.5 px-3 py-1 rounded-md bg-primary/10 border border-primary/20">
             <Sparkles className="w-3 h-3 text-primary" />
-            <span className="text-xs font-medium text-primary">Nerqia Intelligence</span>
+            <span className="text-xs font-medium text-primary">Foco del negocio</span>
           </div>
         }
       />
