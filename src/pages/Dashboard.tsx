@@ -56,7 +56,6 @@ import CommerceInventoryAlerts from "@/components/commerce/CommerceInventoryAler
 import CommerceFinancialSummary from "@/components/commerce/CommerceFinancialSummary";
 import CommerceChannelPerformance from "@/components/commerce/CommerceChannelPerformance";
 import CommerceTopProducts from "@/components/commerce/CommerceTopProducts";
-import CommerceActivityFeed from "@/components/commerce/CommerceActivityFeed";
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
@@ -3505,12 +3504,11 @@ export default function Dashboard() {
       {/* Top Products + Recent Sales — Moderno */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <CommerceTopProducts
-          products={stats.topProducts.map((p: any, i: number) => ({
+          products={stats.topProducts.map((p: any) => ({
             id: p.name,
             name: p.name,
             sales: p.qty,
             revenue: p.revenue,
-            trend: i === 0 ? 12 : i === 1 ? 8 : i === 2 ? 5 : 0,
           }))}
           title="Productos Más Vendidos"
           limit={5}
@@ -3567,21 +3565,6 @@ export default function Dashboard() {
             </>
           ) : <p className="p-5 text-muted-foreground text-sm">No hay ventas registradas aún.</p>}
         </div>
-
-        {/* Activity Feed — Moderno */}
-        <CommerceActivityFeed
-          activities={stats.recentSales.map((s: any) => ({
-            id: s.id,
-            type: "sale" as const,
-            title: s.product_name,
-            description: `Venta a ${s.customer_name || "cliente"}`,
-            timestamp: new Date(s.date).toLocaleDateString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-            amount: Number(s.total_ars),
-            status: s.paid ? "success" as const : "warning" as const,
-          }))}
-          title="Actividad Reciente"
-          limit={5}
-        />
       </div>
 
       </div>

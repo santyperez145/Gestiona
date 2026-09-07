@@ -28,6 +28,7 @@ export default function CommerceTopProducts({
   limit = 5,
 }: CommerceTopProductsProps) {
   const topProducts = products.slice(0, limit);
+  const maxRevenue = topProducts[0]?.revenue || 1;
 
   return (
     <Card className="border-border/50 shadow-lg">
@@ -74,7 +75,7 @@ export default function CommerceTopProducts({
                 <div
                   className="h-full bg-gradient-to-r from-primary to-cyan-500"
                   style={{
-                    width: `${(product.revenue / topProducts[0].revenue) * 100}%`,
+                    width: `${(product.revenue / maxRevenue) * 100}%`,
                   }}
                 />
               </div>
