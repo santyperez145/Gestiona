@@ -3067,21 +3067,11 @@ export default function Dashboard() {
 
       {/* Daily Trend + Margin Evolution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
-          <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia Diaria (30 días)</h2>
-          {stats.dailySales.length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={stats.dailySales}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v)]} />
-                <Area type="monotone" dataKey="total" stroke="hsl(40, 70%, 50%)" fill="hsl(40, 70%, 50%)" fillOpacity={0.15} name="Ventas" />
-                <Area type="monotone" dataKey="profit" stroke="hsl(150, 60%, 40%)" fill="hsl(150, 60%, 40%)" fillOpacity={0.15} name="Ganancia" />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos recientes</div>}
-        </div>
+        <CommerceSalesChart
+          data={stats.dailySales.map(d => ({ date: d.date, sales: d.total, orders: 0 }))}
+          title="Tendencia Diaria (30 días)"
+          height={180}
+        />
 
         <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Margen por Mes (%)</h2>
