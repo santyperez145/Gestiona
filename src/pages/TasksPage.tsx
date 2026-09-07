@@ -14,8 +14,9 @@ import {
   Circle, SquareStack, Flame, ChevronUp, ChevronDown, Search, FileSpreadsheet,
   LayoutList, Kanban, Share2, CalendarDays,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import BusinessPageHeader from "@/components/business/BusinessPageHeader";
+import BusinessKPICard from "@/components/business/BusinessKPICard";
+import BusinessEmptyState from "@/components/business/BusinessEmptyState";
 import { useWebShare } from "@/hooks/useWebShare";
 
 type Task = {
@@ -204,17 +205,11 @@ export default function TasksPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <PageHeader
+      <BusinessPageHeader
         icon={CheckSquare}
         title="Agenda de Tareas"
         description="Organizá y seguí las tareas de tu negocio"
-        badge={
-          overdue.length > 0
-            ? { label: `${overdue.length} vencida${overdue.length > 1 ? "s" : ""}`, variant: "destructive" }
-            : pending.length === 0
-            ? { label: "¡Todo al día ✓", variant: "success" }
-            : undefined
-        }
+        badge={overdue.length > 0 ? `${overdue.length} vencida${overdue.length > 1 ? "s" : ""}` : pending.length === 0 ? "¡Todo al día ✓" : undefined}
         actions={
           <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
             <Plus className="w-4 h-4 mr-2" />Nueva tarea
@@ -224,12 +219,30 @@ export default function TasksPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard label="Pendientes" value={pending.length} icon={SquareStack} color="primary" sub="tareas activas" />
-        <KPICard label="Vencidas" value={overdue.length} icon={AlertTriangle}
-          color={overdue.length > 0 ? "destructive" : "success"} sub="sin completar" />
-        <KPICard label="Urgentes / Altas" value={urgent.length} icon={Flame}
-          color={urgent.length > 0 ? "warning" : "primary"} sub="prioridad alta" />
-        <KPICard label="Completadas hoy" value={doneToday.length} icon={Check} color="success" sub="¡buen trabajo!" />
+        <BusinessKPICard
+          title="Pendientes"
+          value={pending.length}
+          icon={SquareStack}
+          description="tareas activas"
+        />
+        <BusinessKPICard
+          title="Vencidas"
+          value={overdue.length}
+          icon={AlertTriangle}
+          description="sin completar"
+        />
+        <BusinessKPICard
+          title="Urgentes / Altas"
+          value={urgent.length}
+          icon={Flame}
+          description="prioridad alta"
+        />
+        <BusinessKPICard
+          title="Completadas hoy"
+          value={doneToday.length}
+          icon={Check}
+          description="¡buen trabajo!"
+        />
       </div>
 
       {/* Filter tabs + search */}
