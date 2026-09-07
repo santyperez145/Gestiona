@@ -3213,7 +3213,7 @@
   }
 
   .workspace-products {
-    --products-shadow: 0 14px 28px -26px hsl(var(--primary) / 0.78);
+    --products-shadow: 0 14px 28px -26px hsl(var(--primary) / 0.55);
   }
 
   .workspace-products-actions {
@@ -3221,7 +3221,7 @@
   }
 
   .workspace-products-actions > * {
-    min-height: 2.25rem;
+    min-height: 2.35rem;
   }
 
   .workspace-products-kpis {
@@ -3235,14 +3235,24 @@
   .workspace-products-aging,
   .workspace-products-table-shell {
     box-shadow: var(--products-shadow);
+    border-radius: 12px;
   }
 
   .workspace-products-filters {
     align-items: center;
-    padding: 0.75rem;
-    border: 1px solid hsl(var(--border) / 0.76);
+    padding: 0.85rem;
+    border: 1px solid hsl(var(--border) / 0.8);
+    border-radius: 12px;
+    background: hsl(var(--card));
+  }
+
+  .commerce-orders-queue {
+    padding: 0.15rem 0 0.5rem;
+  }
+
+  .commerce-orders-queue > .flex.flex-wrap.gap-1\.5 > button {
     border-radius: 8px;
-    background: hsl(var(--muted) / 0.28);
+    font-weight: 600;
   }
 
   .workspace-products-filters > .relative {
