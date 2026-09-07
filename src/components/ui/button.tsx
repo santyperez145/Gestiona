@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
   // Compact action language shared by every authenticated surface.
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[9px] border border-transparent text-sm font-medium " +
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border border-transparent text-sm font-medium " +
   "transition-[transform,background-color,border-color,color,box-shadow,filter] duration-150 ease-out " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
   "disabled:pointer-events-none disabled:opacity-40 " +

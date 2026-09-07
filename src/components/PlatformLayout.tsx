@@ -13,10 +13,9 @@ import { usePlatformAccess } from '@/lib/usePermissions';
 import BrandLogo from '@/components/shared/BrandLogo';
 
 /**
- * Chrome de la superficie de PLATAFORMA — deliberadamente distinta del panel
- * de organización (acento violeta en vez de dorado, rail de control propio).
- * El objetivo es que sea imposible confundir "estoy operando MI
- * negocio" con "estoy operando la plataforma de todos los negocios".
+ * Chrome de la superficie de PLATAFORMA — control plane con tinta slate,
+ * distinto del cobalto del negocio. Imposible confundir "mi comercio" con
+ * "operar la plataforma de todos".
  */
 
 interface NavItem {
@@ -73,7 +72,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
     <div className="platform-surface workspace-platform min-h-screen bg-background">
       {/* ── Barra de identidad de plataforma ──────────────────────────── */}
       <header
-        className="workspace-platform-topbar workspace-platform__topbar sticky top-0 z-40 border-b border-violet-500/25 topbar-surface"
+        className="workspace-platform-topbar workspace-platform__topbar sticky top-0 z-40 border-b border-slate-500/20 topbar-surface"
       >
         <div className="platform-topbar-inner px-4 sm:px-6 h-14 flex items-center gap-3">
           <div className="platform-topbar__identity flex items-center gap-2 min-w-0">

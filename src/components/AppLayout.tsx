@@ -208,7 +208,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const roleBadgeClass = role === 'admin'
     ? 'bg-primary/15 text-primary border-primary/20'
     : role === 'vendedor'
-    ? 'bg-violet-500/15 text-violet-400 border-violet-500/20'
+    ? 'bg-sky-500/15 text-sky-700 border-sky-500/25 dark:text-sky-300'
     : 'bg-muted text-muted-foreground border-border';
 
   return (
@@ -375,7 +375,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               title={effectiveCollapsed ? 'Panel de plataforma' : undefined}
               className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
                 effectiveCollapsed ? 'justify-center' : ''
-              } text-violet-300/60 hover:bg-violet-500/10 hover:text-violet-200 hover:border-violet-500/25`}
+              } text-slate-500 hover:bg-slate-500/10 hover:text-slate-800 hover:border-slate-400/30 dark:text-slate-400 dark:hover:text-slate-200`}
             >
               <Crown className="w-3.5 h-3.5 shrink-0" />
               {!effectiveCollapsed && <span>Panel de plataforma</span>}
@@ -384,7 +384,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {!effectiveCollapsed && (
             <div className="px-1 py-1">
               <p className="text-[11px] text-muted-foreground/55 truncate font-mono">{user?.email}</p>
-              <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest font-mono">v10.0</p>
+              <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest font-mono">Commerce OS</p>
             </div>
           )}
           <button
@@ -404,7 +404,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="workspace-topbar__context min-w-0 flex-1">
             <div className="workspace-topbar__workspace flex items-center gap-2">
               <span className="workspace-topbar__workspace-dot" aria-hidden="true" />
-              <span className="workspace-topbar__workspace-label">Workspace operativo</span>
+              <span className="workspace-topbar__workspace-label">Tienda y operación</span>
               <span className="workspace-topbar__workspace-name truncate">{config.businessName}</span>
             </div>
             <div className="workspace-topbar__breadcrumb flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/65">

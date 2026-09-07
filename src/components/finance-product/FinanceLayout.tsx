@@ -89,7 +89,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
       <main className="min-w-0">
         <header className="finance-topbar sticky top-0 z-20 hidden h-16 items-center justify-between border-b border-border/70 bg-background/90 px-6 backdrop-blur lg:flex">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-teal-600 dark:text-teal-300">Finance</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-teal-700 dark:text-teal-300">Finance</p>
             <p className="text-xs text-muted-foreground">{activeOrg?.name || 'Sin organización'}</p>
           </div>
           <div className="flex items-center gap-2"><ThemeToggle /></div>

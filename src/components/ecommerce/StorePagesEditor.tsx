@@ -200,9 +200,9 @@ export default function StorePagesEditor({
     />
 
     {privacyPage && !analyticsDisclosurePublished && (
-      <div className="rounded-xl border border-violet-500/30 bg-violet-500/[0.06] p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+      <div className="rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" aria-hidden="true" />
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <div>
             <p className="text-sm font-medium">
               {analyticsDisclosureDrafted

@@ -27,7 +27,7 @@ describe('contrato visual transversal de Gestión', () => {
     }
   });
 
-  it('formularios base usan superficies claras y el mismo foco violeta', () => {
+  it('formularios base usan superficies claras y el mismo foco cobalto', () => {
     const controls = [
       'src/components/ui/input.tsx',
       'src/components/ui/select.tsx',
@@ -42,9 +42,9 @@ describe('contrato visual transversal de Gestión', () => {
     }
   });
 
-  it('navegación, tarjetas y tablas comparten la dirección marketplace', () => {
+  it('navegación, tarjetas y tablas comparten el lenguaje Commerce OS', () => {
     expect(source('src/components/ui/tabs.tsx')).toContain('data-[state=active]:bg-card');
-    expect(source('src/components/ui/card.tsx')).toContain('rounded-[12px]');
+    expect(source('src/components/ui/card.tsx')).toContain('rounded-[8px]');
     expect(source('src/components/ui/table.tsx')).toContain('bg-primary/[0.035]');
     expect(source('src/components/shared/EmptyState.tsx')).toContain('border-dashed border-primary/20');
     expect(source('src/components/shared/DataPagination.tsx')).toContain('aria-live="polite"');
