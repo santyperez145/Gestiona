@@ -10,7 +10,7 @@
  * - Separación clara de Business Core
  */
 import { Link, useLocation } from "react-router-dom";
-import { Search, Settings, FileText, Wallet, Landmark, TrendingUp, Plus, Receipt } from "lucide-react";
+import { Search, Settings, FileText, Wallet, Landmark, TrendingUp, Plus, Receipt, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
