@@ -81,7 +81,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
               <span className="platform-brand-title block font-display font-semibold text-[13px] tracking-tight truncate">
                 Plataforma Nerqia
               </span>
-              <span className="platform-brand-subtitle hidden sm:block text-[9px] uppercase tracking-[0.14em]">Control operativo</span>
+              <span className="platform-brand-subtitle hidden sm:block text-[9px] uppercase tracking-[0.14em]">Control plane · ATM</span>
             </div>
             {platformRole && (
               <span className="platform-role-badge text-[9px] font-bold uppercase tracking-wider px-1.5 py-px rounded-[4px] shrink-0">
@@ -93,7 +93,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
           <div className="platform-topbar__context hidden lg:flex items-center gap-2 min-w-0">
             <span className="platform-topbar__context-dot" aria-hidden="true" />
             <span className="platform-topbar__context-label">Consola central</span>
-            <span className="platform-topbar__context-detail truncate">Organizaciones, ingresos y gobierno</span>
+            <span className="platform-topbar__context-detail truncate">ATM, ingresos y gobierno — no el panel del comercio</span>
           </div>
 
           <div className="flex-1" />

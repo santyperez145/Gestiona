@@ -46,7 +46,8 @@ mismo trabajo; filtros reducen una población; un detalle amplía una entidad.
 
 - Canvas claro, superficies blancas y separación sobria.
 - Color de acción Nerqia; colores semánticos para estado, riesgo o canal.
-- Tipografía compacta en workspaces y escala hero sólo en landing.
+- Tipografía compacta en workspaces (IBM Plex) y escala hero en landing (Syne).
+- Acción primaria cobalto `#173aef`; Finance usa acento teal propio; Platform usa slate.
 - Íconos Lucide; tooltips para acciones no obvias.
 - Tabs para vistas, segmented control para modos, switch para binarios,
   input/stepper para números y menú/select para opciones.

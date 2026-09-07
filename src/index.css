@@ -1986,17 +1986,19 @@
   .pos-workspace {
     --pos-surface: hsl(var(--card));
     --pos-border: hsl(var(--border));
-    --pos-shadow: 0 14px 30px -26px hsl(var(--primary) / 0.9);
-    background: hsl(var(--background));
+    --pos-shadow: 0 14px 30px -26px hsl(var(--primary) / 0.55);
+    background:
+      radial-gradient(80% 50% at 0% 0%, hsl(var(--primary) / 0.05), transparent 50%),
+      hsl(var(--background));
     color: hsl(var(--foreground));
     container-name: pos-workspace;
     container-type: inline-size;
   }
 
   .pos-topbar {
-    min-height: 3.75rem;
-    background: hsl(var(--card) / 0.88);
-    box-shadow: 0 1px 0 hsl(var(--border) / 0.65), 0 12px 24px -24px hsl(var(--primary) / 0.9);
+    min-height: 3.85rem;
+    background: hsl(var(--card) / 0.92);
+    box-shadow: 0 1px 0 hsl(var(--border) / 0.65), 0 12px 24px -24px hsl(var(--primary) / 0.75);
   }
 
   .pos-search {
@@ -2004,7 +2006,8 @@
   }
 
   .pos-search input {
-    min-height: 2.4rem;
+    min-height: 2.55rem;
+    border-radius: 10px;
     border-color: hsl(var(--border) / 0.86);
     box-shadow: 0 2px 8px -8px hsl(var(--foreground) / 0.55);
   }
@@ -2015,12 +2018,13 @@
   }
 
   .pos-category-bar button {
-    min-height: 2rem;
-    border-radius: 7px !important;
+    min-height: 2.1rem;
+    border-radius: 8px !important;
+    font-weight: 600;
   }
 
   .pos-main {
-    background: hsl(var(--background));
+    background: transparent;
   }
 
   .pos-product-area {
@@ -2032,6 +2036,7 @@
   .pos-product-grid {
     align-content: start;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
   }
 
   .pos-bundle-grid {
@@ -2040,29 +2045,31 @@
 
   .pos-product-card {
     min-width: 0;
-    border-color: hsl(var(--border) / 0.88);
+    border-color: hsl(var(--border) / 0.7);
+    border-radius: 12px;
     box-shadow: var(--pos-shadow);
-    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
   }
 
   .pos-product-card:hover {
-    transform: translateY(-2px);
-    border-color: hsl(var(--primary) / 0.46);
-    box-shadow: 0 18px 28px -24px hsl(var(--primary) / 0.95);
+    transform: translateY(-3px);
+    border-color: hsl(var(--primary) / 0.4);
+    box-shadow: 0 18px 28px -24px hsl(var(--primary) / 0.85);
   }
 
   .pos-product-card__media {
-    background: hsl(var(--muted) / 0.52);
+    background: hsl(var(--muted) / 0.4);
+    border-radius: 12px 12px 0 0;
   }
 
   .pos-product-card__content {
     min-height: 5.75rem;
-    background: hsl(var(--card) / 0.9);
+    background: hsl(var(--card) / 0.95);
   }
 
   .pos-cart-sidebar {
-    background: hsl(var(--card) / 0.88);
-    box-shadow: -12px 0 28px -28px hsl(var(--primary) / 0.9);
+    background: hsl(var(--card) / 0.94);
+    box-shadow: -16px 0 36px -28px hsl(var(--primary) / 0.75);
   }
 
   .pos-cart-panel {
@@ -2071,8 +2078,8 @@
   }
 
   .pos-cart-header {
-    min-height: 3.25rem;
-    background: hsl(var(--card) / 0.72);
+    min-height: 3.35rem;
+    background: hsl(var(--card) / 0.85);
   }
 
   .pos-cart-items {
@@ -2081,23 +2088,26 @@
 
   .pos-cart-items > div > div {
     border: 1px solid hsl(var(--border) / 0.58);
+    border-radius: 10px;
   }
 
   .pos-cart-total {
-    box-shadow: 0 12px 22px -22px hsl(var(--primary) / 0.95);
+    box-shadow: 0 12px 22px -22px hsl(var(--primary) / 0.85);
   }
 
   .pos-confirm-sale {
-    min-height: 2.9rem;
-    box-shadow: 0 12px 18px -15px hsl(var(--primary) / 0.95);
+    min-height: 2.95rem;
+    border-radius: 10px;
+    box-shadow: 0 12px 18px -15px hsl(var(--primary) / 0.85);
   }
 
   .pos-pay-method-grid {
-    gap: 0.375rem;
+    gap: 0.4rem;
   }
 
   .pos-pay-method {
-    min-height: 3.25rem;
+    min-height: 3.35rem;
+    border-radius: 10px;
     border-color: hsl(var(--border) / 0.78);
   }
 
@@ -2106,8 +2116,8 @@
   }
 
   .pos-mobile-cart {
-    border-radius: 14px 14px 0 0;
-    box-shadow: 0 -18px 40px -28px hsl(var(--foreground) / 0.8);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -18px 40px -28px hsl(var(--foreground) / 0.75);
   }
 
   @container pos-catalog (min-width: 34rem) {
