@@ -77,12 +77,9 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
   transaccionales;
 - SEO, sitemap, metadata, dominio propio/subdominio, temas versionados, favicon
   por tienda y navegación SPA con scroll/restauración accesible, páginas, banners, menú, reseñas y preguntas;
-- pedidos y recuperación como colas propias, con búsqueda, filtros, detalle y
-  acciones masivas controladas; la cola `vista=pago` acredita transferencia/
-  efectivo desde la fila (misma RPC que el inspector), sin abrir el detalle;
-  Recuperación no pinta «Pendiente de aviso» / «aviso pendiente» si el canal
-  de email no está listo (RPC `recovery_email_channel_ready` compartida por
-  carritos abandonados y back-in-stock: SMTP del comercio o correo de plataforma);
+- pedidos y recuperación como colas propias: `vista=pago` acredita transferencia/
+  efectivo en la fila; Recuperación no promete email sin canal listo
+  (`recovery_email_channel_ready` para abandonados y back-in-stock);
 - analítica first-party mínima, disclosure legal, adquisición y embudo;
 - varias vitrinas por organización con exactamente una principal. Configuración,
   dominio, páginas, menú, pedidos, recuperación, reseñas, preguntas y analítica
