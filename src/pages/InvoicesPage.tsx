@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as QRCode from "qrcode";
+import FinancePageHeader from "@/components/finance/FinancePageHeader";
+import FinanceKPICard from "@/components/finance/FinanceKPICard";
+import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import {
   arcaQrUrl,
   condicionIvaLabel,

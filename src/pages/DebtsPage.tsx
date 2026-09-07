@@ -11,11 +11,11 @@ import { updateDebtDB } from "@/lib/supabaseStore";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import FinancePageHeader from "@/components/finance/FinancePageHeader";
+import FinanceKPICard from "@/components/finance/FinanceKPICard";
+import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 import { plural } from "@/lib/plural";
