@@ -3164,6 +3164,57 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_action_executions: {
+        Row: {
+          action_type: string
+          executed_at: string
+          flow_id: string
+          id: string
+          idempotency_key: string
+          org_id: string
+          resource_ids: string[]
+          resource_type: string | null
+          result: Json
+        }
+        Insert: {
+          action_type: string
+          executed_at?: string
+          flow_id: string
+          id?: string
+          idempotency_key: string
+          org_id: string
+          resource_ids?: string[]
+          resource_type?: string | null
+          result?: Json
+        }
+        Update: {
+          action_type?: string
+          executed_at?: string
+          flow_id?: string
+          id?: string
+          idempotency_key?: string
+          org_id?: string
+          resource_ids?: string[]
+          resource_type?: string | null
+          result?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_action_executions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_flows: {
         Row: {
           action_config: Json
@@ -53425,6 +53476,16 @@ export type Database = {
       }
       costo_unitario_ars: {
         Args: { p_org: string; p_product_id: string; p_variant_id?: string }
+        Returns: Json
+      }
+      create_automated_purchase_orders: {
+        Args: {
+          p_flow_id: string
+          p_org_id: string
+          p_product_ids: string[]
+          p_quantity: number
+          p_run_date?: string
+        }
         Returns: Json
       }
       create_sales_return_v1: {

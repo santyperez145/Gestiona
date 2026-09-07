@@ -1,7 +1,7 @@
 # Nerqia Intelligence — control plane operativo
 
-**Estado:** arquitectura aprobada; primer slice (búsqueda asistida de imágenes)
-implementado. **Corte:** 2026-09-05.
+**Estado:** arquitectura aprobada; búsqueda asistida de imágenes y prueba segura
+de automatizaciones implementadas. **Corte:** 2026-09-06.
 
 ## 1. Resultado
 
@@ -61,6 +61,25 @@ sin garantía de no ejecución.
 Cada organización tendrá kill switch, tope diario/mensual, ventanas horarias y
 modo `solo sugerencias`. Las automatizaciones empiezan en shadow mode y sólo
 suben de autonomía con precisión, aceptación, reversión y ahorro medidos.
+
+### Prueba segura antes de autonomía
+
+Como Shopify Flow, Nerqia permite evaluar una regla con datos reales sin
+ejecutar su acción. El servidor valida tenant, flujo y `marketing.edit`, permite
+probar reglas pausadas, devuelve sólo cantidad y cinco ejemplos, y corta antes
+de enviar mensajes, crear registros, escribir historial o actualizar la última
+ejecución. Los flujos creados manualmente o desde plantilla nacen pausados.
+
+La primera acción operativa endurecida es reposición: agrupa coincidencias por
+proveedor y moneda, crea orden e ítems en una sola transacción y registra una
+clave diaria por flujo. Un retry devuelve el recurso previo sin duplicarlo. Las
+reglas de deuda usan saldo pendiente y las tareas respetan prioridad/vencimiento
+del editor; fallos de lectura o escritura dejan de informarse como éxito.
+
+La IA futura podrá proponer disparador, condiciones y acciones como borrador,
+siguiendo el patrón de HubSpot, pero no recibirá permisos de escritura. Igual que
+la separación Manager/Worker de Odoo, el modelo decide sobre herramientas
+permitidas y el ejecutor determinístico conserva reglas, autorización y efectos.
 
 ## 5. Primeros agentes de producto
 
@@ -141,6 +160,9 @@ incidentes, costo por acción útil, productos publicables y margen protegido.
 ## Referencias oficiales
 
 - [Shopify Sidekick](https://help.shopify.com/en/manual/ai-powered-tools/sidekick)
+- [Shopify Flow — probar un workflow sin efectos](https://help.shopify.com/en/manual/shopify-flow/manage/test-workflow)
+- [HubSpot — workflows con IA, plantillas o desde cero](https://knowledge.hubspot.com/workflows/create-workflows)
+- [Odoo — AI Manager separado de herramientas ejecutoras](https://www.odoo.com/documentation/19.0/applications/productivity/ai/server-actions.html)
 - [Openverse API client y búsqueda](https://docs.openverse.org/packages/js/api_client/index.html)
 - [Advertencia de licencia de Openverse](https://docs.openverse.org/_preview/4707/api/reference/made_with_ov.html)
 - [Icecat para datos de producto](https://icecat.com/integrations/)

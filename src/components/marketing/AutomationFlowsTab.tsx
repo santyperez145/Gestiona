@@ -12,12 +12,14 @@ import {
   MessageCircle, Bell, Mail, Package,
   ClipboardList, Globe, Users, ShoppingBag, TrendingUp, AlertTriangle,
   History, RefreshCw, CheckCircle2, XCircle, SkipForward, Kanban, BarChart3,
+  FlaskConical,
 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
-import { plural } from "@/lib/plural";
+import { palabra, plural } from "@/lib/plural";
 import { whatsappCampaignChannelReady } from "@/lib/whatsappCampaignHonesty";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -196,16 +198,16 @@ const FLOW_TEMPLATES: {
     },
   },
   {
-    name: "Sin comprar 45 días → Email de reactivación",
+    name: "Sin comprar 45 días → Alerta por email",
     emoji: "✉️",
-    description: "Email cuando un cliente lleva 45 días sin comprar (SMTP plataforma)",
+    description: "Avisa a administradores qué clientes conviene reactivar",
     data: {
       trigger_type: "customer_inactive",
       trigger_config: { days: 45 },
       action_type: "email",
       action_config: {
-        subject: "Volvé cuando quieras",
-        message: "Hace un tiempo que no nos visitás. Tenemos novedades pensadas para vos.",
+        subject: "Clientes para reactivar",
+        message: "Hay clientes sin comprar hace 45 días. Revisá la lista y prepará una acción segmentada.",
       },
     },
   },
@@ -561,6 +563,15 @@ interface AutomationRun {
   ran_at: string;
 }
 
+interface AutomationPreview {
+  flow_id: string;
+  flow_name: string;
+  trigger_type: TriggerType;
+  action_type: ActionType;
+  matched_count: number;
+  sample: Array<{ label: string; detail: string | null }>;
+}
+
 export default function AutomationFlowsTab() {
   const { activeOrg } = useOrg();
   const { ask, dialog } = useConfirmDialog();
@@ -572,6 +583,8 @@ export default function AutomationFlowsTab() {
   const [runningFlowId, setRunningFlowId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [whatsappListo, setWhatsappListo] = useState<boolean | null>(null);
+  const [previewingFlowId, setPreviewingFlowId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<AutomationPreview | null>(null);
 
   const load = async () => {
     if (!activeOrg) return;
@@ -608,16 +621,38 @@ export default function AutomationFlowsTab() {
   const runFlowNow = async (flow: FlowRule) => {
     setRunningFlowId(flow.id);
     try {
-      const { error } = await supabase.functions.invoke("execute-automations", {
+      const { data, error } = await supabase.functions.invoke("execute-automations", {
         body: { org_id: activeOrg?.id, flow_id: flow.id },
       });
-      if (error) throw error;
-      toast.success(`Flujo "${flow.name}" ejecutado`);
+      if (error || data?.error || data?.ok === false) throw new Error(await mensajeDeEdgeFunction(error, data));
+      const result = data?.runs?.find((run: { flow_id?: string }) => run.flow_id === flow.id);
+      if (result?.status === "skipped") {
+        toast.info(result.message || `El flujo "${flow.name}" no encontró acciones nuevas.`);
+      } else {
+        toast.success(`Flujo "${flow.name}" ejecutado`);
+      }
       setTimeout(() => load(), 1500);
-    } catch {
-      toast.error("Error al ejecutar el flujo");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No pudimos ejecutar el flujo.");
     }
     setRunningFlowId(null);
+  };
+
+  const previewFlow = async (flow: FlowRule) => {
+    if (!activeOrg) return;
+    setPreviewingFlowId(flow.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("execute-automations", {
+        body: { org_id: activeOrg.id, flow_id: flow.id, mode: "preview" },
+      });
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
+      if (!data?.preview) throw new Error("La prueba no devolvió un resultado. Intentá nuevamente.");
+      setPreview(data.preview as AutomationPreview);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No pudimos probar la automatización.");
+    } finally {
+      setPreviewingFlowId(null);
+    }
   };
 
   const handleSave = async (data: any) => {
@@ -627,16 +662,20 @@ export default function AutomationFlowsTab() {
       if (error) { toast.error(error.message); return; }
       toast.success("Flujo actualizado");
     } else {
-      const { error } = await supabase.from("automation_flows").insert({ ...data, org_id: activeOrg.id, active: true });
+      const { error } = await supabase.from("automation_flows").insert({ ...data, org_id: activeOrg.id, active: false });
       if (error) { toast.error(error.message); return; }
-      toast.success("Flujo creado");
+      toast.success("Flujo creado en pausa. Probalo antes de activarlo.");
     }
     setEditingFlow(null);
     await load();
   };
 
   const toggleActive = async (flow: FlowRule) => {
-    await supabase.from("automation_flows").update({ active: !flow.active }).eq("id", flow.id);
+    const { error } = await supabase.from("automation_flows").update({ active: !flow.active }).eq("id", flow.id);
+    if (error) {
+      toast.error("No pudimos cambiar el estado de la automatización.");
+      return;
+    }
     await load();
     toast.success(flow.active ? "Flujo pausado" : "Flujo activado");
   };
@@ -646,7 +685,11 @@ export default function AutomationFlowsTab() {
       title: "¿Eliminar este flujo?",
       confirmText: "Eliminar",
     }))) return;
-    await supabase.from("automation_flows").delete().eq("id", id);
+    const { error } = await supabase.from("automation_flows").delete().eq("id", id);
+    if (error) {
+      toast.error("No pudimos eliminar la automatización.");
+      return;
+    }
     await load();
     toast.success("Flujo eliminado");
   };
@@ -674,11 +717,18 @@ export default function AutomationFlowsTab() {
             onClick={async () => {
               setRunningFlowId("__all__");
               try {
-                const { error } = await supabase.functions.invoke("execute-automations", { body: { org_id: activeOrg?.id } });
-                if (error) throw error;
-                toast.success("Todos los flujos ejecutados");
+                const { data, error } = await supabase.functions.invoke("execute-automations", { body: { org_id: activeOrg?.id } });
+                if (error || data?.error || data?.ok === false) throw new Error(await mensajeDeEdgeFunction(error, data));
+                const actions = (data?.runs ?? []).reduce(
+                  (total: number, run: { actions_taken?: number }) => total + Number(run.actions_taken ?? 0),
+                  0,
+                );
+                if (actions === 0) toast.info("Flujos revisados: no había acciones nuevas para realizar.");
+                else toast.success(`${actions} ${palabra(actions, "acción realizada", "acciones realizadas")}`);
                 setTimeout(() => load(), 1500);
-              } catch { toast.error("Error al ejecutar flujos"); }
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "No pudimos ejecutar las automatizaciones.");
+              }
               setRunningFlowId(null);
             }}>
             {runningFlowId === "__all__" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
@@ -703,6 +753,19 @@ export default function AutomationFlowsTab() {
           sub={`${successRuns}/${totalRuns} exitosas`} />
       </div>
 
+      <div className="flex flex-col gap-3 rounded-xl border border-sky-500/25 bg-sky-500/[0.06] p-4 sm:flex-row sm:items-center">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-300">
+          <FlaskConical className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">Probá antes de activar</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            La prueba usa datos actuales para mostrar coincidencias, pero no envía mensajes, no crea tareas y no modifica el negocio.
+          </p>
+        </div>
+        <Badge variant="outline" className="w-fit border-sky-500/30 text-sky-700 dark:text-sky-300">Sin efectos</Badge>
+      </div>
+
       {/* Template gallery */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Plantillas sugeridas</p>
@@ -718,7 +781,7 @@ export default function AutomationFlowsTab() {
                 size="sm"
                 variant="outline"
                 className="h-7 text-[10px] px-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => handleSave(tpl.data)}
+                onClick={() => handleSave({ name: tpl.name, ...tpl.data })}
               >
                 <Plus className="w-3 h-3 mr-1" />Crear
               </Button>
@@ -765,6 +828,19 @@ export default function AutomationFlowsTab() {
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void previewFlow(flow)}
+                    disabled={previewingFlowId === flow.id}
+                    title="Probar sin ejecutar"
+                    aria-label={`Probar ${flow.name} sin ejecutar acciones`}
+                    className="text-sky-600 dark:text-sky-300"
+                  >
+                    {previewingFlowId === flow.id
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : <FlaskConical className="w-3.5 h-3.5" />}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -893,6 +969,67 @@ export default function AutomationFlowsTab() {
           )}
         </div>
       )}
+
+      <Dialog open={preview !== null} onOpenChange={(open) => { if (!open) setPreview(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5 text-sky-600 dark:text-sky-300" />
+              Prueba segura
+            </DialogTitle>
+          </DialogHeader>
+          {preview && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+                <p className="text-sm font-semibold">{preview.flow_name}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline">Cuando: {TRIGGER_LABELS[preview.trigger_type]}</Badge>
+                  <span>→</span>
+                  <Badge variant="outline">Haría: {ACTION_LABELS[preview.action_type]}</Badge>
+                </div>
+              </div>
+
+              <div className={`rounded-xl border p-4 ${preview.matched_count > 0 ? "border-emerald-500/25 bg-emerald-500/[0.06]" : "border-border bg-muted/15"}`}>
+                <p className="text-2xl font-bold tabular-nums">{preview.matched_count}</p>
+                <p className="text-sm font-medium">
+                  {palabra(preview.matched_count, "coincidencia", "coincidencias")} con los datos actuales
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {preview.matched_count > 0
+                    ? "Si lo ejecutaras ahora, la acción alcanzaría estas coincidencias, sujeta a deduplicación y disponibilidad del canal."
+                    : "No se ejecutaría ninguna acción con la configuración y los datos actuales."}
+                </p>
+              </div>
+
+              {preview.sample.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ejemplos detectados</p>
+                  <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/70">
+                    {preview.sample.map((item, index) => (
+                      <div key={`${item.label}-${index}`} className="flex items-center justify-between gap-3 bg-card px-4 py-3 text-sm">
+                        <span className="min-w-0 truncate font-medium">{item.label}</span>
+                        {item.detail && <span className="shrink-0 text-xs text-muted-foreground">{item.detail}</span>}
+                      </div>
+                    ))}
+                  </div>
+                  {preview.matched_count > preview.sample.length && (
+                    <p className="mt-2 text-xs text-muted-foreground">Se muestran 5 de {preview.matched_count} coincidencias.</p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-start gap-2 rounded-lg border border-sky-500/20 bg-sky-500/[0.05] p-3 text-xs text-muted-foreground">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                Esta prueba no envió emails ni WhatsApp, no creó tareas u órdenes y no actualizó el historial de ejecuciones.
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={() => setPreview(null)}>Entendido</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Form dialog */}
       <Dialog open={showForm} onOpenChange={(v) => { setShowForm(v); if (!v) setEditingFlow(null); }}>

@@ -205,9 +205,8 @@ exige firma y el portal Stripe heredado responde como retirado.
   modal de vendedor que coexiste con ella. El POS también prueba seis anchos,
   categorías derivadas del catálogo real, organización sin sucursal, cola
   offline y sincronización parcial sin escribir en producción;
-- Proveedores/Pagos ya no es un placeholder: presenta hasta 500 movimientos
-  persistidos, total real, proveedor, concepto, método, filtros y error
-  recuperable sin duplicar Compras ni Finance;
+- Proveedores/Pagos ya no es un placeholder: presenta hasta 500 movimientos persistidos, total real, proveedor, concepto, método, filtros y error recuperable sin duplicar Compras ni Finance;
+- Automatizaciones adopta la prueba previa de Shopify Flow: cada flujo nuevo nace pausado y evalúa datos reales mostrando cantidad/cinco ejemplos sin efectos; el servidor valida tenant/permiso, alinea deudas y tareas con su contrato vigente y crea borradores de compra atómicos, por proveedor/moneda e idempotentes. Próximos: condiciones compuestas, versiones/retry y constructor IA sólo como borrador;
 - registrar un pago a proveedor dejó de depender de dos escrituras del
   navegador: la RPC `record_supplier_payment` bloquea la deuda, valida tenant y
   permiso de Compras, impide sobrepagos y actualiza pago/saldo en una única

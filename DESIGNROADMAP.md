@@ -78,6 +78,11 @@ audita como página propia y el editor de Tienda conserva únicamente publicaci�
 catálogo visible, contenido, diseño, pagos y envíos. Esto evita que un test viejo
 obligue a reconstruir duplicaciones que el producto ya retiró.
 
+El editor de automatizaciones suma una prueba segura visible: distingue probar
+de ejecutar, presenta impacto y ejemplos en un modal legible, explica qué no se
+modificó y mantiene los flujos nuevos pausados hasta la activación consciente.
+La ejecución comunica por separado éxito, ausencia de acciones y fallo real.
+
 El POS conserva el buscador montado detrás del prompt opcional de vendedor. El
 contrato visual reconoce esa superposición deliberada y valida primero la
 superficie o el guard de permisos, luego resuelve el prompt; así una pantalla
