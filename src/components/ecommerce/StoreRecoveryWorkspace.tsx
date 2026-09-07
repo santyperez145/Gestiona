@@ -7,7 +7,6 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import AbandonedCartsPanel from "@/components/ecommerce/AbandonedCartsPanel";
 import StockAlertsPanel from "@/components/ecommerce/StockAlertsPanel";
@@ -160,28 +159,24 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <Button
+    <div className="commerce-recovery space-y-4">
+      <div className="commerce-orders-views flex flex-wrap gap-1.5" role="tablist" aria-label="Colas de recuperación">
+        <button
           type="button"
-          size="sm"
-          variant={vista === "abandonados" ? "default" : "outline"}
-          className="min-h-11"
+          className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold ${vista === "abandonados" ? "is-active" : ""}`}
           onClick={() => setVista("abandonados")}
         >
           Carritos abandonados
           {abandonedCarts > 0 ? ` (${abandonedCarts})` : ""}
-        </Button>
-        <Button
+        </button>
+        <button
           type="button"
-          size="sm"
-          variant={vista === "reposicion" ? "default" : "outline"}
-          className="min-h-11"
+          className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold ${vista === "reposicion" ? "is-active" : ""}`}
           onClick={() => setVista("reposicion")}
         >
           Avisos de reposición
           {stockAlertsPending > 0 ? ` (${stockAlertsPending})` : ""}
-        </Button>
+        </button>
       </div>
       {vista === "reposicion" ? (
         <StockAlertsPanel

@@ -971,28 +971,47 @@
   }
 
   /* Admin de Tienda online — chrome Commerce, tabs densas. */
-  .workspace-ecommerce .flex.flex-wrap.gap-1.bg-muted\/30 {
-    border: 1px solid hsl(var(--border) / 0.9);
-    background: hsl(var(--card));
-    box-shadow: var(--shadow-card);
-    border-radius: 10px;
-    padding: 0.4rem;
+  .commerce-store-tabs {
+    border-bottom: 1px solid hsl(var(--border) / 0.75);
+    padding-bottom: 0.1rem;
   }
 
-  .workspace-ecommerce .flex.flex-wrap.gap-1.bg-muted\/30 > button {
-    border-radius: 7px;
-    min-height: 2.55rem;
-    font-family: var(--font-body);
-    font-weight: 600;
+  .commerce-store-tab {
+    position: relative;
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    letter-spacing: -0.01em;
+  }
+
+  .commerce-store-tab:hover {
+    color: hsl(var(--foreground));
+  }
+
+  .commerce-store-tab.is-active {
+    color: hsl(var(--primary));
+  }
+
+  .commerce-store-tab.is-active::after {
+    content: "";
+    position: absolute;
+    left: 0.65rem;
+    right: 0.65rem;
+    bottom: 0;
+    height: 2px;
+    background: hsl(var(--primary));
   }
 
   .workspace-ecommerce .page-header__title {
     letter-spacing: -0.04em;
   }
 
+  .workspace-ecommerce .rounded-xl {
+    border-radius: 2px;
+  }
+
   .workspace-ecommerce > .design-surface,
   .workspace-ecommerce .design-surface {
-    border-radius: 12px;
+    border-radius: 2px;
   }
 
   .workspace-sidebar {
