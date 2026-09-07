@@ -51,7 +51,7 @@ const PAYMENT_METHODS = [
 const PAYMENT_BADGE: Record<string, string> = {
   efectivo: 'bg-emerald-500/15 text-emerald-400',
   transferencia: 'bg-blue-500/15 text-blue-400',
-  mayorista: 'bg-purple-500/15 text-purple-400',
+  mayorista: 'bg-primary/15 text-primary',
   debito: 'bg-primary/15 text-primary',
   credito: 'bg-yellow-500/15 text-yellow-400',
   fiado: 'bg-destructive/15 text-destructive',
@@ -1044,7 +1044,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                         className={`h-full rounded-full transition-all ${
                           method === 'efectivo' ? 'bg-green-400' :
                           method === 'transferencia' ? 'bg-blue-400' :
-                          method === 'mayorista' ? 'bg-purple-400' :
+                          method === 'mayorista' ? 'bg-primary' :
                           method === 'debito' ? 'bg-primary' :
                           method === 'credito' ? 'bg-yellow-400' : 'bg-red-400'
                         }`}

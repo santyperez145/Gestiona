@@ -701,7 +701,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader
         icon={Building2}
-        eyebrow="Nerqia / Configuración"
+        eyebrow="Commerce · Configuración"
         title="Ajustes"
         description="Cargando la configuración de tu organización..."
       />
@@ -713,9 +713,9 @@ export default function SettingsPage() {
     <div className="pb-12">
       <PageHeader
         icon={Building2}
-        eyebrow="Nerqia / Configuración"
+        eyebrow="Commerce · Configuración"
         title="Ajustes"
-        description={`Configuración general de ${businessName}`}
+        description={`Identidad, cobros y operación de ${businessName} — misma verdad que la tienda.`}
         actions={(
           <div className="workspace-shortcut-hint hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
             <Keyboard className="w-3 h-3" />Ctrl+K búsqueda rápida

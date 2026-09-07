@@ -21,12 +21,13 @@ const colorMap: Record<ColorVariant, {
   value:  string;   // value text color
   glow:   string;   // hover glow class
 }> = {
-  primary:     { bar: "bg-primary",     icon: "text-primary",     value: "text-primary",     glow: "hover:shadow-[0_0_32px_-4px_hsl(38_82%_52%/0.2)]" },
+  primary:     { bar: "bg-primary",     icon: "text-primary",     value: "text-primary",     glow: "hover:shadow-[0_0_32px_-4px_hsl(230_87%_51%/0.22)]" },
   success:     { bar: "bg-emerald-500", icon: "text-emerald-400", value: "text-emerald-400", glow: "hover:shadow-[0_0_32px_-4px_hsl(160_60%_50%/0.2)]" },
   destructive: { bar: "bg-destructive", icon: "text-destructive", value: "text-destructive", glow: "hover:shadow-[0_0_32px_-4px_hsl(0_68%_50%/0.2)]" },
   warning:     { bar: "bg-yellow-500",  icon: "text-yellow-400",  value: "text-yellow-400",  glow: "hover:shadow-[0_0_32px_-4px_hsl(48_96%_53%/0.2)]" },
   blue:        { bar: "bg-blue-500",    icon: "text-blue-400",    value: "text-blue-400",    glow: "hover:shadow-[0_0_32px_-4px_hsl(210_90%_60%/0.2)]" },
-  purple:      { bar: "bg-violet-500",  icon: "text-violet-400",  value: "text-violet-400",  glow: "hover:shadow-[0_0_32px_-4px_hsl(265_85%_65%/0.2)]" },
+  /* Alias legacy: violeta genérico → cobalto Commerce OS */
+  purple:      { bar: "bg-primary",     icon: "text-primary",     value: "text-primary",     glow: "hover:shadow-[0_0_32px_-4px_hsl(230_87%_51%/0.22)]" },
 };
 
 export default function KPICard({

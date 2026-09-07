@@ -809,8 +809,8 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                 color="#a78bfa"
               />
               <p className="text-sm text-white/45 mb-5 leading-relaxed">
-                Llevá <span className="font-bold text-violet-300">{fullSettings.volume_discount_threshold}+ unidades</span> y obtené{" "}
-                <span className="font-bold text-violet-300">{fullSettings.volume_discount_percent}% OFF</span> sobre el precio de contado
+                Llevá <span className="font-bold text-primary">{fullSettings.volume_discount_threshold}+ unidades</span> y obtené{" "}
+                <span className="font-bold text-primary">{fullSettings.volume_discount_percent}% OFF</span> sobre el precio de contado
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {products.filter((pr) => Number(pr.discount_price_ars || pr.sale_price_ars) > 0).slice(0, 9).map((pr) => {
@@ -822,7 +822,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                         <p className="text-xs font-bold text-white/75 truncate">{pr.name}</p>
                         <div className="flex items-baseline gap-2 mt-0.5">
                           <span className="text-[10px] text-white/30 line-through">{fmtARS(base)}</span>
-                          <span className="text-sm font-black text-violet-300">{fmtARS(wholesale)}</span>
+                          <span className="text-sm font-black text-primary">{fmtARS(wholesale)}</span>
                         </div>
                         <p className="text-[9px] font-semibold text-emerald-400 mt-0.5">Ahorrás {fmtARS(base - wholesale)}/u</p>
                       </div>
@@ -1174,7 +1174,7 @@ function ProductCard({
                 </p>
               )}
               {volThreshold > 0 && volPercent > 0 && (
-                <p className="text-[9px] font-semibold text-violet-400 flex items-center gap-0.5">
+                <p className="text-[9px] font-semibold text-primary flex items-center gap-0.5">
                   <Users className="w-2.5 h-2.5" />{volThreshold}+ = -{volPercent}% OFF
                 </p>
               )}

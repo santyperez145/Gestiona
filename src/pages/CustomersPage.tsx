@@ -122,7 +122,7 @@ function getSegment(c: CustomerData): { label: string; color: string } {
   const isHighValue = c.totalSpent >= 100000;
 
   if (isHighValue && isFrequent && isRecent) return { label: "VIP", color: "bg-yellow-500/20 text-yellow-400" };
-  if (isHighValue && isRecent) return { label: "Premium", color: "bg-purple-500/20 text-purple-400" };
+  if (isHighValue && isRecent) return { label: "Premium", color: "bg-primary/20 text-primary" };
   if (isFrequent && isRecent) return { label: "Frecuente", color: "bg-blue-500/20 text-blue-400" };
   if (isRecent) return { label: "Activo", color: "bg-green-500/20 text-green-400" };
   if (daysSince <= 60) return { label: "En riesgo", color: "bg-orange-500/20 text-orange-400" };
@@ -573,7 +573,7 @@ const PAY_COLOR: Record<string, string> = {
   transferencia: "text-blue-400",
   debito:        "text-primary",
   credito:       "text-yellow-400",
-  mayorista:     "text-purple-400",
+  mayorista:     "text-primary",
   fiado:         "text-destructive",
 };
 
@@ -2653,7 +2653,7 @@ export default function CustomersPage() {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: "Recency (R)", desc: "Cuándo compraron por última vez", key: "rScore" as const, color: "text-blue-400" },
-                  { label: "Frequency (F)", desc: "Con qué frecuencia compran", key: "fScore" as const, color: "text-purple-400" },
+                  { label: "Frequency (F)", desc: "Con qué frecuencia compran", key: "fScore" as const, color: "text-primary" },
                   { label: "Monetary (M)", desc: "Cuánto gastan en total", key: "mScore" as const, color: "text-green-400" },
                 ].map(dim => {
                   const dist = [1, 2, 3, 4, 5].map(s => rfmData.filter(c => c[dim.key] === s).length);
@@ -2691,7 +2691,7 @@ export default function CustomersPage() {
                       <th className="text-left py-1.5 pr-3 font-medium">Cliente</th>
                       <th className="text-left py-1.5 pr-3 font-medium">Segmento</th>
                       <th className="text-center py-1.5 pr-2 font-medium text-blue-400">R</th>
-                      <th className="text-center py-1.5 pr-2 font-medium text-purple-400">F</th>
+                      <th className="text-center py-1.5 pr-2 font-medium text-primary">F</th>
                       <th className="text-center py-1.5 pr-2 font-medium text-green-400">M</th>
                       <th className="text-center py-1.5 pr-3 font-medium">RFM</th>
                       <th className="text-right py-1.5 font-medium">Facturación</th>
@@ -2703,7 +2703,7 @@ export default function CustomersPage() {
                         <td className="py-1.5 pr-3 font-medium truncate max-w-[120px]">{c.name}</td>
                         <td className="py-1.5 pr-3"><span className={`px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${c.segmentColor}`}>{c.segment}</span></td>
                         <td className="text-center py-1.5 pr-2"><span className={`font-bold ${c.rScore >= 4 ? "text-blue-400" : c.rScore <= 2 ? "text-red-400" : "text-muted-foreground"}`}>{c.rScore}</span></td>
-                        <td className="text-center py-1.5 pr-2"><span className={`font-bold ${c.fScore >= 4 ? "text-purple-400" : c.fScore <= 2 ? "text-red-400" : "text-muted-foreground"}`}>{c.fScore}</span></td>
+                        <td className="text-center py-1.5 pr-2"><span className={`font-bold ${c.fScore >= 4 ? "text-primary" : c.fScore <= 2 ? "text-red-400" : "text-muted-foreground"}`}>{c.fScore}</span></td>
                         <td className="text-center py-1.5 pr-2"><span className={`font-bold ${c.mScore >= 4 ? "text-green-400" : c.mScore <= 2 ? "text-red-400" : "text-muted-foreground"}`}>{c.mScore}</span></td>
                         <td className="text-center py-1.5 pr-3">
                           <span className={`font-bold text-sm ${c.rfmScore >= 12 ? "text-green-400" : c.rfmScore >= 8 ? "text-yellow-400" : "text-red-400"}`}>{c.rfmScore}</span>
@@ -3713,7 +3713,7 @@ export default function CustomersPage() {
                             : "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
 
                           return (
-                            <div className="bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/20 rounded-xl p-3 space-y-2">
+                            <div className="bg-gradient-to-br from-primary/5 to-primary/5 border border-primary/20 rounded-xl p-3 space-y-2">
                               <div className="flex items-center gap-2 mb-1">
                                 <TrendingUp className="w-3.5 h-3.5 text-primary" />
                                 <span className="text-xs font-semibold uppercase tracking-wider text-primary/80">CLV — Valor vitalicio proyectado</span>

@@ -497,8 +497,9 @@ export default function EmailCampaignsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Mail}
+        eyebrow="Commerce · Recuperación"
         title="Email Marketing"
-        description="Campañas dirigidas a tus clientes con email registrado"
+        description="Campañas a compradores con email — recuperación y aviso, no otro CRM."
         badge={
           campaigns.filter(c => c.status === "sent").length > 0
             ? { label: `${campaigns.filter(c => c.status === "sent").length} enviadas`, variant: "success" }
@@ -633,7 +634,7 @@ export default function EmailCampaignsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       {camp.subject.startsWith("[A] ") || camp.subject.startsWith("[B] ") ? (
                         <>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${camp.subject.startsWith("[A]") ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${camp.subject.startsWith("[A]") ? "bg-primary/20 text-primary" : "bg-blue-500/20 text-blue-400"}`}>
                             {camp.subject.startsWith("[A]") ? "A/B — A" : "A/B — B"}
                           </span>
                           <span className="font-semibold truncate">{camp.subject.replace(/^\[A\] |\[B\] /, "")}</span>
@@ -841,7 +842,7 @@ export default function EmailCampaignsPage() {
             </div>
             {/* A/B Test toggle */}
             <div className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/20">
-              <FlaskConical className="w-4 h-4 text-purple-400 shrink-0" />
+              <FlaskConical className="w-4 h-4 text-primary shrink-0" />
               <div className="flex-1">
                 <p className="text-xs font-semibold">Test A/B de asunto</p>
                 <p className="text-[10px] text-muted-foreground">Crea dos versiones con distinto asunto para comparar tasas de apertura</p>
@@ -849,7 +850,7 @@ export default function EmailCampaignsPage() {
               <button
                 type="button"
                 onClick={() => setAbMode(v => !v)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${abMode ? 'bg-purple-500' : 'bg-muted'}`}
+                className={`relative w-11 h-6 rounded-full transition-colors ${abMode ? 'bg-primary' : 'bg-muted'}`}
               >
                 <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${abMode ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>

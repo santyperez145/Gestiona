@@ -189,8 +189,9 @@ export default function TeamPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users}
+        eyebrow="Commerce · Operación"
         title="Equipo"
-        description="Invitá colaboradores y gestioná roles."
+        description="Roles para tienda, mostrador y pedidos — sin diluir el Business Core."
       />
 
       {inviteEmailError && (

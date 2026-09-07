@@ -25,7 +25,7 @@ import { enlaceInfluencerConRef } from '@/lib/storeFirstPublish';
 const TIER_COLORS: Record<string, string> = {
   nano: 'bg-zinc-500/20 text-zinc-300',
   micro: 'bg-blue-500/20 text-blue-300',
-  medio: 'bg-purple-500/20 text-purple-300',
+  medio: 'bg-primary/20 text-primary',
   macro: 'bg-amber-500/20 text-amber-300',
 };
 

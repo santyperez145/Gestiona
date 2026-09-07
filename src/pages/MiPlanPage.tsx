@@ -222,8 +222,9 @@ export default function MiPlanPage() {
     <div className="workspace-page space-y-5">
       <PageHeader
         icon={CreditCard}
+        eyebrow="Commerce · Suscripción"
         title="Mi plan"
-        description="Tu suscripción a Nerqia. Se cobra por MercadoPago."
+        description="Límites de tienda y cobro por MercadoPago — sin inventar precios."
         badge={{ label: badge.texto }}
       />
 

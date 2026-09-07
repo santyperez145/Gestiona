@@ -12,8 +12,9 @@ export default function SupportPage() {
     <div className="workspace-page space-y-5">
       <PageHeader
         icon={Headphones}
+        eyebrow="Nerqia · Ayuda"
         title="Soporte"
-        description="Conversá con el equipo de Nerqia y seguí cada respuesta sin salir de tu organización."
+        description="Canal seguro con el equipo: estado, responsable e historial en tu organización."
         badge={{ label: "Canal seguro", variant: "success" }}
       />
 

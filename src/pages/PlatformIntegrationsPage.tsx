@@ -207,7 +207,7 @@ export default function PlatformIntegrationsPage() {
               return (
                 <div key={row.id} className="grid lg:grid-cols-[minmax(220px,1.4fr)_140px_170px_170px_minmax(180px,1fr)] gap-4 px-4 sm:px-5 py-4 hover:bg-muted/15 transition-colors">
                   <div className="flex items-start gap-3 min-w-0">
-                    <span className="w-9 h-9 rounded-[8px] bg-violet-500/10 border border-violet-500/15 text-violet-300 flex items-center justify-center shrink-0">
+                    <span className="w-9 h-9 rounded-[8px] bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
                       <CategoryIcon className="w-4 h-4" />
                     </span>
                     <div className="min-w-0">

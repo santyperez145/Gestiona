@@ -291,25 +291,25 @@ export default function PlatformMetricsPage() {
 
       <Tabs value={tab} onValueChange={value => setTab(value as typeof tab)}>
         <TabsList className="w-full justify-start overflow-x-auto bg-transparent p-0 border-b border-border rounded-none">
-          <TabsTrigger value="funnel" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Funnel de activación</TabsTrigger>
-          <TabsTrigger value="health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Salud por organización</TabsTrigger>
-          <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Cohortes de activación</TabsTrigger>
-          <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Canales</TabsTrigger>
-          <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Inventario</TabsTrigger>
-          <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Recomendaciones IA</TabsTrigger>
-          <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Riesgo</TabsTrigger>
-          <TabsTrigger value="operations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Operación</TabsTrigger>
+          <TabsTrigger value="funnel" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Funnel de activación</TabsTrigger>
+          <TabsTrigger value="health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Salud por organización</TabsTrigger>
+          <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Cohortes de activación</TabsTrigger>
+          <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Canales</TabsTrigger>
+          <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Inventario</TabsTrigger>
+          <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Recomendaciones IA</TabsTrigger>
+          <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Riesgo</TabsTrigger>
+          <TabsTrigger value="operations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Operación</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funnel" className="mt-5 space-y-5">
           <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
             <section className="rounded-[10px] border border-border/60 bg-card p-5">
               <div className="mb-5 flex items-start gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10"><Activity className="h-4 w-4 text-violet-400" /></div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"><Activity className="h-4 w-4 text-primary" /></div>
                 <div><h2 className="font-semibold">Camino de activación</h2><p className="mt-1 text-xs text-muted-foreground">Cada paso se calcula sobre las organizaciones que existen hoy.</p></div>
               </div>
               <div className="space-y-5">
-                <FunnelStep label="Alta completada" value={metrics.totalOrganizations} total={metrics.totalOrganizations} tone="bg-violet-500" />
+                <FunnelStep label="Alta completada" value={metrics.totalOrganizations} total={metrics.totalOrganizations} tone="bg-primary" />
                 <FunnelStep label="Onboarding terminado" value={metrics.onboardedOrganizations} total={metrics.totalOrganizations} tone="bg-indigo-500" />
                 <FunnelStep label="Catálogo con productos" value={metrics.catalogReadyOrganizations} total={metrics.totalOrganizations} tone="bg-blue-500" />
                 <FunnelStep label="Tienda activa" value={metrics.storeReadyOrganizations} total={metrics.totalOrganizations} tone="bg-cyan-500" />
@@ -337,8 +337,8 @@ export default function PlatformMetricsPage() {
             </section>
           </div>
 
-          <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
-            <p className="font-semibold text-violet-200">Instrumentación disponible</p>
+          <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
+            <p className="font-semibold text-slate-200">Instrumentación disponible</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">G1, GMV, onboarding, primera venta, publicación instrumentada, adopción por canal y precisión de inventario se calculan desde datos reales. El AI Action Rate mide el recomendador de ofertas persistido: una acción sólo cuenta cuando la base aplica el cambio.</p>
           </section>
         </TabsContent>
@@ -386,8 +386,8 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Ayuda por alta" value={cohortSummary.averageSupportMinutesPerEligibleOrg == null ? "Sin base" : `${cohortSummary.averageSupportMinutesPerEligibleOrg} min`} icon={Clock3} color="warning" sub={`${cohortSummary.interventionMinutes} minutos medidos`} />
               </div>
 
-              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
-                <p className="font-semibold text-violet-200">Conversión y costo con denominadores honestos</p>
+              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
+                <p className="font-semibold text-slate-200">Conversión y costo con denominadores honestos</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Activar significa vender en el canal elegido, no terminar el formulario. Las tasas de 7/14/30 días excluyen altas que todavía no cumplieron esa edad. Autoservicio y minutos empiezan en el watermark de instrumentación: la historia anterior queda como “sin base”, no como ayuda cero.</p>
               </section>
 
@@ -445,8 +445,8 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Stock negativo" value={stockMetrics.negativeStockProducts} icon={AlertTriangle} color={stockMetrics.negativeStockProducts > 0 ? "destructive" : "success"} sub="invariante que debe quedar en cero" />
               </div>
 
-              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><PackageCheck className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">La plataforma mide evidencia, no supuestos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">El porcentaje compara el ultimo asiento del Kardex con el stock actual. Los productos sin movimiento quedan visibles como no medidos; las variantes se contrastan contra su propio Kardex y contra el total del producto padre.</p></div></div>
+              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><PackageCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-slate-200">La plataforma mide evidencia, no supuestos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">El porcentaje compara el ultimo asiento del Kardex con el stock actual. Los productos sin movimiento quedan visibles como no medidos; las variantes se contrastan contra su propio Kardex y contra el total del producto padre.</p></div></div>
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
@@ -487,7 +487,7 @@ export default function PlatformMetricsPage() {
 
               <section className="grid gap-4 lg:grid-cols-2">
                 <div className="rounded-[10px] border border-border/60 bg-card p-5">
-                  <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10"><Store className="h-4 w-4 text-violet-400" /></div><div><h2 className="font-semibold">Tiempo a vender</h2><p className="mt-1 text-xs text-muted-foreground">La primera venta toma el evento más temprano entre POS y tienda. Sólo las fechas reales entran en el promedio.</p></div></div>
+                  <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"><Store className="h-4 w-4 text-primary" /></div><div><h2 className="font-semibold">Tiempo a vender</h2><p className="mt-1 text-xs text-muted-foreground">La primera venta toma el evento más temprano entre POS y tienda. Sólo las fechas reales entran en el promedio.</p></div></div>
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div className="border-r border-border/50 pr-4"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Alta -&gt; publicar</p><p className="mt-1 text-xl font-semibold">{formatDays(channelMetrics.averageDaysToStorePublish, "Sin datos")}</p><p className="mt-1 text-[11px] text-muted-foreground">mediana {formatDays(channelMetrics.medianDaysToStorePublish, "Sin datos")}</p></div>
                     <div className="border-r border-border/50 pr-3"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Alta -&gt; primera venta</p><p className="mt-1 text-xl font-semibold">{formatDays(channelMetrics.averageDaysToFirstSale, "Sin datos")}</p><p className="mt-1 text-[11px] text-muted-foreground">mediana {formatDays(channelMetrics.medianDaysToFirstSale, "Sin datos")}</p></div>
@@ -499,7 +499,7 @@ export default function PlatformMetricsPage() {
                 <div className="rounded-[10px] border border-border/60 bg-card p-5">
                   <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10"><Activity className="h-4 w-4 text-emerald-400" /></div><div><h2 className="font-semibold">Adopcion por canal</h2><p className="mt-1 text-xs text-muted-foreground">Una organizacion cuenta como omnicanal cuando tiene al menos una venta POS y una orden online confirmada.</p></div></div>
                   <div className="space-y-4">
-                    <FunnelStep label="Publicacion instrumentada" value={channelMetrics.organizationsWithStorePublished} total={channelMetrics.totalOrganizations} tone="bg-violet-500" />
+                    <FunnelStep label="Publicacion instrumentada" value={channelMetrics.organizationsWithStorePublished} total={channelMetrics.totalOrganizations} tone="bg-primary" />
                     <FunnelStep label="Primera venta en cualquier canal" value={channelMetrics.activatedOrganizations} total={channelMetrics.totalOrganizations} tone="bg-teal-500" />
                     <FunnelStep label="Primera orden online" value={channelMetrics.organizationsWithOnline} total={channelMetrics.totalOrganizations} tone="bg-blue-500" />
                     <FunnelStep label="Venta POS" value={channelMetrics.organizationsWithPos} total={channelMetrics.totalOrganizations} tone="bg-emerald-500" />
@@ -544,8 +544,8 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Descartadas" value={aiActionMetrics.recommendationsDismissed} icon={AlertTriangle} color="destructive" sub="no cuentan como acción" />
               </div>
 
-              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">Acciones verificables, no engagement decorativo</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Este primer corte de G8 mide sólo recomendaciones de oferta guardadas. “Aplicada” significa que la base validó margen y precio, actualizó el producto y registró el evento. Chats, sugerencias no persistidas y descartes quedan fuera del numerador.</p></div></div>
+              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-slate-200">Acciones verificables, no engagement decorativo</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Este primer corte de G8 mide sólo recomendaciones de oferta guardadas. “Aplicada” significa que la base validó margen y precio, actualizó el producto y registró el evento. Chats, sugerencias no persistidas y descartes quedan fuera del numerador.</p></div></div>
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
@@ -583,8 +583,8 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Observaciones" value={riskSeriesMetrics.observations} icon={Clock3} color="blue" sub={riskSeriesMetrics.latest ? `desde ${formatSnapshotDate(riskSeriesMetrics.rows[0]?.snapshot_date || null)}` : "la serie empieza al medir"} />
               </div>
 
-              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">Historia capturada, no retrospectiva inventada</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La foto se toma todos los días a las 03:15 de Argentina. Riesgo suma organizaciones sin ventas tras haber cobrado, en caída fuerte o dormidas; `sin activar` se conserva fuera del total porque pide onboarding, no una acción de churn.</p></div></div>
+              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-slate-200">Historia capturada, no retrospectiva inventada</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La foto se toma todos los días a las 03:15 de Argentina. Riesgo suma organizaciones sin ventas tras haber cobrado, en caída fuerte o dormidas; `sin activar` se conserva fuera del total porque pide onboarding, no una acción de churn.</p></div></div>
               </section>
 
               <div className="rounded-[10px] border border-border/60 bg-card p-5">
@@ -693,8 +693,8 @@ export default function PlatformMetricsPage() {
                 )}
               </div>
 
-              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">Estado operativo sin exponer secretos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La vista sólo entrega nombre, horario, actividad, estado y conteos. No expone el comando del cron, mensajes de retorno ni cuerpos de respuestas HTTP. “Sin ejecuciones” informa un job nuevo; no se trata como falla porque un horario semanal puede ser correcto.</p></div></div>
+              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-slate-200">Estado operativo sin exponer secretos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La vista sólo entrega nombre, horario, actividad, estado y conteos. No expone el comando del cron, mensajes de retorno ni cuerpos de respuestas HTTP. “Sin ejecuciones” informa un job nuevo; no se trata como falla porque un horario semanal puede ser correcto.</p></div></div>
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">

@@ -138,7 +138,7 @@ export default function IntegrationsPage() {
         },
         stripe: {
           integration: "stripe", label: "Stripe",
-          icon: <ShieldCheck className="w-4 h-4 text-violet-400" />,
+          icon: <ShieldCheck className="w-4 h-4 text-primary" />,
           status: buildStatus("stripe"),
           lastSeen: fmtAge(latest.stripe?.created_at || null),
           message: latest.stripe?.message || null,

@@ -139,12 +139,12 @@ export default function PlatformOperationsPage() {
         <KPICard label="Sin avance" value={loading ? '—' : metrics.stalled} icon={Clock3} color={metrics.stalled > 0 ? 'warning' : 'success'} sub="procesos de entrega en pausa" />
       </div>
 
-      <section className="border border-violet-500/20 bg-violet-500/[0.04] rounded-[10px] p-4 text-sm">
+      <section className="border border-slate-500/25 bg-slate-500/[0.04] rounded-[10px] p-4 text-sm">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 w-4 h-4 shrink-0 text-violet-300" />
+          <ShieldCheck className="mt-0.5 w-4 h-4 shrink-0 text-primary" />
           <div>
-            <p className="font-semibold text-violet-100">Priorizar sin exponer datos sensibles</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">La cola no muestra payloads, destinos, IDs externos, montos ni errores crudos. Un reintento manual sólo existe para entregas descartadas y sólo para superadmin; nunca reintenta un cobro. Cada acción queda en <Link to="/platform/soporte" className="text-violet-300 hover:text-violet-200">la auditoría de soporte</Link>.</p>
+            <p className="font-semibold text-slate-100">Priorizar sin exponer datos sensibles</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">La cola no muestra payloads, destinos, IDs externos, montos ni errores crudos. Un reintento manual sólo existe para entregas descartadas y sólo para superadmin; nunca reintenta un cobro. Cada acción queda en <Link to="/platform/soporte" className="text-primary hover:text-slate-200">la auditoría de soporte</Link>.</p>
           </div>
         </div>
       </section>

@@ -690,7 +690,7 @@ export default function ExpensesPage() {
                       };
                       const METHOD_COLORS: Record<string, string> = {
                         efectivo: "text-green-400", transferencia: "text-blue-400",
-                        tarjeta_debito: "text-purple-400", tarjeta_credito: "text-yellow-400",
+                        tarjeta_debito: "text-primary", tarjeta_credito: "text-yellow-400",
                         mercadopago: "text-cyan-400", cheque: "text-orange-400", otro: "text-muted-foreground",
                       };
                       return (

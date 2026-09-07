@@ -1934,7 +1934,7 @@ const ACTION_COLORS: Record<string, string> = {
   delete: 'text-destructive bg-destructive/10',
   settings_change: 'text-yellow-400 bg-yellow-500/10',
   price_change: 'text-orange-400 bg-orange-500/10',
-  role_change: 'text-purple-400 bg-purple-500/10',
+  role_change: 'text-primary bg-primary/10',
 };
 
 function AuditTab() {

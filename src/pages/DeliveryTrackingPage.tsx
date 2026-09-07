@@ -70,7 +70,7 @@ const STATUS_CFG: Record<string, { label: string; cls: string; icon: typeof Cloc
   pending:           { label: "Pendiente",          cls: "bg-muted text-muted-foreground",         icon: Clock },
   assigned:          { label: "Asignado",           cls: "bg-blue-500/15 text-blue-400",           icon: Truck },
   picked_up:         { label: "Retirado",           cls: "bg-yellow-500/15 text-yellow-500",       icon: Package },
-  in_transit:        { label: "En tránsito",        cls: "bg-purple-500/15 text-purple-400",       icon: Navigation },
+  in_transit:        { label: "En tránsito",        cls: "bg-primary/15 text-primary",       icon: Navigation },
   out_for_delivery:  { label: "En camino",          cls: "bg-primary/15 text-primary",             icon: Truck },
   delivered:         { label: "Entregado",          cls: "bg-emerald-500/15 text-emerald-400",     icon: CheckCircle2 },
   failed:            { label: "Falló",              cls: "bg-destructive/15 text-destructive",     icon: XCircle },
