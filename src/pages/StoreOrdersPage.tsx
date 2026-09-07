@@ -160,10 +160,10 @@ export default function StoreOrdersPage() {
     : "/tienda-online";
 
   return (
-    <div className="space-y-6">
+    <div className="workspace-page workspace-orders space-y-6">
       <PageHeader
         icon={ShoppingBag}
-        eyebrow="Commerce · Operación"
+        eyebrow="Commerce · Cola"
         title="Pedidos"
         description="Cola de pedidos y recuperación: cobrar, despachar y recuperar GMV. Misma autoridad que el checkout público."
         actions={(

@@ -178,7 +178,7 @@ function ChurnRiskBadge({ risk }: { risk: number }) {
     : { color: "text-yellow-400 bg-yellow-400/15 border-yellow-400/30", label: "🟡" };
   return (
     <span
-      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border hidden sm:inline-flex items-center gap-0.5 ${color}`}
+      className={`px-2 py-0.5 text-[10px] font-bold border hidden sm:inline-flex items-center gap-0.5 ${color}`}
       title={`Riesgo de churn: ${risk}% — probabilidad de que este cliente deje de comprar`}
     >
       {label} {risk}% churn
@@ -199,7 +199,7 @@ function HealthScoreBadge({ score }: { score: number }) {
 
   return (
     <span
-      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${color}`}
+      className={`px-2 py-0.5 text-[10px] font-bold border ${color}`}
       title={`Score de salud: ${score}/100 (Recency + Frequency + Monetary)`}
     >
       {label} {score}
@@ -534,7 +534,7 @@ function CustomerFormModal({
 
         <SheetFooter>
           <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
-          <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
+          <Button className="flex-1 bg-primary text-primary-foreground gap-1.5 hover:bg-primary/90" onClick={handleSave} disabled={saving}>
             {saving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
             {initial?.id ? "Guardar cambios" : "Crear cliente"}
           </Button>
@@ -3147,7 +3147,7 @@ export default function CustomersPage() {
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setBulkNoteOpen(false)}>Cancelar</Button>
               <Button
-                className="flex-1 gradient-gold text-primary-foreground"
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                 disabled={!bulkNoteText.trim() || bulkNoteSaving}
                 onClick={async () => {
                   if (!user || !activeOrg || !bulkNoteText.trim()) return;
@@ -3256,7 +3256,7 @@ export default function CustomersPage() {
               <div className="flex gap-2 pt-1">
                 <Button variant="outline" className="flex-1" onClick={() => { setCsvPreviewOpen(false); setCsvPreview(null); }}>Cancelar</Button>
                 <Button
-                  className="flex-1 gradient-gold text-primary-foreground"
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                   disabled={importing || !Object.values(csvPreview.mapping).includes('name')}
                   onClick={handleCsvConfirmImport}
                 >
@@ -3300,7 +3300,7 @@ export default function CustomersPage() {
             return (
               <div
                 key={c.name}
-                className={`workspace-customer-row bg-card border rounded-lg shadow-card transition-all ${isExpanded ? "workspace-customer-row-expanded border-primary" : "border-border hover:border-primary/30"}`}
+                className={`workspace-customer-row border-b transition-colors ${isExpanded ? "workspace-customer-row-expanded" : "border-border/70"}`}
               >
                 {/* Main row */}
                 <div
@@ -3321,7 +3321,7 @@ export default function CustomersPage() {
                         }}
                         className="w-4 h-4 rounded shrink-0 accent-primary cursor-pointer"
                       />
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                      <div className="w-9 h-9 bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
                         {c.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
@@ -3353,29 +3353,29 @@ export default function CustomersPage() {
                     </div>
 
                     <div className="workspace-customer-row__relationship">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.segmentColor}`}>{c.segment}</span>
+                      <span className={`px-2 py-0.5 text-[10px] font-semibold border ${c.segmentColor}`}>{c.segment}</span>
                       <ChurnRiskBadge risk={c.churnRisk} />
                       {c.birthday && bdayInRange(c.birthday, 'this_week') && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-pink-500/20 text-pink-400 hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>🎂 Esta semana</span>
+                        <span className="px-2 py-0.5 text-[10px] font-semibold border border-border text-muted-foreground hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>Cumple esta semana</span>
                       )}
                       {c.birthday && !bdayInRange(c.birthday, 'this_week') && bdayInRange(c.birthday, 'this_month') && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-pink-500/10 text-pink-300 hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>🎂 Este mes</span>
+                        <span className="px-2 py-0.5 text-[10px] font-semibold border border-border text-muted-foreground hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>Cumple este mes</span>
                       )}
                       {c.purchaseCount > 0 && (() => {
                         const firstPurchaseDate = new Date(c.firstPurchase);
                         const daysSince = Math.floor((Date.now() - firstPurchaseDate.getTime()) / 86400000);
                         return daysSince <= 30 ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 hidden sm:inline-flex items-center gap-0.5" title={`Primera compra: ${firstPurchaseDate.toLocaleDateString('es-AR')}`}>✨ Nuevo</span>
+                          <span className="px-2 py-0.5 text-[10px] font-semibold border border-emerald-500/25 text-emerald-600 hidden sm:inline-flex items-center gap-0.5" title={`Primera compra: ${firstPurchaseDate.toLocaleDateString('es-AR')}`}>Nuevo</span>
                         ) : null;
                       })()}
                       {c.purchaseCount > 0 && c.daysSinceLastPurchase >= 60 && c.daysSinceLastPurchase < 999 && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold hidden sm:inline-flex items-center gap-0.5 ${c.daysSinceLastPurchase >= 90 ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}
+                        <span className={`px-2 py-0.5 text-[10px] font-semibold hidden sm:inline-flex items-center gap-0.5 border ${c.daysSinceLastPurchase >= 90 ? 'border-red-500/20 text-red-400' : 'border-orange-500/20 text-orange-400'}`}
                           title={`Última compra hace ${plural(c.daysSinceLastPurchase, "día")}`}>
-                          🕐 {c.daysSinceLastPurchase}d sin comprar
+                          {c.daysSinceLastPurchase}d sin comprar
                         </span>
                       )}
                       {c.pendingDebt > 0 && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/10 text-destructive">
+                        <span className="px-2 py-0.5 text-[10px] font-medium border border-destructive/25 text-destructive">
                           Debe {formatARS(c.pendingDebt)}
                         </span>
                       )}
@@ -3991,7 +3991,7 @@ export default function CustomersPage() {
                               />
                               <Button
                                 size="sm"
-                                className="w-full h-7 text-xs gradient-gold text-primary-foreground font-semibold"
+                                className="w-full h-7 text-xs bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
                                 onClick={() => scheduleFollowUp(c.name)}
                                 disabled={followUpSaving || !followUpDate}
                               >

@@ -2447,7 +2447,7 @@ export default function EcommerceStorePage() {
             </button>
           </div>
 
-          <Button onClick={() => { void saveStore(); }} disabled={loading} className="gradient-gold text-primary-foreground w-full">
+          <Button onClick={() => { void saveStore(); }} disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
             Guardar Configuración
           </Button>

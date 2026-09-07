@@ -8,7 +8,7 @@ import { useStoreAuth } from "./storeAuth";
 import { retryPublicRead } from "@/lib/publicDataSource";
 import { storeOrderPaymentLabel } from "@/lib/storeOrderPayment";
 import { productIdsFromStoreOrders, suggestionsFromOrderSeeds } from "@/lib/relatedProducts";
-import { User, Loader2, LogOut, Package, MailCheck, Heart } from "lucide-react";
+import { Loader2, LogOut, Package, MailCheck, Heart } from "lucide-react";
 
 interface Pedido {
   order_number: string;
@@ -152,15 +152,17 @@ export default function StoreAccount() {
   // ── Sin sesión: login / registro ────────────────────────────────────────
   if (!customer) {
     return (
-      <div className="max-w-sm mx-auto px-4 py-12">
-        <div className="text-center mb-6">
-          <User className="w-10 h-10 mx-auto mb-2 opacity-40" />
-          <h1 className="text-xl font-bold">
+      <div className="storefront-account max-w-md mx-auto px-4 py-16">
+        <div className="mb-8">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] mb-2" style={{ color: "hsl(var(--st-muted))" }}>
+            Mi cuenta
+          </p>
+          <h1 className="text-2xl sm:text-[1.85rem] font-bold tracking-tight">
             {modo === "otp"
               ? (otpSent ? "Revisá tu email" : "Entrar con email")
               : modo === "login" ? "Iniciá sesión" : "Creá tu cuenta"}
           </h1>
-          <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
+          <p className="text-sm mt-2 leading-relaxed" style={{ color: "hsl(var(--st-muted))" }}>
             {modo === "otp"
               ? "Enlace mágico o código. Las cuentas nuevas se marcan como comprador de la tienda, no como workspace Nerqia."
               : "Para ver tus pedidos y comprar más rápido la próxima vez."}
@@ -274,11 +276,12 @@ export default function StoreAccount() {
 
   // ── Con sesión: datos + historial ───────────────────────────────────────
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="flex items-start justify-between gap-3 flex-wrap mb-6">
+    <div className="storefront-account max-w-3xl mx-auto px-4 py-10">
+      <div className="flex items-end justify-between gap-3 flex-wrap mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Hola{customer.name ? `, ${customer.name.split(" ")[0]}` : ""}</h1>
-          <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>{customer.email}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] mb-1.5" style={{ color: "hsl(var(--st-muted))" }}>Mi cuenta</p>
+          <h1 className="text-2xl sm:text-[1.85rem] font-bold tracking-tight">Hola{customer.name ? `, ${customer.name.split(" ")[0]}` : ""}</h1>
+          <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>{customer.email}</p>
         </div>
         <button
           onClick={signOut}
