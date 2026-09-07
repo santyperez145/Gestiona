@@ -143,10 +143,12 @@
     grid-template-columns: minmax(15rem, 0.9fr) minmax(28rem, 1.5fr);
     gap: clamp(1.25rem, 3vw, 2.5rem);
     overflow: hidden;
-    padding: clamp(1.15rem, 2vw, 1.65rem);
-    border: 1px solid hsl(var(--border));
-    border-radius: calc(var(--radius) + 2px);
-    background: hsl(var(--card));
+    padding: clamp(1.25rem, 2.2vw, 1.85rem);
+    border: 1px solid hsl(var(--border) / 0.9);
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, hsl(var(--primary) / 0.05), transparent 42%),
+      hsl(var(--card));
     box-shadow: var(--shadow-card);
     color: hsl(var(--foreground));
   }
@@ -4366,8 +4368,24 @@
   }
 
   .storefront-checkout-summary {
-    border-radius: calc(var(--st-radius) + 4px);
+    border-radius: calc(var(--st-radius) + 6px);
+    padding: 1.15rem !important;
     box-shadow: 0 18px 40px -32px hsl(var(--st-accent) / 0.65);
+    background: hsl(var(--st-surface));
+  }
+
+  .storefront-checkout__title,
+  .storefront-cart-page__title {
+    letter-spacing: -0.035em;
+  }
+
+  .storefront-cart-page__line {
+    transition: opacity 140ms ease;
+  }
+
+  .storefront-checkout section > h2 {
+    font-size: 0.95rem;
+    letter-spacing: -0.02em;
   }
 
   .storefront-checkout-mobile-bar {
@@ -5527,14 +5545,20 @@
     background: hsl(var(--landing-coral-soft));
   }
 
+  .landing-capability--cobalt {
+    border-color: hsl(230 87% 51% / 0.22);
+    background: hsl(230 70% 97%);
+  }
+
   .landing-capability--teal {
     border-color: hsl(var(--landing-teal) / 0.2);
     background: hsl(var(--landing-teal-soft));
   }
 
-  .landing-capability--yellow {
-    border-color: hsl(40 82% 48% / 0.25);
-    background: hsl(var(--landing-yellow-soft));
+  .landing-capability--yellow,
+  .landing-capability--ink {
+    border-color: hsl(var(--landing-ink) / 0.12);
+    background: hsl(var(--landing-subtle));
   }
 
   .landing-capability__top {
@@ -5565,14 +5589,20 @@
     color: hsl(var(--landing-coral));
   }
 
+  .landing-capability--cobalt .landing-capability__icon {
+    background: hsl(0 0% 100% / 0.9);
+    color: hsl(230 87% 45%);
+  }
+
   .landing-capability--teal .landing-capability__icon {
     background: hsl(0 0% 100% / 0.78);
     color: hsl(var(--landing-teal));
   }
 
-  .landing-capability--yellow .landing-capability__icon {
-    background: hsl(0 0% 100% / 0.78);
-    color: hsl(35 82% 34%);
+  .landing-capability--yellow .landing-capability__icon,
+  .landing-capability--ink .landing-capability__icon {
+    background: hsl(0 0% 100% / 0.9);
+    color: hsl(var(--landing-ink));
   }
 
   .landing-capability h3 {

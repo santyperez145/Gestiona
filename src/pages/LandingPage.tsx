@@ -23,7 +23,7 @@ const CAPABILITIES = [
     kicker: 'Tienda online',
     title: 'Vendé con una experiencia lista para crecer.',
     description: 'Catálogo, variantes, promociones, checkout, pagos, envíos y dominio propio en una tienda conectada desde el primer pedido.',
-    tone: 'coral',
+    tone: 'cobalt',
   },
   {
     icon: Boxes,
@@ -37,7 +37,7 @@ const CAPABILITIES = [
     kicker: 'Finance',
     title: 'Entendé el dinero detrás de cada venta.',
     description: 'Costo, comisión, envío e impuestos explican cuánto dejó cada producto, pedido y canal.',
-    tone: 'yellow',
+    tone: 'ink',
   },
 ] as const;
 

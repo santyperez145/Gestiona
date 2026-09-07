@@ -535,13 +535,16 @@ export default function StoreCheckout() {
             : "Confirmar pedido";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 pt-8 pb-32 md:py-8">
-      <h1 className="text-2xl font-bold mb-1">Finalizar compra</h1>
-      <p className="text-sm mb-6" style={{ color: "hsl(var(--st-muted))" }}>
+    <div className="storefront-checkout mx-auto max-w-5xl px-4 pt-8 pb-32 md:py-10">
+      <p className="storefront-checkout__eyebrow text-[11px] font-semibold uppercase tracking-[0.14em] mb-2" style={{ color: "hsl(var(--st-muted))" }}>
+        Checkout
+      </p>
+      <h1 className="storefront-checkout__title text-2xl sm:text-[1.85rem] font-bold tracking-tight mb-1">Finalizar compra</h1>
+      <p className="text-sm mb-8 max-w-xl" style={{ color: "hsl(var(--st-muted))" }}>
         Comprás como invitado. La cuenta es opcional si querés seguir el pedido más fácil.
       </p>
 
-      <form onSubmit={confirmar} className="grid md:grid-cols-[1fr_20rem] gap-8 items-start">
+      <form onSubmit={confirmar} className="grid md:grid-cols-[minmax(0,1fr)_22rem] gap-8 lg:gap-10 items-start">
         <div className="space-y-6">
           <section>
             <h2 className="font-semibold mb-3">Entrega</h2>

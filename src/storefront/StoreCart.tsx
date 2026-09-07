@@ -106,17 +106,22 @@ export default function StoreCart() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-6 pb-32 md:pb-8">
+    <div className="storefront-cart-page mx-auto max-w-5xl px-4 pt-6 pb-32 md:pb-10">
       <Link
         to={`${base}/productos`}
-        className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium"
+        className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-medium"
         style={{ color: "hsl(var(--st-muted))" }}
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
         Seguir comprando
       </Link>
 
-      <h1 className="text-xl font-semibold mb-4">Tu carrito ({cartCount})</h1>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-1.5" style={{ color: "hsl(var(--st-muted))" }}>
+        Carrito
+      </p>
+      <h1 className="storefront-cart-page__title text-2xl sm:text-[1.75rem] font-bold tracking-tight mb-5">
+        {cartCount === 0 ? "Tu carrito" : `${cartCount} ${cartCount === 1 ? "producto" : "productos"}`}
+      </h1>
 
       {cart.length > 0 && (
         <div className="mb-5 space-y-1" aria-live="polite">
@@ -159,14 +164,14 @@ export default function StoreCart() {
           </Link>
         </div>
       ) : (
-        <div className="grid items-start gap-8 md:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid items-start gap-8 md:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0 space-y-6">
-            <div className="space-y-3">
+            <div className="space-y-4">
             {cart.map(l => (
-              <div key={lineKeyOf(l)} className="flex gap-3 border-b pb-3" style={{ borderColor: "hsl(var(--st-border))" }}>
+              <div key={lineKeyOf(l)} className="storefront-cart-page__line flex gap-4 border-b pb-4" style={{ borderColor: "hsl(var(--st-border))" }}>
                 <div
-                  className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden bg-black/5"
-                  style={{ borderRadius: "var(--st-radius)" }}
+                  className="relative grid h-20 w-20 sm:h-24 sm:w-24 shrink-0 place-items-center overflow-hidden"
+                  style={{ borderRadius: "calc(var(--st-radius) + 2px)", background: "hsl(var(--st-muted) / 0.12)" }}
                 >
                   <ShoppingBag aria-hidden className="h-5 w-5 opacity-20" />
                   {l.image && (
@@ -181,9 +186,9 @@ export default function StoreCart() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-tight line-clamp-2">{l.name}</p>
-                  <p className="mt-0.5 text-sm font-semibold">{fmt(l.price * l.qty)}</p>
-                  <div className="mt-1.5 flex items-center gap-2">
+                  <p className="text-[0.95rem] font-semibold leading-tight line-clamp-2">{l.name}</p>
+                  <p className="mt-1 text-base font-bold tracking-tight">{fmt(l.price * l.qty)}</p>
+                  <div className="mt-2 flex items-center gap-2">
                     <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
                       <button type="button" className="grid min-h-11 min-w-11 place-items-center px-2 py-1" onClick={() => setQty(lineKeyOf(l), l.qty - 1)} aria-label="Restar">
                         <Minus className="h-3 w-3" />

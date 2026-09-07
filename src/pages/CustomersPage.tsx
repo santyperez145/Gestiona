@@ -2375,7 +2375,7 @@ export default function CustomersPage() {
             {canCreate && (
               <Button
                 onClick={() => setFormModal({ open: true })}
-                className="gradient-gold text-primary-foreground gap-2"
+                className="bg-primary text-primary-foreground gap-2 hover:bg-primary/90"
               >
                 <Plus className="w-4 h-4" />Nuevo cliente
               </Button>
@@ -2436,8 +2436,8 @@ export default function CustomersPage() {
             onClick={() => setCrmWorkspaceTab("insights")}
           >
             <BarChart3 className="w-4 h-4" />
-            Insights
-            <span className="crm-workspace-nav__count">4</span>
+            Recurrencia
+            <span className="crm-workspace-nav__count">RFM</span>
           </button>
           <button
             type="button"
@@ -2495,7 +2495,7 @@ export default function CustomersPage() {
       {crmWorkspaceTab === "segmentos" && (isAdmin ? <SegmentosView /> : null)}
 
       {crmWorkspaceTab === "insights" && (
-        <section className="crm-insights-view" aria-label="Insights de clientes">
+        <section className="crm-insights-view" aria-label="Recurrencia de compradores">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KPICard label="Clientes" value={customers.length} icon={Users} color="primary"

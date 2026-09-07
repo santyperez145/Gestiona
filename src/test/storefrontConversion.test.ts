@@ -131,7 +131,8 @@ describe("recorrido de compra a 360 px", () => {
     expect(cartPage).toContain("min-h-11");
     expect(cartPage).toContain("storefront-cart-summary");
     expect(cartPage).toContain("storefront-cart-mobile-bar");
-    expect(cartPage).toContain("md:grid-cols-[minmax(0,1fr)_20rem]");
+    expect(cartPage).toContain("md:grid-cols-[minmax(0,1fr)_22rem]");
+    expect(checkout).toContain("md:grid-cols-[minmax(0,1fr)_22rem]");
     expect(cartPage).toContain("${fmt(totalPagina)} + envío");
     expect(cartPage).toContain("No pudimos cotizar ahora");
     expect(cartPage).not.toContain('className="fixed inset-x-0 bottom-0 border-t p-4 space-y-2"');
