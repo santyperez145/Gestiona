@@ -22,7 +22,7 @@ import {
 import { displayInstagram, displayWhatsApp, parseStoreSocial } from "@/lib/storeSocial";
 
 /** Violeta del workspace (`252 83% 62%`). El onboarding arranca igual. */
-export const STORE_WORKSPACE_COLOR = "#6E4DEE";
+export const STORE_WORKSPACE_COLOR = "#173aef";
 
 const SLUGS_GENERICOS = new Set([
   "mi-tienda",

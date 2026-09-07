@@ -1901,7 +1901,7 @@
 
 @layer utilities {
   .panel { border-radius: 8px; box-shadow: var(--shadow-card); }
-  .design-surface { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 8px; box-shadow: var(--shadow-card); }
+  .design-surface { background: hsl(var(--card)); border: 1px solid hsl(var(--border) / 0.88); border-radius: 12px; box-shadow: var(--shadow-card); }
   .topbar-surface { background: hsl(var(--background) / 0.82); backdrop-filter: blur(18px) saturate(140%); }
 
   /* Existing semantic utilities keep their meaning in the light workspace. */

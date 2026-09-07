@@ -92,7 +92,8 @@ describe("recorrido de compra a 360 px", () => {
     expect(home).not.toContain("Medios de pago seguros");
     expect(home).toContain("textoMediosHero");
     expect(home).toContain("storefront-hero--ambient");
-    expect(home).toContain("min-h-11");
+    expect(home).toContain("min-h-12");
+    expect(home).toContain("storefront-hero__scrim");
     expect(home).toContain("logoUrl");
     // First-use: sin trust/hero de conversión encima del vacío.
     expect(home).toContain("storeHomeShowsCommerceChrome");
