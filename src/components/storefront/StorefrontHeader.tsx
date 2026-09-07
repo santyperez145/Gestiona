@@ -8,7 +8,7 @@
  * - Brand personalizable por tienda
  */
 import { Link, useLocation } from "react-router-dom";
-import { Search, ShoppingCart, Menu, X, Heart, User } from "lucide-react";
+import { Search, ShoppingCart, Menu, X, Heart, User, LayoutDashboard, Package, Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -63,11 +63,14 @@ export default function StorefrontHeader({ storeName, storeSlug, cartItems = 0 }
           </Button>
 
           {/* Wishlist */}
-          <Button variant="ghost" size="sm" className="hidden sm:flex h-10 w-10 p-0">
+          <Button variant="ghost" size="sm" className="hidden sm:flex h-10 w-10 p-0 relative">
             <Heart className="h-5 w-5" />
+            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary text-primary-foreground">
+              3
+            </Badge>
           </Button>
 
-          {/* Cart */}
+          {/* Cart con badge */}
           <Link to={`/tienda/${storeSlug}/carrito`} className="relative">
             <Button variant="ghost" size="sm" className="h-10 w-10 p-0">
               <ShoppingCart className="h-5 w-5" />
@@ -83,6 +86,16 @@ export default function StorefrontHeader({ storeName, storeSlug, cartItems = 0 }
           <Button variant="ghost" size="sm" className="hidden sm:flex h-10 w-10 p-0">
             <User className="h-5 w-5" />
           </Button>
+
+          {/* CTA de conversión — Checkout directo */}
+          {cartItems > 0 && (
+            <Link to={`/tienda/${storeSlug}/carrito`} className="hidden sm:flex">
+              <Button size="sm" className="h-10 gap-2 bg-primary hover:bg-primary/90 text-white">
+                <ShoppingCart className="h-4 w-4" />
+                <span>Finalizar Compra</span>
+              </Button>
+            </Link>
+          )}
 
           {/* Mobile Menu */}
           <Button
@@ -111,37 +124,50 @@ export default function StorefrontHeader({ storeName, storeSlug, cartItems = 0 }
         </div>
       )}
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Optimizado */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border/40 p-4 space-y-4">
           <Link
             to={`/tienda/${storeSlug}`}
-            className="block py-2 text-sm font-medium hover:text-primary"
+            className="block py-3 text-sm font-medium hover:text-primary flex items-center gap-2"
             onClick={() => setMobileMenuOpen(false)}
           >
+            <LayoutDashboard className="h-4 w-4" />
             Inicio
           </Link>
           <Link
             to={`/tienda/${storeSlug}/productos`}
-            className="block py-2 text-sm font-medium hover:text-primary"
+            className="block py-3 text-sm font-medium hover:text-primary flex items-center gap-2"
             onClick={() => setMobileMenuOpen(false)}
           >
+            <Package className="h-4 w-4" />
             Productos
           </Link>
           <Link
             to={`/tienda/${storeSlug}/nosotros`}
-            className="block py-2 text-sm font-medium hover:text-primary"
+            className="block py-3 text-sm font-medium hover:text-primary flex items-center gap-2"
             onClick={() => setMobileMenuOpen(false)}
           >
+            <Users className="h-4 w-4" />
             Nosotros
           </Link>
           <Link
             to={`/tienda/${storeSlug}/contacto`}
-            className="block py-2 text-sm font-medium hover:text-primary"
+            className="block py-3 text-sm font-medium hover:text-primary flex items-center gap-2"
             onClick={() => setMobileMenuOpen(false)}
           >
+            <MessageCircle className="h-4 w-4" />
             Contacto
           </Link>
+          <div className="border-t border-border/40 pt-4">
+            <Link
+              to={`/tienda/${storeSlug}/carrito`}
+              className="block py-3 text-sm font-medium bg-primary text-primary-foreground text-center rounded-lg"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Ver Carrito ({cartItems})
+            </Link>
+          </div>
         </div>
       )}
     </header>
