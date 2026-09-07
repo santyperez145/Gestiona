@@ -331,21 +331,32 @@ export default function LandingPage() {
 
         <section className="landing-audience" id="para-quien">
           <div className="landing-container landing-audience__inner">
-            <p className="landing-eyebrow">Hecho para operar de verdad</p>
-            <h2>Para comercios que venden hoy y quieren crecer sin perder el control.</h2>
+            <div className="landing-audience__intro">
+              <p className="landing-eyebrow">Hecho para operar de verdad</p>
+              <h2>Para comercios que venden hoy y quieren crecer sin perder el control.</h2>
+            </div>
             <div className="landing-audience__tags" aria-label="Tipos de comercio">
-              <span>Retail</span><span>Ecommerce</span><span>Distribuidores</span><span>Importadores</span><span>Marcas</span>
+              <span>Retail</span>
+              <span>Ecommerce</span>
+              <span>Distribuidores</span>
+              <span>Importadores</span>
+              <span>Marcas</span>
             </div>
           </div>
         </section>
 
         <section className="landing-cta">
-          <div className="landing-container landing-cta__inner">
-            <div><p className="landing-eyebrow">Tu operación, conectada</p><h2>Empezá a vender con una sola verdad.</h2></div>
-            <div className="landing-cta__side">
-              <p>Configurá tu negocio, importá tus productos y conectá el siguiente canal sin volver a empezar.</p>
-              <Link to="/login?mode=register" className="landing-button landing-button--primary">Probar Nerqia gratis <ArrowRight /></Link>
-              <small>14 días sin tarjeta de crédito</small>
+          <div className="landing-container">
+            <div className="landing-cta__panel">
+              <div className="landing-cta__copy">
+                <p className="landing-eyebrow">Tu operación, conectada</p>
+                <h2>Publicá tu tienda. Operá el negocio. Una sola verdad.</h2>
+              </div>
+              <div className="landing-cta__side">
+                <p>Configurá el negocio, importá el catálogo y conectá el siguiente canal sin volver a empezar desde cero.</p>
+                <Link to="/login?mode=register" className="landing-button landing-button--primary">Probar Nerqia gratis <ArrowRight /></Link>
+                <small>14 días sin tarjeta de crédito</small>
+              </div>
             </div>
           </div>
         </section>

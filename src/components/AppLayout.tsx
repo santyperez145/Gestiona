@@ -230,7 +230,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <DialogDescription className="mt-2 mb-6">
               La sesion se bloqueo por inactividad. Hace clic para continuar.
             </DialogDescription>
-            <Button className="w-full gradient-gold text-primary-foreground font-semibold" onClick={() => setIdleLocked(false)}>
+            <Button className="w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90" onClick={() => setIdleLocked(false)}>
               Continuar
             </Button>
         </DialogContent>
@@ -247,18 +247,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
       `}>
         {/* ── Logo / Brand Header ──────────────────────────────────── */}
-        <div className={`workspace-sidebar__brand ${effectiveCollapsed ? 'px-3 py-4' : 'px-4 py-4'} border-b border-sidebar-border/60 flex items-center justify-between`}>
+        <div className={`workspace-sidebar__brand ${effectiveCollapsed ? 'px-3 py-4' : 'px-4 py-[1.05rem]'} border-b border-sidebar-border/60 flex items-center justify-between`}>
           <div className="flex items-center gap-3 min-w-0">
             <BrandLogo compact decorative eager markClassName="h-8 w-8" />
             {!effectiveCollapsed && (
               <div className="min-w-0 animate-fade-in">
-                <p className="text-[13px] font-display font-bold text-foreground/90 truncate tracking-tight leading-none">
+                <p className="text-[14px] font-display font-bold text-foreground truncate tracking-tight leading-none">
                   Nerqia
                 </p>
-                <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                  <span className="truncate text-[9px] uppercase tracking-[0.12em] text-primary/80 font-semibold">Commerce OS</span>
-                  <span className="truncate text-[9px] text-muted-foreground" title={config.businessName}>{config.businessName}</span>
-                  <span className={`inline-flex shrink-0 items-center rounded-[4px] border px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-wide ${roleBadgeClass}`}>{roleLabel}</span>
+                <div className="mt-1.5 flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-[9px] uppercase tracking-[0.14em] text-primary font-semibold">Commerce OS</span>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-[10px] text-muted-foreground/80" title={config.businessName}>{config.businessName}</span>
+                    <span className={`inline-flex shrink-0 items-center rounded-[3px] border px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-wide ${roleBadgeClass}`}>{roleLabel}</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -299,26 +301,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         to={to}
                         onClick={() => setMobileOpen(false)}
                         title={effectiveCollapsed ? label : undefined}
-                        className={`workspace-nav-link group relative flex items-center gap-2.5 py-[7px] rounded-[7px] text-[13px] font-medium transition-all duration-150 ${
+                        className={`workspace-nav-link group relative flex items-center gap-2.5 py-[7px] rounded-[8px] text-[13px] font-medium transition-colors duration-150 ${
                           effectiveCollapsed ? 'justify-center px-0' : 'px-2.5'
                         } ${
                           active
-                            ? "workspace-nav-link-active bg-gradient-to-r from-primary/14 to-primary/3 text-primary"
+                            ? "workspace-nav-link-active bg-primary/10 text-primary"
                             : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
                         }`}
                       >
-                        {/* Active left bar — glowing */}
                         {active && (
-                              <div className="absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.55)]" />
+                          <div className="absolute left-0 top-[20%] bottom-[20%] w-[3px] rounded-r-full bg-primary" />
                         )}
 
-                        {/* Icon */}
-                        <div className={`relative shrink-0 transition-transform duration-150 ${active ? '' : 'group-hover:scale-105'}`}>
+                        <div className={`relative shrink-0 ${active ? '' : 'group-hover:opacity-100'}`}>
                           <Icon className={`w-[17px] h-[17px] ${active ? 'opacity-100' : 'opacity-70 group-hover:opacity-90'}`} />
                           {hasNew && !active && (
-                            <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full bg-primary">
-                              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
-                            </span>
+                            <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full bg-primary" />
                           )}
                         </div>
 
@@ -408,22 +406,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="workspace-topbar__workspace-label">Tienda y operación</span>
               <span className="workspace-topbar__workspace-name truncate">{config.businessName}</span>
             </div>
-            <div className="workspace-topbar__breadcrumb flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/65">
+            <div className="workspace-topbar__breadcrumb flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/65">
               <span>{currentSectionLabel}</span>
               <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
-              <span className="truncate text-foreground/80">{currentPageLabel}</span>
+              <span className="truncate text-foreground/85">{currentPageLabel}</span>
             </div>
           </div>
 
           <button
             type="button"
             onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-            className="workspace-command-search hidden lg:flex h-8 w-[220px] items-center gap-2 rounded-[7px] border border-border/80 bg-card/70 px-2.5 text-left text-[11px] text-muted-foreground/70 transition-colors hover:border-primary/45 hover:text-foreground"
+            className="workspace-command-search hidden lg:flex h-9 w-[240px] items-center gap-2 rounded-md border border-border/80 bg-background/80 px-3 text-left text-[11px] text-muted-foreground/70 transition-colors hover:border-primary/40 hover:text-foreground"
             aria-label="Buscar en Nerqia"
           >
             <Search className="h-3.5 w-3.5 shrink-0" />
             <span className="flex-1">Buscar en Nerqia</span>
-            <kbd className="rounded-[4px] border border-border bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">Ctrl K</kbd>
+            <kbd className="rounded-[4px] border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">Ctrl K</kbd>
           </button>
 
           <div className={`workspace-topbar__status hidden xl:flex items-center gap-2 text-[11px] ${online ? 'text-muted-foreground/75' : 'text-destructive'}`}>
@@ -432,7 +430,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <Link
             to="/ventas"
-            className="workspace-primary-action workspace-topbar__cta inline-flex h-8 items-center gap-1.5 rounded-[7px] bg-primary px-3 text-[11px] font-semibold text-primary-foreground shadow-gold transition-all hover:brightness-105"
+            className="workspace-primary-action workspace-topbar__cta inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <DollarSign className="h-3.5 w-3.5" />
             Nueva venta
@@ -582,7 +580,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   : <><span className="font-semibold">Trial: {trialDaysLeft} {trialDaysLeft === 1 ? 'día' : 'días'} restantes.</span> Elegí un plan antes de que expire.</>
                 }
               </p>
-              <Link to="/pricing"><Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground shrink-0">Ver planes</Button></Link>
+              <Link to="/pricing"><Button size="sm" className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">Ver planes</Button></Link>
               <button onClick={() => setBannerDismissed(true)} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0"><XIcon className="w-4 h-4" /></button>
             </div>
           );
@@ -596,7 +594,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p className="text-sm flex-1">
               <span className="font-semibold">Instalá Nerqia</span> como app en tu dispositivo — acceso rápido sin abrir el navegador.
             </p>
-            <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground shrink-0" onClick={install}>
+            <Button size="sm" className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shrink-0" onClick={install}>
               Instalar app
             </Button>
             <button onClick={dismissInstall} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0">

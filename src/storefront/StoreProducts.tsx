@@ -172,21 +172,26 @@ export default function StoreProducts() {
   };
 
   return (
-    <div className="storefront-products max-w-6xl mx-auto px-4 py-8">
-      <div className="storefront-products__toolbar flex items-baseline justify-between gap-3 flex-wrap mb-5">
-        <div>
-          <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold outline-none">
-            {q ? `Resultados para "${q}"` : cat ? nombreDeCategoria(cat, cats2) : soloOferta ? "Ofertas" : "Todos los productos"}
+    <div className="storefront-products max-w-6xl mx-auto px-4 py-8 sm:py-10">
+      <div className="storefront-products__toolbar flex items-end justify-between gap-4 flex-wrap mb-7">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-1.5" style={{ color: "hsl(var(--st-muted))" }}>
+            Catálogo
+          </p>
+          <h1 ref={headingRef} tabIndex={-1} className="storefront-products__title text-2xl sm:text-[1.85rem] font-bold tracking-tight outline-none">
+            {q ? `Resultados para “${q}”` : cat ? nombreDeCategoria(cat, cats2) : soloOferta ? "Ofertas" : "Todos los productos"}
           </h1>
-          <p className="text-sm mt-0.5" style={{ color: "hsl(var(--st-muted))" }}>
+          <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
             {filtrados.length} {filtrados.length === 1 ? "producto" : "productos"}
+            {activos > 0 ? ` · ${activos} filtro${activos === 1 ? "" : "s"}` : ""}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowFilters(v => !v)}
-            className="sm:hidden inline-flex min-h-11 items-center gap-1.5 px-3 py-2 text-sm border"
+            className="sm:hidden inline-flex min-h-11 items-center gap-1.5 px-3 py-2 text-sm border font-medium"
             style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -196,7 +201,7 @@ export default function StoreProducts() {
             aria-label="Ordenar productos"
             value={orden}
             onChange={e => setParam("orden", e.target.value === "relevancia" ? "" : e.target.value)}
-            className="min-h-11 px-3 py-2 text-sm border bg-transparent"
+            className="min-h-11 px-3 py-2 text-sm border bg-transparent font-medium"
             style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
           >
             {ORDENES.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
@@ -204,7 +209,7 @@ export default function StoreProducts() {
         </div>
       </div>
 
-      <div className="storefront-products__layout grid sm:grid-cols-[13rem_1fr] gap-6">
+      <div className="storefront-products__layout grid sm:grid-cols-[15rem_1fr] gap-7 lg:gap-10">
         {/* ── Filtros ─────────────────────────────────────────────── */}
         <aside className={`storefront-filter-panel ${showFilters ? "block" : "hidden"} sm:block space-y-5`}>
           {activos > 0 && (
@@ -405,10 +410,10 @@ export default function StoreProducts() {
 function Grupo({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div className="storefront-filter-group">
-      <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: "hsl(var(--st-muted))" }}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-2.5" style={{ color: "hsl(var(--st-muted))" }}>
         {titulo}
       </p>
-      <div className="space-y-1">{children}</div>
+      <div className="space-y-0.5">{children}</div>
     </div>
   );
 }
@@ -416,9 +421,12 @@ function Grupo({ titulo, children }: { titulo: string; children: React.ReactNode
 function Opcion({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`block w-full min-h-11 text-left text-sm py-2.5 transition-opacity ${activo ? "font-semibold" : "opacity-70 hover:opacity-100"}`}
-      style={activo ? { color: "hsl(var(--st-link))" } : undefined}
+      className={`storefront-filter-option block w-full min-h-11 text-left text-sm py-2.5 px-2.5 rounded-md transition-colors ${activo ? "is-active font-semibold" : "opacity-75 hover:opacity-100"}`}
+      style={activo
+        ? { color: "hsl(var(--st-link))", background: "hsl(var(--st-accent) / 0.08)" }
+        : undefined}
     >
       {children}
     </button>
