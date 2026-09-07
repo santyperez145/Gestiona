@@ -3395,8 +3395,40 @@ export default function Dashboard() {
       <div className="dashboard-view-section" data-dashboard-section="finance">
       <div id="dashboard-finance" className="dashboard-section-anchor" aria-hidden="true" />
 
-      {/* Financial Tools */}
-      <FinancialSection stats={stats} />
+      {/* Financial Tools — Moderno */}
+      <CommerceFinancialSummary
+        metrics={[
+          {
+            label: "Facturación",
+            value: formatARS(stats.totalSalesARS),
+            change: stats.salesGrowth,
+            trend: stats.salesGrowth > 0 ? "up" : stats.salesGrowth < 0 ? "down" : "neutral",
+            icon: DollarSign,
+          },
+          {
+            label: "Ganancia Bruta",
+            value: formatARS(stats.grossProfitARS),
+            change: stats.profitGrowth,
+            trend: stats.profitGrowth > 0 ? "up" : stats.profitGrowth < 0 ? "down" : "neutral",
+            icon: TrendingUp,
+          },
+          {
+            label: "Gastos del Mes",
+            value: formatARS(stats.totalMonthExpenses),
+            change: stats.totalMonthExpenses > 0 ? (stats.totalMonthExpenses / stats.monthSalesARS) * 100 : 0,
+            trend: "neutral",
+            icon: Wallet,
+          },
+          {
+            label: "Resultado Neto",
+            value: formatARS(stats.netMonthProfitARS),
+            change: stats.netMonthProfitARS > 0 ? (stats.netMonthProfitARS / stats.monthSalesARS) * 100 : 0,
+            trend: stats.netMonthProfitARS > 0 ? "up" : "down",
+            icon: Target,
+          },
+        ]}
+        title="Resumen Financiero"
+      />
 
       </div>
 
