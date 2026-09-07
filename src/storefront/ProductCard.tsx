@@ -32,11 +32,10 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
       className="storefront-product-card group flex flex-col overflow-hidden"
       data-has-sold-out-variants={resumenVariantes.agotadas > 0 ? "true" : undefined}
       data-variant-count={tieneVariantes ? variantes.length : undefined}
-      style={{ background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
     >
       <div className="storefront-product-card__media relative">
-        <Link to={productUrl} className="relative block aspect-[4/5] overflow-hidden" style={{ background: "hsl(var(--st-muted) / 0.1)" }}>
-          <div aria-hidden="true" className="absolute inset-0 grid place-items-center opacity-15">
+        <Link to={productUrl} className="relative block aspect-[4/5] overflow-hidden" style={{ background: "hsl(var(--st-muted) / 0.08)" }}>
+          <div aria-hidden="true" className="absolute inset-0 grid place-items-center opacity-10">
             <ShoppingBag className="w-7 h-7" />
           </div>
           {imagen && (
@@ -46,7 +45,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
               {...atributosDeImagenVitrina("tarjeta")}
               onLoad={mostrarImagenValida}
               onError={ocultarImagenRota}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-[0.92]"
             />
           )}
         </Link>
@@ -54,7 +53,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         {off > 0 && (
           <span
             className="storefront-product-card__badge absolute top-2.5 left-2.5 px-2 py-0.5 text-[10px] font-bold tracking-wide"
-            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "calc(var(--st-radius) * 0.55)" }}
+            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "calc(var(--st-radius) * 0.45)" }}
           >
             −{off}%
           </span>
@@ -65,7 +64,8 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
           onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(p.id); }}
           aria-label={deseado ? "Quitar de mis deseos" : "Guardar en mis deseos"}
           aria-pressed={deseado}
-          className="absolute bottom-2.5 right-2.5 p-2 min-h-11 min-w-11 grid place-items-center rounded-full bg-white/90 shadow-sm hover:bg-white transition-colors"
+          className="absolute bottom-2.5 right-2.5 p-2 min-h-11 min-w-11 grid place-items-center bg-white/92 border hover:bg-white transition-colors"
+          style={{ borderColor: "hsl(var(--st-border) / 0.55)", borderRadius: "var(--st-radius)" }}
         >
           <Heart
             className={`w-4 h-4 ${deseado ? "fill-current" : ""}`}
@@ -74,21 +74,21 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         </button>
 
         {sinStock ? (
-          <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white rounded-md">
+          <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white" style={{ borderRadius: "calc(var(--st-radius) * 0.45)" }}>
             Sin stock
           </span>
         ) : stockVisible <= 3 ? (
-          <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white rounded-md">
+          <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white" style={{ borderRadius: "calc(var(--st-radius) * 0.45)" }}>
             {stockVisible === 1 ? "Última" : `Últimas ${stockVisible}`}
           </span>
         ) : null}
       </div>
 
-      <div className="storefront-product-card__content flex flex-col flex-1 px-0.5 pt-3 pb-1">
+      <div className="storefront-product-card__content flex flex-col flex-1 px-0.5 pt-3.5 pb-1">
         {p.brand && (
-          <p className="text-[10px] uppercase tracking-[0.12em] mb-0.5" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
+          <p className="text-[10px] uppercase tracking-[0.14em] mb-1 font-semibold" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
         )}
-        <Link to={productUrl} className="text-[0.92rem] font-semibold leading-snug line-clamp-2 hover:opacity-80 transition-opacity">
+        <Link to={productUrl} className="storefront-product-card__name text-[0.95rem] font-semibold leading-snug line-clamp-2 hover:opacity-80 transition-opacity">
           {p.name}
         </Link>
 
@@ -102,7 +102,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         )}
 
         <div className="mt-2.5 flex items-baseline gap-2" aria-live="polite">
-          <span className="text-[1.05rem] font-bold tracking-tight">
+          <span className="storefront-product-card__price text-[1.08rem] font-bold tracking-tight">
             {resumenVariantes.desde && <span className="mr-1 text-[11px] font-medium opacity-70">Desde</span>}
             {fmt(price)}
           </span>

@@ -4,7 +4,7 @@ import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
 import StoreBanners from "./StoreBanners";
 import { menuDeCategorias } from "@/lib/storeCategories";
-import { ArrowRight, Truck, ShieldCheck, Sparkles, Wallet } from "lucide-react";
+import { ArrowRight, Truck, ShieldCheck, Package, Wallet } from "lucide-react";
 import { mejorDescuento, nombreMedio } from "@/lib/paymentDiscount";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 import { productsFromRecentlyViewed } from "@/lib/recentlyViewed";
@@ -148,7 +148,7 @@ export default function StoreHome() {
   if (!commerceChrome) {
     return (
       <div className="storefront-home storefront-home--first-use">
-        <div className="max-w-lg mx-auto px-4 py-20 text-center space-y-4">
+        <div className="max-w-xl mx-auto px-4 py-24 text-center space-y-5">
           {store?.logo_url ? (
             <img
               src={store.logo_url}
@@ -156,14 +156,17 @@ export default function StoreHome() {
               {...atributosDeImagenVitrina("logo")}
               onLoad={mostrarImagenValida}
               onError={ocultarImagenRota}
-              className="mx-auto h-14 w-14 object-contain"
+              className="mx-auto h-16 w-16 object-contain"
             />
           ) : null}
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "hsl(var(--st-muted))" }}>
+            Tienda online
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
             {store?.name ?? "Esta tienda"}
           </h1>
           {store?.description ? (
-            <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+            <p className="text-sm sm:text-base leading-relaxed" style={{ color: "hsl(var(--st-muted))" }}>
               {store.description}
             </p>
           ) : null}
@@ -240,10 +243,18 @@ function Hero({
           </Link>
         </div>
         <div className="storefront-hero__aside">
-          <div className="storefront-hero__aside-head"><span>Compra con confianza</span><ShieldCheck /></div>
+          <p className="storefront-hero__aside-eyebrow">Hoy en la tienda</p>
           <div className="storefront-hero__aside-stat"><strong>{disponibles}</strong><span>productos disponibles</span></div>
-          <div className="storefront-hero__aside-row"><span><Truck /> {cobertura ?? "Retiro o envío a cotizar"}</span><ArrowRight /></div>
-          <div className="storefront-hero__aside-row"><span><Wallet /> {medios}</span><ArrowRight /></div>
+          <dl className="storefront-hero__aside-facts">
+            <div>
+              <dt><Truck className="w-3.5 h-3.5" aria-hidden="true" /> Envío</dt>
+              <dd>{cobertura ?? "Retiro o envío a cotizar"}</dd>
+            </div>
+            <div>
+              <dt><Wallet className="w-3.5 h-3.5" aria-hidden="true" /> Pago</dt>
+              <dd>{medios}</dd>
+            </div>
+          </dl>
         </div>
       </div>
     </section>
@@ -268,7 +279,7 @@ function TrustBar({
     : "El domicilio se cotiza en el checkout, no se promete el país";
   return (
     <section className="storefront-trust-bar border-b" style={{ borderColor: "hsl(var(--st-border))" }}>
-      <div className={`storefront-trust-bar__inner max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 gap-4 text-sm ${descuentoPago ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+      <div className={`storefront-trust-bar__inner max-w-6xl mx-auto px-4 py-4 grid grid-cols-1 gap-0 text-sm ${descuentoPago ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
         {[
           ...(descuentoPago ? [{
             icon: Wallet,
@@ -277,13 +288,13 @@ function TrustBar({
           }] : []),
           { icon: Truck, t: tituloEnvio, s: detalleEnvio },
           { icon: ShieldCheck, t: "Compra protegida", s: "Datos claros y derecho de arrepentimiento" },
-          { icon: Sparkles, t: "Catálogo actualizado", s: "Mostramos precios y disponibilidad al día" },
+          { icon: Package, t: "Stock al día", s: "Precios y disponibilidad del catálogo publicado" },
         ].map(({ icon: Icon, t, s }) => (
-          <div key={t} className="storefront-trust-item flex items-start gap-3">
-            <Icon className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-link))" }} />
+          <div key={t} className="storefront-trust-item flex items-start gap-3 px-1 sm:px-3 py-3 sm:border-r last:border-r-0" style={{ borderColor: "hsl(var(--st-border) / 0.7)" }}>
+            <Icon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-link))" }} />
             <div>
-              <p className="font-medium">{t}</p>
-              <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>{s}</p>
+              <p className="font-semibold text-[0.8125rem] leading-snug">{t}</p>
+              <p className="text-[11px] mt-0.5 leading-snug" style={{ color: "hsl(var(--st-muted))" }}>{s}</p>
             </div>
           </div>
         ))}
@@ -301,9 +312,14 @@ function Categorias({
   base: string;
 }) {
   return (
-    <section className="storefront-section storefront-categories max-w-6xl mx-auto px-4 py-10">
-      <h2 className="storefront-section__title text-lg font-semibold mb-4">Categorías</h2>
-      <div className="storefront-category-grid grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <section className="storefront-section storefront-categories max-w-6xl mx-auto px-4 py-11">
+      <div className="storefront-section__heading flex items-end justify-between gap-3 mb-5">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: "hsl(var(--st-muted))" }}>Explorar</p>
+          <h2 className="storefront-section__title text-xl sm:text-2xl font-bold tracking-tight">Categorías</h2>
+        </div>
+      </div>
+      <div className="storefront-category-grid grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {categorias.map(c => {
           const propia = cats2.find(x => x.slug === c.slug)?.image_url;
           const cover = propia
@@ -313,8 +329,8 @@ function Categorias({
             <Link
               key={c.slug}
               to={`${base}/productos?cat=${encodeURIComponent(c.slug)}`}
-              className="storefront-category-card group relative aspect-[4/3] overflow-hidden border"
-              style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+              className="storefront-category-card group relative aspect-[5/4] overflow-hidden"
+              style={{ background: "hsl(var(--st-muted) / 0.08)", borderRadius: "var(--st-radius)" }}
             >
               {cover?.image_url && (
                 <img
@@ -323,19 +339,23 @@ function Categorias({
                   {...atributosDeImagenVitrina("categoria")}
                   onLoad={mostrarImagenValida}
                   onError={ocultarImagenRota}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-90"
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-              <span className="absolute bottom-2 left-3 right-3 text-white font-medium text-sm">
-                {c.label}
-                <span className="block text-[11px] opacity-75">
+              <div
+                className="absolute inset-x-0 bottom-0 pt-12 pb-3 px-3"
+                style={{ background: "linear-gradient(180deg, transparent, hsl(0 0% 0% / 0.72))" }}
+              >
+                <span className="block text-white font-semibold text-sm tracking-tight">
+                  {c.label}
+                </span>
+                <span className="block text-[11px] text-white/75 mt-0.5">
                   {(() => {
                     const n = products.filter(p => p.category === c.slug).length;
                     return `${n} producto${n === 1 ? "" : "s"}`;
                   })()}
                 </span>
-              </span>
+              </div>
             </Link>
           );
         })}
@@ -347,14 +367,17 @@ function Categorias({
 function Row({ title, items, href }: { title: string; items: ReturnType<typeof useStore>["products"]; href: string }) {
   if (!items.length) return null;
   return (
-    <section className="storefront-section storefront-product-row max-w-6xl mx-auto px-4 py-8">
-      <div className="storefront-section__heading flex items-center justify-between mb-4">
-        <h2 className="storefront-section__title text-lg font-semibold">{title}</h2>
-        <Link to={href} className="storefront-section__link text-sm hover:underline inline-flex items-center gap-1" style={{ color: "hsl(var(--st-link))" }}>
+    <section className="storefront-section storefront-product-row max-w-6xl mx-auto px-4 py-9">
+      <div className="storefront-section__heading flex items-end justify-between gap-3 mb-5">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: "hsl(var(--st-muted))" }}>Vitrina</p>
+          <h2 className="storefront-section__title text-xl sm:text-2xl font-bold tracking-tight">{title}</h2>
+        </div>
+        <Link to={href} className="storefront-section__link text-sm font-medium hover:underline inline-flex items-center gap-1 shrink-0 mb-0.5" style={{ color: "hsl(var(--st-link))" }}>
           Ver todo <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
         {items.map(p => <ProductCard key={p.id} p={p} />)}
       </div>
     </section>

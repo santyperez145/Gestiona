@@ -36,19 +36,14 @@ export default function StoreBanners({ banners, base, storeName }: { banners: St
   if (total === 0) return null;
 
   const b = banners[i];
+  const titulo = b.title || storeName || "Tienda online";
   const contenido = (
     <>
       <div
         aria-hidden="true"
-        className="absolute inset-0 overflow-hidden"
-        style={{
-          background:
-            "radial-gradient(circle at 20% 20%, hsl(var(--st-accent) / 0.34), transparent 38%), radial-gradient(circle at 82% 72%, hsl(var(--st-accent) / 0.18), transparent 34%), linear-gradient(135deg, hsl(var(--st-header)), hsl(var(--st-bg)))",
-        }}
-      >
-        <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full border border-white/10" />
-        <span className="absolute -bottom-24 left-[12%] h-56 w-56 rounded-full border border-white/10" />
-      </div>
+        className="absolute inset-0"
+        style={{ background: "hsl(var(--st-header))" }}
+      />
       <picture key={b.id} className="absolute inset-0 block">
         {b.image_url_mobile && <source media="(max-width: 640px)" srcSet={b.image_url_mobile} />}
         <img
@@ -61,19 +56,34 @@ export default function StoreBanners({ banners, base, storeName }: { banners: St
         />
       </picture>
 
-      {(b.title || b.subtitle || b.cta_label) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-black/35">
-          {b.title && <h2 className="text-2xl sm:text-4xl font-bold text-white drop-shadow">{b.title}</h2>}
-          {!b.title && <h2 className="text-2xl sm:text-4xl font-bold text-white drop-shadow">{storeName ?? "Tienda online"}</h2>}
-          {b.subtitle && <p className="mt-2 text-sm sm:text-lg text-white/90 max-w-2xl drop-shadow">{b.subtitle}</p>}
-          {b.cta_label && (
-            <span
-              className="mt-5 inline-block px-6 py-3 font-medium"
-              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-            >
-              {b.cta_label}
-            </span>
-          )}
+      {(b.title || b.subtitle || b.cta_label || !b.image_url) && (
+        <div className="absolute inset-0 flex items-end sm:items-center">
+          <div
+            className="absolute inset-0"
+            aria-hidden="true"
+            style={{
+              background:
+                "linear-gradient(90deg, hsl(0 0% 0% / 0.62) 0%, hsl(0 0% 0% / 0.28) 42%, transparent 72%)",
+            }}
+          />
+          <div className="relative z-[1] w-full max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-12 text-left">
+            <h2 className="max-w-xl text-2xl sm:text-4xl lg:text-[2.65rem] font-bold tracking-tight text-white leading-[1.08]">
+              {titulo}
+            </h2>
+            {b.subtitle && (
+              <p className="mt-3 max-w-lg text-sm sm:text-base text-white/88 leading-relaxed">
+                {b.subtitle}
+              </p>
+            )}
+            {b.cta_label && (
+              <span
+                className="mt-5 inline-flex min-h-11 items-center px-5 py-2.5 text-sm font-semibold"
+                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+              >
+                {b.cta_label}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </>
@@ -88,13 +98,13 @@ export default function StoreBanners({ banners, base, storeName }: { banners: St
 
   return (
     <section
-      className="relative overflow-hidden select-none"
+      className="storefront-banners relative overflow-hidden select-none"
       style={{ borderBottom: "1px solid hsl(var(--st-border))" }}
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
       aria-roledescription={total > 1 ? "carrusel" : undefined}
     >
-      <div className="relative aspect-[16/7] sm:aspect-[21/7] bg-black/5">
+      <div className="relative aspect-[16/8] sm:aspect-[21/7] bg-black/5">
         {destino
           ? (esExterno
             ? <a href={destino} target="_blank" rel="noopener noreferrer" className="block w-full h-full">{contenido}</a>
@@ -105,27 +115,33 @@ export default function StoreBanners({ banners, base, storeName }: { banners: St
       {total > 1 && (
         <>
           <button
+            type="button"
             onClick={() => ir(i - 1)}
             aria-label="Anterior"
-            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 min-h-11 min-w-11 grid place-items-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+            className="absolute left-3 top-1/2 -translate-y-1/2 min-h-11 min-w-11 grid place-items-center bg-black/55 text-white hover:bg-black/75 transition-colors"
+            style={{ borderRadius: "var(--st-radius)" }}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
+            type="button"
             onClick={() => ir(i + 1)}
             aria-label="Siguiente"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 min-h-11 min-w-11 grid place-items-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 min-h-11 min-w-11 grid place-items-center bg-black/55 text-white hover:bg-black/75 transition-colors"
+            style={{ borderRadius: "var(--st-radius)" }}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
             {banners.map((x, n) => (
               <button
+                type="button"
                 key={x.id}
                 onClick={() => { setPausado(true); ir(n); }}
                 aria-label={`Ir al banner ${n + 1}`}
                 aria-current={n === i}
-                className={`h-2 rounded-full transition-all ${n === i ? "w-6 bg-white" : "w-2 bg-white/60"}`}
+                className={`h-1 transition-all ${n === i ? "w-8 bg-white" : "w-4 bg-white/45 hover:bg-white/70"}`}
+                style={{ borderRadius: 1 }}
               />
             ))}
           </div>
