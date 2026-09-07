@@ -16,8 +16,9 @@ import {
   Clock, XCircle, Loader2, MessageCircle, RefreshCw,
   DollarSign, TrendingUp, AlertCircle, Banknote,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
+import CommerceKPICard from "@/components/commerce/CommerceKPICard";
+import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
