@@ -3288,53 +3288,26 @@ export default function Dashboard() {
       <div className="dashboard-view-section" data-dashboard-section="inventory">
       <div id="dashboard-inventory" className="dashboard-section-anchor" aria-hidden="true" />
 
-      {/* Stock Alerts */}
+      {/* Stock Alerts — Moderno */}
       {(stats.lowStockProducts?.length > 0 || stats.outOfStockProducts?.length > 0) && (
-        <div className="bg-card border border-destructive/30 rounded-lg p-4 md:p-5 shadow-card mb-6 md:mb-8">
-          <h2 className="text-sm font-display font-semibold mb-3 text-destructive uppercase tracking-wider flex items-center gap-2">
-            <Bell className="w-4 h-4" /> Alertas de Stock
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {stats.outOfStockProducts?.length > 0 && (
-              <div className="bg-destructive/10 rounded-lg p-3">
-                <p className="text-xs font-semibold text-destructive mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Sin Stock ({stats.outOfStockProducts.length})</p>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {stats.outOfStockProducts.slice(0, 8).map((p: any) => (
-                    <p key={p.id} className="text-xs text-muted-foreground truncate">• {p.name}</p>
-                  ))}
-                  {stats.outOfStockProducts.length > 8 && <p className="text-xs text-muted-foreground">+{stats.outOfStockProducts.length - 8} más</p>}
-                </div>
-              </div>
-            )}
-            {stats.lowStockProducts?.length > 0 && (
-              <div className="bg-yellow-500/10 rounded-lg p-3">
-                <p className="text-xs font-semibold text-yellow-400 mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Stock Bajo ≤{stats.lowStockThreshold} ({stats.lowStockProducts.length})</p>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {stats.lowStockProducts.map((p: any) => (
-                    <p key={p.id} className="text-xs text-muted-foreground truncate">• {p.name} — <span className="text-yellow-400 font-medium">{p.stock}u</span></p>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          {stats.restockSuggestions?.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-border">
-              <p className="text-xs font-semibold text-primary mb-2">🔄 Restock urgente — más vendidos con stock crítico</p>
-              <div className="space-y-1.5">
-                {stats.restockSuggestions.map((r: any) => (
-                  <div key={r.name} className="flex items-center justify-between gap-2 text-[11px]">
-                    <span className="font-medium truncate max-w-[160px]" title={r.name}>{r.name}</span>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`px-1.5 py-0.5 rounded font-mono ${r.stock <= 0 ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                        {r.stock}u
-                      </span>
-                      {r.daysOfStock !== Infinity && (
-                        <span className="text-muted-foreground">{r.daysOfStock}d</span>
-                      )}
-                      {r.suggestedOrder > 0 && (
-                        <span className="text-emerald-400 font-semibold">→ pedir {r.suggestedOrder}u</span>
-                      )}
-                    </div>
+        <CommerceInventoryAlerts
+          products={[
+            ...stats.outOfStockProducts.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              stock: p.stock,
+              status: "out" as const,
+            })),
+            ...stats.lowStockProducts.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              stock: p.stock,
+              status: "low" as const,
+            })),
+          ]}
+          title="Alertas de Inventario"
+        />
+      )}
                   </div>
                 ))}
               </div>
