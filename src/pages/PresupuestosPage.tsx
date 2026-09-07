@@ -751,8 +751,9 @@ export default function PresupuestosPage() {
     <div className="space-y-5 pb-12">
       <PageHeader
         icon={FileText}
+        eyebrow="Commerce · Ventas"
         title="Presupuestos"
-        description={`${quotes.length} presupuestos · ${stats.accepted} aceptados · ${stats.conversionRate}% conversión`}
+        description={`${quotes.length} presupuestos · ${stats.accepted} aceptados · ${stats.conversionRate}% conversión a pedido`}
         badge={
           stats.pending > 0
             ? { label: `${stats.pending} en espera`, variant: "warning" }

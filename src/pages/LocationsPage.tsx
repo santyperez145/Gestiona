@@ -458,8 +458,9 @@ export default function LocationsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={MapPin}
-        title="Sucursales & Depósitos"
-        description="Locales, depósitos y zonas en un solo lugar"
+        eyebrow="Commerce · Stock"
+        title="Sucursales"
+        description="Locales y depósitos con el mismo inventario que ve la tienda online."
       />
 
       {/* Main sections */}

@@ -814,8 +814,9 @@ export default function InvoicesPage() {
       {/* Header */}
       <PageHeader
         icon={Receipt}
+        eyebrow="Finance · Comprobantes"
         title="Facturas"
-        description={afipConfigured ? "Comprobantes con autorización ARCA" : "Creá y gestioná comprobantes"}
+        description={afipConfigured ? "Comprobantes con autorización ARCA — sin inventar CUIT ni tarifas." : "Comprobantes del Core. ARCA se conecta cuando la ley y la config lo permitan."}
         badge={
           stats.overdue > 0
             ? { label: `${stats.overdue} vencida${stats.overdue > 1 ? "s" : ""}`, variant: "destructive" }

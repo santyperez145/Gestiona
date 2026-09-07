@@ -378,8 +378,9 @@ export default function ProveedoresPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Truck}
+        eyebrow="Commerce · Proveedores"
         title="Proveedores"
-        description={`${suppliers.filter(s => s.active).length} activos · ${formatARS(totalPending)} pendiente de pago`}
+        description={`${suppliers.filter(s => s.active).length} activos · ${formatARS(totalPending)} pendiente · alimentan el stock único`}
         badge={
           pendingDebts.length > 0
             ? { label: `${pendingDebts.length} deuda${pendingDebts.length > 1 ? "s" : ""} pendiente${pendingDebts.length > 1 ? "s" : ""}`, variant: "destructive" }

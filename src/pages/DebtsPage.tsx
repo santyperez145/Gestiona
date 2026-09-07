@@ -205,8 +205,9 @@ export default function DebtsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={AlertCircle}
+        eyebrow="Commerce · Cobranza"
         title="Deudas"
-        description="Control de cuentas corrientes de clientes"
+        description="Cuentas corrientes de compradores — misma verdad que tienda y mostrador."
         badge={pending.length > 0 ? { label: `${pending.length} pendientes`, variant: "destructive" } : { label: "Al día ✓", variant: "success" }}
         actions={
           <div className="flex items-center flex-wrap gap-2">
