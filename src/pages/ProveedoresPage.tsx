@@ -15,8 +15,9 @@ import {
   ArrowUpDown, StickyNote, Check, X, FileSpreadsheet, BarChart2, TrendingUp, Package,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import BusinessPageHeader from "@/components/business/BusinessPageHeader";
+import BusinessKPICard from "@/components/business/BusinessKPICard";
+import BusinessEmptyState from "@/components/business/BusinessEmptyState";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
 import SupplierPOModal from "@/components/shared/SupplierPOModal";
@@ -376,16 +377,11 @@ export default function ProveedoresPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
+      <BusinessPageHeader
         icon={Truck}
-        eyebrow="Commerce · Proveedores"
         title="Proveedores"
         description={`${suppliers.filter(s => s.active).length} activos · ${formatARS(totalPending)} pendiente · alimentan el stock único`}
-        badge={
-          pendingDebts.length > 0
-            ? { label: `${pendingDebts.length} deuda${pendingDebts.length > 1 ? "s" : ""} pendiente${pendingDebts.length > 1 ? "s" : ""}`, variant: "destructive" }
-            : undefined
-        }
+        badge={pendingDebts.length > 0 ? `${pendingDebts.length} deuda${pendingDebts.length > 1 ? "s" : ""} pendiente${pendingDebts.length > 1 ? "s" : ""}` : undefined}
         actions={
           <div className="flex flex-wrap gap-2">
             {filtered.length > 0 && (
@@ -418,15 +414,30 @@ export default function ProveedoresPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard label="Proveedores activos" value={suppliers.filter(s => s.active).length} icon={Truck} color="primary"
-          sub={`${suppliers.length} en total`} />
-        <KPICard label="Deuda pendiente" value={formatARS(totalPending)} icon={DollarSign}
-          color={pendingDebts.length > 0 ? "destructive" : "success"}
-          sub={`${pendingDebts.length} deuda${pendingDebts.length !== 1 ? "s" : ""} abiertas`} />
-        <KPICard label="Total compras" value={allPurchases.length} icon={ShoppingCart} color="blue"
-          sub="órdenes históricas" />
-        <KPICard label="Deudas pagadas" value={debts.filter(d => d.status === "paid").length} icon={CheckCircle2} color="success"
-          sub={`${debts.length} en total`} />
+        <BusinessKPICard
+          title="Proveedores activos"
+          value={suppliers.filter(s => s.active).length}
+          icon={Truck}
+          description={`${suppliers.length} en total`}
+        />
+        <BusinessKPICard
+          title="Deuda pendiente"
+          value={formatARS(totalPending)}
+          icon={DollarSign}
+          description={`${pendingDebts.length} deuda${pendingDebts.length !== 1 ? "s" : ""} abiertas`}
+        />
+        <BusinessKPICard
+          title="Total compras"
+          value={allPurchases.length}
+          icon={ShoppingCart}
+          description="órdenes históricas"
+        />
+        <BusinessKPICard
+          title="Deudas pagadas"
+          value={debts.filter(d => d.status === "paid").length}
+          icon={CheckCircle2}
+          description={`${debts.length} en total`}
+        />
       </div>
 
       {/* Tab nav */}
@@ -838,11 +849,30 @@ export default function ProveedoresPage() {
       {activeTab === 'pagos' && (
         <div className="space-y-4 pb-12" aria-label="Historial de pagos a proveedores">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KPICard label="Pagado visible" value={formatARS(paymentFacts.visibleTotal)} icon={DollarSign} color="success"
-              sub={paymentCount > payments.length ? `últimos ${payments.length} de ${paymentCount}` : `${paymentCount} movimientos`} />
-            <KPICard label="Últimos 30 días" value={formatARS(paymentFacts.last30)} icon={Clock} color="blue" sub="según fecha de pago" />
-            <KPICard label="Proveedores pagados" value={paymentFacts.suppliersPaid} icon={Building2} color="primary" sub="en el historial visible" />
-            <KPICard label="Movimientos" value={paymentCount} icon={CreditCard} color="warning" sub="registrados en total" />
+            <BusinessKPICard
+              title="Pagado visible"
+              value={formatARS(paymentFacts.visibleTotal)}
+              icon={DollarSign}
+              description={paymentCount > payments.length ? `últimos ${payments.length} de ${paymentCount}` : `${paymentCount} movimientos`}
+            />
+            <BusinessKPICard
+              title="Últimos 30 días"
+              value={formatARS(paymentFacts.last30)}
+              icon={Clock}
+              description="según fecha de pago"
+            />
+            <BusinessKPICard
+              title="Proveedores pagados"
+              value={paymentFacts.suppliersPaid}
+              icon={Building2}
+              description="en el historial visible"
+            />
+            <BusinessKPICard
+              title="Movimientos"
+              value={paymentCount}
+              icon={CreditCard}
+              description="registrados en total"
+            />
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
