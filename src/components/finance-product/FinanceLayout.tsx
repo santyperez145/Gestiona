@@ -37,7 +37,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
             <BrandLogo compact decorative eager markClassName="h-8 w-8" />
             <span>
               <span className="block text-sm font-semibold tracking-tight">Nerqia Finance</span>
-              <span className="block text-[9px] uppercase tracking-[0.18em] text-teal-700/70 dark:text-teal-300/70">Control documental</span>
+              <span className="block text-[9px] uppercase tracking-[0.18em] text-teal-700/70 dark:text-teal-300/70">Margen y documentos</span>
             </span>
           </Link>
           <div className="lg:hidden"><ThemeToggle /></div>

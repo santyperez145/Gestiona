@@ -2343,8 +2343,9 @@ export default function CustomersPage() {
       {/* Header */}
       <PageHeader
         icon={Users}
+        eyebrow="Commerce · Compradores"
         title="Clientes"
-        description={`${plural(customers.length, "cliente")} · ${formatARS(totalRevenue)} facturado`}
+        description={`${plural(customers.length, "cliente")} · ${formatARS(totalRevenue)} facturado · misma verdad para tienda y mostrador`}
         badge={
           totalDebt > 0
             ? { label: `${formatARS(totalDebt)} adeudado`, variant: "destructive" }

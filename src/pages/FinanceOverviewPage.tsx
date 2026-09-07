@@ -65,9 +65,9 @@ export default function FinanceOverviewPage() {
     <div className="space-y-6">
       <PageHeader
         icon={ReceiptText}
-        eyebrow="Finance"
+        eyebrow="Finance · Mendel-depth"
         title="Resumen"
-        description={`Pendientes documentales y puentes al Core para ${activeOrg?.name || 'tu organización'}.`}
+        description={`Documentos, caja y puentes al Core para ${activeOrg?.name || 'tu organización'} — sin duplicar ventas ni stock.`}
         actions={(
           <Button asChild variant="secondary" className="!border-teal-600/20 !bg-teal-600 !text-white shadow-[0_10px_22px_-14px_rgba(13,148,136,.8)] hover:!bg-teal-700">
             <Link to="/finance/documentos"><FileStack className="h-3.5 w-3.5" />Ver bandeja</Link>
