@@ -17,8 +17,9 @@ import {
   TrendingUp, TrendingDown, Plus, DollarSign, BarChart3,
   Wallet, ArrowUpCircle, ArrowDownCircle, Loader2
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import FinancePageHeader from "@/components/finance/FinancePageHeader";
+import FinanceKPICard from "@/components/finance/FinanceKPICard";
+import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 
 interface CashflowEntry {
   id: string;

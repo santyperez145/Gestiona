@@ -11,8 +11,9 @@ import {
   FileText, Plus, Check, Clock, AlertTriangle, DollarSign,
   Banknote, XCircle, CalendarDays, TrendingUp, FileSpreadsheet,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import FinancePageHeader from "@/components/finance/FinancePageHeader";
+import FinanceKPICard from "@/components/finance/FinanceKPICard";
+import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Cheque = {
