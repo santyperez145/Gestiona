@@ -11,8 +11,8 @@ export default function PlatformServicesPanel() {
       icon: Sparkles,
       label: "Inteligencia Artificial",
       description: "Chat, predicciones, descripciones automáticas",
-      color: "text-violet-400",
-      bg: "bg-violet-500/10",
+      color: "text-primary",
+      bg: "bg-slate-500/10",
     },
     {
       icon: Mail,

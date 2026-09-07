@@ -111,7 +111,7 @@ const CHANNEL_CONFIG: Record<string, { label: string; icon: React.ElementType; c
   email: { label: "Email", icon: Mail, color: "text-blue-400" },
   whatsapp: { label: "WhatsApp", icon: MessageCircle, color: "text-emerald-400" },
   sms: { label: "SMS", icon: Send, color: "text-amber-400" },
-  push: { label: "Push", icon: Zap, color: "text-violet-400" },
+  push: { label: "Push", icon: Zap, color: "text-primary" },
   in_app: { label: "In-App", icon: Target, color: "text-orange-400" },
 };
 
@@ -306,7 +306,7 @@ function SegCard({ segment, campaigns, onEdit, onDelete, onSync, onNewCampaign }
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold">{segment.name}</h3>
-            {segment.is_dynamic && <Badge className="text-xs bg-violet-500/15 text-violet-400"><Zap className="w-3 h-3 mr-1" />Dinámico</Badge>}
+            {segment.is_dynamic && <Badge className="text-xs bg-primary/15 text-primary"><Zap className="w-3 h-3 mr-1" />Dinámico</Badge>}
             {!segment.active && <Badge className="text-xs bg-muted/40 text-muted-foreground">Inactivo</Badge>}
           </div>
           {segment.description && <p className="text-xs text-muted-foreground mt-0.5">{segment.description}</p>}

@@ -60,7 +60,7 @@ const SOURCE_COLORS: Record<string, string> = {
   sale: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   purchase: "bg-blue-500/15 text-blue-400 border-blue-500/30",
   expense: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  adjustment: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  adjustment: "bg-primary/15 text-primary border-primary/30",
 };
 
 function formatDate(iso: string) {

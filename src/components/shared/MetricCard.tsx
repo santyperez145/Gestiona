@@ -19,7 +19,7 @@ const TONE: Record<MetricTone, { icon: string; value: string; bar: string }> = {
   red: { icon: "bg-destructive/10 text-destructive", value: "text-destructive", bar: "bg-destructive" },
   yellow: { icon: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400", value: "text-yellow-800 dark:text-yellow-300", bar: "bg-yellow-500" },
   blue: { icon: "bg-blue-500/10 text-blue-700 dark:text-blue-400", value: "text-blue-800 dark:text-blue-300", bar: "bg-blue-500" },
-  violet: { icon: "bg-violet-500/10 text-violet-700 dark:text-violet-400", value: "text-violet-800 dark:text-violet-300", bar: "bg-violet-500" },
+  violet: { icon: "bg-slate-500/10 text-slate-700 dark:text-primary", value: "text-violet-800 dark:text-slate-300", bar: "bg-violet-500" },
   neutral: { icon: "bg-muted text-muted-foreground", value: "text-foreground", bar: "bg-muted-foreground/50" },
 };
 

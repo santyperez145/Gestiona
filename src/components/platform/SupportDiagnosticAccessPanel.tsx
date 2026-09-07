@@ -117,11 +117,11 @@ export default function SupportDiagnosticAccessPanel({ orgId, canRequest }: Supp
   const statusMeta = status ? STATUS_META[status] || STATUS_META.expired : null;
 
   return (
-    <section className="rounded-[10px] border border-violet-500/20 bg-card p-4 space-y-4">
+    <section className="rounded-[10px] border border-slate-500/25 bg-card p-4 space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-violet-300" />
+            <ShieldCheck className="h-4 w-4 text-slate-300" />
             <h2 className="text-sm font-semibold">Diagnóstico con consentimiento</h2>
           </div>
           <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
@@ -223,7 +223,7 @@ export default function SupportDiagnosticAccessPanel({ orgId, canRequest }: Supp
 function DiagnosticGroup({ title, metrics }: { title: string; metrics: Array<[string, string]> }) {
   return (
     <div className="rounded-[8px] border border-border/60 bg-muted/15 p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-300">{title}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-300">{title}</p>
       <dl className="mt-2 space-y-1.5">
         {metrics.map(([label, value]) => <div key={label} className="flex items-center justify-between gap-2 text-[11px]"><dt className="text-muted-foreground">{label}</dt><dd className="font-medium text-right">{value}</dd></div>)}
       </dl>

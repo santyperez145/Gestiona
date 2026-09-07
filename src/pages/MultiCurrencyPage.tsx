@@ -26,7 +26,7 @@ const CURRENCIES_INFO: Record<string, { name: string; symbol: string; flag: stri
 
 const RATE_TYPES = [
   { id: "oficial", label: "Oficial BCRA", color: "text-blue-400" },
-  { id: "blue",    label: "Blue",         color: "text-purple-400" },
+  { id: "blue",    label: "Blue",         color: "text-primary" },
   { id: "mep",     label: "MEP",          color: "text-emerald-400" },
   { id: "ccl",     label: "CCL",          color: "text-yellow-400" },
 ];

@@ -1753,7 +1753,7 @@ export default function Dashboard() {
           { label: "Nuevo Cliente", icon: Users, path: "/clientes", color: "text-blue-400" },
           { label: "Inventario", icon: Package, path: "/productos", color: "text-yellow-400" },
           { label: "Gastos", icon: Wallet, path: "/gastos", color: "text-destructive" },
-          { label: "Reportes", icon: BarChart3, path: "/reportes", color: "text-purple-400" },
+          { label: "Reportes", icon: BarChart3, path: "/reportes", color: "text-primary" },
         ].map(a => (
           <Link key={a.path} to={a.path}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground hover:text-foreground">

@@ -18,9 +18,9 @@ const TONE_STYLE = {
     Icon: Info,
   },
   maintenance: {
-    shell: "border-violet-500/25 bg-violet-500/[0.08]",
-    icon: "text-violet-300",
-    action: "border-violet-500/25 text-violet-200 hover:bg-violet-500/10",
+    shell: "border-slate-500/25 bg-violet-500/[0.08]",
+    icon: "text-slate-300",
+    action: "border-slate-500/25 text-slate-200 hover:bg-slate-500/10",
     Icon: Wrench,
   },
   warning: {

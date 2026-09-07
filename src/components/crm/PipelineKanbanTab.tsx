@@ -73,7 +73,7 @@ const LOSS_REASONS = ["Precio alto", "Eligieron competencia", "Sin presupuesto",
 const STAGES: { value: Stage; label: string; color: string; bg: string; probability: number }[] = [
   { value: "lead",        label: "Lead",         color: "text-muted-foreground", bg: "bg-muted/40",         probability: 10 },
   { value: "contactado",  label: "Contactado",   color: "text-blue-400",         bg: "bg-blue-500/10",      probability: 25 },
-  { value: "propuesta",   label: "Propuesta",    color: "text-purple-400",       bg: "bg-purple-500/10",    probability: 50 },
+  { value: "propuesta",   label: "Propuesta",    color: "text-primary",       bg: "bg-primary/10",    probability: 50 },
   { value: "negociacion", label: "Negociación",  color: "text-yellow-400",       bg: "bg-yellow-500/10",    probability: 75 },
   { value: "cerrado",     label: "Cerrado ✓",    color: "text-emerald-400",      bg: "bg-emerald-500/10",   probability: 100 },
   { value: "perdido",     label: "Perdido ✗",    color: "text-red-400",          bg: "bg-red-500/10",       probability: 0 },
@@ -123,7 +123,7 @@ function DealScoreBadge({ score }: { score: number }) {
 const ACTIVITY_META: Record<ActivityType, { icon: React.FC<any>; label: string; color: string }> = {
   note:         { icon: StickyNote,    label: "Nota",        color: "text-yellow-400" },
   call:         { icon: Phone,         label: "Llamada",     color: "text-blue-400" },
-  email:        { icon: Mail,          label: "Email",       color: "text-purple-400" },
+  email:        { icon: Mail,          label: "Email",       color: "text-primary" },
   meeting:      { icon: Users,         label: "Reunión",     color: "text-green-400" },
   stage_change: { icon: ArrowRight,    label: "Etapa",       color: "text-primary" },
   whatsapp:     { icon: MessageCircle, label: "WhatsApp",    color: "text-emerald-400" },
@@ -271,12 +271,12 @@ function ActivityPanel({
       <div className="px-4 py-2.5 border-b border-border/50 shrink-0">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3 h-3 text-violet-400" /> AI Coach
+            <Sparkles className="w-3 h-3 text-primary" /> AI Coach
           </p>
           <button
             onClick={() => (coachOpen && coach ? setCoachOpen(false) : runCoach())}
             disabled={coachLoading}
-            className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 disabled:opacity-50 transition-all"
+            className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border border-primary/30 bg-slate-500/10 text-slate-300 hover:bg-primary/15 disabled:opacity-50 transition-all"
           >
             {coachLoading
               ? <><Loader2 className="w-3 h-3 animate-spin" /> Analizando…</>
@@ -289,7 +289,7 @@ function ActivityPanel({
         {coachOpen && coach && !coachLoading && (
           <div className="mt-2.5 space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
             {/* Win probability + urgency strip */}
-            <div className="flex items-center gap-2.5 p-2 rounded-md bg-violet-500/5 border border-violet-500/20">
+            <div className="flex items-center gap-2.5 p-2 rounded-md bg-slate-500/5 border border-slate-500/25">
               <div className="relative w-9 h-9 shrink-0">
                 <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />

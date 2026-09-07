@@ -56,7 +56,7 @@ const COLORES_CATEGORIA = [
   "bg-emerald-500/15 text-emerald-400",
   "bg-yellow-500/15 text-yellow-400",
   "bg-blue-500/15 text-blue-400",
-  "bg-purple-500/15 text-purple-400",
+  "bg-primary/15 text-primary",
   "bg-pink-500/15 text-pink-400",
   "bg-cyan-500/15 text-cyan-400",
 ];

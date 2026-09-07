@@ -72,7 +72,7 @@ interface SegmentDef {
 
 const SEGMENTS: Record<Segment, SegmentDef> = {
   champion:    { label: "Campeones",       color: "#f59e0b", bg: "bg-amber-500/10",  border: "border-amber-500/30",  icon: <Crown className="w-3.5 h-3.5" />,     description: "Compraron recientemente, con frecuencia, y alto gasto" },
-  loyal:       { label: "Leales",          color: "#8b5cf6", bg: "bg-purple-500/10", border: "border-purple-500/30", icon: <Flame className="w-3.5 h-3.5" />,     description: "Alta frecuencia y gasto, compran regularmente" },
+  loyal:       { label: "Leales",          color: "#8b5cf6", bg: "bg-primary/10", border: "border-primary/30", icon: <Flame className="w-3.5 h-3.5" />,     description: "Alta frecuencia y gasto, compran regularmente" },
   potential:   { label: "Potenciales",     color: "#3b82f6", bg: "bg-blue-500/10",   border: "border-blue-500/30",   icon: <Zap className="w-3.5 h-3.5" />,       description: "Clientes recientes con potencial de fidelización" },
   new:         { label: "Nuevos",          color: "#10b981", bg: "bg-emerald-500/10",border: "border-emerald-500/30",icon: <Leaf className="w-3.5 h-3.5" />,      description: "Primera compra reciente — aún no hay historial" },
   promising:   { label: "Prometedores",    color: "#06b6d4", bg: "bg-cyan-500/10",   border: "border-cyan-500/30",   icon: <TrendingUp className="w-3.5 h-3.5" />, description: "Actividad reciente, aumentando frecuencia" },

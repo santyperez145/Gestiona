@@ -79,7 +79,7 @@ const PROMPT_CATEGORIES: Record<string, { label: string; color: string }> = {
   inventory:  { label: "Inventario",  color: "bg-blue-500/15 text-blue-400" },
   finance:    { label: "Finanzas",    color: "bg-yellow-500/15 text-yellow-400" },
   marketing:  { label: "Marketing",  color: "bg-pink-500/15 text-pink-400" },
-  hr:         { label: "RRHH",        color: "bg-purple-500/15 text-purple-400" },
+  hr:         { label: "RRHH",        color: "bg-primary/15 text-primary" },
   general:    { label: "General",    color: "bg-muted/40 text-muted-foreground" },
   analysis:   { label: "Análisis",   color: "bg-indigo-500/15 text-indigo-400" },
   templates:  { label: "Templates",  color: "bg-orange-500/15 text-orange-400" },

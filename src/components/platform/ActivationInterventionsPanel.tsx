@@ -110,9 +110,9 @@ export default function ActivationInterventionsPanel({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[10px] border border-violet-500/20 bg-violet-500/[0.04] p-4">
+      <section className="rounded-[10px] border border-slate-500/25 bg-violet-500/[0.04] p-4">
         <div className="flex items-start gap-3">
-          <HandHelping className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
+          <HandHelping className="mt-0.5 h-4 w-4 shrink-0 text-slate-300" />
           <div>
             <h2 className="text-sm font-semibold">Costo de acompañamiento</h2>
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">

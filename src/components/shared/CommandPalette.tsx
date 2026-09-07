@@ -61,7 +61,7 @@ const QUICK_ACTIONS = [
   { label: "Nueva venta rápida", path: "/ventas?new=1", icon: Plus, color: "text-green-400" },
   { label: "Nuevo presupuesto", path: "/presupuestos?new=1", icon: FileText, color: "text-blue-400" },
   { label: "Registrar gasto", path: "/gastos?new=1", icon: Receipt, color: "text-orange-400" },
-  { label: "Nuevo producto", path: "/productos?new=1", icon: Package, color: "text-purple-400" },
+  { label: "Nuevo producto", path: "/productos?new=1", icon: Package, color: "text-primary" },
   { label: "Nuevo cliente", path: "/clientes?new=1", icon: User, color: "text-cyan-400" },
   { label: "Registrar deuda", path: "/deudas?new=1", icon: AlertCircle, color: "text-red-400" },
   { label: "Chat con IA", path: "/ia", icon: Brain, color: "text-yellow-400" },

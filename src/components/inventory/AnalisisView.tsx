@@ -78,7 +78,7 @@ const SIGNAL_CONFIG: Record<string, { label: string; color: string; icon: React.
   spike:        { label: "Pico de demanda",    color: "bg-emerald-500/15 text-emerald-400", icon: <TrendingUp className="w-3.5 h-3.5" /> },
   trend_up:     { label: "Tendencia ↑",        color: "bg-blue-500/15 text-blue-400",       icon: <TrendingUp className="w-3.5 h-3.5" /> },
   trend_down:   { label: "Tendencia ↓",        color: "bg-red-500/15 text-red-400",         icon: <TrendingDown className="w-3.5 h-3.5" /> },
-  seasonal:     { label: "Estacional",         color: "bg-purple-500/15 text-purple-400",   icon: <Activity className="w-3.5 h-3.5" /> },
+  seasonal:     { label: "Estacional",         color: "bg-primary/15 text-primary",   icon: <Activity className="w-3.5 h-3.5" /> },
   promotion:    { label: "Promoción activa",   color: "bg-yellow-500/15 text-yellow-400",   icon: <Zap className="w-3.5 h-3.5" /> },
   stockout_risk:{ label: "Riesgo de quiebre",  color: "bg-orange-500/15 text-orange-400",   icon: <AlertTriangle className="w-3.5 h-3.5" /> },
 };

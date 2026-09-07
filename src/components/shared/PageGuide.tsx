@@ -8,8 +8,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 // ── Tag badge styles ──────────────────────────────────────────────────────────
 const TAG_STYLES: Record<string, string> = {
   Nuevo:  "bg-primary/15 text-primary border-primary/30",
-  Pro:    "bg-purple-500/15 text-purple-400 border-purple-500/30",
-  IA:     "bg-violet-500/15 text-violet-400 border-violet-500/30",
+  Pro:    "bg-primary/15 text-primary border-primary/30",
+  IA:     "bg-primary/15 text-primary border-primary/30",
   Tip:    "bg-blue-500/15 text-blue-400 border-blue-500/30",
 };
 

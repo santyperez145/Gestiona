@@ -139,7 +139,7 @@ const PAY_METHODS: { value: PayMethod; label: string; icon: typeof Banknote; col
   { value: "debito",        label: "Débito",        icon: CreditCard,      color: "text-primary" },
   { value: "credito",       label: "Crédito",       icon: CreditCard,      color: "text-yellow-400" },
   { value: "qr",            label: "QR Mercado Pago", icon: QrCode,         color: "text-sky-500" },
-  { value: "mayorista",     label: "Mayorista",     icon: Zap,             color: "text-purple-400" },
+  { value: "mayorista",     label: "Mayorista",     icon: Zap,             color: "text-primary" },
   { value: "fiado",         label: "Fiado / Deuda", icon: UserX,           color: "text-red-400" },
 ];
 
@@ -2781,7 +2781,7 @@ export default function POSPage() {
         {vipLoading && <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Verificando nivel…</p>}
         {vipTier && !vipLoading && (
           <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium ${
-            vipTier.name === "Platino" ? "bg-purple-500/15 border border-purple-500/30 text-purple-300" :
+            vipTier.name === "Platino" ? "bg-primary/15 border border-primary/30 text-primary" :
             vipTier.name === "Oro" ? "bg-yellow-500/15 border border-yellow-500/30 text-yellow-300" :
             "bg-slate-500/15 border border-slate-500/30 text-slate-300"
           }`}>

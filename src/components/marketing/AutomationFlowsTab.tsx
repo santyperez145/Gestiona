@@ -115,7 +115,7 @@ const ACTION_ICONS: Record<ActionType, React.ReactNode> = {
   whatsapp_message: <MessageCircle className="w-4 h-4 text-green-400" />,
   create_task: <ClipboardList className="w-4 h-4 text-yellow-400" />,
   create_purchase_order: <ShoppingBag className="w-4 h-4 text-orange-400" />,
-  webhook: <Globe className="w-4 h-4 text-purple-400" />,
+  webhook: <Globe className="w-4 h-4 text-primary" />,
 };
 
 const ACTION_DESCRIPTIONS: Record<ActionType, string> = {
@@ -543,7 +543,7 @@ function actionBadgeClass(a: ActionType): string {
     whatsapp_message: "bg-green-500/10 text-green-400",
     create_task: "bg-yellow-500/10 text-yellow-400",
     create_purchase_order: "bg-orange-500/10 text-orange-400",
-    webhook: "bg-purple-500/10 text-purple-400",
+    webhook: "bg-primary/10 text-primary",
   };
   return map[a] ?? "bg-muted text-muted-foreground";
 }

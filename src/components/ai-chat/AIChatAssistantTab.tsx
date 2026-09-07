@@ -1111,7 +1111,7 @@ function CustomerAnalysisCard({ userId, initialName, onDone }: { userId: string;
 
   useEffect(() => { if (initialName) analyze(); }, []);
 
-  const segColors: Record<string, string> = { VIP: 'text-yellow-400', Premium: 'text-purple-400', Frecuente: 'text-blue-400', Activo: 'text-green-400', 'En riesgo': 'text-orange-400', Dormido: 'text-orange-500', Perdido: 'text-red-400', Nuevo: 'text-cyan-400' };
+  const segColors: Record<string, string> = { VIP: 'text-yellow-400', Premium: 'text-primary', Frecuente: 'text-blue-400', Activo: 'text-green-400', 'En riesgo': 'text-orange-400', Dormido: 'text-orange-500', Perdido: 'text-red-400', Nuevo: 'text-cyan-400' };
 
   return (
     <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">

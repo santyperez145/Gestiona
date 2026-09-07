@@ -84,7 +84,7 @@ const TYPE_META: Record<MovementType, { label: string; color: string; icon: Reac
   return_out:      { label: "Dev. Salida",      color: "bg-orange-500/15 text-orange-400 border-orange-500/30", icon: <ArrowUpCircle className="w-3.5 h-3.5" /> },
   adjustment_in:   { label: "Ajuste (+)",       color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: <PlusCircle className="w-3.5 h-3.5" /> },
   adjustment_out:  { label: "Ajuste (−)",       color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30", icon: <MinusCircle className="w-3.5 h-3.5" /> },
-  transfer_in:     { label: "Transferencia (+)", color: "bg-purple-500/15 text-purple-400 border-purple-500/30", icon: <ArrowDownCircle className="w-3.5 h-3.5" /> },
+  transfer_in:     { label: "Transferencia (+)", color: "bg-primary/15 text-primary border-primary/30", icon: <ArrowDownCircle className="w-3.5 h-3.5" /> },
   transfer_out:    { label: "Transferencia (−)", color: "bg-pink-500/15 text-pink-400 border-pink-500/30",    icon: <ArrowUpCircle className="w-3.5 h-3.5" /> },
   physical_count:  { label: "Toma Física",      color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",    icon: <ClipboardList className="w-3.5 h-3.5" /> },
   initial:         { label: "Stock Inicial",    color: "bg-gray-500/15 text-gray-400 border-gray-500/30",    icon: <Package className="w-3.5 h-3.5" /> },

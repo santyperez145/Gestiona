@@ -43,7 +43,7 @@ const CHART_ICONS: Record<string, any> = {
 const TYPE_COLORS: Record<string, string> = {
   sales: "bg-emerald-500/15 text-emerald-400",
   customers: "bg-blue-500/15 text-blue-400",
-  inventory: "bg-purple-500/15 text-purple-400",
+  inventory: "bg-primary/15 text-primary",
   finance: "bg-yellow-500/15 text-yellow-400",
   marketing: "bg-pink-500/15 text-pink-400",
   custom: "bg-primary/15 text-primary",

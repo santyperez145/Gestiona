@@ -40,7 +40,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   pending:    { label: "Pendiente",    color: "bg-yellow-500/15 text-yellow-400", icon: <Clock className="w-3 h-3" /> },
   approved:   { label: "Aprobado",     color: "bg-blue-500/15 text-blue-400",    icon: <CheckCircle2 className="w-3 h-3" /> },
   rejected:   { label: "Rechazado",    color: "bg-red-500/15 text-red-400",      icon: <XCircle className="w-3 h-3" /> },
-  processing: { label: "En proceso",   color: "bg-purple-500/15 text-purple-400", icon: <RefreshCcw className="w-3 h-3" /> },
+  processing: { label: "En proceso",   color: "bg-primary/15 text-primary", icon: <RefreshCcw className="w-3 h-3" /> },
   resolved:   { label: "Resuelto",     color: "bg-green-500/15 text-green-400",  icon: <CheckCircle2 className="w-3 h-3" /> },
   closed:     { label: "Cerrado",      color: "bg-muted/50 text-muted-foreground", icon: <XCircle className="w-3 h-3" /> },
 };

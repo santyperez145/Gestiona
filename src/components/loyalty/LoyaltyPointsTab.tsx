@@ -21,7 +21,7 @@ const TIERS = [
   { name: "Bronce", min: 0, max: 99, color: "text-orange-400", bg: "bg-orange-500/15", barColor: "bg-orange-400" },
   { name: "Plata", min: 100, max: 499, color: "text-slate-300", bg: "bg-slate-500/15", barColor: "bg-slate-400" },
   { name: "Oro", min: 500, max: 999, color: "text-yellow-400", bg: "bg-yellow-500/15", barColor: "bg-yellow-400" },
-  { name: "Platino", min: 1000, max: Infinity, color: "text-purple-400", bg: "bg-purple-500/15", barColor: "bg-purple-400" },
+  { name: "Platino", min: 1000, max: Infinity, color: "text-primary", bg: "bg-primary/15", barColor: "bg-purple-400" },
 ];
 
 function getTier(pts: number) {
@@ -564,7 +564,7 @@ export default function LoyaltyPointsTab() {
               {(() => {
                 const next = getNextTier(selectedBalance.balance);
                 const current = getTier(selectedBalance.balance);
-                if (!next) return <p className="text-xs text-purple-400 font-medium">¡Nivel máximo alcanzado! 🏆</p>;
+                if (!next) return <p className="text-xs text-primary font-medium">¡Nivel máximo alcanzado! 🏆</p>;
                 const progress = selectedBalance.balance - current.min;
                 const range = next.min - current.min;
                 const pct = Math.min(100, (progress / range) * 100);

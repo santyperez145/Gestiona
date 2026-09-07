@@ -71,7 +71,7 @@ interface Enrollment {
 // ─────────────────────────────────────────────────────────────
 const TRIGGER_CONFIG: Record<TriggerEvent, { label: string; desc: string; color: string }> = {
   welcome:       { label: "Bienvenida",          desc: "Al agregar un nuevo cliente", color: "text-blue-400" },
-  quote_sent:    { label: "Presupuesto enviado",  desc: "Días después de enviar un presupuesto", color: "text-purple-400" },
+  quote_sent:    { label: "Presupuesto enviado",  desc: "Días después de enviar un presupuesto", color: "text-primary" },
   deal_lost:     { label: "Deal perdido",         desc: "Re-engagement tras perder un deal", color: "text-red-400" },
   inactive_90d:  { label: "Clientes inactivos",   desc: "Sin compras en 90+ días", color: "text-orange-400" },
   post_purchase: { label: "Post-compra",          desc: "Días después de una venta", color: "text-green-400" },

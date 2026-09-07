@@ -31,7 +31,7 @@ const EVENT_CONFIG: Record<EventType, { icon: typeof Activity; color: string; bg
   sale:       { icon: ShoppingCart,  color: "text-emerald-400", bg: "bg-emerald-500/10", label: "Venta" },
   customer:   { icon: Users,          color: "text-blue-400",    bg: "bg-blue-500/10",    label: "Cliente" },
   deal:       { icon: TrendingUp,     color: "text-yellow-400",  bg: "bg-yellow-500/10",  label: "Deal" },
-  task:       { icon: CheckSquare,    color: "text-purple-400",  bg: "bg-purple-500/10",  label: "Tarea" },
+  task:       { icon: CheckSquare,    color: "text-primary",  bg: "bg-primary/10",  label: "Tarea" },
   alert:      { icon: AlertTriangle,  color: "text-orange-400",  bg: "bg-orange-500/10",  label: "Alerta" },
   automation: { icon: RefreshCw,      color: "text-primary",     bg: "bg-primary/10",     label: "Automatización" },
 };

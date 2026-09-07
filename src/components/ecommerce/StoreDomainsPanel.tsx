@@ -142,7 +142,7 @@ export default function StoreDomainsPanel({
     <section aria-labelledby="store-domains-title" className="rounded-2xl border border-border/60 bg-card shadow-sm">
       <div className="flex flex-col gap-3 border-b border-border/50 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
         <div className="flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-300">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-500/10 text-primary dark:text-slate-300">
             <Globe2 className="h-5 w-5" />
           </div>
           <div>

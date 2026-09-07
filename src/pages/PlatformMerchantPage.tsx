@@ -524,7 +524,7 @@ export default function PlatformMerchantPage() {
                   <p className="text-[11px] text-muted-foreground">Conexión, vigencia y última ejecución conocidas por la plataforma. No muestra secretos ni datos de cuenta.</p>
                 </div>
               </div>
-              <Link to="/platform/integraciones" className="text-xs text-slate-300 hover:text-violet-200 transition-colors shrink-0">Ver catálogo global</Link>
+              <Link to="/platform/integraciones" className="text-xs text-slate-300 hover:text-slate-200 transition-colors shrink-0">Ver catálogo global</Link>
             </div>
 
             {snapshot.integrations.length === 0 ? (

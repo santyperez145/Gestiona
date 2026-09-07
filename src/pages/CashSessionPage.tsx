@@ -506,7 +506,7 @@ export default function CashSessionPage() {
             {[
               { l: "Efectivo neto", v: formatARS(totals.cashNet), icon: Banknote, color: "text-green-400" },
               { l: "Transferencias", v: formatARS(totals.transferTotal), icon: TrendingUp, color: "text-blue-400" },
-              { l: "Tarjetas y otros", v: formatARS(totals.cardTotal + totals.otherPaymentTotal), icon: TrendingUp, color: "text-purple-400" },
+              { l: "Tarjetas y otros", v: formatARS(totals.cardTotal + totals.otherPaymentTotal), icon: TrendingUp, color: "text-primary" },
               { l: "Total cobrado", v: formatARS(totals.salesTotal), icon: TrendingUp, color: "text-primary" },
             ].map((s) => (
               <div key={s.l} className="bg-card border border-border/60 rounded-[10px] p-4">

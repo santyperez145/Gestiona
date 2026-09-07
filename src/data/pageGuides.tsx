@@ -84,7 +84,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   "/compras": {
     title: "Compras",
     subtitle: "Pedidos y recepción de mercadería",
-    color: "text-purple-400",
+    color: "text-primary",
     tips: [
       { icon: ScanLine, title: "Escanear barcode para buscar", desc: "Usá el botón de cámara junto al buscador para escanear el código de barras de un producto y filtrarlo instantáneamente.", tag: "Nuevo" },
       { icon: FileText, title: "Importar factura del proveedor", desc: "Con '✨ Factura IA' podés fotografiar la factura del proveedor y crear la compra automáticamente con todos los ítems.", tag: "IA" },
@@ -212,7 +212,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   "/analytics": {
     title: "Analytics",
     subtitle: "Inteligencia de negocio avanzada",
-    color: "text-violet-400",
+    color: "text-primary",
     tips: [
       { icon: LineChart, title: "Predicción de demanda", desc: "El tab 'Demanda' proyecta los próximos 30 días por producto usando velocidad de ventas. Semáforo de urgencia para reposición.", tag: "IA" },
       { icon: Activity, title: "Análisis de cohortes", desc: "El tab 'Cohorts' muestra la retención de clientes por mes de primera compra en un heatmap de 12 × 7. Verde = retención alta." },
@@ -309,7 +309,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   "/chat-ia": {
     title: "Chat con IA",
     subtitle: "Asistente de negocio con Claude",
-    color: "text-violet-400",
+    color: "text-primary",
     tips: [
       { icon: Brain, title: "Acciones directas desde el chat", desc: "Podés registrar ventas, compras, gastos, clientes y productos con lenguaje natural. La IA crea los registros en la base de datos.", tag: "IA" },
       { icon: BarChart2, title: "Consultar métricas", desc: "Preguntá '¿cuánto vendí esta semana?' o '¿cuál es mi producto más rentable?' para obtener datos de tu negocio en lenguaje natural." },

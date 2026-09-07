@@ -517,7 +517,7 @@ const AUDIT_SEVERITY_CONFIG: Record<string, { label: string; color: string; icon
 
 const AUDIT_ACTION_COLOR: Record<string, string> = {
   create: "text-emerald-400", update: "text-blue-400", delete: "text-red-400",
-  login: "text-purple-400", logout: "text-muted-foreground", export: "text-orange-400",
+  login: "text-primary", logout: "text-muted-foreground", export: "text-orange-400",
 };
 
 function getAuditActionColor(action: string) {

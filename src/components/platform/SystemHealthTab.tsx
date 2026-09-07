@@ -82,7 +82,7 @@ const DESCRIPCIONES: Record<string, Omit<SecretStatus, "configured" | "name">> =
 
 const CATEGORY_META: Record<SecretStatus["category"], { label: string; icon: typeof KeyRound; color: string }> = {
   core: { label: "Sistema", icon: Server, color: "text-slate-400" },
-  ai: { label: "Inteligencia Artificial", icon: Zap, color: "text-violet-400" },
+  ai: { label: "Inteligencia Artificial", icon: Zap, color: "text-primary" },
   email: { label: "Emails", icon: Activity, color: "text-blue-400" },
   payments: { label: "Pagos", icon: KeyRound, color: "text-emerald-400" },
   integrations: { label: "Integraciones", icon: Shield, color: "text-amber-400" },

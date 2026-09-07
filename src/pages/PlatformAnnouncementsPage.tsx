@@ -49,7 +49,7 @@ const STATUS_STYLE = {
 
 const TONE_STYLE: Record<AnnouncementTone, string> = {
   info: "border-sky-500/25 bg-sky-500/[0.07] text-sky-700 dark:text-sky-200",
-  maintenance: "border-violet-500/25 bg-violet-500/[0.07] text-violet-700 dark:text-violet-200",
+  maintenance: "border-slate-500/25 bg-slate-500/[0.07] text-slate-700 dark:text-slate-200",
   warning: "border-amber-500/25 bg-amber-500/[0.07] text-amber-700 dark:text-amber-100",
   success: "border-emerald-500/25 bg-emerald-500/[0.07] text-emerald-700 dark:text-emerald-200",
 };
@@ -232,7 +232,7 @@ export default function PlatformAnnouncementsPage() {
       </div>
 
       <section className="overflow-hidden rounded-xl border border-border/60 bg-card">
-        <div className="flex items-center gap-2 border-b border-border/50 px-5 py-4"><BellRing className="h-4 w-4 text-violet-700 dark:text-violet-300" /><div><h2 className="text-sm font-semibold">Historial de comunicación</h2><p className="mt-0.5 text-xs text-muted-foreground">Archivar preserva trazabilidad; no se borra un mensaje operativo.</p></div></div>
+        <div className="flex items-center gap-2 border-b border-border/50 px-5 py-4"><BellRing className="h-4 w-4 text-slate-700 dark:text-slate-300" /><div><h2 className="text-sm font-semibold">Historial de comunicación</h2><p className="mt-0.5 text-xs text-muted-foreground">Archivar preserva trazabilidad; no se borra un mensaje operativo.</p></div></div>
         {loading ? <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Cargando anuncios…</div> : error ? <div className="p-8 text-center text-sm text-muted-foreground"><p>{error}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void load()}>Reintentar</Button></div> : rows.length === 0 ? <div className="p-10 text-center"><Megaphone className="mx-auto h-7 w-7 text-muted-foreground/35" /><p className="mt-3 text-sm font-medium">Todavía no hay anuncios</p><p className="mt-1 text-xs text-muted-foreground">Publicá el primero cuando haya una comunicación que el comercio necesite ver dentro del sistema.</p></div> : (
           <div className="divide-y divide-border/50">
             {rows.map(row => {
@@ -267,7 +267,7 @@ export default function PlatformAnnouncementsPage() {
             <div className="space-y-1.5"><Label htmlFor="announcement-end">Ocultar el</Label><Input id="announcement-end" type="datetime-local" value={form.endsAt} onChange={event => setForm(current => ({ ...current, endsAt: event.target.value }))} /><p className="text-[10px] text-muted-foreground">Opcional. Sin fecha, seguirá activo hasta archivarlo.</p></div>
             <div className="grid gap-4 rounded-lg border border-border/50 bg-muted/20 p-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="announcement-cta-label">Texto de acción</Label><Input id="announcement-cta-label" maxLength={60} value={form.ctaLabel} onChange={event => setForm(current => ({ ...current, ctaLabel: event.target.value }))} placeholder="Ej.: Ver estado" /></div><div className="space-y-1.5"><Label htmlFor="announcement-cta-url">Ruta interna</Label><Input id="announcement-cta-url" value={form.ctaUrl} onChange={event => setForm(current => ({ ...current, ctaUrl: event.target.value }))} placeholder="/estado" /><p className="text-[10px] text-muted-foreground">Sólo rutas de Nerqia que empiecen con /.</p></div></div>
           </div>
-          <DialogFooter><Button variant="outline" disabled={saving} onClick={() => void save(false)}>Guardar borrador</Button><Button className="bg-violet-600 text-white hover:bg-violet-500" disabled={saving} onClick={() => void save(true)}>{saving ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-2 h-3.5 w-3.5" />}{form.id && form.publish ? "Actualizar publicación" : "Publicar"}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" disabled={saving} onClick={() => void save(false)}>Guardar borrador</Button><Button className="bg-slate-700 text-white hover:bg-slate-600" disabled={saving} onClick={() => void save(true)}>{saving ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-2 h-3.5 w-3.5" />}{form.id && form.publish ? "Actualizar publicación" : "Publicar"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
       {dialog}

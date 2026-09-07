@@ -48,7 +48,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   cogs:           "text-orange-400 bg-orange-500/10",
   gross_profit:   "text-blue-400 bg-blue-500/10",
   opex:           "text-red-400 bg-red-500/10",
-  ebitda:         "text-purple-400 bg-purple-500/10",
+  ebitda:         "text-primary bg-primary/10",
   net_income:     "text-emerald-400 bg-emerald-500/10",
 };
 
@@ -139,9 +139,9 @@ function BreakevenCalc() {
           <p className="text-xs text-blue-400 font-medium mb-1">Margen de Contribución</p>
           <p className="text-3xl font-bold text-blue-400">{contributionMarginPct.toFixed(1)}%</p>
         </div>
-        <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 text-center">
-          <p className="text-xs text-purple-400 font-medium mb-1">Punto de Equilibrio (ARS)</p>
-          <p className="text-2xl font-bold text-purple-400">${breakevenRevenue.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</p>
+        <div className="bg-primary/10 border border-purple-500/20 rounded-xl p-4 text-center">
+          <p className="text-xs text-primary font-medium mb-1">Punto de Equilibrio (ARS)</p>
+          <p className="text-2xl font-bold text-primary">${breakevenRevenue.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</p>
         </div>
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
           <p className="text-xs text-emerald-400 font-medium mb-1">Unidades de Equilibrio</p>
@@ -156,7 +156,7 @@ function BreakevenCalc() {
           <div className="space-y-2 pb-12">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>$0</span>
-              <span className="text-purple-400">Equilibrio: ${(breakevenRevenue / 1000).toFixed(0)}K</span>
+              <span className="text-primary">Equilibrio: ${(breakevenRevenue / 1000).toFixed(0)}K</span>
               <span>Ventas Act.: $500K</span>
             </div>
             <div className="h-4 bg-muted rounded-full overflow-hidden flex">

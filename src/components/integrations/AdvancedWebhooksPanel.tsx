@@ -322,7 +322,7 @@ export default function AdvancedWebhooksPanel() {
       </div>
 
       <div className="flex items-start gap-3 p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/15 text-sm">
-        <Info className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+        <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
         <p className="text-muted-foreground">
           Cada endpoint recibe POST firmados con HMAC-SHA256, timestamp contra replay,
           identificador de entrega y reintentos auditables. El secret se genera en el
@@ -416,7 +416,7 @@ export default function AdvancedWebhooksPanel() {
                             onClick={() => toggleEvent(ev.key)}
                             className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
                               form.event_types.includes(ev.key)
-                                ? 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+                                ? 'bg-primary/15 text-primary border-primary/30'
                                 : 'border-border text-muted-foreground hover:bg-muted/50'
                             }`}
                           >
@@ -428,7 +428,7 @@ export default function AdvancedWebhooksPanel() {
                   ))}
                 </div>
                 {form.event_types.length > 0 && (
-                  <p className="text-xs text-purple-400 mt-2">{form.event_types.length} evento{form.event_types.length > 1 ? 's' : ''} seleccionado{form.event_types.length > 1 ? 's' : ''}</p>
+                  <p className="text-xs text-primary mt-2">{form.event_types.length} evento{form.event_types.length > 1 ? 's' : ''} seleccionado{form.event_types.length > 1 ? 's' : ''}</p>
                 )}
               </div>
 
@@ -573,7 +573,7 @@ export default function AdvancedWebhooksPanel() {
                         {webhook.event_types.map(e => {
                           const ev = ALL_EVENTS.find(x => x.key === e);
                           return (
-                            <span key={e} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                            <span key={e} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 border border-purple-500/20 text-primary">
                               {ev?.label ?? e}
                             </span>
                           );

@@ -63,7 +63,7 @@ const ZONE_TYPE_CFG: Record<string, { label: string; color: string }> = {
   bulk:       { label: "Granel",     color: "bg-yellow-500/15 text-yellow-400" },
   hazardous:  { label: "Peligroso",  color: "bg-red-500/15 text-red-400" },
   quarantine: { label: "Cuarentena", color: "bg-orange-500/15 text-orange-400" },
-  dispatch:   { label: "Despacho",   color: "bg-purple-500/15 text-purple-400" },
+  dispatch:   { label: "Despacho",   color: "bg-primary/15 text-primary" },
   receiving:  { label: "Recepción",  color: "bg-emerald-500/15 text-emerald-400" },
 };
 

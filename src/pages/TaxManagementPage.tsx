@@ -79,7 +79,7 @@ interface IibbRegistration {
 
 const TAX_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   iva:         { label: "IVA",         color: "bg-blue-500/15 text-blue-400" },
-  iibb:        { label: "IIBB",        color: "bg-purple-500/15 text-purple-400" },
+  iibb:        { label: "IIBB",        color: "bg-primary/15 text-primary" },
   ganancias:   { label: "Ganancias",   color: "bg-orange-500/15 text-orange-400" },
   monotributo: { label: "Monotributo", color: "bg-emerald-500/15 text-emerald-400" },
   sellos:      { label: "Sellos",      color: "bg-yellow-500/15 text-yellow-400" },

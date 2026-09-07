@@ -35,7 +35,7 @@ interface CalEvent {
 }
 
 const EVENT_CONFIG: Record<EventType, { color: string; bg: string; dot: string; icon: typeof Calendar; label: string }> = {
-  task:     { color: "text-purple-400",  bg: "bg-purple-500/15",   dot: "bg-purple-400",   icon: CheckSquare, label: "Tarea" },
+  task:     { color: "text-primary",  bg: "bg-primary/15",   dot: "bg-purple-400",   icon: CheckSquare, label: "Tarea" },
   deal:     { color: "text-yellow-400",  bg: "bg-yellow-500/15",   dot: "bg-yellow-400",   icon: TrendingUp,  label: "Deal" },
   followup: { color: "text-blue-400",    bg: "bg-blue-500/15",     dot: "bg-blue-400",     icon: Users,       label: "Follow-up" },
   debt:     { color: "text-red-400",     bg: "bg-red-500/15",      dot: "bg-red-400",      icon: AlertCircle, label: "Cobro" },

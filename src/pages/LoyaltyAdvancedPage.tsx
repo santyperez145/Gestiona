@@ -85,7 +85,7 @@ interface LoyaltyTransaction {
 const REWARD_TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   discount_pct:   { label: "Descuento %",      icon: <Zap className="w-4 h-4" />,        color: "bg-yellow-500/15 text-yellow-400" },
   discount_fixed: { label: "Descuento $",       icon: <Coins className="w-4 h-4" />,      color: "bg-emerald-500/15 text-emerald-400" },
-  free_product:   { label: "Producto gratis",   icon: <Gift className="w-4 h-4" />,       color: "bg-purple-500/15 text-purple-400" },
+  free_product:   { label: "Producto gratis",   icon: <Gift className="w-4 h-4" />,       color: "bg-primary/15 text-primary" },
   gift_card:      { label: "Gift Card",         icon: <ShoppingBag className="w-4 h-4" />,color: "bg-blue-500/15 text-blue-400" },
   experience:     { label: "Experiencia",       icon: <Trophy className="w-4 h-4" />,     color: "bg-pink-500/15 text-pink-400" },
   other:          { label: "Otro",              icon: <Award className="w-4 h-4" />,      color: "bg-muted/40 text-muted-foreground" },
