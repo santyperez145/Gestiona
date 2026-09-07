@@ -13,6 +13,9 @@ describe("prueba segura de automatizaciones", () => {
     expect(edge).toContain('const previewOnly = requestedMode === "preview"');
     expect(edge).toContain('requestedMode !== "execute" && requestedMode !== "preview"');
     expect(edge).toContain('if (previewOnly && !targetFlowId)');
+    expect(edge).toContain('if (!targetOrgId)');
+    expect(edge).toContain('if (!UUID.test(targetOrgId))');
+    expect(edge).toContain('[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
     expect(edge).toContain('p_module: "marketing"');
     expect(edge).toContain('p_action: "edit"');
     expect(edge).toContain('if (!allowed) return json({ error: "No tenés permiso para ejecutar automatizaciones" }, 403)');

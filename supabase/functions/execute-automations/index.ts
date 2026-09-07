@@ -36,7 +36,9 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+// PostgreSQL acepta el formato UUID canónico completo. No se limita a v1-v5:
+// UUIDv7 es válido bajo RFC 9562 y ya se usa para claves ordenables por tiempo.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function argentinaDate(date: Date) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -92,8 +94,11 @@ Deno.serve(async (req) => {
   // usuario con sesión podía mandar el org_id de otro comercio y ejecutar sus
   // automatizaciones porque la consulta posterior usa service_role.
   if (!vieneDelCron) {
-    if (!targetOrgId || !UUID.test(targetOrgId)) {
+    if (!targetOrgId) {
       return json({ error: "La organización es obligatoria" }, 400);
+    }
+    if (!UUID.test(targetOrgId)) {
+      return json({ error: "La organización activa no es válida. Recargá la página." }, 400);
     }
     if (targetFlowId && !UUID.test(targetFlowId)) {
       return json({ error: "La automatización indicada no es válida" }, 400);
