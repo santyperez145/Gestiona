@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { MapPin, Plus, Edit2, Trash2, ArrowLeftRight, Package, Phone, Star, Check, Warehouse, Building2 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import BusinessPageHeader from "@/components/business/BusinessPageHeader";
+import BusinessKPICard from "@/components/business/BusinessKPICard";
+import BusinessEmptyState from "@/components/business/BusinessEmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import WarehouseZonesTab from "@/components/locations/WarehouseZonesTab";
@@ -456,11 +457,11 @@ export default function LocationsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
+      <BusinessPageHeader
         icon={MapPin}
-        eyebrow="Commerce · Stock"
         title="Sucursales"
         description="Locales y depósitos con el mismo inventario que ve la tienda online."
+        badge="Stock"
       />
 
       {/* Main sections */}
@@ -497,10 +498,30 @@ export default function LocationsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Sucursales activas" value={locations.length} icon={MapPin} color="primary" sub={`${locations.filter(l => l.is_main).length} principal`} />
-        <KPICard label="Productos rastreados" value={Object.values(locationStock).flat().length} icon={Package} color="blue" sub="ítems con stock por sucursal" />
-        <KPICard label="Unidades totales" value={Object.values(locationStock).flat().reduce((s, ls) => s + ls.stock, 0)} icon={Star} color="success" sub="en todos los locales" />
-        <KPICard label="Transferencias" value={transfers.length} icon={ArrowLeftRight} color="purple" sub="historial reciente" />
+        <BusinessKPICard
+          title="Sucursales activas"
+          value={locations.length}
+          icon={MapPin}
+          description={`${locations.filter(l => l.is_main).length} principal`}
+        />
+        <BusinessKPICard
+          title="Productos rastreados"
+          value={Object.values(locationStock).flat().length}
+          icon={Package}
+          description="ítems con stock por sucursal"
+        />
+        <BusinessKPICard
+          title="Unidades totales"
+          value={Object.values(locationStock).flat().reduce((s, ls) => s + ls.stock, 0)}
+          icon={Star}
+          description="en todos los locales"
+        />
+        <BusinessKPICard
+          title="Transferencias"
+          value={transfers.length}
+          icon={ArrowLeftRight}
+          description="historial reciente"
+        />
       </div>
 
       {/* Tabs */}
