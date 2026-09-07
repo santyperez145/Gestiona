@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import FinancePageHeader from '@/components/finance/FinancePageHeader';
+import FinanceKPICard from '@/components/finance/FinanceKPICard';
+import FinanceEmptyState from '@/components/finance/FinanceEmptyState';
 import {
   BadgeDollarSign,
   CheckCircle2,

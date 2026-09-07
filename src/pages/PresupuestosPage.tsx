@@ -14,8 +14,9 @@ import {
   CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
   DollarSign, Mail, CopyPlus, Bookmark, BookOpen, Sparkles, User, Package, Zap, ArrowUpDown,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import FinancePageHeader from "@/components/finance/FinancePageHeader";
+import FinanceKPICard from "@/components/finance/FinanceKPICard";
+import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { formatARS, addSaleDB } from "@/lib/supabaseStore";
 import { usePageTitle } from "@/hooks/usePageTitle";
