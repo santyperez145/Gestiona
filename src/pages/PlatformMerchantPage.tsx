@@ -315,8 +315,8 @@ export default function PlatformMerchantPage() {
             {snapshot.organization.logo_url ? (
               <img src={snapshot.organization.logo_url} alt="" className="w-12 h-12 rounded-[10px] object-cover border border-border/60" />
             ) : (
-              <div className="w-12 h-12 rounded-[10px] bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-violet-300" />
+              <div className="w-12 h-12 rounded-[10px] bg-slate-500/10 border border-slate-500/25 flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5 text-slate-300" />
               </div>
             )}
             <div className="min-w-0">
@@ -353,10 +353,10 @@ export default function PlatformMerchantPage() {
             <KPICard label="Ventas POS" value={activation ? activation.pos_sales_30d || 0 : '—'} icon={Package} color="warning" sub="últimos 30 días" />
           </div>
 
-          <section className="rounded-[10px] border border-violet-500/20 bg-card p-4 space-y-4">
+          <section className="rounded-[10px] border border-slate-500/25 bg-card p-4 space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-violet-300" />
+                <ShieldCheck className="w-4 h-4 text-slate-300" />
                 <div>
                   <h2 className="text-sm font-semibold">Calidad del margen</h2>
                   <p className="text-[11px] text-muted-foreground">Cobertura agregada; no expone productos, clientes ni costos por operación.</p>
@@ -385,7 +385,7 @@ export default function PlatformMerchantPage() {
           <div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
             <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-violet-300" />
+                <Activity className="w-4 h-4 text-slate-300" />
                 <div>
                   <h2 className="text-sm font-semibold">Lectura operativa</h2>
                   <p className="text-[11px] text-muted-foreground">Señales del Business Core, no una opinión manual.</p>
@@ -410,7 +410,7 @@ export default function PlatformMerchantPage() {
 
             <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <CalendarClock className="w-4 h-4 text-violet-300" />
+                <CalendarClock className="w-4 h-4 text-slate-300" />
                 <div>
                   <h2 className="text-sm font-semibold">Próximos pasos</h2>
                   <p className="text-[11px] text-muted-foreground">Acciones sugeridas a partir de señales visibles.</p>
@@ -430,10 +430,10 @@ export default function PlatformMerchantPage() {
             </section>
           </div>
 
-          <section className="space-y-4 rounded-[10px] border border-violet-500/20 bg-card p-4">
+          <section className="space-y-4 rounded-[10px] border border-slate-500/25 bg-card p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <Rocket className="h-4 w-4 text-violet-300" />
+                <Rocket className="h-4 w-4 text-slate-300" />
                 <div>
                   <h2 className="text-sm font-semibold">Ruta a la primera venta</h2>
                   <p className="text-[11px] text-muted-foreground">La misma definición que ve el comercio; soporte no inventa una segunda lectura.</p>
@@ -445,7 +445,7 @@ export default function PlatformMerchantPage() {
                   <span>{readiness?.progress || 0}%</span>
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-violet-400" style={{ width: `${readiness?.progress || 0}%` }} />
+                  <div className="h-full rounded-full bg-slate-400" style={{ width: `${readiness?.progress || 0}%` }} />
                 </div>
               </div>
             </div>
@@ -463,7 +463,7 @@ export default function PlatformMerchantPage() {
                       <p className="text-xs font-medium">{milestone.label}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{milestone.detail}</p>
                       {!milestone.done && (
-                        <p className="mt-2 text-[9px] font-semibold uppercase tracking-wide text-violet-300">
+                        <p className="mt-2 text-[9px] font-semibold uppercase tracking-wide text-slate-300">
                           {milestone.owner === 'platform' ? 'Nerqia' : milestone.owner === 'shared' ? 'Responsabilidad compartida' : 'Comercio'}
                         </p>
                       )}
@@ -497,7 +497,7 @@ export default function PlatformMerchantPage() {
 
           <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
             <div className="flex items-center gap-2">
-              <Store className="w-4 h-4 text-violet-300" />
+              <Store className="w-4 h-4 text-slate-300" />
               <div>
                 <h2 className="text-sm font-semibold">Activación y publicación</h2>
                 <p className="text-[11px] text-muted-foreground">La primera venta se toma del evento más temprano entre POS y online; la publicación conserva evidencia propia.</p>
@@ -518,13 +518,13 @@ export default function PlatformMerchantPage() {
           <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
-                <Webhook className="w-4 h-4 text-violet-300" />
+                <Webhook className="w-4 h-4 text-slate-300" />
                 <div>
                   <h2 className="text-sm font-semibold">Evidencia de integraciones</h2>
                   <p className="text-[11px] text-muted-foreground">Conexión, vigencia y última ejecución conocidas por la plataforma. No muestra secretos ni datos de cuenta.</p>
                 </div>
               </div>
-              <Link to="/platform/integraciones" className="text-xs text-violet-300 hover:text-violet-200 transition-colors shrink-0">Ver catálogo global</Link>
+              <Link to="/platform/integraciones" className="text-xs text-slate-300 hover:text-violet-200 transition-colors shrink-0">Ver catálogo global</Link>
             </div>
 
             {snapshot.integrations.length === 0 ? (
@@ -539,7 +539,7 @@ export default function PlatformMerchantPage() {
                   return (
                     <article key={integration.integration_key} className="rounded-[8px] border border-border/60 bg-muted/15 p-3.5 space-y-3">
                       <div className="flex items-start gap-3">
-                        <span className="w-8 h-8 rounded-[7px] border border-violet-500/20 bg-violet-500/10 text-violet-300 flex items-center justify-center shrink-0"><Webhook className="w-3.5 h-3.5" /></span>
+                        <span className="w-8 h-8 rounded-[7px] border border-slate-500/25 bg-slate-500/10 text-slate-300 flex items-center justify-center shrink-0"><Webhook className="w-3.5 h-3.5" /></span>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-xs font-semibold">{integration.display_name || integration.integration_key || 'Integración'}</h3>
@@ -589,7 +589,7 @@ export default function PlatformMerchantPage() {
         <TabsContent value="context" className="space-y-4">
           <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
             <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-violet-300" />
+              <Building2 className="w-4 h-4 text-slate-300" />
               <div>
                 <h2 className="text-sm font-semibold">Contexto del tenant</h2>
                 <p className="text-[11px] text-muted-foreground">Datos mínimos para entender la cuenta sin entrar a tablas crudas.</p>

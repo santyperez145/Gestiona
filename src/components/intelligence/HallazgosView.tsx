@@ -82,8 +82,8 @@ const ANALYSIS_CONFIG: Record<
     label: "Estrategia de Precios",
     desc: "Márgenes, precios fuera de mercado y oportunidades de bundles",
     icon: Tag,
-    color: "text-purple-400",
-    badge: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+    color: "text-primary",
+    badge: "bg-primary/15 text-primary border-purple-500/20",
   },
   tax_afip: {
     label: "Impuestos AFIP",

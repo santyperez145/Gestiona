@@ -119,7 +119,7 @@ interface Product {
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   draft: { label: "Borrador", color: "bg-muted/40 text-muted-foreground", icon: FileText },
   sent: { label: "Enviada", color: "bg-blue-500/15 text-blue-400", icon: Send },
-  confirmed: { label: "Confirmada", color: "bg-violet-500/15 text-violet-400", icon: CheckCircle },
+  confirmed: { label: "Confirmada", color: "bg-primary/15 text-primary", icon: CheckCircle },
   partially_received: { label: "Recibida parcial", color: "bg-amber-500/15 text-amber-400", icon: Package },
   received: { label: "Recibida", color: "bg-emerald-500/15 text-emerald-400", icon: CheckCircle },
   cancelled: { label: "Cancelada", color: "bg-red-500/15 text-red-400", icon: XCircle },

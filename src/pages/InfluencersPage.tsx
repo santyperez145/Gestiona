@@ -373,8 +373,9 @@ export default function InfluencersPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users}
-        title="Influencers Pro"
-        description="Gestión completa de afiliados, comisiones, canjes y liquidaciones."
+        eyebrow="Commerce · Afiliados"
+        title="Influencers"
+        description="Códigos, comisiones y liquidaciones ligadas a pedidos reales de la tienda."
       />
       <Tabs defaultValue="influencers">
         <TabsList className="mb-4 flex-wrap">

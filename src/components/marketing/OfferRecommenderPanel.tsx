@@ -31,7 +31,7 @@ import KPICard from '@/components/shared/KPICard';
 const TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
   liquidacion: { icon: TrendingDown, color: 'bg-red-500/20 text-red-300', label: 'Liquidación' },
   flash: { icon: Zap, color: 'bg-amber-500/20 text-amber-300', label: 'Flash sale' },
-  destacado: { icon: Star, color: 'bg-purple-500/20 text-purple-300', label: 'Destacar' },
+  destacado: { icon: Star, color: 'bg-primary/20 text-primary', label: 'Destacar' },
   mayorista: { icon: Package, color: 'bg-blue-500/20 text-blue-300', label: 'Mayorista' },
   pack_decants: { icon: Package, color: 'bg-pink-500/20 text-pink-300', label: 'Pack decants' },
 };

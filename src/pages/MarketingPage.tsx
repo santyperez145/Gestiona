@@ -139,8 +139,9 @@ export default function MarketingPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Instagram}
+        eyebrow="Commerce · Difusión"
         title="Marketing"
-        description={`${posts.length} publicaciones · Contenido para tus redes`}
+        description={`${posts.length} publicaciones · Contenido para redes que lleva a la tienda`}
         badge={
           posts.filter(p => p.status === "scheduled").length > 0
             ? { label: `${posts.filter(p => p.status === "scheduled").length} programados`, variant: "success" }

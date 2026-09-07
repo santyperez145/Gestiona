@@ -558,8 +558,9 @@ export default function ReportsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={BarChart2}
-        title="Reportes & Análisis"
-        description="Métricas avanzadas, estado de resultados y exportación"
+        eyebrow="Commerce · Evidencia"
+        title="Reportes"
+        description="Ventas, margen y canales medibles — sin inventar tracción."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleMonthlyReportPDF} className="gradient-gold text-primary-foreground gap-1.5 font-semibold"><Sparkles className="w-3.5 h-3.5" />Reporte del mes PDF</Button>

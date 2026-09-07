@@ -222,8 +222,9 @@ export default function IntegrationsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Link2}
-        title="Integraciones & API"
-        description="Conectá servicios clave para cobrar, vender y automatizar con estado claro en un solo panel."
+        eyebrow="Commerce · Conexiones"
+        title="Integraciones"
+        description="Cobro, envío y automatización con estado honesto — sin ✅ inventados."
         actions={
           <Button variant="outline" size="sm" className="text-xs" onClick={loadHealth} disabled={loadingHealth}>
             <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
