@@ -6,8 +6,9 @@ import { useUserRole } from "@/lib/useUserRole";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
+import CommerceKPICard from "@/components/commerce/CommerceKPICard";
+import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import {
   Zap, Plus, Save, Search, Trash2, Edit2, Clock, CheckCircle,
   PauseCircle, XCircle, RefreshCw, Tag, DollarSign, Users,
