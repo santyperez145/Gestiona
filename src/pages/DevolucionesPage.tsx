@@ -352,9 +352,10 @@ export default function DevolucionesPage() {
   return (
     <div className="space-y-5 pb-12">
       <PageHeader icon={RotateCcw} title="Devoluciones"
-        description="Revertí productos, stock, caja y resultado sin perder la trazabilidad del ticket."
+        eyebrow="Commerce · Postventa"
+        description="Revertí productos, stock y caja sin perder la trazabilidad del ticket o del pedido online."
         badge={pendingAmount > 0 ? { label: `${formatARS(pendingAmount)} pendiente`, variant: "destructive" } : undefined}
-        actions={<Button className="gradient-gold h-9 text-primary-foreground shadow-gold" onClick={() => setOpen(true)}><RotateCcw className="mr-2 h-4 w-4" /> Nueva devolución</Button>} />
+        actions={<Button className="h-9 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setOpen(true)}><RotateCcw className="mr-2 h-4 w-4" /> Nueva devolución</Button>} />
 
       <div className="flex w-fit gap-1 rounded-xl border border-border/70 bg-muted/30 p-1">
         <button type="button" onClick={() => setPageTab("standard")} className={`rounded-lg px-4 py-1.5 text-sm font-medium ${pageTab === "standard" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Mostrador</button>

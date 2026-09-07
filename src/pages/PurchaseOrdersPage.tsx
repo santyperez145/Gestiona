@@ -942,8 +942,9 @@ export default function PurchaseOrdersPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={ClipboardList}
-        title="Órdenes de Compra"
-        description="Gestión formal de OC a proveedores con seguimiento de recepción"
+        eyebrow="Commerce · Proveedores"
+        title="Órdenes de compra"
+        description="OC formales con recepción que actualiza el stock único de tienda y mostrador."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={loadAll} disabled={loading || !online}>

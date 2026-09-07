@@ -453,8 +453,9 @@ export default function PriceListsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Tag}
-        title="Listas de Precios"
-        description="Precios segmentados por cliente, moneda y cantidad"
+        eyebrow="Commerce · Precios"
+        title="Listas de precios"
+        description="Segmentación por cliente y canal — el checkout y el POS leen la misma lista."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={exportCSV}>
