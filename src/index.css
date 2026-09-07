@@ -4351,6 +4351,20 @@
     box-shadow: 0 -16px 36px -28px hsl(var(--st-accent) / 0.55);
   }
 
+  .storefront-pdp__title {
+    letter-spacing: -0.035em;
+  }
+
+  .storefront-pdp__price {
+    letter-spacing: -0.04em;
+  }
+
+  .app-boot-shell {
+    background:
+      radial-gradient(70% 50% at 50% 40%, hsl(var(--primary) / 0.08), transparent 60%),
+      hsl(var(--background));
+  }
+
   .storefront-checkout-summary {
     border-radius: calc(var(--st-radius) + 4px);
     box-shadow: 0 18px 40px -32px hsl(var(--st-accent) / 0.65);

@@ -235,8 +235,9 @@ export default function StoreProduct() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="storefront-pdp max-w-6xl mx-auto px-4 py-6 sm:py-10">
       <button
+        type="button"
         onClick={() => navigate(-1)}
         className="inline-flex items-center gap-1 text-sm mb-5 hover:underline"
         style={{ color: "hsl(var(--st-muted))" }}
@@ -244,7 +245,7 @@ export default function StoreProduct() {
         <ChevronLeft className="w-4 h-4" /> Volver
       </button>
 
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
         <StoreProductGallery
           imagenes={imagenes}
           alt={p.name}
@@ -252,20 +253,20 @@ export default function StoreProduct() {
         />
 
         {/* ── Datos y compra ──────────────────────────────────────── */}
-        <div>
+        <div className="storefront-pdp__buy">
           {p.brand && (
-            <p className="text-xs uppercase tracking-wide" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
+            <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
           )}
-          <h1 className="text-2xl sm:text-3xl font-bold mt-1 leading-tight">{p.name}</h1>
+          <h1 className="storefront-pdp__title text-2xl sm:text-[2rem] font-bold mt-1.5 leading-[1.1] tracking-tight">{p.name}</h1>
 
-          <div className="flex flex-wrap items-center gap-2 mt-2 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+          <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
             {p.category && <span>{getCategoryLabel(p.category)}</span>}
             {p.gender && <span className="capitalize">· {p.gender}</span>}
             {p.content_ml ? <span>· {p.content_ml} ml</span> : null}
           </div>
 
-          <div className="mt-4 flex items-baseline gap-3 flex-wrap">
-            <span className="text-3xl font-bold">{fmt(price)}</span>
+          <div className="mt-5 flex items-baseline gap-3 flex-wrap">
+            <span className="storefront-pdp__price text-3xl sm:text-[2.15rem] font-bold tracking-tight">{fmt(price)}</span>
             {off > 0 && (
               <>
                 <span className="text-base line-through" style={{ color: "hsl(var(--st-muted))" }}>{fmt(list)}</span>

@@ -22,6 +22,7 @@ import { ShieldAlert, BookOpen } from "lucide-react";
 import { storeSlugFromHostname } from "@/lib/storefrontHost";
 import { isPotentialCustomStoreHostname } from "@/lib/storeCustomDomain";
 import PlatformSeoHead from "@/components/seo/PlatformSeoHead";
+import BrandLogo from "@/components/shared/BrandLogo";
 
 // ── Eager (needed for first paint / public routes) ──────────────────────────
 import AuthPage from "@/pages/AuthPage";
@@ -110,10 +111,11 @@ function ViewerGate() {
 
 function AppLoader({ label = 'Cargando Nerqia...' }: { label?: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
+    <div className="app-boot-shell min-h-screen flex items-center justify-center">
+      <div className="text-center px-6">
+        <BrandLogo decorative eager className="justify-center mb-5" markClassName="h-10 w-10" nameClassName="text-lg" />
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-muted-foreground text-sm">{label}</p>
+        <p className="text-muted-foreground text-sm font-medium tracking-tight">{label}</p>
       </div>
     </div>
   );
