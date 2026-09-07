@@ -909,8 +909,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
       />
       <PageHeader
         icon={ShoppingCart}
+        eyebrow="Commerce · Canales"
         title="Ventas"
-        description="Historial y gestión de ventas"
+        description="Historial unificado: tienda online, POS y otros canales sobre el mismo Core."
         badge={{ label: `${filtered.length} registradas`, variant: "default" }}
         actions={
           <div className="flex items-center flex-wrap gap-2">

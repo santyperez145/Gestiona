@@ -378,8 +378,9 @@ export default function ExpensesPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Wallet}
+        eyebrow="Finance · Core"
         title="Gastos Operativos"
-        description="Control de egresos por categoría"
+        description="Egresos por categoría — puente al margen real sin duplicar el Core."
         badge={{ label: formatARS(totals.total), variant: "destructive" }}
         actions={
           <div className="flex flex-wrap gap-2">

@@ -264,8 +264,9 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={ShoppingCart}
+        eyebrow="Commerce · Inventario"
         title="Compras"
-        description="Registro de inventario y proveedores"
+        description="Entradas de stock y proveedores — misma autoridad que la tienda y el mostrador."
         actions={
           <div className="flex items-center flex-wrap gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
