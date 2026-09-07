@@ -959,8 +959,9 @@ export default function ProductsPage() {
     <div className="workspace-page workspace-products space-y-5 pb-12">
       <PageHeader
         icon={Package}
+        eyebrow="Commerce · Catálogo"
         title="Productos"
-        description={`${filtered.length} de ${plural(products.length, "producto")} · ${totalStock} uds`}
+        description={`${filtered.length} de ${plural(products.length, "producto")} · ${totalStock} uds · stock único para tienda y mostrador`}
         badge={
           outOfStockCount > 0
             ? { label: `${outOfStockCount} sin stock`, variant: "destructive" }

@@ -163,8 +163,9 @@ export default function StoreOrdersPage() {
     <div className="space-y-6">
       <PageHeader
         icon={ShoppingBag}
+        eyebrow="Commerce · Operación"
         title="Pedidos"
-        description="Cola de pedidos y recuperación de carritos: cobrar, despachar y recuperar GMV. Misma autoridad que el checkout público."
+        description="Cola de pedidos y recuperación: cobrar, despachar y recuperar GMV. Misma autoridad que el checkout público."
         actions={(
           <Button variant="outline" size="sm" className="min-h-11 gap-1.5" asChild>
             <Link to={storeSettingsUrl}>

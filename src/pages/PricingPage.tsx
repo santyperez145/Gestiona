@@ -236,11 +236,10 @@ export default function PricingPage() {
   const subStatus = subscription?.status;
 
   return (
-    <div className="min-h-screen text-foreground" style={{ background: 'hsl(var(--background))' }}>
+    <div className="pricing-shell min-h-screen text-foreground">
 
       {/* ── Nav ──────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-10 border-b border-border/30 backdrop-blur-md"
-        style={{ background: 'hsl(var(--background) / 0.85)' }}>
+      <header className="pricing-shell__nav sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-[13px] font-display font-semibold text-muted-foreground/70 hover:text-foreground transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> <BrandLogo markClassName="h-5 w-5" nameClassName="text-[13px]" />
@@ -272,21 +271,15 @@ export default function PricingPage() {
       )}
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
-        <div className="absolute inset-x-0 top-0 h-[300px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(38 82% 52% / 0.06) 0%, transparent 70%)' }} />
+      <section className="pricing-shell__hero relative max-w-6xl mx-auto px-6 pt-16 pb-12 text-center">
+        <p className="pricing-shell__brand">Nerqia</p>
+        <p className="pricing-shell__kicker">Planes para vender online</p>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-6"
-          style={{ background: 'hsl(38 82% 52% / 0.08)', border: '1px solid hsl(38 82% 52% / 0.2)', borderRadius: '5px' }}>
-          <Sparkles className="w-3 h-3 text-primary" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-primary/80">Planes simples, sin sorpresas</span>
-        </div>
-
-        <h1 className="font-display text-[2.8rem] md:text-[3.5rem] font-bold tracking-tight leading-tight mb-4 max-w-3xl mx-auto">
-          Elegí el plan que se ajuste a tu negocio
+        <h1 className="font-display text-[2.4rem] md:text-[3.1rem] font-bold tracking-tight leading-[1.05] mb-4 max-w-2xl mx-auto">
+          Empezá gratis. Escalás cuando la tienda vende.
         </h1>
-        <p className="text-[13px] text-muted-foreground/60 max-w-xl mx-auto mb-8 leading-relaxed">
-          Probá Nerqia 14 días gratis. Sin tarjeta. Cancelás cuando quieras.
+        <p className="text-[15px] text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
+          14 días sin tarjeta. Checkout, stock y margen en el mismo Commerce OS — sin ser otro CRM.
         </p>
 
         {/* Billing toggle — underline style */}
@@ -297,6 +290,7 @@ export default function PricingPage() {
           ].map(({ val, label, badge }) => (
             <button
               key={label}
+              type="button"
               onClick={() => setYearly(val)}
               className={[
                 'px-6 pb-3 text-[11px] font-semibold uppercase tracking-[0.1em] transition-all duration-200',
@@ -318,10 +312,10 @@ export default function PricingPage() {
       </section>
 
       {/* ── Plans grid ───────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 pb-16 grid md:grid-cols-3 gap-4">
+      <section className="pricing-shell__plans max-w-6xl mx-auto px-6 pb-16 grid md:grid-cols-3 gap-5">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-[10px] border border-border/50 bg-card p-6 h-96 animate-pulse" />
+              <div key={i} className="pricing-shell__card rounded-xl border border-border/50 bg-card p-6 h-96 animate-pulse" />
             ))
           : plans.map((p, idx) => {
               const price = yearly ? precioAnual(p) : precioMensual(p);
@@ -336,16 +330,16 @@ export default function PricingPage() {
                 <div
                   key={p.id}
                   className={[
-                    'relative rounded-[10px] border p-6 flex flex-col overflow-hidden',
+                    'pricing-shell__card relative rounded-xl border p-6 flex flex-col overflow-hidden',
                     isCurrent
-                      ? 'border-primary/40 bg-card/90'
+                      ? 'border-primary/40 bg-card/90 pricing-shell__card--current'
                       : isPro
-                      ? 'border-primary/25 bg-card'
-                      : 'border-border/50 bg-muted/20',
+                      ? 'border-primary/30 bg-card pricing-shell__card--featured'
+                      : 'border-border/50 bg-card',
                   ].join(' ')}
                 >
                   {/* Inner top highlight */}
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent" />
 
                   {/* Featured accent bar */}
                   {isPro && (
