@@ -713,7 +713,7 @@ export default function DebtsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1 gradient-gold text-primary-foreground font-semibold" onClick={savePlan}>
+                  <Button className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" onClick={savePlan}>
                     <CalendarDays className="w-4 h-4 mr-2" />Guardar plan
                   </Button>
                   {existingPlan && (
@@ -885,7 +885,7 @@ export default function DebtsPage() {
                     );
                   })()}
                   <div className="flex gap-2">
-                    <Button size="sm" className="flex-1 h-8 text-xs gradient-gold text-primary-foreground" onClick={() => setPayingDebt(d)}>
+                    <Button size="sm" className="flex-1 h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setPayingDebt(d)}>
                       <DollarSign className="w-3.5 h-3.5 mr-1.5" />Registrar pago
                     </Button>
                     <Button size="sm" variant="outline"
@@ -984,7 +984,7 @@ function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSa
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={saving} className="flex-1 gradient-gold text-primary-foreground font-semibold">
+        <Button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
           {saving ? "Guardando..." : "Registrar Pago"}
         </Button>
         <Button type="button" variant="outline" onClick={() => setAmount(String(debt.remaining_ars))} className="shrink-0">

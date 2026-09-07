@@ -630,7 +630,7 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
             <p className="text-[10px] text-center text-muted-foreground">{arcaCopy.notFiscalTicket}</p>
           ) : null}
 
-          <Button className="w-full gradient-gold text-primary-foreground gap-1.5" onClick={onNewSale}>
+          <Button className="w-full gap-1.5" onClick={onNewSale}>
             <RotateCcw className="w-4 h-4" />Nueva venta
           </Button>
         </div>
@@ -2503,7 +2503,7 @@ export default function POSPage() {
           <ShoppingCart className="w-4 h-4 text-primary" />
           <span className="font-semibold text-sm">Carrito</span>
           {cartQty > 0 && (
-            <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+            <span className="min-w-5 h-5 px-1 bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">
               {cartQty}
             </span>
           )}
@@ -3135,7 +3135,7 @@ export default function POSPage() {
         })()}
 
         {/* Total + confirm */}
-        <div className="pos-cart-total bg-primary/10 rounded-[10px] px-4 py-3 border border-primary/20 space-y-1">
+        <div className="pos-cart-total bg-primary/8 px-4 py-3 border border-primary/20 space-y-1">
           {cartSubtotal !== cartTotal && (
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Subtotal</span>
@@ -3245,7 +3245,7 @@ export default function POSPage() {
         </button>
 
         <Button
-          className="pos-confirm-sale w-full gradient-gold text-primary-foreground font-semibold h-11 text-base gap-2"
+          className="pos-confirm-sale w-full font-semibold h-11 text-base gap-2"
           onClick={confirmSale}
           disabled={confirmDisabled}
         >
@@ -3392,7 +3392,7 @@ export default function POSPage() {
                   <Link to={`/caja/turno?location=${selectedLocationId}`}>Gestionar turno</Link>
                 </Button>
               )}
-              <Button className="flex-1 gradient-gold text-primary-foreground font-semibold" onClick={() => setShowTurnoSummary(false)}>
+              <Button className="flex-1 font-semibold" onClick={() => setShowTurnoSummary(false)}>
                 Continuar
               </Button>
             </DialogFooter>
@@ -3489,7 +3489,7 @@ export default function POSPage() {
             />
             <DialogFooter>
               <Button
-                className="flex-1 gradient-gold text-primary-foreground"
+                className="flex-1"
                 onClick={() => {
                   const name = sellerInput.trim();
                   if (!name) return;
@@ -3851,8 +3851,8 @@ export default function POSPage() {
                         }
                       }}
                       disabled={outOfStock}
-                      className={`pos-product-card relative flex flex-col bg-card border rounded-[10px] overflow-hidden text-left transition-all hover:shadow-md active:scale-95 ${
-                        inCart ? "border-primary/60 ring-1 ring-primary/30" : "border-border hover:border-primary/30"
+                      className={`pos-product-card relative flex flex-col bg-card border overflow-hidden text-left ${
+                        inCart ? "border-primary/70" : "border-border hover:border-primary/40"
                       } ${outOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       {/* Image or placeholder */}
@@ -3897,13 +3897,12 @@ export default function POSPage() {
 
                       {/* Top seller badge */}
                       {topProductIds.has(prod.id) && !inCart && (
-                        <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-orange-500/90 text-white text-[9px] font-bold shadow">
-                          🔥 Top
+                        <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground text-[9px] font-bold">
+                          Top
                         </div>
                       )}
-                      {/* In-cart badge */}
                       {inCart && (
-                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shadow">
+                        <div className="absolute top-2 right-2 min-w-5 h-5 px-1 bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">
                           {inCart.quantity}
                         </div>
                       )}

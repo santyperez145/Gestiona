@@ -255,7 +255,7 @@ function SaleTicketInspector({
 
             <div className="flex flex-col-reverse gap-2 border-t border-border/60 bg-popover px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
               <Button variant="outline" onClick={onClose}>Cerrar</Button>
-              <Button onClick={onAnalyze} className="gradient-gold text-primary-foreground">Analizar rendimiento</Button>
+              <Button onClick={onAnalyze} className="bg-primary text-primary-foreground hover:bg-primary/90">Analizar rendimiento</Button>
             </div>
           </>
         ) : (
@@ -931,7 +931,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             )}
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
               <DialogTrigger asChild>
-                <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-gold">
                   <Plus className="w-4 h-4 mr-2" />Nueva Venta
                 </Button>
               </DialogTrigger>
@@ -1481,7 +1481,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           {selectedIds.size > 0 && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-[10px] px-4 py-3">
               <span className="text-sm font-medium">{selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}</span>
-              <Button size="sm" className="gradient-gold text-primary-foreground font-semibold shadow-gold h-8" onClick={bulkMarkPaid} disabled={bulkLoading}>
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-gold h-8" onClick={bulkMarkPaid} disabled={bulkLoading}>
                 <CheckCheck className="w-4 h-4 mr-1.5" />{bulkLoading ? "Procesando..." : "Marcar cobradas"}
               </Button>
               <Button size="sm" variant="outline" className="h-8" onClick={printBulkReceipt} title="Imprimir recibo con todos los ítems seleccionados">
@@ -2147,7 +2147,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         </div>
       </div>
 
-      <Button type="submit" disabled={submitting} className="w-full gradient-gold text-primary-foreground font-semibold">
+      <Button type="submit" disabled={submitting} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
         {submitting ? 'Guardando...' : editItem
           ? (lines.length > 1 ? `Actualizar + ${lines.length - 1} línea(s)` : 'Actualizar Venta')
           : (lines.length > 1 ? `Registrar ${lines.length} Ventas` : 'Registrar Venta')}

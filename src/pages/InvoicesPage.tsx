@@ -826,7 +826,7 @@ export default function InvoicesPage() {
         }
         actions={
           canManage ? (
-            <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground">
+            <Button onClick={() => setShowForm(!showForm)} className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />Nueva factura
             </Button>
           ) : undefined
@@ -1011,7 +1011,7 @@ export default function InvoicesPage() {
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground">
+            <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
               {saving ? "Guardando..." : "Crear factura"}
             </Button>
           </div>
