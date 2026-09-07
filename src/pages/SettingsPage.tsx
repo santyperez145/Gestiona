@@ -1073,7 +1073,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold shadow-gold flex-1">
+              <Button onClick={handleSave} disabled={saving} className="font-semibold flex-1">
                 {saving ? 'Guardando...' : 'Guardar Configuración'}
               </Button>
               <Button variant="outline" onClick={handleRecalculate}><RefreshCw className="w-4 h-4 mr-2" />Recalcular Todo</Button>
@@ -1329,7 +1329,7 @@ export default function SettingsPage() {
                 onClick={handleSmtpSave}
                 size="sm"
                 disabled={smtpSaving || smtpStatusLoading}
-                className="gradient-gold text-primary-foreground font-semibold flex-1"
+                className="text-primary-foreground font-semibold flex-1"
               >
                 {smtpSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />}
                 {smtpConfigured ? 'Probar y actualizar' : 'Probar y conectar'}
@@ -1406,7 +1406,7 @@ export default function SettingsPage() {
               <p className="text-sm font-semibold">Aplicar la configuración en Caja</p>
               <p className="text-xs text-muted-foreground">Guarda únicamente esta sección, sin modificar los ajustes ocultos de otras pestañas.</p>
             </div>
-            <Button onClick={handleSavePricing} disabled={saving} className="gradient-gold min-h-11 w-full shrink-0 font-semibold text-primary-foreground shadow-gold md:w-auto">
+            <Button onClick={handleSavePricing} disabled={saving} className="min-h-11 w-full shrink-0 font-semibold md:w-auto">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {saving ? 'Guardando...' : 'Guardar precios y descuentos'}
             </Button>
@@ -1747,7 +1747,7 @@ function ThresholdsSection({ userId }: { userId: string }) {
           <Input type="number" value={s.daily_margin_alert_threshold ?? 0} onChange={e => update('daily_margin_alert_threshold', e.target.value)} className="bg-muted border-border mt-1" /></div>
       </div>
       <p className="text-[10px] text-muted-foreground">Las alertas de resumen diario se envían cada mañana con las métricas del día anterior.</p>
-      <Button onClick={save} disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Umbrales'}</Button>
+      <Button onClick={save} disabled={saving} className="w-full text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Umbrales'}</Button>
     </div>
   );
 }
@@ -1803,7 +1803,7 @@ function ExpenseCategoriesSection({ userId }: { userId: string }) {
           className="bg-muted border-border" />
         <Button variant="outline" onClick={add}><Plus className="w-3.5 h-3.5" /></Button>
       </div>
-      <Button onClick={save} disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Categorías'}</Button>
+      <Button onClick={save} disabled={saving} className="w-full text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Categorías'}</Button>
     </div>
   );
 }
@@ -2032,7 +2032,7 @@ function ManagedBackupsSection() {
       ) : (
         <>
           <div className="flex gap-2 mb-3">
-            <Button onClick={() => void create()} disabled={creating} className="flex-1 gradient-gold text-primary-foreground">
+            <Button onClick={() => void create()} disabled={creating} className="flex-1 text-primary-foreground">
               {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Cloud className="w-4 h-4 mr-2" />}
               {creating ? "Generando snapshot…" : "Generar ahora"}
             </Button>

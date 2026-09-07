@@ -397,7 +397,7 @@ export default function ExpensesPage() {
             {canCreate && (
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
                 <DialogTrigger asChild>
-                  <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+                  <Button className="font-semibold">
                     <Plus className="w-4 h-4 mr-2" /> Nuevo Gasto
                   </Button>
                 </DialogTrigger>
@@ -1316,7 +1316,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         <input ref={receiptCamRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptFile(f); e.target.value = ''; }} className="hidden" />
       </div>
 
-      <Button type="submit" disabled={submitting} className="w-full gradient-gold text-primary-foreground font-semibold">
+      <Button type="submit" disabled={submitting} className="w-full text-primary-foreground font-semibold">
         {submitting ? 'Guardando...' : editItem ? 'Actualizar' : 'Registrar Gasto'}
       </Button>
     </form>

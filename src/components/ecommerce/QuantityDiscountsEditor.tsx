@@ -140,7 +140,7 @@ export default function QuantityDiscountsEditor({ categorias }: Props) {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-3 grid gap-3 sm:grid-cols-5">
+      <div className="commerce-store-panel p-3 grid gap-3 sm:grid-cols-5">
         <div className="sm:col-span-2">
           <Label className="text-xs">Nombre</Label>
           <Input
@@ -212,7 +212,7 @@ export default function QuantityDiscountsEditor({ categorias }: Props) {
       ) : (
         <div className="space-y-2">
           {reglas.map(r => (
-            <div key={r.id} className="bg-card border border-border rounded-xl p-3 flex items-center gap-3 flex-wrap">
+            <div key={r.id} className="commerce-store-panel p-3 flex items-center gap-3 flex-wrap">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{r.name}</p>
                 <p className="text-[11px] text-muted-foreground">

@@ -758,7 +758,7 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
           </p>
         </div>
 
-        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold gap-1.5 w-full sm:w-auto">
+        <Button onClick={handleSave} disabled={saving} className="text-primary-foreground font-semibold gap-1.5 w-full sm:w-auto">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {isConfigured ? "Reemplazar conexión" : "Guardar conexión"}
         </Button>

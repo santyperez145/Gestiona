@@ -138,7 +138,7 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
 
   if (!storeId) {
     return (
-      <div className="bg-card border border-border rounded-xl p-10 text-center text-sm text-muted-foreground">
+      <div className="commerce-store-panel p-10 text-center text-sm text-muted-foreground">
         Creá la tienda antes de cargar banners.
       </div>
     );
@@ -161,7 +161,7 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
       </div>
 
       {banners.length === 0 && (
-        <div className="bg-card border border-border rounded-xl p-10 text-center">
+        <div className="commerce-store-panel p-10 text-center">
           <ImageIcon className="w-8 h-8 mx-auto mb-3 text-muted-foreground/40" />
           <p className="font-medium">Sin banners</p>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
@@ -172,7 +172,7 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
       )}
 
       {banners.map((b, idx) => (
-        <div key={b.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div key={b.id} className="commerce-store-panel p-4 space-y-3">
           <div className="flex items-start gap-3 flex-wrap">
             <div className="flex-1 min-w-[240px]">
               <ImageUpload

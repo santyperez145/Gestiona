@@ -291,7 +291,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
             {canCreate && (
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
                 <DialogTrigger asChild>
-                  <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
+                  <Button className="font-semibold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
                 </DialogTrigger>
                 <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
@@ -651,7 +651,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setReceivingOrder(null)}>Cancelar</Button>
-                <Button className="flex-1 gradient-gold text-primary-foreground font-semibold" onClick={handleReceiveOrder} disabled={receivingLoading}>
+                <Button className="flex-1 text-primary-foreground font-semibold" onClick={handleReceiveOrder} disabled={receivingLoading}>
                   {receivingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar recepción"}
                 </Button>
               </div>
@@ -885,7 +885,7 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
         </div>
       )}
 
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Compra' : 'Registrar Compra'}</Button>
+      <Button type="submit" className="w-full text-primary-foreground font-semibold">{editItem ? 'Actualizar Compra' : 'Registrar Compra'}</Button>
     </form>
   );
 }
@@ -1039,7 +1039,7 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
         </div>
       )}
 
-      <Button onClick={generateExcel} className="w-full gradient-gold text-primary-foreground font-semibold" disabled={!selectedProducts.length}>
+      <Button onClick={generateExcel} className="w-full text-primary-foreground font-semibold" disabled={!selectedProducts.length}>
         <FileSpreadsheet className="w-4 h-4 mr-2" />
         Generar Excel ({selectedProducts.length} productos)
       </Button>

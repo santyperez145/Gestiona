@@ -1719,7 +1719,7 @@ export default function Dashboard() {
           </div>
           <span className="hidden text-[11px] text-muted-foreground sm:block">Actualizado en tiempo real</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="commerce-metric-ledger grid grid-cols-2 lg:grid-cols-4">
           {kpiCards.slice(0, 4).map((c) => (
             <MetricCard
               key={c.label}
@@ -2034,7 +2034,7 @@ export default function Dashboard() {
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <AlertTriangle className="w-4 h-4 text-yellow-400" />Clientes en riesgo de perderse
             </h3>
-            <Link to="/customers" className="text-xs text-primary hover:underline">Ver CRM →</Link>
+            <Link to="/clientes" className="text-xs text-primary hover:underline">Ver compradores →</Link>
           </div>
           <div className="space-y-2 pb-12">
             {atRiskCustomers.map(c => (
@@ -2893,7 +2893,7 @@ export default function Dashboard() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Indicadores del negocio</p>
           <span className="text-[10px] text-muted-foreground/60">Período seleccionado</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="commerce-metric-ledger grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {kpiCards.slice(4).map(c => (
             <MetricCard
               key={c.label}
@@ -2909,8 +2909,8 @@ export default function Dashboard() {
 
       {/* Realtime last sale banner */}
       {lastSale && saleEventCount > 0 && (
-        <div key={saleEventCount} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/5 mb-4 animate-fade-in">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+        <div key={saleEventCount} className="flex items-center gap-3 border border-emerald-500/25 bg-emerald-500/5 px-4 py-2.5 mb-4">
+          <span className="inline-block w-2 h-2 bg-emerald-500 shrink-0" />
           <div className="flex-1 min-w-0 text-xs">
             <span className="font-semibold text-emerald-400">Nueva venta en tiempo real · </span>
             <span className="text-muted-foreground">{lastSale.product} · {lastSale.customer} · </span>
@@ -2930,12 +2930,12 @@ export default function Dashboard() {
         <div className="bg-card border border-amber-500/20 rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-              <Bell className="w-3.5 h-3.5 text-amber-400" />Seguimientos CRM pendientes
+              <Bell className="w-3.5 h-3.5 text-amber-400" />Seguimientos de compradores
               <span className="px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[9px] font-bold">
                 {pendingFollowUps.length}
               </span>
             </h3>
-            <Link to="/clientes" className="text-[10px] text-primary hover:underline">Ver CRM →</Link>
+            <Link to="/clientes" className="text-[10px] text-primary hover:underline">Ver compradores →</Link>
           </div>
           <div className="space-y-1.5">
             {pendingFollowUps.map(f => {

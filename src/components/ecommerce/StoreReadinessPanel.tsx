@@ -13,8 +13,8 @@ import { readinessSummary } from '@/lib/storeReadiness';
 
 const STYLE: Record<string, { icon: typeof CheckCircle2; cls: string; label: string }> = {
   blocker:    { icon: XCircle,       cls: 'text-destructive',  label: 'Impide vender' },
-  warning:    { icon: AlertTriangle, cls: 'text-yellow-500',   label: 'Conviene resolver' },
-  suggestion: { icon: Lightbulb,     cls: 'text-blue-400',     label: 'Mejora' },
+  warning:    { icon: AlertTriangle, cls: 'text-yellow-600',   label: 'Conviene resolver' },
+  suggestion: { icon: Lightbulb,     cls: 'text-primary',      label: 'Mejora' },
 };
 
 const ORDEN = { blocker: 0, warning: 1, suggestion: 2 } as const;
@@ -33,32 +33,31 @@ export default function StoreReadinessPanel({ readiness }: { readiness: StoreRea
       : 'bg-emerald-500';
 
   return (
-    <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
+    <div className="commerce-store-panel space-y-4 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-semibold">Estado de tu tienda</h3>
+          <h3 className="font-semibold tracking-tight">Estado de tu tienda</h3>
           <p className="text-xs text-muted-foreground mt-0.5">{readinessSummary(readiness)}</p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-lg font-bold font-mono">{readiness.score}%</p>
+          <p className="text-lg font-bold font-mono tabular-nums">{readiness.score}%</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
             {listos.length}/{readiness.checks.length} listo
           </p>
         </div>
       </div>
 
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-        <div className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-          style={{ width: `${readiness.score}%` }} />
+      <div className="h-1.5 bg-muted overflow-hidden">
+        <div className={`h-full ${barColor}`} style={{ width: `${readiness.score}%` }} />
       </div>
 
       {pendientes.length === 0 ? (
-        <div className="flex items-center gap-2 text-sm text-emerald-400">
+        <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           Tu tienda está lista para recibir pedidos.
         </div>
       ) : (
-        <div className="space-y-2">
+        <div>
           {pendientes.map(c => <CheckRow key={c.id} check={c} />)}
         </div>
       )}
@@ -72,7 +71,7 @@ export default function StoreReadinessPanel({ readiness }: { readiness: StoreRea
           <div className="mt-2 space-y-1.5">
             {listos.map(c => (
               <div key={c.id} className="flex items-start gap-2 text-xs">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400/70 shrink-0 mt-px" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/70 shrink-0 mt-px" />
                 <div className="min-w-0">
                   <span className="text-muted-foreground">{c.title}</span>
                   {c.detail && (
@@ -93,12 +92,12 @@ function CheckRow({ check }: { check: ReadinessCheck }) {
   const Icon = st.icon;
 
   return (
-    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-muted/20 border border-border/40">
+    <div className="commerce-store-check flex items-start gap-2.5 py-3">
       <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${st.cls}`} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-medium">{check.title}</p>
-          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-px rounded ${st.cls} bg-current/10`}>
+          <span className={`text-[9px] font-bold uppercase tracking-wider ${st.cls}`}>
             {st.label}
           </span>
         </div>

@@ -53,7 +53,9 @@ sistema. Las rutas salen de routeManifest.ts.
 
 /tienda-online es el workspace de configuración/rendimiento de la tienda;
 /pedidos-online es la cola operativa. Ambas comparten selector de tienda y
-preservan ?store=<id>. No crear una segunda administración por cada vitrina.
+preservan ?store=<id>. Los editores (surtido, banners, dominio, listos para
+vender) usan `commerce-store-panel` y tabs subrayadas, no cards SaaS.
+No crear una segunda administración por cada vitrina.
 
 ### Finance
 

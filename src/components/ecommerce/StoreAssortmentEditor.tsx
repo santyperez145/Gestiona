@@ -327,7 +327,7 @@ export default function StoreAssortmentEditor({
             aria-label="Buscar en el surtido"
           />
         </div>
-        <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-border/70 bg-muted/20 p-1" role="tablist" aria-label="Filtrar surtido">
+        <div className="commerce-store-tabs flex max-w-full gap-1 overflow-x-auto" role="tablist" aria-label="Filtrar surtido">
           {FILTERS.map(option => (
             <button
               key={option.id}
@@ -335,10 +335,8 @@ export default function StoreAssortmentEditor({
               role="tab"
               aria-selected={filter === option.id}
               onClick={() => setFilter(option.id)}
-              className={`min-h-9 whitespace-nowrap rounded-md px-3 text-xs font-medium transition-colors ${
-                filter === option.id
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+              className={`commerce-store-tab min-h-11 whitespace-nowrap px-3 py-1.5 text-sm font-semibold ${
+                filter === option.id ? "is-active" : ""
               }`}
             >
               {option.label}
@@ -391,7 +389,7 @@ export default function StoreAssortmentEditor({
             : "Creá el primer producto en el Business Core para publicarlo en esta tienda."}
         />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border/70 bg-card">
+        <div className="commerce-store-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] border-collapse text-sm">
               <thead className="border-b border-border/70 bg-muted/25 text-left text-xs text-muted-foreground">
@@ -429,7 +427,7 @@ export default function StoreAssortmentEditor({
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex min-w-[15rem] items-center gap-3">
-                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border border-border/60 bg-muted/30">
+                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden border border-border/60 bg-muted/30">
                           {row.imageUrl ? (
                             <img src={row.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
                           ) : (

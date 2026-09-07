@@ -4799,6 +4799,23 @@
     background: hsl(var(--card));
   }
 
+  .commerce-store-panel {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.72);
+    border-radius: 2px;
+    box-shadow: none;
+  }
+
+  .commerce-store-picker {
+    border-top: 1px solid hsl(var(--border) / 0.72);
+    border-bottom: 1px solid hsl(var(--border) / 0.72);
+    background: hsl(var(--card));
+  }
+
+  .commerce-store-check + .commerce-store-check {
+    border-top: 1px solid hsl(var(--border) / 0.5);
+  }
+
   .storefront-pdp__buybox {
     border: 1px solid hsl(var(--st-border) / 0.85);
     background: hsl(var(--st-bg));

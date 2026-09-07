@@ -123,7 +123,7 @@ export default function ReviewsModeration({ storeId }: { storeId: string | null 
 
   if (reviews.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-xl p-10 text-center">
+      <div className="commerce-store-panel p-10 text-center">
         <MessageSquare className="w-8 h-8 mx-auto mb-3 text-muted-foreground/40" />
         <p className="font-medium">Todavía no hay opiniones</p>
         <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
@@ -142,12 +142,12 @@ export default function ReviewsModeration({ storeId }: { storeId: string | null 
           <span className="text-sm font-medium">{promedio.toFixed(1)}</span>
           <span className="text-sm text-muted-foreground">promedio de las publicadas</span>
         </div>
-        <div className="flex gap-1 bg-muted/30 p-1 rounded-xl flex-wrap">
+        <div className="commerce-store-tabs flex gap-1 flex-wrap">
           {FILTROS.map(f => (
             <button
               key={f.id} onClick={() => setFiltro(f.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filtro === f.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              className={`commerce-store-tab min-h-11 px-3 py-1.5 text-sm font-semibold ${
+                filtro === f.id ? "is-active" : ""
               }`}
             >
               {f.label}
@@ -158,7 +158,7 @@ export default function ReviewsModeration({ storeId }: { storeId: string | null 
 
       <div className="space-y-3">
         {visibles.map(r => (
-          <div key={r.id} className="bg-card border border-border rounded-xl p-4">
+          <div key={r.id} className="commerce-store-panel p-4">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">

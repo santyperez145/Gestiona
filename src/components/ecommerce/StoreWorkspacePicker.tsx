@@ -37,11 +37,11 @@ export default function StoreWorkspacePicker({
 
   return (
     <section
-      className="flex flex-col gap-3 border-y border-border/70 bg-card/35 px-1 py-4 md:flex-row md:items-center"
+      className="commerce-store-picker flex flex-col gap-3 px-1 py-4 md:flex-row md:items-center"
       aria-label="Tienda de trabajo"
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <span className="grid h-10 w-10 shrink-0 place-items-center border border-border/70 text-primary">
           <Store className="h-5 w-5" />
         </span>
         <div className="min-w-0">

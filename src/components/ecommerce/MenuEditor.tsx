@@ -143,7 +143,7 @@ export default function MenuEditor({ storeId, storeSlug, categorias, paginas }: 
         {links.map((l, i) => {
           const tipo = TIPOS.find(t => t.id === l.tipo);
           return (
-            <div key={i} className="bg-card border border-border rounded-xl p-3 flex items-start gap-3 flex-wrap">
+            <div key={i} className="commerce-store-panel p-3 flex items-start gap-3 flex-wrap">
               <div className="flex flex-col gap-0.5 shrink-0 pt-5">
                 <button
                   onClick={() => mover(i, -1)} disabled={i === 0}

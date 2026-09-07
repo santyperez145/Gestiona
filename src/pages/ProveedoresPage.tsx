@@ -399,7 +399,7 @@ export default function ProveedoresPage() {
             <Button variant="outline" className="h-9 gap-2 border-primary/40 text-primary hover:bg-primary/10" onClick={() => { setPoSupplierId(undefined); setPoOpen(true); }} title="Generar orden de compra por stock bajo">
               <ShoppingCart className="w-4 h-4" /> Orden de compra
             </Button>
-            <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={openCreate}>
+            <Button className="h-9" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-2" /> Nuevo proveedor
             </Button>
           </div>
@@ -659,7 +659,7 @@ export default function ProveedoresPage() {
               />
             </div>
             <Button
-              className="w-full gradient-gold text-primary-foreground"
+              className="w-full text-primary-foreground"
               disabled={!form.name?.trim() || saving}
               onClick={handleSave}
             >
@@ -1078,7 +1078,7 @@ export default function ProveedoresPage() {
             </div>
             <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setDebtOpen(false)}>Cancelar</Button>
-              <Button className="flex-1 gradient-gold text-primary-foreground" disabled={!debtForm.description.trim() || !debtForm.amount_ars || savingDebt} onClick={handleCreateDebt}>
+              <Button className="flex-1 text-primary-foreground" disabled={!debtForm.description.trim() || !debtForm.amount_ars || savingDebt} onClick={handleCreateDebt}>
                 {savingDebt ? "Guardando…" : "Registrar deuda"}
               </Button>
             </div>

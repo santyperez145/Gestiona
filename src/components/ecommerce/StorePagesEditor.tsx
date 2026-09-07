@@ -171,7 +171,7 @@ export default function StorePagesEditor({
 
   if (!storeId) {
     return (
-      <div className="bg-card border border-border rounded-xl p-10 text-center text-sm text-muted-foreground">
+      <div className="commerce-store-panel p-10 text-center text-sm text-muted-foreground">
         Creá la tienda antes de cargar las páginas de contenido.
       </div>
     );
@@ -200,7 +200,7 @@ export default function StorePagesEditor({
     />
 
     {privacyPage && !analyticsDisclosurePublished && (
-      <div className="rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+      <div className="border border-primary/25 bg-primary/[0.06] p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <div>
@@ -232,7 +232,7 @@ export default function StorePagesEditor({
       {/* Listado */}
       <div className="space-y-2">
         {pages.length === 0 && (
-          <div className="bg-card border border-border rounded-xl p-5 text-center">
+          <div className="commerce-store-panel p-5 text-center">
             <FileText className="w-7 h-7 mx-auto mb-2 text-muted-foreground/40" />
             <p className="text-sm font-medium">Sin páginas todavía</p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -277,7 +277,7 @@ export default function StorePagesEditor({
 
       {/* Editor */}
       {borrador ? (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div className="commerce-store-panel p-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="text-xs text-muted-foreground">Título</label>
@@ -370,7 +370,7 @@ export default function StorePagesEditor({
           </div>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl p-10 text-center text-sm text-muted-foreground">
+        <div className="commerce-store-panel p-10 text-center text-sm text-muted-foreground">
           Elegí una página de la izquierda para editarla.
         </div>
       )}

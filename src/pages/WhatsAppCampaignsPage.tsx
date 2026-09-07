@@ -332,7 +332,7 @@ export default function WhatsAppCampaignsPage() {
         description={`Enviá campañas a tus clientes · ${totalPhone} contactos con teléfono`}
         icon={MessageCircle}
         actions={
-          <Button onClick={() => setOpen(true)} className="gradient-gold text-primary-foreground font-semibold shadow-gold gap-1.5">
+          <Button onClick={() => setOpen(true)} className="font-semibold gap-1.5">
             <Plus className="w-4 h-4" />Nueva campaña
           </Button>
         }
@@ -574,7 +574,7 @@ export default function WhatsAppCampaignsPage() {
               <Button
                 onClick={handleCreate}
                 disabled={saving || !message.trim()}
-                className="gradient-gold text-primary-foreground font-semibold flex-1"
+                className="text-primary-foreground font-semibold flex-1"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Plus className="w-4 h-4 mr-1.5" />}
                 Guardar borrador

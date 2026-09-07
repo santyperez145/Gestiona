@@ -139,10 +139,10 @@ export default function StoreDomainsPanel({
   };
 
   return (
-    <section aria-labelledby="store-domains-title" className="rounded-2xl border border-border/60 bg-card shadow-sm">
+    <section aria-labelledby="store-domains-title" className="commerce-store-panel">
       <div className="flex flex-col gap-3 border-b border-border/50 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
         <div className="flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-500/10 text-primary dark:text-slate-300">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-border/70 text-primary">
             <Globe2 className="h-5 w-5" />
           </div>
           <div>
@@ -158,7 +158,7 @@ export default function StoreDomainsPanel({
       </div>
 
       <div className="space-y-5 p-4 sm:p-5">
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+        <div className="border border-border/60 bg-muted/15 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -181,7 +181,7 @@ export default function StoreDomainsPanel({
         </div>
 
         {!store?.id ? (
-          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+          <div className="border border-dashed border-border p-4 text-sm text-muted-foreground">
             Primero guardá la tienda. Después vas a poder conectar un dominio que ya hayas comprado.
           </div>
         ) : !store.custom_domain ? (
@@ -210,7 +210,7 @@ export default function StoreDomainsPanel({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex flex-col gap-3 rounded-xl border border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate font-mono text-sm font-semibold">{store.custom_domain}</p>
@@ -241,7 +241,7 @@ export default function StoreDomainsPanel({
             </div>
 
             {records.length > 0 ? (
-              <div className="overflow-hidden rounded-xl border border-border/60">
+              <div className="overflow-hidden border border-border/60">
                 <div className="border-b border-border/50 bg-muted/25 px-4 py-3">
                   <p className="text-sm font-medium">Registros que tenés que publicar</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">Copialos en el proveedor donde compraste el dominio.</p>

@@ -762,7 +762,7 @@ export default function PresupuestosPage() {
             : undefined
         }
         actions={
-          <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={() => { resetForm(); setOpen(true); }}>
+          <Button className="h-9" onClick={() => { resetForm(); setOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" /> Nuevo presupuesto
           </Button>
         }
@@ -1417,7 +1417,7 @@ export default function PresupuestosPage() {
 
             {/* ── Submit ── */}
             <Button
-              className="w-full gradient-gold text-primary-foreground"
+              className="w-full text-primary-foreground"
               disabled={!custName.trim() || saving}
               onClick={handleSave}
             >

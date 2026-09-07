@@ -227,7 +227,7 @@ export default function CategoriesEditor() {
       </div>
 
       {filas.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center">
+        <div className="commerce-store-panel p-10 text-center">
           <Tags className="w-8 h-8 mx-auto mb-3 text-muted-foreground/40" />
           <p className="font-medium">Todavía no hay categorías propias</p>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
@@ -240,7 +240,7 @@ export default function CategoriesEditor() {
           {ordenJerarquico.map(({ fila: f, nivel }, i) => (
             <div
               key={f.id}
-              className="bg-card border border-border rounded-xl p-3"
+              className="commerce-store-panel p-3"
               style={nivel > 0 ? { marginLeft: `${nivel * 1.5}rem` } : undefined}
             >
               <div className="flex items-start gap-3 flex-wrap">

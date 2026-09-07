@@ -280,5 +280,14 @@ describe('contrato visual transversal de Gestión', () => {
     expect(pdp).toContain('storefront-pdp__crumb');
     expect(css).toContain('.commerce-metric-ledger');
     expect(css).toContain('.storefront-pdp__buybox');
+    expect(css).toContain('.commerce-store-panel');
+    expect(source('src/components/ecommerce/StoreReadinessPanel.tsx')).toContain('commerce-store-panel');
+    expect(source('src/components/ecommerce/StoreReadinessPanel.tsx')).not.toContain('rounded-full');
+    expect(source('src/components/ecommerce/StoreWorkspacePicker.tsx')).toContain('commerce-store-picker');
+    expect(source('src/components/ecommerce/StoreAssortmentEditor.tsx')).toContain('commerce-store-tab');
+    expect(source('src/components/ecommerce/StoreDomainsPanel.tsx')).toContain('commerce-store-panel');
+    expect(source('src/components/ecommerce/StoreDomainsPanel.tsx')).not.toContain('rounded-2xl');
+    expect(source('src/pages/Dashboard.tsx')).not.toContain('Ver CRM →');
+    expect(source('src/pages/Dashboard.tsx')).not.toContain('animate-ping');
   });
 });
