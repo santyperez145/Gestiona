@@ -3584,6 +3584,21 @@ export default function Dashboard() {
             </>
           ) : <p className="p-5 text-muted-foreground text-sm">No hay ventas registradas aún.</p>}
         </div>
+
+        {/* Activity Feed — Moderno */}
+        <CommerceActivityFeed
+          activities={stats.recentSales.map((s: any) => ({
+            id: s.id,
+            type: "sale" as const,
+            title: s.product_name,
+            description: `Venta a ${s.customer_name || "cliente"}`,
+            timestamp: new Date(s.date).toLocaleDateString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+            amount: Number(s.total_ars),
+            status: s.paid ? "success" as const : "warning" as const,
+          }))}
+          title="Actividad Reciente"
+          limit={5}
+        />
       </div>
 
       </div>
