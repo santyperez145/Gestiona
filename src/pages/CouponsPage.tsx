@@ -23,8 +23,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
+import CommerceKPICard from "@/components/commerce/CommerceKPICard";
+import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

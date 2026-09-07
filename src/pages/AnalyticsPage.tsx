@@ -5,6 +5,7 @@ import { useOrg } from "@/lib/orgContext";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import { BarChart3, Gauge, Layers, TrendingUp, Loader2 } from "lucide-react";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 
 // Workspace de Analytics.
 //
