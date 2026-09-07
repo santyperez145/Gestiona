@@ -22,8 +22,9 @@ import {
   Copy, FlaskConical, Trophy, Zap,
 } from "lucide-react";
 import { getSettingsDB, formatARS } from "@/lib/supabaseStore";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
+import CommerceKPICard from "@/components/commerce/CommerceKPICard";
+import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
