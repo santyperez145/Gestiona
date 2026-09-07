@@ -523,7 +523,7 @@ export default function StoreCheckout() {
     borderRadius: "var(--st-radius)",
   } as React.CSSProperties;
   const textoAccion = enviando
-    ? "Confirmando..."
+    ? "Procesando..."
     : cotizando
       ? "Calculando entrega..."
       : entrega.bloqueo
@@ -531,8 +531,8 @@ export default function StoreCheckout() {
         : metodos.length === 0
           ? "Sin medios de pago"
           : esMedioGestionaPay(form.metodo)
-            ? "Continuar a Nerqia Pay"
-            : "Confirmar pedido";
+            ? "Pagar con Nerqia Pay"
+            : "Finalizar compra";
 
   return (
     <div className="storefront-checkout mx-auto max-w-5xl px-4 pt-8 pb-32 md:py-10">
@@ -543,6 +543,22 @@ export default function StoreCheckout() {
       <p className="text-sm mb-8 max-w-xl" style={{ color: "hsl(var(--st-muted))" }}>
         Comprás como invitado. La cuenta es opcional si querés seguir el pedido más fácil.
       </p>
+
+      {/* Trust Signals en Header */}
+      <div className="flex flex-wrap gap-4 text-xs mb-8" style={{ color: "hsl(var(--st-muted))" }}>
+        <span className="flex items-center gap-1">
+          <Lock className="w-3 h-3" />
+          Pago seguro SSL
+        </span>
+        <span className="flex items-center gap-1">
+          <Tag className="w-3 h-3" />
+          Precios finales
+        </span>
+        <span className="flex items-center gap-1">
+          <Truck className="w-3 h-3" />
+          Envío rápido
+        </span>
+      </div>
 
       <form onSubmit={confirmar} className="grid md:grid-cols-[minmax(0,1fr)_22rem] gap-8 lg:gap-10 items-start">
         <div className="space-y-6">
