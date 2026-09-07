@@ -392,6 +392,37 @@ export default function StoreProduct() {
             {textoDisponibilidad}
           </p>
 
+          {/* Urgency Signal — Stock bajo */}
+          {stockEfectivo > 0 && stockEfectivo <= 5 && (
+            <div
+              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium"
+              style={{
+                background: "hsl(var(--st-accent) / 0.12)",
+                color: "hsl(var(--st-link))",
+                borderRadius: "var(--st-radius)",
+              }}
+            >
+              <span className="animate-pulse">🔥</span>
+              Solo quedan {stockEfectivo} {stockEfectivo === 1 ? "unidad" : "unidades"}
+            </div>
+          )}
+
+          {/* Trust Signals */}
+          <div className="mt-4 flex flex-wrap gap-3 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+            <span className="flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Envío gratis a partir de $5000
+            </span>
+            <span className="flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Pago seguro
+            </span>
+            <span className="flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Devolución gratis
+            </span>
+          </div>
+
           {store && !faltaElegir && !agotadoParaCompra && (
             <StoreShippingQuote
               slug={store.slug}
@@ -427,12 +458,12 @@ export default function StoreProduct() {
               onClick={agregarOEnfocar}
               aria-hidden={!atcVisible}
               tabIndex={atcVisible ? 0 : -1}
-              className="flex-1 min-h-11 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+              className="flex-1 min-h-11 py-3 font-semibold inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
               {faltaElegir
                 ? textoCtaVariante(tipoVariante)
-                : added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
+                : added ? <><Check className="w-4 h-4" /> ¡Agregado!</> : <><ShoppingBag className="w-4 h-4" /> Comprar ahora</>}
             </button>
             <button
               onClick={() => deseos.toggle(p.id)}
