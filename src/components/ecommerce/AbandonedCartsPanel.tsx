@@ -16,8 +16,10 @@ import {
   abandonedCartRecoveryTone,
   filterAbandonedCartsForQueue,
   type AbandonedCartRow,
+  type AbandonedEmailChannel,
 } from "@/lib/abandonedCarts";
 import { Copy, ExternalLink, MessageCircle, ShoppingCart } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 interface Props {
@@ -25,6 +27,8 @@ interface Props {
   loading: boolean;
   error: string | null;
   storeSlug?: string | null;
+  /** null = todavía cargando readiness; no forzar «pendiente» mentiroso. */
+  emailChannel?: AbandonedEmailChannel | null;
   onRetry: () => void;
 }
 
@@ -45,10 +49,13 @@ function absoluteRecoveryUrl(path: string): string {
 }
 
 export default function AbandonedCartsPanel({
-  carts, loading, error, storeSlug, onRetry,
+  carts, loading, error, storeSlug, emailChannel = null, onRetry,
 }: Props) {
   const rows = filterAbandonedCartsForQueue(carts);
-  const channel = abandonedCartRecoveryChannelCopy({ hasStoreSlug: Boolean(storeSlug?.trim()) });
+  const channel = abandonedCartRecoveryChannelCopy({
+    hasStoreSlug: Boolean(storeSlug?.trim()),
+    channel: emailChannel,
+  });
 
   if (loading) {
     return <WorkspaceState kind="initial-loading" title="Cargando carritos abandonados" loadingRows={4} />;
@@ -90,6 +97,11 @@ export default function AbandonedCartsPanel({
       <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
         <p className="text-xs font-medium">{channel.title}</p>
         <p className="mt-0.5 text-[11px] text-muted-foreground">{channel.body}</p>
+        {channel.href ? (
+          <Button type="button" variant="link" className="mt-1 h-auto p-0 text-[11px]" asChild>
+            <Link to={channel.href}>Abrir Mensajería</Link>
+          </Button>
+        ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
         {rows.length} {rows.length === 1 ? "carrito abandonado" : "carritos abandonados"}.
@@ -109,7 +121,7 @@ export default function AbandonedCartsPanel({
             </thead>
             <tbody className="divide-y divide-border/50">
               {rows.map((row) => {
-                const recovery = abandonedCartRecoveryState(row);
+                const recovery = abandonedCartRecoveryState(row, emailChannel);
                 const n = abandonedCartItemCount(row.items);
                 const href = abandonedCartRecoveryHref(storeSlug, row.recovery_token);
                 const email = row.customer_email?.trim() || "";

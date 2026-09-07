@@ -55212,6 +55212,10 @@ export type Database = {
         Args: { p_return_request_id: string }
         Returns: Json
       }
+      recovery_email_channel_ready: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       reconcile_sale_transaction_effects: {
         Args: { p_transaction_id: string }
         Returns: Json

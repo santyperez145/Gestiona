@@ -10,7 +10,9 @@ import AbandonedCartsPanel from "@/components/ecommerce/AbandonedCartsPanel";
 import StockAlertsPanel from "@/components/ecommerce/StockAlertsPanel";
 import {
   filterAbandonedCartsForQueue,
+  parseRecoveryEmailChannel,
   type AbandonedCartRow,
+  type AbandonedEmailChannel,
 } from "@/lib/abandonedCarts";
 import {
   countPendingStockAlerts,
@@ -37,6 +39,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
   const [abandonedCarts, setAbandonedCarts] = useState(0);
   const [abandonedLoading, setAbandonedLoading] = useState(true);
   const [abandonedError, setAbandonedError] = useState<string | null>(null);
+  const [emailChannel, setEmailChannel] = useState<AbandonedEmailChannel | null>(null);
 
   const [stockAlertRows, setStockAlertRows] = useState<StockAlertRow[]>([]);
   const [stockAlertsPending, setStockAlertsPending] = useState(0);
@@ -47,21 +50,38 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
     if (!orgId || !storeId) {
       setAbandonedCartRows([]);
       setAbandonedCarts(0);
+      setEmailChannel(null);
       setAbandonedLoading(false);
       return;
     }
     setAbandonedLoading(true);
     setAbandonedError(null);
-    const { data, error } = await supabase
-      .from("ecommerce_cart_sessions")
-      .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
-      .eq("org_id", orgId)
-      .eq("store_id", storeId);
+    const [{ data, error }, channelRes] = await Promise.all([
+      supabase
+        .from("ecommerce_cart_sessions")
+        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
+        .eq("org_id", orgId)
+        .eq("store_id", storeId),
+      supabase.rpc("recovery_email_channel_ready", { p_org_id: orgId }),
+    ]);
     if (error) {
       console.error("StoreRecoveryWorkspace / carritos:", error);
       setAbandonedError(error.message);
       setAbandonedLoading(false);
       return;
+    }
+    if (channelRes.error) {
+      // Relación/RPC ausente (deploy a medias): no inventar readiness.
+      const code = (channelRes.error as { code?: string }).code;
+      if (code === "42883" || code === "PGRST202") {
+        console.warn("StoreRecoveryWorkspace / canal email: RPC aún no aplicada");
+        setEmailChannel(null);
+      } else {
+        console.error("StoreRecoveryWorkspace / canal email:", channelRes.error);
+        setEmailChannel({ ready: false, merchantSmtp: false, platformEmail: false });
+      }
+    } else {
+      setEmailChannel(parseRecoveryEmailChannel(channelRes.data));
     }
     const rows = (data ?? []) as AbandonedCartRow[];
     const queue = filterAbandonedCartsForQueue(rows);
@@ -161,6 +181,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
           loading={abandonedLoading}
           error={abandonedError}
           storeSlug={storeSlug}
+          emailChannel={emailChannel}
           onRetry={() => { void loadAbandoned(); }}
         />
       )}

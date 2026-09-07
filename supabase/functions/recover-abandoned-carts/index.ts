@@ -69,7 +69,10 @@ Deno.serve(async (req) => {
           smtpCfg = await smtpDeOrganizacion(c.org_id);
           cacheSmtp.set(c.org_id, smtpCfg);
         }
-        if (!smtpCfg?.host && !resendKey) continue;   // ese comercio no puede enviar
+        if (!smtpCfg?.host && !resendKey) {
+          errores.push(`${c.customer_email}: sin canal de email (SMTP ni Resend)`);
+          continue;
+        }
 
         const items = (c.items ?? []) as Item[];
         const filas = items.map(i => `

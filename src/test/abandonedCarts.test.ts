@@ -8,6 +8,7 @@ import {
   abandonedCartsQueueHref,
   filterAbandonedCartsForQueue,
   isRecoverableAbandonedCart,
+  parseRecoveryEmailChannel,
   ABANDONED_CART_IDLE_MS,
 } from "@/lib/abandonedCarts";
 import { readFileSync } from "node:fs";
@@ -20,14 +21,23 @@ describe("abandonedCarts", () => {
     expect(abandonedCartItemCount(null)).toBe(0);
   });
 
-  it("distingue enviado, pendiente y sin email", () => {
+  it("distingue enviado, pendiente, sin email y canal no listo", () => {
     expect(abandonedCartRecoveryState({ abandoned_email_sent: true, customer_email: "a@b.c" }))
       .toBe("enviado");
     expect(abandonedCartRecoveryState({ abandoned_email_sent: false, customer_email: "a@b.c" }))
       .toBe("pendiente");
     expect(abandonedCartRecoveryState({ abandoned_email_sent: false, customer_email: null }))
       .toBe("sin_email");
+    expect(abandonedCartRecoveryState(
+      { abandoned_email_sent: false, customer_email: "a@b.c" },
+      { ready: false },
+    )).toBe("canal_no_listo");
+    expect(abandonedCartRecoveryState(
+      { abandoned_email_sent: false, customer_email: "a@b.c" },
+      { ready: true },
+    )).toBe("pendiente");
     expect(abandonedCartRecoveryLabel("pendiente")).toContain("Pendiente");
+    expect(abandonedCartRecoveryLabel("canal_no_listo")).toMatch(/no configurado/i);
   });
 
   it("la cola incluye active idle con email (como el cron), no sólo abandoned", () => {
@@ -104,15 +114,41 @@ describe("abandonedCarts", () => {
     expect(abandonedCartRecoveryHref("", "tok-1")).toBeNull();
     expect(abandonedCartRecoveryHref("mi-tienda", null)).toBeNull();
     expect(abandonedCartRecoveryChannelCopy({ hasStoreSlug: false }).title).toMatch(/slug/i);
-    expect(abandonedCartRecoveryChannelCopy({ hasStoreSlug: true }).body).toMatch(/SMTP|mensajer|WhatsApp/i);
+    expect(abandonedCartRecoveryChannelCopy({ hasStoreSlug: true }).body).toMatch(/SMTP|mensajer|WhatsApp|correo/i);
+    expect(abandonedCartRecoveryChannelCopy({
+      hasStoreSlug: true,
+      channel: { ready: false, merchantSmtp: false, platformEmail: false },
+    }).title).toMatch(/no puede salir/i);
+    expect(parseRecoveryEmailChannel({
+      ready: true, merchant_smtp: false, platform_email: true,
+    })).toEqual({ ready: true, merchantSmtp: false, platformEmail: true });
     const panel = readFileSync(
       resolve(process.cwd(), "src/components/ecommerce/AbandonedCartsPanel.tsx"),
       "utf8",
     );
     expect(panel).toContain("abandonedCartRecoveryHref");
     expect(panel).toContain("abandonedCartRecoveryChannelCopy");
+    expect(panel).toContain("emailChannel");
     expect(panel).toContain("Copiar");
     expect(panel).toContain("Abrir");
+    const recovery = readFileSync(
+      resolve(process.cwd(), "src/components/ecommerce/StoreRecoveryWorkspace.tsx"),
+      "utf8",
+    );
+    expect(recovery).toContain("recovery_email_channel_ready");
+    expect(recovery).toContain("parseRecoveryEmailChannel");
+    const migracion = readFileSync(
+      resolve(process.cwd(), "supabase/migrations/20260907000010_recovery_email_channel_ready.sql"),
+      "utf8",
+    );
+    expect(migracion).toContain("recovery_email_channel_ready");
+    expect(migracion).toContain("is_org_member");
+    expect(migracion).toContain("REVOKE ALL");
+    const cron = readFileSync(
+      resolve(process.cwd(), "supabase/functions/recover-abandoned-carts/index.ts"),
+      "utf8",
+    );
+    expect(cron).toContain("sin canal de email");
   });
 
   it("el checkout manda el email a save_store_cart (Shopify recovery)", () => {

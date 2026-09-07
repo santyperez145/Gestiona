@@ -80,6 +80,8 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
 - pedidos y recuperación como colas propias, con búsqueda, filtros, detalle y
   acciones masivas controladas; la cola `vista=pago` acredita transferencia/
   efectivo desde la fila (misma RPC que el inspector), sin abrir el detalle;
+  Recuperación no pinta «Pendiente de aviso» si el canal de email no está listo
+  (RPC `recovery_email_channel_ready`: SMTP del comercio o correo de plataforma);
 - analítica first-party mínima, disclosure legal, adquisición y embudo;
 - varias vitrinas por organización con exactamente una principal. Configuración,
   dominio, páginas, menú, pedidos, recuperación, reseñas, preguntas y analítica
