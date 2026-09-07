@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import BusinessPageHeader from "@/components/business/BusinessPageHeader";
+import BusinessKPICard from "@/components/business/BusinessKPICard";
 import { useNavigate } from "react-router-dom";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -240,7 +240,7 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
+      <BusinessPageHeader
         icon={Calendar}
         title="Calendario de Negocios"
         description="Vista unificada de tareas, deals, follow-ups y cobros"
@@ -251,10 +251,30 @@ export default function CalendarPage() {
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard label="Eventos este mes" value={totalThisMonth.length} icon={Calendar} color="primary" sub={`en ${MONTHS_ES[currentMonth.getMonth()]}`} />
-        <KPICard label="Tareas" value={totalThisMonth.filter(e => e.type === "task").length} icon={CheckSquare} color="purple" sub="pendientes" />
-        <KPICard label="Cobros" value={totalThisMonth.filter(e => e.type === "debt").length} icon={AlertCircle} color={totalThisMonth.filter(e => e.type === "debt").length > 0 ? "destructive" : "success"} sub="deudas por cobrar" />
-        <KPICard label="Deals & Follow-ups" value={totalThisMonth.filter(e => e.type === "deal" || e.type === "followup").length} icon={TrendingUp} color="warning" sub="en seguimiento" />
+        <BusinessKPICard
+          title="Eventos este mes"
+          value={totalThisMonth.length}
+          icon={Calendar}
+          description={`en ${MONTHS_ES[currentMonth.getMonth()]}`}
+        />
+        <BusinessKPICard
+          title="Tareas"
+          value={totalThisMonth.filter(e => e.type === "task").length}
+          icon={CheckSquare}
+          description="pendientes"
+        />
+        <BusinessKPICard
+          title="Cobros"
+          value={totalThisMonth.filter(e => e.type === "debt").length}
+          icon={AlertCircle}
+          description="deudas por cobrar"
+        />
+        <BusinessKPICard
+          title="Deals & Follow-ups"
+          value={totalThisMonth.filter(e => e.type === "deal" || e.type === "followup").length}
+          icon={TrendingUp}
+          description="en seguimiento"
+        />
       </div>
 
       {/* Legend */}
