@@ -45,6 +45,9 @@ import { evaluateActivationReadiness, type ActivationGoal } from "@/lib/activati
 import { isMissingRelation } from "@/lib/publicDataSource";
 import { dashboardViewKey, isDashboardViewId } from "@/lib/dashboardViews";
 import { useEntitlements } from "@/lib/useEntitlements";
+import CommerceDashboardHeader from "@/components/commerce/CommerceDashboardHeader";
+import CommerceDashboardKPICard from "@/components/commerce/CommerceDashboardKPICard";
+import CommerceSalesChart from "@/components/commerce/CommerceSalesChart";
 
 import { plural } from "@/lib/plural";
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
@@ -1520,55 +1523,43 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="dashboard-command-center">
-        <div className="dashboard-command-center__eyebrow">
-          <span className="status-dot bg-emerald-500" />
-          <span>Commerce</span>
-          <span className="dashboard-command-center__divider" />
-          <span>{activeOrg?.name || "Organización activa"}</span>
-        </div>
-        <PageHeader
-          icon={ShoppingBag}
-          eyebrow="Inicio · Tienda y operación"
-          title={greeting}
-          description={filterCat === 'all'
-            ? (activationReadiness?.effectiveGoal === 'online'
-              ? 'Pedidos, stock y cobro en una sola lectura. Publicá y operá la tienda sin salir del Business Core.'
-              : 'Ventas, stock y caja. La tienda online queda a un clic cuando el canal esté listo.')
-            : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
-          actions={
-            <>
-              {activationReadiness?.effectiveGoal === 'online' && (
-                <Link
-                  to="/tienda-online"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90"
-                >
-                  <ShoppingBag className="h-3.5 w-3.5" />
-                  Tienda
-                </Link>
-              )}
-              <DateRangeFilter label="Todo el período" />
-              <StoreFilter />
-              <Select value={filterCat} onValueChange={setFilterCat}>
-                <SelectTrigger className="bg-card border-border/50 w-full sm:w-[200px] h-9 text-sm rounded-lg">
-                  <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-emerald-400 transition-colors">
-                <Share2 className="w-3.5 h-3.5" />Compartir
-              </button>
-              <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-            </>
-          }
-        />
-      </div>
+      {/* Header moderno con gradientes y estadísticas en vivo */}
+      <CommerceDashboardHeader
+        icon={ShoppingBag}
+        title="Dashboard de Commerce"
+        greeting={greeting}
+        description={filterCat === 'all'
+          ? (activationReadiness?.effectiveGoal === 'online'
+            ? 'Pedidos, stock y cobro en una sola lectura. Publicá y operá la tienda sin salir del Business Core.'
+            : 'Ventas, stock y caja. La tienda online queda a un clic cuando el canal esté listo.')
+          : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
+        storeLink={activationReadiness?.effectiveGoal === 'online' ? "/tienda-online" : undefined}
+        liveStats={{
+          todaySales: formatARS(liveTodaySales?.total ?? 0),
+          orderCount: liveTodaySales?.count ?? 0,
+          conversionRate: stats?.totalSalesCount > 0 ? ((liveTodaySales?.count ?? 0) / stats.uniqueCustomers) * 100 : 0,
+        }}
+        actions={
+          <>
+            <DateRangeFilter label="Todo el período" />
+            <StoreFilter />
+            <Select value={filterCat} onValueChange={setFilterCat}>
+              <SelectTrigger className="bg-white/10 backdrop-blur-sm border-white/20 w-full sm:w-[200px] h-9 text-sm rounded-lg text-white">
+                <Filter className="w-3.5 h-3.5 mr-1.5 text-white/70" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(c => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-white/70 hover:text-white transition-colors">
+              <Share2 className="w-3.5 h-3.5" />Compartir
+            </button>
+          </>
+        }
+      />
 
       <WorkspaceViewTabs
         ariaLabel="Vistas del dashboard"
@@ -1712,24 +1703,31 @@ export default function Dashboard() {
 
       {/* Business Core: la primera lectura queda junto al foco operativo. */}
       <section id="dashboard-overview" className="workspace-dashboard-core mb-0 mt-0">
-        <div className="mb-3 flex items-end justify-between gap-3">
+        <div className="mb-6 flex items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Operación central</p>
-            <h2 className="mt-1 text-base font-semibold text-foreground">Lo que está pasando</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Operación central</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Lo que está pasando</h2>
           </div>
-          <span className="hidden text-[11px] text-muted-foreground sm:block">Actualizado en tiempo real</span>
+          <span className="hidden text-xs text-muted-foreground sm:block">Actualizado en tiempo real</span>
         </div>
-        <div className="commerce-metric-ledger grid grid-cols-2 lg:grid-cols-4">
-          {kpiCards.slice(0, 4).map((c) => (
-            <MetricCard
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {kpiCards.slice(0, 4).map((c, idx) => (
+            <CommerceDashboardKPICard
               key={c.label}
-              label={c.label}
+              title={c.label}
               value={c.value}
-              sub={c.sub}
+              description={c.sub}
               icon={c.icon}
-              tone={c.tone as "amber" | "green" | "red" | "yellow" | "blue" | "violet" | "neutral"}
+              highlight={idx === 0}
               live={"live" in c && c.live === true}
-              onClick={"live" in c && c.live ? () => setShowTodayDetail(v => !v) : undefined}
+              trend={c.tone === "green" ? "up" : c.tone === "red" ? "down" : "neutral"}
+              change={idx === 0 ? (() => {
+                const today = liveTodaySales?.total ?? 0;
+                const lw = lastWeekSameDaySales;
+                if (!lw) return undefined;
+                const pct = ((today - lw) / lw) * 100;
+                return pct;
+              })() : undefined}
             />
           ))}
         </div>
@@ -2889,21 +2887,22 @@ export default function Dashboard() {
       {/* Secondary metrics remain available without competing with the core. */}
       <div className="dashboard-view-section" data-dashboard-section="sales">
       <section id="dashboard-sales" className="mb-6">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Indicadores del negocio</p>
-          <span className="text-[10px] text-muted-foreground/60">Período seleccionado</span>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Indicadores del negocio</p>
+          <span className="text-xs text-muted-foreground/60">Período seleccionado</span>
         </div>
-        <div className="commerce-metric-ledger grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {kpiCards.slice(4).map(c => (
-            <MetricCard
+            <CommerceDashboardKPICard
               key={c.label}
-              label={c.label}
+              title={c.label}
               value={c.value}
-              sub={c.sub}
+              description={c.sub}
               icon={c.icon}
-              tone={c.tone as "amber" | "green" | "red" | "yellow" | "blue" | "violet" | "neutral"}
+              trend={c.tone === "green" ? "up" : c.tone === "red" ? "down" : "neutral"}
             />
           ))}
+        </div>
         </div>
       </section>
 
