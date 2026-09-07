@@ -1043,7 +1043,7 @@ export default function ProductsPage() {
             </DropdownMenu>
             {canCreate && (productLimit !== null && products.length >= productLimit ? (
               <Button
-                className="gradient-gold text-primary-foreground font-semibold shadow-gold"
+                className="bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
                 onClick={() => toast.error(`Límite de ${plural(productLimit, "producto")} alcanzado en el plan ${plan?.name}. Actualizá tu plan.`)}
               >
                 <Plus className="w-4 h-4 mr-2" />Nuevo
@@ -1051,7 +1051,7 @@ export default function ProductsPage() {
             ) : (
               <Dialog open={open} onOpenChange={handleProductEditorOpenChange}>
                 <DialogTrigger asChild>
-                  <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+                  <Button className="bg-primary text-primary-foreground font-semibold hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
                 </DialogTrigger>
                 <DialogContent size="full" className={FULLSCREEN_PRODUCT_WORKSPACE}>
                   <DialogHeader className="mb-0 shrink-0 border-b border-border/70 bg-card/95 px-5 py-4 pr-14 backdrop-blur sm:px-7">
@@ -1598,43 +1598,43 @@ export default function ProductsPage() {
             : clearProductFilters}
         />
       ) : productView === 'grid' ? (
-        <div className="workspace-products-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="workspace-products-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {filteredSorted.map((p: any) => (
-            <div key={p.id} className="workspace-products-grid-card bg-card border border-border rounded-xl overflow-hidden group hover:border-primary/40 transition-colors">
-              <div className="relative aspect-square bg-muted/30">
+            <div key={p.id} className="workspace-products-grid-card group overflow-hidden">
+              <div className="relative aspect-[4/5] bg-muted/25 overflow-hidden" style={{ borderRadius: 8 }}>
                 {p.image_url
-                  ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-[0.92]" />
                   : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8 text-muted-foreground/30" /></div>
                 }
-                {p.stock <= 0 && <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive text-white">SIN STOCK</span>}
+                {p.stock <= 0 && <span className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-bold bg-destructive text-white" style={{ borderRadius: 4 }}>SIN STOCK</span>}
                 {p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) && (
-                  <div className="absolute top-1 left-1 flex flex-col gap-0.5">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500 text-white">OFERTA</span>
+                  <div className="absolute top-2 left-2 flex flex-col gap-0.5">
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary text-primary-foreground" style={{ borderRadius: 4 }}>OFERTA</span>
                     {p.offer_expires_at && (
-                      <span className="px-1.5 py-0.5 rounded bg-black/70 leading-tight">
+                      <span className="px-1.5 py-0.5 bg-black/70 leading-tight" style={{ borderRadius: 4 }}>
                         <OfferCountdownBadge expiresAt={p.offer_expires_at} />
                       </span>
                     )}
                   </div>
                 )}
-                <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                   {operaPerfumes && perfumeDetailsByProduct[p.id] && (
-                    <button onClick={() => setRecoTargetId(p.id)} title="Perfumes similares" className="p-1 rounded bg-card/90 hover:bg-card border border-border">
-                      <Sparkles className="w-3 h-3 text-primary" />
+                    <button type="button" onClick={() => setRecoTargetId(p.id)} title="Perfumes similares" className="min-h-9 min-w-9 grid place-items-center bg-card/95 hover:bg-card border border-border" style={{ borderRadius: 6 }}>
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
                     </button>
                   )}
                   {canEdit && (
-                    <button onClick={() => { setEditing(p); setOpen(true); }} className="p-1 rounded bg-card/90 hover:bg-card border border-border">
-                      <Pencil className="w-3 h-3" />
+                    <button type="button" onClick={() => { setEditing(p); setOpen(true); }} className="min-h-9 min-w-9 grid place-items-center bg-card/95 hover:bg-card border border-border" style={{ borderRadius: 6 }}>
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
               </div>
-              <div className="p-2">
-                <p className="text-xs font-medium leading-tight line-clamp-2 mb-1">{p.name}</p>
+              <div className="pt-2.5 px-0.5">
+                <p className="text-[0.8125rem] font-semibold leading-snug line-clamp-2 mb-1 tracking-tight">{p.name}</p>
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs font-bold text-primary">{formatARS(Number(p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? p.discount_price_ars : p.sale_price_ars))}</span>
-                  <span className={`text-[10px] font-medium ${p.stock > 0 ? 'text-emerald-400' : 'text-destructive'}`}>×{p.stock}</span>
+                  <span className="text-sm font-bold tracking-tight">{formatARS(Number(p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? p.discount_price_ars : p.sale_price_ars))}</span>
+                  <span className={`text-[10px] font-semibold ${p.stock > 0 ? 'text-muted-foreground' : 'text-destructive'}`}>×{p.stock}</span>
                 </div>
               </div>
             </div>
@@ -3866,7 +3866,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
             ? 'Nombre, precio de venta y unidades. El costo puede esperar.'
             : 'El guardado actualiza la ficha canónica; el stock se asienta por Kardex.'}
         </p>
-        <Button type="submit" disabled={uploading} className="w-full min-w-44 gradient-gold text-primary-foreground font-semibold sm:w-auto">
+        <Button type="submit" disabled={uploading} className="w-full min-w-44 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 sm:w-auto">
           {firstProductSubmitLabel({
             firstUse: creatingFirstProduct,
             uploading,
@@ -4202,7 +4202,7 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
             <label className="text-sm text-muted-foreground">Porcentaje (+ para subir, - para bajar)</label>
             <Input type="number" value={percent} onChange={e => setPercent(e.target.value)} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
           </div>
-          <Button onClick={handleApply} disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
+          <Button onClick={handleApply} disabled={loading} className="w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90">
             {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
           </Button>
         </>
@@ -4261,7 +4261,7 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
               })()}
             </div>
           )}
-          <Button onClick={handleRecalc} disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
+          <Button onClick={handleRecalc} disabled={loading} className="w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90">
             {loading ? 'Recalculando...' : `Recalcular a $${parseFloat(newExchangeRate).toLocaleString('es-AR') || '?'}/U$S`}
           </Button>
         </>

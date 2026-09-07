@@ -3265,17 +3265,18 @@
   }
 
   .workspace-products-grid {
-    align-items: stretch;
+    align-items: start;
   }
 
   .workspace-products-grid-card {
-    box-shadow: var(--products-shadow);
-    transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
   }
 
   .workspace-products-grid-card:hover {
-    box-shadow: 0 18px 34px -28px hsl(var(--primary) / 0.95);
-    transform: translateY(-1px);
+    box-shadow: none;
+    transform: none;
   }
 
   .workspace-products-brand-group > h2 {
