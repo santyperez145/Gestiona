@@ -994,8 +994,8 @@ export default function EcommerceStorePage() {
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
       <PageHeader
         icon={ShoppingBag}
-        title="Nerqia Commerce"
-        description="Publicá tu tienda, cobrá con Nerqia Pay (Mercado Pago) y gestioná envíos en un solo lugar."
+        title="Tienda online"
+        description="Publicá la vitrina, cobrá y gestioná envíos. El núcleo del Commerce OS — no un panel genérico."
         actions={
           <div className="flex items-center flex-wrap gap-2">
             {/* Una tienda activa que no puede cobrar o no puede cotizar el envío

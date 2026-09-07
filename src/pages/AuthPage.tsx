@@ -4,15 +4,15 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, BarChart3, Boxes, Check, CircleDollarSign, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CircleDollarSign, Mail, PackageCheck, ShieldCheck, Store } from 'lucide-react';
 import BrandLogo from '@/components/shared/BrandLogo';
 import { authErrorForCustomer, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 const SHOWCASE_ITEMS = [
-  { icon: BarChart3, title: 'Ventas y margen', description: 'La señal que importa, al alcance del equipo.' },
-  { icon: Boxes, title: 'Stock conectado', description: 'Una cantidad real para todos tus canales.' },
-  { icon: CircleDollarSign, title: 'Costos completos', description: 'Importación, envío, comisión e IVA.' },
+  { icon: Store, title: 'Tienda online lista', description: 'Catálogo, checkout, pagos y dominio en un solo lugar.' },
+  { icon: PackageCheck, title: 'Pedidos conectados', description: 'Cada venta actualiza stock y deja margen visible.' },
+  { icon: CircleDollarSign, title: 'Cobros y costos', description: 'Transferencia, Pay y comisiones sin inventar números.' },
 ];
 
 type AuthMode = 'login' | 'register' | 'forgot' | 'otp';
@@ -151,23 +151,25 @@ export default function AuthPage() {
     }
     return {
       icon: false,
-      eyebrow: 'Tu workspace empieza acá',
-      title: mode === 'login' ? 'Bienvenido de vuelta' : 'Creá tu cuenta',
-      lead: mode === 'login' ? 'Ingresá para continuar con la operación.' : 'Probá todas las herramientas durante 14 días.',
+      eyebrow: mode === 'login' ? 'Entrar a tu tienda' : 'Crear tu tienda',
+      title: mode === 'login' ? 'Bienvenido de vuelta' : 'Empezá con tu tienda',
+      lead: mode === 'login'
+        ? 'Seguí pedidos, stock y margen desde el mismo lugar.'
+        : '14 días para publicar tu vitrina y cobrar la primera venta.',
     };
   })();
 
   return (
     <div className="auth-shell">
       <aside className="auth-showcase">
-        <div className="auth-showcase__top"><AuthBrand /><span className="auth-showcase__status"><i /> Plataforma operativa</span></div>
+        <div className="auth-showcase__top"><AuthBrand /><span className="auth-showcase__status"><i /> Tienda + operación</span></div>
         <div className="auth-showcase__content">
-          <p className="auth-eyebrow"><Sparkles /> Sistema operativo para comercios</p>
-          <h1>El control vuelve <span>a vos.</span></h1>
-          <p className="auth-showcase__lead">Una plataforma para vender, operar y entender tu negocio sin saltar entre herramientas.</p>
+          <p className="auth-eyebrow"><Store /> Commerce Operating System</p>
+          <h1>Tu tienda online, <span>conectada de verdad.</span></h1>
+          <p className="auth-showcase__lead">Creá la vitrina, cobrá y despachá. Gestión y Finance explican stock y margen — sin ser un CRM genérico más.</p>
           <div className="auth-showcase__items">{SHOWCASE_ITEMS.map(({ icon: Icon, title, description }) => <div className="auth-showcase__item" key={title}><span><Icon /></span><div><strong>{title}</strong><small>{description}</small></div><Check /></div>)}</div>
         </div>
-        <div className="auth-showcase__footer"><span>Nerqia · Operación conectada</span><span>01 / 03</span></div>
+        <div className="auth-showcase__footer"><span>Nerqia · Commerce OS</span><span>Tienda primero</span></div>
       </aside>
 
       <main className="auth-panel">

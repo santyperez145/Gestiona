@@ -624,8 +624,7 @@
   }
 }
 
-/* CRM reference direction: compact navigation, filter rail and contextual
-   customer selection inspired by the supplied CRM marketplace kit. */
+/* Navegación de clientes (compradores) — densa, sin kit CRM marketplace. */
 @layer components {
   .crm-workspace-nav {
     display: flex;
@@ -968,6 +967,21 @@
     max-width: 42rem;
   }
 
+  /* Admin de Tienda online — chrome Commerce, tabs densas. */
+  .workspace-ecommerce .flex.flex-wrap.gap-1.bg-muted\/30 {
+    border: 1px solid hsl(var(--border) / 0.9);
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+    border-radius: 8px;
+    padding: 0.35rem;
+  }
+
+  .workspace-ecommerce .flex.flex-wrap.gap-1.bg-muted\/30 > button {
+    border-radius: 6px;
+    min-height: 2.5rem;
+    font-family: var(--font-body);
+  }
+
   .workspace-sidebar {
     border-right-width: 1px;
   }
@@ -1089,20 +1103,18 @@
   }
 }
 
-/* Public landing: product-led marketplace direction. It deliberately uses a
-   separate contract from the authenticated workspace so the first visit feels
-   like a product, not a logged-out admin panel. */
+/* Auth público: panel claro + showcase tinta/cobalto (tienda primero). */
 @layer components {
   .auth-shell {
-    --auth-ink: 222 38% 14%;
-    --auth-muted: 222 14% 45%;
-    --auth-line: 220 18% 88%;
-    --auth-gold: 43 82% 44%;
-    --auth-teal: 169 47% 38%;
+    --auth-ink: 222 38% 12%;
+    --auth-muted: 222 14% 42%;
+    --auth-line: 214 18% 88%;
+    --auth-gold: 230 87% 51%;
+    --auth-teal: 168 48% 32%;
     display: grid;
     grid-template-columns: minmax(360px, 0.9fr) minmax(460px, 1.1fr);
     min-height: 100vh;
-    background: hsl(45 33% 98%);
+    background: hsl(210 24% 97%);
     color: hsl(var(--auth-ink));
   }
 
@@ -1111,7 +1123,8 @@
     flex-direction: column;
     min-height: 100vh;
     padding: 2.4rem 3.4rem 2rem;
-    background: hsl(222 32% 15%);
+    background:
+      linear-gradient(165deg, hsl(222 40% 10%) 0%, hsl(222 35% 14%) 55%, hsl(230 40% 16%) 100%);
     color: hsl(0 0% 100%);
   }
 
@@ -1133,11 +1146,11 @@
   .auth-eyebrow { display: flex; align-items: center; gap: 0.45rem; margin: 0; color: hsl(var(--auth-gold)); font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
   .auth-eyebrow svg { width: 0.75rem; height: 0.75rem; }
   .auth-showcase h1 { max-width: 430px; margin: 1.3rem 0 1.2rem; color: hsl(0 0% 100%); font-family: var(--font-display); font-size: 3.8rem; font-weight: 800; letter-spacing: -0.065em; line-height: 0.98; }
-  .auth-showcase h1 span { color: hsl(43 90% 65%); }
+  .auth-showcase h1 span { color: hsl(230 87% 68%); }
   .auth-showcase__lead { max-width: 390px; margin: 0; color: hsl(220 18% 72%); font-size: 0.9rem; line-height: 1.7; }
   .auth-showcase__items { margin-top: 3rem; border-top: 1px solid hsl(220 20% 30%); }
   .auth-showcase__item { display: grid; grid-template-columns: 2.1rem minmax(0, 1fr) 1rem; align-items: center; gap: 0.8rem; min-height: 4.6rem; border-bottom: 1px solid hsl(220 20% 30%); }
-  .auth-showcase__item > span { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; border: 1px solid hsl(220 20% 34%); border-radius: 7px; color: hsl(43 90% 65%); }
+  .auth-showcase__item > span { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; border: 1px solid hsl(220 20% 34%); border-radius: 7px; color: hsl(230 87% 68%); }
   .auth-showcase__item > span svg { width: 0.85rem; height: 0.85rem; }
   .auth-showcase__item strong, .auth-showcase__item small { display: block; }
   .auth-showcase__item strong { color: hsl(0 0% 100%); font-family: var(--font-display); font-size: 0.76rem; }
@@ -1154,7 +1167,7 @@
   .auth-form-shell { width: min(100%, 420px); margin: auto; padding: 3rem 0; }
   .auth-mobile-brand { display: none; }
   .auth-form-heading { margin-bottom: 2rem; }
-  .auth-form-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.3rem; height: 2.3rem; margin-bottom: 1.4rem; border: 1px solid hsl(var(--auth-line)); border-radius: 8px; background: hsl(43 92% 94%); color: hsl(var(--auth-gold)); }
+  .auth-form-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.3rem; height: 2.3rem; margin-bottom: 1.4rem; border: 1px solid hsl(var(--auth-line)); border-radius: 8px; background: hsl(230 70% 95%); color: hsl(var(--auth-gold)); }
   .auth-form-icon svg { width: 1rem; height: 1rem; }
   .auth-form-heading h2 { margin: 0.75rem 0 0.5rem; color: hsl(var(--auth-ink)); font-family: var(--font-display); font-size: 2rem; font-weight: 800; letter-spacing: -0.055em; }
   .auth-form-heading > p:last-child { max-width: 330px; margin: 0; color: hsl(var(--auth-muted)); font-size: 0.8rem; line-height: 1.6; }

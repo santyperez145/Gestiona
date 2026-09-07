@@ -75,7 +75,7 @@ describe('Commerce Pay honesty', () => {
   });
 
   it('el workspace se presenta como Commerce, no como módulo extra', () => {
-    expect(page).toContain('title="Nerqia Commerce"');
+    expect(page).toContain('title="Tienda online"');
     expect(page).toContain('label: "Publicar"');
     expect(manifest).toContain('id: "pedidos_online"');
     expect(manifest).toContain('label: "Pedidos"');
