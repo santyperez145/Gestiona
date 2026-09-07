@@ -4609,10 +4609,12 @@
   }
 
   .dashboard-command-center {
-    padding: 1.25rem 1.25rem 0;
-    border: 1px solid hsl(var(--border) / 0.78);
+    padding: 1.35rem 1.35rem 0;
+    border: 1px solid hsl(var(--border) / 0.82);
     border-radius: 16px;
-    background: hsl(var(--card) / 0.72);
+    background:
+      linear-gradient(160deg, hsl(var(--primary) / 0.06), transparent 45%),
+      hsl(var(--card) / 0.88);
     box-shadow: var(--shadow-card);
   }
 
