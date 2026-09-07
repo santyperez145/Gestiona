@@ -53,36 +53,20 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   { id: "diario",    label: "",            hint: "Lo de todos los días — Inicio, Tienda y Pedidos online primero" },
-  { id: "commerce",  label: "Tienda y canales", hint: "Envíos, cupones y promociones" },
-  { id: "trabajo",   label: "Mi trabajo",  hint: "Tareas, seguimientos y calendario" },
-  { id: "compras",   label: "Compras y stock", hint: "Reponer, mover y controlar la mercadería" },
-  { id: "cobranzas", label: "Cobranzas",   hint: "Lo que falta cobrar y los documentos de venta" },
-  { id: "finanzas",  label: "Contabilidad", hint: "Gastos, libro, banco e impuestos del Business Core — no es Nerqia Finance" },
-  { id: "marketing", label: "Difusión",   hint: "Email de recuperación, campañas y afiliados que llevan a la tienda" },
-  { id: "reportes",  label: "Reportes",    hint: "Ver cómo viene el negocio" },
+  { id: "commerce",  label: "Commerce — Adquisición", hint: "Tienda online, pedidos, catálogo y conversión" },
+  { id: "business",  label: "Business — Operación", hint: "POS, inventario, clientes y compras" },
+  { id: "marketing", label: "Marketing",    hint: "Campañas, email y growth" },
+  { id: "finance",   label: "Finance Core", hint: "Cobranzas, gastos y libro del Business Core" },
+  { id: "reportes",  label: "Reportes",    hint: "Analytics y reportes del negocio" },
   { id: "sistema",   label: "Sistema",     hint: "Configuración, equipo e integraciones" },
 ];
 
 const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
   diario: ["/", "/tienda-online", "/pedidos-online", "/caja", "/ventas", "/productos", "/clientes"],
-  commerce: ["/envios", "/links-de-pago", "/cupones", "/promociones"],
-  trabajo: ["/tareas", "/calendario"],
-  compras: [
-    "/compras", "/ordenes-compra", "/proveedores", "/planificacion",
-    "/kardex", "/transferencias", "/sucursales", "/lotes",
-    "/bundles", "/listas-precios", "/valuacion-inventario",
-  ],
-  cobranzas: ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones"],
-  finanzas: [
-    "/billetera", "/movimientos", "/cash-flow", "/pl-dashboard",
-    "/libro", "/banco", "/gastos", "/comisiones",
-    "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones",
-  ],
-  marketing: [
-    "/marketing", "/email-campaigns", "/whatsapp-campaigns",
-    "/fidelidad", "/catalogo", "/influencers", "/canjes",
-    "/afiliados", "/referidos",
-  ],
+  commerce: ["/tienda-online", "/pedidos-online", "/productos", "/analytics", "/envios", "/links-de-pago", "/cupones", "/promociones"],
+  business: ["/caja", "/ventas", "/compras", "/ordenes-compra", "/proveedores", "/kardex", "/transferencias", "/sucursales", "/lotes", "/bundles", "/listas-precios", "/valuacion-inventario"],
+  marketing: ["/marketing", "/email-campaigns", "/whatsapp-campaigns", "/fidelidad", "/catalogo", "/influencers", "/canjes", "/afiliados", "/referidos"],
+  finance: ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones", "/billetera", "/movimientos", "/cash-flow", "/pl-dashboard", "/libro", "/banco", "/gastos", "/comisiones", "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones"],
   reportes: ["/reportes", "/analytics", "/ia"],
   sistema: ["/soporte", "/alertas", "/integraciones", "/equipo", "/ajustes", "/admin", "/calidad-datos", "/mi-plan", "/perfil"],
 };

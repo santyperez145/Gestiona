@@ -26,6 +26,10 @@ import PageGuide from "@/components/shared/PageGuide";
 import PresenceAvatars from "@/components/shared/PresenceAvatars";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import BrandLogo from "@/components/shared/BrandLogo";
+import CommerceHeader from "@/components/commerce/CommerceHeader";
+import BusinessHeader from "@/components/business/BusinessHeader";
+import FinanceHeader from "@/components/finance/FinanceHeader";
+import PlatformHeader from "@/components/platform/PlatformHeader";
 import { usePermissionsResolver } from "@/lib/permissionsContext";
 import { moduleForRoute } from "@/lib/moduleMap";
 import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta } from "@/lib/navigation";
@@ -396,6 +400,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </aside>
+
+      {/* Headers específicos por superficie */}
+      <CommerceHeader />
+      <BusinessHeader />
+      <FinanceHeader />
+      <PlatformHeader />
 
       <main className={`workspace-main flex-1 w-full bg-background transition-all duration-300 ${immersiveRoute ? 'flex h-dvh min-h-0 flex-col overflow-hidden' : 'min-h-screen overflow-auto'} ${effectiveCollapsed ? 'md:ml-[78px]' : 'md:ml-[248px]'} ${collapsed ? 'lg:ml-[78px]' : 'lg:ml-[248px]'}`}>
         {/* Desktop command bar: a stable orientation point across every module. */}
