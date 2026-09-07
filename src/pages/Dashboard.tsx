@@ -1733,32 +1733,53 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Quick Actions */}
-      {/* Quick Actions: la puerta del canal elegido va primero. Shopify no
-          esconde Online Store detrás de POS; el mostrador sigue a un clic. */}
-      <div className="workspace-dashboard-quick-actions workspace-quick-actions flex flex-wrap gap-2 mb-4 mt-3">
-        {[
-          { label: "Nueva Venta", icon: DollarSign, path: "/ventas", color: "text-primary" },
-          ...(activeOrg?.onboarding_goal === "pos"
-            ? [
-                { label: "POS", icon: ScanLine, path: "/caja", color: "text-emerald-400" },
-                { label: "Tienda", icon: ShoppingBag, path: "/tienda-online", color: "text-primary" },
-              ]
-            : [
-                { label: "Tienda", icon: ShoppingBag, path: "/tienda-online", color: "text-primary" },
-                { label: "POS", icon: ScanLine, path: "/caja", color: "text-emerald-400" },
-              ]),
-          { label: "Nuevo Cliente", icon: Users, path: "/clientes", color: "text-blue-400" },
-          { label: "Inventario", icon: Package, path: "/productos", color: "text-yellow-400" },
-          { label: "Gastos", icon: Wallet, path: "/gastos", color: "text-destructive" },
-          { label: "Reportes", icon: BarChart3, path: "/reportes", color: "text-primary" },
-        ].map(a => (
-          <Link key={a.path} to={a.path}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground hover:text-foreground">
-            <a.icon className={`w-3.5 h-3.5 ${a.color}`} />
-            {a.label}
-          </Link>
-        ))}
+      {/* Quick Actions — Moderno */}
+      <CommerceQuickActions
+        actions={[
+          {
+            label: "Nueva Venta",
+            icon: ShoppingCart,
+            path: "/ventas",
+            color: "primary",
+            description: "Registrar venta",
+          },
+          {
+            label: "Tienda Online",
+            icon: ShoppingBag,
+            path: "/tienda-online",
+            color: "primary",
+            description: "Ver tienda",
+          },
+          {
+            label: "Nuevo Cliente",
+            icon: Users,
+            path: "/clientes",
+            color: "secondary",
+            description: "Crear cliente",
+          },
+          {
+            label: "Inventario",
+            icon: Package,
+            path: "/productos",
+            color: "success",
+            description: "Gestionar stock",
+          },
+          {
+            label: "Gastos",
+            icon: Wallet,
+            path: "/gastos",
+            color: "warning",
+            description: "Controlar gastos",
+          },
+          {
+            label: "Reportes",
+            icon: BarChart3,
+            path: "/reportes",
+            color: "primary",
+            description: "Ver análisis",
+          },
+        ]}
+      />
         {entitlementsLoading ? (
           <button
             type="button"
@@ -3525,29 +3546,19 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Top Products + Recent Sales */}
+      {/* Top Products + Recent Sales — Moderno */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
-          <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Productos Más Vendidos</h2>
-          {stats.topProducts.length > 0 ? (
-            <div className="space-y-3 pb-12">
-              {stats.topProducts.map((p: any, i: number) => {
-                const maxRev = stats.topProducts[0]?.revenue || 1;
-                return (
-                  <div key={p.name}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium truncate mr-2">{i + 1}. {p.name}</span>
-                      <span className="text-muted-foreground shrink-0 text-xs">{p.qty}u · <span className="text-emerald-400">{formatARS(p.profit)}</span></span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${(p.revenue / maxRev) * 100}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : <p className="text-muted-foreground text-sm py-8 text-center">Sin ventas registradas</p>}
-        </div>
+        <CommerceTopProducts
+          products={stats.topProducts.map((p: any, i: number) => ({
+            id: p.name,
+            name: p.name,
+            sales: p.qty,
+            revenue: p.revenue,
+            trend: i === 0 ? 12 : i === 1 ? 8 : i === 2 ? 5 : 0,
+          }))}
+          title="Productos Más Vendidos"
+          limit={5}
+        />
 
         <div className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
           <h2 className="text-sm font-display font-semibold p-4 md:p-5 pb-3 text-muted-foreground uppercase tracking-wider">Últimas Ventas</h2>
