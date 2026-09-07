@@ -4572,13 +4572,18 @@
 
   .workspace-content {
     min-height: calc(100vh - 64px);
-    padding-top: 1.75rem;
+    padding-top: 1.85rem;
+    padding-bottom: 2rem;
   }
 
   .workspace-page-header {
     gap: 1.25rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: 1.65rem;
     border-bottom: 0;
+  }
+
+  .page-header__title {
+    letter-spacing: -0.04em;
   }
 
   .page-header__icon {
