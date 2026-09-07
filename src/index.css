@@ -1,190 +1,158 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* ── :root = dark theme (default) ──────────────────────────────────────
-     next-themes toggles a "light" / "dark" class on <html>. Dark values
-     live here so the app renders correctly before/without JS, matching
-     defaultTheme="dark". The .light block below overrides for light mode. */
+  /* ── :root = dark theme (fallback) ─────────────────────────────────────
+     next-themes toggles "light" / "dark" on <html>. Light es el default de
+     producto (Commerce OS). Los tokens evitan Inter + orbes violeta genéricos. */
   :root {
-    /* ── Deep noir backgrounds ─────────────────────────────── */
-    --background:  228 28% 4.5%;    /* #070712 — near black, cold */
-    --foreground:  220 20% 91%;     /* warm white */
+    --background:  222 28% 6%;
+    --foreground:  210 25% 96%;
 
-    --card:         228 24% 7%;     /* #0C0C1C — surface layer */
-    --card-foreground: 220 20% 91%;
+    --card:         222 24% 9%;
+    --card-foreground: 210 25% 96%;
 
-    --popover:      228 24% 9%;
-    --popover-foreground: 220 20% 91%;
+    --popover:      222 24% 10%;
+    --popover-foreground: 210 25% 96%;
 
-    /* ── Brand — sapphire blue ─────────────────────────────── */
-    --primary:      213 78% 56%;    /* #3E7FD1 — sapphire blue */
+    /* Cobalto Nerqia (#173aef) — alineado a theme-color / PWA */
+    --primary:      230 87% 51%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary:    228 20% 13%;
-    --secondary-foreground: 220 15% 78%;
+    --secondary:    222 18% 14%;
+    --secondary-foreground: 210 15% 78%;
 
-    --muted:        228 20% 11%;
-    --muted-foreground: 228 12% 46%;
+    --muted:        222 16% 12%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent:       213 40% 22%;
-    --accent-foreground: 220 20% 91%;
+    --accent:       230 35% 18%;
+    --accent-foreground: 210 25% 96%;
 
     --destructive:  0 68% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --success:      155 55% 40%;
-    --success-foreground: 155 55% 95%;
+    --success:      158 48% 38%;
+    --success-foreground: 158 40% 96%;
 
-    --warning:      38 90% 55%;
-    --warning-foreground: 38 90% 10%;
+    --warning:      32 90% 48%;
+    --warning-foreground: 32 90% 10%;
 
-    --border:       228 20% 12%;    /* very subtle, barely visible */
-    --input:        228 20% 12%;
-    --ring:         213 78% 56%;
+    --border:       222 16% 16%;
+    --input:        222 16% 16%;
+    --ring:         230 87% 51%;
 
-    --radius: 0.625rem;             /* 10px */
+    --radius: 0.5rem;
 
-    /* ── Sidebar — deeper than background ─────────────────── */
-    --sidebar-background: 228 32% 3%;
-    --sidebar-foreground: 228 12% 55%;
-    --sidebar-primary: 213 78% 56%;
+    --sidebar-background: 222 30% 5%;
+    --sidebar-foreground: 220 10% 62%;
+    --sidebar-primary: 230 87% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 228 24% 8%;
-    --sidebar-accent-foreground: 220 20% 88%;
-    --sidebar-border: 228 22% 9%;
-    --sidebar-ring: 213 78% 56%;
+    --sidebar-accent: 222 20% 10%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 222 18% 12%;
+    --sidebar-ring: 230 87% 51%;
 
-    /* ── Fonts ────────────────────────────────────────────── */
-    --font-display: 'Space Grotesk', system-ui, sans-serif;
-    --font-body:    'Inter', system-ui, sans-serif;
-    --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+    --font-display: 'Syne', system-ui, sans-serif;
+    --font-body:    'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
 
-    /* ── Gradients ─────────────────────────────────────────── */
-    --gradient-gold:        linear-gradient(135deg, hsl(207,85%,64%), hsl(213,78%,56%), hsl(220,70%,46%));
-    --gradient-gold-subtle: linear-gradient(135deg, hsl(213,78%,56% / 0.12), hsl(213,78%,56% / 0.03));
-    --gradient-card:        linear-gradient(160deg, hsl(228,24%,8.5%) 0%, hsl(228,28%,5.5%) 100%);
-    --gradient-sidebar:     linear-gradient(180deg, hsl(228,32%,3.5%) 0%, hsl(228,36%,2.5%) 100%);
-    --gradient-page:        radial-gradient(ellipse 80% 60% at 50% -10%, hsl(213,78%,56% / 0.05) 0%, transparent 65%);
+    --gradient-gold:        linear-gradient(135deg, hsl(230,87%,58%), hsl(230,87%,51%), hsl(222,70%,42%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(230,87%,51% / 0.10), hsl(230,87%,51% / 0.02));
+    --gradient-card:        linear-gradient(180deg, hsl(222,24%,10%) 0%, hsl(222,28%,7%) 100%);
+    --gradient-sidebar:     linear-gradient(180deg, hsl(222,30%,5.5%) 0%, hsl(222,32%,4%) 100%);
+    --gradient-page:        none;
 
-    /* ── Shadows ─────────────────────────────────────────── */
-    --shadow-gold:     0 4px 28px -4px hsl(213 78% 56% / 0.30);
-    --shadow-card:     0 1px 0 hsl(228 30% 16% / 0.5) inset,
-                       0 2px 4px hsl(0 0% 0% / 0.35),
-                       0 8px 24px -8px hsl(0 0% 0% / 0.45);
-    --shadow-elevated: 0 1px 0 hsl(228 30% 18% / 0.4) inset,
-                       0 4px 12px hsl(0 0% 0% / 0.5),
-                       0 20px 40px -12px hsl(0 0% 0% / 0.6);
-    --shadow-kpi:      0 1px 0 hsl(228 30% 16% / 0.6) inset,
-                       0 2px 8px hsl(0 0% 0% / 0.4);
+    --shadow-gold:     0 4px 20px -6px hsl(230 87% 51% / 0.28);
+    --shadow-card:     0 1px 2px hsl(0 0% 0% / 0.28), 0 8px 20px -10px hsl(0 0% 0% / 0.4);
+    --shadow-elevated: 0 4px 12px hsl(0 0% 0% / 0.4), 0 16px 32px -12px hsl(0 0% 0% / 0.5);
+    --shadow-kpi:      0 1px 3px hsl(0 0% 0% / 0.28);
 
-    /* ── Glass ────────────────────────────────────────────── */
-    --glass-bg:     hsl(228 24% 7% / 0.72);
-    --glass-border: hsl(228 20% 20% / 0.45);
+    --glass-bg:     hsl(222 24% 9% / 0.82);
+    --glass-border: hsl(222 16% 22% / 0.5);
   }
 
-  /* ── .light = light theme override ─────────────────────────────────────
-     Applied when next-themes sets class="light" on <html>. */
   .light {
-    --background:  220 20% 98%;
-    --foreground:  222 24% 12%;
+    --background:  210 24% 97%;
+    --foreground:  222 32% 12%;
 
     --card:         0 0% 100%;
-    --card-foreground: 222 24% 12%;
+    --card-foreground: 222 32% 12%;
 
     --popover:      0 0% 100%;
-    --popover-foreground: 222 24% 12%;
+    --popover-foreground: 222 32% 12%;
 
-    --primary:      217 85% 48%;
+    --primary:      230 87% 51%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary:    220 16% 94%;
-    --secondary-foreground: 222 20% 20%;
+    --secondary:    210 18% 94%;
+    --secondary-foreground: 222 24% 18%;
 
-    --muted:        220 16% 95%;
-    --muted-foreground: 222 12% 42%;
+    --muted:        210 16% 94%;
+    --muted-foreground: 222 12% 40%;
 
-    --accent:       217 65% 94%;
-    --accent-foreground: 217 85% 28%;
+    --accent:       230 70% 95%;
+    --accent-foreground: 230 70% 28%;
 
     --destructive:  0 72% 42%;
     --destructive-foreground: 0 0% 100%;
 
-    --success:      155 62% 30%;
+    --success:      158 55% 28%;
     --success-foreground: 0 0% 100%;
 
-    --warning:      38 92% 38%;
+    --warning:      32 92% 36%;
     --warning-foreground: 0 0% 100%;
 
-    --border:       220 16% 88%;
-    --input:        220 16% 88%;
-    --ring:         217 85% 48%;
+    --border:       214 18% 88%;
+    --input:        214 18% 88%;
+    --ring:         230 87% 51%;
 
-    --sidebar-background: 220 18% 97%;
-    --sidebar-foreground: 222 15% 35%;
-    --sidebar-primary: 217 85% 48%;
+    --sidebar-background: 210 22% 98%;
+    --sidebar-foreground: 222 16% 32%;
+    --sidebar-primary: 230 87% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 93%;
-    --sidebar-accent-foreground: 222 24% 15%;
-    --sidebar-border: 220 16% 88%;
-    --sidebar-ring: 217 85% 48%;
+    --sidebar-accent: 210 20% 94%;
+    --sidebar-accent-foreground: 222 28% 14%;
+    --sidebar-border: 214 18% 88%;
+    --sidebar-ring: 230 87% 51%;
 
-    --gradient-gold:        linear-gradient(135deg, hsl(212,85%,58%), hsl(217,85%,48%), hsl(222,75%,40%));
-    --gradient-gold-subtle: linear-gradient(135deg, hsl(217,85%,48% / 0.10), hsl(217,85%,48% / 0.03));
-    --gradient-card:        linear-gradient(160deg, hsl(0,0%,100%) 0%, hsl(220,20%,98.5%) 100%);
-    --gradient-sidebar:     linear-gradient(180deg, hsl(220,18%,98%) 0%, hsl(220,20%,96%) 100%);
-    --gradient-page:        radial-gradient(ellipse 80% 60% at 50% -10%, hsl(217,85%,48% / 0.035) 0%, transparent 65%);
+    --gradient-gold:        linear-gradient(135deg, hsl(230,87%,56%), hsl(230,87%,48%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(230,87%,51% / 0.08), transparent);
+    --gradient-card:        linear-gradient(180deg, hsl(0,0%,100%) 0%, hsl(210,24%,98%) 100%);
+    --gradient-sidebar:     linear-gradient(180deg, hsl(210,22%,99%) 0%, hsl(210,20%,96%) 100%);
+    --gradient-page:        none;
 
-    --shadow-gold:     0 4px 24px -6px hsl(217 85% 48% / 0.20);
-    --shadow-card:     0 1px 0 hsl(0 0% 100% / 0.6) inset,
-                       0 1px 2px hsl(222 20% 10% / 0.04),
-                       0 6px 16px -8px hsl(222 20% 10% / 0.10);
-    --shadow-elevated: 0 1px 0 hsl(0 0% 100% / 0.6) inset,
-                       0 4px 10px hsl(222 20% 10% / 0.06),
-                       0 16px 32px -12px hsl(222 20% 10% / 0.14);
-    --shadow-kpi:      0 1px 0 hsl(0 0% 100% / 0.6) inset,
-                       0 2px 6px hsl(222 20% 10% / 0.06);
+    --shadow-gold:     0 4px 18px -8px hsl(230 87% 51% / 0.22);
+    --shadow-card:     0 1px 2px hsl(222 24% 12% / 0.04), 0 8px 20px -12px hsl(222 24% 12% / 0.1);
+    --shadow-elevated: 0 4px 12px hsl(222 24% 12% / 0.06), 0 16px 28px -14px hsl(222 24% 12% / 0.12);
+    --shadow-kpi:      0 1px 3px hsl(222 24% 12% / 0.05);
 
-    --glass-bg:     hsl(0 0% 100% / 0.72);
-    --glass-border: hsl(220 16% 80% / 0.5);
+    --glass-bg:     hsl(0 0% 100% / 0.86);
+    --glass-border: hsl(214 18% 82% / 0.6);
   }
 }
 
-/* CRM command center — Aerten's dense record-management structure combined
-   with the vivid violet and tinted cards from the supplied eMarketplace kit. */
+/* Escritorio de clientes / compradores — Commerce OS, no kit CRM violeta. */
 @layer components {
   .crm-command-center {
     position: relative;
     isolation: isolate;
     display: grid;
-    grid-template-columns: minmax(15rem, 0.85fr) minmax(28rem, 1.55fr);
-    gap: clamp(1.25rem, 3vw, 3rem);
+    grid-template-columns: minmax(15rem, 0.9fr) minmax(28rem, 1.5fr);
+    gap: clamp(1.25rem, 3vw, 2.5rem);
     overflow: hidden;
-    padding: clamp(1.25rem, 2.5vw, 2rem);
-    border: 1px solid hsl(252 83% 72% / 0.34);
-    border-radius: 18px;
-    background:
-      radial-gradient(circle at 87% 10%, hsl(174 76% 64% / 0.24), transparent 24%),
-      radial-gradient(circle at 8% 110%, hsl(290 88% 72% / 0.26), transparent 34%),
-      linear-gradient(128deg, hsl(262 72% 48%), hsl(252 83% 58%) 56%, hsl(232 82% 54%));
-    box-shadow: 0 24px 54px -34px hsl(252 83% 32% / 0.8);
-    color: white;
+    padding: clamp(1.15rem, 2vw, 1.65rem);
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) + 2px);
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+    color: hsl(var(--foreground));
   }
 
   .crm-command-center::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    width: 13rem;
-    height: 13rem;
-    right: -4rem;
-    bottom: -8rem;
-    border: 1px solid hsl(0 0% 100% / 0.2);
-    border-radius: 999px;
-    box-shadow: 0 0 0 2.5rem hsl(0 0% 100% / 0.035), 0 0 0 5rem hsl(0 0% 100% / 0.025);
+    content: none;
   }
 
   .crm-command-center__intro {
@@ -195,30 +163,30 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    margin-bottom: 0.75rem;
-    color: hsl(0 0% 100% / 0.74);
+    margin-bottom: 0.65rem;
+    color: hsl(var(--primary));
     font-size: 0.66rem;
-    font-weight: 780;
-    letter-spacing: 0.13em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
   .crm-command-center h2 {
-    max-width: 26rem;
+    max-width: 28rem;
     margin: 0;
-    color: white;
+    color: hsl(var(--foreground));
     font-family: var(--font-display);
-    font-size: clamp(1.55rem, 2.5vw, 2.2rem);
-    font-weight: 720;
-    letter-spacing: -0.04em;
-    line-height: 1.04;
+    font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
   }
 
   .crm-command-center__intro p {
-    max-width: 31rem;
-    margin: 0.8rem 0 0;
-    color: hsl(0 0% 100% / 0.72);
-    font-size: 0.78rem;
+    max-width: 32rem;
+    margin: 0.7rem 0 0;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.8rem;
     line-height: 1.55;
   }
 
@@ -232,28 +200,29 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    min-height: 5rem;
+    min-height: 4.5rem;
     padding: 0.85rem;
-    border: 1px solid hsl(0 0% 100% / 0.19);
-    border-radius: 13px;
-    background: hsl(0 0% 100% / 0.11);
-    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.08);
-    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--muted) / 0.45);
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .crm-signal-card > svg {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.15rem;
+    height: 2.15rem;
     flex: 0 0 auto;
-    padding: 0.55rem;
-    border-radius: 10px;
-    background: hsl(0 0% 100% / 0.92);
+    padding: 0.5rem;
+    border-radius: calc(var(--radius) - 2px);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
   }
 
-  .crm-signal-card[data-tone="violet"] > svg { color: hsl(252 72% 52%); }
-  .crm-signal-card[data-tone="mint"] > svg { color: hsl(166 72% 34%); }
-  .crm-signal-card[data-tone="sky"] > svg { color: hsl(202 82% 44%); }
-  .crm-signal-card[data-tone="coral"] > svg { color: hsl(12 78% 52%); }
+  .crm-signal-card[data-tone="violet"] > svg { color: hsl(var(--primary)); }
+  .crm-signal-card[data-tone="mint"] > svg { color: hsl(var(--success)); }
+  .crm-signal-card[data-tone="sky"] > svg { color: hsl(202 72% 40%); }
+  .crm-signal-card[data-tone="coral"] > svg { color: hsl(12 78% 46%); }
 
   .crm-signal-card div {
     display: grid;
@@ -262,15 +231,15 @@
   }
 
   .crm-signal-card strong {
-    color: white;
+    color: hsl(var(--foreground));
     font-family: var(--font-display);
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     line-height: 1;
   }
 
   .crm-signal-card span {
     overflow: hidden;
-    color: hsl(0 0% 100% / 0.7);
+    color: hsl(var(--muted-foreground));
     font-size: 0.66rem;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -478,22 +447,22 @@
 @layer utilities {
   .light .crm-workspace-nav {
     min-height: 4.25rem;
-    border-color: hsl(229 18% 87% / 0.94);
-    border-radius: 13px;
-    background: white;
-    box-shadow: 0 12px 24px -24px hsl(252 83% 42% / 0.55);
+    border-color: hsl(var(--border));
+    border-radius: calc(var(--radius) + 2px);
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-card);
   }
 
   .light .crm-workspace-nav__tab {
     min-height: 3.1rem;
-    border-radius: 9px;
+    border-radius: var(--radius);
   }
 
   .light .crm-workspace-nav__tab.is-active {
-    border-color: hsl(252 83% 62%);
-    background: linear-gradient(135deg, hsl(268 82% 66%), hsl(252 83% 58%));
-    box-shadow: 0 10px 18px -13px hsl(252 83% 42% / 0.9);
-    color: white;
+    border-color: hsl(var(--primary) / 0.35);
+    background: hsl(var(--primary));
+    box-shadow: none;
+    color: hsl(var(--primary-foreground));
   }
 
   .light .crm-customer-rail {
@@ -1242,17 +1211,18 @@
 
 @layer components {
   .landing-shell {
-    --landing-ink: 222 38% 14%;
-    --landing-muted: 222 14% 43%;
-    --landing-subtle: 220 20% 96%;
-    --landing-line: 220 18% 88%;
-    --landing-gold: 43 82% 44%;
-    --landing-gold-soft: 43 92% 94%;
-    --landing-teal: 169 47% 38%;
-    --landing-violet: 259 48% 52%;
+    --landing-ink: 222 38% 12%;
+    --landing-muted: 222 14% 40%;
+    --landing-subtle: 210 24% 96%;
+    --landing-line: 214 18% 88%;
+    --landing-gold: 230 87% 51%;
+    --landing-gold-soft: 230 70% 95%;
+    --landing-teal: 168 48% 32%;
+    --landing-violet: 230 70% 42%;
     min-height: 100vh;
     overflow: hidden;
-    background: hsl(0 0% 100%);
+    background:
+      linear-gradient(180deg, hsl(210 30% 98%) 0%, hsl(0 0% 100%) 42%, hsl(210 24% 97%) 100%);
     color: hsl(var(--landing-ink));
   }
 
@@ -2027,10 +1997,10 @@
     line-height: 1.6;
   }
 
-  /* Display font — Space Grotesk for headings */
+  /* Display font — Syne for headings (Commerce OS, no Inter/Space Grotesk) */
   h1, h2, h3, h4, h5 {
     font-family: var(--font-display);
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
     line-height: 1.2;
   }
 

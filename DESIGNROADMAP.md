@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-09-05. Este documento define la dirección visual y los próximos
+**Corte:** 2026-09-07. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -17,16 +17,18 @@ de software ni una colección de cards decorativas.
 
 ## 2. Lenguaje visual
 
-- canvas claro, superficies blancas y separación por borde/sombra mínima;
-- violeta Nerqia para foco y acción primaria; turquesa, verde, ámbar, coral y
-  rojo sólo para significado;
-- radios de 6–10 px; cards anidadas prohibidas;
-- Inter para interfaz y Sora sólo en titulares de marca;
-- íconos Lucide; botones con texto sólo para comandos claros;
-- títulos compactos en workspaces y escala hero únicamente en landing;
+- canvas claro (piedra fría, no crema genérica) y superficies blancas;
+- cobalto Nerqia `#173aef` para foco y acción primaria; teal, verde, ámbar y
+  coral sólo para significado;
+- radios de 8 px; cards anidadas y orbes/gradientes decorativos prohibidos;
+- **Syne** en titulares; **IBM Plex Sans** en interfaz; **IBM Plex Mono** en
+  números y metadatos (sin Inter ni Space Grotesk);
+- íconos Lucide; botones con texto claro;
+- títulos compactos en workspaces; escala hero sólo en landing;
 - tablas/colas densas, comparables y responsivas;
 - 40–44 px mínimos para acciones táctiles;
-- sin gradientes/orbes decorativos, texto negativo ni paletas monocromáticas;
+- Clientes es cartera de compradores del Commerce OS — no un CRM genérico con
+  kit violeta;
 - movimiento breve y funcional, respetando `prefers-reduced-motion`.
 
 ## 3. Anatomía compartida

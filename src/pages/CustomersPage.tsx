@@ -16,7 +16,7 @@ import {
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
   Instagram, Droplets, List, BarChart3, Search, Filter, ArrowUpRight, PanelRight,
-  Sparkles, UserCheck, RefreshCcw, ShieldAlert, Kanban, PieChart,
+  Sparkles, UserCheck, RefreshCcw, ShieldAlert, Kanban, PieChart, Store,
 } from "lucide-react";
 import { NOTAS_COMUNES, taxLabel } from "@/lib/scentTaxonomy";
 import { elCatalogoOperaPerfumes, elCatalogoOperaVapers } from "@/lib/catalogIndustry";
@@ -1439,7 +1439,7 @@ ${transactions.length > 0 ? `
 // ─────────────────────────────────────────────────────────────
 export default function CustomersPage() {
   const { isAdmin } = useUserRole();
-  usePageTitle("Clientes — CRM");
+  usePageTitle("Clientes");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { canCreate, canEdit, canDelete } = useModulePermissions("customers");
@@ -2343,7 +2343,7 @@ export default function CustomersPage() {
       {/* Header */}
       <PageHeader
         icon={Users}
-        title="Clientes / CRM"
+        title="Clientes"
         description={`${plural(customers.length, "cliente")} · ${formatARS(totalRevenue)} facturado`}
         badge={
           totalDebt > 0
@@ -2383,15 +2383,15 @@ export default function CustomersPage() {
         }
       />
 
-      <section className="crm-command-center" aria-label="Centro de control del CRM">
+      <section className="crm-command-center" aria-label="Resumen de compradores">
         <div className="crm-command-center__intro">
           <span className="crm-command-center__eyebrow">
-            <Sparkles className="h-3.5 w-3.5" /> CRM operativo
+            <Store className="h-3.5 w-3.5" /> Compradores de la tienda
           </span>
-          <h2>Convertí relaciones en próximas ventas</h2>
+          <h2>Quién compra, quién vuelve y a quién hay que recuperar</h2>
           <p>
-            Una cartera unificada para encontrar a quién cuidar, reactivar o contactar
-            sin perder el contexto de compras, margen y deuda.
+            Cartera unificada con compras, margen y deuda. Priorizá seguimientos
+            que acercan la próxima venta online o en mostrador.
           </p>
         </div>
         <div className="crm-command-center__signals">
@@ -2414,7 +2414,7 @@ export default function CustomersPage() {
         </div>
       </section>
 
-      <div className="crm-workspace-nav" role="tablist" aria-label="Vistas del CRM">
+      <div className="crm-workspace-nav" role="tablist" aria-label="Vistas de clientes">
         <div className="crm-workspace-nav__tabs">
           <button
             type="button"

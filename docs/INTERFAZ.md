@@ -1,6 +1,6 @@
 # Interfaz de Nerqia
 
-**Estado:** vigente. **Corte:** 2026-09-04.
+**Estado:** vigente. **Corte:** 2026-09-07.
 
 Este documento traduce el sistema visual a implementación. La dirección está
 en [DESIGNROADMAP.md](../DESIGNROADMAP.md) y la evaluación completa en
@@ -8,14 +8,14 @@ en [DESIGNROADMAP.md](../DESIGNROADMAP.md) y la evaluación completa en
 
 ## Identidad
 
-- UI de trabajo clara, sobria y densa.
-- Violeta Nerqia para acción/foco; colores semánticos para estados.
-- Inter en interfaz; Sora sólo en titulares de marca.
-- Radios contenidos, bordes suaves y sombras mínimas.
-- Sin cards anidadas, orbes, gradientes decorativos o tracking negativo.
+- UI de trabajo clara, sobria y densa — Commerce OS, no CRM genérico.
+- Cobalto Nerqia (`#173aef`) para acción/foco; colores semánticos para estados.
+- Syne en titulares; IBM Plex Sans en interfaz; IBM Plex Mono en números.
+- Radios de 8 px, bordes suaves y sombras mínimas.
+- Sin cards anidadas, orbes, gradientes decorativos ni kits violeta.
 - Storefront adapta la marca del comercio; no hereda el chrome administrativo.
 
-Los tokens viven en src/index.css y Tailwind. No introducir colores o
+Los tokens viven en `src/index.css` y Tailwind. No introducir colores o
 espaciados locales cuando existe un token semántico.
 
 ## Primitives
