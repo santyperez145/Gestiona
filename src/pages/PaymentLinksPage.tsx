@@ -310,8 +310,9 @@ export default function PaymentLinksPage() {
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
-        title="Links de Pago"
-        description="Generá links de cobro con Mercado Pago y transferencia"
+        title="Links de pago"
+        eyebrow="Commerce · Cobro"
+        description="Links con Mercado Pago o transferencia — el servidor decide el cobro."
         icon={CreditCard}
         actions={
           <div className="flex flex-wrap gap-2">

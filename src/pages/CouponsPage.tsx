@@ -251,8 +251,9 @@ export default function CouponsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Tag}
-        title="Cupones & Descuentos"
-        description="Creá y gestioná códigos de descuento para tus clientes"
+        eyebrow="Commerce · Cupones"
+        title="Cupones"
+        description="Códigos para tienda y recuperación — sin inventar descuentos en el cliente."
         actions={
           <Button size="sm" className="gap-1.5 gradient-gold text-primary-foreground" onClick={openCreate}>
             <Plus className="w-3.5 h-3.5" /> Nuevo Cupón

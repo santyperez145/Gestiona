@@ -279,8 +279,9 @@ export default function PromotionsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Zap}
-        title="Promociones & Flash Sales"
-        description="Descuentos, cupones y ofertas por tiempo limitado"
+        eyebrow="Commerce · Conversión"
+        title="Promociones"
+        description="Flash sales y reglas de descuento que el checkout y el POS aplican con la misma autoridad."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>
