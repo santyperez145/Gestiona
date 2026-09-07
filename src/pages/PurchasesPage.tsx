@@ -14,6 +14,9 @@ import { Plus, Trash2, ShoppingCart, ChevronUp, ChevronDown, Edit, FileSpreadshe
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import DataPagination from "@/components/shared/DataPagination";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import BusinessPageHeader from "@/components/business/BusinessPageHeader";
+import BusinessKPICard from "@/components/business/BusinessKPICard";
+import BusinessEmptyState from "@/components/business/BusinessEmptyState";
 function useBarcodeScanner(onDetected: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,11 +54,8 @@ import InvoiceImportDialog from "@/components/products/InvoiceImportDialog";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -262,11 +262,11 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
+      <BusinessPageHeader
         icon={ShoppingCart}
-        eyebrow="Commerce · Inventario"
         title="Compras"
         description="Entradas de stock y proveedores — misma autoridad que la tienda y el mostrador."
+        badge="Inventario"
         actions={
           <div className="flex items-center flex-wrap gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
@@ -289,7 +289,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
               </Button>
             )}
             {canCreate && (
-              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
+              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null);}}>
                 <DialogTrigger asChild>
                   <Button className="font-semibold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
                 </DialogTrigger>
@@ -305,10 +305,28 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard label="Total invertido USD" value={formatUSD(totalUSD)} icon={DollarSign} color="primary" sub={`${filtered.length} compras`} />
-        <KPICard label="Total invertido ARS" value={formatARS(totalARS)} icon={TrendingDown} color="destructive" />
-        <KPICard label="Prom. por compra" value={filtered.length > 0 ? formatUSD(totalUSD / filtered.length) : "$0"} icon={Package} color="blue" />
-        <KPICard label="Programadas" value={scheduledCount} icon={CalendarClock} color="warning" sub="pendientes de concretar" />
+        <BusinessKPICard
+          title="Total invertido USD"
+          value={formatUSD(totalUSD)}
+          icon={DollarSign}
+          description={`${filtered.length} compras`}
+        />
+        <BusinessKPICard
+          title="Total invertido ARS"
+          value={formatARS(totalARS)}
+          icon={TrendingDown}
+        />
+        <BusinessKPICard
+          title="Prom. por compra"
+          value={filtered.length > 0 ? formatUSD(totalUSD / filtered.length) : "$0"}
+          icon={Package}
+        />
+        <BusinessKPICard
+          title="Programadas"
+          value={scheduledCount}
+          icon={CalendarClock}
+          description="pendientes de concretar"
+        />
       </div>
 
       {/* Monthly spend chart */}
