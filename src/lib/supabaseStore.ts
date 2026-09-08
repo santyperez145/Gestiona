@@ -5,8 +5,9 @@ import { resolveSaleAttribution } from './businessCalc';
 import { nombreDeCategoria } from './storeCategories';
 type SettingsUpdate = Database['public']['Tables']['settings']['Update'];
 
-/** Get the active org id, falling back to looking it up by user (for legacy callers). */
-async function orgIdFor(_userId?: string): Promise<string> {
+/** Resolve an explicit tenant first; legacy callers may still use the active context. */
+async function orgIdFor(_userId?: string, organizationId?: string): Promise<string> {
+  if (organizationId) return organizationId;
   const cached = getActiveOrgId();
   if (cached) return cached;
   if (!_userId) throw new Error('No active organization');
@@ -80,8 +81,8 @@ export async function recordFinancialMovement(params: {
 }
 
 // ========= PRODUCTS =========
-export async function getProductsDB(userId: string) {
-  const orgId = await orgIdFor(userId);
+export async function getProductsDB(userId: string, organizationId?: string) {
+  const orgId = await orgIdFor(userId, organizationId);
   const { data, error } = await supabase.from('products').select('*').eq('org_id', orgId).order('name');
   if (error) throw error;
   return data || [];
@@ -261,8 +262,8 @@ export async function deleteProductDB(id: string) {
 }
 
 // ========= PURCHASES =========
-export async function getPurchasesDB(userId: string) {
-  const orgId = await orgIdFor(userId);
+export async function getPurchasesDB(userId: string, organizationId?: string) {
+  const orgId = await orgIdFor(userId, organizationId);
   const { data, error } = await supabase.from('purchases').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
@@ -302,8 +303,8 @@ export async function deletePurchaseDB(id: string) {
 }
 
 // ========= SALES =========
-export async function getSalesDB(userId: string) {
-  const orgId = await orgIdFor(userId);
+export async function getSalesDB(userId: string, organizationId?: string) {
+  const orgId = await orgIdFor(userId, organizationId);
   const { data, error } = await supabase.from('sales').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
@@ -409,8 +410,8 @@ export async function deleteSaleDB(id: string) {
 }
 
 // ========= DEBTS =========
-export async function getDebtsDB(userId: string) {
-  const orgId = await orgIdFor(userId);
+export async function getDebtsDB(userId: string, organizationId?: string) {
+  const orgId = await orgIdFor(userId, organizationId);
   const { data, error } = await supabase.from('debts').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
@@ -484,8 +485,8 @@ export async function addDebtPaymentDB(
 //
 // Ahora sólo lee. Si de verdad no hay fila, es un problema que hay que ver, no
 // uno que se tapa inventando la configuración.
-export async function getSettingsDB(userId: string) {
-  const orgId = await orgIdFor(userId);
+export async function getSettingsDB(userId: string, organizationId?: string) {
+  const orgId = await orgIdFor(userId, organizationId);
   const { data, error } = await supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle();
   if (error) throw error;
   return data ?? null;
@@ -932,8 +933,8 @@ export function calculateTaxes(revenueARS: number, profitARS: number, settings: 
 }
 
 // ========= EXPENSES =========
-export async function getExpensesDB(userId: string) {
-  const orgId = await orgIdFor(userId);
+export async function getExpensesDB(userId: string, organizationId?: string) {
+  const orgId = await orgIdFor(userId, organizationId);
   const { data, error } = await supabase.from('expenses').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];

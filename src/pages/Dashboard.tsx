@@ -118,18 +118,14 @@ function DashboardDataError({ message, onRetry }: { message: string; onRetry: ()
 
 function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; orgId: string }) {
   const goalsKey = `gestiona.seller_goals.${orgId}`;
-  const [sellerGoals, setSellerGoals] = useState<Record<string, number>>(() => {
-    try { return JSON.parse(localStorage.getItem(goalsKey) || '{}'); } catch { return {}; }
-  });
+  const [sellerGoals, setSellerGoals] = usePersistedState<Record<string, number>>(goalsKey, {});
   const [editingSeller, setEditingSeller] = useState<string | null>(null);
   const [goalInput, setGoalInput] = useState("");
 
   const saveGoal = (name: string) => {
     const v = Number(goalInput);
     if (v > 0) {
-      const next = { ...sellerGoals, [name]: v };
-      localStorage.setItem(goalsKey, JSON.stringify(next));
-      setSellerGoals(next);
+      setSellerGoals(previous => ({ ...previous, [name]: v }));
     }
     setEditingSeller(null);
   };
@@ -500,35 +496,37 @@ export default function Dashboard() {
   );
   const [reloadKey, setReloadKey] = useState(0);
   const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
-  const [noSalesAlertDismissed, setNoSalesAlertDismissed] = useState<boolean>(() => sessionStorage.getItem('gestiona.no_sales_dismissed') === new Date().toISOString().slice(0, 10));
   const [birthdayCustomers, setBirthdayCustomers] = useState<{ name: string; phone?: string; birthday: string; daysUntil: number }[]>([]);
   const [urgentTasks, setUrgentTasks] = useState<{ id: string; title: string; priority: string; due_date: string | null }[]>([]);
   const [todayTasks, setTodayTasks] = useState<{ id: string; title: string; priority: string; due_date: string | null }[]>([]);
   const [pipelineStats, setPipelineStats] = useState<{ total: number; won: number; lost: number; active: number; wonValue: number; totalValue: number } | null>(null);
   const [atRiskCustomers, setAtRiskCustomers] = useState<{ name: string; daysSince: number; totalSpent: number }[]>([]);
-  const [monthlyTarget, setMonthlyTarget] = useState<number>(() => {
-    const key = `gestiona.dashboard.monthly_target.${new Date().getFullYear()}.${new Date().getMonth()}`;
-    return Number(localStorage.getItem(key) || 0);
-  });
+  const currentYearMonth = `${new Date().getFullYear()}.${new Date().getMonth()}`;
+  const [monthlyTarget, setMonthlyTarget] = usePersistedState<number>(
+    orgViewKey(`dashboard.monthly_target.${currentYearMonth}`, activeOrg?.id),
+    0,
+  );
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetInput, setTargetInput] = useState("");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [dolarRates, setDolarRates] = useState<{ blue: number; oficial: number; mep: number } | null>(null);
   const [openCashSession, setOpenCashSession] = useState<{ id: string; opened_at: string } | null>(null);
-  const [noSalesDismissed, setNoSalesDismissed] = useState(() =>
-    !!sessionStorage.getItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`)
+  const [noSalesDismissed, setNoSalesDismissed] = usePersistedState(
+    orgViewKey(`dashboard.no_sales_alert.${new Date().toISOString().slice(0, 10)}`, activeOrg?.id),
+    false,
   );
   const [lastWeekSameDaySales, setLastWeekSameDaySales] = useState<number>(0);
-  const orgForWeekly = activeOrg;
-  const weeklyTargetKey = `gestiona.dashboard.weekly_target.${orgForWeekly?.id || 'default'}`;
-  const [weeklyTarget, setWeeklyTarget] = useState<number>(() => Number(localStorage.getItem(`gestiona.dashboard.weekly_target.${typeof localStorage !== 'undefined' ? (localStorage.getItem('gestiona.activeOrgId') || 'default') : 'default'}`) || 0));
+  const [weeklyTarget, setWeeklyTarget] = usePersistedState<number>(
+    orgViewKey("dashboard.weekly_target", activeOrg?.id),
+    0,
+  );
   const [editingWeeklyTarget, setEditingWeeklyTarget] = useState(false);
   const [weeklyTargetInput, setWeeklyTargetInput] = useState("");
 
   // Monthly AI summary (cached in localStorage, refreshed once per month)
-  const monthlySummaryKey = `gestiona.monthly_summary.${orgForWeekly?.id || 'default'}.${new Date().getFullYear()}.${new Date().getMonth()}`;
-  const [monthlySummary, setMonthlySummary] = useState<string>(() => localStorage.getItem(monthlySummaryKey) || '');
-  const [monthlySummaryDismissed, setMonthlySummaryDismissed] = useState<boolean>(() => localStorage.getItem(monthlySummaryKey + '.dismissed') === '1');
+  const monthlySummaryKey = orgViewKey(`dashboard.monthly_summary.${currentYearMonth}`, activeOrg?.id);
+  const [monthlySummary, setMonthlySummary] = usePersistedState<string>(monthlySummaryKey, "");
+  const [monthlySummaryDismissed, setMonthlySummaryDismissed] = usePersistedState<boolean>(`${monthlySummaryKey}.dismissed`, false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
 
@@ -540,13 +538,17 @@ export default function Dashboard() {
   const [locationStockReloadKey, setLocationStockReloadKey] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    if (!storeId) {
+    if (!storeId || !activeOrg?.id) {
       setLocationStockMap(null);
       setLocationStockError(null);
       return () => { cancelled = true; };
     }
     setLocationStockError(null);
-    supabase.from('location_stock').select('product_id, stock').eq('location_id', storeId)
+    supabase
+      .from('location_stock')
+      .select('product_id, stock')
+      .eq('org_id', activeOrg.id)
+      .eq('location_id', storeId)
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
@@ -560,7 +562,7 @@ export default function Dashboard() {
         setLocationStockMap(map);
       });
     return () => { cancelled = true; };
-  }, [locationStockReloadKey, storeId]);
+  }, [activeOrg?.id, locationStockReloadKey, storeId]);
 
   const loadDashboard = useCallback(async () => {
     if (!user?.id || !activeOrg?.id) return;
@@ -572,12 +574,12 @@ export default function Dashboard() {
 
     try {
       const results = await Promise.allSettled([
-        getProductsDB(user.id),
-        getSalesDB(user.id),
-        getPurchasesDB(user.id),
-        getDebtsDB(user.id),
-        getSettingsDB(user.id),
-        getExpensesDB(user.id),
+        getProductsDB(user.id, activeOrg.id),
+        getSalesDB(user.id, activeOrg.id),
+        getPurchasesDB(user.id, activeOrg.id),
+        getDebtsDB(user.id, activeOrg.id),
+        getSettingsDB(user.id, activeOrg.id),
+        getExpensesDB(user.id, activeOrg.id),
       ]);
       if (request !== loadRequestRef.current) return;
 
@@ -664,13 +666,27 @@ export default function Dashboard() {
 
   // Birthday reminders: customers with birthday in next 7 days
   useEffect(() => {
-    if (!user) return;
+    if (!activeOrg?.id) {
+      setBirthdayCustomers([]);
+      return;
+    }
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase.from('customers').select('name, phone, birthday').not('birthday', 'is', null);
-      if (!data?.length) return;
+      const { data, error } = await supabase
+        .from('customers')
+        .select('name, phone, birthday')
+        .eq('org_id', activeOrg.id)
+        .not('birthday', 'is', null);
+      if (cancelled) return;
+      if (error) {
+        console.error('[Dashboard] no se pudieron leer los cumpleaños', error);
+        setBirthdayCustomers([]);
+        return;
+      }
+      const rows = data ?? [];
       const today = new Date();
       const upcoming: { name: string; phone?: string; birthday: string; daysUntil: number }[] = [];
-      for (const c of data) {
+      for (const c of rows) {
         if (!c.birthday) continue;
         const [, mm, dd] = c.birthday.split('-').map(Number);
         const next = new Date(today.getFullYear(), mm - 1, dd);
@@ -683,11 +699,10 @@ export default function Dashboard() {
       upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
       setBirthdayCustomers(upcoming);
     })();
-  }, [user]);
+    return () => { cancelled = true; };
+  }, [activeOrg?.id]);
 
   // Urgent/overdue tasks widget + tasks due today
-  const { activeOrg: orgForTasks } = useOrg();
-
   // Ruta universal a la primera venta. La vista devuelve sólo señales seguras
   // y aplica el mismo criterio que Merchant 360; un error queda visible y no se
   // convierte en un falso "todo listo".
@@ -745,14 +760,18 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (!orgForTasks) return;
+    if (!activeOrg?.id) {
+      setUrgentTasks([]);
+      setTodayTasks([]);
+      return;
+    }
     (async () => {
       const today = new Date().toISOString().slice(0, 10);
       const [urgentRes, todayRes] = await Promise.all([
         supabase
           .from("tasks")
           .select("id, title, priority, due_date")
-          .eq("org_id", orgForTasks.id)
+          .eq("org_id", activeOrg.id)
           .in("status", ["pending", "in_progress"])
           .in("priority", ["urgent", "high"])
           .order("priority")
@@ -761,7 +780,7 @@ export default function Dashboard() {
         supabase
           .from("tasks")
           .select("id, title, priority, due_date")
-          .eq("org_id", orgForTasks.id)
+          .eq("org_id", activeOrg.id)
           .in("status", ["pending", "in_progress"])
           .eq("due_date", today)
           .order("priority")
@@ -772,7 +791,7 @@ export default function Dashboard() {
       const urgentIds = new Set((urgentRes.data || []).map((t: any) => t.id));
       setTodayTasks((todayRes.data || []).filter((t: any) => !urgentIds.has(t.id)));
     })();
-  }, [orgForTasks]);
+  }, [activeOrg?.id]);
 
   // At-risk customers: bought before but not in 60+ days
   useEffect(() => {
@@ -812,10 +831,21 @@ export default function Dashboard() {
 
   // Pipeline conversion stats
   useEffect(() => {
-    if (!orgForTasks) return;
+    if (!activeOrg?.id) {
+      setPipelineStats(null);
+      return;
+    }
     (async () => {
-      const { data } = await supabase.from("deals").select("stage, value_ars").eq("org_id", orgForTasks.id);
-      if (!data?.length) return;
+      const { data, error } = await supabase.from("deals").select("stage, value_ars").eq("org_id", activeOrg.id);
+      if (error) {
+        console.error('[Dashboard] no se pudo leer el pipeline', error);
+        setPipelineStats(null);
+        return;
+      }
+      if (!data?.length) {
+        setPipelineStats(null);
+        return;
+      }
       const won = data.filter(d => d.stage === "cerrado");
       const lost = data.filter(d => d.stage === "perdido");
       const active = data.filter(d => d.stage !== "cerrado" && d.stage !== "perdido");
@@ -828,16 +858,21 @@ export default function Dashboard() {
         totalValue: data.reduce((s, d) => s + (d.value_ars || 0), 0),
       });
     })();
-  }, [orgForTasks]);
+  }, [activeOrg?.id]);
 
   // Realtime: subscribe to today's sales updates
   useEffect(() => {
-    if (!user) return;
+    if (!activeOrg?.id) return;
     const today = new Date().toISOString().slice(0, 10);
 
     // subscribe
-    const channel = safeChannel('dashboard-sales-realtime', user.id)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, (payload) => {
+    const channel = safeChannel('dashboard-sales-realtime', activeOrg.id)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'sales',
+        filter: `org_id=eq.${activeOrg.id}`,
+      }, (payload) => {
         const row = payload.new as { date?: string; total_ars?: number };
         const rowDate = row.date ? String(row.date).slice(0, 10) : '';
         if (rowDate !== today) return;
@@ -850,14 +885,17 @@ export default function Dashboard() {
 
     channelRef.current = channel;
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [activeOrg?.id]);
 
   // Check for open cash session
   useEffect(() => {
-    if (!orgForTasks) return;
-    supabase.from('cash_sessions').select('id, opened_at').eq('org_id', orgForTasks.id).eq('status', 'open').maybeSingle()
+    if (!activeOrg?.id) {
+      setOpenCashSession(null);
+      return;
+    }
+    supabase.from('cash_sessions').select('id, opened_at').eq('org_id', activeOrg.id).eq('status', 'open').maybeSingle()
       .then(({ data }) => setOpenCashSession(data || null));
-  }, [orgForTasks]);
+  }, [activeOrg?.id]);
 
   const [showTodayDetail, setShowTodayDetail] = useState(false);
 
@@ -1360,7 +1398,7 @@ export default function Dashboard() {
   // Browser notification for critical stock alert (once per session per threshold breach)
   useEffect(() => {
     if (!stats || permission !== "granted") return;
-    const key = `gestiona.notified_stock.${new Date().toISOString().slice(0, 10)}`;
+    const key = `gestiona.notified_stock.${activeOrg?.id || 'default'}.${new Date().toISOString().slice(0, 10)}`;
     if (sessionStorage.getItem(key)) return;
     const outCount = stats.outOfStockProducts?.length ?? 0;
     const lowCount = stats.lowStockProducts?.length ?? 0;
@@ -1378,7 +1416,7 @@ export default function Dashboard() {
       sessionStorage.setItem(key, "1");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats, permission]);
+  }, [activeOrg?.id, stats, permission]);
 
   const shareDailyResume = () => {
     const today = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
@@ -1407,10 +1445,13 @@ export default function Dashboard() {
     id: string; customer_name: string; type: string; summary: string; follow_up_date: string;
   }>>([]);
   const [markingFollowUp, setMarkingFollowUp] = useState<string | null>(null);
-  const loadFollowUps = async () => {
-    if (!activeOrg?.id) return;
+  const loadFollowUps = useCallback(async () => {
+    if (!activeOrg?.id) {
+      setPendingFollowUps([]);
+      return;
+    }
     const today = new Date().toISOString().slice(0, 10);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("customer_communications")
       .select("id,customer_name,type,summary,follow_up_date")
       .eq("org_id", activeOrg.id)
@@ -1418,15 +1459,30 @@ export default function Dashboard() {
       .or("outcome.is.null,outcome.eq.pending")
       .order("follow_up_date", { ascending: true })
       .limit(8);
+    if (error) {
+      console.error('[Dashboard] no se pudieron leer los seguimientos', error);
+      setPendingFollowUps([]);
+      return;
+    }
     setPendingFollowUps((data || []) as any);
-  };
-  useEffect(() => { loadFollowUps(); }, [activeOrg?.id]);
+  }, [activeOrg?.id]);
+  useEffect(() => { void loadFollowUps(); }, [loadFollowUps]);
 
   const markFollowUpDone = async (id: string) => {
+    if (!activeOrg?.id) return;
     setMarkingFollowUp(id);
-    await supabase.from("customer_communications").update({ outcome: "completed" }).eq("id", id);
-    setPendingFollowUps(prev => prev.filter(f => f.id !== id));
+    const { error } = await supabase
+      .from("customer_communications")
+      .update({ outcome: "completed" })
+      .eq("org_id", activeOrg.id)
+      .eq("id", id);
     setMarkingFollowUp(null);
+    if (error) {
+      console.error('[Dashboard] no se pudo completar el seguimiento', error);
+      toast.error("No pudimos completar el seguimiento.");
+      return;
+    }
+    setPendingFollowUps(prev => prev.filter(f => f.id !== id));
     toast.success("Seguimiento marcado como completado");
   };
 
@@ -1481,9 +1537,7 @@ export default function Dashboard() {
     const growth = stats.salesGrowth > 0 ? `+${stats.salesGrowth.toFixed(1)}%` : `${stats.salesGrowth.toFixed(1)}%`;
     const summary = `📊 Resumen de ${monthName}: Facturé ${formatARS(stats.monthSalesARS)} (${growth} vs mes anterior), ganancia bruta ${formatARS(stats.monthGrossProfit)} (${margin}% margen). Top productos: ${top3}. Gastos: ${formatARS(stats.totalMonthExpenses)}. Resultado neto estimado: ${formatARS(stats.netMonthProfitARS)}.`;
     setMonthlySummary(summary);
-    localStorage.setItem(monthlySummaryKey, summary);
     setMonthlySummaryDismissed(false);
-    localStorage.removeItem(monthlySummaryKey + '.dismissed');
     setGeneratingSummary(false);
   };
 
@@ -1646,7 +1700,6 @@ export default function Dashboard() {
             <Link to="/ventas" className="text-xs text-primary hover:underline font-medium">Registrar →</Link>
             <button
               onClick={() => {
-                sessionStorage.setItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`, '1');
                 setNoSalesDismissed(true);
               }}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
@@ -1857,7 +1910,7 @@ export default function Dashboard() {
               title={!entitlementsLoading && !canUseAI ? motivoIA : undefined}
               className="text-[10px] text-primary hover:underline whitespace-nowrap disabled:opacity-50"
             >{canUseAI ? "Analizar con IA" : "Activar IA"}</button>
-            <button onClick={() => { setMonthlySummaryDismissed(true); localStorage.setItem(monthlySummaryKey + '.dismissed', '1'); }}
+            <button onClick={() => setMonthlySummaryDismissed(true)}
               className="text-[10px] text-muted-foreground hover:text-foreground">Cerrar</button>
           </div>
         </div>
@@ -1933,8 +1986,8 @@ export default function Dashboard() {
       />}
 
       {/* AI Proactive Suggestions */}
-      {visibleDashboardSection === "dashboard-overview" && orgForTasks && !entitlementsLoading && canUseAI && <AIProactiveWidget
-        orgId={orgForTasks.id}
+      {visibleDashboardSection === "dashboard-overview" && activeOrg && !entitlementsLoading && canUseAI && <AIProactiveWidget
+        orgId={activeOrg.id}
         hasBusinessData={stats.products.length > 0 || stats.rawSales.length > 0}
       />}
 
@@ -2240,20 +2293,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Sin ventas hoy — banner after 14h with zero recorded sales */}
-      {!noSalesAlertDismissed && liveTodaySales !== null && liveTodaySales.count === 0 && new Date().getHours() >= 14 && (
-        <div className="mb-5 flex items-center gap-3 px-4 py-2.5 rounded-xl border bg-orange-500/10 border-orange-500/30 text-orange-400 text-sm">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span className="flex-1">Son las {new Date().getHours()}h y no registraste ventas hoy — ¿todo bien?</span>
-          <Link to="/pos" className="text-xs underline underline-offset-2 opacity-70 hover:opacity-100 shrink-0">Registrar →</Link>
-          <button
-            onClick={() => { setNoSalesAlertDismissed(true); sessionStorage.setItem('gestiona.no_sales_dismissed', new Date().toISOString().slice(0, 10)); }}
-            className="text-orange-400/60 hover:text-orange-400 transition-colors ml-1 text-lg leading-none"
-            title="Cerrar"
-          >×</button>
-        </div>
-      )}
-
       {/* Anomaly Detection Panel */}
       {stats.anomalies && stats.anomalies.length > 0 && (
         <div className="mb-5 bg-card border border-orange-500/20 rounded-xl overflow-hidden">
@@ -2306,8 +2345,6 @@ export default function Dashboard() {
                     if (e.key === "Enter") {
                       const v = Number(targetInput);
                       if (v > 0) {
-                        const key = `gestiona.dashboard.monthly_target.${new Date().getFullYear()}.${new Date().getMonth()}`;
-                        localStorage.setItem(key, String(v));
                         setMonthlyTarget(v);
                       }
                       setEditingTarget(false);
@@ -2320,8 +2357,6 @@ export default function Dashboard() {
                   onClick={() => {
                     const v = Number(targetInput);
                     if (v > 0) {
-                      const key = `gestiona.dashboard.monthly_target.${new Date().getFullYear()}.${new Date().getMonth()}`;
-                      localStorage.setItem(key, String(v));
                       setMonthlyTarget(v);
                     }
                     setEditingTarget(false);
@@ -2461,7 +2496,7 @@ export default function Dashboard() {
                   onKeyDown={e => {
                     if (e.key === "Enter") {
                       const v = Number(weeklyTargetInput);
-                      if (v > 0) { localStorage.setItem(weeklyTargetKey, String(v)); setWeeklyTarget(v); }
+                      if (v > 0) setWeeklyTarget(v);
                       setEditingWeeklyTarget(false);
                     }
                     if (e.key === "Escape") setEditingWeeklyTarget(false);
@@ -2471,7 +2506,7 @@ export default function Dashboard() {
                   className="px-3 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-semibold"
                   onClick={() => {
                     const v = Number(weeklyTargetInput);
-                    if (v > 0) { localStorage.setItem(weeklyTargetKey, String(v)); setWeeklyTarget(v); }
+                    if (v > 0) setWeeklyTarget(v);
                     setEditingWeeklyTarget(false);
                   }}
                 >Guardar</button>
@@ -2521,7 +2556,7 @@ export default function Dashboard() {
         return (
           <SellerGoalsWidget
             sellers={sellers}
-            orgId={orgForTasks?.id || "default"}
+            orgId={activeOrg?.id || "default"}
           />
         );
       })()}
@@ -2629,7 +2664,7 @@ export default function Dashboard() {
         <EndOfDayWidget
           sales={stats.rawSales}
           debts={stats.rawDebts || []}
-          orgId={orgForTasks?.id || "default"}
+          orgId={activeOrg?.id || "default"}
         />
       )}
 
