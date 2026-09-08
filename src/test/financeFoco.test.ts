@@ -33,7 +33,7 @@ describe("financeFocoFromSnapshot", () => {
     expect(foco.length).toBeLessThanOrEqual(5);
     expect(foco[0]?.to).toBe("/finance/documentos?vista=revisar");
     expect(foco.some(i => i.to === "/ordenes-compra")).toBe(true);
-    expect(foco.some(i => i.to === "/libro")).toBe(true);
+    expect(foco.some(i => i.to === "/finance/libro")).toBe(true);
   });
 
   it("con id concreto abre el inspector Mendel (?documento=)", () => {
@@ -66,6 +66,6 @@ describe("financeFocoFromSnapshot", () => {
     expect(financeMetricHref("openPurchaseOrders", s)).toBe("/ordenes-compra");
     expect(financeMetricHref("openPayablesCount", s)).toBe("/ordenes-compra");
     expect(financeMetricHref("suppliersCount", s)).toBe("/proveedores");
-    expect(financeMetricHref("ledgerEntriesCount", s)).toBe("/libro");
+    expect(financeMetricHref("ledgerEntriesCount", s)).toBe("/finance/libro");
   });
 });

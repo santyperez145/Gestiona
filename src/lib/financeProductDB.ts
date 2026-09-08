@@ -103,7 +103,7 @@ export function financeMetricHref(
     case 'suppliersCount':
       return snapshot.suppliersCount > 0 ? '/proveedores' : '/proveedores';
     case 'ledgerEntriesCount':
-      return '/libro';
+      return '/finance/libro';
     default:
       return null;
   }
@@ -146,9 +146,9 @@ export function financeFocoFromSnapshot(
   }
   if (s.ledgerEntriesCount === 0 && s.suppliersCount > 0) {
     items.push({
-      to: '/libro',
+      to: '/finance/libro',
       label: 'El libro todavía no tiene asientos',
-      detail: 'Hay proveedores y el mayor está vacío',
+      detail: 'Hay proveedores y el mayor de Finance está vacío',
     });
   }
   if (items.length === 0 && s.suppliersCount === 0) {

@@ -23,12 +23,21 @@ export type Proposito =
   | "default" | "marketing" | "facturas" | "pedidos"
   | "digest" | "automatizaciones" | "admin";
 
+export type ProveedorCorreoPlataforma =
+  | "resend_api"
+  | "gmail_smtp"
+  | "microsoft_smtp"
+  | "zoho_smtp"
+  | "smtp_personalizado";
+
 export interface Remitente {
   /** Lo que va en el `from`: `Nombre <casilla@dominio>`. */
   from: string;
   /** Si el envío está probado contra el proveedor. */
   listo: boolean;
   dominio: string | null;
+  proveedor: ProveedorCorreoPlataforma;
+  transporte: "resend" | "smtp";
   /**
    * El SMTP propio de la plataforma, si está configurado.
    *
@@ -46,8 +55,42 @@ export interface Remitente {
    * que falta es cargar un secreto.
    */
   faltaLaClaveSmtp: boolean;
-  /** Proveedor elegido por plataforma; configurar SMTP ya no lo activa solo. */
-  proveedor: "resend" | "smtp";
+  faltaConfiguracionSmtp: boolean;
+}
+
+const PROVEEDORES_SMTP = new Set<ProveedorCorreoPlataforma>([
+  "gmail_smtp", "microsoft_smtp", "zoho_smtp", "smtp_personalizado",
+]);
+
+function proveedorValido(value: unknown): ProveedorCorreoPlataforma {
+  return value === "gmail_smtp" || value === "microsoft_smtp"
+      || value === "zoho_smtp" || value === "smtp_personalizado"
+    ? value
+    : "resend_api";
+}
+
+let cacheConfiguracion: { data: Record<string, unknown>; expiresAt: number } | null = null;
+
+async function configuracionDePlataforma(fresh: boolean): Promise<Record<string, unknown> | null> {
+  if (!fresh && cacheConfiguracion && cacheConfiguracion.expiresAt > Date.now()) {
+    return cacheConfiguracion.data;
+  }
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRole) return null;
+  const admin = createClient(url, serviceRole);
+  const { data, error } = await admin.rpc("mensajeria_de_plataforma");
+  if (error || !data) {
+    console.error("no se pudo leer la configuración de mensajería", error);
+    return null;
+  }
+
+  cacheConfiguracion = {
+    data: data as Record<string, unknown>,
+    expiresAt: Date.now() + 10_000,
+  };
+  return cacheConfiguracion.data;
 }
 
 /**
@@ -62,40 +105,42 @@ export interface Remitente {
  * (`admin`, `supabase`, `sb`…), y pedirlo por parámetro convertía un cambio de
  * una línea en nueve ediciones a mano, cada una con su forma de romperse.
  */
-export async function remitenteDe(proposito: Proposito = "default"): Promise<Remitente> {
+export async function remitenteDe(
+  proposito: Proposito = "default",
+  options: { fresh?: boolean } = {},
+): Promise<Remitente> {
   const url = Deno.env.get("SUPABASE_URL");
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRole) {
     console.error("remitenteDe: falta SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY");
     return {
-      from: "", listo: false, dominio: null, smtp: null,
-      faltaLaClaveSmtp: false, proveedor: "resend",
+      from: "", listo: false, dominio: null, proveedor: "resend_api",
+      transporte: "resend", smtp: null, faltaLaClaveSmtp: false,
+      faltaConfiguracionSmtp: false,
     };
   }
-  const admin = createClient(url, serviceRole);
-  const { data, error } = await admin.rpc("mensajeria_de_plataforma");
-  if (error || !data) {
-    console.error("no se pudo leer la configuración de mensajería", error);
+  const data = await configuracionDePlataforma(options.fresh === true);
+  if (!data) {
     return {
-      from: "", listo: false, dominio: null, smtp: null,
-      faltaLaClaveSmtp: false, proveedor: "resend",
+      from: "", listo: false, dominio: null, proveedor: "resend_api",
+      transporte: "resend", smtp: null, faltaLaClaveSmtp: false,
+      faltaConfiguracionSmtp: false,
     };
   }
 
+  const proveedor = proveedorValido(data.email_proveedor);
+  const usaSmtp = PROVEEDORES_SMTP.has(proveedor);
   const dominio = data.email_dominio as string | null;
   const nombre = (data.email_nombre as string) || "Nerqia";
   const casillas = (data.email_casillas ?? {}) as Record<string, string>;
   const casilla = casillas[proposito] || casillas.default || "noreply";
-  const proveedor: "resend" | "smtp" = data.email_proveedor === "smtp"
-    ? "smtp"
-    : "resend";
 
   // ⚠️ Con Gmail —y con casi cualquier SMTP— el `From` tiene que ser la misma
   // casilla que se autentica. Mandar «desde» otra dirección hace que el
   // servidor rechace, o que el mensaje caiga en spam por DMARC. Por eso cuando
   // hay SMTP propio el remitente es su casilla y no se arma con el dominio.
   const pass = Deno.env.get("SMTP_PASSWORD");
-  const smtp: SmtpConfig | null = (proveedor === "smtp" && data.smtp_configurado && pass)
+  const smtp: SmtpConfig | null = (usaSmtp && data.smtp_configurado && pass)
     ? {
         host: String(data.smtp_host),
         port: Number(data.smtp_port) || 465,
@@ -107,20 +152,21 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
       }
     : null;
 
-  const faltaLaClaveSmtp = proveedor === "smtp" && Boolean(data.smtp_configurado) && !pass;
+  const faltaConfiguracionSmtp = usaSmtp && !data.smtp_configurado;
+  const faltaLaClaveSmtp = usaSmtp && Boolean(data.smtp_configurado) && !pass;
 
-  const from = smtp
-    ? `${nombre} <${smtp.fromEmail}>`
+  const from = usaSmtp
+    ? (data.smtp_from_email ? `${nombre} <${String(data.smtp_from_email)}>` : "")
     : (dominio ? `${nombre} <${casilla}@${dominio}>` : "");
 
   return {
     from,
+    proveedor,
+    transporte: usaSmtp ? "smtp" : "resend",
     faltaLaClaveSmtp,
-    // Con SMTP propio no hace falta el dominio verificado de Resend: el envío
-    // ya sale por otro lado.
-    listo: smtp ? true : Boolean(data.email_listo),
+    faltaConfiguracionSmtp,
+    listo: Boolean(data.email_listo),
     dominio,
     smtp,
-    proveedor,
   };
 }

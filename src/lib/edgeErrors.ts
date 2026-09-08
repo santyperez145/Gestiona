@@ -90,7 +90,9 @@ function mensajeSegunAudiencia(cuerpo: CuerpoDeError, audiencia: AudienciaDeErro
   const explicito = textoDe(cuerpo.merchant_message);
   if (explicito) return explicito;
   const candidato = textoDe(cuerpo.error) || textoDe(cuerpo.message);
-  return candidato && !TECNICO.test(candidato) ? candidato : MENSAJE_COMERCIO;
+  return candidato && !TECNICO.test(candidato) && !TECNICO_BASE.test(candidato)
+    ? candidato
+    : MENSAJE_COMERCIO;
 }
 
 /**
@@ -152,7 +154,9 @@ export async function detalleDeEdgeFunction(
       ? fallback || "Error desconocido"
       : audiencia === "customer"
       ? MENSAJE_CLIENTE
-      : fallback && !TECNICO.test(fallback) ? fallback : MENSAJE_COMERCIO,
+      : fallback && !TECNICO.test(fallback) && !TECNICO_BASE.test(fallback)
+      ? fallback
+      : MENSAJE_COMERCIO,
     code: codigoEnData,
     reference: referenciaEnData,
   };

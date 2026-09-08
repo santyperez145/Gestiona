@@ -30,7 +30,7 @@
  * "libro mayor" llega igual.
  */
 import type { LucideIcon } from "lucide-react";
-import { navRoutes, type NavGroupId, type NavRole } from "@/app/routeManifest";
+import { financeProductRoutes, navRoutes, type NavGroupId, type NavRole } from "@/app/routeManifest";
 
 export type { NavGroupId, NavRole };
 
@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: "commerce",  label: "Commerce — Adquisición", hint: "Tienda online, pedidos, catálogo y conversión" },
   { id: "business",  label: "Business — Operación", hint: "POS, inventario, clientes y compras" },
   { id: "marketing", label: "Marketing",    hint: "Campañas, email y growth" },
-  { id: "finance",   label: "Finance Core", hint: "Cobranzas, gastos y libro del Business Core" },
+  { id: "finance",   label: "Cobros y fiscal", hint: "Cuentas por cobrar, facturación e impuestos del comercio" },
   { id: "reportes",  label: "Reportes",    hint: "Analytics y reportes del negocio" },
   { id: "sistema",   label: "Sistema",     hint: "Configuración, equipo e integraciones" },
 ];
@@ -66,7 +66,7 @@ const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
   commerce: ["/tienda-online", "/pedidos-online", "/productos", "/analytics", "/envios", "/links-de-pago", "/cupones", "/promociones"],
   business: ["/caja", "/ventas", "/compras", "/ordenes-compra", "/proveedores", "/kardex", "/transferencias", "/sucursales", "/lotes", "/bundles", "/listas-precios", "/valuacion-inventario"],
   marketing: ["/marketing", "/email-campaigns", "/whatsapp-campaigns", "/fidelidad", "/catalogo", "/influencers", "/canjes", "/afiliados", "/referidos"],
-  finance: ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones", "/billetera", "/movimientos", "/cash-flow", "/pl-dashboard", "/libro", "/banco", "/gastos", "/comisiones", "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones"],
+  finance: ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones", "/billetera", "/movimientos", "/comisiones", "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones"],
   reportes: ["/reportes", "/analytics", "/ia"],
   sistema: ["/soporte", "/alertas", "/integraciones", "/equipo", "/ajustes", "/admin", "/calidad-datos", "/mi-plan", "/perfil"],
 };
@@ -99,6 +99,20 @@ export const NAV_ITEMS: NavItem[] = navRoutes().map(r => ({
   group: r.nav!.group,
   keywords: r.nav!.keywords,
 }));
+
+/** Otras superficies no ocupan el sidebar Business, pero sí el buscador global. */
+export const PRODUCT_NAV_ITEMS: NavItem[] = financeProductRoutes()
+  .filter(route => route.nav)
+  .map(route => ({
+    to: route.path,
+    label: `Finance · ${route.nav!.label}`,
+    icon: route.nav!.icon,
+    roles: route.roles,
+    group: route.nav!.group,
+    keywords: route.nav!.keywords,
+  }));
+
+export const GLOBAL_NAV_ITEMS: NavItem[] = [...NAV_ITEMS, ...PRODUCT_NAV_ITEMS];
 
 export const NAV_ITEMS_ORDENADOS: NavItem[] = ordenarNavItems(NAV_ITEMS);
 
@@ -139,7 +153,8 @@ export function normalizar(texto: string): string {
 
 export function buscarItems(consulta: string, roles?: NavRole): NavItem[] {
   const q = normalizar(consulta);
-  const permitidos = roles ? NAV_ITEMS_ORDENADOS.filter(i => i.roles.includes(roles)) : NAV_ITEMS_ORDENADOS;
+  const globalesOrdenados = ordenarNavItems(GLOBAL_NAV_ITEMS);
+  const permitidos = roles ? globalesOrdenados.filter(i => i.roles.includes(roles)) : globalesOrdenados;
   if (!q) return permitidos;
 
   const puntaje = (i: NavItem): number => {

@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles, ScanLine, ShoppingCart } from "lucide-react";
 import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
@@ -54,7 +54,6 @@ import CommerceQuickActions from "@/components/commerce/CommerceQuickActions";
 import CommercePeriodComparison from "@/components/commerce/CommercePeriodComparison";
 import CommerceInventoryAlerts from "@/components/commerce/CommerceInventoryAlerts";
 import CommerceFinancialSummary from "@/components/commerce/CommerceFinancialSummary";
-import CommerceChannelPerformance from "@/components/commerce/CommerceChannelPerformance";
 import DashboardSalesSection from "@/components/dashboard/DashboardSalesSection";
 import DashboardCustomersSection from "@/components/dashboard/DashboardCustomersSection";
 import DashboardHealthSection from "@/components/dashboard/DashboardHealthSection";
@@ -71,6 +70,10 @@ type DashboardData = {
   settings: any;
   expenses: any[];
 };
+
+type DashboardSource = "productos" | "ventas" | "compras" | "deudas" | "ajustes" | "gastos";
+
+const OPTIONAL_DASHBOARD_SOURCES = new Set<DashboardSource>(["compras", "deudas", "gastos"]);
 
 function dashboardErrorMessage(cause: unknown, fallback: string) {
   if (cause instanceof Error && cause.message) return cause.message;
@@ -449,6 +452,7 @@ export default function Dashboard() {
   const rawDataOrgIdRef = useRef<string | null>(null);
   const loadRequestRef = useRef(0);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [unavailableSources, setUnavailableSources] = useState<DashboardSource[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
   const [activationSignals, setActivationSignals] = useState<ActivationRow | null>(null);
@@ -548,7 +552,7 @@ export default function Dashboard() {
         if (error) {
           console.error('[Dashboard] no se pudo leer stock por sucursal', error);
           setLocationStockMap(null);
-          setLocationStockError(`No pudimos cargar el stock de la sucursal. ${dashboardErrorMessage(error, 'La consulta no respondió.')}`);
+          setLocationStockError("No pudimos cargar el stock de la sucursal.");
           return;
         }
         const map: Record<string, number> = {};
@@ -567,7 +571,6 @@ export default function Dashboard() {
     if (!hasVisibleData) setDashboardError(null);
 
     try {
-      await seedProductsForUser(user.id);
       const results = await Promise.allSettled([
         getProductsDB(user.id),
         getSalesDB(user.id),
@@ -587,33 +590,45 @@ export default function Dashboard() {
         ['ajustes', settingsResult],
         ['gastos', expensesResult],
       ] as const;
-      const failed = sources.filter(([, result]) => result.status === 'rejected');
-      if (failed.length > 0) {
-        const names = failed.map(([name]) => name).join(', ');
-        const firstFailure = failed[0][1];
-        const detail = dashboardErrorMessage(firstFailure.status === 'rejected' ? firstFailure.reason : null, 'La consulta no respondió.');
-        console.error('[Dashboard] no se pudo actualizar el conjunto principal', { names, detail });
-        setDashboardError(`No pudimos actualizar ${names}. ${detail}`);
+      const failed = sources.filter(([, result]) => result.status === "rejected");
+      const requiredFailures = failed.filter(([name]) => !OPTIONAL_DASHBOARD_SOURCES.has(name));
+      if (requiredFailures.length > 0) {
+        const names = requiredFailures.map(([name]) => name).join(", ");
+        const details = requiredFailures.map(([name, result]) => ({
+          source: name,
+          detail: dashboardErrorMessage(
+            result.status === "rejected" ? result.reason : null,
+            "La consulta no respondio.",
+          ),
+        }));
+        console.error('[Dashboard] no se pudo actualizar el conjunto principal', details);
+        setDashboardError(`No pudimos actualizar ${names}. Los datos anteriores siguen visibles si estaban disponibles.`);
         return;
       }
+
+      const optionalFailures = failed
+        .map(([name]) => name)
+        .filter(name => OPTIONAL_DASHBOARD_SOURCES.has(name));
+      const previous = rawDataOrgIdRef.current === activeOrg.id ? rawDataRef.current : null;
 
       const nextData: DashboardData = {
         products: settledValue(productsResult),
         sales: settledValue(salesResult),
-        purchases: settledValue(purchasesResult),
-        debts: settledValue(debtsResult),
+        purchases: purchasesResult.status === "fulfilled" ? purchasesResult.value : previous?.purchases ?? [],
+        debts: debtsResult.status === "fulfilled" ? debtsResult.value : previous?.debts ?? [],
         settings: settledValue(settingsResult),
-        expenses: settledValue(expensesResult),
+        expenses: expensesResult.status === "fulfilled" ? expensesResult.value : previous?.expenses ?? [],
       };
       rawDataRef.current = nextData;
       rawDataOrgIdRef.current = activeOrg.id;
       setRawData(nextData);
       setDashboardError(null);
+      setUnavailableSources(optionalFailures);
       setLastLoadedAt(new Date());
     } catch (cause) {
       if (request !== loadRequestRef.current) return;
       console.error('[Dashboard] no se pudo preparar la carga', cause);
-      setDashboardError(dashboardErrorMessage(cause, 'No se pudo conectar con los datos del negocio.'));
+      setDashboardError("No pudimos conectar con los datos del negocio. Reintenta en unos segundos.");
     } finally {
       if (request === loadRequestRef.current) {
         setLoading(false);
@@ -629,6 +644,7 @@ export default function Dashboard() {
       rawDataOrgIdRef.current = null;
       setRawData(null);
       setDashboardError(null);
+      setUnavailableSources([]);
       setLoading(true);
       setRefreshing(false);
       setLastLoadedAt(null);
@@ -1176,14 +1192,17 @@ export default function Dashboard() {
       .map(([name, d]) => ({ name, ...d }));
 
     // ===== Sales by channel (source) this month =====
-    const channelMap: Record<string, number> = {};
+    const channelMap: Record<string, { revenue: number; orders: number; units: number }> = {};
     monthSales.forEach((s: any) => {
-      const src = s.source || "manual";
-      channelMap[src] = (channelMap[src] || 0) + Number(s.total_ars);
+      const src = String(s.source || "manual").toLowerCase();
+      if (!channelMap[src]) channelMap[src] = { revenue: 0, orders: 0, units: 0 };
+      channelMap[src].revenue += Number(s.total_ars || 0);
+      channelMap[src].orders += 1;
+      channelMap[src].units += Number(s.quantity || 0);
     });
     const salesByChannel = Object.entries(channelMap)
-      .sort(([, a], [, b]) => b - a)
-      .map(([source, total]) => ({ source, total }));
+      .sort(([, a], [, b]) => b.revenue - a.revenue)
+      .map(([source, data]) => ({ source, ...data }));
 
     // ===== Aging inventory (stock > 0, no sale in last 30 days) =====
     const thirtyDaysAgoStr = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
@@ -1205,7 +1224,7 @@ export default function Dashboard() {
     if (outOfStockProducts.length > 0) smartAlerts.push({ type: 'destructive', icon: AlertTriangle, msg: `${plural(outOfStockProducts.length, "producto")} sin stock`, link: '/productos' });
     if (lowMarginCount > 0) smartAlerts.push({ type: 'warning', icon: TrendingDown, msg: `${plural(lowMarginCount, "producto")} con margen < ${marginAlertPct}%`, link: '/productos' });
     if (dueDebtsWeek > 0) smartAlerts.push({ type: 'warning', icon: AlertCircle, msg: `${plural(dueDebtsWeek, "deuda")} ${dueDebtsWeek === 1 ? "vence" : "vencen"} esta semana`, link: '/deudas' });
-    if (expensesRatio > expenseRatioAlertPct && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas (límite ${expenseRatioAlertPct}%)`, link: '/gastos' });
+    if (expensesRatio > expenseRatioAlertPct && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas (límite ${expenseRatioAlertPct}%)`, link: '/finance/gastos' });
 
     // ===== Anomaly detection =====
     const anomalies: { severity: 'high' | 'medium'; msg: string; link?: string }[] = [];
@@ -1515,6 +1534,16 @@ export default function Dashboard() {
           onAction={() => setReloadKey(value => value + 1)}
         />
       )}
+      {unavailableSources.length > 0 && (
+        <WorkspaceState
+          kind="partial"
+          layout="banner"
+          title="Algunas metricas estan temporalmente incompletas"
+          description={`No pudimos actualizar ${unavailableSources.join(", ")}. El resto del dashboard sigue operativo y conservamos los ultimos datos disponibles.`}
+          actionLabel="Reintentar"
+          onAction={() => setReloadKey(value => value + 1)}
+        />
+      )}
       {locationStockError && storeId && (
         <WorkspaceState
           kind="partial"
@@ -1532,7 +1561,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Header moderno con gradientes y estadísticas en vivo */}
+      {/* Encabezado operativo: lectura rapida, filtros y acceso a Commerce. */}
       <CommerceDashboardHeader
         icon={ShoppingBag}
         title="Dashboard de Commerce"
@@ -1546,15 +1575,15 @@ export default function Dashboard() {
         liveStats={{
           todaySales: formatARS(liveTodaySales?.total ?? 0),
           orderCount: liveTodaySales?.count ?? 0,
-          conversionRate: stats?.totalSalesCount > 0 ? ((liveTodaySales?.count ?? 0) / stats.uniqueCustomers) * 100 : 0,
+          periodCustomers: stats.uniqueCustomers,
         }}
         actions={
           <>
             <DateRangeFilter label="Todo el período" />
             <StoreFilter />
             <Select value={filterCat} onValueChange={setFilterCat}>
-              <SelectTrigger className="bg-white/10 backdrop-blur-sm border-white/20 w-full sm:w-[200px] h-9 text-sm rounded-lg text-white">
-                <Filter className="w-3.5 h-3.5 mr-1.5 text-white/70" />
+              <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm rounded-lg">
+                <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1563,7 +1592,7 @@ export default function Dashboard() {
                 ))}
               </SelectContent>
             </Select>
-            <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-white/70 hover:text-white transition-colors">
+            <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
               <Share2 className="w-3.5 h-3.5" />Compartir
             </button>
           </>
@@ -1751,7 +1780,7 @@ export default function Dashboard() {
           {
             label: "Gastos",
             icon: Wallet,
-            path: "/gastos",
+            path: "/finance/gastos",
             color: "warning",
             description: "Controlar gastos",
           },

@@ -10,7 +10,7 @@
  * - Separación clara de Business Core
  */
 import { Link, useLocation } from "react-router-dom";
-import { Search, Settings, FileText, Wallet, Landmark, TrendingUp, Plus, Receipt, Sparkles } from "lucide-react";
+import { Search, Settings, FileText, Wallet, Plus, Receipt, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,17 +19,14 @@ import { cn } from "@/lib/utils";
 const FINANCE_TABS = [
   { to: "/deudas", label: "Cobranzas", icon: Wallet },
   { to: "/facturas", label: "Facturas", icon: FileText },
-  { to: "/ia-finance", label: "IA Finance", icon: Sparkles },
+  { to: "/finance", label: "Finance", icon: Sparkles },
   { to: "/billetera", label: "Billetera", icon: Receipt },
-  { to: "/banco", label: "Conciliación", icon: Landmark },
-  { to: "/cash-flow", label: "Flujo de Caja", icon: TrendingUp },
 ] as const;
 
 const FINANCE_ROUTES = new Set([
   "/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones",
-  "/billetera", "/movimientos", "/cash-flow", "/pl-dashboard",
-  "/banco", "/gastos", "/comisiones", "/impuestos", "/afip",
-  "/multi-divisa", "/cheques", "/suscripciones", "/libro",
+  "/billetera", "/movimientos", "/comisiones", "/impuestos", "/afip",
+  "/multi-divisa", "/cheques", "/suscripciones",
 ]);
 
 export default function FinanceHeader() {

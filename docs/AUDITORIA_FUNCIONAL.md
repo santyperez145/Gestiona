@@ -1,6 +1,6 @@
 # Auditoría funcional continua
 
-**Corte:** 2026-09-06. **Entorno:** producción (`nerqia.app`) con sesión real y
+**Corte:** 2026-09-08. **Entorno:** producción (`nerqia.app`) con sesión real y
 tienda pública. Este documento es el registro vigente; los cortes anteriores
 quedan en Git.
 
@@ -19,7 +19,7 @@ verde.
 
 ## Resultado por superficie
 
-### Business y rutas públicas — 70/70 alcanzables
+### Business y rutas públicas — 65/65 alcanzables
 
 | Ruta | Resultado de lectura | Observación vigente |
 |---|---|---|
@@ -52,10 +52,6 @@ verde.
 | `/links-de-pago` | OK | Índice carga. |
 | `/mi-plan` | OK | Estado y planes cargan. |
 | `/billetera` | OK | Saldo, movimientos y retiros cargan. |
-| `/gastos` | OK | Resumen y comprobantes cargan. |
-| `/cash-flow` | OK | Flujo carga. |
-| `/pl-dashboard` | OK | P&L carga. |
-| `/banco` | OK | Conciliación carga. |
 | `/movimientos` | OK | Movimientos financieros cargan. |
 | `/cheques` | OK | Cheques cargan. |
 | `/comisiones` | OK | Comisiones de vendedores cargan. |
@@ -66,7 +62,7 @@ verde.
 | `/marketing` | OK | Command center carga. |
 | `/cupones` | OK | Reglas cargan. |
 | `/promociones` | OK | Promociones cargan. |
-| `/email-campaigns` | OK | Campañas cargan; envío real sigue gateado por Resend. |
+| `/email-campaigns` | OK | Campañas cargan; envío real queda gateado por el proveedor activo y probado. |
 | `/whatsapp-campaigns` | OK | Campañas cargan; envío real sigue gateado por Meta. |
 | `/fidelidad` | OK | Programa y ranking cargan. |
 | `/canjes` | OK | Canjes cargan. |
@@ -85,7 +81,6 @@ verde.
 | `/perfil` | OK | Perfil y cambio de clave cargan. |
 | `/admin` | OK | Rendimiento, roles y auditoría cargan. |
 | `/calidad-datos` | OK | Identidad del catálogo carga. |
-| `/libro` | Corregido | Conserva título propio y autoridad del ledger. |
 | `/precios` | OK | Precios públicos y estado de cliente resuelven. |
 | `/login` | Corregido | Título cambia con acceso, alta, OTP y recuperación. |
 | `/reset-password` | Corregido | Enlace ausente muestra estado inválido y título propio. |
@@ -95,12 +90,17 @@ verde.
 | `/caja/turno` | OK | Apertura/cierre e historial cargan. |
 | `/onboarding` | Corregido | Una organización configurada vuelve al inicio; no reescribe su blueprint. |
 
-### Finance — 2/2 alcanzables
+### Finance — 7/7 alcanzables
 
 | Ruta | Resultado | Observación vigente |
 |---|---|---|
 | `/finance` | OK | Resumen y puentes al Core cargan; primera lectura puede tardar varios segundos. |
 | `/finance/documentos` | OK | Inbox privado y captura cargan. |
+| `/finance/gastos` | Integrado | Presupuesto, comprobantes y tendencia viven sólo en Finance. |
+| `/finance/banco` | Integrado | Conciliación usa su ruta canónica Finance. |
+| `/finance/flujo` | Integrado | Flujo de caja usa datos del Core sin duplicarlos. |
+| `/finance/resultados` | Integrado | P&L y escenarios comparten una sola página. |
+| `/finance/libro` | Integrado | Conserva la autoridad única del ledger. |
 
 ### Platform — 14/14 alcanzables
 

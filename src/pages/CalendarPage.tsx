@@ -179,7 +179,7 @@ export default function CalendarPage() {
         title: e.description || e.category || "Gasto recurrente",
         type: "expense",
         amount: e.amount_ars,
-        link: "/gastos",
+        link: "/finance/gastos",
       });
     });
 

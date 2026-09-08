@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   ROUTES, PUBLIC_ROUTES, INTERNAL_ROUTES, allRoutes, aliasRedirects, navRoutes,
-  businessRoutes, publicPages, publicAliases,
+  businessRoutes, financeProductRoutes, publicPages, publicAliases,
 } from "@/app/routeManifest";
 import { NAV_ITEMS } from "@/lib/navigation";
 
@@ -159,10 +159,27 @@ describe("el sidebar sigue siendo el sidebar", () => {
 
   it("cada grupo tiene al menos un destino", () => {
     const grupos = new Set(navRoutes().map(r => r.nav!.group));
-    for (const g of ["diario", "trabajo", "compras", "cobranzas", "finanzas",
+    for (const g of ["diario", "commerce", "business", "finance",
                      "marketing", "reportes", "sistema"]) {
       expect(grupos.has(g as never)).toBe(true);
     }
+  });
+
+  it("Finance monta sus páginas fuera del router Business", () => {
+    const finance = financeProductRoutes().map(route => route.path);
+    const business = businessRoutes("admin").map(route => route.path);
+    expect(finance).toEqual([
+      "/finance",
+      "/finance/documentos",
+      "/finance/gastos",
+      "/finance/flujo",
+      "/finance/resultados",
+      "/finance/banco",
+      "/finance/libro",
+    ]);
+    for (const path of finance) expect(business).not.toContain(path);
+    expect(aliasRedirects()["/gastos"]).toBe("/finance/gastos");
+    expect(aliasRedirects()["/ia-finance"]).toBe("/finance");
   });
 
   it("ninguna ruta interna o pública se cuela en la navegación", () => {
@@ -196,10 +213,10 @@ describe("el sidebar sigue siendo el sidebar", () => {
 });
 
 describe("la página que dice ser el libro mayor lo es", () => {
-  it("/libro está en el sidebar", () => {
+  it("/finance/libro está en la navegación de Finance", () => {
     // Leía el ledger real por RPC y no estaba en la navegación: la única
     // fuente contable era inalcanzable desde el menú.
-    const libro = navRoutes().find(r => r.path === "/libro");
+    const libro = financeProductRoutes().find(r => r.path === "/finance/libro");
     expect(libro?.nav?.label).toBe("Libro mayor");
   });
 

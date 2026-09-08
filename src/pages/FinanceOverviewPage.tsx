@@ -55,7 +55,8 @@ export default function FinanceOverviewPage() {
       },
       cause => {
         if (cancelled) return;
-        setError(cause instanceof Error ? cause.message : 'No pudimos cargar el resumen financiero.');
+        console.error('FinanceOverview / resumen:', cause);
+        setError('No pudimos actualizar el resumen financiero. Reintentá en unos segundos.');
       },
     );
     return () => { cancelled = true; };
@@ -67,7 +68,7 @@ export default function FinanceOverviewPage() {
         icon={ReceiptText}
         eyebrow="Finance · Control de gasto"
         title="Resumen"
-        description={`Documentos, caja y puentes al Core para ${activeOrg?.name || 'tu organización'} — sin duplicar ventas ni stock.`}
+        description={`Gastos, documentos, conciliación y resultados para ${activeOrg?.name || 'tu organización'}, en una sola superficie financiera.`}
         actions={(
           <Button asChild className="bg-teal-700 text-white hover:bg-teal-800">
             <Link to="/finance/documentos"><FileStack className="h-3.5 w-3.5" />Ver bandeja</Link>
@@ -80,7 +81,7 @@ export default function FinanceOverviewPage() {
         <h2 className="mt-2 max-w-xl text-xl font-bold tracking-tight sm:text-2xl">Documentos que terminan en datos revisables</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Cada comprobante se vincula con proveedor, compra, obligación y movimiento contable.
-          Compras y gastos se operan en el Core: acá no se duplican pantallas.
+          Gastos, banco y contabilidad se operan dentro de Finance. Compras y proveedores conservan su fuente en el Core operativo.
         </p>
       </section>
 
@@ -96,7 +97,10 @@ export default function FinanceOverviewPage() {
             setError(null);
             getFinanceCoreSnapshot(activeOrg.id).then(
               data => { setSnapshot(data); setError(null); },
-              cause => { setError(cause instanceof Error ? cause.message : 'No pudimos cargar el resumen financiero.'); },
+              cause => {
+                console.error('FinanceOverview / reintento:', cause);
+                setError('No pudimos actualizar el resumen financiero. Reintentá en unos segundos.');
+              },
             );
           }}
         />
@@ -180,16 +184,16 @@ export default function FinanceOverviewPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Operación central · sin duplicar</p>
-            <h2 className="mt-1 text-sm font-semibold">Operar gastos y compras donde ya viven</h2>
+            <h2 className="mt-1 text-sm font-semibold">Un recorrido financiero, una sola fuente por proceso</h2>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Finance ordena evidencia y aprobaciones. Compras, gastos, banco y libro
-              mantienen su operación principal y acá accedés directo sin repetir pantallas.
+              Finance concentra gasto, conciliación, liquidez y contabilidad. Compras y proveedores
+              siguen conectados al inventario para no partir la operación en dos.
             </p>
           </div>
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <Link
-            to="/gastos"
+            to="/finance/gastos"
             className="group flex items-start gap-3 border border-border bg-background p-3 hover:border-teal-700/35 hover:bg-teal-500/[0.04]"
           >
             <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
@@ -217,7 +221,7 @@ export default function FinanceOverviewPage() {
           </Link>
 
           <Link
-            to="/libro"
+            to="/finance/libro"
             className="group flex items-start gap-3 border border-border bg-background p-3 hover:border-teal-700/35 hover:bg-teal-500/[0.04]"
           >
             <BookOpenCheck className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
@@ -231,7 +235,7 @@ export default function FinanceOverviewPage() {
           </Link>
 
           <Link
-            to="/banco"
+            to="/finance/banco"
             className="group flex items-start gap-3 border border-border bg-background p-3 hover:border-teal-700/35 hover:bg-teal-500/[0.04]"
           >
             <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />

@@ -4,9 +4,13 @@ import { resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../..");
 const DASH = readFileSync(resolve(ROOT, "src/pages/Dashboard.tsx"), "utf8");
+const HEALTH = readFileSync(resolve(ROOT, "src/components/dashboard/DashboardHealthSection.tsx"), "utf8");
 
 /** Sólo el código: los comentarios nombran los antipatrones para explicarlos. */
 const CODIGO = DASH.split(/\r?\n/)
+  .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l))
+  .join("\n");
+const CODIGO_HEALTH = HEALTH.split(/\r?\n/)
   .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l))
   .join("\n");
 
@@ -41,20 +45,19 @@ const CODIGO = DASH.split(/\r?\n/)
  * que nadie debe, mientras la pantalla de Clientes decía «Sin deudas ✓».
  */
 describe("el semáforo dice lo que el color dice", () => {
-  it("indexa por el puntaje, no invertido", () => {
-    expect(CODIGO).toContain("{labels[score]}");
-    expect(CODIGO).not.toContain("labels[2 - score]");
+  it("traduce el puntaje sin invertirlo", () => {
+    expect(CODIGO_HEALTH).toContain('score === 2 ? "healthy"');
+    expect(CODIGO_HEALTH).toContain('score === 1 ? "attention" : "critical"');
   });
 
-  it("los arreglos siguen escribiéndose de peor a mejor", () => {
-    // Si alguien los diera vuelta, `labels[score]` volvería a mentir. El orden
-    // se fija acá porque el tipo `[string, string, string]` no lo puede fijar.
-    const bloque = CODIGO.slice(CODIGO.indexOf("sigLabel(sigStock"), CODIGO.indexOf("sigLabel(sigDebt"));
-    expect(bloque.indexOf("productos sin stock")).toBeLessThan(bloque.indexOf("Sin agotados ✓"));
+  it("no declara saludable al stock cuando hay agotados", () => {
+    expect(CODIGO_HEALTH).toContain('outOfStock === 0 ? "Sin productos agotados"');
+    expect(CODIGO_HEALTH).toContain('score: outOfStock === 0 ? 2 : outOfStock <= 3 ? 1 : 0');
   });
 
   it("el color y el texto salen del mismo puntaje", () => {
-    expect(CODIGO).toMatch(/score === 2 \? 'text-emerald-400'/);
+    expect(CODIGO_HEALTH).toContain("const style = LEVEL_STYLES[overall]");
+    expect(CODIGO_HEALTH).toContain("{style.label}");
   });
 });
 

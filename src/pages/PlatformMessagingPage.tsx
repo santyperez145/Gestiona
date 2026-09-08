@@ -41,7 +41,7 @@ import {
  */
 
 interface Config {
-  email_proveedor: "resend" | "smtp";
+  email_proveedor: EmailProvider;
   email_dominio: string | null;
   email_nombre: string | null;
   email_casillas: Record<string, string> | null;
@@ -49,6 +49,7 @@ interface Config {
   smtp_host: string | null;
   smtp_port: number | null;
   smtp_user: string | null;
+  smtp_secure: boolean | null;
   smtp_from_email: string | null;
   smtp_configurado: boolean;
   whatsapp_proveedor: string | null;
@@ -56,6 +57,49 @@ interface Config {
   whatsapp_numero_visible: string | null;
   whatsapp_listo: boolean;
 }
+
+type EmailProvider =
+  | "resend_api"
+  | "gmail_smtp"
+  | "microsoft_smtp"
+  | "zoho_smtp"
+  | "smtp_personalizado";
+
+const EMAIL_PROVIDERS: Array<{
+  value: EmailProvider;
+  label: string;
+  description: string;
+  preset?: { smtp_host: string; smtp_port: number; smtp_secure: boolean };
+}> = [
+  {
+    value: "resend_api",
+    label: "Resend API",
+    description: "Entrega transaccional, trazable y recomendada para nerqia.app.",
+  },
+  {
+    value: "gmail_smtp",
+    label: "Google Workspace / Gmail",
+    description: "SMTP con contraseña de aplicación.",
+    preset: { smtp_host: "smtp.gmail.com", smtp_port: 465, smtp_secure: true },
+  },
+  {
+    value: "microsoft_smtp",
+    label: "Microsoft 365",
+    description: "SMTP autenticado con STARTTLS.",
+    preset: { smtp_host: "smtp.office365.com", smtp_port: 587, smtp_secure: false },
+  },
+  {
+    value: "zoho_smtp",
+    label: "Zoho Mail",
+    description: "SMTP de Zoho con TLS directo.",
+    preset: { smtp_host: "smtp.zoho.com", smtp_port: 465, smtp_secure: true },
+  },
+  {
+    value: "smtp_personalizado",
+    label: "Otro servidor SMTP",
+    description: "Hosting o proveedor compatible con SMTP autenticado.",
+  },
+];
 
 interface Prueba {
   ok: boolean;
@@ -105,7 +149,7 @@ export default function PlatformMessagingPage() {
     setGuardando(false);
     if (error) {
       console.error("mensajeria_guardar", error);
-      toast.error(error.message);
+      toast.error("No pudimos guardar la configuración. Revisá los campos e intentá nuevamente.");
       return;
     }
     setCfg(data as unknown as Config);
@@ -113,6 +157,11 @@ export default function PlatformMessagingPage() {
     // el dominio viejo.
     setPrueba(null);
     toast.success("Guardado");
+  };
+
+  const cambiarProveedor = (value: EmailProvider) => {
+    const provider = EMAIL_PROVIDERS.find(item => item.value === value);
+    void guardar({ email_proveedor: value, ...(provider?.preset ?? {}) });
   };
 
   const probar = async () => {
@@ -150,9 +199,9 @@ export default function PlatformMessagingPage() {
           <div className="flex items-start gap-2 rounded-[8px] border border-border bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
             <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span>
-              La clave de Resend y el token de WhatsApp son secretos y se cargan en Supabase,
-              no en esta pantalla. Acá se configura lo que no es secreto: desde qué dominio y
-              con qué número se manda.
+              La clave de Resend, la contraseña SMTP y el token de WhatsApp son secretos que
+              se cargan en Supabase, no en esta pantalla. Acá se elige la ruta de entrega y se
+              configura solamente la información no sensible.
             </span>
           </div>
 
@@ -172,24 +221,31 @@ export default function PlatformMessagingPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
+              <div className="sm:col-span-2">
                 <Label>Proveedor de salida</Label>
                 <Select
-                  value={cfg?.email_proveedor ?? "resend"}
-                  onValueChange={v => void guardar({ email_proveedor: v })}
+                  value={cfg?.email_proveedor ?? "resend_api"}
+                  onValueChange={value => cambiarProveedor(value as EmailProvider)}
+                  disabled={guardando || probando}
                 >
                   <SelectTrigger aria-label="Proveedor de correo activo">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="resend">Resend (recomendado)</SelectItem>
-                    <SelectItem value="smtp">Servidor SMTP propio</SelectItem>
+                    {EMAIL_PROVIDERS.map(provider => (
+                      <SelectItem key={provider.value} value={provider.value}>
+                        {provider.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Cambiarlo conserva el otro canal como respaldo, pero exige una prueba nueva.
+                  {EMAIL_PROVIDERS.find(provider => provider.value === (cfg?.email_proveedor ?? "resend_api"))?.description}
+                  {" "}Cada intento usa solamente el proveedor elegido; nunca mezcla remitentes ni fallbacks.
                 </p>
               </div>
+              {(cfg?.email_proveedor ?? "resend_api") === "resend_api" && (
+                <>
               <div>
                 <Label htmlFor="dominio">Dominio verificado en Resend</Label>
                 <Input
@@ -216,8 +272,26 @@ export default function PlatformMessagingPage() {
                   }}
                 />
               </div>
+                </>
+              )}
+
+              {(cfg?.email_proveedor ?? "resend_api") !== "resend_api" && (
+                <div>
+                  <Label htmlFor="nombre-smtp">Nombre que ve quien recibe</Label>
+                  <Input
+                    id="nombre-smtp"
+                    defaultValue={cfg?.email_nombre ?? ""}
+                    placeholder="Nerqia"
+                    onBlur={e => {
+                      const value = e.target.value.trim();
+                      if (value !== (cfg?.email_nombre ?? "")) void guardar({ email_nombre: value });
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
+            {(cfg?.email_proveedor ?? "resend_api") === "resend_api" && (
             <div>
               <p className="text-xs font-medium mb-2">Casilla por tipo de mensaje</p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -246,6 +320,7 @@ export default function PlatformMessagingPage() {
                 ))}
               </div>
             </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <Button size="sm" onClick={probar} disabled={probando || guardando}>
@@ -267,14 +342,12 @@ export default function PlatformMessagingPage() {
                 `SMTP_PASSWORD`. Esta pantalla la lee el staff desde el
                 navegador, así que un secreto en un campo de acá es un secreto
                 en una tabla que la UI consulta. */}
-            <details className="rounded-[8px] border border-border bg-muted/10 p-3">
-              <summary className="cursor-pointer text-xs font-medium">
-                Servidor SMTP {cfg?.email_proveedor === "smtp" ? "activo" : "de respaldo"}
-              </summary>
+            {(cfg?.email_proveedor ?? "resend_api") !== "resend_api" && (
+            <div className="rounded-[8px] border border-border bg-muted/10 p-3">
+              <p className="text-xs font-medium">Conexión SMTP seleccionada</p>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                El correo sólo sale por acá cuando elegís <strong>Servidor SMTP propio</strong>.
-                La configuración puede quedar guardada como respaldo. La contraseña se carga
-                en Supabase como <code>SMTP_PASSWORD</code>, no en esta pantalla.
+                La contraseña se carga en Supabase como <code>SMTP_PASSWORD</code>.
+                Al cambiar de proveedor, reemplazá también ese secreto y ejecutá una prueba.
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
@@ -325,8 +398,22 @@ export default function PlatformMessagingPage() {
                     otra dirección hace que el servidor rechace o que caiga en spam.
                   </p>
                 </div>
+                <div>
+                  <Label>Seguridad de transporte</Label>
+                  <Select
+                    value={cfg?.smtp_secure === false ? "starttls" : "tls"}
+                    onValueChange={value => void guardar({ smtp_secure: value === "tls" })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tls">TLS directo, normalmente 465</SelectItem>
+                      <SelectItem value="starttls">STARTTLS, normalmente 587</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </details>
+            </div>
+            )}
 
             {prueba && (
               /* La respuesta del proveedor, textual: es lo único que sirve para

@@ -1,10 +1,10 @@
 /**
  * send-invoice-email — Sends an invoice by email with optional PDF attachment.
  *
- * Email provider priority:
- *   1. Own SMTP  — if the organization connected its private credential
- *   2. Resend    — if RESEND_API_KEY env var is set
- *   3. Error     — no provider configured
+ * Delivery route:
+ *   1. Private organization SMTP, when explicitly connected.
+ *   2. The provider selected by platform staff (Resend or SMTP).
+ * A failed provider never falls through to a different transport.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";

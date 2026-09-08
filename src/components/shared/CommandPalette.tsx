@@ -25,7 +25,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getCustomersDB } from "@/lib/supabaseStore";
 import Fuse from "fuse.js";
-import { NAV_ITEMS as NAV_MODEL } from "@/lib/navigation";
+import { GLOBAL_NAV_ITEMS as NAV_MODEL } from "@/lib/navigation";
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
 
@@ -45,7 +45,7 @@ const ATAJOS: Record<string, string> = {
   "/productos": "Ctrl+P",
   "/ventas": "Ctrl+N",
   "/deudas": "Ctrl+D",
-  "/gastos": "Ctrl+G",
+  "/finance/gastos": "Ctrl+G",
 };
 
 const NAV_ITEMS = NAV_MODEL.map(i => ({
@@ -60,7 +60,7 @@ const NAV_ITEMS = NAV_MODEL.map(i => ({
 const QUICK_ACTIONS = [
   { label: "Nueva venta rápida", path: "/ventas?new=1", icon: Plus, color: "text-green-400" },
   { label: "Nuevo presupuesto", path: "/presupuestos?new=1", icon: FileText, color: "text-blue-400" },
-  { label: "Registrar gasto", path: "/gastos?new=1", icon: Receipt, color: "text-orange-400" },
+  { label: "Registrar gasto", path: "/finance/gastos?new=1", icon: Receipt, color: "text-orange-400" },
   { label: "Nuevo producto", path: "/productos?new=1", icon: Package, color: "text-primary" },
   { label: "Nuevo cliente", path: "/clientes?new=1", icon: User, color: "text-cyan-400" },
   { label: "Registrar deuda", path: "/deudas?new=1", icon: AlertCircle, color: "text-red-400" },
@@ -124,7 +124,7 @@ export default function CommandPalette() {
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (mod && e.key.toLowerCase() === "n") { e.preventDefault(); navigate("/ventas?new=1"); return; }
       if (mod && e.key.toLowerCase() === "p") { e.preventDefault(); navigate("/productos?new=1"); return; }
-      if (mod && e.key.toLowerCase() === "g") { e.preventDefault(); navigate("/gastos?new=1"); return; }
+      if (mod && e.key.toLowerCase() === "g") { e.preventDefault(); navigate("/finance/gastos?new=1"); return; }
       if (mod && e.key.toLowerCase() === "d") { e.preventDefault(); navigate("/deudas"); return; }
     };
     document.addEventListener("keydown", down);

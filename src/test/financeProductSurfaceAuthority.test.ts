@@ -113,14 +113,17 @@ describe('autoridad de la superficie Nerqia Finance', () => {
     expect(db).not.toContain('INSERT INTO public.expenses');
   });
 
-  it('enlace al Core sin clonar pantallas de compras o gastos', () => {
-    expect(overview).toContain('sin duplicar');
-    expect(overview).toContain('to="/gastos"');
+  it('mueve control financiero a Finance y conserva compras en el Core', () => {
+    expect(overview).toContain('una sola fuente por proceso');
+    expect(overview).toContain('to="/finance/gastos"');
     expect(overview).toContain('to="/ordenes-compra"');
-    expect(overview).toContain('to="/libro"');
-    expect(overview).toContain('to="/banco"');
+    expect(overview).toContain('to="/finance/libro"');
+    expect(overview).toContain('to="/finance/banco"');
     expect(overview).not.toContain('ExpensesPage');
     expect(financeLayout).toContain('En el Core');
-    expect(financeLayout).toContain("to: '/gastos'");
+    expect(financeLayout).toContain('financeProductRoutes()');
+    expect(financeLayout).not.toContain("to: '/finance/gastos'");
+    expect(financeLayout).not.toContain("to: '/finance/resultados'");
+    expect(financeLayout).toContain("to: '/ordenes-compra'");
   });
 });

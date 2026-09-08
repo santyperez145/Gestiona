@@ -1,6 +1,6 @@
 /**
  * FinancialScenariosTab — ported from the former FinancialScenariosPage (/escenarios-financieros).
- * Rendered as the "Escenarios" tab inside PLDashboardPage (/pl-dashboard).
+ * Rendered as the "Escenarios" tab inside PLDashboardPage (/finance/resultados).
  *
  * What-if / scenario modeling: P&L projections, breakeven calculator, cash flow projection, variance analysis.
  */

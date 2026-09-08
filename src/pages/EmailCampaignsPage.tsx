@@ -188,16 +188,19 @@ export default function EmailCampaignsPage() {
       const { data, error } = await supabase.rpc("mensajeria_de_plataforma");
       if (error) { console.error("mensajeria_de_plataforma", error); return; }
       const c = data as unknown as {
-        email_listo?: boolean; email_proveedor?: "resend" | "smtp"; smtp_configurado?: boolean;
+        email_listo?: boolean;
+        email_proveedor?: "resend_api" | "gmail_smtp" | "microsoft_smtp" | "zoho_smtp" | "smtp_personalizado";
+        smtp_configurado?: boolean;
         smtp_from_email?: string | null; email_nombre?: string | null;
         email_dominio?: string | null; email_casillas?: Record<string, string> | null;
       };
       const casilla = c?.email_casillas?.marketing ?? c?.email_casillas?.default ?? "noreply";
-      const smtpOk = c?.email_proveedor === "smtp" && Boolean(c?.smtp_configurado);
+      const usaSmtp = Boolean(c?.email_proveedor && c.email_proveedor !== "resend_api");
+      const smtpOk = usaSmtp && Boolean(c?.smtp_configurado);
       const dominio = String(c?.email_dominio ?? "").trim();
       setEnvio({
-        puede: Boolean(smtpOk || c?.email_listo),
-        desde: smtpOk
+        puede: Boolean(c?.email_listo),
+        desde: usaSmtp
           ? (c.smtp_from_email ?? null)
           : (dominio ? `${casilla}@${dominio}` : null),
         // SMTP de casilla personal alcanza para avisos; no para blasting.

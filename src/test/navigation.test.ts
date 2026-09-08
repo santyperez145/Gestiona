@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
-  NAV_ITEMS, NAV_GROUPS, ITEMS_DIARIOS, GRUPOS_PLEGABLES,
+  NAV_ITEMS, GLOBAL_NAV_ITEMS, PRODUCT_NAV_ITEMS, NAV_GROUPS, ITEMS_DIARIOS, GRUPOS_PLEGABLES,
   itemsDe, grupoDeRuta, buscarItems, normalizar,
 } from "@/lib/navigation";
 
@@ -123,7 +123,7 @@ describe("estructura de la navegación", () => {
     expect(finanzas.slice(0, cobranzas.length)).toEqual(cobranzas);
   });
 
-  it("ordena Finance por ciclo de autoridad", () => {
+  it("deja cobros y fiscal en Business, sin duplicar la operación de Finance", () => {
     expect(itemsDe("finance").map(i => i.to)).toEqual([
       "/deudas",
       "/presupuestos",
@@ -132,18 +132,24 @@ describe("estructura de la navegación", () => {
       "/devoluciones",
       "/billetera",
       "/movimientos",
-      "/cash-flow",
-      "/pl-dashboard",
-      "/libro",
-      "/banco",
-      "/gastos",
       "/comisiones",
       "/impuestos",
       "/afip",
       "/multi-divisa",
       "/cheques",
       "/suscripciones",
-      "/ia-finance",
+    ]);
+  });
+
+  it("Finance tiene navegación propia y buscable", () => {
+    expect(PRODUCT_NAV_ITEMS.map(i => i.to)).toEqual([
+      "/finance",
+      "/finance/documentos",
+      "/finance/gastos",
+      "/finance/flujo",
+      "/finance/resultados",
+      "/finance/banco",
+      "/finance/libro",
     ]);
   });
 
@@ -220,7 +226,7 @@ describe("buscador de la paleta", () => {
     // /rfm es alias desde la consolidación CRM: quien busca la jerga vieja
     // llega al workspace de Clientes, donde vive la vista Segmentos.
     expect(buscarItems("rfm").map(i => i.to)).toContain("/clientes");
-    expect(buscarItems("p&l").map(i => i.to)).toContain("/pl-dashboard");
+    expect(buscarItems("p&l").map(i => i.to)).toContain("/finance/resultados");
     expect(buscarItems("bundles").map(i => i.to)).toContain("/bundles");
     expect(buscarItems("ecommerce").map(i => i.to)).toContain("/tienda-online");
   });
@@ -239,12 +245,12 @@ describe("buscador de la paleta", () => {
   });
 
   it("sin consulta devuelve todo, y filtra por rol", () => {
-    expect(buscarItems("")).toHaveLength(NAV_ITEMS.length);
+    expect(buscarItems("")).toHaveLength(GLOBAL_NAV_ITEMS.length);
     const deVendedor = buscarItems("", "vendedor");
-    expect(deVendedor.length).toBeLessThan(NAV_ITEMS.length);
+    expect(deVendedor.length).toBeLessThan(GLOBAL_NAV_ITEMS.length);
     expect(deVendedor.every(i => i.roles.includes("vendedor"))).toBe(true);
     // Un vendedor no tiene por qué ver Finanzas.
-    expect(deVendedor.map(i => i.to)).not.toContain("/banco");
+    expect(deVendedor.map(i => i.to)).not.toContain("/finance/banco");
   });
 
   it("una consulta sin resultados devuelve vacío en vez de todo", () => {

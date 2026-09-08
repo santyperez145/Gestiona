@@ -90,7 +90,7 @@ describe('Commerce Pay honesty', () => {
     );
     expect(checkout).toContain('mediosDePagoOfrecibles');
     expect(checkout).toContain('esMedioGestionaPay');
-    expect(checkout).toContain('Continuar a Nerqia Pay');
+    expect(checkout).toContain('Pagar con Nerqia Pay');
     expect(checkout).not.toMatch(/stripe:\s*"Tarjeta/);
     expect(checkout).not.toMatch(/paypal:\s*"PayPal"/);
     expect(checkout).not.toContain('?? "transferencia"');

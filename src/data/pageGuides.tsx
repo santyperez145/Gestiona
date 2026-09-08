@@ -168,7 +168,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   },
 
   // ── Gastos ───────────────────────────────────────────────────
-  "/gastos": {
+  "/finance/gastos": {
     title: "Gastos",
     subtitle: "Control de egresos y presupuesto",
     color: "text-orange-400",
@@ -374,7 +374,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   },
 
   // ── Banco / Conciliación ─────────────────────────────────────
-  "/banco": {
+  "/finance/banco": {
     title: "Banco / Conciliación",
     subtitle: "Control de movimientos bancarios",
     color: "text-blue-400",

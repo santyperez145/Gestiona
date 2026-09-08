@@ -58,14 +58,24 @@ Deno.serve(async (req) => {
   if (!esStaff) return json({ error: "Sólo el staff de plataforma" }, 403);
 
   const admin = createClient(url, serviceRole);
-  const remitente = await remitenteDe("default");
+  const remitente = await remitenteDe("default", { fresh: true });
 
   if (!remitente.from) {
     return json({
       ok: false,
       etapa: "configuracion",
       // El diagnóstico dice qué falta, no «error».
-      detalle: "Todavía no cargaste el dominio desde el que sale el correo.",
+      detalle: remitente.transporte === "resend"
+        ? "Todavía no cargaste el dominio desde el que sale el correo."
+        : "La conexión SMTP seleccionada está incompleta.",
+    });
+  }
+
+  if (remitente.faltaConfiguracionSmtp) {
+    return json({
+      ok: false,
+      etapa: "configuracion",
+      detalle: "El proveedor SMTP está seleccionado, pero faltan servidor, usuario o remitente.",
     });
   }
 
@@ -84,7 +94,7 @@ Deno.serve(async (req) => {
   }
 
   const apiKey = Deno.env.get("RESEND_API_KEY") ?? "";
-  if (remitente.proveedor === "resend" && !apiKey) {
+  if (remitente.proveedor === "resend_api" && !apiKey) {
     return json({
       ok: false,
       etapa: "configuracion",

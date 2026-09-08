@@ -142,6 +142,8 @@ export interface RouteDefinition {
   /** URLs viejas que redirigen acá. Un alias nunca es una entrada propia. */
   aliases?: RouteAlias[];
   status: RouteStatus;
+  /** Superficie de producto. Ausente significa Business. */
+  productSurface?: "business" | "finance";
   /**
    * `immersive` reserva todo el espacio restante del AppLayout para una tarea
    * operativa continua. No es otra superficie ni otro router: conserva rail,
@@ -164,6 +166,8 @@ const PUBLICO: NavRole[] = [];
 
 export const ROUTES: RouteDefinition[] = [
   { id: "inicio", path: "/", roles: AMBOS, component: lazy(() => import("@/pages/Dashboard")), module: null, openReason: "Inicio: sin dashboard no hay desde dónde entrar a nada.", aliases: [{ path: "/landing", redirectTo: "/" }, { path: "/recomendaciones-ia", redirectTo: "/" }], status: "canonical", nav: { label: "Inicio", icon: LayoutDashboard, group: "diario", keywords: ["dashboard", "resumen", "home", "panel"] } },
+  { id: "finance_inicio", path: "/finance", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinanceOverviewPage")), module: "finance", aliases: [{ path: "/ia-finance", redirectTo: "/finance" }], status: "canonical", productSurface: "finance", nav: { label: "Resumen", icon: LayoutDashboard, group: "finance", keywords: ["finance", "gastos", "control", "mendel"] } },
+  { id: "finance_documentos", path: "/finance/documentos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinanceDocumentsPage")), module: "finance", status: "canonical", productSurface: "finance", nav: { label: "Documentos", icon: FileText, group: "finance", keywords: ["comprobantes", "tickets", "ocr", "facturas de compra"] } },
   { id: "tienda_online", path: "/tienda-online", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EcommerceStorePage")), module: "ecommerce", status: "canonical", nav: { label: "Tienda online", icon: ShoppingBag, group: "diario", keywords: ["ecommerce", "web", "vitrina", "storefront", "diseño tienda", "commerce"] } },
   { id: "pedidos_online", path: "/pedidos-online", roles: AMBOS, component: lazy(() => import("@/pages/StoreOrdersPage")), module: "ecommerce", aliases: [{ path: "/tienda-online/pedidos", redirectTo: "/pedidos-online" }], status: "canonical", nav: { label: "Pedidos", icon: ShoppingCart, group: "diario", keywords: ["pedidos", "pedidos online", "ecommerce orders", "despachar", "tienda web", "checkout", "ordenes tienda", "carritos", "recuperacion", "abandono"] } },
   { id: "caja", path: "/caja", roles: AMBOS, component: lazy(() => import("@/pages/POSPage")), module: "pos", status: "canonical", surface: "immersive", nav: { label: "Vender", icon: ScanLine, group: "diario", keywords: ["pos", "caja", "mostrador", "cobrar", "ticket", "punto de venta"] } },
@@ -224,10 +228,10 @@ export const ROUTES: RouteDefinition[] = [
   { id: "links_de_pago", path: "/links-de-pago", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PaymentLinksPage")), module: "payments", status: "canonical", nav: { label: "Links de pago", icon: Link2, group: "commerce", keywords: ["cobrar a distancia", "link mercadopago", "tienda online"] } },
   { id: "mi_plan", path: "/mi-plan", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/MiPlanPage")), module: "settings", status: "canonical", nav: { label: "Mi plan", icon: CreditCard, group: "sistema", keywords: ["suscripcion", "plan", "pagar", "mercadopago", "facturacion", "abono"] } },
   { id: "billetera", path: "/billetera", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/WalletPage")), module: "finance", status: "canonical", nav: { label: "Billetera", icon: Wallet, group: "finance", keywords: ["saldo", "plata", "retirar", "retiro", "cobros", "disponible", "acreditado", "cbu"] } },
-  { id: "gastos", path: "/gastos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ExpensesPage")), module: "expenses", status: "canonical", nav: { label: "Gastos", icon: Wallet, group: "finance", keywords: ["egresos", "pagos", "costos fijos"] } },
-  { id: "cash_flow", path: "/cash-flow", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CashFlowPage")), module: "finance", status: "canonical", nav: { label: "Flujo de caja", icon: BarChart3, group: "finance", keywords: ["cash flow", "proyección de plata", "liquidez"] } },
-  { id: "pl_dashboard", path: "/pl-dashboard", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PLDashboardPage")), module: "finance", aliases: [{ path: "/escenarios-financieros", redirectTo: "/pl-dashboard" }], status: "canonical", nav: { label: "Ganancias y pérdidas", icon: TrendingUp, group: "finance", keywords: ["p&l", "pl", "resultado", "rentabilidad", "estado de resultados"] } },
-  { id: "banco", path: "/banco", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BankReconciliationPage")), module: "finance", status: "canonical", nav: { label: "Banco y conciliación", icon: Landmark, group: "finance", keywords: ["conciliar", "extracto", "movimientos bancarios"] } },
+  { id: "gastos", path: "/finance/gastos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ExpensesPage")), module: "expenses", aliases: [{ path: "/gastos", redirectTo: "/finance/gastos" }], status: "canonical", productSurface: "finance", nav: { label: "Gastos", icon: Wallet, group: "finance", keywords: ["egresos", "pagos", "costos fijos"] } },
+  { id: "cash_flow", path: "/finance/flujo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CashFlowPage")), module: "finance", aliases: [{ path: "/cash-flow", redirectTo: "/finance/flujo" }], status: "canonical", productSurface: "finance", nav: { label: "Flujo de caja", icon: BarChart3, group: "finance", keywords: ["cash flow", "proyección de plata", "liquidez"] } },
+  { id: "pl_dashboard", path: "/finance/resultados", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PLDashboardPage")), module: "finance", aliases: [{ path: "/pl-dashboard", redirectTo: "/finance/resultados" }, { path: "/escenarios-financieros", redirectTo: "/finance/resultados" }], status: "canonical", productSurface: "finance", nav: { label: "Resultados", icon: TrendingUp, group: "finance", keywords: ["p&l", "pl", "ganancias y pérdidas", "rentabilidad", "estado de resultados"] } },
+  { id: "banco", path: "/finance/banco", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BankReconciliationPage")), module: "finance", aliases: [{ path: "/banco", redirectTo: "/finance/banco" }], status: "canonical", productSurface: "finance", nav: { label: "Banco", icon: Landmark, group: "finance", keywords: ["conciliar", "extracto", "movimientos bancarios"] } },
   { id: "movimientos", path: "/movimientos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinancialMovementsPage")), module: "payments", status: "canonical", nav: { label: "Movimientos operativos", icon: BookOpen, group: "finance", keywords: ["libro mayor", "movimientos", "caja", "asientos", "financial movements"] } },
   { id: "cheques", path: "/cheques", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ChequesPage")), module: "finance", status: "canonical", nav: { label: "Cheques", icon: FileText, group: "finance", keywords: ["echeq", "valores", "cartera"] } },
   { id: "comisiones", path: "/comisiones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SellerCommissionsPage")), module: "finance", status: "canonical", nav: { label: "Comisiones", icon: Receipt, group: "finance", keywords: ["vendedores", "aranceles", "mercadopago"] } },
@@ -281,7 +285,6 @@ export const ROUTES: RouteDefinition[] = [
     nav: { label: "Inteligencia", icon: Sparkles, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis", "chat", "preguntar", "copiloto", "asistente"] },
   },
   { id: "ia_commerce", path: "/ia-commerce", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CommerceAIPage")), module: "marketing", status: "canonical", nav: { label: "IA Tienda", icon: Sparkles, group: "commerce", keywords: ["pricing", "timing", "producto", "stock", "competencia", "optimizacion"] } },
-  { id: "ia_finance", path: "/ia-finance", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinanceAIPage")), module: "finance", status: "canonical", nav: { label: "IA Finance", icon: Sparkles, group: "finance", keywords: ["prediccion", "anomalias", "optimizacion", "cash flow", "gastos"] } },
   { id: "ia_business", path: "/ia-business", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BusinessAIPage")), module: "purchases", status: "canonical", nav: { label: "IA Inventario", icon: Sparkles, group: "business", keywords: ["stock", "reposicion", "forecast", "rotacion", "proveedores", "transferencia"] } },
   { id: "pricing_dinamico", path: "/pricing-dinamico", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DynamicPricingPage")), module: "marketing", status: "canonical", nav: { label: "Pricing Dinámico", icon: DollarSign, group: "commerce", keywords: ["precios", "dynamic pricing", "optimizacion", "revenue", "margen"] } },
   { id: "alertas", path: "/alertas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartAlertsPage")), module: null, openReason: "Avisos derivados de otros modulos: ocultarlos dejaria al usuario sin enterarse de lo que si puede ver.", aliases: [{ path: "/alertas-inteligentes", redirectTo: "/alertas" }], status: "canonical", nav: { label: "Alertas", icon: AlertTriangle, group: "sistema", keywords: ["avisos", "notificaciones", "reglas"] } },
@@ -292,7 +295,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "perfil", path: "/perfil", roles: AMBOS, component: lazy(() => import("@/pages/ProfilePage")), module: null, openReason: "Perfil del propio usuario.", status: "canonical", nav: { label: "Mi perfil", icon: UserCircle, group: "sistema", keywords: ["cuenta", "contraseña", "2fa"] } },
   { id: "admin", path: "/admin", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AdminPage")), module: "settings", aliases: [{ path: "/actividad", redirectTo: "/admin?tab=activity" }, { path: "/auditoria", redirectTo: "/admin?tab=audit" }], status: "canonical", nav: { label: "Admin", icon: Crown, group: "sistema", keywords: ["administración", "organización", "suscripción"] } },
   { id: "calidad_datos", path: "/calidad-datos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DataQualityPage")), module: "products", status: "canonical", nav: { label: "Calidad de datos", icon: ScanSearch, group: "sistema", keywords: ["identidad", "sku", "ean", "duplicados", "completitud", "data quality"] } },
-  { id: "libro", path: "/libro", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LibroPage")), module: "finance", status: "canonical", nav: { label: "Libro mayor", icon: BookOpen, group: "finance", keywords: ["ledger", "asientos", "contabilidad", "resultado", "libro"] } },
+  { id: "libro", path: "/finance/libro", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LibroPage")), module: "finance", aliases: [{ path: "/libro", redirectTo: "/finance/libro" }], status: "canonical", productSurface: "finance", nav: { label: "Libro mayor", icon: BookOpen, group: "finance", keywords: ["ledger", "asientos", "contabilidad", "resultado", "libro"] } },
 ];
 
 /**
@@ -373,7 +376,12 @@ export function allRoutes(): RouteDefinition[] {
 
 /** Las rutas que el sidebar muestra, en el orden declarado. */
 export function navRoutes(): RouteDefinition[] {
-  return ROUTES.filter(r => r.nav && r.status === "canonical");
+  return ROUTES.filter(r => r.nav && r.status === "canonical" && r.productSurface !== "finance");
+}
+
+/** Navegación y páginas propias de Finance, fuera del chrome de Business. */
+export function financeProductRoutes(): RouteDefinition[] {
+  return ROUTES.filter(r => r.status === "canonical" && r.productSurface === "finance");
 }
 
 /**
@@ -386,7 +394,7 @@ export function navRoutes(): RouteDefinition[] {
  */
 export function businessRoutes(role: NavRole): RouteDefinition[] {
   return [...ROUTES, ...INTERNAL_ROUTES]
-    .filter(r => r.component && r.roles.includes(role));
+    .filter(r => r.component && r.productSurface !== "finance" && r.roles.includes(role));
 }
 
 /** Los alias de negocio, como pares `[url vieja, destino]`. */

@@ -113,6 +113,18 @@ describe("mensajeDeEdgeFunction", () => {
       expect(message).toContain("Intentá nuevamente");
     }
   });
+
+  it("un comercio no recibe diagnósticos de base aunque falte merchant_message", async () => {
+    for (const leaked of [
+      "PGRST202 function public.send_invoice does not exist",
+      "duplicate key violates unique constraint invoices_pkey",
+      "invalid input syntax for type uuid",
+    ]) {
+      const message = await mensajeDeEdgeFunction(httpError({ error: leaked }), undefined, "merchant");
+      expect(message).not.toContain(leaked);
+      expect(message).toContain("No se pudo completar la operación");
+    }
+  });
 });
 
 describe("mensajeSeguroParaCliente", () => {

@@ -10,7 +10,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { OrgProvider, useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import {
-  businessRoutes, businessAliases, publicPages, publicAliases,
+  businessRoutes, businessAliases, financeProductRoutes, publicPages, publicAliases,
 } from "@/app/routeManifest";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -58,8 +58,6 @@ const PlatformBusinessPage = lazy(() => import("@/pages/PlatformBusinessPage"));
 const PlatformAfipPage = lazy(() => import("@/pages/PlatformAfipPage"));
 const PlatformAnnouncementsPage = lazy(() => import("@/pages/PlatformAnnouncementsPage"));
 const PlatformMessagingPage = lazy(() => import("@/pages/PlatformMessagingPage"));
-const FinanceOverviewPage     = lazy(() => import("@/pages/FinanceOverviewPage"));
-const FinanceDocumentsPage    = lazy(() => import("@/pages/FinanceDocumentsPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 // ── Page-level loading fallback ─────────────────────────────────────────────
@@ -199,6 +197,9 @@ function FinanceRoutes() {
   if (!activeOrg || !activeRole) {
     return platformRole ? <Navigate to="/platform" replace /> : <ViewerGate />;
   }
+  const routes = financeProductRoutes();
+  const overviewRoute = routes.find(route => route.path === "/finance");
+  const childRoutes = routes.filter(route => route.path !== "/finance");
 
   return (
     <MfaGate isAdmin={activeRole === 'owner' || activeRole === 'admin'} orgRequiresMfa={orgRequiresMfa}>
@@ -207,8 +208,14 @@ function FinanceRoutes() {
           <FinanceProductGate>
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route index element={<FinanceOverviewPage />} />
-                <Route path="documentos" element={<FinanceDocumentsPage />} />
+                {overviewRoute?.component && <Route index element={<overviewRoute.component />} />}
+                {childRoutes.map(route => (
+                  <Route
+                    key={route.id}
+                    path={route.path.slice("/finance/".length)}
+                    element={route.component ? <route.component /> : <Navigate to="/finance" replace />}
+                  />
+                ))}
                 <Route path="*" element={<Navigate to="/finance" replace />} />
               </Routes>
             </Suspense>

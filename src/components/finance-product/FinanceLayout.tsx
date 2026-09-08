@@ -1,22 +1,23 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, FileStack, LayoutDashboard, LogOut, Landmark, ShoppingCart, Wallet, BookOpen } from 'lucide-react';
+import { ArrowLeftRight, LogOut, ShoppingCart, Truck } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
+import { financeProductRoutes } from '@/app/routeManifest';
 import OrgSwitcher from '@/components/shared/OrgSwitcher';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import BrandLogo from '@/components/shared/BrandLogo';
 
-const NAV = [
-  { to: '/finance', label: 'Resumen', icon: LayoutDashboard, end: true },
-  { to: '/finance/documentos', label: 'Documentos', icon: FileStack, end: false },
-];
+const NAV = financeProductRoutes().flatMap(route => route.nav ? [{
+  to: route.path,
+  label: route.nav.label,
+  icon: route.nav.icon,
+  end: route.path === '/finance',
+}] : []);
 
-/** Puentes al Core: no son páginas de Finance; evitan clonar Mendel en dos lados. */
+/** Compras y maestros siguen en el Core operativo; Finance abre la fuente real. */
 const CORE_BRIDGES = [
-  { to: '/gastos', label: 'Gastos', icon: Wallet },
   { to: '/ordenes-compra', label: 'Compras', icon: ShoppingCart },
-  { to: '/libro', label: 'Libro', icon: BookOpen },
-  { to: '/banco', label: 'Banco', icon: Landmark },
+  { to: '/proveedores', label: 'Proveedores', icon: Truck },
 ];
 
 export default function FinanceLayout({ children }: { children: React.ReactNode }) {
@@ -30,14 +31,14 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
   };
 
   return (
-    <div className="finance-shell min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
+    <div className="finance-shell min-h-screen bg-card text-foreground lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
       <aside className="finance-sidebar border-b border-border lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
           <Link to="/finance" className="flex min-w-0 items-center gap-2.5">
             <BrandLogo compact decorative eager markClassName="h-8 w-8" />
             <span className="min-w-0">
               <span className="block text-[14px] font-display font-bold tracking-tight">Nerqia Finance</span>
-              <span className="block text-[9px] uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Margen y documentos</span>
+              <span className="block text-[9px] uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Control financiero</span>
             </span>
           </Link>
           <div className="lg:hidden"><ThemeToggle /></div>
@@ -84,7 +85,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
         </div>
       </aside>
 
-      <main className="min-w-0">
+      <main className="min-w-0 bg-background">
         <header className="finance-topbar sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-border bg-background/94 px-6 backdrop-blur lg:flex">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Finance</p>

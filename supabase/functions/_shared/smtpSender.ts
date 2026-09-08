@@ -1,17 +1,17 @@
 /**
- * smtpSender.ts — Unified email sender: own SMTP first, Resend fallback.
+ * smtpSender.ts — Unified email sender with an explicit delivery route.
  *
  * Uses denomailer (pure Deno SMTP client, no npm required).
  * Repository: https://deno.land/x/denomailer
  *
- * Priority:
- *   1. Own SMTP (if the organization has a private server-side connection)
- *   2. Resend API (if RESEND_API_KEY env var set)
- *   3. Error — no email provider configured
+ * An organization connection is an explicit override. Otherwise the platform
+ * selection decides between SMTP and Resend. Providers are never mixed during
+ * one attempt: a fallback with a From belonging to another provider is invalid.
  */
 
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { remitenteDe } from "./remitente.ts";
 
 export interface SmtpConfig {
   host: string;
@@ -216,84 +216,77 @@ export async function sendEmail(
   metadata?: Record<string, string>,
   options?: EmailDeliveryOptions,
 ): Promise<SendResult> {
-  /**
-   * ⚠️ El error del SMTP ya no se pierde.
-   *
-   * Antes esto hacía `console.error` y caía a Resend, así que lo que llegaba a
-   * la pantalla era el error de **Resend**. Con un remitente de Gmail, Resend
-   * contesta «the gmail.com domain is not verified» — un error verdadero, sobre
-   * el proveedor equivocado, que manda a verificar un dominio que no tiene nada
-   * que ver con lo que falló.
-   *
-   * 📌 Un error de un proveedor que ni siquiera era el elegido es peor que un
-   * error genérico: hace perder el tiempo en el lugar que no es. Encontrado el
-   * 2026-08-28 con `SMTP_PASSWORD` ya cargada.
-   */
-  let errorDelSmtp: string | null = null;
+  // Una conexión privada del comercio gana por decisión explícita. Si no
+  // existe, se usa exactamente la ruta seleccionada por Plataforma.
+  const plataforma = smtpCfg ? null : await remitenteDe("default");
+  const transporte = smtpCfg ? "smtp" : (plataforma?.transporte ?? "resend");
+  const smtpElegido = smtpCfg ?? (transporte === "smtp" ? plataforma?.smtp ?? null : null);
 
-  // 1. Try SMTP
-  if (smtpCfg?.host && smtpCfg?.user) {
-    try {
-      await sendViaSmtp(smtpCfg, payload, options?.idempotencyKey);
-      return { ok: true, provider: "smtp" };
-    } catch (e) {
-      errorDelSmtp = e instanceof Error ? e.message : String(e);
-      console.error("SMTP send failed:", e);
-      // Se sigue intentando por Resend, pero el motivo de arriba se conserva.
-    }
-  }
-
-  // 2. Try Resend
-  if (resendApiKey) {
-    try {
-      const messageId = await sendViaResend(
-        resendApiKey,
-        resendFrom,
-        payload,
-        metadata,
-        options?.idempotencyKey,
-      );
-      return { ok: true, provider: "resend", messageId };
-    } catch (e) {
-      console.error("Resend send failed:", e);
-      // Si el envío elegido era el SMTP, el motivo útil es el suyo: Resend
-      // era el respaldo y con este remitente no podía funcionar igual.
-      if (errorDelSmtp) {
-        return {
-          ok: false, provider: "smtp",
-          error: pistaDelRechazo(errorDelSmtp, smtpCfg?.user ?? "el usuario configurado"),
-        };
-      }
-      const providerError = e as Error & {
-        providerCode?: string;
-        providerStatus?: number;
-        retryable?: boolean;
-      };
+  if (transporte === "smtp") {
+    if (!smtpElegido?.host || !smtpElegido.user) {
       return {
         ok: false,
-        provider: "resend",
-        error: e instanceof Error ? e.message : String(e),
-        providerCode: providerError.providerCode,
-        providerStatus: providerError.providerStatus,
-        retryable: providerError.retryable,
+        provider: "none",
+        error: plataforma?.faltaLaClaveSmtp
+          ? "El proveedor SMTP está seleccionado pero falta SMTP_PASSWORD."
+          : "El proveedor SMTP está seleccionado pero la conexión está incompleta.",
+        providerCode: "EMAIL_NOT_CONFIGURED",
+        retryable: false,
+      };
+    }
+    try {
+      await sendViaSmtp(smtpElegido, payload, options?.idempotencyKey);
+      return { ok: true, provider: "smtp" };
+    } catch (e) {
+      const motivo = e instanceof Error ? e.message : String(e);
+      console.error("SMTP send failed:", e);
+      return {
+        ok: false,
+        provider: "smtp",
+        error: pistaDelRechazo(motivo, smtpElegido.user),
+        providerCode: "SMTP_REJECTED",
+        retryable: /timeout|temporar|connection|unavailable/i.test(motivo),
       };
     }
   }
 
-  // Sin Resend configurado, el motivo del SMTP es lo único que hay.
-  if (errorDelSmtp) {
+  if (!resendApiKey || !resendFrom) {
     return {
-      ok: false, provider: "smtp",
-      error: pistaDelRechazo(errorDelSmtp, smtpCfg?.user ?? "el usuario configurado"),
+      ok: false,
+      provider: "none",
+      error: !resendApiKey
+        ? "Resend está seleccionado pero falta RESEND_API_KEY."
+        : "Resend está seleccionado pero falta el remitente de plataforma.",
+      providerCode: "EMAIL_NOT_CONFIGURED",
+      retryable: false,
     };
   }
 
-  // 3. No provider
-  return {
-    ok: false,
-    provider: "none",
-    error: "No hay proveedor de email configurado. Configurá SMTP en Ajustes o agregá RESEND_API_KEY.",
-  };
+  try {
+    const messageId = await sendViaResend(
+      resendApiKey,
+      resendFrom,
+      payload,
+      metadata,
+      options?.idempotencyKey,
+    );
+    return { ok: true, provider: "resend", messageId };
+  } catch (e) {
+    console.error("Resend send failed:", e);
+    const providerError = e as Error & {
+      providerCode?: string;
+      providerStatus?: number;
+      retryable?: boolean;
+    };
+    return {
+      ok: false,
+      provider: "resend",
+      error: e instanceof Error ? e.message : String(e),
+      providerCode: providerError.providerCode,
+      providerStatus: providerError.providerStatus,
+      retryable: providerError.retryable,
+    };
+  }
 }
 
 /**
@@ -318,7 +311,7 @@ export async function smtpDeOrganizacion(orgId: string): Promise<SmtpConfig | nu
 
   if (error) {
     // Durante un deploy la Edge puede adelantarse a la migración. En ese único
-    // caso se conserva el fallback a Resend; cualquier otro error queda visible.
+    // caso se conserva la ruta explícita de Plataforma; cualquier otro error queda visible.
     if (["42P01", "PGRST205"].includes(error.code || "")) {
       console.warn("smtpDeOrganizacion: la tabla privada todavía no existe");
       return null;

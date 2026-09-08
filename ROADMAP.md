@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-07. **Estado:** documento rector de producto y ejecución.
+**Corte:** 2026-09-08. **Estado:** documento rector de producto y ejecución.
 La historia de entregas vive en Git; este archivo conserva únicamente el estado
 actual, las decisiones vigentes y el trabajo siguiente.
 
@@ -129,10 +129,10 @@ catálogo polimórfico completo y evidencia de margen usado para decidir.
 Nerqia Finance tiene producto, layout, entitlement y permiso separados. Reusa
 proveedores, órdenes, gastos, obligaciones, ledger y documentos del Core.
 
-**Construido técnicamente:** Document Inbox privado; hash/magic bytes;
-cuarentena; extracción estructurada sin defaults financieros; revisión humana;
-matching y aliases por tenant; borradores separados de factura, compra y deuda;
-aprobación; entrega a recepción; trazabilidad e idempotencia.
+**Construido técnicamente:** superficie canónica con resumen, documentos, gastos,
+banco, flujo, resultados y libro mayor; sidebar y router comparten un manifiesto.
+Document Inbox privado; hash/magic bytes; cuarentena; extracción estructurada;
+revisión humana; matching por tenant; borradores, aprobación e idempotencia.
 
 **Límite actual:** no hay proveedor privado de inspección/extracción configurado
 ni documentos reales procesados de punta a punta. La UI debe decirlo; no se
@@ -163,8 +163,8 @@ costos reales antes de escalar comisión.
 
 Platform tiene shell, MFA, Merchant 360, métricas, operaciones, integraciones,
 comisiones, mensajería, anuncios, soporte y alta idempotente. El chat comercio–Nerqia tiene cola, responsable, prioridad, no leídos y estados server-side; no mezcla tickets de compradores. Correo
-ya tiene dominio Resend verificado, remitentes por propósito y selección
-explícita Resend/SMTP sin borrar el canal de respaldo. El 2026-09-05 se desplegó
+ya tiene dominio Resend verificado, remitentes por propósito y selección entre
+Resend API, Google, Microsoft, Zoho y SMTP personalizado, sin fallback. El 2026-09-05 se desplegó
 el contrato de errores por audiencia, idempotencia API/SMTP, campañas limitadas
 a clientes elegibles, funciones con autorización de tenant y ledger firmado de
 entrega/rebote/queja con deduplicación y contadores atómicos. Los formularios
@@ -217,9 +217,8 @@ exige firma y el portal Stripe heredado responde como retirado.
 - rutas privadas y shells son lazy; la landing no descarga el panel completo;
 - los deploys no recargan automáticamente: anuncian la versión y actualizan por
   acción explícita;
-- corte técnico 2026-09-06: typecheck, lint con **0 errores/138 warnings
-  conocidos**, **2.802 tests en 311 archivos** (`npm test`), las **76 Edge
-  Functions** pasan su typecheck y build/PWA permanece verde;
+- el dashboard conserva datos ante fallos parciales, separa fuentes obligatorias
+  y opcionales y calcula pedidos, unidades e ingresos sin crear datos demo;
 - CI y desarrollo usan Node.js 24 y acciones oficiales vigentes. El E2E fallido
   conserva siete días de evidencia sin sesión autenticada;
 - el carrito móvil conserva su cierre por encima de avisos globales y la matriz separa excepciones JavaScript de fallos de red recuperables;
