@@ -55,7 +55,7 @@ import CommercePeriodComparison from "@/components/commerce/CommercePeriodCompar
 import CommerceInventoryAlerts from "@/components/commerce/CommerceInventoryAlerts";
 import CommerceFinancialSummary from "@/components/commerce/CommerceFinancialSummary";
 import CommerceChannelPerformance from "@/components/commerce/CommerceChannelPerformance";
-import CommerceTopProducts from "@/components/commerce/CommerceTopProducts";
+import DashboardSalesSection from "@/components/dashboard/DashboardSalesSection";
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
@@ -3501,71 +3501,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Top Products + Recent Sales — Moderno */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <CommerceTopProducts
-          products={stats.topProducts.map((p: any) => ({
-            id: p.name,
-            name: p.name,
-            sales: p.qty,
-            revenue: p.revenue,
-          }))}
-          title="Productos Más Vendidos"
-          limit={5}
-        />
-
-        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
-          <h2 className="text-sm font-display font-semibold p-4 md:p-5 pb-3 text-muted-foreground uppercase tracking-wider">Últimas Ventas</h2>
-          {stats.recentSales.length > 0 ? (
-            <>
-              <div className="hidden md:block">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-muted-foreground">
-                      <th className="text-left p-3 font-medium">Producto</th>
-                      <th className="text-left p-3 font-medium">Cliente</th>
-                      <th className="text-right p-3 font-medium">Total</th>
-                      <th className="text-right p-3 font-medium">Ganancia</th>
-                      <th className="text-center p-3 font-medium">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.recentSales.map((s: any) => (
-                      <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                        <td className="p-3 truncate max-w-[150px]">{s.product_name}</td>
-                        <td className="p-3">{s.customer_name || '—'}</td>
-                        <td className="p-3 text-right font-medium">{formatARS(Number(s.total_ars))}</td>
-                        <td className="p-3 text-right">
-                          <span className={Number(s.profit_ars) > 0 ? 'text-emerald-400' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'}`}>
-                            {s.paid ? 'Pagado' : 'Debe'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="md:hidden divide-y divide-border">
-                {stats.recentSales.map((s: any) => (
-                  <div key={s.id} className="p-3 flex items-center justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{s.product_name}</p>
-                      <p className="text-xs text-muted-foreground">{s.customer_name || 'Sin cliente'}</p>
-                    </div>
-                    <div className="text-right shrink-0 ml-2">
-                      <p className="text-sm font-medium">{formatARS(Number(s.total_ars))}</p>
-                      <span className={`text-xs ${s.paid ? 'text-emerald-400' : 'text-destructive'}`}>{s.paid ? 'Pagado' : 'Debe'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : <p className="p-5 text-muted-foreground text-sm">No hay ventas registradas aún.</p>}
-        </div>
-      </div>
+      {/* Top Products + Recent Sales */}
+      <DashboardSalesSection
+        topProducts={stats.topProducts}
+        recentSales={stats.recentSales}
+      />
 
       </div>
 
