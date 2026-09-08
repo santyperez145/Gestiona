@@ -57,6 +57,8 @@ import CommerceFinancialSummary from "@/components/commerce/CommerceFinancialSum
 import CommerceChannelPerformance from "@/components/commerce/CommerceChannelPerformance";
 import DashboardSalesSection from "@/components/dashboard/DashboardSalesSection";
 import DashboardCustomersSection from "@/components/dashboard/DashboardCustomersSection";
+import DashboardHealthSection from "@/components/dashboard/DashboardHealthSection";
+import DashboardKPIsSection from "@/components/dashboard/DashboardKPIsSection";
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
@@ -1709,36 +1711,11 @@ export default function Dashboard() {
       )}
 
       {/* Business Core: la primera lectura queda junto al foco operativo. */}
-      <section id="dashboard-overview" className="workspace-dashboard-core mb-0 mt-0">
-        <div className="mb-6 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Operación central</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">Lo que está pasando</h2>
-          </div>
-          <span className="hidden text-xs text-muted-foreground sm:block">Actualizado en tiempo real</span>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {kpiCards.slice(0, 4).map((c, idx) => (
-            <CommerceDashboardKPICard
-              key={c.label}
-              title={c.label}
-              value={c.value}
-              description={c.sub}
-              icon={c.icon}
-              highlight={idx === 0}
-              live={"live" in c && c.live === true}
-              trend={c.tone === "green" ? "up" : c.tone === "red" ? "down" : "neutral"}
-              change={idx === 0 ? (() => {
-                const today = liveTodaySales?.total ?? 0;
-                const lw = lastWeekSameDaySales;
-                if (!lw) return undefined;
-                const pct = ((today - lw) / lw) * 100;
-                return pct;
-              })() : undefined}
-            />
-          ))}
-        </div>
-      </section>
+      <DashboardKPIsSection
+        kpiCards={kpiCards}
+        liveTodaySales={liveTodaySales}
+        lastWeekSameDaySales={lastWeekSameDaySales}
+      />
 
       {/* Quick Actions — Moderno */}
       <CommerceQuickActions
@@ -1879,97 +1856,15 @@ export default function Dashboard() {
       )}
 
       {/* Temperatura del negocio — semáforo */}
-      {(() => {
-        const today = new Date().toISOString().slice(0, 10);
-        const overdueCount = (stats.rawDebts || []).filter((d: any) => d.status !== 'paid' && d.due_date && d.due_date < today).length;
-        const todaySales = liveTodaySales?.total ?? 0;
-        const avgDaily = stats.avgDailySalesARS;
-        const salesPct = avgDaily > 0 ? (todaySales / avgDaily) * 100 : (todaySales > 0 ? 100 : 0);
-        const monthMargin = stats.monthSalesARS > 0 ? (stats.monthGrossProfit / stats.monthSalesARS) * 100 : 0;
-        const criticalStock = stats.outOfStock;
-        const agingCount = stats.agingCount30 || 0;
-
-        // Evaluate each signal: 2=green, 1=yellow, 0=red
-        const sigSales = salesPct >= 80 ? 2 : salesPct >= 40 ? 1 : 0;
-        const sigStock = criticalStock === 0 ? 2 : criticalStock <= 3 ? 1 : 0;
-        const sigDebt = overdueCount === 0 ? 2 : overdueCount <= 2 ? 1 : 0;
-        const sigMargin = monthMargin >= 25 ? 2 : monthMargin >= 10 ? 1 : 0;
-        const sigAging = agingCount === 0 ? 2 : agingCount <= 5 ? 1 : 0;
-        const worstScore = Math.min(sigSales, sigStock, sigDebt, sigMargin, sigAging);
-        const overallColor = worstScore === 2 ? 'green' : worstScore === 1 ? 'yellow' : 'red';
-
-        const colorCls = {
-          green: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', dot: 'bg-emerald-500', label: 'text-emerald-400', text: '🟢 Todo en orden' },
-          yellow: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', dot: 'bg-yellow-400', label: 'text-yellow-400', text: '🟡 Algunas alertas' },
-          red: { bg: 'bg-destructive/10', border: 'border-destructive/30', dot: 'bg-destructive', label: 'text-destructive', text: '🔴 Requiere atención' },
-        }[overallColor];
-
-        // ⚠️ `labels[score]`, no `labels[2 - score]`. Los arreglos se escriben
-        // [rojo, amarillo, verde] y el indice invertido mostraba el texto
-        // contrario al color: con 18 productos agotados el panel decia
-        // "Sin agotados ✓" en rojo, con 42 productos parados "Todos rotando ✓",
-        // y con 0% de margen "0.0% ✓". El punto quedaba del color correcto, que
-        // es lo que lo hacia dificil de ver.
-        const sigLabel = (score: number, labels: [string, string, string]) => (
-          <span className={`text-[10px] font-medium ${score === 2 ? 'text-emerald-400' : score === 1 ? 'text-yellow-400' : 'text-destructive'}`}>
-            {score === 2 ? '●' : score === 1 ? '●' : '●'} {labels[score]}
-          </span>
-        );
-
-        return (
-          <div className={`mb-4 ${colorCls.bg} border ${colorCls.border} rounded-xl p-4 shadow-card`}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-                <span className={`w-2.5 h-2.5 rounded-full ${colorCls.dot} animate-pulse`} />
-                Temperatura del negocio
-              </h3>
-              <span className={`text-xs font-bold ${colorCls.label}`}>{colorCls.text}</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ventas hoy</p>
-                {sigLabel(sigSales, [
-                  `${formatARS(todaySales)} (${salesPct.toFixed(0)}% del prom.)`,
-                  `${formatARS(todaySales)} (${salesPct.toFixed(0)}% del prom.)`,
-                  `${formatARS(todaySales)} (${salesPct.toFixed(0)}% del prom.)`,
-                ])}
-              </div>
-              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Stock crítico</p>
-                {sigLabel(sigStock, [
-                  `${plural(criticalStock, "producto")} sin stock`,
-                  `${criticalStock} sin stock`,
-                  'Sin agotados ✓',
-                ])}
-              </div>
-              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Deudas vencidas</p>
-                {sigLabel(sigDebt, [
-                  `${plural(overdueCount, "deuda")} vencidas`,
-                  `${overdueCount} deuda${overdueCount !== 1 ? 's' : ''} vencida${overdueCount !== 1 ? 's' : ''}`,
-                  'Sin vencidas ✓',
-                ])}
-              </div>
-              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Margen del mes</p>
-                {sigLabel(sigMargin, [
-                  `${monthMargin.toFixed(1)}% (bajo)`,
-                  `${monthMargin.toFixed(1)}% (aceptable)`,
-                  `${monthMargin.toFixed(1)}% ✓`,
-                ])}
-              </div>
-              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5 col-span-2 sm:col-span-1">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Prod. sin movim. 30d</p>
-                {sigLabel(sigAging, [
-                  `${agingCount} sin ventas (30d)`,
-                  `${agingCount} sin ventas (30d)`,
-                  'Todos rotando ✓',
-                ])}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      <DashboardHealthSection
+        liveTodaySales={liveTodaySales}
+        avgDailySalesARS={stats.avgDailySalesARS}
+        monthSalesARS={stats.monthSalesARS}
+        monthGrossProfit={stats.monthGrossProfit}
+        outOfStock={stats.outOfStock}
+        agingCount30={stats.agingCount30}
+        rawDebts={stats.rawDebts}
+      />
 
       {/* Today detail panel */}
       {showTodayDetail && todayDetail && (
