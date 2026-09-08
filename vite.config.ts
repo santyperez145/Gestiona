@@ -1,8 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "url";
 import { VitePWA } from "vite-plugin-pwa";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Sube source maps a Sentry en el build de producción SOLO si están las
 // credenciales configuradas (SENTRY_AUTH_TOKEN + org + project). Sin ellas,
@@ -117,7 +120,7 @@ export default defineConfig(() => ({
   },
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "./src"),
+      "@": path.resolve(__dirname, "./src"),
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
