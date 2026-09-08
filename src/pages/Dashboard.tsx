@@ -56,6 +56,7 @@ import CommerceInventoryAlerts from "@/components/commerce/CommerceInventoryAler
 import CommerceFinancialSummary from "@/components/commerce/CommerceFinancialSummary";
 import CommerceChannelPerformance from "@/components/commerce/CommerceChannelPerformance";
 import DashboardSalesSection from "@/components/dashboard/DashboardSalesSection";
+import DashboardCustomersSection from "@/components/dashboard/DashboardCustomersSection";
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
@@ -3463,41 +3464,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
-          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <Crown className="w-4 h-4 text-primary" />Top 5 Clientes del Mes
-          </h2>
-          {stats.topCustomers.length > 0 ? (
-            <div className="space-y-2 pb-12">
-              {stats.topCustomers.map((c: any, i: number) => (
-                <div key={c.name} className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                    {c.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{i + 1}. {c.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{c.count} compras</p>
-                  </div>
-                  <span className="text-sm font-bold text-primary shrink-0">{formatARS(c.total)}</span>
-                </div>
-              ))}
-            </div>
-          ) : <p className="text-muted-foreground text-sm py-4 text-center">Sin ventas este mes</p>}
-
-          {/* Canal de ventas — Moderno */}
-          {(stats.salesByChannel || []).length > 1 && (
-            <CommerceChannelPerformance
-              channels={stats.salesByChannel.map((ch: any) => ({
-                name: ch.source === "manual" ? "Registro manual" : ch.source === "pos" ? "POS" : ch.source === "tiendanube" ? "Tienda Online" : ch.source === "api" ? "API" : ch.source,
-                sales: ch.total,
-                orders: ch.total,
-                revenue: ch.total,
-                color: ch.source === "pos" ? "hsl(142, 76%, 36%)" : ch.source === "tiendanube" ? "hsl(var(--primary))" : "hsl(38, 92%, 50%)",
-                icon: ch.source === "pos" ? "pos" as const : ch.source === "tiendanube" ? "online" as const : "marketplace" as const,
-              }))}
-              title="Rendimiento por Canal"
-            />
-          )}
+        <div className="lg:col-span-2">
+          <DashboardCustomersSection
+            topCustomers={stats.topCustomers}
+            monthGrossProfit={stats.monthGrossProfit}
+            salesByChannel={stats.salesByChannel}
+          />
         </div>
       </div>
 
