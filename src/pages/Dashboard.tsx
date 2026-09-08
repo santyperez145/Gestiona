@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { lazy, Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useCallback } from "react";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -28,15 +28,6 @@ import {
   LineChart, Line, Legend, AreaChart, Area,
 } from "recharts";
 import { Link, useNavigate } from "react-router-dom";
-import CashFlowProjector from "@/components/dashboard/CashFlowProjector";
-import HealthScore from "@/components/dashboard/HealthScore";
-import ConsistencyAlerts from "@/components/dashboard/ConsistencyAlerts";
-import AIPrediction from "@/components/dashboard/AIPrediction";
-import AIProactiveWidget from "@/components/dashboard/AIProactiveWidget";
-import AIProductRecommenderWidget from "@/components/dashboard/AIProductRecommenderWidget";
-import DailyBriefingModal from "@/components/shared/DailyBriefingModal";
-import StockHeatmapWidget from "@/components/shared/StockHeatmapWidget";
-import InfluencerROIWidget from "@/components/dashboard/InfluencerROIWidget";
 import SetupChecklist from "@/components/dashboard/SetupChecklist";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
@@ -58,6 +49,17 @@ import DashboardSalesSection from "@/components/dashboard/DashboardSalesSection"
 import DashboardCustomersSection from "@/components/dashboard/DashboardCustomersSection";
 import DashboardHealthSection from "@/components/dashboard/DashboardHealthSection";
 import DashboardKPIsSection from "@/components/dashboard/DashboardKPIsSection";
+
+const CashFlowProjector = lazy(() => import("@/components/dashboard/CashFlowProjector"));
+const HealthScore = lazy(() => import("@/components/dashboard/HealthScore"));
+const ConsistencyAlerts = lazy(() => import("@/components/dashboard/ConsistencyAlerts"));
+const AIPrediction = lazy(() => import("@/components/dashboard/AIPrediction"));
+const AIProactiveWidget = lazy(() => import("@/components/dashboard/AIProactiveWidget"));
+const AIProductRecommenderWidget = lazy(() => import("@/components/dashboard/AIProductRecommenderWidget"));
+const DailyBriefingModal = lazy(() => import("@/components/shared/DailyBriefingModal"));
+const StockHeatmapWidget = lazy(() => import("@/components/shared/StockHeatmapWidget"));
+const InfluencerROIWidget = lazy(() => import("@/components/dashboard/InfluencerROIWidget"));
+
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
@@ -74,6 +76,16 @@ type DashboardData = {
 type DashboardSource = "productos" | "ventas" | "compras" | "deudas" | "ajustes" | "gastos";
 
 const OPTIONAL_DASHBOARD_SOURCES = new Set<DashboardSource>(["compras", "deudas", "gastos"]);
+
+function DashboardModuleFallback({ label = "Cargando panel" }: { label?: string }) {
+  return (
+    <div className="mb-4 min-h-28 animate-pulse border border-border bg-card p-4" role="status" aria-live="polite">
+      <div className="h-3 w-32 bg-muted" />
+      <div className="mt-4 h-10 w-full bg-muted/70" />
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
 
 function dashboardErrorMessage(cause: unknown, fallback: string) {
   if (cause instanceof Error && cause.message) return cause.message;
@@ -1667,6 +1679,7 @@ export default function Dashboard() {
       />
 
       <div className="workspace-dashboard-content" data-dashboard-view={visibleDashboardViewKey}>
+        {visibleDashboardSection === "dashboard-overview" && (
         <div className="dashboard-view-section" data-dashboard-section="overview">
       {/* Activación medible: formulario completo no equivale a negocio listo. */}
       <SetupChecklist
@@ -1846,6 +1859,7 @@ export default function Dashboard() {
           },
         ]}
       />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {entitlementsLoading ? (
           <button
             type="button"
@@ -1978,18 +1992,20 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Consistency Alerts (auto-repair) */}
-      {user && <ConsistencyAlerts
-        sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
-        userId={user.id}
-        onRepair={() => setReloadKey(k => k + 1)}
-      />}
+      <Suspense fallback={<DashboardModuleFallback label="Cargando salud operativa" />}>
+        {/* Consistency Alerts (auto-repair) */}
+        {user && <ConsistencyAlerts
+          sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
+          userId={user.id}
+          onRepair={() => setReloadKey(k => k + 1)}
+        />}
 
-      {/* AI Proactive Suggestions */}
-      {visibleDashboardSection === "dashboard-overview" && activeOrg && !entitlementsLoading && canUseAI && <AIProactiveWidget
-        orgId={activeOrg.id}
-        hasBusinessData={stats.products.length > 0 || stats.rawSales.length > 0}
-      />}
+        {/* AI Proactive Suggestions */}
+        {activeOrg && !entitlementsLoading && canUseAI && <AIProactiveWidget
+          orgId={activeOrg.id}
+          hasBusinessData={stats.products.length > 0 || stats.rawSales.length > 0}
+        />}
+      </Suspense>
 
       {/* At-risk customers widget */}
       {atRiskCustomers.length > 0 && (
@@ -2831,8 +2847,10 @@ export default function Dashboard() {
       })()}
 
       </div>
+        )}
 
       {/* Secondary metrics remain available without competing with the core. */}
+      {visibleDashboardSection === "dashboard-sales" && (
       <div className="dashboard-view-section" data-dashboard-section="sales">
       <section id="dashboard-sales" className="mb-6">
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -2867,7 +2885,9 @@ export default function Dashboard() {
       )}
 
       </div>
+      )}
 
+      {visibleDashboardSection === "dashboard-customers" && (
       <div className="dashboard-view-section" data-dashboard-section="customers">
       <div id="dashboard-customers" className="dashboard-section-anchor" aria-hidden="true" />
 
@@ -3210,7 +3230,9 @@ export default function Dashboard() {
       )}
 
       </div>
+      )}
 
+      {visibleDashboardSection === "dashboard-inventory" && (
       <div className="dashboard-view-section" data-dashboard-section="inventory">
       <div id="dashboard-inventory" className="dashboard-section-anchor" aria-hidden="true" />
 
@@ -3244,15 +3266,19 @@ export default function Dashboard() {
             </h2>
             <Link to="/productos" className="text-xs text-primary hover:underline">Ver productos →</Link>
           </div>
-          <StockHeatmapWidget products={stats.products} maxTiles={80} />
+          <Suspense fallback={<DashboardModuleFallback label="Cargando mapa de inventario" />}>
+            <StockHeatmapWidget products={stats.products} maxTiles={80} />
+          </Suspense>
         </div>
       )}
 
-      {/* AI Product Recommender */}
-      <AIProductRecommenderWidget />
+      <Suspense fallback={<DashboardModuleFallback label="Cargando recomendaciones de inventario" />}>
+        {/* AI Product Recommender */}
+        <AIProductRecommenderWidget />
 
-      {/* ROI de Canjes con Influencers */}
-      <InfluencerROIWidget />
+        {/* ROI de Canjes con Influencers */}
+        <InfluencerROIWidget />
+      </Suspense>
 
       {/* Próximas compras sugeridas */}
       {stats.restockSuggestions?.length > 0 && (
@@ -3310,7 +3336,9 @@ export default function Dashboard() {
       )}
 
       </div>
+      )}
 
+      {visibleDashboardSection === "dashboard-finance" && (
       <div className="dashboard-view-section" data-dashboard-section="finance">
       <div id="dashboard-finance" className="dashboard-section-anchor" aria-hidden="true" />
 
@@ -3350,11 +3378,14 @@ export default function Dashboard() {
       />
 
       </div>
+      )}
 
+      {visibleDashboardSection === "dashboard-intelligence" && (
       <div className="dashboard-view-section" data-dashboard-section="intelligence">
       <div id="dashboard-intelligence" className="dashboard-section-anchor" aria-hidden="true" />
 
       {/* Cash Flow + Health + AI */}
+      <Suspense fallback={<DashboardModuleFallback label="Cargando inteligencia financiera" />}>
       <CashFlowProjector
         sales={stats.rawSales} debts={stats.rawDebts} expenses={stats.rawExpenses}
         purchases={stats.rawPurchases} settings={stats.rawSettings}
@@ -3394,6 +3425,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      </Suspense>
 
       {/* MoM Growth + Top Customers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
@@ -3439,15 +3471,19 @@ export default function Dashboard() {
       />
 
       </div>
+      )}
 
       {/* Daily Briefing Modal */}
       {briefingOpen && user && stats && activeOrg && canUseAI && (
+        <Suspense fallback={null}>
         <DailyBriefingModal
           open={briefingOpen}
           onClose={() => setBriefingOpen(false)}
           orgId={activeOrg.id}
         />
+        </Suspense>
       )}
+    </div>
     </div>
   );
 }

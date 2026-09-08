@@ -66,6 +66,16 @@ describe("dashboard operativo", () => {
     expect(dashboard).toContain('orgViewKey(`dashboard.monthly_target.${currentYearMonth}`, activeOrg?.id)');
     expect(dashboard).not.toContain("noSalesAlertDismissed");
   });
+
+  it("monta solo la vista seleccionada y difiere los paneles secundarios", () => {
+    for (const view of ["overview", "sales", "customers", "inventory", "finance", "intelligence"]) {
+      expect(dashboard).toContain(`visibleDashboardSection === "dashboard-${view}" && (`);
+      expect(dashboard).toContain(`data-dashboard-section="${view}"`);
+    }
+    expect(dashboard).toContain('const CashFlowProjector = lazy(() => import(');
+    expect(dashboard).toContain('const StockHeatmapWidget = lazy(() => import(');
+    expect(dashboard).toContain("<Suspense fallback={<DashboardModuleFallback");
+  });
 });
 
 describe("Finance sin paneles ficticios", () => {

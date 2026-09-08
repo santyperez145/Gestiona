@@ -219,7 +219,7 @@ exige firma y el portal Stripe heredado responde como retirado.
   acción explícita;
 - el dashboard conserva datos ante fallos parciales, separa fuentes obligatorias
   y opcionales y calcula pedidos, unidades e ingresos sin crear datos demo. Cada fuente,
-  widget y canal realtime queda ligado a la organización activa; las preferencias persistidas tampoco se comparten entre comercios;
+  widget y canal realtime queda ligado a la organización activa; las preferencias persistidas tampoco se comparten entre comercios y cada tab difiere sus módulos secundarios;
 - CI y desarrollo usan Node.js 24 y acciones oficiales vigentes. El E2E fallido
   conserva siete días de evidencia sin sesión autenticada;
 - el carrito móvil conserva su cierre por encima de avisos globales y la matriz separa excepciones JavaScript de fallos de red recuperables;
