@@ -53,6 +53,7 @@ export default function middleware(request: Request): Response {
 }
 
 export const config = {
+  runtime: 'nodejs',
   matcher: [
     '/((?!api/|assets/|brand/|developer/|robots\\.txt|sitemap\\.xml|feed\\.xml|sw\\.js|registerSW\\.js|manifest\\.webmanifest|favicon\\.ico).*)',
   ],

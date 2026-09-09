@@ -33,7 +33,8 @@ describe("dependencias sin alertas productivas conocidas", () => {
     ["dompurify", "3.4.13"],
     ["nanoid", "3.3.18"],
     ["vite", "8.2.2"],
-    ["esbuild", "0.28.0"],
+    ["vitest", "5.0.0"],
+    ["@vitest/mocker", "5.0.0"],
     ["@vitejs/plugin-react", "6.1.1"],
     ["vite-plugin-pwa", "1.3.0"],
   ])("%s queda en una línea parcheada", (paquete, minimo) => {
@@ -49,7 +50,12 @@ describe("dependencias sin alertas productivas conocidas", () => {
   });
 
   it("la versión mínima de Node usa la línea LTS del CI", () => {
-    expect(pkg.engines.node).toBe(">=24.0.0");
+    expect(pkg.engines.node).toBe("24.x");
+  });
+
+  it("el routing middleware usa el runtime Node soportado por Vercel", () => {
+    const routingMiddleware = readFileSync(resolve(root, "middleware.ts"), "utf8");
+    expect(routingMiddleware).toContain("runtime: 'nodejs'");
   });
 
   it("la paleta global tiene un solo dueño y no duplica listeners ni bundle", () => {
