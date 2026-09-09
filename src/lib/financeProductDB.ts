@@ -20,6 +20,10 @@ export interface FinanceCoreSnapshot {
   openPayablesArs: number;
   ledgerEntriesCount: number;
   precursorOcrDocuments: number;
+  monthlyBudgetArs: number;
+  monthlyExpenseArs: number;
+  monthlyBudgetAvailableArs: number;
+  overBudgetCategories: number;
 }
 
 export async function getFinanceProductAccess(orgId: string): Promise<ProductSurfaceAccess> {
@@ -65,6 +69,10 @@ export async function getFinanceCoreSnapshot(orgId: string): Promise<FinanceCore
     openPayablesArs: Number(row.open_payables_ars || 0),
     ledgerEntriesCount: Number(row.ledger_entries_count || 0),
     precursorOcrDocuments: Number(row.precursor_ocr_documents || 0),
+    monthlyBudgetArs: Number(row.monthly_budget_ars || 0),
+    monthlyExpenseArs: Number(row.monthly_expense_ars || 0),
+    monthlyBudgetAvailableArs: Number(row.monthly_budget_available_ars || 0),
+    overBudgetCategories: Number(row.over_budget_categories || 0),
   };
 }
 
@@ -104,6 +112,11 @@ export function financeMetricHref(
       return snapshot.suppliersCount > 0 ? '/proveedores' : '/proveedores';
     case 'ledgerEntriesCount':
       return '/finance/libro';
+    case 'monthlyBudgetArs':
+    case 'monthlyExpenseArs':
+    case 'monthlyBudgetAvailableArs':
+    case 'overBudgetCategories':
+      return '/finance/gastos?vista=presupuesto';
     default:
       return null;
   }
@@ -118,6 +131,19 @@ export function financeFocoFromSnapshot(
   opts?: FinanceFocoOptions,
 ): FinanceFocoItem[] {
   const items: FinanceFocoItem[] = [];
+  if (s.overBudgetCategories > 0) {
+    items.push({
+      to: '/finance/gastos?vista=presupuesto',
+      label: 'Revisar categorías excedidas',
+      detail: `${s.overBudgetCategories} categoría${s.overBudgetCategories === 1 ? '' : 's'} superaron el límite mensual`,
+    });
+  } else if (s.monthlyBudgetArs === 0 && s.monthlyExpenseArs > 0) {
+    items.push({
+      to: '/finance/gastos?vista=presupuesto',
+      label: 'Definir el presupuesto del mes',
+      detail: `${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(s.monthlyExpenseArs)} ejecutados sin un plan asignado`,
+    });
+  }
   if (s.precursorOcrDocuments > 0) {
     items.push({
       to: opts?.nextReviewDocumentId

@@ -53707,9 +53707,13 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: {
           ledger_entries_count: number
+          monthly_budget_ars: number
+          monthly_budget_available_ars: number
+          monthly_expense_ars: number
           open_payables_ars: number
           open_payables_count: number
           open_purchase_orders: number
+          over_budget_categories: number
           precursor_ocr_documents: number
           suppliers_count: number
         }[]

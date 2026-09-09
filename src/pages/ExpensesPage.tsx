@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
   getExpensesDB, addExpenseDB, updateExpenseDB, deleteExpenseDB,
@@ -172,6 +173,7 @@ export default function ExpensesPage() {
     orgViewKey("expenses.tab", activeOrg?.id),
     "gastos",
   );
+  const [viewParams, setViewParams] = useSearchParams();
   const [expenseSort, setExpenseSort] = useState<{ col: "date" | "amount_ars" | "category"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
 
   const [budgets, setBudgets] = useState<Record<string, number>>({});
@@ -185,6 +187,39 @@ export default function ExpensesPage() {
   const selectedBudgetPeriod = useMemo(() => expenseBudgetPeriod(filterMonth), [filterMonth]);
 
   useEffect(() => {
+    const requestedTab = viewParams.get("vista");
+    if (
+      requestedTab
+      && ["gastos", "presupuesto", "recurrentes", "tendencia"].includes(requestedTab)
+      && requestedTab !== activeTab
+    ) {
+      setActiveTab(requestedTab as typeof activeTab);
+    }
+    const requestedPeriod = viewParams.get("periodo");
+    if (requestedPeriod && expenseBudgetPeriod(requestedPeriod) && requestedPeriod !== filterMonth) {
+      setFilterMonth(requestedPeriod);
+    }
+  }, [activeTab, filterMonth, setActiveTab, setFilterMonth, viewParams]);
+
+  const selectExpenseTab = useCallback((tab: typeof activeTab) => {
+    setActiveTab(tab);
+    const next = new URLSearchParams(viewParams);
+    if (tab === "gastos") next.delete("vista");
+    else next.set("vista", tab);
+    if (tab === "presupuesto") next.set("periodo", filterMonth);
+    else next.delete("periodo");
+    setViewParams(next, { replace: true });
+  }, [filterMonth, setActiveTab, setViewParams, viewParams]);
+
+  const selectBudgetMonth = useCallback((month: string) => {
+    setFilterMonth(month);
+    const next = new URLSearchParams(viewParams);
+    next.set("vista", "presupuesto");
+    next.set("periodo", month);
+    setViewParams(next, { replace: true });
+  }, [setFilterMonth, setViewParams, viewParams]);
+
+  useEffect(() => {
     if (activeTab === "presupuesto" && !selectedBudgetPeriod) setFilterMonth(currentMonthKey);
   }, [activeTab, currentMonthKey, selectedBudgetPeriod, setFilterMonth]);
 
@@ -194,8 +229,10 @@ export default function ExpensesPage() {
       toast.error("Ingresá un monto de presupuesto válido");
       return;
     }
-    const category = categories.find(item => item.value === cat);
-    if (!category) return;
+    const category = categories.find(item => item.value === cat) ?? {
+      value: cat,
+      label: getExpenseCategoryLabel(cat, settings),
+    };
     setSavingBudget(cat);
     try {
       await setExpenseBudget({
@@ -350,14 +387,28 @@ export default function ExpensesPage() {
   );
 
   const budgetRows = useMemo(() => {
-    return categories.map(category => ({
+    const visibleCategories = [...categories];
+    const knownKeys = new Set(visibleCategories.map(category => category.value));
+    const historicalKeys = new Set([
+      ...Object.keys(budgetSpentByCategory),
+      ...Object.keys(budgets),
+    ]);
+    for (const categoryKey of historicalKeys) {
+      if (knownKeys.has(categoryKey)) continue;
+      visibleCategories.push({
+        value: categoryKey,
+        label: getExpenseCategoryLabel(categoryKey, settings),
+        color: "hsl(var(--muted-foreground))",
+      });
+    }
+    return visibleCategories.map(category => ({
       cat: category.value,
       name: category.label,
       color: category.color,
       value: budgetSpentByCategory[category.value] ?? 0,
       budget: budgets[category.value] ?? 0,
     }));
-  }, [budgetSpentByCategory, budgets, categories]);
+  }, [budgetSpentByCategory, budgets, categories, settings]);
 
   const budgetSummary = useMemo(() => {
     const assigned = budgetRows.reduce((sum, row) => sum + row.budget, 0);
@@ -553,7 +604,7 @@ export default function ExpensesPage() {
           { id: 'recurrentes', label: 'Recurrentes', icon: Repeat },
           { id: 'tendencia', label: 'Tendencia', icon: TrendingUp },
         ] as const).map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+          <button key={tab.id} onClick={() => selectExpenseTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
             <tab.icon className="w-4 h-4" />
             <span className="hidden sm:inline">{tab.label}</span>
@@ -817,7 +868,7 @@ export default function ExpensesPage() {
                 Compará el límite asignado con los gastos reales de {budgetPeriodLabel}.
               </p>
             </div>
-            <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <Select value={filterMonth} onValueChange={selectBudgetMonth}>
               <SelectTrigger className="h-9 w-full border-border bg-card sm:w-[190px]" aria-label="Período del presupuesto">
                 <SelectValue />
               </SelectTrigger>

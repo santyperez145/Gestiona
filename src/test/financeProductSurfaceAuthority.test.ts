@@ -10,6 +10,7 @@ const businessLayout = read('src/components/AppLayout.tsx');
 const financeLayout = read('src/components/finance-product/FinanceLayout.tsx');
 const financeGate = read('src/components/finance-product/FinanceProductGate.tsx');
 const overview = read('src/pages/FinanceOverviewPage.tsx');
+const budgetPulse = read('supabase/migrations/20260908000110_finance_budget_pulse.sql');
 const platformEdge = read('supabase/functions/platform-admin-action/index.ts');
 const platformPanel = read('src/components/platform/ProductAccessPanel.tsx');
 
@@ -71,6 +72,16 @@ describe('autoridad de la superficie Nerqia Finance', () => {
     expect(snapshotF3).not.toMatch(/count\(\*\) FROM public\.ocr_documents/);
     expect(overview).not.toMatch(/\.from\(['"](?:suppliers|purchase_orders|supplier_debts|ledger_entries)/);
     expect(overview).toContain('Operación conectada');
+  });
+
+  it('integra el presupuesto mensual en Pulse sin duplicar gastos', () => {
+    expect(budgetPulse).toContain('monthly_budget_available_ars numeric');
+    expect(budgetPulse).toContain('FROM public.expenses e');
+    expect(budgetPulse).toContain('FROM public.budgets b');
+    expect(budgetPulse).toContain("FROM public.product_surface_access(p_org_id, 'finance')");
+    expect(budgetPulse).toContain('REVOKE ALL ON FUNCTION public.finance_core_snapshot(uuid) FROM PUBLIC, anon, authenticated');
+    expect(overview).toContain('Budget Pulse');
+    expect(overview).toContain('/finance/gastos?vista=presupuesto&periodo=');
   });
 
   it('Platform aplica la misma matriz de roles en Edge y base', () => {

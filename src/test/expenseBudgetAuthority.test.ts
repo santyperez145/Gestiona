@@ -63,8 +63,11 @@ describe("autoridad de presupuestos de gastos", () => {
   it("elimina el presupuesto local y presenta una única vista canónica", () => {
     expect(page).not.toContain("gestiona.expense_budgets");
     expect(page).toContain("expenseBudgetSpendByCategory(expenses, selectedBudgetPeriod)");
+    expect(page).toContain("const historicalKeys = new Set");
     expect(page).toContain("budgetRows.map(category =>");
     expect(page).toContain("Tu rol tiene acceso de consulta");
     expect(page).toContain("void loadBudgets()");
+    expect(page).toContain('next.set("vista", "presupuesto")');
+    expect(page).toContain('next.set("periodo", month)');
   });
 });

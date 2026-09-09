@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpenCheck, Building2, FileClock, FileStack, Landmark, Loader2, ReceiptText, ShoppingCart, Wallet, ArrowUpRight } from 'lucide-react';
+import { BookOpenCheck, Building2, FileClock, FileStack, Landmark, Loader2, ReceiptText, ShoppingCart, Wallet, ArrowUpRight, Target } from 'lucide-react';
 import { useOrg } from '@/lib/orgContext';
 import {
   financeFocoFromSnapshot,
@@ -30,6 +30,16 @@ export default function FinanceOverviewPage() {
     () => (snapshot ? financeFocoFromSnapshot(snapshot, focoOpts) : []),
     [snapshot, focoOpts],
   );
+  const currentBudgetPeriod = useMemo(() => {
+    const now = new Date();
+    return {
+      key: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+      label: now.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }),
+    };
+  }, []);
+  const budgetExecution = snapshot && snapshot.monthlyBudgetArs > 0
+    ? Math.min(100, (snapshot.monthlyExpenseArs / snapshot.monthlyBudgetArs) * 100)
+    : 0;
 
   useEffect(() => {
     if (!activeOrg?.id) return;
@@ -150,6 +160,57 @@ export default function FinanceOverviewPage() {
             attention={snapshot.precursorOcrDocuments > 0}
           />
         </div>
+      )}
+
+      {snapshot && (
+        <section className="border border-border bg-card" aria-labelledby="finance-budget-pulse-title">
+          <div className="flex flex-col justify-between gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:px-5">
+            <div className="flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-teal-700 text-white">
+                <Target className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Budget Pulse</p>
+                <h2 id="finance-budget-pulse-title" className="mt-0.5 text-sm font-semibold capitalize">{currentBudgetPeriod.label}</h2>
+              </div>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/finance/gastos?vista=presupuesto&periodo=${currentBudgetPeriod.key}`}>
+                Abrir presupuesto <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+          <div className="grid divide-y divide-border sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+            {[
+              ['Asignado', formatArs(snapshot.monthlyBudgetArs)],
+              ['Ejecutado', formatArs(snapshot.monthlyExpenseArs)],
+              ['Disponible', formatArs(snapshot.monthlyBudgetAvailableArs)],
+              ['Categorías excedidas', snapshot.overBudgetCategories.toLocaleString('es-AR')],
+            ].map(([label, value], index) => (
+              <div key={label} className="p-4 sm:px-5">
+                <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
+                <p className={`mt-1 truncate font-mono text-base font-semibold ${
+                  (index === 2 && snapshot.monthlyBudgetAvailableArs < 0)
+                    || (index === 3 && snapshot.overBudgetCategories > 0)
+                    ? 'text-destructive'
+                    : ''
+                }`}>{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-border px-4 py-3 sm:px-5">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Ejecución del plan</span>
+              <span className="font-mono">{snapshot.monthlyBudgetArs > 0 ? `${budgetExecution.toFixed(0)}%` : 'Sin plan asignado'}</span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden bg-muted">
+              <div
+                className={`h-full transition-[width] duration-300 ${snapshot.monthlyExpenseArs > snapshot.monthlyBudgetArs && snapshot.monthlyBudgetArs > 0 ? 'bg-destructive' : 'bg-teal-600'}`}
+                style={{ width: `${budgetExecution}%` }}
+              />
+            </div>
+          </div>
+        </section>
       )}
 
       <section className="border border-border bg-card p-5">

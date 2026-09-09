@@ -12,6 +12,10 @@ const vacio: FinanceCoreSnapshot = {
   openPayablesArs: 0,
   ledgerEntriesCount: 0,
   precursorOcrDocuments: 0,
+  monthlyBudgetArs: 0,
+  monthlyExpenseArs: 0,
+  monthlyBudgetAvailableArs: 0,
+  overBudgetCategories: 0,
 };
 
 describe("financeFocoFromSnapshot", () => {
@@ -67,5 +71,31 @@ describe("financeFocoFromSnapshot", () => {
     expect(financeMetricHref("openPayablesCount", s)).toBe("/ordenes-compra");
     expect(financeMetricHref("suppliersCount", s)).toBe("/proveedores");
     expect(financeMetricHref("ledgerEntriesCount", s)).toBe("/finance/libro");
+    expect(financeMetricHref("monthlyBudgetArs", s)).toBe("/finance/gastos?vista=presupuesto");
+  });
+
+  it("prioriza un desvío presupuestario con evidencia mensual", () => {
+    const foco = financeFocoFromSnapshot({
+      ...vacio,
+      suppliersCount: 2,
+      monthlyBudgetArs: 100_000,
+      monthlyExpenseArs: 120_000,
+      monthlyBudgetAvailableArs: -20_000,
+      overBudgetCategories: 2,
+    });
+    expect(foco[0]).toMatchObject({
+      to: "/finance/gastos?vista=presupuesto",
+      label: "Revisar categorías excedidas",
+    });
+  });
+
+  it("pide definir un plan cuando existen gastos sin presupuesto", () => {
+    const foco = financeFocoFromSnapshot({
+      ...vacio,
+      suppliersCount: 1,
+      monthlyExpenseArs: 50_000,
+      monthlyBudgetAvailableArs: -50_000,
+    });
+    expect(foco[0]?.label).toBe("Definir el presupuesto del mes");
   });
 });
