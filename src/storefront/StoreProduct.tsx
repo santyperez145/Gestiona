@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   mejorDescuento, nombreMedio, precioConMedioDePago, medioMejoraElPrecio,
 } from "@/lib/paymentDiscount";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/storeProductVariant";
 
 export default function StoreProduct() {
+  const isMobile = useIsMobile();
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   const { productId } = useParams<{ productId: string }>();
   const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart, basePath: base } = useStore();
@@ -456,14 +458,14 @@ export default function StoreProduct() {
             </div>}
             <button
               onClick={agregarOEnfocar}
-              aria-hidden={!atcVisible}
-              tabIndex={atcVisible ? 0 : -1}
+              aria-hidden={isMobile && !atcVisible}
+              tabIndex={!isMobile || atcVisible ? 0 : -1}
               className="flex-1 min-h-11 py-3 font-semibold inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
               {faltaElegir
                 ? textoCtaVariante(tipoVariante)
-                : added ? <><Check className="w-4 h-4" /> ¡Agregado!</> : <><ShoppingBag className="w-4 h-4" /> Comprar ahora</>}
+                : added ? <><Check className="w-4 h-4" /> ¡Agregado!</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
             </button>
             <button
               onClick={() => deseos.toggle(p.id)}

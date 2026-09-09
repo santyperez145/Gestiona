@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-08. **Estado:** documento rector de producto y ejecución.
+**Corte:** 2026-09-09. **Estado:** documento rector de producto y ejecución.
 La historia de entregas vive en Git; este archivo conserva únicamente el estado
 actual, las decisiones vigentes y el trabajo siguiente.
 
@@ -316,7 +316,7 @@ partner.
 |---|---|---|
 | 1 | A1 Contratos de acción | Cada CTA crítica tiene test reversible/sandbox y resultado observable. |
 | 2 | C22.2 Certificar migración | Shopify/Tiendanube/Empretienda reales, clientes, imágenes propias y rollback condicionado. |
-| 3 | C20 Estados de checkout | Cart/order/payment/fulfillment recuperan fallos y concurrencia. |
+| 3 | C20 Estados de checkout | Intento persistido por carrito, errores de red recuperables y continuación desde el pedido. Pendiente: certificar concurrencia con claves distintas y ciclo completo de carrito entre pestañas. |
 | 4 | C23 Operación de pedidos | Cola por SLA, fulfillment y devolución completos. |
 | 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
 | 6 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. |

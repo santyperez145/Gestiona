@@ -1,10 +1,21 @@
 # E2E críticos
 
-**Estado:** gate vigente. **Corte:** 2026-09-06.
+**Estado:** gate vigente. **Corte:** 2026-09-09.
 
 La puerta E2E prueba la tienda pública en Chromium de escritorio y teléfono, y
 las superficies críticas del panel con una identidad técnica. Los specs leen la
 base vinculada; no crean ventas, órdenes, envíos ni comprobantes.
+
+Checkout C20: un escenario desktop/mobile intercepta toda creación de orden y
+las Edge Functions, retiene la respuesta y devuelve un resultado incompleto.
+Verifica estado visible, campos bloqueados, ausencia de desborde, carrito
+conservado y reintento con la misma clave. Las pruebas de componente cubren
+recarga, doble submit, fallo del pago y segunda compra idéntica. No certifican
+pagos live ni concurrencia de sesiones con claves diferentes.
+
+La entrada al checkout también cubre el CTA de la ficha: en escritorio no se
+oculta del árbol accesible al salir del viewport; la sustitución por barra fija
+se aplica sólo en móvil. Ambos botones dicen "Agregar al carrito".
 
 ## Contrato del gate
 

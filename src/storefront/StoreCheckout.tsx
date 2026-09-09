@@ -7,7 +7,7 @@ import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
 import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError, startStoreCheckout } from "@/lib/publicDataSource";
-import { orderAccessFragment, saveOrderAccessToken } from "./orderAccess";
+import { orderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
 import { trackBeginCheckout } from "./tracking";
 import { useStoreTrackingRuntimeReady } from "./trackingConsent";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
@@ -20,6 +20,15 @@ import { cartShippingCellText, checkoutShippingDisplay } from "@/lib/storeCartSh
 import { checkoutDebeIntentarCuenta } from "@/lib/storeCheckoutAccount";
 import { notesWithStoreReferral, readStoreReferral } from "@/lib/storeReferral";
 import { mensajeDeEdgeFunction, mensajeSeguroParaCliente } from "@/lib/edgeErrors";
+import {
+  checkoutAttemptStorage,
+  discardStoreCheckoutAttempt,
+  markStoreCheckoutOrderCreated,
+  parseCreatedStoreOrder,
+  prepareStoreCheckoutAttempt,
+  readStoreCheckoutAttempt,
+  storeCheckoutPayloadFingerprint,
+} from "@/lib/storeCheckoutAttempt";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -34,6 +43,8 @@ interface ShippingOption {
   zone_id: string | null;
   zone_name: string | null;
 }
+
+type CheckoutProcessingStage = "idle" | "creating_order" | "securing_order" | "opening_payment";
 
 export default function StoreCheckout() {
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
@@ -103,6 +114,8 @@ export default function StoreCheckout() {
   }, [store?.slug]);
 
   const [enviando, setEnviando] = useState(false);
+  const submittingRef = useRef(false);
+  const [processingStage, setProcessingStage] = useState<CheckoutProcessingStage>("idle");
   /**
    * H1 — clave de idempotencia del intento de compra en curso.
    *
@@ -116,6 +129,16 @@ export default function StoreCheckout() {
   const [aceptaMarketing, setAceptaMarketing] = useState(false);
   const [crearCuenta, setCrearCuenta] = useState(false);
   const [passwordCuenta, setPasswordCuenta] = useState("");
+
+  // Si la pestaña se recargó entre crear la orden y navegar, no se vuelve a
+  // ejecutar el checkout. El pedido ya confirmado es el único destino válido.
+  useEffect(() => {
+    if (enviando || !store?.slug || !cartToken || cart.length > 0) return;
+    const attempt = readStoreCheckoutAttempt(checkoutAttemptStorage(), store.slug, cartToken);
+    if (attempt?.phase !== "order_created" || !attempt.orderNumber) return;
+    const token = readOrderAccessToken(store.slug, attempt.orderNumber);
+    navigate(`${base}/orden/${attempt.orderNumber}${orderAccessFragment(token)}`, { replace: true });
+  }, [base, cart.length, cartToken, enviando, navigate, store?.slug]);
 
   // ── Cupón ───────────────────────────────────────────────────────────────
   const [cupon, setCupon] = useState("");
@@ -362,6 +385,7 @@ export default function StoreCheckout() {
 
   const confirmar = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError(null);
 
     if (cotizando || entrega.bloqueo) {
@@ -383,131 +407,193 @@ export default function StoreCheckout() {
       setError(cuentaPlan.error);
       return;
     }
+    submittingRef.current = true;
     setEnviando(true);
+    setProcessingStage("creating_order");
+    let confirmedOrder: { number: string; accessToken: string | null } | null = null;
 
-    // H1 — la clave de idempotencia se genera UNA VEZ por intento de compra y
-    // vive en un ref, no en estado: no tiene que provocar re-render y tiene que
-    // sobrevivir a todos los reintentos del mismo submit. Si se generara acá
-    // adentro en cada llamada, dos clics producirían dos claves y dos órdenes,
-    // que es exactamente lo que esto viene a evitar.
-    if (!claveIdem.current) claveIdem.current = crypto.randomUUID();
+    const finishOrder = (number: string, accessToken: string | null, paymentError?: string | null) => {
+      discardStoreCheckoutAttempt(checkoutAttemptStorage(), store!.slug, cartToken);
+      claveIdem.current = null;
+      clearCart();
+      navigate(`${base}/orden/${number}${orderAccessFragment(accessToken)}`, {
+        replace: true,
+        state: paymentError ? { checkoutPaymentError: paymentError } : undefined,
+      });
+    };
 
-    const { data, error: rpcError, cartLinked } = await createStoreOrder({
-      p_idempotency_key: claveIdem.current,
-      p_cart_token: cartToken || null,
-      p_slug: store!.slug,
-      p_items: cart.map(l => ({ product_id: l.productId, variant_id: l.variantId ?? null, quantity: l.qty })),
-      p_customer_name: form.nombre,
-      p_customer_email: form.email,
-      p_customer_phone: form.telefono || null,
-      p_shipping: {
-        calle: form.calle, ciudad: form.ciudad,
-        provincia: form.provincia, cp: form.cp, notas: form.notas,
-      },
-      p_payment_method: form.metodo,
-      p_notes: notesWithStoreReferral(form.notas, readStoreReferral(store!.slug)),
-      // El RPC revalida el cupón: entre que se escribió y se confirma pudo
-      // agotarse o vencer.
-      p_coupon: cuponAplicado?.code ?? null,
-      // Se manda CUÁL opción eligió, no cuánto cuesta: el precio lo recalcula
-      // el RPC contra las tarifas de la tienda.
-      p_shipping_option: opcionElegida,
-    });
+    try {
+      const orderPayload = {
+        p_cart_token: cartToken || null,
+        p_slug: store!.slug,
+        p_items: cart.map(l => ({ product_id: l.productId, variant_id: l.variantId ?? null, quantity: l.qty })),
+        p_customer_name: form.nombre,
+        p_customer_email: form.email,
+        p_customer_phone: form.telefono || null,
+        p_shipping: {
+          calle: form.calle, ciudad: form.ciudad,
+          provincia: form.provincia, cp: form.cp, notas: form.notas,
+        },
+        p_payment_method: form.metodo,
+        p_notes: notesWithStoreReferral(form.notas, readStoreReferral(store!.slug)),
+        // El RPC revalida el cupón: entre que se escribió y se confirma pudo
+        // agotarse o vencer.
+        p_coupon: cuponAplicado?.code ?? null,
+        // Se manda CUÁL opción eligió, no cuánto cuesta: el precio lo recalcula
+        // el RPC contra las tarifas de la tienda.
+        p_shipping_option: opcionElegida,
+      };
 
-    setEnviando(false);
-
-    if (rpcError) {
-      // El RPC valida stock y precios del lado del servidor, así que sus
-      // mensajes son los que importan (ej: "Sin stock suficiente de X").
-      // Una caída de red ya reintentó con la misma clave: no se duplica.
-      setError(isTransientPublicError(rpcError)
-        ? "La red falló al confirmar. Reintentá: no se va a duplicar el pedido."
-        : mensajeSeguroParaCliente(rpcError, "No pudimos confirmar el pedido. Revisá los datos y volvé a intentar."));
-      return;
-    }
-
-    const orderNumber = (data as any)?.order_number;
-    const access = orderNumber
-      ? await getStoreOrderSecure({
+      // La clave vive también en localStorage, sin el payload ni datos del
+      // comprador. Una recarga o respuesta perdida conserva la clave que la
+      // base utiliza para recuperar el resultado del mismo intento.
+      let persistedAttempt = null as ReturnType<typeof prepareStoreCheckoutAttempt> | null;
+      try {
+        const fingerprint = await storeCheckoutPayloadFingerprint(orderPayload);
+        persistedAttempt = prepareStoreCheckoutAttempt({
+          storage: checkoutAttemptStorage(),
           slug: store!.slug,
-          orderNumber,
-          email: form.email,
-        })
-      : { data: null, error: null, legacy: false };
-    const accessToken = orderNumber
-      ? saveOrderAccessToken(store!.slug, orderNumber, access.data?.access_token)
-      : null;
-
-    if (cuentaPlan.intentar) {
-      const alta = await signUp(form.email, passwordCuenta, form.nombre);
-      if (alta.error) {
-        console.error("No se pudo crear la cuenta del comprador", alta.error);
+          cartToken,
+          fingerprint,
+          createKey: () => claveIdem.current ?? crypto.randomUUID(),
+        });
+      } catch (attemptError) {
+        console.warn("No se pudo persistir el intento de checkout", attemptError);
       }
-    }
 
-    // El consentimiento es opcional y se registra después de crear la orden
-    // para poder dejar como evidencia el número de pedido. Si este RPC todavía
-    // no está desplegado, la compra sigue y el contacto queda fuera de campañas.
-    if (aceptaMarketing && orderNumber) {
-      const { error: consentError } = await supabase.rpc("register_store_marketing_consent", {
-        p_slug: store!.slug,
-        p_order_number: orderNumber,
-        p_email: form.email,
-        p_source: "store_checkout",
+      if (persistedAttempt?.phase === "order_created" && persistedAttempt.orderNumber) {
+        const recoveredToken = readOrderAccessToken(store!.slug, persistedAttempt.orderNumber);
+        finishOrder(persistedAttempt.orderNumber, recoveredToken);
+        return;
+      }
+
+      // El ref conserva la clave durante renders; el registro anterior la
+      // conserva durante recargas. Sin storage queda la protección en memoria.
+      claveIdem.current = persistedAttempt?.idempotencyKey
+        ?? claveIdem.current
+        ?? crypto.randomUUID();
+
+      const { data, error: rpcError, cartLinked } = await createStoreOrder({
+        ...orderPayload,
+        p_idempotency_key: claveIdem.current,
       });
-      if (consentError) {
-        console.error("No se pudo registrar el consentimiento de marketing", consentError);
+
+      if (rpcError) {
+        // El RPC valida stock y precios del lado del servidor, así que sus
+        // mensajes son los que importan (ej: "Sin stock suficiente de X").
+        // Una caída de red ya reintentó con la misma clave: no se duplica.
+        setError(isTransientPublicError(rpcError)
+          ? "La red falló al confirmar. Reintentá: no se va a duplicar el pedido."
+          : mensajeSeguroParaCliente(rpcError, "No pudimos confirmar el pedido. Revisá los datos y volvé a intentar."));
+        return;
       }
-    }
 
-    // Durante la ventana de deploy el wrapper nuevo puede no existir todavía.
-    // Sólo entonces se usa el cierre legacy; con el wrapper, carrito y orden
-    // ya quedaron enlazados en la misma transacción.
-    if (!cartLinked && cartToken) {
-      const { error: cartError } = await supabase.rpc("convert_store_cart", {
-        p_slug: store!.slug,
-        p_token: cartToken,
-      });
-      if (cartError) {
-        console.error("No se pudo cerrar la sesión legacy del carrito", cartError);
+      const createdOrder = parseCreatedStoreOrder(data);
+      if (!createdOrder) {
+        setError("El pedido pudo haberse registrado, pero no recibimos su número. Reintentá para recuperarlo sin duplicar la compra.");
+        return;
       }
-    }
-
-    clearCart();
-
-    // Avisos por email, best-effort: si falla el envío la compra ya está hecha
-    // y no tiene sentido frenar al comprador por eso.
-    supabase.functions.invoke("store-order-email", {
-      body: {
+      const orderNumber = createdOrder.orderNumber;
+      confirmedOrder = { number: orderNumber, accessToken: null };
+      if (persistedAttempt) {
+        markStoreCheckoutOrderCreated(checkoutAttemptStorage(), persistedAttempt, orderNumber);
+      }
+      setProcessingStage("securing_order");
+      const access = await getStoreOrderSecure({
         slug: store!.slug,
         orderNumber,
-        accessToken,
-      },
-    }).catch((emailError) => {
-      console.error("No se pudo solicitar el email transaccional del pedido", emailError);
-    });
-
-    // Con Nerqia Pay se manda al checkout del rail (Mercado Pago); el webhook
-    // confirma el pago y de ahí vuelve a la página del pedido. Si falla la
-    // generación del link no se pierde nada: la orden ya está creada y se puede
-    // pagar después desde esa misma página.
-    if (esMedioGestionaPay(form.metodo)) {
-      setEnviando(true);
-      const { data: pay, error: payErr } = await supabase.functions.invoke("store-pay", {
-        body: { slug: store!.slug, orderNumber, accessToken, returnUrl: window.location.origin },
+        email: form.email,
       });
-      setEnviando(false);
-      const url = (pay as any)?.url;
-      if (url) { window.location.href = url; return; }
-      if (payErr || (pay as any)?.error) {
-        setError(await mensajeDeEdgeFunction(payErr, pay, "customer")
-          || "No se pudo abrir el pago online. Tu pedido quedó registrado.");
-      }
-    }
+      const accessToken = saveOrderAccessToken(store!.slug, orderNumber, access.data?.access_token);
+      confirmedOrder.accessToken = accessToken;
 
-    // La compra se cerró: la próxima es una compra nueva, con clave nueva.
-    claveIdem.current = null;
-    navigate(`${base}/orden/${orderNumber}${orderAccessFragment(accessToken)}`, { replace: true });
+      if (cuentaPlan.intentar) {
+        const alta = await signUp(form.email, passwordCuenta, form.nombre);
+        if (alta.error) {
+          console.error("No se pudo crear la cuenta del comprador", alta.error);
+        }
+      }
+
+      // El consentimiento es opcional y se registra después de crear la orden
+      // para poder dejar como evidencia el número de pedido. Si este RPC todavía
+      // no está desplegado, la compra sigue y el contacto queda fuera de campañas.
+      if (aceptaMarketing && orderNumber) {
+        const { error: consentError } = await supabase.rpc("register_store_marketing_consent", {
+          p_slug: store!.slug,
+          p_order_number: orderNumber,
+          p_email: form.email,
+          p_source: "store_checkout",
+        });
+        if (consentError) {
+          console.error("No se pudo registrar el consentimiento de marketing", consentError);
+        }
+      }
+
+      // Durante la ventana de deploy el wrapper nuevo puede no existir todavía.
+      // Sólo entonces se usa el cierre legacy; con el wrapper, carrito y orden
+      // ya quedaron enlazados en la misma transacción.
+      if (!cartLinked && cartToken) {
+        const { error: cartError } = await supabase.rpc("convert_store_cart", {
+          p_slug: store!.slug,
+          p_token: cartToken,
+        });
+        if (cartError) {
+          console.error("No se pudo cerrar la sesión legacy del carrito", cartError);
+        }
+      }
+
+      // Avisos por email, best-effort: si falla el envío la compra ya está hecha
+      // y no tiene sentido frenar al comprador por eso.
+      supabase.functions.invoke("store-order-email", {
+        body: {
+          slug: store!.slug,
+          orderNumber,
+          accessToken,
+        },
+      }).then(({ error: emailError }) => {
+        if (emailError) console.error("No se pudo solicitar el email transaccional del pedido", emailError);
+      }).catch((emailError) => {
+        console.error("No se pudo solicitar el email transaccional del pedido", emailError);
+      });
+
+      // Con Nerqia Pay se manda al checkout del rail (Mercado Pago); el webhook
+      // confirma el pago y de ahí vuelve a la página del pedido. Si falla la
+      // generación del link no se pierde nada: la orden ya está creada y se puede
+      // pagar después desde esa misma página.
+      let paymentSetupError: string | null = null;
+      if (esMedioGestionaPay(form.metodo)) {
+        setProcessingStage("opening_payment");
+        const { data: pay, error: payErr } = await supabase.functions.invoke("store-pay", {
+          body: { slug: store!.slug, orderNumber, accessToken, returnUrl: window.location.origin },
+        });
+        const payResult = pay as { url?: unknown; error?: unknown } | null;
+        const url = typeof payResult?.url === "string" ? payResult.url : null;
+        if (url && !payErr && !payResult?.error) {
+          discardStoreCheckoutAttempt(checkoutAttemptStorage(), store!.slug, cartToken);
+          claveIdem.current = null;
+          clearCart();
+          window.location.href = url;
+          return;
+        }
+        paymentSetupError = await mensajeDeEdgeFunction(payErr, pay, "customer")
+          || "No se pudo abrir el pago online. Tu pedido quedó registrado.";
+      }
+
+      // La compra se cerró: la próxima es una compra nueva, con clave nueva.
+      finishOrder(orderNumber, accessToken, paymentSetupError);
+    } catch (checkoutError) {
+      console.error("No se pudo completar el paso del checkout", checkoutError);
+      if (confirmedOrder) {
+        finishOrder(confirmedOrder.number, confirmedOrder.accessToken,
+          "Tu pedido quedó registrado. Podés consultar su estado y continuar el pago desde acá.");
+      } else {
+        setError("No pudimos confirmar la respuesta. Revisá tu conexión y reintentá con los mismos datos.");
+      }
+    } finally {
+      submittingRef.current = false;
+      setEnviando(false);
+      setProcessingStage("idle");
+    }
   };
 
   const input = "w-full min-h-11 px-3 py-2 text-sm border bg-transparent outline-none focus:ring-1";
@@ -522,8 +608,15 @@ export default function StoreCheckout() {
     borderColor: accionDeshabilitada ? "hsl(var(--st-border))" : "transparent",
     borderRadius: "var(--st-radius)",
   } as React.CSSProperties;
+  const processingCopy = processingStage === "creating_order"
+    ? { button: "Confirmando pedido...", title: "Estamos confirmando tu pedido", detail: "Validamos stock, precio y entrega." }
+    : processingStage === "securing_order"
+      ? { button: "Guardando acceso...", title: "Pedido registrado", detail: "Estamos preparando tu acceso privado y la confirmación." }
+      : processingStage === "opening_payment"
+        ? { button: "Abriendo pago...", title: "Pedido registrado", detail: "Ahora abrimos el pago seguro sin volver a crear la orden." }
+        : null;
   const textoAccion = enviando
-    ? "Procesando..."
+    ? processingCopy?.button ?? "Procesando..."
     : cotizando
       ? "Calculando entrega..."
       : entrega.bloqueo
@@ -560,7 +653,8 @@ export default function StoreCheckout() {
         </span>
       </div>
 
-      <form onSubmit={confirmar} className="grid md:grid-cols-[minmax(0,1fr)_22rem] gap-8 lg:gap-10 items-start">
+      <form onSubmit={confirmar} aria-busy={enviando} className="grid md:grid-cols-[minmax(0,1fr)_22rem] gap-8 lg:gap-10 items-start">
+        <fieldset disabled={enviando} className="contents">
         <div className="space-y-6">
           <section>
             <h2 className="font-semibold mb-3">Entrega</h2>
@@ -950,6 +1044,24 @@ export default function StoreCheckout() {
             </div>
           </div>
 
+          {enviando && processingCopy && (
+            <div
+              className="flex items-start gap-2.5 border px-3 py-2.5"
+              role="status"
+              aria-live="polite"
+              data-checkout-phase={processingStage}
+              style={{ borderColor: "hsl(var(--st-accent))", borderRadius: "var(--st-radius)" }}
+            >
+              <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" style={{ color: "hsl(var(--st-link))" }} />
+              <span className="min-w-0">
+                <strong className="block text-xs">{processingCopy.title}</strong>
+                <span className="mt-0.5 block text-[11px] leading-relaxed" style={{ color: "hsl(var(--st-muted))" }}>
+                  {processingCopy.detail}
+                </span>
+              </span>
+            </div>
+          )}
+
           {error && (
             <p
               className="hidden md:block text-xs px-3 py-2 bg-red-500/10 text-red-600"
@@ -1015,6 +1127,7 @@ export default function StoreCheckout() {
             </div>
           </div>
         </div>
+        </fieldset>
       </form>
     </div>
   );

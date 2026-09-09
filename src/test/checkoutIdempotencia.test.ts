@@ -64,11 +64,12 @@ describe("idempotencia del checkout", () => {
     expect(envoltorio).not.toContain("INSERT INTO public.ecommerce_orders");
   });
 
-  it("el checkout genera la clave una vez por intento, en un ref", () => {
-    // En estado provocaría re-render; regenerada en cada llamada daría dos
-    // claves para dos clics, que es justo lo que esto evita.
+  it("el checkout conserva la clave en memoria y entre recargas", () => {
+    // El ref cubre renders y el registro por carrito cubre una recarga o dos
+    // pestañas. La base valida la misma clave contra el payload original.
     expect(checkout).toContain("claveIdem = useRef");
-    expect(checkout).toContain("if (!claveIdem.current) claveIdem.current = crypto.randomUUID()");
+    expect(checkout).toContain("prepareStoreCheckoutAttempt");
+    expect(checkout).toContain("persistedAttempt?.idempotencyKey");
     expect(checkout).toContain("p_idempotency_key: claveIdem.current");
   });
 

@@ -282,6 +282,50 @@ test.describe("ficha de producto", () => {
 });
 
 test.describe("carrito", () => {
+  test("el checkout conserva el intento ante una respuesta incompleta", async ({ page }, testInfo) => {
+    // Mutating requests are intercepted; only catalogue reads reach Supabase.
+    await page.route("**/functions/v1/**", route => route.fulfill({ status: 200, json: {} }));
+    await page.route("**/rest/v1/rpc/convert_store_cart", route => route.fulfill({ status: 200, json: {} }));
+    await page.route("**/rest/v1/rpc/quote_store_shipping", route => route.fulfill({ status: 200, json: [
+      { option_id: "test-pickup", carrier: "retiro", label: "Retiro de prueba", price: 0 },
+    ] }));
+    const keys: string[] = [];
+    let release!: () => void;
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    await page.route("**/rest/v1/rpc/create_store_order*", async route => {
+      keys.push(route.request().postDataJSON().p_idempotency_key);
+      if (keys.length === 1) await pending;
+      await route.fulfill({ status: 200, json: { total: 100 } });
+    });
+    await page.goto(tienda("/productos"));
+    await (await fichasVisibles(page)).first().click();
+    await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+    await page.goto(tienda("/checkout"));
+    await page.getByLabel("Nombre y apellido *").fill("ZZ Checkout test");
+    await page.getByLabel("Email *", { exact: true }).fill("checkout@example.test");
+    const action = page.getByRole("button", { name: /Finalizar compra|Pagar con Nerqia Pay/ }).filter({ visible: true });
+    await expect(action).toBeEnabled();
+    try {
+      await action.click();
+      const phase = page.locator('[data-checkout-phase="creating_order"]');
+      await expect(phase).toBeVisible();
+      await expect(page.getByLabel("Email *", { exact: true })).toBeDisabled();
+      const geometry = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth, width: document.documentElement.clientWidth,
+      }));
+      expect(geometry.scroll).toBeLessThanOrEqual(geometry.width);
+      await phase.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath("checkout-processing.png"), fullPage: true });
+    } finally { release(); }
+    await expect(page.getByRole("alert").filter({ visible: true })).toContainText("no recibimos su número");
+    await expect(action).toBeEnabled();
+    await action.click();
+    await expect.poll(() => keys.length).toBe(2);
+    expect(keys[1]).toBe(keys[0]);
+    await expect(page.getByRole("alert").filter({ visible: true })).toContainText("no recibimos su número");
+    await expect(page.getByRole("heading", { name: "Tu carrito está vacío" })).toHaveCount(0);
+  });
+
   test("el checkout vacío explica el estado como título principal", async ({ page }) => {
     await page.goto(tienda("/checkout"));
     await expect(page.getByRole("heading", { level: 1, name: "Tu carrito está vacío" })).toBeVisible();
@@ -385,7 +429,7 @@ test.describe("carrito", () => {
     if (ancho < 768) {
       await expect(barra).toBeVisible();
       await expect(barra.getByText("Total", { exact: true })).toBeVisible();
-      await expect(barra.getByRole("button", { name: /Confirmar pedido|Continuar a Nerqia Pay|Calculando entrega|Revisá la entrega/ })).toBeVisible();
+      await expect(barra.getByRole("button", { name: /Finalizar compra|Pagar con Nerqia Pay|Calculando entrega|Revisá la entrega/ })).toBeVisible();
 
       const geometria = await page.evaluate(() => {
         const summary = document.querySelector<HTMLElement>(".storefront-checkout-summary")!;

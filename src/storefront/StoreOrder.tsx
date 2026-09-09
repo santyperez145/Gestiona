@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import OrderTracking from "./OrderTracking";
 import StorePaymentBrick, { type StorePaymentBrickConfig } from "./StorePaymentBrick";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,7 @@ import { esMedioGestionaPay } from "@/lib/gestionaPay";
 import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
 import { useStoreTrackingRuntimeReady } from "./trackingConsent";
 import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy } from "lucide-react";
+import { checkoutAttemptStorage, clearStoreCheckoutAttemptForOrder } from "@/lib/storeCheckoutAttempt";
 
 type Order = StoreOrderAccessRow;
 type CargaPedido =
@@ -61,6 +62,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export default function StoreOrder() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
+  const location = useLocation();
   const { store, fmt, basePath: base } = useStore();
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   const [order, setOrder] = useState<Order | null>(null);
@@ -73,7 +75,10 @@ export default function StoreOrder() {
   const [accesoError, setAccesoError] = useState<string | null>(null);
   const [pagando, setPagando] = useState(false);
   const [preparandoTarjeta, setPreparandoTarjeta] = useState(false);
-  const [pagoError, setPagoError] = useState<string | null>(null);
+  const checkoutPaymentError = typeof (location.state as { checkoutPaymentError?: unknown } | null)?.checkoutPaymentError === "string"
+    ? (location.state as { checkoutPaymentError: string }).checkoutPaymentError
+    : null;
+  const [pagoError, setPagoError] = useState<string | null>(checkoutPaymentError);
   const [pagoAviso, setPagoAviso] = useState<string | null>(null);
   const [brickConfig, setBrickConfig] = useState<StorePaymentBrickConfig | null>(null);
   const [tarjetaDisponible, setTarjetaDisponible] = useState(true);
@@ -117,6 +122,13 @@ export default function StoreOrder() {
   }, [store?.slug, orderNumber, accessToken]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  // La ficha ya confirmó el handoff: el registro local que evitó duplicados
+  // deja de ser necesario y una compra nueva puede usar el mismo carrito base.
+  useEffect(() => {
+    if (!order || !store?.slug || !orderNumber || order.order_number !== orderNumber) return;
+    clearStoreCheckoutAttemptForOrder(checkoutAttemptStorage(), store.slug, orderNumber);
+  }, [order, orderNumber, store?.slug]);
 
   const trackedItems = useMemo(() => (order?.items ?? []).map(i => ({
     id: (i as { product_id?: string }).product_id ?? i.name,
