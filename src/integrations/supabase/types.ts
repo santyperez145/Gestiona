@@ -4300,6 +4300,7 @@ export type Database = {
           name: string
           org_id: string
           sort_order: number
+          source_key: string | null
           type: string
         }
         Insert: {
@@ -4311,6 +4312,7 @@ export type Database = {
           name: string
           org_id: string
           sort_order?: number
+          source_key?: string | null
           type?: string
         }
         Update: {
@@ -4322,6 +4324,7 @@ export type Database = {
           name?: string
           org_id?: string
           sort_order?: number
+          source_key?: string | null
           type?: string
         }
         Relationships: [
@@ -53986,6 +53989,17 @@ export type Database = {
           total_touchpoints: number
         }[]
       }
+      get_expense_budgets: {
+        Args: { p_month: number; p_org_id: string; p_year: number }
+        Returns: {
+          amount: number
+          budget_id: string
+          category_key: string
+          category_name: string
+          notes: string | null
+          updated_at: string
+        }[]
+      }
       get_influencer_portal: {
         Args: { p_token: string }
         Returns: {
@@ -55610,6 +55624,17 @@ export type Database = {
       seed_store_categories: { Args: { p_org_id: string }; Returns: Json }
       seed_store_pages: { Args: { p_store_id: string }; Returns: Json }
       seed_tax_rates: { Args: { p_org_id: string }; Returns: undefined }
+      set_expense_budget: {
+        Args: {
+          p_amount: number
+          p_category_key: string
+          p_category_name: string
+          p_month: number
+          p_org_id: string
+          p_year: number
+        }
+        Returns: Json
+      }
       set_order_tracking: {
         Args: { p_carrier: string; p_order_id: string; p_tracking: string }
         Returns: Json

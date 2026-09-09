@@ -130,9 +130,9 @@ Nerqia Finance tiene producto, layout, entitlement y permiso separados. Reusa
 proveedores, órdenes, gastos, obligaciones, ledger y documentos del Core.
 
 **Construido técnicamente:** superficie canónica con resumen, documentos, gastos,
-banco, flujo, resultados y libro mayor; sidebar y router comparten un manifiesto.
-Document Inbox privado; hash/magic bytes; cuarentena; extracción estructurada;
-revisión humana; matching por tenant; borradores, aprobación e idempotencia.
+banco, flujo, resultados y libro mayor; presupuesto mensual por organización con
+permisos y auditoría; sidebar y router comparten un manifiesto. Document Inbox
+privado, extracción estructurada, revisión, matching, aprobación e idempotencia.
 
 **Límite actual:** no hay proveedor privado de inspección/extracción configurado
 ni documentos reales procesados de punta a punta. La UI debe decirlo; no se

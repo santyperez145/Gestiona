@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp, Copy, ChevronUp, ChevronDown, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp, Copy, ChevronUp, ChevronDown, Sparkles, AlertCircle, RefreshCw, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
@@ -20,9 +20,6 @@ import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
-import FinancePageHeader from "@/components/finance/FinancePageHeader";
-import FinanceKPICard from "@/components/finance/FinanceKPICard";
-import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -32,6 +29,13 @@ import {
   uploadExpenseReceipt,
   validateExpenseReceipt,
 } from "@/lib/expenseReceipts";
+import {
+  expenseBudgetMap,
+  expenseBudgetPeriod,
+  expenseBudgetSpendByCategory,
+  getExpenseBudgets,
+  setExpenseBudget,
+} from "@/lib/financeBudgets";
 
 import { plural } from "@/lib/plural";
 import PageHeader from "@/components/shared/PageHeader";
@@ -141,6 +145,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [filterCat, setFilterCat] = usePersistedState(
@@ -155,12 +160,13 @@ export default function ExpensesPage() {
     orgViewKey("expenses.search", activeOrg?.id),
     "",
   );
+  const currentMonthKey = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  })();
   const [filterMonth, setFilterMonth] = usePersistedState(
     orgViewKey("expenses.month-filter", activeOrg?.id),
-    (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    })(),
+    currentMonthKey,
   );
   const [activeTab, setActiveTab] = usePersistedState<'gastos' | 'presupuesto' | 'recurrentes' | 'tendencia'>(
     orgViewKey("expenses.tab", activeOrg?.id),
@@ -168,37 +174,104 @@ export default function ExpensesPage() {
   );
   const [expenseSort, setExpenseSort] = useState<{ col: "date" | "amount_ars" | "category"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
 
-  const [budgets, setBudgets] = useState<Record<string, number>>(() => {
-    try { return JSON.parse(localStorage.getItem("gestiona.expense_budgets") || "{}"); } catch { return {}; }
-  });
+  const [budgets, setBudgets] = useState<Record<string, number>>({});
+  const [budgetsLoading, setBudgetsLoading] = useState(false);
+  const [budgetsError, setBudgetsError] = useState<string | null>(null);
+  const [savingBudget, setSavingBudget] = useState<string | null>(null);
   const [editBudget, setEditBudget] = useState<string | null>(null);
   const [budgetInput, setBudgetInput] = useState("");
 
   const categories = useMemo(() => buildExpenseCategories(settings), [settings]);
+  const selectedBudgetPeriod = useMemo(() => expenseBudgetPeriod(filterMonth), [filterMonth]);
 
-  const saveBudget = (cat: string, value: number) => {
-    const next = { ...budgets, [cat]: value };
-    setBudgets(next);
-    localStorage.setItem("gestiona.expense_budgets", JSON.stringify(next));
+  useEffect(() => {
+    if (activeTab === "presupuesto" && !selectedBudgetPeriod) setFilterMonth(currentMonthKey);
+  }, [activeTab, currentMonthKey, selectedBudgetPeriod, setFilterMonth]);
+
+  const saveBudget = async (cat: string, value: number) => {
+    if (!activeOrg?.id || !selectedBudgetPeriod || !canEdit) return;
+    if (value < 0 || !Number.isFinite(value)) {
+      toast.error("Ingresá un monto de presupuesto válido");
+      return;
+    }
+    const category = categories.find(item => item.value === cat);
+    if (!category) return;
+    setSavingBudget(cat);
+    try {
+      await setExpenseBudget({
+        orgId: activeOrg.id,
+        categoryKey: category.value,
+        categoryName: category.label,
+        period: selectedBudgetPeriod,
+        amount: value,
+      });
+      setBudgets(previous => ({ ...previous, [cat]: value }));
+      setEditBudget(null);
+      setBudgetInput("");
+      setBudgetsError(null);
+      toast.success(`Presupuesto de ${category.label} actualizado`);
+    } catch (error) {
+      console.error("No se pudo guardar el presupuesto", error);
+      toast.error("No pudimos guardar el presupuesto. Reintentá.");
+    } finally {
+      setSavingBudget(null);
+    }
+  };
+
+  const reload = useCallback(async () => {
+    if (!user?.id || !activeOrg?.id) {
+      setLoading(false);
+      return;
+    }
+    setLoadError(null);
+    try {
+      const [data, s] = await Promise.all([
+        getExpensesDB(user.id, activeOrg.id),
+        getSettingsDB(user.id, activeOrg.id),
+      ]);
+      setExpenses(data);
+      setSettings(s);
+    } catch (error) {
+      console.error("No se pudieron cargar los gastos", error);
+      setLoadError("No pudimos cargar los gastos de la organización.");
+    } finally {
+      setLoading(false);
+    }
+  }, [activeOrg?.id, user?.id]);
+
+  useEffect(() => { void reload(); }, [reload]);
+
+  const loadBudgets = useCallback(async () => {
+    if (!activeOrg?.id || !selectedBudgetPeriod) {
+      setBudgets({});
+      setBudgetsError(null);
+      return;
+    }
+    setBudgetsLoading(true);
+    setBudgetsError(null);
+    try {
+      const rows = await getExpenseBudgets(activeOrg.id, selectedBudgetPeriod);
+      setBudgets(expenseBudgetMap(rows));
+    } catch (error) {
+      console.error("No se pudieron cargar los presupuestos", error);
+      setBudgets({});
+      setBudgetsError("No pudimos cargar los presupuestos de este período.");
+    } finally {
+      setBudgetsLoading(false);
+    }
+  }, [activeOrg?.id, selectedBudgetPeriod]);
+
+  useEffect(() => {
     setEditBudget(null);
     setBudgetInput("");
-  };
-
-  const reload = async () => {
-    if (!user) return;
-    const [data, s] = await Promise.all([getExpensesDB(user.id), getSettingsDB(user.id)]);
-    setExpenses(data);
-    setSettings(s);
-    setLoading(false);
-  };
-
-  useEffect(() => { reload(); }, [user]);
+    void loadBudgets();
+  }, [loadBudgets]);
 
   // Recurring overdue alert: fire once per session for recurring expenses past their next date
   useEffect(() => {
     if (!expenses.length) return;
     const today = new Date().toISOString().slice(0, 10);
-    const alertKey = "gestiona.expense_recurring_overdue_alerted";
+    const alertKey = `gestiona.expense_recurring_overdue_alerted.${activeOrg?.id || "default"}`;
     const alerted = new Set<string>(JSON.parse(sessionStorage.getItem(alertKey) || "[]"));
     const overdue = expenses.filter(e =>
       e.recurring &&
@@ -216,7 +289,7 @@ export default function ExpensesPage() {
       overdue.forEach((e: any) => alerted.add(e.id));
       sessionStorage.setItem(alertKey, JSON.stringify([...alerted]));
     }
-  }, [expenses]);
+  }, [activeOrg?.id, expenses]);
 
   const vendorOptions = useMemo(() => {
     const vendors = [...new Set(expenses.map(e => e.vendor).filter(Boolean))].sort() as string[];
@@ -246,7 +319,7 @@ export default function ExpensesPage() {
       else if (expenseSort.col === "category") cmp = (a.category || "").localeCompare(b.category || "");
       return expenseSort.dir === "asc" ? cmp : -cmp;
     });
-  }, [expenses, filterCat, filterMonth, search, filterVendor, expenseSort]);
+  }, [expenses, filterCat, filterMonth, search, filterVendor, expenseSort, settings]);
 
   const totals = useMemo(() => {
     const total = filtered.reduce((s, e) => s + Number(e.amount_ars), 0);
@@ -269,13 +342,42 @@ export default function ExpensesPage() {
     return { total, chartData, methodData, recurring: filtered.filter(e => e.recurring).length };
   }, [filtered, settings, categories]);
 
+  const budgetSpentByCategory = useMemo(
+    () => selectedBudgetPeriod
+      ? expenseBudgetSpendByCategory(expenses, selectedBudgetPeriod)
+      : {},
+    [expenses, selectedBudgetPeriod],
+  );
+
+  const budgetRows = useMemo(() => {
+    return categories.map(category => ({
+      cat: category.value,
+      name: category.label,
+      color: category.color,
+      value: budgetSpentByCategory[category.value] ?? 0,
+      budget: budgets[category.value] ?? 0,
+    }));
+  }, [budgetSpentByCategory, budgets, categories]);
+
+  const budgetSummary = useMemo(() => {
+    const assigned = budgetRows.reduce((sum, row) => sum + row.budget, 0);
+    const spent = budgetRows.reduce((sum, row) => sum + row.value, 0);
+    return { assigned, spent, available: assigned - spent };
+  }, [budgetRows]);
+
+  const budgetPeriodLabel = useMemo(() => {
+    if (!selectedBudgetPeriod) return "Período mensual";
+    return new Date(selectedBudgetPeriod.year, selectedBudgetPeriod.month - 1, 1)
+      .toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  }, [selectedBudgetPeriod]);
+
   // Budget alerts: warn once per session when a category hits 80%+
-  const alertedCatsKey = "gestiona.expense_budget_alerted";
+  const alertedCatsKey = `gestiona.expense_budget_alerted.${activeOrg?.id || "default"}`;
   useEffect(() => {
-    if (!totals.chartData.length || !Object.keys(budgets).length) return;
+    if (budgetsLoading || budgetsError || !Object.keys(budgets).length) return;
     const alerted = new Set<string>(JSON.parse(sessionStorage.getItem(alertedCatsKey) || "[]"));
-    totals.chartData.forEach(c => {
-      const budget = budgets[c.cat] || 0;
+    budgetRows.forEach(c => {
+      const budget = c.budget;
       if (!budget) return;
       const pct = (c.value / budget) * 100;
       const key = `${c.cat}.${filterMonth}`;
@@ -288,10 +390,11 @@ export default function ExpensesPage() {
       }
     });
     sessionStorage.setItem(alertedCatsKey, JSON.stringify([...alerted]));
-  }, [totals.chartData, budgets, filterMonth]);
+  }, [alertedCatsKey, budgetRows, budgets, budgetsError, budgetsLoading, filterMonth]);
 
   const monthOptions = useMemo(() => {
-    const set = new Set<string>();
+    const now = new Date();
+    const set = new Set<string>([`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`]);
     expenses.forEach(e => {
       const d = new Date(e.date);
       set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
@@ -376,6 +479,21 @@ export default function ExpensesPage() {
   };
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[420px] items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <AlertCircle className="mx-auto mb-4 h-9 w-9 text-destructive" />
+          <h1 className="text-lg font-semibold text-foreground">No pudimos abrir Gastos</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{loadError}</p>
+          <Button className="mt-5" variant="outline" onClick={() => void reload()}>
+            <RefreshCw className="h-4 w-4" /> Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -495,44 +613,13 @@ export default function ExpensesPage() {
           ) : <p className="text-muted-foreground text-sm py-12 text-center">Sin datos</p>}
           <div className="space-y-3 mt-3">
             {totals.chartData.map(c => {
-              const budget = budgets[c.cat] || 0;
-              const pct = budget > 0 ? Math.min(100, (c.value / budget) * 100) : 0;
-              const over = budget > 0 && c.value > budget;
-              const isEditing = editBudget === c.cat;
               return (
-                <div key={c.cat}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color }} />
-                      <span className="font-medium">{c.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`font-semibold font-mono ${over ? 'text-destructive' : ''}`}>{formatARS(c.value)}</span>
-                      {budget > 0 && <span className="text-muted-foreground">/ {formatARS(budget)}</span>}
-                      {!isEditing && (
-                        <button onClick={() => { setEditBudget(c.cat); setBudgetInput(budget > 0 ? String(budget) : ""); }}
-                          className="text-muted-foreground hover:text-foreground transition-colors">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
+                <div key={c.cat} className="flex items-center justify-between gap-3 text-xs">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.color }} />
+                    <span className="truncate font-medium">{c.name}</span>
                   </div>
-                  {isEditing && (
-                    <div className="flex items-center gap-1 mb-1">
-                      <input type="number" value={budgetInput} onChange={e => setBudgetInput(e.target.value)}
-                        placeholder="Presupuesto..." autoFocus
-                        onKeyDown={e => { if (e.key === 'Enter') saveBudget(c.cat, parseFloat(budgetInput) || 0); if (e.key === 'Escape') { setEditBudget(null); setBudgetInput(""); }}}
-                        className="flex-1 h-6 text-xs px-2 rounded bg-muted border border-border outline-none focus:ring-1 focus:ring-primary/40" />
-                      <button onClick={() => saveBudget(c.cat, parseFloat(budgetInput) || 0)} className="text-green-400 hover:text-green-300"><Check className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => { setEditBudget(null); setBudgetInput(""); }} className="text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5" /></button>
-                    </div>
-                  )}
-                  {budget > 0 && (
-                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${over ? 'bg-destructive' : pct >= 80 ? 'bg-yellow-500' : 'bg-primary'}`}
-                        style={{ width: `${pct}%` }} />
-                    </div>
-                  )}
+                  <span className="shrink-0 font-mono font-semibold">{formatARS(c.value)}</span>
                 </div>
               );
             })}
@@ -721,60 +808,182 @@ export default function ExpensesPage() {
 
       {/* Presupuesto tab */}
       {activeTab === 'presupuesto' && (
-        <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
-          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Presupuesto por Categoría</h2>
-          {totals.chartData.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-12 text-center">Sin datos para el período seleccionado</p>
+        <section className="space-y-4" aria-labelledby="expense-budget-title">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-xs font-semibold uppercase text-primary">Plan mensual</p>
+              <h2 id="expense-budget-title" className="mt-1 text-xl font-semibold">Presupuesto operativo</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Compará el límite asignado con los gastos reales de {budgetPeriodLabel}.
+              </p>
+            </div>
+            <Select value={filterMonth} onValueChange={setFilterMonth}>
+              <SelectTrigger className="h-9 w-full border-border bg-card sm:w-[190px]" aria-label="Período del presupuesto">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map(month => (
+                  <SelectItem key={month} value={month}>
+                    {new Date(`${month}-01T12:00:00`).toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 divide-y divide-border border-y border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div className="py-4 sm:pr-5">
+              <p className="text-xs text-muted-foreground">Asignado</p>
+              <p className="mt-1 font-mono text-xl font-semibold">{formatARS(budgetSummary.assigned)}</p>
+            </div>
+            <div className="py-4 sm:px-5">
+              <p className="text-xs text-muted-foreground">Ejecutado</p>
+              <p className="mt-1 font-mono text-xl font-semibold">{formatARS(budgetSummary.spent)}</p>
+            </div>
+            <div className="py-4 sm:pl-5">
+              <p className="text-xs text-muted-foreground">Disponible</p>
+              <p className={`mt-1 font-mono text-xl font-semibold ${budgetSummary.available < 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>
+                {formatARS(budgetSummary.available)}
+              </p>
+            </div>
+          </div>
+
+          {!canEdit && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <LockKeyhole className="h-3.5 w-3.5" />
+              Tu rol tiene acceso de consulta. Un responsable de Finance puede modificar los límites.
+            </div>
+          )}
+
+          {budgetsLoading ? (
+            <div className="overflow-hidden rounded-[8px] border border-border bg-card" aria-label="Cargando presupuestos">
+              {[0, 1, 2, 3].map(row => (
+                <div key={row} className="border-b border-border p-4 last:border-b-0">
+                  <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                  <div className="mt-3 h-2 animate-pulse rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : budgetsError ? (
+            <div className="flex flex-col items-center rounded-[8px] border border-destructive/30 bg-destructive/5 px-4 py-10 text-center">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              <p className="mt-2 text-sm font-medium">{budgetsError}</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => void loadBudgets()}>
+                <RefreshCw className="h-3.5 w-3.5" /> Reintentar
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-4 pb-12">
-              {totals.chartData.map(c => {
-                const budget = budgets[c.cat] || 0;
-                const pct = budget > 0 ? Math.min(100, (c.value / budget) * 100) : 0;
-                const over = budget > 0 && c.value > budget;
-                const isEditing = editBudget === c.cat;
+            <div className="overflow-hidden rounded-[8px] border border-border bg-card">
+              {budgetRows.map(category => {
+                const percentage = category.budget > 0
+                  ? Math.min(100, (category.value / category.budget) * 100)
+                  : 0;
+                const isOverBudget = category.budget > 0 && category.value > category.budget;
+                const isEditing = editBudget === category.cat;
                 return (
-                  <div key={c.cat}>
-                    <div className="flex items-center justify-between text-sm mb-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full shrink-0" style={{ background: c.color }} />
-                        <span className="font-medium">{c.name}</span>
+                  <div key={category.cat} className="border-b border-border p-4 last:border-b-0 sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: category.color }} />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{category.name}</p>
+                          <p className={`mt-0.5 text-xs ${isOverBudget ? "text-destructive" : "text-muted-foreground"}`}>
+                            {category.budget === 0
+                              ? "Sin límite asignado"
+                              : isOverBudget
+                                ? `Excedido en ${formatARS(category.value - category.budget)}`
+                                : `${formatARS(category.budget - category.value)} disponibles`}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-semibold font-mono ${over ? 'text-destructive' : ''}`}>{formatARS(c.value)}</span>
-                        {budget > 0 && <span className="text-muted-foreground">/ {formatARS(budget)}</span>}
-                        {!isEditing && (
-                          <button onClick={() => { setEditBudget(c.cat); setBudgetInput(budget > 0 ? String(budget) : ""); }}
-                            className="text-muted-foreground hover:text-foreground transition-colors">
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
+                      <div className="flex items-center justify-between gap-2 sm:justify-end">
+                        <p className="text-right text-xs text-muted-foreground">
+                          <span className={`font-mono text-sm font-semibold ${isOverBudget ? "text-destructive" : "text-foreground"}`}>
+                            {formatARS(category.value)}
+                          </span>
+                          <span className="mx-1">de</span>
+                          <span className="font-mono">{formatARS(category.budget)}</span>
+                        </p>
+                        {canEdit && !isEditing && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title={`Editar presupuesto de ${category.name}`}
+                            aria-label={`Editar presupuesto de ${category.name}`}
+                            onClick={() => {
+                              setEditBudget(category.cat);
+                              setBudgetInput(category.budget > 0 ? String(category.budget) : "");
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
                         )}
                       </div>
                     </div>
+
                     {isEditing && (
-                      <div className="flex items-center gap-1 mb-2">
-                        <input type="number" value={budgetInput} onChange={e => setBudgetInput(e.target.value)}
-                          placeholder="Presupuesto..." autoFocus
-                          onKeyDown={e => { if (e.key === 'Enter') saveBudget(c.cat, parseFloat(budgetInput) || 0); if (e.key === 'Escape') { setEditBudget(null); setBudgetInput(""); }}}
-                          className="flex-1 h-8 text-sm px-2 rounded bg-muted border border-border outline-none focus:ring-1 focus:ring-primary/40" />
-                        <button onClick={() => saveBudget(c.cat, parseFloat(budgetInput) || 0)} className="text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
-                        <button onClick={() => { setEditBudget(null); setBudgetInput(""); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                      <div className="mt-3 flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={budgetInput}
+                          onChange={event => setBudgetInput(event.target.value)}
+                          placeholder="Monto mensual"
+                          autoFocus
+                          disabled={savingBudget === category.cat}
+                          onKeyDown={event => {
+                            if (event.key === "Enter" && budgetInput.trim() !== "") {
+                              void saveBudget(category.cat, Number(budgetInput));
+                            }
+                            if (event.key === "Escape") {
+                              setEditBudget(null);
+                              setBudgetInput("");
+                            }
+                          }}
+                          className="h-9 max-w-xs"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          className="h-9 w-9"
+                          disabled={savingBudget === category.cat || budgetInput.trim() === ""}
+                          onClick={() => void saveBudget(category.cat, Number(budgetInput))}
+                          aria-label="Guardar presupuesto"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9"
+                          disabled={savingBudget === category.cat}
+                          onClick={() => {
+                            setEditBudget(null);
+                            setBudgetInput("");
+                          }}
+                          aria-label="Cancelar edición"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     )}
-                    <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${over ? 'bg-destructive' : pct >= 80 ? 'bg-yellow-500' : 'bg-primary'}`}
-                        style={{ width: budget > 0 ? `${pct}%` : '0%' }} />
+
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full transition-[width] duration-300 ${isOverBudget ? "bg-destructive" : percentage >= 80 ? "bg-amber-500" : "bg-primary"}`}
+                        style={{ width: `${percentage}%` }}
+                      />
                     </div>
-                    {budget > 0 && (
-                      <p className={`text-xs mt-1 ${over ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        {over ? `Excedido en ${formatARS(c.value - budget)}` : `Disponible: ${formatARS(budget - c.value)} (${(100 - pct).toFixed(0)}%)`}
-                      </p>
-                    )}
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* Recurrentes tab */}
@@ -1012,7 +1221,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
           setLocationId((prev) => prev || (locs.find((l) => l.is_main)?.id ?? locs[0].id));
         }
       });
-  }, [activeOrg?.id]);
+  }, [activeOrg?.id, editItem]);
 
   // Auto-suggest category when description or vendor changes (debounced 400ms)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
