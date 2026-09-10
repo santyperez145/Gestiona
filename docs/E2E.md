@@ -1,6 +1,6 @@
 # E2E críticos
 
-**Estado:** gate vigente. **Corte:** 2026-09-09.
+**Estado:** gate vigente. **Corte:** 2026-09-10.
 
 La puerta E2E prueba la tienda pública en Chromium de escritorio y teléfono, y
 las superficies críticas del panel con una identidad técnica. Los specs leen la
@@ -16,6 +16,19 @@ pagos live ni concurrencia de sesiones con claves diferentes.
 La entrada al checkout también cubre el CTA de la ficha: en escritorio no se
 oculta del árbol accesible al salir del viewport; la sustitución por barra fija
 se aplica sólo en móvil. Ambos botones dicen "Agregar al carrito".
+
+`store-order.spec.ts` usa un pedido sintético e intercepta lectura, seguimiento,
+pagos y creación. Comprueba recuperación de red inicial y botones de tarjeta/
+redirect en desktop/mobile. Los tests de componente verifican aislamiento al
+cambiar de pedido, respuestas tardías, conservación del detalle y polling
+secuencial limitado, sólo para pagos digitales pendientes.
+La acción "Actualizar estado del pedido" consulta el estado canónico sin
+recargar la página; también está disponible para transferencias y efectivo.
+
+Referencia verificada el 2026-09-10: [Shopify distingue estado de pedido, pago y
+entrega](https://help.shopify.com/en/manual/fulfillment/managing-orders/order-status).
+La decisión de reintentar consultas sin recrear compras es propia de Nerqia;
+estas pruebas no certifican un cobro ni un webhook real.
 
 ## Contrato del gate
 

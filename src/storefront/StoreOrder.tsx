@@ -22,7 +22,7 @@ import {
 import { esMedioGestionaPay } from "@/lib/gestionaPay";
 import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
 import { useStoreTrackingRuntimeReady } from "./trackingConsent";
-import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy } from "lucide-react";
+import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy, RefreshCw } from "lucide-react";
 import { checkoutAttemptStorage, clearStoreCheckoutAttemptForOrder } from "@/lib/storeCheckoutAttempt";
 
 type Order = StoreOrderAccessRow;
@@ -62,6 +62,12 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export default function StoreOrder() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
+  const { store } = useStore();
+  return <StoreOrderContent key={`${store?.slug ?? ""}:${orderNumber ?? ""}`} />;
+}
+
+function StoreOrderContent() {
+  const { orderNumber } = useParams<{ orderNumber: string }>();
   const location = useLocation();
   const { store, fmt, basePath: base } = useStore();
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
@@ -70,8 +76,19 @@ export default function StoreOrder() {
   const [loadError, setLoadError] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const orderRef = useRef<Order | null>(null);
+  const loadRequestRef = useRef(0);
+  const paymentRequestRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      loadRequestRef.current += 1;
+    };
+  }, []);
   const [emailVerificacion, setEmailVerificacion] = useState("");
   const [verificando, setVerificando] = useState(false);
+  const [actualizando, setActualizando] = useState(false);
   const [accesoError, setAccesoError] = useState<string | null>(null);
   const [pagando, setPagando] = useState(false);
   const [preparandoTarjeta, setPreparandoTarjeta] = useState(false);
@@ -87,6 +104,7 @@ export default function StoreOrder() {
 
   const cargar = useCallback(async (email?: string): Promise<CargaPedido> => {
     if (!store?.slug || !orderNumber) return { ok: false };
+    const request = ++loadRequestRef.current;
     const token = accessToken
       ?? consumeOrderAccessFragment(store.slug, orderNumber)
       ?? readOrderAccessToken(store.slug, orderNumber);
@@ -95,7 +113,8 @@ export default function StoreOrder() {
       orderNumber,
       accessToken: token,
       email,
-    });
+    }).catch((error: unknown) => ({ data: null, error }));
+    if (request !== loadRequestRef.current || !mountedRef.current) return { ok: false };
     if (result.error) {
       setLoading(false);
       // Un corte a mitad de un poll no puede borrar un pedido ya visto ni
@@ -121,7 +140,7 @@ export default function StoreOrder() {
     return { ok: true, row };
   }, [store?.slug, orderNumber, accessToken]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { void cargar(); }, [cargar]);
 
   // La ficha ya confirmó el handoff: el registro local que evitó duplicados
   // deja de ser necesario y una compra nueva puede usar el mismo carrito base.
@@ -166,82 +185,82 @@ export default function StoreOrder() {
     if (attempted) markStoreConversionSent(localStorage, eventId);
   }, [order, store?.currency, store?.tiktok_pixel_id, trackedItems, trackingRuntimeReady]);
 
-  // Al volver de MercadoPago el webhook puede tardar unos segundos en
-  // confirmar. Se reintenta un rato para no mostrarle "pendiente" a alguien
-  // que acaba de pagar.
+  // One bounded loop waits for each read before scheduling the next. Manual
+  // payments do not need webhook polling; an in-process card keeps its guard.
   useEffect(() => {
-    if (!order || order.payment_status !== "pending") return;
+    if (!pedidoPendiente || !esMedioGestionaPay(order?.payment_method)) return;
+    let stopped = false;
     let intentos = 0;
-    const t = setInterval(async () => {
+    const limit = pagoEnProceso ? 10 : 5;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
       intentos++;
       const r = await cargar();
       const fresco = r.ok ? r.row : orderRef.current;
-      if (intentos >= 5 || (fresco && fresco.payment_status !== "pending")) clearInterval(t);
-    }, 3000);
-    return () => clearInterval(t);
-    // Solo se dispara al montar con estado pendiente, no en cada refresco.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order?.order_number]);
-
-  // Un pago con tarjeta puede quedar `pending`/`in_process` mientras MP hace
-  // una validación adicional. Durante ese intervalo no se habilita otro botón
-  // de cobro: dos intentos separados son peor experiencia que esperar unos
-  // segundos y pueden terminar en dos débitos. Si el webhook lo resuelve, la
-  // página recupera su estado normal; si no, el comprador puede volver más
-  // tarde al mismo pedido.
-  useEffect(() => {
-    if (!pagoEnProceso || !pedidoPendiente) {
-      if (pagoEnProceso && !pedidoPendiente) setPagoEnProceso(false);
-      return;
-    }
-    let intentos = 0;
-    const t = setInterval(async () => {
-      intentos++;
-      const r = await cargar();
-      const fresco = r.ok ? r.row : orderRef.current;
-      if (intentos >= 10 || (fresco && fresco.payment_status !== "pending")) {
-        clearInterval(t);
+      if (!stopped && intentos < limit && fresco?.payment_status === "pending") {
+        timer = setTimeout(poll, 3000);
       }
-    }, 3000);
-    return () => clearInterval(t);
-  }, [pagoEnProceso, pedidoPendiente, cargar]);
+    };
+    timer = setTimeout(poll, 3000);
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [pagoEnProceso, pedidoPendiente, order?.payment_method, cargar]);
+
+  useEffect(() => {
+    if (pagoEnProceso && !pedidoPendiente) setPagoEnProceso(false);
+  }, [pagoEnProceso, pedidoPendiente]);
 
   const abrirPagoExterno = async () => {
-    if (!store?.slug || !order) return;
+    if (!store?.slug || !order || paymentRequestRef.current || pagoEnProceso || !canRetryStorePayment(order.payment_status)) return;
+    paymentRequestRef.current = true;
     setPagando(true);
     setPagoError(null);
-    const { data, error } = await supabase.functions.invoke("store-pay", {
-      body: { action: "redirect", slug: store.slug, orderNumber: order.order_number, accessToken, returnUrl: window.location.origin },
-    });
-    setPagando(false);
-    const url = (data as { url?: string } | null)?.url;
-    if (url) window.location.href = url;
-    else setPagoError((await mensajeDeEdgeFunction(error, data, "customer")) || "No se pudo abrir el pago online.");
+    try {
+      const { data, error } = await supabase.functions.invoke("store-pay", {
+        body: { action: "redirect", slug: store.slug, orderNumber: order.order_number, accessToken, returnUrl: window.location.origin },
+      });
+      if (!mountedRef.current) return;
+      const response = data as { url?: unknown; error?: unknown } | null;
+      const url = typeof response?.url === "string" ? response.url : null;
+      if (url && !error && !response?.error) window.location.href = url;
+      else setPagoError((await mensajeDeEdgeFunction(error, data, "customer")) || "No se pudo abrir el pago online.");
+    } catch {
+      if (mountedRef.current) setPagoError("No pudimos abrir el pago. Revisá tu conexión y volvé a intentar desde este pedido.");
+    } finally {
+      paymentRequestRef.current = false;
+      if (mountedRef.current) setPagando(false);
+    }
   };
 
   const prepararPagoConTarjeta = async () => {
-    if (!store?.slug || !order) return;
+    if (!store?.slug || !order || paymentRequestRef.current || pagoEnProceso || !canRetryStorePayment(order.payment_status)) return;
+    paymentRequestRef.current = true;
     setPreparandoTarjeta(true);
     setPagoError(null);
     setPagoAviso(null);
-    const { data, error } = await supabase.functions.invoke("store-pay", {
-      body: { action: "brick-config", slug: store.slug, orderNumber: order.order_number, accessToken },
-    });
-    setPreparandoTarjeta(false);
-    const config = data as Partial<StorePaymentBrickConfig> & { error?: string; fallback?: string } | null;
-    if (!error && config && typeof config.publicKey === "string" &&
-        Number.isFinite(Number(config.amount)) && Number(config.amount) > 0) {
-      setTarjetaDisponible(true);
-      setBrickConfig({ publicKey: config.publicKey, amount: Number(config.amount) });
-    } else if (!error && config?.fallback === "redirect") {
-      setTarjetaDisponible(false);
-      setPagoAviso(config.error ?? "El pago con tarjeta está temporalmente pausado. Podés continuar en MercadoPago.");
-    } else {
-      setPagoError(
-        (await mensajeDeEdgeFunction(error, data, "customer"))
-          || config?.error
-          || "No se pudo preparar el pago con tarjeta. Podés usar MercadoPago para elegir otro medio.",
-      );
+    try {
+      const { data, error } = await supabase.functions.invoke("store-pay", {
+        body: { action: "brick-config", slug: store.slug, orderNumber: order.order_number, accessToken },
+      });
+      if (!mountedRef.current) return;
+      const config = data as Partial<StorePaymentBrickConfig> & { error?: string; fallback?: string } | null;
+      if (!error && !config?.error && config && typeof config.publicKey === "string" && config.publicKey.trim() &&
+          Number.isFinite(Number(config.amount)) && Number(config.amount) > 0) {
+        setTarjetaDisponible(true);
+        setBrickConfig({ publicKey: config.publicKey, amount: Number(config.amount) });
+      } else if (!error && config?.fallback === "redirect") {
+        setTarjetaDisponible(false);
+        setPagoAviso("El pago con tarjeta está temporalmente pausado. Podés continuar en MercadoPago.");
+      } else {
+        setPagoError(
+          (await mensajeDeEdgeFunction(error, data, "customer"))
+            || "No se pudo preparar el pago con tarjeta. Podés usar MercadoPago para elegir otro medio.",
+        );
+      }
+    } catch {
+      if (mountedRef.current) setPagoError("No pudimos preparar el pago con tarjeta. Revisá tu conexión y volvé a intentar.");
+    } finally {
+      paymentRequestRef.current = false;
+      if (mountedRef.current) setPreparandoTarjeta(false);
     }
   };
 
@@ -393,9 +412,26 @@ export default function StoreOrder() {
         <h1 className="text-2xl font-bold">
           {pagado ? "¡Pago confirmado!" : pagoRevertido ? "El pago fue revertido" : "¡Gracias por tu compra!"}
         </h1>
-        <p className="mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-          Tu pedido <strong style={{ color: "hsl(var(--st-text))" }}>{order.order_number}</strong> quedó registrado.
-        </p>
+        <div className="mt-1 flex items-center justify-center gap-1">
+          <p style={{ color: "hsl(var(--st-muted))" }}>
+            Tu pedido <strong style={{ color: "hsl(var(--st-text))" }}>{order.order_number}</strong> quedó registrado.
+          </p>
+          <button
+            type="button"
+            title="Actualizar estado del pedido"
+            aria-label="Actualizar estado del pedido"
+            disabled={actualizando}
+            className="min-h-11 min-w-11 shrink-0 inline-flex items-center justify-center disabled:opacity-60"
+            style={{ color: "hsl(var(--st-link))" }}
+            onClick={async () => {
+              setActualizando(true);
+              await cargar();
+              if (mountedRef.current) setActualizando(false);
+            }}
+          >
+            <RefreshCw className={`h-4 w-4 ${actualizando ? "animate-spin" : ""}`} />
+          </button>
+        </div>
         <p className="text-sm mt-2" style={{ color: "hsl(var(--st-muted))" }}>
           {pagado
             ? <>{introPedidoPagado(esRetiro)} Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
@@ -501,7 +537,7 @@ export default function StoreOrder() {
             </div>
           )}
           {pagoAviso && <p className="text-xs mt-3" style={{ color: "hsl(var(--st-muted))" }}>{pagoAviso}</p>}
-          {pagoError && <p className="text-xs mt-2 text-red-600">{pagoError}</p>}
+          {pagoError && <p className="text-xs mt-2 text-red-600" role="alert">{pagoError}</p>}
         </div>
       )}
 
