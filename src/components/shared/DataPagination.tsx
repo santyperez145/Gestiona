@@ -12,6 +12,7 @@ interface DataPaginationProps {
   pageSize?: number;
   itemLabel?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export default function DataPagination({
@@ -22,6 +23,7 @@ export default function DataPagination({
   pageSize,
   itemLabel = "registros",
   className,
+  disabled = false,
 }: DataPaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -50,7 +52,7 @@ export default function DataPagination({
           variant="outline"
           size="sm"
           className="h-8 gap-1.5 px-2.5"
-          disabled={safePage === 0}
+          disabled={disabled || safePage === 0}
           onClick={() => onPageChange(safePage - 1)}
           aria-label="Ir a la página anterior"
         >
@@ -67,7 +69,7 @@ export default function DataPagination({
           variant="outline"
           size="sm"
           className="h-8 gap-1.5 px-2.5"
-          disabled={safePage >= totalPages - 1}
+          disabled={disabled || safePage >= totalPages - 1}
           onClick={() => onPageChange(safePage + 1)}
           aria-label="Ir a la página siguiente"
         >

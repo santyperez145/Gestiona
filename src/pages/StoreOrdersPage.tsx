@@ -4,23 +4,16 @@
  * Shopify/Tiendanube separan Pedidos de Diseño/Pagos. Recuperación
  * (abandonados + reposición) vive acá como hermano, no en Ajustes.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import CommercePageHeader from "@/components/commerce/CommercePageHeader";
-import CommerceKPICard from "@/components/commerce/CommerceKPICard";
-import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import StoreOrdersWorkspace from "@/components/ecommerce/StoreOrdersWorkspace";
 import StoreRecoveryWorkspace from "@/components/ecommerce/StoreRecoveryWorkspace";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import {
-  STORE_ORDER_QUEUE_LIMIT,
-  countStoreOrdersNeedingAttention,
-} from "@/lib/storeOrderQueue";
-import { STORE_ORDER_LIST_SELECT, type StoreOrderInspectRow } from "@/lib/storeOrderDetail";
+import { useStoreOrderQueue } from "@/hooks/useStoreOrderQueue";
 import { parseStoreOrdersCola } from "@/lib/storeOrdersCanonical";
 import { urlPublicaDeTienda } from "@/lib/storeFirstPublish";
 import {
@@ -44,35 +37,10 @@ export default function StoreOrdersPage() {
   const selectedStore = commerceStores.selectedStore;
   const storeSlug = selectedStore?.slug ?? null;
   const storeName = selectedStore?.name ?? "Tu tienda";
-  const [orders, setOrders] = useState<StoreOrderInspectRow[]>([]);
-  const [ordersLoading, setOrdersLoading] = useState(true);
-  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const queue = useStoreOrderQueue(orgId,
+    selectedStore?.org_id === orgId ? commerceStores.selectedStoreId : null, searchParams);
+  const ordersLoading = commerceStores.loading || queue.loading;
   const [recoveryPending, setRecoveryPending] = useState(0);
-
-  const loadOrders = useCallback(async () => {
-    if (!orgId || !commerceStores.selectedStoreId) {
-      setOrders([]);
-      setOrdersLoading(false);
-      return;
-    }
-    setOrdersLoading(true);
-    setOrdersError(null);
-    const { data, error } = await supabase
-      .from("ecommerce_orders")
-      .select(STORE_ORDER_LIST_SELECT)
-      .eq("org_id", orgId)
-      .eq("store_id", commerceStores.selectedStoreId)
-      .order("created_at", { ascending: false })
-      .limit(STORE_ORDER_QUEUE_LIMIT);
-    if (error) {
-      console.error("No se pudieron leer los pedidos de la tienda", error);
-      setOrders([]);
-      setOrdersError("No pudimos leer los pedidos de la tienda. Reintentá.");
-    } else {
-      setOrders((data ?? []) as StoreOrderInspectRow[]);
-    }
-    setOrdersLoading(false);
-  }, [commerceStores.selectedStoreId, orgId]);
 
   const loadRecoveryCounts = useCallback(async () => {
     if (!orgId || !commerceStores.selectedStoreId) {
@@ -116,13 +84,9 @@ export default function StoreOrdersPage() {
     setRecoveryPending(abandoned + countPendingStockAlerts(stockRows));
   }, [commerceStores.selectedStoreId, orgId]);
 
-  useEffect(() => { void loadOrders(); }, [loadOrders]);
   useEffect(() => { void loadRecoveryCounts(); }, [loadRecoveryCounts]);
 
-  const ordersAttention = useMemo(
-    () => countStoreOrdersNeedingAttention(orders),
-    [orders],
-  );
+  const ordersAttention = queue.data?.attention ?? 0;
 
   const urlPublica = urlPublicaDeTienda(
     typeof window === "undefined" ? "" : window.location.origin,
@@ -132,6 +96,7 @@ export default function StoreOrdersPage() {
   const setCola = (next: string) => {
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev);
+      p.delete("pagina");
       if (next === "recuperacion") {
         p.set("cola", "recuperacion");
         p.delete("pedido");
@@ -151,6 +116,7 @@ export default function StoreOrdersPage() {
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev);
       p.set("store", storeId);
+      p.delete("pagina");
       p.delete("pedido");
       p.delete("q");
       p.delete("orden");
@@ -168,7 +134,6 @@ export default function StoreOrdersPage() {
         icon={ShoppingBag}
         eyebrow="Commerce · Cola"
         title="Pedidos"
-        description="Cola de pedidos y recuperación: cobrar, despachar y recuperar GMV. Misma autoridad que el checkout público."
         actions={(
           <Button variant="outline" size="sm" className="min-h-11 gap-1.5" asChild>
             <Link to={storeSettingsUrl}>
@@ -224,13 +189,16 @@ export default function StoreOrdersPage() {
         />
       ) : (
         <StoreOrdersWorkspace
+          key={`${orgId}:${commerceStores.selectedStoreId}`}
           orgId={orgId}
+          storeId={commerceStores.selectedStoreId}
           storeName={storeName}
           publicStoreUrl={urlPublica}
-          orders={orders}
+          orders={queue.data?.rows ?? []}
+          queuePage={queue.data}
           ordersLoading={ordersLoading}
-          ordersError={ordersError}
-          onReload={loadOrders}
+          ordersError={queue.error}
+          onReload={queue.reload}
         />
       )}
     </div>

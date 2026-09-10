@@ -77,9 +77,9 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
   transaccionales;
 - SEO, sitemap, metadata, dominio propio/subdominio, temas versionados, favicon
   por tienda y navegación SPA con scroll/restauración accesible, páginas, banners, menú, reseñas y preguntas;
-- pedidos y recuperación como colas propias: `vista=pago` acredita transferencia/
-  efectivo en la fila; Recuperación no promete email sin canal listo
-  (`recovery_email_channel_ready` para abandonados y back-in-stock);
+- pedidos: historial filtrado en servidor, páginas de 50, contadores sin duplicar,
+  CSV de página, aislamiento por vitrina y cobro manual desde la fila;
+- recuperación sólo ofrece email con `recovery_email_channel_ready`;
 - analítica first-party mínima, disclosure legal, adquisición y embudo;
 - varias vitrinas por organización con exactamente una principal. Configuración,
   dominio, páginas, menú, pedidos, recuperación, reseñas, preguntas y analítica
@@ -317,7 +317,7 @@ partner.
 | 1 | A1 Contratos de acción | Cada CTA crítica tiene test reversible/sandbox y resultado observable. |
 | 2 | C22.2 Certificar migración | Shopify/Tiendanube/Empretienda reales, clientes, imágenes propias y rollback condicionado. |
 | 3 | C20 Estados de checkout | Intento persistido, recuperación de lectura/pago desde el pedido, aislamiento al navegar y refresco digital secuencial acotado. Pendiente: certificar concurrencia con claves distintas y ciclo completo de carrito entre pestañas. |
-| 4 | C23 Operación de pedidos | Cola por SLA, fulfillment y devolución completos. |
+| 4 | C23 Operación de pedidos | Historial paginado y filtrado server-side, aislamiento por vitrina y reintentos de lectura verificados. Pendiente: SLA configurable y cierre integral de fulfillment/devolución. |
 | 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
 | 6 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. |
 | 7 | F5.2 Políticas y presupuesto | Solicitud bloqueada/aprobada con saldo comprometido. |

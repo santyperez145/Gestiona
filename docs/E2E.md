@@ -30,6 +30,19 @@ entrega](https://help.shopify.com/en/manual/fulfillment/managing-orders/order-st
 La decisión de reintentar consultas sin recrear compras es propia de Nerqia;
 estas pruebas no certifican un cobro ni un webhook real.
 
+Pedidos C23: `storeOrderQueuePage.test.tsx` cubre contrato paginado, cambio de
+vitrina con respuesta tardía, debounce, errores/reintento, navegación por URL,
+CSV de página y vacío filtrado. La fixture reversible
+`supabase/verificaciones/20260910_store_order_queue.sql` verifica 251 pedidos en
+una tienda y otra vitrina aislada: historial antiguo, acentos, búsqueda literal,
+montos, orden estable, última página, contadores y denegación de anon/otro tenant.
+Su consulta final exige cero organizaciones sintéticas restantes.
+
+Referencia verificada el 2026-09-10: [Shopify busca y filtra el historial de
+pedidos](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders).
+Las páginas de 50, el CSV explícitamente limitado a la página y el umbral actual
+de 24 horas son decisiones propias; no equivalen a paridad completa con Shopify.
+
 ## Contrato del gate
 
 - Vite construye el bundle de producción y lo sirve con `vite preview` en

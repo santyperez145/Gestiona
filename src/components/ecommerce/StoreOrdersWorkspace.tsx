@@ -14,6 +14,7 @@ import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommer
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useHasPermission } from "@/lib/usePermissions";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import type { StoreOrderQueuePage } from "@/lib/storeOrderQueuePage";
 import {
   findStoreOrderForInspect,
   isStoreOrderInspectId,
@@ -30,6 +31,8 @@ import {
 
 interface Props {
   orgId: string | null;
+  storeId: string | null;
+  queuePage: StoreOrderQueuePage | undefined;
   storeName: string;
   publicStoreUrl?: string | null;
   orders: StoreOrderInspectRow[];
@@ -40,6 +43,8 @@ interface Props {
 
 export default function StoreOrdersWorkspace({
   orgId,
+  storeId,
+  queuePage,
   storeName,
   publicStoreUrl,
   orders,
@@ -58,7 +63,8 @@ export default function StoreOrdersWorkspace({
   const [pedidoExtraLoading, setPedidoExtraLoading] = useState(false);
 
   const pedidoId = searchParams.get("pedido");
-  const inspectedOrder = findStoreOrderForInspect(orders, pedidoId) ?? pedidoExtra;
+  const inspectedOrder = findStoreOrderForInspect(orders, pedidoId)
+    ?? (pedidoExtra?.id === pedidoId ? pedidoExtra : null);
 
   const openPedido = useCallback((orderId: string) => {
     setSearchParams(prev => {
@@ -210,17 +216,19 @@ export default function StoreOrdersWorkspace({
       setPedidoExtraLoading(false);
       return;
     }
-    if (!orgId || !isStoreOrderInspectId(raw)) {
+    if (!orgId || !storeId || !isStoreOrderInspectId(raw)) {
       setPedidoExtra(null);
       setPedidoExtraLoading(false);
       return;
     }
     let cancelado = false;
+    setPedidoExtra(null);
     setPedidoExtraLoading(true);
     supabase
       .from("ecommerce_orders")
       .select(STORE_ORDER_LIST_SELECT)
       .eq("org_id", orgId)
+      .eq("store_id", storeId)
       .eq("id", raw)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -232,13 +240,19 @@ export default function StoreOrdersWorkspace({
           setPedidoExtra((data ?? null) as StoreOrderInspectRow | null);
         }
         setPedidoExtraLoading(false);
+      }, (error: unknown) => {
+        if (cancelado) return;
+        console.error("Pedido fuera de cola:", error);
+        setPedidoExtra(null);
+        setPedidoExtraLoading(false);
       });
     return () => { cancelado = true; };
-  }, [searchParams, orders, orgId]);
+  }, [searchParams, orders, orgId, storeId]);
 
   return (
     <>
       <StoreOrdersPanel
+        queuePage={queuePage}
         orders={orders}
         loading={ordersLoading}
         error={ordersError}

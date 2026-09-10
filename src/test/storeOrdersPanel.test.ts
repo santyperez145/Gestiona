@@ -25,8 +25,10 @@ describe("cola de pedidos en Commerce", () => {
 
   it("exporta y opera el recorte visible con autoridad masiva", () => {
     expect(panel).toContain("buildStoreOrdersCsv");
-    expect(panel).toContain("filterStoreOrders");
-    expect(panel).toContain("Exportar CSV");
+    expect(panel).not.toContain("filterStoreOrders");
+    expect(panel).toContain("CSV de esta página");
+    expect(panel).toContain("queuePage?.counts");
+    expect(panel).toContain("<DataPagination");
     expect(panel).toContain("STORE_ORDER_BULK_LIMIT");
     expect(panel).toContain("isStoreOrderBulkSelectable");
     expect(panel).toContain("Acciones para pedidos seleccionados");
@@ -47,7 +49,8 @@ describe("cola de pedidos en Commerce", () => {
     expect(page).not.toContain("StoreOrdersWorkspace");
     expect(page).toContain("storeOrdersCanonicalPath");
     expect(page).toContain('requestedTab === "orders"');
-    expect(page).toContain('to="/pedidos-online"');
+    expect(page).toContain('to={`/pedidos-online?store=${store?.id}`}');
+    expect(page).toContain('.limit(4)');
     expect(page).not.toContain('id: "orders"');
     expect(panel).not.toContain("standalone");
     expect(focus).toContain("/pedidos-online?vista=despachar");
@@ -58,7 +61,7 @@ describe("cola de pedidos en Commerce", () => {
   it("Recuperación es hermano de Pedidos, no tab de Commerce", () => {
     expect(ordersPage).toContain("StoreRecoveryWorkspace");
     expect(ordersPage).toContain('id: "recuperacion"');
-    expect(ordersPage).toContain("countStoreOrdersNeedingAttention");
+    expect(ordersPage).toContain("queue.data?.attention");
     expect(ordersPage).toContain("recoveryPending");
     expect(page).toContain("storeRecoveryCanonicalPath");
     expect(page).toContain('requestedTab === "carritos"');

@@ -95,7 +95,7 @@ import {
   normalizarDescuentosMedios,
   normalizarMediosTienda,
 } from "@/lib/gestionaPay";
-import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
+import { storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
 import { storeOrdersCanonicalPath, storeRecoveryCanonicalPath } from "@/lib/storeOrdersCanonical";
 import ImageUpload from "@/components/shared/ImageUpload";
 import KPICard from "@/components/shared/KPICard";
@@ -285,6 +285,7 @@ export default function EcommerceStorePage() {
   const [performance, setPerformance] = useState<StorePerformanceSnapshot | null>(null);
   const [performanceError, setPerformanceError] = useState<string | null>(null);
   const performanceRequestRef = useRef(0);
+  const recentOrdersRequestRef = useRef(0);
   const [stockAlertsPending, setStockAlertsPending] = useState(0);
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
@@ -386,8 +387,9 @@ export default function EcommerceStorePage() {
     });
   }, [orgId, store?.id, tab]);
 
-  /** Releer las órdenes. Se usa al montar y después de despachar una. */
+  /** Vista previa; la operación completa vive en Pedidos. */
   const loadOrders = useCallback(async () => {
+    const requestId = ++recentOrdersRequestRef.current;
     if (!orgId || !store?.id) {
       setOrders([]);
       setOrdersLoading(false);
@@ -395,21 +397,26 @@ export default function EcommerceStorePage() {
     }
     setOrdersLoading(true);
     setOrdersError(null);
-    const { data, error } = await supabase
-      .from("ecommerce_orders")
-      .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at, carrier, shipping_service")
-      .eq("org_id", orgId)
-      .eq("store_id", store.id)
-      .order("created_at", { ascending: false })
-      .limit(STORE_ORDER_QUEUE_LIMIT);
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from("ecommerce_orders")
+        .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at, carrier, shipping_service")
+        .eq("org_id", orgId)
+        .eq("store_id", store.id)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(4);
+      if (requestId !== recentOrdersRequestRef.current) return;
+      if (error) throw error;
+      setOrders((data ?? []) as EcomOrder[]);
+    } catch (error) {
+      if (requestId !== recentOrdersRequestRef.current) return;
       console.error("No se pudieron leer los pedidos de la tienda", error);
       setOrders([]);
       setOrdersError("No pudimos leer los pedidos de la tienda. Reintentá.");
-    } else {
-      setOrders((data ?? []) as EcomOrder[]);
+    } finally {
+      if (requestId === recentOrdersRequestRef.current) setOrdersLoading(false);
     }
-    setOrdersLoading(false);
   }, [orgId, store?.id]);
 
   /**
@@ -1321,27 +1328,32 @@ export default function EcommerceStorePage() {
                 <ShoppingCart className="w-4 h-4 text-primary" />Órdenes recientes
               </h3>
               <Button type="button" size="sm" variant="outline" className="min-h-11" asChild>
-                <Link to="/pedidos-online">Ver pedidos</Link>
+                <Link to={`/pedidos-online?store=${store?.id}`}>Ver pedidos</Link>
               </Button>
               {(abandonedCarts + stockAlertsPending) > 0 ? (
                 <Button type="button" size="sm" variant="outline" className="min-h-11" asChild>
-                  <Link to="/pedidos-online?cola=recuperacion">
+                  <Link to={`/pedidos-online?cola=recuperacion&store=${store?.id}`}>
                     Recuperación ({abandonedCarts + stockAlertsPending})
                   </Link>
                 </Button>
               ) : null}
             </div>
             <div className="space-y-2">
-              {orders.length === 0 ? (
+              {ordersLoading ? (
+                <WorkspaceState kind="initial-loading" title="Leyendo pedidos" loadingRows={2} />
+              ) : ordersError ? (
+                <WorkspaceState kind="error-recoverable" title="No pudimos leer los pedidos"
+                  description={ordersError} actionLabel="Reintentar" onAction={() => { void loadOrders(); }} />
+              ) : orders.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Todavía no hay pedidos.</p>
-              ) : orders.slice(0, 4).map(o => {
+              ) : orders.map(o => {
                 const itemCount = Array.isArray(o.items) ? (o.items as unknown[]).length : 0;
                 return (
                 <button
                   type="button"
                   key={o.id}
                   className="flex w-full items-center justify-between border-b border-border/50 py-3 text-left hover:bg-muted/20"
-                  onClick={() => navigate(`/pedidos-online?pedido=${o.id}`)}
+                  onClick={() => navigate(`/pedidos-online?store=${store?.id}&pedido=${o.id}`)}
                 >
                   <div>
                     <p className="text-sm font-medium">{o.customer_name}</p>

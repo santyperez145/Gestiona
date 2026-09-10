@@ -15,7 +15,6 @@ import {
   storeOrderPaymentLabel,
 } from "@/lib/storeOrderPayment";
 
-export const STORE_ORDER_QUEUE_LIMIT = 200;
 export const STORE_ORDER_BULK_LIMIT = 50;
 export const STORE_ORDER_BULK_STATUSES = ["shipped", "delivered"] as const;
 export type StoreOrderBulkStatus = typeof STORE_ORDER_BULK_STATUSES[number];
@@ -205,12 +204,13 @@ function looksLikeAmount(query: string) {
   return /^\$?\s*\d[\d.\s]*([,]\d{1,2})?$/.test(query.trim());
 }
 
-function parseAmountQuery(query: string): number | null {
+export function parseStoreOrderAmountQuery(query: string): number | null {
+  if (!looksLikeAmount(query)) return null;
   const compact = query.trim().replace(/\$/g, "").replace(/\s/g, "");
   if (!compact) return null;
   const normalized = compact.includes(",")
     ? compact.replace(/\./g, "").replace(",", ".")
-    : compact;
+    : /^\d{1,3}(\.\d{3})+$/.test(compact) ? compact.replace(/\./g, "") : compact;
   const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
 }
@@ -227,7 +227,7 @@ export function matchesStoreOrderSearch(order: StoreOrderQueueRow, query: string
   ].map(fold);
   if (fields.some(field => field.includes(q))) return true;
   if (!looksLikeAmount(query)) return false;
-  const amount = parseAmountQuery(query);
+  const amount = parseStoreOrderAmountQuery(query);
   if (amount == null) return false;
   return Math.abs(Number(order.total) - amount) < 0.005;
 }
@@ -415,7 +415,7 @@ export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<Store
 /** Badge de la tab Pedidos: trabajo operativo, no el historial entero. */
 export function countStoreOrdersNeedingAttention(orders: StoreOrderQueueRow[]): number {
   const c = countStoreOrderViews(orders);
-  return c.retirar + c.despachar + c.atrasados + c.pago;
+  return c.retirar + c.despachar + c.pago;
 }
 
 export function buildStoreOrdersCsv(orders: StoreOrderQueueRow[]) {

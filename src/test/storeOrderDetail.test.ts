@@ -54,6 +54,8 @@ describe("inspector de un pedido de tienda", () => {
     expect(workspace).not.toContain("findStoreOrderForInspect(visible");
     expect(workspace).not.toContain("findStoreOrderForInspect(filtered");
     expect(workspace).toContain(`.select(STORE_ORDER_LIST_SELECT)`);
+    expect(workspace).toContain('.eq("store_id", storeId)');
+    expect(workspace).toContain('pedidoExtra?.id === pedidoId');
     expect(STORE_ORDER_LIST_SELECT).not.toMatch(/public_access_token|access_token|cost_usd|cost_ars/);
   });
 

@@ -13,16 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WorkspaceState from "@/components/shared/WorkspaceState";
+import DataPagination from "@/components/shared/DataPagination";
 import {
   STORE_ORDER_MEDIOS,
   STORE_ORDER_BULK_LIMIT,
-  STORE_ORDER_QUEUE_LIMIT,
   STORE_ORDER_SORTS,
   STORE_ORDER_VIEWS,
   buildStoreOrdersCsv,
   countBulkFulfillmentCandidates,
-  countStoreOrderViews,
-  filterStoreOrders,
   isStoreOrderBulkSelectable,
   parseStoreOrderMedio,
   parseStoreOrderSort,
@@ -48,9 +46,11 @@ import {
 } from "@/lib/storeOrderPayment";
 import { storeOrdersEmptyShareCopy } from "@/lib/storeFirstPublish";
 import { toast } from "sonner";
-import { Banknote, Download, Eye, Loader2, PackageCheck, Search, Store, Truck, X } from "lucide-react";
+import type { StoreOrderQueuePage } from "@/lib/storeOrderQueuePage";
+import { Banknote, Download, Eye, Loader2, PackageCheck, RefreshCw, Search, Store, Truck, X } from "lucide-react";
 
 interface Props {
+  queuePage: StoreOrderQueuePage | undefined;
   orders: StoreOrderQueueRow[];
   loading: boolean;
   error: string | null;
@@ -75,6 +75,7 @@ function writeQueueParams(
   next: { query?: string; view?: StoreOrderView; sort?: StoreOrderSort; medio?: StoreOrderMedio },
 ) {
   const params = new URLSearchParams(prev);
+  params.delete("pagina");
   if (next.query !== undefined) {
     const q = next.query.trim();
     if (q) params.set("q", next.query);
@@ -111,6 +112,7 @@ function downloadCsv(rows: StoreOrderQueueRow[]) {
 }
 
 export default function StoreOrdersPanel({
+  queuePage,
   orders, loading, error, selectedId, publicStoreUrl, confirmingPaid = false,
   onRetry, onInspect, onPrepare, onConfirmPaid,
   canBulkEdit, bulkBusy, bulkResult, onDismissBulkResult, onBulkFulfill,
@@ -122,12 +124,10 @@ export default function StoreOrdersPanel({
   const sort = parseStoreOrderSort(searchParams.get("orden"));
   const medio = parseStoreOrderMedio(searchParams.get("medio"));
   const ordersEmpty = storeOrdersEmptyShareCopy(Boolean(publicStoreUrl));
-  const counts = useMemo(() => countStoreOrderViews(orders), [orders]);
-  const visible = useMemo(
-    () => filterStoreOrders(orders, { query, view, sort, medio }),
-    [orders, query, view, sort, medio],
-  );
-  const capped = orders.length >= STORE_ORDER_QUEUE_LIMIT;
+  const counts = queuePage?.counts;
+  const visible = orders;
+  const currentPage = queuePage?.page ?? 1;
+  const totalPages = Math.max(1, Math.ceil((queuePage?.total ?? 0) / (queuePage?.page_size ?? 50)));
   const hasFilters = query.trim().length > 0 || view !== "todas" || sort !== "recientes" || medio !== "todos";
   const selectionScope = useMemo(
     () => visible.filter(isStoreOrderBulkSelectable).slice(0, STORE_ORDER_BULK_LIMIT),
@@ -144,7 +144,7 @@ export default function StoreOrdersPanel({
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [query, view, sort, medio]);
+  }, [query, view, sort, medio, currentPage]);
 
   useEffect(() => {
     const valid = new Set(orders.filter(isStoreOrderBulkSelectable).map(order => order.id));
@@ -192,14 +192,23 @@ export default function StoreOrdersPanel({
   const clearFilters = () => {
     setSearchParams(prev => writeQueueParams(prev, { query: "", view: "todas", sort: "recientes", medio: "todos" }), { replace: true });
   };
+  const setPage = (page: number) => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      if (page <= 1) params.delete("pagina");
+      else params.set("pagina", String(page));
+      return params;
+    });
+  };
 
   return (
     <div className="commerce-orders-queue space-y-4">
       <div className="commerce-orders-toolbar">
-        <div className="relative min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1 sm:min-w-[240px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
+            maxLength={200}
             onChange={e => setQuery(e.target.value)}
             placeholder="Número, cliente, email, teléfono o monto"
             aria-label="Buscar pedidos de la tienda"
@@ -231,39 +240,40 @@ export default function StoreOrdersPanel({
             Quitar filtros
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-11 shrink-0 gap-1.5"
-          disabled={visible.length === 0}
-          onClick={() => downloadCsv(visible)}
-        >
-          <Download className="h-4 w-4" />
-          Exportar CSV
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-11 flex-1 gap-1.5"
+            disabled={loading || Boolean(error) || visible.length === 0}
+            onClick={() => downloadCsv(visible)}
+          >
+            <Download className="h-4 w-4" />
+            CSV de esta página
+          </Button>
+          <Button variant="outline" size="icon" className="h-11 !w-11 shrink-0" onClick={onRetry}
+            disabled={loading || bulkBusy} aria-label="Actualizar pedidos" title="Actualizar pedidos">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
-      <div className="commerce-orders-views flex flex-wrap gap-1.5" role="tablist" aria-label="Vistas de la cola">
+      <div className="commerce-orders-views flex flex-wrap gap-1.5" role="group" aria-label="Vistas de la cola">
         {STORE_ORDER_VIEWS.map(v => (
           <button
             key={v.id}
             type="button"
+            aria-pressed={view === v.id}
             onClick={() => setView(v.id)}
             className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold transition-colors ${
               view === v.id ? "is-active" : ""
             }`}
           >
             {v.label}
-            <span className="ml-1.5 tabular-nums opacity-70">{counts[v.id]}</span>
+            <span className="ml-1.5 tabular-nums opacity-70">{loading || error ? "..." : counts?.[v.id] ?? "..."}</span>
           </button>
         ))}
       </div>
-
-      {capped && (
-        <p className="text-xs text-muted-foreground">
-          Se muestran los últimos {STORE_ORDER_QUEUE_LIMIT} pedidos. La búsqueda y el CSV operan sobre esa cola.
-        </p>
-      )}
 
       {bulkResult && (
         <div className="commerce-orders-bulk-result border border-primary/20 bg-primary/5 p-4" role="status">
@@ -302,7 +312,7 @@ export default function StoreOrdersPanel({
           actionLabel="Reintentar"
           onAction={onRetry}
         />
-      ) : orders.length === 0 ? (
+      ) : queuePage?.store_total === 0 ? (
         <WorkspaceState
           kind="empty-first-use"
           title={ordersEmpty.title}
@@ -327,10 +337,13 @@ export default function StoreOrdersPanel({
         />
       ) : (
         <>
-          <p className="text-xs text-muted-foreground">
-            {visible.length === 1 ? "1 pedido" : `${visible.length} pedidos`}
-            {hasFilters ? " en este recorte" : ""}
-          </p>
+          {totalPages <= 1 ? <p className="text-xs text-muted-foreground" role="status">
+            {queuePage?.total} pedidos
+          </p> : <DataPagination
+            page={currentPage - 1} totalPages={totalPages} onPageChange={page => setPage(page + 1)}
+            totalItems={queuePage?.total} pageSize={queuePage?.page_size} itemLabel="pedidos" disabled={bulkBusy}
+            className="mt-0 rounded-none border-0 bg-transparent px-0 [&_button]:min-h-11 [&_button]:min-w-11"
+          />}
 
           {canBulkEdit && selectedOrders.length > 0 && (
             <div className="commerce-orders-bulk-bar sticky bottom-4 z-20 flex flex-col gap-3 border border-primary/25 bg-background/95 p-3 sm:flex-row sm:items-center sm:justify-between" role="region" aria-label="Acciones para pedidos seleccionados">

@@ -53300,6 +53300,19 @@ export type Database = {
         Args: { p_order_ids: string[]; p_org_id: string; p_status: string }
         Returns: Json
       }
+      store_order_queue: {
+        Args: {
+          p_org_id: string
+          p_store_id: string
+          p_query?: string
+          p_view?: string
+          p_sort?: string
+          p_medio?: string
+          p_page?: number
+          p_amount?: number
+        }
+        Returns: Json
+      }
       business_blueprint_intent_uuid: {
         Args: { p_intent: string }
         Returns: string
