@@ -111,6 +111,26 @@ const FULFILLMENT_PENDING = new Set(["pending", "unfulfilled", "processing"]);
 /** Pagado y sin salir hace más de esto: entra a Atrasados (Shopify: unfulfilled aging). */
 export const STORE_ORDER_STALE_HOURS = 24;
 
+export interface StoreOrderSlaOption {
+  hours: number;
+  label: string;
+  description: string;
+}
+
+/** Tiempos estándar de preparación y despacho (Shopify: Processing time). */
+export const STORE_ORDER_SLA_OPTIONS: readonly StoreOrderSlaOption[] = [
+  { hours: 12, label: "12 horas", description: "Mismo día para pedidos matutinos" },
+  { hours: 24, label: "24 horas (recomendado)", description: "1 día hábil de preparación" },
+  { hours: 48, label: "48 horas", description: "2 días hábiles de preparación" },
+  { hours: 72, label: "72 horas", description: "3 días hábiles para productos elaborados" },
+  { hours: 120, label: "5 días", description: "Producción por encargo o a pedido" },
+] as const;
+
+export function parseStoreOrderSlaHours(raw: unknown): number {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= 720 ? n : STORE_ORDER_STALE_HOURS;
+}
+
 export const STORE_ORDER_SORT_IDS = ["recientes", "antiguos", "mayor", "menor"] as const;
 export type StoreOrderSort = typeof STORE_ORDER_SORT_IDS[number];
 
@@ -287,11 +307,13 @@ function createdAtMs(iso: string | null | undefined) {
 export function isStoreOrderStale(
   order: Pick<StoreOrderQueueRow, "payment_status" | "fulfillment_status" | "created_at">,
   now: Date = new Date(),
+  slaHours: number = STORE_ORDER_STALE_HOURS,
 ) {
   if (!isStoreOrderAwaitingFulfillment(order)) return false;
   const created = createdAtMs(order.created_at);
   if (!created) return false;
-  return (now.getTime() - created) > STORE_ORDER_STALE_HOURS * 3600e3;
+  const safeSla = Math.max(1, slaHours);
+  return (now.getTime() - created) > safeSla * 3600e3;
 }
 
 export function orderMatchesStoreMedio(order: StoreOrderQueueRow, medio: StoreOrderMedio) {
@@ -334,6 +356,7 @@ export function orderMatchesStoreView(
   order: StoreOrderQueueRow,
   view: StoreOrderView,
   now: Date = new Date(),
+  slaHours: number = STORE_ORDER_STALE_HOURS,
 ) {
   switch (view) {
     case "todas":
@@ -343,7 +366,7 @@ export function orderMatchesStoreView(
     case "despachar":
       return isStoreOrderAwaitingShipment(order);
     case "atrasados":
-      return isStoreOrderStale(order, now);
+      return isStoreOrderStale(order, now, slaHours);
     case "pago":
       return canRetryStorePayment(order.payment_status);
     case "enviadas":
@@ -389,7 +412,10 @@ export function filterStoreOrders(
   return sortStoreOrders(filtered, sort);
 }
 
-export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<StoreOrderView, number> {
+export function countStoreOrderViews(
+  orders: StoreOrderQueueRow[],
+  slaHours: number = STORE_ORDER_STALE_HOURS,
+): Record<StoreOrderView, number> {
   const counts = {
     todas: orders.length,
     retirar: 0,
@@ -403,7 +429,7 @@ export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<Store
   for (const order of orders) {
     if (isStoreOrderAwaitingPickup(order)) counts.retirar += 1;
     if (isStoreOrderAwaitingShipment(order)) counts.despachar += 1;
-    if (isStoreOrderStale(order)) counts.atrasados += 1;
+    if (isStoreOrderStale(order, new Date(), slaHours)) counts.atrasados += 1;
     if (canRetryStorePayment(order.payment_status)) counts.pago += 1;
     if (order.fulfillment_status === "shipped") counts.enviadas += 1;
     if (order.fulfillment_status === "delivered") counts.entregadas += 1;

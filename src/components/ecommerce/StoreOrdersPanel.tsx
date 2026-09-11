@@ -259,20 +259,27 @@ export default function StoreOrdersPanel({
       </div>
 
       <div className="commerce-orders-views flex flex-wrap gap-1.5" role="group" aria-label="Vistas de la cola">
-        {STORE_ORDER_VIEWS.map(v => (
-          <button
-            key={v.id}
-            type="button"
-            aria-pressed={view === v.id}
-            onClick={() => setView(v.id)}
-            className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold transition-colors ${
-              view === v.id ? "is-active" : ""
-            }`}
-          >
-            {v.label}
-            <span className="ml-1.5 tabular-nums opacity-70">{loading || error ? "..." : counts?.[v.id] ?? "..."}</span>
-          </button>
-        ))}
+        {STORE_ORDER_VIEWS.map(v => {
+          const slaHours = queuePage?.sla_hours;
+          const tooltip = v.id === "atrasados" && slaHours
+            ? `Pedidos pagados sin despachar hace más de ${slaHours} horas (SLA configurado para la tienda)`
+            : undefined;
+          return (
+            <button
+              key={v.id}
+              type="button"
+              aria-pressed={view === v.id}
+              onClick={() => setView(v.id)}
+              title={tooltip}
+              className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                view === v.id ? "is-active" : ""
+              }`}
+            >
+              {v.label}
+              <span className="ml-1.5 tabular-nums opacity-70">{loading || error ? "..." : counts?.[v.id] ?? "..."}</span>
+            </button>
+          );
+        })}
       </div>
 
       {bulkResult && (

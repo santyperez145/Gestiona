@@ -63,6 +63,7 @@ export type StoreFormDraft = {
   pickup_instructions: string;
   default_item_weight_kg: string;
   fulfillment_location_id: string;
+  fulfillment_sla_hours: number;
   storefront_layout: StorefrontLayout;
   whatsapp: string;
   instagram: string;
@@ -198,6 +199,7 @@ export function storeDraftInicial(
     pickup_instructions: "",
     default_item_weight_kg: "0.5",
     fulfillment_location_id: fulfillmentGlobal,
+    fulfillment_sla_hours: 24,
     storefront_layout: {
       ...DEFAULT_STOREFRONT_LAYOUT,
       sections: [...DEFAULT_STOREFRONT_LAYOUT.sections],
@@ -237,6 +239,7 @@ type FilaTienda = {
   pickup_instructions?: string | null;
   default_item_weight_kg?: number | null;
   fulfillment_location_id?: string | null;
+  fulfillment_sla_hours?: number | null;
   storefront_layout?: unknown;
   social_links?: unknown;
 };
@@ -284,6 +287,9 @@ export function storeFormDesdeFila(
       ? String(data.default_item_weight_kg)
       : base.default_item_weight_kg,
     fulfillment_location_id: data.fulfillment_location_id ?? fulfillmentGlobal,
+    fulfillment_sla_hours: data.fulfillment_sla_hours != null && data.fulfillment_sla_hours > 0
+      ? data.fulfillment_sla_hours
+      : base.fulfillment_sla_hours,
     storefront_layout: parseStorefrontLayout(data.storefront_layout),
     whatsapp: displayWhatsApp(parseStoreSocial(data.social_links).whatsapp),
     instagram: displayInstagram(parseStoreSocial(data.social_links).instagram),

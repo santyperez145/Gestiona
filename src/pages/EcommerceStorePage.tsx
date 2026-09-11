@@ -95,7 +95,11 @@ import {
   normalizarDescuentosMedios,
   normalizarMediosTienda,
 } from "@/lib/gestionaPay";
-import { storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
+import {
+  STORE_ORDER_SLA_OPTIONS,
+  storeOrderFulfillmentLabel,
+  storeOrderFulfillmentTone,
+} from "@/lib/storeOrderQueue";
 import { storeOrdersCanonicalPath, storeRecoveryCanonicalPath } from "@/lib/storeOrdersCanonical";
 import ImageUpload from "@/components/shared/ImageUpload";
 import KPICard from "@/components/shared/KPICard";
@@ -748,6 +752,7 @@ export default function EcommerceStorePage() {
       pickup_address: storeForm.pickup_address || null,
       pickup_instructions: storeForm.pickup_instructions || null,
       default_item_weight_kg: Number(storeForm.default_item_weight_kg) || 0.5,
+      fulfillment_sla_hours: storeForm.fulfillment_sla_hours || 24,
       storefront_layout: store?.id
         ? publishedDesign.storefront_layout
         : layoutParaGuardar(storeForm.storefront_layout),
@@ -2181,6 +2186,33 @@ export default function EcommerceStorePage() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Tiempo objetivo de preparación y despacho (SLA) */}
+            <div className="pt-3 border-t border-border/40 space-y-2">
+              <label className="text-sm font-medium block">
+                Tiempo objetivo de preparación (SLA)
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                Plazo máximo desde que el pedido queda pagado hasta que se despacha o se deja listo para retirar.
+                Los pedidos que superen este plazo aparecen en la vista «Atrasados» de Pedidos.
+              </p>
+              <Select
+                value={String(storeForm.fulfillment_sla_hours || 24)}
+                onValueChange={val => setStoreForm(p => ({ ...p, fulfillment_sla_hours: Number(val) || 24 }))}
+              >
+                <SelectTrigger className="h-11 w-full sm:w-[280px]" aria-label="Tiempo objetivo de preparación">
+                  <SelectValue placeholder="Seleccioná un plazo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STORE_ORDER_SLA_OPTIONS.map(opt => (
+                    <SelectItem key={opt.hours} value={String(opt.hours)}>
+                      <span className="font-medium">{opt.label}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">({opt.description})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

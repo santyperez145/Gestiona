@@ -77,11 +77,10 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
   transaccionales;
 - SEO, sitemap, metadata, dominio propio/subdominio, temas versionados, favicon
   por tienda y navegación SPA con scroll/restauración accesible, páginas, banners, menú, reseñas y preguntas;
-- pedidos: historial filtrado en servidor, páginas de 50, contadores sin duplicar,
-  CSV de página, aislamiento por vitrina y cobro manual desde la fila;
-- recuperación sólo ofrece email con `recovery_email_channel_ready`; el 2026-09-11
-  suma resumen medido (recuperables, avisos enviados, convertidos, GMV recuperado)
-  y observabilidad de salud del cron (`recovery_channel_health`) sin exponer PII;
+- pedidos: historial filtrado en servidor, páginas de 50, aislamiento por vitrina,
+  cobro manual, SLA configurable por tienda y vista de atrasados;
+- recuperación: email con `recovery_email_channel_ready`, resumen medido (GMV,
+  recuperables, avisos, convertidos) y observabilidad de salud sin exponer PII;
 - analítica first-party mínima, disclosure legal, adquisición y embudo;
 - varias vitrinas por organización con exactamente una principal. Configuración,
   dominio, páginas, menú, pedidos, recuperación, reseñas, preguntas y analítica
@@ -367,14 +366,8 @@ Una entrega está terminada cuando:
 
 ## 9. Documentación y decisiones
 
-- [Índice documental](docs/INDICE.md)
-- [Estrategia y comparación](docs/ESTRATEGIA.md)
-- [Arquitectura](docs/ARQUITECTURA.md)
-- [Estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md)
-- [Diseño](DESIGNROADMAP.md) e [interfaz](docs/INTERFAZ.md)
-- [Configuración](docs/CONFIGURACION.md), [cron](docs/CRON.md) y
-  [verificación E2E](docs/E2E.md)
-- [Legal](docs/LEGAL.md) y [permisos](docs/permisos.md)
+- [Índice](docs/INDICE.md) · [Estrategia](docs/ESTRATEGIA.md) · [Arquitectura](docs/ARQUITECTURA.md) · [Estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md)
+- [Diseño](DESIGNROADMAP.md) · [Interfaz](docs/INTERFAZ.md) · [Configuración](docs/CONFIGURACION.md) · [Cron](docs/CRON.md) · [E2E](docs/E2E.md) · [Legal](docs/LEGAL.md) · [Permisos](docs/permisos.md)
 
 Las decisiones que cambian límites de producto o datos requieren ADR. Los
 incidentes y resultados históricos se buscan con `git log`; no vuelven a crecer

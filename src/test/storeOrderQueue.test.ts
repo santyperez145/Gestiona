@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   buildStoreOrdersCsv,
   canBulkFulfillStoreOrder,
@@ -12,11 +14,14 @@ import {
   matchesStoreOrderSearch,
   parseStoreOrderMedio,
   parseStoreOrderBulkResponse,
+  parseStoreOrderSlaHours,
   parseStoreOrderSort,
   parseStoreOrderView,
   sortStoreOrders,
   storeOrderFulfillmentLabel,
   storeOrdersCsvFilename,
+  STORE_ORDER_SLA_OPTIONS,
+  STORE_ORDER_STALE_HOURS,
   type StoreOrderQueueRow,
 } from "@/lib/storeOrderQueue";
 
@@ -214,5 +219,51 @@ describe("cola de pedidos de la tienda", () => {
   it("nombra el CSV con el día UTC", () => {
     expect(storeOrdersCsvFilename(new Date("2026-09-01T10:00:00Z")))
       .toBe("nerqia-pedidos-tienda-2026-09-01.csv");
+  });
+
+  it("permite configurar el SLA de preparación y calcula atrasados según el plazo de la tienda", () => {
+    expect(parseStoreOrderSlaHours(null)).toBe(STORE_ORDER_STALE_HOURS);
+    expect(parseStoreOrderSlaHours("invalid")).toBe(24);
+    expect(parseStoreOrderSlaHours(0)).toBe(24);
+    expect(parseStoreOrderSlaHours(-5)).toBe(24);
+    expect(parseStoreOrderSlaHours(48)).toBe(48);
+    expect(parseStoreOrderSlaHours("72")).toBe(72);
+    expect(STORE_ORDER_SLA_OPTIONS.map(o => o.hours)).toContain(24);
+    expect(STORE_ORDER_SLA_OPTIONS.map(o => o.hours)).toContain(48);
+
+    const now = new Date("2026-09-11T12:00:00Z");
+    // Pedido creado hace 36 horas
+    const ord36h = order({ created_at: "2026-09-10T00:00:00Z", payment_status: "paid", fulfillment_status: "pending" });
+
+    // Con SLA de 24 horas (default): está atrasado
+    expect(isStoreOrderStale(ord36h, now, 24)).toBe(true);
+
+    // Con SLA de 48 horas (2 días hábiles configurados por la tienda): NO está atrasado
+    expect(isStoreOrderStale(ord36h, now, 48)).toBe(false);
+
+    // Con SLA de 12 horas: está atrasado
+    expect(isStoreOrderStale(ord36h, now, 12)).toBe(true);
+
+    // Con conteo de vistas y SLA 48h no cuenta como atrasado
+    const counts48 = countStoreOrderViews([ord36h], 48);
+    expect(counts48.atrasados).toBe(0);
+    expect(counts48.despachar).toBe(1);
+
+    // Con conteo de vistas y SLA 24h cuenta como atrasado
+    const counts24 = countStoreOrderViews([ord36h], 24);
+    expect(counts24.atrasados).toBe(1);
+  });
+
+  it("la migración de SLA en la cola de pedidos respeta la autoridad de la base", () => {
+    const migracion = readFileSync(
+      resolve(process.cwd(), "supabase/migrations/20260911000030_store_order_queue_sla.sql"),
+      "utf8",
+    );
+    expect(migracion).toContain("fulfillment_sla_hours");
+    expect(migracion).toContain("v_sla_hours");
+    expect(migracion).toContain("sla_hours");
+    expect(migracion).toContain("make_interval(hours => v_sla_hours)");
+    expect(migracion).toContain("REVOKE ALL");
+    expect(migracion).toContain("GRANT EXECUTE");
   });
 });

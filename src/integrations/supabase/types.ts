@@ -12020,6 +12020,7 @@ export type Database = {
           font: string | null
           free_shipping_above: number | null
           fulfillment_location_id: string | null
+          fulfillment_sla_hours: number
           ga_measurement_id: string | null
           google_ads_id: string | null
           id: string
@@ -12071,6 +12072,7 @@ export type Database = {
           font?: string | null
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
+          fulfillment_sla_hours?: number
           ga_measurement_id?: string | null
           google_ads_id?: string | null
           id?: string
@@ -12122,6 +12124,7 @@ export type Database = {
           font?: string | null
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
+          fulfillment_sla_hours?: number
           ga_measurement_id?: string | null
           google_ads_id?: string | null
           id?: string
