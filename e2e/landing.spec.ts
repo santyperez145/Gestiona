@@ -16,7 +16,7 @@ for (const viewport of viewports) {
 
     await expect(page.getByRole('heading', {
       level: 1,
-      name: 'Nerqia, tu tienda online conectada a todo tu negocio.',
+      name: 'Creá tu tienda online y vendé hoy.',
     })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Crear mi tienda gratis' })).toBeVisible();
 

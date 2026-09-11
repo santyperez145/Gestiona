@@ -1456,7 +1456,7 @@
 
   .landing-hero {
     position: relative;
-    padding: 7.2rem 0 2.3rem;
+    padding: 5.4rem 0 2rem;
     border-bottom: 1px solid hsl(var(--landing-line));
     background: hsl(45 33% 98%);
   }
@@ -1548,7 +1548,7 @@
     display: flex;
     align-items: center;
     gap: 1.2rem;
-    margin-top: 5rem;
+    margin-top: 2.8rem;
     color: hsl(var(--landing-muted) / 0.78);
     font-family: var(--font-mono);
     font-size: 0.59rem;
@@ -6182,7 +6182,7 @@
   }
 
   @media (max-width: 1100px) {
-    .landing-hero__inner { grid-template-columns: 1fr; gap: 1.5rem; }
+    .landing-hero__inner { gap: 1.5rem; }
     .landing-hero h1 { max-width: 900px; font-size: clamp(1.85rem, 4vw, 2.8rem); }
     .landing-brand-kicker { font-size: clamp(2.1rem, 7vw, 3.4rem); }
     .landing-operation__grid { gap: 4rem; }

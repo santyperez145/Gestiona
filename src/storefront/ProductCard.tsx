@@ -102,7 +102,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         )}
 
         <div className="mt-2.5 flex items-baseline gap-2" aria-live="polite">
-          <span className="storefront-product-card__price text-[1.08rem] font-bold tracking-tight">
+          <span className="storefront-product-card__price text-base text-[1.08rem] font-bold tracking-tight">
             {resumenVariantes.desde && <span className="mr-1 text-[11px] font-medium opacity-70">Desde</span>}
             {fmt(price)}
           </span>

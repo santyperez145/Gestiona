@@ -120,7 +120,7 @@ export default function StoreCart() {
         Carrito
       </p>
       <h1 className="storefront-cart-page__title text-2xl sm:text-[1.75rem] font-bold tracking-tight mb-5">
-        {cartCount === 0 ? "Tu carrito" : `${cartCount} ${cartCount === 1 ? "producto" : "productos"}`}
+        Tu carrito {cartCount > 0 && <span className="text-base font-normal opacity-75 ml-2">({cartCount} {cartCount === 1 ? "producto" : "productos"})</span>}
       </h1>
 
       {cart.length > 0 && (
