@@ -58,12 +58,18 @@ interface Props {
   onboardingGoal?: "pos" | "online" | "explore" | null;
   tiendaPublicada?: boolean;
   ordenesOnlinePagas?: number;
+  /** Pedidos pagos esperando despacho — del Dashboard, no duplicar queries. */
+  porDespachar?: number;
+  /** Pedidos pagos esperando retiro — del Dashboard, no duplicar queries. */
+  porRetirar?: number;
+  /** Cobros pendientes accionables — del Dashboard, no duplicar queries. */
+  pendientesDePago?: number;
 }
 
 export default function FocoDelDia(p: Props) {
-  const [porDespachar, setPorDespachar] = useState(0);
-  const [porRetirar, setPorRetirar] = useState(0);
-  const [pendientesDePago, setPendientesDePago] = useState(0);
+  const [porDespachar, setPorDespachar] = useState(p.porDespachar ?? 0);
+  const [porRetirar, setPorRetirar] = useState(p.porRetirar ?? 0);
+  const [pendientesDePago, setPendientesDePago] = useState(p.pendientesDePago ?? 0);
   const [ventas, setVentas] = useState<{
     dias: number | null;
     huecos: number[];
@@ -79,6 +85,8 @@ export default function FocoDelDia(p: Props) {
   const [retiroSinHorario, setRetiroSinHorario] = useState(false);
 
   useEffect(() => {
+    // Si el Dashboard ya pasó los conteos, no duplicar queries.
+    if (p.porDespachar !== undefined && p.porRetirar !== undefined) return;
     if (!p.orgId) return;
     let cancelado = false;
     // `head: true` con `count`: trae el número, no las filas.
@@ -99,6 +107,7 @@ export default function FocoDelDia(p: Props) {
     // No es el count de `vista=pago`: esa cola muestra el histórico.
     // Pulse sólo cuenta cobros que el comercio puede resolver ahora
     // (transferencia/efectivo, o Pay de las últimas 72 h).
+    if (p.pendientesDePago !== undefined) return;
     supabase
       .from("ecommerce_orders")
       .select("id, payment_status, payment_method, created_at")
@@ -113,7 +122,7 @@ export default function FocoDelDia(p: Props) {
         if (!cancelado) setPendientesDePago(countActionableUnpaidOrders(data ?? []));
       });
     return () => { cancelado = true; };
-  }, [p.orgId]);
+  }, [p.orgId, p.porDespachar, p.porRetirar, p.pendientesDePago]);
 
   // El ritmo de ventas del comercio: cuántos días hace que no registra una, y
   // cuáles fueron sus huecos históricos. El umbral sale de su propia historia,

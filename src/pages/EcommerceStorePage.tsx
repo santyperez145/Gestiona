@@ -103,6 +103,7 @@ import {
 import { storeOrdersCanonicalPath, storeRecoveryCanonicalPath } from "@/lib/storeOrdersCanonical";
 import ImageUpload from "@/components/shared/ImageUpload";
 import KPICard from "@/components/shared/KPICard";
+import FieldHint from "@/components/shared/FieldHint";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import PageHeader from "@/components/shared/PageHeader";
@@ -212,7 +213,10 @@ export default function EcommerceStorePage() {
   }, [requestedTab, searchParams, navigate]);
 
   const tab: StoreTab = isStoreTab(requestedTab) ? requestedTab : "overview";
-  const goToTab = (next: StoreTab) => {
+  // Cambiar de tab con el formulario de configuración sucio puede descartar
+  // trabajo: pide confirmación igual que al cambiar de tienda.
+  const goToTab = async (next: StoreTab) => {
+    if (tab !== next && storeFormDirty && !(await confirmDiscardStoreForm())) return;
     setSearchParams(prev => {
       const params = new URLSearchParams(prev);
       if (next === "overview") params.delete("tab");
@@ -315,9 +319,9 @@ export default function EcommerceStorePage() {
   const confirmDiscardStoreForm = useCallback(async () => {
     if (!storeFormDirty) return true;
     return askConfirmation({
-      title: "Cambiar de tienda",
+      title: "Descartar cambios sin guardar",
       description: "Hay cambios sin guardar en esta configuración. Si continuás, se descartarán.",
-      confirmText: "Descartar y cambiar",
+      confirmText: "Descartar y continuar",
       cancelText: "Seguir editando",
       variant: "destructive",
     });
@@ -2113,7 +2117,10 @@ export default function EcommerceStorePage() {
                   <Input type="number" value={storeForm.shipping_cost} onChange={e => setStoreForm(p => ({ ...p, shipping_cost: e.target.value }))} className="h-9" placeholder="vacío = $0" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Envío gratis desde</label>
+                  <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                    Envío gratis desde
+                    <FieldHint text="Si la compra supera este monto, el comprador no paga envío. Sube el ticket promedio; dejarlo vacío significa que nunca hay envío gratis." />
+                  </label>
                   <Input type="number" value={storeForm.free_shipping_above} onChange={e => setStoreForm(p => ({ ...p, free_shipping_above: e.target.value }))} className="h-9" placeholder="dejar vacío para nunca" />
                 </div>
               </div>
@@ -2123,12 +2130,16 @@ export default function EcommerceStorePage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Envío gratis desde</label>
+                    <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                      Envío gratis desde
+                      <FieldHint text="Si la compra supera este monto, el comprador no paga envío. Dejarlo vacío significa que nunca hay envío gratis." />
+                    </label>
                     <Input type="number" value={storeForm.free_shipping_above} onChange={e => setStoreForm(p => ({ ...p, free_shipping_above: e.target.value }))} className="h-9" placeholder="dejar vacío para nunca" />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">
+                    <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
                       Peso por producto sin peso cargado (kg)
+                      <FieldHint text="Se usa para cotizar el envío de productos que no tienen peso cargado. Cargá el peso real de cada producto en Productos para una cotización exacta." />
                     </label>
                     <Input type="number" step="0.1" value={storeForm.default_item_weight_kg}
                       onChange={e => setStoreForm(p => ({ ...p, default_item_weight_kg: e.target.value }))} className="h-9" />
@@ -2190,12 +2201,12 @@ export default function EcommerceStorePage() {
 
             {/* Tiempo objetivo de preparación y despacho (SLA) */}
             <div className="pt-3 border-t border-border/40 space-y-2">
-              <label className="text-sm font-medium block">
+              <label className="text-sm font-medium flex items-center gap-1.5">
                 Tiempo objetivo de preparación (SLA)
+                <FieldHint text="Plazo máximo desde que el pedido queda pagado hasta que se despacha o se deja listo para retirar. Los pedidos que superen este plazo aparecen como Atrasados en Pedidos." />
               </label>
               <p className="text-[11px] text-muted-foreground">
-                Plazo máximo desde que el pedido queda pagado hasta que se despacha o se deja listo para retirar.
-                Los pedidos que superen este plazo aparecen en la vista «Atrasados» de Pedidos.
+                Define qué pedidos entran en la vista «Atrasados» de Pedidos online.
               </p>
               <Select
                 value={String(storeForm.fulfillment_sla_hours || 24)}

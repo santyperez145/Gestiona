@@ -649,6 +649,53 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 pb-12">
+          {/* Resultado del período: la primera pantalla del CFO. Usa los mismos
+              números del Estado de Resultados para que Resumen y ER no mientan
+              entre sí, y compara contra el período anterior cuando existe. */}
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider">Resultado del período · <span className="capitalize text-foreground normal-case">{filtered.label}</span></h2>
+              <Button variant="outline" size="sm" onClick={() => setReportsTab("income")}>
+                <FileText className="w-3.5 h-3.5 mr-1.5" />Estado de Resultados
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(() => {
+                const prevRev = prevFiltered?.sales.reduce((s: number, v: any) => s + Number(v.total_ars), 0) ?? 0;
+                const prevProfit = prevFiltered?.sales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0) ?? 0;
+                const prevOpex = prevFiltered?.expenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0) ?? 0;
+                const prevNet = prevProfit - prevOpex;
+                const delta = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : null;
+                const kpis = [
+                  { label: "Ingresos", curr: periodRevenue, prev: prevRev },
+                  { label: "Ganancia bruta", curr: periodGrossProfit, prev: prevProfit },
+                  { label: "Gastos operativos", curr: totalOpex, prev: prevOpex, invert: true },
+                  { label: "Resultado neto", curr: netIncome, prev: prevNet },
+                ];
+                return kpis.map(k => {
+                  const pct = delta(k.curr, k.prev);
+                  const good = pct === null ? null : (k.invert ? pct < 0 : pct > 0);
+                  return (
+                    <div key={k.label} className="bg-muted/30 border border-border/50 rounded-lg p-3">
+                      <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider">{k.label}</p>
+                      <p className="text-base md:text-lg font-bold font-mono tracking-tight mt-1">{formatARS(k.curr)}</p>
+                      {pct !== null ? (
+                        <p className={`text-[10px] mt-0.5 font-medium ${good ? "text-green-400" : "text-red-400"}`}>
+                          {pct >= 0 ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}% vs anterior
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground/50 mt-0.5">Sin comparación</p>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+            {period === 'all' && (
+              <p className="text-[10px] text-muted-foreground/60 mt-2">Elegí un período en Estado de Resultados para ver la comparación contra el anterior.</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <div className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
               <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-emerald-400" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Ganancia Bruta</span></div>
@@ -875,7 +922,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="forecast">
-          <ForecastTab sales={data.sales} />
+          <ForecastTab sales={data.sales} products={products} />
         </TabsContent>
 
         <TabsContent value="scheduled">
@@ -4408,11 +4455,36 @@ function ScheduledReportsTab({ userId, settings }: { userId: string; settings: a
 
 // ─── Forecast Tab ─────────────────────────────────────────────────────────────
 
-function ForecastTab({ sales }: { sales: any[] }) {
+function ForecastTab({ sales, products }: { sales: any[]; products: any[] }) {
   const [lookback, setLookback] = useState(30);
   const [horizon, setHorizon] = useState(14);
 
   const { forecast, trend, r2, slope } = useSalesForecaster(sales, { lookback, horizon });
+
+  // Cobertura de stock vs proyección: no alcanza con proyectar ingresos si el
+  // negocio se queda sin mercadería antes. Cruza unidades vendidas/día (últimos
+  // `lookback` días) contra stock actual para detectar quiebres antes del horizonte.
+  const stockRisk = useMemo(() => {
+    const cutoff = Date.now() - lookback * 86400000;
+    const unitsSold: Record<string, number> = {};
+    for (const s of sales) {
+      if (new Date(s.created_at ?? s.date).getTime() < cutoff) continue;
+      for (const it of s.items ?? []) {
+        const pid = it.product_id || it.id;
+        if (pid) unitsSold[pid] = (unitsSold[pid] || 0) + (Number(it.quantity) || 0);
+      }
+    }
+    const risky = products
+      .filter((p: any) => p.stock > 0 && unitsSold[p.id] > 0)
+      .map((p: any) => {
+        const velocity = unitsSold[p.id] / lookback;
+        const daysRemaining = velocity > 0 ? p.stock / velocity : Infinity;
+        return { id: p.id, name: p.name, stock: p.stock, velocity, daysRemaining };
+      })
+      .filter((p: any) => p.daysRemaining < horizon)
+      .sort((a: any, b: any) => a.daysRemaining - b.daysRemaining);
+    return risky;
+  }, [sales, products, lookback, horizon]);
 
   // Build combined chart data: last 14 days actual + forecast
   const chartData = useMemo(() => {
@@ -4507,6 +4579,30 @@ function ForecastTab({ sales }: { sales: any[] }) {
           <p className="text-xs text-muted-foreground">por día</p>
         </div>
       </div>
+
+      {/* Riesgo de quiebre de stock dentro del horizonte proyectado.
+          Traducción de Shopify: "no vas a poder cumplir la proyección si te
+          quedás sin producto antes" — la proyección de ingresos sola miente. */}
+      {stockRisk.length > 0 && (
+        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2">
+          <p className="text-xs font-semibold text-amber-500 flex items-center gap-1.5">
+            ⚠️ Riesgo de quiebre de stock antes de los {horizon} días proyectados
+          </p>
+          <div className="space-y-1">
+            {stockRisk.slice(0, 5).map((p: any) => (
+              <div key={p.id} className="flex items-center justify-between text-xs">
+                <span className="text-foreground truncate max-w-[60%]">{p.name}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {p.stock} uds · se agota en {Math.max(0, Math.round(p.daysRemaining))} día{Math.round(p.daysRemaining) !== 1 ? "s" : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+          {stockRisk.length > 5 && (
+            <p className="text-[10px] text-muted-foreground/70">+{stockRisk.length - 5} producto{stockRisk.length - 5 !== 1 ? "s" : ""} más en riesgo</p>
+          )}
+        </div>
+      )}
 
       {/* Chart */}
       <div className="bg-card border border-border rounded-xl p-4">

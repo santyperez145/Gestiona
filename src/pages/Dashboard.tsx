@@ -14,6 +14,8 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
+import { countFulfillmentPulse } from "@/lib/storeOrderQueue";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles, ScanLine, ShoppingCart } from "lucide-react";
 import MetricCard from "@/components/shared/MetricCard";
@@ -23,6 +25,8 @@ import WorkspaceState from "@/components/shared/WorkspaceState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid,
   LineChart, Line, Legend, AreaChart, Area,
@@ -466,6 +470,7 @@ export default function Dashboard() {
   const [activationSignals, setActivationSignals] = useState<ActivationRow | null>(null);
   const [activationError, setActivationError] = useState<string | null>(null);
   const [changingActivationGoal, setChangingActivationGoal] = useState(false);
+  const [orderPulse, setOrderPulse] = useState({ despachar: 0, retirar: 0, pendientesPago: 0 });
   const [loading, setLoading] = useState(true);
   const [activeDashboardSection, setActiveDashboardSection] = usePersistedState(
     orgViewKey("dashboard.section", activeOrg?.id),
@@ -747,6 +752,40 @@ export default function Dashboard() {
         setActivationSignals(data as ActivationRow);
         setActivationError(null);
       });
+    return () => { cancelled = true; };
+  }, [activeOrg?.id, reloadKey]);
+
+  // Fulfillment pulse: pedidos pagos esperando despacho/retiro y cobros
+  // pendientes. Reutilizado por Quick Actions y FocoDelDia.
+  useEffect(() => {
+    if (!activeOrg?.id) {
+      setOrderPulse({ despachar: 0, retirar: 0, pendientesPago: 0 });
+      return;
+    }
+    let cancelled = false;
+    void Promise.all([
+      supabase
+        .from("ecommerce_orders")
+        .select("payment_status, fulfillment_status, carrier, shipping_service")
+        .eq("org_id", activeOrg.id)
+        .eq("payment_status", "paid")
+        .in("fulfillment_status", ["pending", "unfulfilled", "processing"])
+        .limit(200),
+      supabase
+        .from("ecommerce_orders")
+        .select("id, payment_status, payment_method, created_at")
+        .eq("org_id", activeOrg.id)
+        .in("payment_status", ["pending", "failed"])
+        .limit(200),
+    ]).then(([fulfillRes, payRes]) => {
+      if (cancelled) return;
+      const pulse = countFulfillmentPulse(fulfillRes.data ?? []);
+      setOrderPulse({
+        despachar: pulse.despachar,
+        retirar: pulse.retirar,
+        pendientesPago: countActionableUnpaidOrders(payRes.data ?? []),
+      });
+    });
     return () => { cancelled = true; };
   }, [activeOrg?.id, reloadKey]);
 
@@ -1802,6 +1841,9 @@ export default function Dashboard() {
           onboardingGoal={activeOrg?.onboarding_goal}
           tiendaPublicada={activationSignals?.online_channel_ready ?? undefined}
           ordenesOnlinePagas={activationSignals?.online_orders_total ?? undefined}
+          porDespachar={orderPulse.despachar}
+          porRetirar={orderPulse.retirar}
+          pendientesDePago={orderPulse.pendientesPago}
         />
       )}
 
@@ -1812,50 +1854,52 @@ export default function Dashboard() {
         lastWeekSameDaySales={lastWeekSameDaySales}
       />
 
-      {/* Quick Actions — Moderno */}
+      {/* Quick Actions — contextuales al estado del negocio.
+          Shopify Sidekick Pulse prioriza ≤5 acciones; aquí las ordenamos por
+          qué necesita atención hoy, no por orden alfabético. */}
       <CommerceQuickActions
         actions={[
+          ...(orderPulse.despachar > 0 || orderPulse.retirar > 0) ? [{
+            label: `Despachar pedidos (${orderPulse.despachar + orderPulse.retirar})`,
+            icon: Package,
+            path: "/pedidos-online",
+            color: "primary" as const,
+            description: "Pedidos pagos esperando salida",
+          }] : [],
+          ...(stats.pendingDebts > 0) ? [{
+            label: `Cobros pendientes (${stats.pendingDebts})`,
+            icon: AlertCircle,
+            path: "/deudas",
+            color: "warning" as const,
+            description: "Deudas activas a cobrar",
+          }] : [],
           {
             label: "Nueva Venta",
             icon: ShoppingCart,
             path: "/ventas",
-            color: "primary",
+            color: "primary" as const,
             description: "Registrar venta",
           },
           {
             label: "Tienda Online",
             icon: ShoppingBag,
             path: "/tienda-online",
-            color: "primary",
-            description: "Ver tienda",
-          },
-          {
-            label: "Nuevo Cliente",
-            icon: Users,
-            path: "/clientes",
-            color: "secondary",
-            description: "Crear cliente",
+            color: "success" as const,
+            description: activationReadiness?.effectiveGoal === "online" ? "Ver tienda publicada" : "Publicar y operar",
           },
           {
             label: "Inventario",
             icon: Package,
             path: "/productos",
-            color: "success",
-            description: "Gestionar stock",
-          },
-          {
-            label: "Gastos",
-            icon: Wallet,
-            path: "/finance/gastos",
-            color: "warning",
-            description: "Controlar gastos",
+            color: "secondary" as const,
+            description: `${stats.totalProducts} productos · ${stats.lowStock + stats.outOfStock} en alerta`,
           },
           {
             label: "Reportes",
             icon: BarChart3,
             path: "/reportes",
-            color: "primary",
-            description: "Ver análisis",
+            color: "primary" as const,
+            description: "Margen y tendencias",
           },
         ]}
       />
@@ -2282,29 +2326,38 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* Smart Alerts Banner */}
+      {/* Smart Alerts Banner — un panel con jerarquía, no banners sueltos.
+          Cada alerta es operativa: dice qué pasa y manda directo a resolverlo. */}
       {stats.smartAlerts && stats.smartAlerts.length > 0 && (
-        <div className="mb-5 space-y-2">
-          {stats.smartAlerts.map((a: any, i: number) => {
-            const Icon = a.icon;
-            return (
-              <div key={i} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm ${
-                a.type === 'destructive'
-                  ? 'bg-destructive/10 border-destructive/20 text-destructive'
-                  : 'bg-orange-500/10 border-orange-500/20 text-orange-400'
-              }`}>
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="flex-1">{a.msg}</span>
-                {a.link && (
-                  <Link to={a.link} className="text-xs underline underline-offset-2 opacity-70 hover:opacity-100 shrink-0">Ver →</Link>
-                )}
-              </div>
-            );
-          })}
-          <div className="flex justify-end">
-            <Link to="/alertas" className="text-xs text-primary hover:underline flex items-center gap-1">
-              <Bell className="w-3 h-3" /> Configurar alertas →
+        <div className="mb-5 rounded-xl border border-border/70 bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/70">
+            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <Bell className="h-3.5 w-3.5 text-destructive" />
+              Requieren atención ({stats.smartAlerts.length})
+            </span>
+            <Link to="/alertas" className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0">
+              Configurar →
             </Link>
+          </div>
+          <div className="divide-y divide-border/60">
+            {stats.smartAlerts.map((a: any, i: number) => {
+              const Icon = a.icon;
+              return (
+                <Link
+                  key={i}
+                  to={a.link ?? "#"}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/30 ${
+                    a.type === 'destructive'
+                      ? 'text-destructive'
+                      : 'text-orange-500 dark:text-orange-400'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 font-medium">{a.msg}</span>
+                  <span className="text-xs text-primary shrink-0 font-semibold">Resolver →</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
@@ -3342,7 +3395,9 @@ export default function Dashboard() {
       <div className="dashboard-view-section" data-dashboard-section="finance">
       <div id="dashboard-finance" className="dashboard-section-anchor" aria-hidden="true" />
 
-      {/* Financial Tools — Moderno */}
+      {/* Financial Tools — métricas con comparación real vs mes anterior.
+          Antes "Gastos" y "Neto" mostraban como flecha de cambio una proporción
+          (gastos/ventas): no es una variación y mintió con flechas. */}
       <CommerceFinancialSummary
         metrics={[
           {
@@ -3362,20 +3417,71 @@ export default function Dashboard() {
           {
             label: "Gastos del Mes",
             value: formatARS(stats.totalMonthExpenses),
-            change: stats.totalMonthExpenses > 0 ? (stats.totalMonthExpenses / stats.monthSalesARS) * 100 : 0,
-            trend: "neutral",
+            change: stats.prevTotalMonthExpenses > 0
+              ? ((stats.totalMonthExpenses - stats.prevTotalMonthExpenses) / stats.prevTotalMonthExpenses) * 100
+              : undefined,
+            trend: stats.prevTotalMonthExpenses > 0
+              ? (stats.totalMonthExpenses > stats.prevTotalMonthExpenses ? "down" : "up")
+              : "neutral",
             icon: Wallet,
           },
           {
             label: "Resultado Neto",
             value: formatARS(stats.netMonthProfitARS),
-            change: stats.netMonthProfitARS > 0 ? (stats.netMonthProfitARS / stats.monthSalesARS) * 100 : 0,
-            trend: stats.netMonthProfitARS > 0 ? "up" : "down",
+            trend: stats.netMonthProfitARS >= 0 ? "up" : "down",
             icon: Target,
           },
         ]}
         title="Resumen Financiero"
       />
+
+      {/* Flujo de caja de la semana: entra, sale y qué queda. */}
+      <Card className="border-border/50 shadow-lg">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-primary" />
+            Caja de los últimos 7 días
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Ingresos</p>
+              <p className="text-lg font-bold font-display text-emerald-600 dark:text-emerald-400 tabular-nums">{formatARS(stats.weekIncome)}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Gastos</p>
+              <p className="text-lg font-bold font-display text-yellow-600 dark:text-yellow-400 tabular-nums">{formatARS(stats.weekExpensesAmt)}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Compras</p>
+              <p className="text-lg font-bold font-display text-muted-foreground tabular-nums">{formatARS(stats.weekPurchasesAmt)}</p>
+            </div>
+            <div className={cn(
+              "p-3 rounded-lg border tabular-nums",
+              stats.weekNetCashFlow >= 0
+                ? "bg-emerald-500/5 border-emerald-500/25"
+                : "bg-destructive/5 border-destructive/25",
+            )}>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Neto</p>
+              <p className={cn(
+                "text-lg font-bold font-display",
+                stats.weekNetCashFlow >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
+              )}>{formatARS(stats.weekNetCashFlow)}</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
+              <span className="text-muted-foreground">Proyección ventas del mes</span>
+              <span className="font-semibold tabular-nums">{formatARS(stats.projectedMonthlySalesARS)}</span>
+            </div>
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
+              <span className="text-muted-foreground">Unidades para cubrir compras (break-even)</span>
+              <span className="font-semibold tabular-nums">{stats.breakEvenUnits}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       </div>
       )}
