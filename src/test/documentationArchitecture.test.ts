@@ -101,7 +101,9 @@ describe("arquitectura documental", () => {
     }
   });
 
-  it("no conserva rastros de herramientas usadas para generar código", () => {
+  // textFiles(root) escanea el árbol completo del repo en disco; requiere
+  // timeout holgado en Windows/CI para no fallar por I/O bajo carga paralela.
+  it("no conserva rastros de herramientas usadas para generar código", { timeout: 20000 }, () => {
     const forbidden = /CLAUDE\.md|AGENTS\.md|Lovable|lovable-|\.lovable\//i;
     const offenders = textFiles(root)
       .filter((path) => path !== "src/test/documentationArchitecture.test.ts")
