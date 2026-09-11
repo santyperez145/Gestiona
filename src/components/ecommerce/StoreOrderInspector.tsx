@@ -29,6 +29,8 @@ import {
 import { formatARS } from "@/lib/supabaseStore";
 import { Banknote, Eye, Loader2, Store, Truck } from "lucide-react";
 import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
+import StoreOrderReturnsSection from "@/components/ecommerce/StoreOrderReturnsSection";
+import { useHasPermission } from "@/lib/usePermissions";
 
 interface Props {
   open: boolean;
@@ -55,6 +57,9 @@ export default function StoreOrderInspector({
   const detail = buildStoreOrderDetail(order);
   const canShip = order ? canFulfillStoreOrder(order.payment_status) : false;
   const canConfirmPaid = order ? canConfirmManualStorePayment(order) : false;
+  const canEditSales = useHasPermission("sales", "edit");
+  const canEditEcommerce = useHasPermission("ecommerce", "edit");
+  const canEdit = canEditSales || canEditEcommerce;
 
   return (
     <Sheet open={open} onOpenChange={next => { if (!next) onClose(); }}>
@@ -219,6 +224,8 @@ export default function StoreOrderInspector({
                     </div>
                   )}
                 </section>
+
+                <StoreOrderReturnsSection detail={detail} orgId={orgId} canEdit={canEdit} />
 
                 {detail.order.notes && (
                   <section aria-labelledby="pedido-notas">
