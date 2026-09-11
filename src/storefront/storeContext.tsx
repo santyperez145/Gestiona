@@ -456,6 +456,32 @@ export function StoreProvider({
     return () => { cancelled = true; };
   }, [loading, location.pathname, location.search, previewMode, slug, store]);
 
+  // Sincronización multi-pestaña (Shopify/Tiendanube parity): si el comprador
+  // agrega un ítem o finaliza el checkout en otra pestaña, esta pestaña refleja
+  // el cambio en tiempo real y no sobreescribe con un snapshot obsoleto.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleStorage = (e: StorageEvent) => {
+      if (!e.key || e.storageArea !== localStorage) return;
+      if (e.key === cartKey(storageScope)) {
+        try {
+          const raw = e.newValue ? JSON.parse(e.newValue) : [];
+          if (Array.isArray(raw)) {
+            cartRef.current = raw as CartLine[];
+            setCart(raw as CartLine[]);
+            cartLocalUpdatedAtRef.current = Date.now();
+          }
+        } catch {
+          // JSON corrupto ignorado de forma segura
+        }
+      } else if (e.key === cartSessionKey(storageScope) && e.newValue) {
+        setCartToken(e.newValue);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [storageScope]);
+
   const persist = useCallback((next: CartLine[]) => {
     cartRef.current = next;
     setCart(next);
