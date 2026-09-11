@@ -17,8 +17,9 @@ import {
   filterAbandonedCartsForQueue,
   type AbandonedCartRow,
   type AbandonedEmailChannel,
+  type RecoverySummary,
 } from "@/lib/abandonedCarts";
-import { Copy, ExternalLink, MessageCircle, ShoppingCart } from "lucide-react";
+import { Copy, ExternalLink, MessageCircle, ShoppingCart, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -29,6 +30,8 @@ interface Props {
   storeSlug?: string | null;
   /** null = todavía cargando readiness; no forzar «pendiente» mentiroso. */
   emailChannel?: AbandonedEmailChannel | null;
+  /** Resumen agregado del trabajo de recuperación (sin PII extra). */
+  summary?: RecoverySummary | null;
   onRetry: () => void;
 }
 
@@ -49,7 +52,7 @@ function absoluteRecoveryUrl(path: string): string {
 }
 
 export default function AbandonedCartsPanel({
-  carts, loading, error, storeSlug, emailChannel = null, onRetry,
+  carts, loading, error, storeSlug, emailChannel = null, summary = null, onRetry,
 }: Props) {
   const rows = filterAbandonedCartsForQueue(carts);
   const channel = abandonedCartRecoveryChannelCopy({
@@ -94,6 +97,47 @@ export default function AbandonedCartsPanel({
 
   return (
     <div className="space-y-3">
+      {summary ? (
+        <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-3" role="status" aria-live="polite">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span>
+              <strong className="text-foreground tabular-nums">{summary.pendientes}</strong> recuperables
+            </span>
+            <span>
+              <strong className="text-foreground tabular-nums">{summary.avisosEnviados}</strong> avisos enviados
+            </span>
+            <span>
+              <strong className="text-foreground tabular-nums">{summary.convertidos}</strong> convertidos
+            </span>
+            <span>
+              <strong className="text-foreground tabular-nums">{formatARS(summary.convertidoTotal)}</strong> recuperados
+            </span>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            {summary.automaticoSano ? (
+              <Badge className="bg-emerald-500/15 text-emerald-400 border-0">
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Automático al día
+              </Badge>
+            ) : (
+              <Badge className="bg-red-500/15 text-red-400 border-0">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Revisar canal automático
+              </Badge>
+            )}
+            {!summary.canalListo ? (
+              <span className="text-muted-foreground">
+                El aviso por email no puede salir: falta SMTP del comercio o correo de plataforma.
+              </span>
+            ) : null}
+            {summary.ultimaCorridaAt ? (
+              <span className="text-muted-foreground">
+                Última corrida: {whenLabel(summary.ultimaCorridaAt)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
         <p className="text-xs font-medium">{channel.title}</p>
         <p className="mt-0.5 text-[11px] text-muted-foreground">{channel.body}</p>

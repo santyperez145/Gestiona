@@ -29,6 +29,23 @@ export interface AbandonedCartRow {
   created_at: string;
 }
 
+export interface RecoverySummary {
+  /** Carritos recuperables hoy (misma población que el cron puede avisar). */
+  pendientes: number;
+  /** Carritos recuperables cuyo aviso automático ya salió. */
+  avisosEnviados: number;
+  /** Carritos que terminaron en compra (resultado observable del canal). */
+  convertidos: number;
+  /** GMV recuperado: suma de `total` de los convertidos visibles. */
+  convertidoTotal: number;
+  /** El aviso automático está listo (SMTP comercio o plataforma). */
+  canalListo: boolean;
+  /** La corrida automática reciente no registra fallas. */
+  automaticoSano: boolean;
+  /** Fecha de la última invocación registrada del cron (null si nunca). */
+  ultimaCorridaAt: string | null;
+}
+
 /** Listo = SMTP del comercio o correo de plataforma (RPC recovery_email_channel_ready). */
 export interface AbandonedEmailChannel {
   ready: boolean;
@@ -141,6 +158,33 @@ export function parseRecoveryEmailChannel(raw: unknown): AbandonedEmailChannel {
   const platformEmail = row.platform_email === true;
   const ready = row.ready === true || merchantSmtp || platformEmail;
   return { ready, merchantSmtp, platformEmail };
+}
+
+/** Agrega sólo lo necesario para entender si la recuperación está rindiendo. */
+export function summarizeRecovery(
+  rows: AbandonedCartRow[],
+  channel: Pick<AbandonedEmailChannel, "ready"> | null,
+  health?: { failures_7d?: number; last_invoked_at?: string | null } | null,
+  nowMs = Date.now(),
+): RecoverySummary {
+  const queue = filterAbandonedCartsForQueue(rows, nowMs);
+  /** Carritos que terminaron en compra dentro de la población leída (incluye convertidos). */
+  const convertidosRows = rows.filter((row) => row.status === "converted");
+  const convertidoTotal = convertidosRows.reduce((sum, row) => sum + (Number(row.total) || Number(row.subtotal) || 0), 0);
+  const avisosEnviados = queue.filter((row) => row.abandoned_email_sent).length;
+  const canalListo = channel?.ready === true;
+  const failures = Number(health?.failures_7d);
+  const hasSignal = health != null && Number.isFinite(failures);
+  // Sin señal del cron no declaramos salud propia: la del canal ya es el mínimo honesto.
+  return {
+    pendientes: queue.length,
+    avisosEnviados,
+    convertidos: convertidosRows.length,
+    convertidoTotal,
+    canalListo,
+    automaticoSano: hasSignal ? failures === 0 : canalListo,
+    ultimaCorridaAt: typeof health?.last_invoked_at === "string" ? health.last_invoked_at : null,
+  };
 }
 
 /**

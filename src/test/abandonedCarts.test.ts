@@ -9,6 +9,7 @@ import {
   filterAbandonedCartsForQueue,
   isRecoverableAbandonedCart,
   parseRecoveryEmailChannel,
+  summarizeRecovery,
   ABANDONED_CART_IDLE_MS,
 } from "@/lib/abandonedCarts";
 import { readFileSync } from "node:fs";
@@ -164,5 +165,69 @@ describe("abandonedCarts", () => {
     );
     expect(cron).toContain("falta PUBLIC_BASE_URL");
     expect(cron).not.toMatch(/\$\{link \? `/);
+  });
+
+  it("resume recuperación con población, resultado y salud sin inventar canal", () => {
+    const now = Date.parse("2026-09-11T15:00:00Z");
+    const rows = [
+      {
+        id: "1", status: "active", customer_email: "a@b.c", items: [{ quantity: 1 }],
+        subtotal: 100, total: 100, abandoned_email_sent: true,
+        expires_at: "2026-10-11T15:00:00Z", updated_at: "2026-09-11T10:00:00Z", created_at: "2026-09-11T09:00:00Z",
+      },
+      {
+        id: "2", status: "converted", customer_email: "c@d.e", items: [{ quantity: 2 }],
+        subtotal: 250, total: 250, abandoned_email_sent: true,
+        expires_at: "2026-10-11T15:00:00Z", updated_at: "2026-09-10T10:00:00Z", created_at: "2026-09-10T09:00:00Z",
+      },
+      {
+        id: "3", status: "abandoned", customer_email: "e@f.g", items: [{ quantity: 1 }],
+        subtotal: 80, total: 80, abandoned_email_sent: false,
+        expires_at: "2026-10-11T15:00:00Z", updated_at: "2026-09-10T11:00:00Z", created_at: "2026-09-10T10:00:00Z",
+      },
+    ] as const;
+
+    const resumen = summarizeRecovery(rows as unknown as never, { ready: true }, { failures_7d: 0, last_invoked_at: "2026-09-11T14:00:00Z" }, now);
+    expect(resumen.pendientes).toBe(2);
+    expect(resumen.avisosEnviados).toBe(1);
+    expect(resumen.convertidos).toBe(1);
+    expect(resumen.convertidoTotal).toBe(250);
+    expect(resumen.canalListo).toBe(true);
+    expect(resumen.automaticoSano).toBe(true);
+    expect(resumen.ultimaCorridaAt).toBe("2026-09-11T14:00:00Z");
+
+    const sinCanal = summarizeRecovery(rows as unknown as never, { ready: false }, { failures_7d: 0 }, now);
+    expect(sinCanal.canalListo).toBe(false);
+    expect(sinCanal.automaticoSano).toBe(true);
+
+    const conFalla = summarizeRecovery(rows as unknown as never, { ready: true }, { failures_7d: 2 }, now);
+    expect(conFalla.automaticoSano).toBe(false);
+  });
+
+  it("la migración de salud del canal queda revocada a público y verificada", () => {
+    const migracion = readFileSync(
+      resolve(process.cwd(), "supabase/migrations/20260911000020_recovery_channel_health.sql"),
+      "utf8",
+    );
+    expect(migracion).toContain("recovery_channel_health");
+    expect(migracion).toContain("edge_invocation_log");
+    expect(migracion).toContain("is_org_member");
+    expect(migracion).toContain("REVOKE ALL");
+    expect(migracion).toContain("ASSERT");
+    expect(migracion).not.toMatch(/GRANT EXECUTE.*TO anon/i);
+    const workspace = readFileSync(
+      resolve(process.cwd(), "src/components/ecommerce/StoreRecoveryWorkspace.tsx"),
+      "utf8",
+    );
+    expect(workspace).toContain("recovery_channel_health");
+    expect(workspace).toContain("summarizeRecovery");
+    expect(workspace).toContain("recoverySummary");
+    const panel = readFileSync(
+      resolve(process.cwd(), "src/components/ecommerce/AbandonedCartsPanel.tsx"),
+      "utf8",
+    );
+    expect(panel).toContain("summary");
+    expect(panel).toContain("convertidoTotal");
+    expect(panel).toContain("Automático al día");
   });
 });

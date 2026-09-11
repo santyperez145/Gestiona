@@ -13,8 +13,10 @@ import StockAlertsPanel from "@/components/ecommerce/StockAlertsPanel";
 import {
   filterAbandonedCartsForQueue,
   parseRecoveryEmailChannel,
+  summarizeRecovery,
   type AbandonedCartRow,
   type AbandonedEmailChannel,
+  type RecoverySummary,
 } from "@/lib/abandonedCarts";
 import {
   countPendingStockAlerts,
@@ -42,6 +44,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
   const [abandonedLoading, setAbandonedLoading] = useState(true);
   const [abandonedError, setAbandonedError] = useState<string | null>(null);
   const [emailChannel, setEmailChannel] = useState<AbandonedEmailChannel | null>(null);
+  const [recoverySummary, setRecoverySummary] = useState<RecoverySummary | null>(null);
 
   const [stockAlertRows, setStockAlertRows] = useState<StockAlertRow[]>([]);
   const [stockAlertsPending, setStockAlertsPending] = useState(0);
@@ -70,6 +73,23 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
     setEmailChannel(parseRecoveryEmailChannel(data));
   }, [orgId]);
 
+  const loadRecoveryHealth = useCallback(async () => {
+    if (!orgId) return null;
+    const { data, error } = await supabase.rpc("recovery_channel_health", {
+      p_org_id: orgId,
+    });
+    if (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "42883" || code === "PGRST202") {
+        console.warn("StoreRecoveryWorkspace / salud canal: RPC aún no aplicada");
+        return null;
+      }
+      console.error("StoreRecoveryWorkspace / salud canal:", error);
+      return null;
+    }
+    return (data ?? null) as { failures_7d?: number; last_invoked_at?: string | null } | null;
+  }, [orgId]);
+
   const loadAbandoned = useCallback(async () => {
     if (!orgId || !storeId) {
       setAbandonedCartRows([]);
@@ -95,7 +115,10 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
     setAbandonedCarts(queue.length);
     setAbandonedCartRows(queue);
     setAbandonedLoading(false);
-  }, [orgId, storeId]);
+
+    const health = await loadRecoveryHealth();
+    setRecoverySummary(summarizeRecovery(rows, emailChannel, health));
+  }, [orgId, storeId, emailChannel, loadRecoveryHealth]);
 
   const loadStockAlerts = useCallback(async () => {
     if (!orgId || !storeId) {
@@ -193,6 +216,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
           error={abandonedError}
           storeSlug={storeSlug}
           emailChannel={emailChannel}
+          summary={recoverySummary}
           onRetry={reloadAll}
         />
       )}

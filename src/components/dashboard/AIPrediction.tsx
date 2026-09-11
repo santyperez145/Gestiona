@@ -45,7 +45,8 @@ export default function AIPrediction({ sales }: { sales: any[] }) {
     }
   };
 
-  useEffect(() => { if (sales.length >= 5 && !pred) fetchPrediction(); /* eslint-disable-next-line */ }, [sales.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- se dispara al llegar el primer lote de ventas; fetchPrediction se define en cada render
+  useEffect(() => { if (sales.length >= 5 && !pred) fetchPrediction(); }, [sales.length]);
 
   return (
     <div className="bg-card border border-border/60 rounded-xl p-4 md:p-5 shadow-card">

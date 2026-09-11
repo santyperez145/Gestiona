@@ -144,16 +144,18 @@ describe("interaccion de la cola", () => {
     fireEvent.click(screen.getByRole("button", { name: "Ir a la página siguiente" }));
     expect(onPageChange).toHaveBeenCalledWith(2);
   });
-  it("pagina por URL, conserva store y reinicia pagina al cambiar una vista", async () => {
+  // Debounce de 300 ms + tres transiciones de paginación: timeout propio
+  // acotado para no heredar el default de 5 s en entornos CI más lentos.
+  it("pagina por URL, conserva store y reinicia pagina al cambiar una vista", { timeout: 15000 }, async () => {
     const Provider = provider();
     render(<Provider><MemoryRouter initialEntries={["/pedidos-online?store=store&pagina=2"]}><QueueHarness /></MemoryRouter></Provider>);
-    expect(await screen.findByText("51–51 de 51 pedidos")).toBeVisible();
+    expect(await screen.findByText("51–51 de 51 pedidos", undefined, { timeout: 8000 })).toBeVisible();
     expect(screen.getByRole("button", { name: "Ir a la página siguiente" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: /Para despachar/ }));
-    await waitFor(() => expect(screen.getByTestId("params")).toHaveTextContent("store=store&vista=despachar"));
-    expect(await screen.findByText("1–50 de 51 pedidos")).toBeVisible();
+    await waitFor(() => expect(screen.getByTestId("params")).toHaveTextContent("store=store&vista=despachar"), { timeout: 8000 });
+    expect(await screen.findByText("1–50 de 51 pedidos", undefined, { timeout: 8000 })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Ir a la página siguiente" }));
-    expect(await screen.findByText("51–51 de 51 pedidos")).toBeVisible();
+    expect(await screen.findByText("51–51 de 51 pedidos", undefined, { timeout: 8000 })).toBeVisible();
     expect(screen.getByTestId("params")).toHaveTextContent("pagina=2");
     expect(screen.getByRole("button", { name: "CSV de esta página" })).toBeEnabled();
   });

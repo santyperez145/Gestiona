@@ -180,6 +180,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           .map(([path]) => path)
       );
     } catch { return new Set<string>(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pathname re-lee guías vistas al navegar
   }, [pathname]); // re-check when user navigates
 
   // Group nav items by section

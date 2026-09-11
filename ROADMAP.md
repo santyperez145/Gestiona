@@ -79,7 +79,9 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
   por tienda y navegación SPA con scroll/restauración accesible, páginas, banners, menú, reseñas y preguntas;
 - pedidos: historial filtrado en servidor, páginas de 50, contadores sin duplicar,
   CSV de página, aislamiento por vitrina y cobro manual desde la fila;
-- recuperación sólo ofrece email con `recovery_email_channel_ready`;
+- recuperación sólo ofrece email con `recovery_email_channel_ready`; el 2026-09-11
+  suma resumen medido (recuperables, avisos enviados, convertidos, GMV recuperado)
+  y observabilidad de salud del cron (`recovery_channel_health`) sin exponer PII;
 - analítica first-party mínima, disclosure legal, adquisición y embudo;
 - varias vitrinas por organización con exactamente una principal. Configuración,
   dominio, páginas, menú, pedidos, recuperación, reseñas, preguntas y analítica

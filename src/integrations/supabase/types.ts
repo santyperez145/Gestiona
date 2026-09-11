@@ -55243,6 +55243,10 @@ export type Database = {
         Args: { p_return_request_id: string }
         Returns: Json
       }
+      recovery_channel_health: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       recovery_email_channel_ready: {
         Args: { p_org_id: string }
         Returns: Json
