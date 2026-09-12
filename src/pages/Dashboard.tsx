@@ -1680,7 +1680,7 @@ export default function Dashboard() {
         liveStats={{
           todaySales: formatARS(liveTodaySales?.total ?? 0),
           orderCount: liveTodaySales?.count ?? 0,
-          periodCustomers: stats.uniqueCustomers,
+          periodCustomers: stats?.uniqueCustomers ?? 0,
         }}
         actions={
           <>
