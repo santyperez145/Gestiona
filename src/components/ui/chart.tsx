@@ -15,6 +15,7 @@ export type ChartConfig = {
 
 type ChartContextProps = {
   config: ChartConfig;
+  theme: "light" | "dark";
 };
 
 const ChartContext = React.createContext<ChartContextProps | null>(null);
@@ -33,14 +34,15 @@ const ChartContainer = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     config: ChartConfig;
+    theme?: "light" | "dark";
     children: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["children"];
   }
->(({ id, className, children, config, ...props }, ref) => {
+>(({ id, className, children, config, theme = "dark", ...props }, ref) => {
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
 
   return (
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={{ config, theme }}>
       <div
         data-chart={chartId}
         ref={ref}
