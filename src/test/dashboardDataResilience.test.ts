@@ -36,7 +36,8 @@ describe("dashboard operativo", () => {
 
   it("no presenta clientes como tasa de conversion", () => {
     expect(dashboard).not.toContain("conversionRate:");
-    expect(dashboard).toContain("periodCustomers: stats.uniqueCustomers");
+    // periodCustomers sale de clientes únicos reales (tolera el acceso null-safe).
+    expect(dashboard).toMatch(/periodCustomers:\s*stats\??\.uniqueCustomers/);
   });
 
   it("canales diferencia pedidos, unidades e ingresos", () => {

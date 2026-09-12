@@ -10,7 +10,8 @@
  * - DialogTrigger, DialogClose (passthrough)
  */
 import { cn } from "@/lib/utils";
-import { forwardRef, ReactNode } from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { forwardRef } from "react";
 
 interface DialogProps {
   open?: boolean;
@@ -19,9 +20,16 @@ interface DialogProps {
 }
 
 interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
-  size?: "sm" | "default" | "md" | "lg" | "xl";
+  size?: "sm" | "default" | "md" | "lg" | "xl" | "full";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Oculta el botón de cierre (compat shadcn; este Dialog no lo renderiza). */
+  hideClose?: boolean;
+  /** Clase extra para el overlay oscuro. */
+  overlayClassName?: string;
+  /** Compat shadcn/Radix: se aceptan pero este Dialog no captura el foco. */
+  onEscapeKeyDown?: (event: KeyboardEvent) => void;
+  onPointerDownOutside?: (event: PointerEvent) => void;
 }
 
 interface DialogHeaderProps {
@@ -37,6 +45,7 @@ const dialogSizes = {
   md: "max-w-lg",
   lg: "max-w-2xl",
   xl: "max-w-4xl",
+  full: "max-w-none",
 };
 
 // Root (passthrough para compatibilidad)
@@ -45,13 +54,20 @@ function Dialog({ children, open = true, onOpenChange }: DialogProps) {
   return <div className="relative">{children}</div>;
 }
 
-// Trigger (passthrough)
-const DialogTrigger = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
-  ({ className, children, ...props }, ref) => (
-    <button ref={ref} className={className} {...props}>
-      {children}
-    </button>
-  )
+// Trigger (passthrough). `asChild` clona el hijo (patrón shadcn) para no anidar
+// un <button> dentro de otro cuando el consumidor pasa su propio Button.
+interface DialogTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  asChild?: boolean;
+}
+const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(
+  ({ className, children, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button";
+    return (
+      <Comp ref={ref} className={className} {...props}>
+        {children}
+      </Comp>
+    );
+  }
 );
 DialogTrigger.displayName = "DialogTrigger";
 
@@ -72,11 +88,19 @@ function DialogOverlay({ className, ...props }: React.HTMLAttributes<HTMLDivElem
 
 // Content
 const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
-  ({ className, size = "default", children, open = true, onOpenChange, ...props }, ref) => {
+  (
+    {
+      className, size = "default", children, open = true, onOpenChange,
+      // Compat shadcn: se aceptan para no romper consumidores ni fugar props no-DOM.
+      hideClose: _hideClose, overlayClassName, onEscapeKeyDown: _onEscapeKeyDown,
+      onPointerDownOutside: _onPointerDownOutside, ...props
+    },
+    ref,
+  ) => {
     if (!open) return null;
     return (
       <DialogPortal>
-        <DialogOverlay />
+        <DialogOverlay className={overlayClassName} />
         <div
           ref={ref}
           className={cn(

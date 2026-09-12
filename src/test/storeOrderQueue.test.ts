@@ -245,12 +245,12 @@ describe("cola de pedidos de la tienda", () => {
     expect(isStoreOrderStale(ord36h, now, 12)).toBe(true);
 
     // Con conteo de vistas y SLA 48h no cuenta como atrasado
-    const counts48 = countStoreOrderViews([ord36h], 48);
+    const counts48 = countStoreOrderViews([ord36h], 48, now);
     expect(counts48.atrasados).toBe(0);
     expect(counts48.despachar).toBe(1);
 
     // Con conteo de vistas y SLA 24h cuenta como atrasado
-    const counts24 = countStoreOrderViews([ord36h], 24);
+    const counts24 = countStoreOrderViews([ord36h], 24, now);
     expect(counts24.atrasados).toBe(1);
   });
 

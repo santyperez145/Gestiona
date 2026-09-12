@@ -17,9 +17,8 @@ interface SelectProps {
   name?: string;
 }
 
-interface SelectTriggerProps {
+interface SelectTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string;
-  disabled?: boolean;
   children?: React.ReactNode;
 }
 
@@ -60,8 +59,8 @@ const SelectContext = createContext<{
   value: string;
   onValueChange: (value: string) => void;
   disabled: boolean;
-  triggerRef: React.RefObject<HTMLButtonElement>;
-  contentRef: React.RefObject<HTMLDivElement>;
+  triggerRef: React.MutableRefObject<HTMLButtonElement | null>;
+  contentRef: React.MutableRefObject<HTMLDivElement | null>;
   open: boolean;
   setOpen: (open: boolean) => void;
 } | null>(null);
@@ -84,8 +83,8 @@ export function Select({
 }: SelectProps) {
   const [internalValue, setInternalValue] = useState(defaultValue || "");
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const isControlled = value !== undefined;
 
   const currentValue = isControlled ? value : internalValue;
@@ -131,9 +130,9 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
         type="button"
         disabled={isDisabled}
         className={cn(
-          "flex h-10 w-full items-center justify-between rounded-[8px] border bg-background px-3 py-2 text-sm",
+          "flex h-10 w-full items-center justify-between rounded-[8px] border bg-card/90 px-3 py-2 text-sm",
           "placeholder:text-muted-foreground/60",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/55",
           "disabled:cursor-not-allowed disabled:opacity-60",
           "transition-all duration-200",
           "border-border/70 hover:border-primary/30",
@@ -243,11 +242,3 @@ export function SelectLabel({ children, className }: SelectLabelProps) {
 export function SelectSeparator({ className }: SelectSeparatorProps) {
   return <div className={cn("-mx-1 my-1 h-px bg-muted", className)} />;
 }
-
-export { SelectTrigger as SelectTrigger };
-export { SelectValue as SelectValue };
-export { SelectContent as SelectContent };
-export { SelectItem as SelectItem };
-export { SelectGroup as SelectGroup };
-export { SelectLabel as SelectLabel };
-export { SelectSeparator as SelectSeparator };

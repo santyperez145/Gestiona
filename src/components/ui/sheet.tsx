@@ -21,7 +21,7 @@ export interface SheetFooterProps {
   className?: string;
 }
 
-export interface SheetContentProps {
+export interface SheetContentProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   children: React.ReactNode;
   side?: "right" | "left";
   showHighlight?: boolean;
@@ -70,6 +70,7 @@ export function SheetContent({
   className,
   open = true,
   onOpenChange,
+  ...rest
 }: SheetContentProps) {
   const sideClassMap = {
     right:
@@ -100,6 +101,7 @@ export function SheetContent({
         "bg-card text-card-foreground rounded-[10px] border border-border/60 shadow-xl p-4",
         className,
       )}
+      {...rest}
     >
       {/* Top highlight for dark theme */}
       {showHighlight && side === "right" && highlightClass}
@@ -219,7 +221,4 @@ export const SheetClose = forwardRef<HTMLButtonElement, React.ButtonHTMLAttribut
 );
 SheetClose.displayName = "SheetClose";
 
-export {
-  Sheet, SheetTrigger, SheetClose, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription,
-};
 export default Sheet;

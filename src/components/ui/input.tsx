@@ -19,9 +19,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const errorId = `${inputId}-error`;
 
     const baseClasses = cn(
-      "flex h-10 w-full rounded-[8px] border bg-background px-3 py-2 text-sm",
+      "flex h-10 w-full rounded-[8px] border bg-card/90 px-3 py-2 text-sm",
       "placeholder:text-muted-foreground/60",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+      // El calendario nativo sigue el tema: sin esto en oscuro aparece un picker blanco.
+      "[&[type=date]]:[color-scheme:light] dark:[&[type=date]]:[color-scheme:dark]",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/55",
       "disabled:cursor-not-allowed disabled:opacity-60",
       "transition-all duration-200",
       error && "border-red-500/40 focus-visible:ring-red-500/30",

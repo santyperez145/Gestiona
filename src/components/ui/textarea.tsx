@@ -3,7 +3,7 @@
  */
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useId } from "react";
+import { forwardRef, useId } from "react";
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   helperText?: string;
@@ -19,9 +19,9 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const errorId = `${inputId}-error`;
 
     const baseClasses = cn(
-      "flex h-16 w-full rounded-[8px] border bg-background px-3 py-2 text-sm resize-none",
+      "flex h-16 w-full rounded-[8px] border bg-card/90 px-3 py-2 text-sm resize-none",
       "placeholder:text-muted-foreground/60",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/55",
       "disabled:cursor-not-allowed disabled:opacity-60",
       "transition-all duration-200",
       error && "border-red-500/40 focus-visible:ring-red-500/30",

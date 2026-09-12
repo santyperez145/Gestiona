@@ -415,6 +415,7 @@ export function filterStoreOrders(
 export function countStoreOrderViews(
   orders: StoreOrderQueueRow[],
   slaHours: number = STORE_ORDER_STALE_HOURS,
+  now: Date = new Date(),
 ): Record<StoreOrderView, number> {
   const counts = {
     todas: orders.length,
@@ -429,7 +430,7 @@ export function countStoreOrderViews(
   for (const order of orders) {
     if (isStoreOrderAwaitingPickup(order)) counts.retirar += 1;
     if (isStoreOrderAwaitingShipment(order)) counts.despachar += 1;
-    if (isStoreOrderStale(order, new Date(), slaHours)) counts.atrasados += 1;
+    if (isStoreOrderStale(order, now, slaHours)) counts.atrasados += 1;
     if (canRetryStorePayment(order.payment_status)) counts.pago += 1;
     if (order.fulfillment_status === "shipped") counts.enviadas += 1;
     if (order.fulfillment_status === "delivered") counts.entregadas += 1;

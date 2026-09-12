@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { forwardRef } from "react";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
+  variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "blue";
   size?: "default" | "sm" | "lg";
 }
 
@@ -20,6 +20,7 @@ const badgeVariants = {
   outline: "border border-border/60 text-muted-foreground bg-transparent",
   success: "border bg-emerald-500/15 text-emerald-500",
   warning: "border bg-yellow-500/15 text-yellow-500",
+  blue: "border bg-blue-500/15 text-blue-500",
 };
 
 const badgeSizes = {

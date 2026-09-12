@@ -110,15 +110,14 @@ export const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(
         role="tab"
         aria-selected={isActive}
         aria-disabled={disabled}
+        data-state={isActive ? "active" : "inactive"}
         tabIndex={isActive ? 0 : -1}
         disabled={disabled}
         className={cn(
           "inline-flex items-center justify-center rounded-[6px] border px-3 py-1.5 text-sm font-medium",
           "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
           "border-border/60 bg-transparent text-muted-foreground hover:bg-muted/50",
-          isActive
-            ? "border-primary/40 bg-primary/10 text-primary"
-            : "",
+          "data-[state=active]:border-primary/40 data-[state=active]:bg-card data-[state=active]:text-primary",
           disabled && "opacity-50 cursor-not-allowed",
           className,
         )}
