@@ -5,8 +5,8 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-transparent text-sm font-medium " +
-    "transition-colors duration-150 ease-out " +
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border text-sm font-medium " +
+    "transition-all duration-150 ease-out " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
     "disabled:pointer-events-none disabled:opacity-40 " +
     "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -14,19 +14,19 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground font-semibold hover:bg-primary/90",
+          "bg-gradient-to-b from-primary to-primary/[0.92] text-primary-foreground font-semibold border-primary/40 shadow-[0_1px_2px_hsl(var(--primary)/0.25),0_4px_10px_-4px_hsl(var(--primary)/0.45)] hover:shadow-[0_1px_2px_hsl(var(--primary)/0.30),0_6px_14px_-4px_hsl(var(--primary)/0.55)] hover:-translate-y-[0.5px]",
 
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground border-destructive/40 hover:bg-destructive/90",
 
         outline:
-          "border-border/80 bg-background text-foreground/85 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground",
+          "border-border/80 bg-background/50 text-foreground/85 backdrop-blur-sm hover:border-primary/40 hover:bg-primary/[0.04] hover:text-foreground",
 
         secondary:
-          "border-border/55 bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "border-border/55 bg-secondary/80 text-secondary-foreground hover:bg-secondary",
 
         ghost:
-          "text-foreground/70 hover:bg-muted hover:text-foreground",
+          "text-foreground/70 hover:bg-muted/60 hover:text-foreground",
 
         link:
           "text-primary underline-offset-4 hover:underline h-auto p-0",

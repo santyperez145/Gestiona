@@ -41,12 +41,14 @@ export default function MetricCard({
       tabIndex={onClick ? 0 : undefined}
       data-tone={tone}
       className={cn(
-        "workspace-metric-card group relative overflow-hidden border border-border/80 bg-card px-4 py-3.5",
+        "workspace-metric-card nerqia-kpi group relative overflow-hidden border border-border/80 bg-card py-3.5 pl-5 pr-4",
         live && "border-emerald-500/35",
         onClick && "cursor-pointer",
       )}
     >
-      <div className={cn("absolute inset-x-0 bottom-0 h-[2px]", colors.bar)} />
+      {/* Acento lateral izquierdo: la firma del cockpit Nerqia, no una
+          barra inferior que cualquier plantilla tiene. */}
+      <div className={cn("absolute inset-y-0 left-0 w-[3px]", colors.bar)} />
       <div className="workspace-metric-card__content flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
@@ -60,7 +62,7 @@ export default function MetricCard({
               </span>
             )}
           </div>
-          <p className={cn("workspace-metric-card__value mt-2 truncate text-[1.45rem] font-bold leading-none tracking-[-0.02em]", colors.value)}>
+          <p className={cn("workspace-metric-card__value mt-2 truncate font-display text-[1.5rem] font-bold leading-none tracking-[-0.03em]", colors.value)}>
             {value}
           </p>
           {sub && <p className="mt-2 truncate text-[11px] leading-snug text-muted-foreground/75">{sub}</p>}

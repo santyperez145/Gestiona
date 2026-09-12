@@ -9,10 +9,10 @@
      next-themes toggles "light" / "dark" on <html>. Light es el default de
      producto (Commerce OS). Los tokens evitan Inter + orbes violeta genéricos. */
   :root {
-    --background:  222 28% 6%;
+    --background:  222 30% 7%;
     --foreground:  210 25% 96%;
 
-    --card:         222 24% 9%;
+    --card:         222 26% 10%;
     --card-foreground: 210 25% 96%;
 
     --popover:      222 24% 10%;
@@ -22,10 +22,10 @@
     --primary:      230 87% 51%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary:    222 18% 14%;
+    --secondary:    222 20% 14%;
     --secondary-foreground: 210 15% 78%;
 
-    --muted:        222 16% 12%;
+    --muted:        222 18% 13%;
     --muted-foreground: 220 10% 55%;
 
     --accent:       230 35% 18%;
@@ -40,45 +40,53 @@
     --warning:      32 90% 48%;
     --warning-foreground: 32 90% 10%;
 
-    --border:       222 16% 16%;
-    --input:        222 16% 16%;
+    --border:       222 18% 17%;
+    --input:        222 18% 17%;
     --ring:         230 87% 51%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 222 30% 5%;
+    --sidebar-background: 222 32% 6%;
     --sidebar-foreground: 220 10% 62%;
     --sidebar-primary: 230 87% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 20% 10%;
+    --sidebar-accent: 222 22% 11%;
     --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 222 18% 12%;
+    --sidebar-border: 222 20% 13%;
     --sidebar-ring: 230 87% 51%;
 
     --font-display: 'Syne', system-ui, sans-serif;
     --font-body:    'IBM Plex Sans', system-ui, sans-serif;
     --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
 
+    /* Acentos propios de Nerqia Commerce OS: calidez financiera y operación */
+    --nerqia-warm:     35 80% 55%;
+    --nerqia-warm-fg:  35 90% 8%;
+    --nerqia-teal:     173 58% 39%;
+    --nerqia-teal-fg:  173 60% 97%;
+    --nerqia-ink:      222 32% 12%;
+    --nerqia-cream:    40 30% 97%;
+
     --gradient-gold:        linear-gradient(135deg, hsl(230,87%,58%), hsl(230,87%,51%), hsl(222,70%,42%));
     --gradient-gold-subtle: linear-gradient(135deg, hsl(230,87%,51% / 0.10), hsl(230,87%,51% / 0.02));
-    --gradient-card:        linear-gradient(180deg, hsl(222,24%,10%) 0%, hsl(222,28%,7%) 100%);
-    --gradient-sidebar:     linear-gradient(180deg, hsl(222,30%,5.5%) 0%, hsl(222,32%,4%) 100%);
-    --gradient-page:        none;
+    --gradient-card:        linear-gradient(180deg, hsl(222,26%,11%) 0%, hsl(222,30%,8%) 100%);
+    --gradient-sidebar:     linear-gradient(180deg, hsl(222,32%,6.5%) 0%, hsl(222,34%,5%) 100%);
+    --gradient-page:        radial-gradient(ellipse 80% 50% at 50% -10%, hsl(230 60% 25% / 0.18), transparent);
 
     --shadow-gold:     0 4px 20px -6px hsl(230 87% 51% / 0.28);
     --shadow-card:     0 1px 2px hsl(0 0% 0% / 0.28), 0 8px 20px -10px hsl(0 0% 0% / 0.4);
     --shadow-elevated: 0 4px 12px hsl(0 0% 0% / 0.4), 0 16px 32px -12px hsl(0 0% 0% / 0.5);
     --shadow-kpi:      0 1px 3px hsl(0 0% 0% / 0.28);
 
-    --glass-bg:     hsl(222 24% 9% / 0.82);
-    --glass-border: hsl(222 16% 22% / 0.5);
+    --glass-bg:     hsl(222 26% 10% / 0.78);
+    --glass-border: hsl(222 18% 24% / 0.5);
   }
 
   .light {
-    --background:  210 24% 97%;
+    --background:  220 20% 98%;
     --foreground:  222 32% 12%;
 
-    --card:         0 0% 100%;
+    --card:         220 18% 99%;
     --card-foreground: 222 32% 12%;
 
     --popover:      0 0% 100%;
@@ -87,13 +95,13 @@
     --primary:      230 87% 51%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary:    210 18% 94%;
+    --secondary:    220 16% 93%;
     --secondary-foreground: 222 24% 18%;
 
-    --muted:        210 16% 94%;
+    --muted:        220 14% 92%;
     --muted-foreground: 222 12% 40%;
 
-    --accent:       230 70% 95%;
+    --accent:       230 60% 95%;
     --accent-foreground: 230 70% 28%;
 
     --destructive:  0 72% 42%;
@@ -105,32 +113,32 @@
     --warning:      32 92% 36%;
     --warning-foreground: 0 0% 100%;
 
-    --border:       214 18% 88%;
-    --input:        214 18% 88%;
+    --border:       220 16% 86%;
+    --input:        220 16% 86%;
     --ring:         230 87% 51%;
 
-    --sidebar-background: 210 22% 98%;
+    --sidebar-background: 220 18% 98%;
     --sidebar-foreground: 222 16% 32%;
     --sidebar-primary: 230 87% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 94%;
+    --sidebar-accent: 220 16% 94%;
     --sidebar-accent-foreground: 222 28% 14%;
-    --sidebar-border: 214 18% 88%;
+    --sidebar-border: 220 16% 88%;
     --sidebar-ring: 230 87% 51%;
 
     --gradient-gold:        linear-gradient(135deg, hsl(230,87%,56%), hsl(230,87%,48%));
     --gradient-gold-subtle: linear-gradient(135deg, hsl(230,87%,51% / 0.08), transparent);
-    --gradient-card:        linear-gradient(180deg, hsl(0,0%,100%) 0%, hsl(210,24%,98%) 100%);
-    --gradient-sidebar:     linear-gradient(180deg, hsl(210,22%,99%) 0%, hsl(210,20%,96%) 100%);
-    --gradient-page:        none;
+    --gradient-card:        linear-gradient(180deg, hsl(220,18%,100%) 0%, hsl(220,18%,98%) 100%);
+    --gradient-sidebar:     linear-gradient(180deg, hsl(220,18%,98.5%) 0%, hsl(220,20%,96%) 100%);
+    --gradient-page:        radial-gradient(ellipse 80% 50% at 50% -10%, hsl(230 60% 55% / 0.08), transparent);
 
     --shadow-gold:     0 4px 18px -8px hsl(230 87% 51% / 0.22);
-    --shadow-card:     0 1px 2px hsl(222 24% 12% / 0.04), 0 8px 20px -12px hsl(222 24% 12% / 0.1);
-    --shadow-elevated: 0 4px 12px hsl(222 24% 12% / 0.06), 0 16px 28px -14px hsl(222 24% 12% / 0.12);
-    --shadow-kpi:      0 1px 3px hsl(222 24% 12% / 0.05);
+    --shadow-card:     0 1px 2px hsl(222 32% 12% / 0.05), 0 8px 20px -12px hsl(222 32% 12% / 0.12);
+    --shadow-elevated: 0 4px 12px hsl(222 32% 12% / 0.08), 0 16px 28px -14px hsl(222 32% 12% / 0.16);
+    --shadow-kpi:      0 1px 3px hsl(222 32% 12% / 0.05);
 
-    --glass-bg:     hsl(0 0% 100% / 0.86);
-    --glass-border: hsl(214 18% 82% / 0.6);
+    --glass-bg:     hsl(220 18% 99% / 0.86);
+    --glass-border: hsl(220 16% 80% / 0.6);
   }
 }
 
@@ -6721,6 +6729,118 @@
     .light .workspace-page-header {
       padding-left: 0.7rem;
     }
+  }
+}
+
+/* Nerqia Commerce OS — utilidades de superficie propias.
+   Estas clases rompen con el look genérico de shadcn y dan al backoffice
+   una identidad de cockpit operativo: paneles con borde fino, KPIs con
+   tipografía display, y navegación con acento lateral. */
+@layer components {
+  .nerqia-panel {
+    position: relative;
+    isolation: isolate;
+    border: 1px solid hsl(var(--border) / 0.85);
+    border-radius: 12px;
+    background:
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.96) 100%);
+    box-shadow: var(--shadow-card);
+  }
+  .nerqia-panel::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.22), transparent);
+  }
+
+  .nerqia-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .nerqia-kpi-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+  .nerqia-kpi-value {
+    font-family: var(--font-display);
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    color: hsl(var(--foreground));
+  }
+  .nerqia-kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .nerqia-cockpit-line {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid hsl(var(--border) / 0.7);
+    border-radius: 10px;
+    background: hsl(var(--card) / 0.6);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .nerqia-cockpit-line:hover {
+    background: hsl(var(--card));
+    border-color: hsl(var(--border));
+  }
+
+  .nerqia-sidebar-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: hsl(var(--sidebar-foreground));
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .nerqia-sidebar-item:hover {
+    background: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-foreground));
+  }
+  .nerqia-sidebar-item[data-active="true"] {
+    background: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-primary));
+    font-weight: 600;
+  }
+  .nerqia-sidebar-item[data-active="true"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.35rem;
+    bottom: 0.35rem;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    background: hsl(var(--sidebar-primary));
+  }
+
+  .nerqia-page-cockpit {
+    position: relative;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid hsl(var(--border) / 0.85);
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, transparent 40%),
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.92) 100%);
+    box-shadow: var(--shadow-card);
   }
 }
 

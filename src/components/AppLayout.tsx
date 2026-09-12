@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Bell, Tag, Calendar, Layers, ArrowRightLeft, UserPlus, Trophy, Share2, ScanBarcode, Users2, Scale, Globe, Warehouse, LineChart, Shield, ChevronRight } from "lucide-react";
 import { lazy, Suspense, useState, useMemo, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
@@ -306,20 +307,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         to={to}
                         onClick={() => setMobileOpen(false)}
                         title={effectiveCollapsed ? label : undefined}
-                        className={`workspace-nav-link group relative flex items-center gap-2.5 py-[7px] rounded-[8px] text-[13px] font-medium transition-colors duration-150 ${
-                          effectiveCollapsed ? 'justify-center px-0' : 'px-2.5'
-                        } ${
-                          active
-                            ? "workspace-nav-link-active bg-primary/10 text-primary"
-                            : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
-                        }`}
-                      >
-                        {active && (
-                          <div className="absolute left-0 top-[20%] bottom-[20%] w-[3px] rounded-r-full bg-primary" />
+                        data-active={active}
+                        className={cn(
+                          "workspace-nav-link nerqia-sidebar-item group relative flex items-center gap-2.5 py-[7px] rounded-[8px] text-[13px] font-medium transition-colors duration-150",
+                          effectiveCollapsed ? 'justify-center px-0' : 'px-2.5',
+                          active && "workspace-nav-link-active"
                         )}
-
-                        <div className={`relative shrink-0 ${active ? '' : 'group-hover:opacity-100'}`}>
-                          <Icon className={`w-[17px] h-[17px] ${active ? 'opacity-100' : 'opacity-70 group-hover:opacity-90'}`} />
+                      >
+                        <div className={cn("relative shrink-0", !active && "group-hover:opacity-100")}>
+                          <Icon className={cn("w-[17px] h-[17px]", active ? "opacity-100" : "opacity-70 group-hover:opacity-90")} />
                           {hasNew && !active && (
                             <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full bg-primary" />
                           )}

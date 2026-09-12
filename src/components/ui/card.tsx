@@ -3,21 +3,21 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 // ── Card ─────────────────────────────────────────────────────────────────────
-// Low-depth marketplace surface. Theme tokens keep the same hierarchy in light
-// and dark mode without each page inventing its own card treatment.
+// Nerqia panel surface. Not a generic shadcn card: restrained radius, subtle
+// tonal border, and a top light line that gives depth without heavy shadows.
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "relative isolate overflow-hidden rounded-[8px] border border-border/80 bg-card text-card-foreground shadow-card",
+        "relative isolate overflow-hidden rounded-[10px] border border-border/70 bg-card text-card-foreground shadow-card",
         className,
       )}
       {...props}
     >
-      {/* Dark mode keeps a restrained inner highlight for separation. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px hidden dark:block bg-gradient-to-r from-white/5 via-white/8 to-transparent" />
+      {/* Top light line: visible in both themes, stronger in dark mode. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/[0.04] via-white/[0.10] to-transparent" />
       {props.children}
     </div>
   ),
