@@ -91,6 +91,7 @@ function PriceSparklineInner({ productId, orgId, width = 72 }: Props) {
               strokeWidth={1.5}
               dot={false}
               isAnimationActive={false}
+              activeDot={{ r: 3, stroke: lineColor, strokeWidth: 2, fill: "#fff" }}
             />
             <Tooltip content={<CustomTooltip />} />
           </LineChart>

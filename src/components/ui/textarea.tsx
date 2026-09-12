@@ -1,27 +1,64 @@
+/**
+ * Nerqia Textarea — Área de texto propia
+ */
 import * as React from "react";
-
 import { cn } from "@/lib/utils";
+import { useId } from "react";
 
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  helperText?: string;
+  label?: string;
+  error?: boolean;
+}
 
-const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, ...props }, ref) => {
-  return (
-    <textarea
-      className={cn(
-        "flex min-h-[96px] w-full rounded-[9px] border border-border/85",
-        "bg-card/90 px-3 py-2.5 text-[13px] text-foreground",
-        "placeholder:text-muted-foreground/55 resize-vertical",
-        "transition-[border-color,box-shadow] duration-150",
-        "hover:border-primary/25 focus-visible:outline-none focus-visible:border-primary/55",
-        "focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.1)]",
-        "disabled:cursor-not-allowed disabled:opacity-40",
-        className,
-      )}
-      ref={ref}
-      {...props}
-    />
-  );
-});
+const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, helperText, label, error = false, id, disabled, ...props }, ref) => {
+    const generatedId = useId();
+    const inputId = id || `nerqia-textarea-${generatedId}`;
+    const helperId = `${inputId}-helper`;
+    const errorId = `${inputId}-error`;
+
+    const baseClasses = cn(
+      "flex h-16 w-full rounded-[8px] border bg-background px-3 py-2 text-sm resize-none",
+      "placeholder:text-muted-foreground/60",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+      "disabled:cursor-not-allowed disabled:opacity-60",
+      "transition-all duration-200",
+      error && "border-red-500/40 focus-visible:ring-red-500/30",
+      !error && "border-border/70 hover:border-primary/30",
+      className,
+    );
+
+    return (
+      <div className="w-full">
+        {label && (
+          <label htmlFor={inputId} className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            {label}
+          </label>
+        )}
+        <textarea
+          id={inputId}
+          ref={ref}
+          className={baseClasses}
+          disabled={disabled}
+          aria-describedby={error ? errorId : helperText ? helperId : undefined}
+          {...props}
+        />
+        {error && (
+          <p id={errorId} className="mt-1 text-[10px] text-red-500" role="alert">
+            {helperText}
+          </p>
+        )}
+        {!error && helperText && (
+          <p id={helperId} className="mt-1 text-[10px] text-muted-foreground/80">
+            {helperText}
+          </p>
+        )}
+      </div>
+    );
+  }
+);
 Textarea.displayName = "Textarea";
 
 export { Textarea };
+export default Textarea;

@@ -2,19 +2,19 @@
  * Nerqia Input — Input con estilo cockpit
  */
 import { cn } from "@/lib/utils";
+import { forwardRef } from "react";
+import { useId } from "react";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  /** Texto de ayuda bajo el input */
   helperText?: string;
-  /** Label visible (opcional, para accesibilidad) */
   label?: string;
-  /** Error state */
   error?: boolean;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = "text", helperText, label, error = false, id, disabled, ...props }, ref) => {
-    const inputId = id || `nerqia-input-${Math.random().toString(36).slice(2, 9)}`;
+    const generatedId = useId();
+    const inputId = id || `nerqia-input-${generatedId}`;
     const helperId = `${inputId}-helper`;
     const errorId = `${inputId}-error`;
 
@@ -61,6 +61,5 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 );
 Input.displayName = "Input";
 
-// Export default y nombrado para compatibilidad
 export { Input };
 export default Input;

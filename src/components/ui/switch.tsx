@@ -1,27 +1,41 @@
+/**
+ * Nerqia Switch — Interruptor propio
+ * Diseño: pista acentuada, thumb animado con cobalto
+ */
 import * as React from "react";
-import * as SwitchPrimitives from "@radix-ui/react-switch";
-
 import { cn } from "@/lib/utils";
 
-const Switch = React.forwardRef<
-  React.ElementRef<typeof SwitchPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
->(({ className, ...props }, ref) => (
-  <SwitchPrimitives.Root
-    className={cn(
-      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-      className,
-    )}
-    {...props}
-    ref={ref}
-  >
-    <SwitchPrimitives.Thumb
-      className={cn(
-        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
-      )}
-    />
-  </SwitchPrimitives.Root>
-));
-Switch.displayName = SwitchPrimitives.Root.displayName;
+const Switch = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { checked?: boolean; onCheckedChange?: (checked: boolean) => void }>(
+  ({ className, checked = false, onCheckedChange, disabled = false, ...props }, ref) => {
+    return (
+      <button
+        ref={ref}
+        role="switch"
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={() => !disabled && onCheckedChange?.(!checked)}
+        className={cn(
+          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-[2px] transition-colors duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#173aef]/40",
+          checked
+            ? "bg-[#173aef] border-[#173aef]"
+            : "bg-transparent border-[#173aef]/30 hover:border-[#173aef]/60",
+          disabled && "opacity-50 cursor-not-allowed",
+          className,
+        )}
+        {...props}
+      >
+        <span
+          className={cn(
+            "inline-block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow-lg transition-transform duration-200",
+            checked && "translate-x-5",
+            disabled && "opacity-50",
+          )}
+        />
+      </button>
+    );
+  }
+);
+Switch.displayName = "Switch";
 
 export { Switch };

@@ -73,6 +73,8 @@ export default function CommerceSalesChart({
               strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#colorSales)"
+              dot={{ fill: "#173aef", strokeWidth: 2, r: 3 }}
+              activeDot={{ r: 5, stroke: "#173aef", strokeWidth: 2, fill: "#fff" }}
             />
           </AreaChart>
         </ResponsiveContainer>

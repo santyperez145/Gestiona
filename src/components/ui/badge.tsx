@@ -6,6 +6,7 @@
  * - size: default | sm | lg
  */
 import { cn } from "@/lib/utils";
+import { forwardRef } from "react";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning";

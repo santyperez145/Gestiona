@@ -20,6 +20,8 @@ interface DialogProps {
 
 interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: "sm" | "default" | "md" | "lg" | "xl";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface DialogHeaderProps {
