@@ -1,71 +1,158 @@
-import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
-
+/**
+ * Nerqia Tabs — Pestañas con estilo cockpit
+ *
+ * API compatible: Tabs, TabsList, TabsTrigger, TabsContent
+ */
 import { cn } from "@/lib/utils";
+import { useState, useId } from "react";
 
-// ── Tabs ─────────────────────────────────────────────────────────────────────
-// Segmented navigation taken from the selected CRM / marketplace direction.
+interface TabsProps {
+  children: React.ReactNode;
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
+  orientation?: "horizontal" | "vertical";
+}
 
-const Tabs = TabsPrimitive.Root;
+interface TabsListProps {
+  children: React.ReactNode;
+  className?: string;
+  orientation?: "horizontal" | "vertical";
+}
 
-// ── TabsList ─────────────────────────────────────────────────────────────────
-const TabsList = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      // Scrollea horizontal en móvil en vez de desbordar cuando hay muchos tabs.
-      "flex items-center gap-1 overflow-x-auto rounded-[11px] border border-border/75 bg-muted/45 p-1 scrollbar-hide",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsList.displayName = TabsPrimitive.List.displayName;
+interface TabsTriggerProps {
+  children: React.ReactNode;
+  value: string;
+  className?: string;
+  disabled?: boolean;
+}
 
-// ── TabsTrigger ──────────────────────────────────────────────────────────────
-const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      // Base
-      "relative shrink-0",
-      "min-h-9 rounded-[8px] border border-transparent px-3 py-2",
-      "text-[11px] font-semibold tracking-[0.02em]",
-      "text-muted-foreground/75 transition-[background-color,border-color,color,box-shadow] duration-150",
-      // Hover
-      "hover:text-foreground/80",
-      // Active text
-      "data-[state=active]:border-primary/15 data-[state=active]:bg-card data-[state=active]:text-primary",
-      "data-[state=active]:shadow-[0_5px_14px_-10px_hsl(var(--primary)/0.85)]",
-      // Disabled
-      "disabled:pointer-events-none disabled:opacity-30",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
+interface TabsContentProps {
+  children: React.ReactNode;
+  value: string;
+  className?: string;
+}
 
-// ── TabsContent ───────────────────────────────────────────────────────────────
-const TabsContent = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn(
-      "mt-5 focus-visible:outline-none",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsContent.displayName = TabsPrimitive.Content.displayName;
+// Context
+interface TabsContext {
+  value: string;
+  onValueChange: (value: string) => void;
+  disabled?: boolean;
+  orientation: "horizontal" | "vertical";
+}
 
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+const TabsContext = createContext<TabsContext | null>(null);
+function useTabsContext() {
+  const context = useContext(TabsContext);
+  if (!context) throw new Error("Tabs components must be used within Tabs");
+  return context;
+}
+
+// Root
+export function Tabs({
+  children,
+  defaultValue,
+  value,
+  onValueChange,
+  orientation = "horizontal",
+}: TabsProps) {
+  const [internalValue, setInternalValue] = useState(defaultValue ?? "");
+  const controlledValue = value !== undefined;
+  const currentValue = controlledValue ? value : internalValue;
+
+  const handleValueChange = (newValue: string) => {
+    if (!controlledValue) setInternalValue(newValue);
+    onValueChange?.(newValue);
+  };
+
+  return (
+    <TabsContext.Provider value={{ value: currentValue, onValueChange: handleValueChange, orientation }}>
+      <div className="relative">{children}</div>
+    </TabsContext.Provider>
+  );
+}
+
+// List
+export const TabsList = forwardRef<HTMLDivElement, TabsListProps>(
+  ({ className, children, orientation = "horizontal", ...props }, ref) => {
+    const { orientation: ctxOrientation } = useTabsContext();
+    const finalOrientation = orientation ?? ctxOrientation;
+
+    return (
+      <div
+        ref={ref}
+        role="tablist"
+        aria-orientation={finalOrientation}
+        className={cn(
+          "flex flex-wrap items-center gap-1",
+          finalOrientation === "horizontal" ? "" : "flex-col",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+);
+TabsList.displayName = "TabsList";
+
+// Trigger
+export const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(
+  ({ className, value, children, disabled = false, ...props }, ref) => {
+    const { value: currentValue, onValueChange } = useTabsContext();
+    const isActive = currentValue === value;
+
+    return (
+      <button
+        ref={ref}
+        role="tab"
+        aria-selected={isActive}
+        aria-disabled={disabled}
+        tabIndex={isActive ? 0 : -1}
+        disabled={disabled}
+        className={cn(
+          "inline-flex items-center justify-center rounded-[6px] border px-3 py-1.5 text-sm font-medium",
+          "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+          "border-border/60 bg-transparent text-muted-foreground hover:bg-muted/50",
+          isActive
+            ? "border-primary/40 bg-primary/10 text-primary"
+            : "",
+          disabled && "opacity-50 cursor-not-allowed",
+          className,
+        )}
+        onClick={() => !disabled && onValueChange(value)}
+        {...props}
+      >
+        <span className="sr-only">{isActive ? "Seleccionado" : ""}</span>
+        {children}
+      </button>
+    );
+  }
+);
+TabsTrigger.displayName = "TabsTrigger";
+
+// Content
+export const TabsContent = forwardRef<HTMLDivElement, TabsContentProps>(
+  ({ className, value, children, ...props }, ref) => {
+    const { value: currentValue } = useTabsContext();
+    const isActive = currentValue === value;
+
+    return (
+      <div
+        ref={ref}
+        role="tabpanel"
+        hidden={!isActive}
+        className={cn(
+          "mt-2 border border-border/40 bg-card rounded-[6px] p-4",
+          "animate-in fade-in-0 zoom-in-95",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+);
+TabsContent.displayName = "TabsContent";

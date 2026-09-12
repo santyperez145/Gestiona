@@ -1,48 +1,72 @@
-import * as React from "react";
-
+/**
+ * Nerqia Input — Input propio con estilo cockpit
+ *
+ * Borde sutil, foco con anillo de acento, fondo cálido.
+ */
 import { cn } from "@/lib/utils";
 
-// ── Input ────────────────────────────────────────────────────────────────────
-// Bright, calm input treatment shared by filters, forms and data toolbars.
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  /** Texto de ayuda bajo el input */
+  helperText?: string;
+  /** Label visible (opcional, para accesibilidad) */
+  label?: string;
+  /** Error state */
+  error?: boolean;
+}
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
-    return (
+export default function NerqiaInput({
+  className,
+  type = "text",
+  helperText,
+  label,
+  error = false,
+  id,
+  disabled,
+  ...props
+}: InputProps) {
+  const inputId = id || `nerqia-input-${Math.random().toString(36).slice(2, 9)}`;
+  const helperId = `${inputId}-helper`;
+  const errorId = `${inputId}-error`;
+
+  const baseClasses = cn(
+    "flex h-10 w-full rounded-[8px] border bg-background px-3 py-2 text-sm",
+    "placeholder:text-muted-foreground/60",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+    "disabled:cursor-not-allowed disabled:opacity-60",
+    "transition-all duration-200",
+    error && "border-red-500/40 focus-visible:ring-red-500/30",
+    !error && "border-border/70 hover:border-primary/30",
+    className,
+  );
+
+  return (
+    <div className="w-full">
+      {label && (
+        <label
+          htmlFor={inputId}
+          className="mb-1.5 block text-xs font-medium text-muted-foreground"
+        >
+          {label}
+        </label>
+      )}
       <input
+        id={inputId}
         type={type}
-        className={cn(
-          // ── Base ──────────────────────────────────────────────────────
-          "flex h-10 w-full rounded-[9px]",
-          "border border-border/85",
-          "bg-card/90",
-          "px-3 py-2 text-[13px] text-foreground",
-          // ── Placeholder ───────────────────────────────────────────────
-          "placeholder:text-muted-foreground/55",
-          // ── Focus — primary-colored aura, NOT the generic ring ─────────
-          "transition-[border-color,box-shadow] duration-150",
-          "focus-visible:outline-none",
-          "hover:border-primary/25 focus-visible:border-primary/55",
-          "focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.1)]",
-          // ── States ────────────────────────────────────────────────────
-          "disabled:cursor-not-allowed disabled:opacity-40",
-          // ── File input ────────────────────────────────────────────────
-          "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
-          // ── Native temporal controls — keep OS/mobile semantics, align theme ─
-          "[&[type=date]]:[color-scheme:light] [&[type=datetime-local]]:[color-scheme:light] [&[type=month]]:[color-scheme:light]",
-          "dark:[&[type=date]]:[color-scheme:dark] dark:[&[type=datetime-local]]:[color-scheme:dark] dark:[&[type=month]]:[color-scheme:dark]",
-          "[&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-65",
-          // ── Number input — hide spinners ──────────────────────────────
-          "[&[type=number]]:[-moz-appearance:textfield]",
-          "[&[type=number]]::[&::-webkit-outer-spin-button]:appearance-none",
-          "[&[type=number]]::[&::-webkit-inner-spin-button]:appearance-none",
-          className,
-        )}
-        ref={ref}
+        className={baseClasses}
+        disabled={disabled}
+        aria-describedby={error ? errorId : helperText ? helperId : undefined}
         {...props}
       />
-    );
-  },
-);
-Input.displayName = "Input";
-
-export { Input };
+      {error && (
+        <p id={errorId} className="mt-1 text-[10px] text-red-500" role="alert">
+          {helperText}
+        </p>
+      )}
+      {!error && helperText && (
+        <p id={helperId} className="mt-1 text-[10px] text-muted-foreground/80">
+          {helperText}
+        </p>
+      )}
+    </div>
+  );
+}

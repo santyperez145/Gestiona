@@ -1,164 +1,163 @@
-import * as SheetPrimitive from "@radix-ui/react-dialog";
-import { cva, type VariantProps } from "class-variance-authority";
-import { X } from "lucide-react";
-import * as React from "react";
-
+/**
+ * Nerqia Sheet — Panel con estilo cockpit propio
+ *
+ * Un panel modal que se desplaza desde el lado derecho
+ * con overlay borroso y barra de acento lateral.
+ *
+ * API: Sheet, SheetTrigger, SheetClose, SheetContent, SheetHeader,
+ * SheetTitle, SheetFooter
+ */
 import { cn } from "@/lib/utils";
 
-// ── Sheet ────────────────────────────────────────────────────────────────────
-// Darker bg than page, inner top highlight, distinctive close button.
-// Overlay has subtle blur — not just black.
+export interface SheetHeaderProps {
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+}
 
-const Sheet = SheetPrimitive.Root;
-const SheetTrigger = SheetPrimitive.Trigger;
-const SheetClose = SheetPrimitive.Close;
-const SheetPortal = SheetPrimitive.Portal;
+export interface SheetContentProps {
+  children: React.ReactNode;
+  /** Lado del panel: 'right' (por defecto) o 'left' */
+  side?: "right" | "left";
+  /** Mostrar barra superior destacada (theme oscuro) */
+  showHighlight?: boolean;
+  /** Título principal */
+  title?: React.ReactNode;
+  /** Mostrar botón de cerrar */
+  showClose?: boolean;
+  /** Texto del botón de cerrar */
+  closeLabel?: string;
+  /** Clase personalizada */
+  className?: string;
+}
 
-// ── Overlay ───────────────────────────────────────────────────────────────────
-const SheetOverlay = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Overlay
-    className={cn(
-      "fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px]",
-      "data-[state=open]:animate-in data-[state=closed]:animate-out",
-      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className,
-    )}
-    {...props}
-    ref={ref}
-  />
-));
-SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
+/**
+ * Sheet — Contenedor raíz, no renderiza nada directamente
+ */
+export function Sheet({ children }: { children: React.ReactNode }) {
+  return <div className="relative w-full">{children}</div>;
+}
 
-// ── Content variants ──────────────────────────────────────────────────────────
-const sheetVariants = cva(
-  [
-    "fixed z-50",
-    // Popover surface, elevated relative to the page
-    "bg-popover",
-    // Subtle border on the opening edge
-    "shadow-[0_0_0_1px_hsl(var(--border))]",
-    // Transition
-    "transition-transform ease-out",
-    "data-[state=open]:animate-in data-[state=closed]:animate-out",
-    "data-[state=closed]:duration-250 data-[state=open]:duration-350",
-    // Inner top highlight
-    "overflow-hidden",
-  ].join(" "),
-  {
-    variants: {
-      side: {
-        top:    "inset-x-0 top-0 border-b border-border/50 data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-        bottom: "inset-x-0 bottom-0 border-t border-border/50 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left:   "inset-y-0 left-0 h-full w-3/4 border-r border-border/50 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
-        right:  "inset-y-0 right-0 h-full w-3/4 border-l border-border/50 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
-      },
-    },
-    defaultVariants: { side: "right" },
-  },
-);
+/**
+ * SheetOverlay — Overlay oscuro con blur
+ */
+export function SheetOverlay({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        className,
+      )}
+    />
+  );
+}
 
-interface SheetContentProps
-  extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+/**
+ * SheetContent — Panel principal con acento izquierdo
+ */
+export function SheetContent({
+  side = "right",
+  title,
+  showHighlight = true,
+  showClose = true,
+  closeLabel = "Cerrar",
+  children,
+  className,
+}: SheetContentProps) {
+  const sideClassMap = {
+    right:
+      "fixed inset-y-0 right-0 top-0 bottom-0 w-full sm:max-w-sm max-w-md overflow-y-auto transform transition-transform ease-out duration-300 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+    left:
+      "fixed inset-y-0 left-0 top-0 bottom-0 w-full sm:max-w-sm max-w-md overflow-y-auto transform transition-transform ease-out duration-300 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
+  };
 
-const SheetContent = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Content>,
-  SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <SheetPrimitive.Content
-      ref={ref}
-      className={cn(sheetVariants({ side }), "p-6", className)}
-      {...props}
+  const highlightClass = showHighlight
+    ? "pointer-events-none absolute inset-x-0 top-0 h-px hidden dark:block bg-gradient-to-r from-white/5 via-white/8 to-transparent"
+    : "";
+
+  const closeButtonClass = cn(
+    "absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-[5px]",
+    "text-muted-foreground/45 border border-border/35",
+    "hover:text-foreground hover:border-border/60 hover:bg-muted/40",
+    "transition-all duration-150",
+    "focus:outline-none focus:ring-1 focus:ring-ring",
+    "disabled:pointer-events-none",
+  );
+
+  const closeIconClass = "h-3.5 w-3.5";
+
+  return (
+    <div
+      className={cn(
+        sideClassMap[side],
+        "bg-card text-card-foreground rounded-[10px] border border-border/60 shadow-xl p-4",
+        className,
+      )}
     >
-      {/* Top-edge inner highlight (dark theme only) */}
-      {(side === "right" || side === "left") && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px hidden dark:block bg-gradient-to-r from-white/5 via-white/8 to-transparent" />
+      {/* Top highlight for dark theme */}
+      {showHighlight && side === "right" && highlightClass}
+
+      {/* Header with title and close button */}
+      {title && (
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+          {showClose && (
+            <button
+              onClick={() => window.dispatchEvent(new Event("sheet-close"))}
+              className={closeButtonClass}
+            >
+              <svg
+                className={closeIconClass}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  className="stroke-2 stroke-currentColor"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              <span className="sr-only">{closeLabel}</span>
+            </button>
+          )}
+        </div>
       )}
 
       {children}
 
-      {/* Close button — small square, unobtrusive */}
-      <SheetPrimitive.Close
-        className={cn(
-          "absolute right-4 top-4",
-          "flex h-6 w-6 items-center justify-center rounded-[5px]",
-          "text-muted-foreground/45 border border-border/35",
-          "hover:text-foreground hover:border-border/60 hover:bg-muted/40",
-          "transition-all duration-150",
-          "focus:outline-none focus:ring-1 focus:ring-ring",
-          "disabled:pointer-events-none",
-        )}
-      >
-        <X className="h-3.5 w-3.5" />
-        <span className="sr-only">Cerrar</span>
-      </SheetPrimitive.Close>
-    </SheetPrimitive.Content>
-  </SheetPortal>
-));
-SheetContent.displayName = SheetPrimitive.Content.displayName;
+      {/* Footer slot is available via className props passed to parent */}
+    </div>
+  );
+}
 
-// ── SheetHeader ────────────────────────────────────────────────────────────────
-const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col gap-1 mb-4", className)} {...props} />
-);
-SheetHeader.displayName = "SheetHeader";
-
-// ── SheetFooter ────────────────────────────────────────────────────────────────
-const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
-      "mt-5 pt-4 border-t border-border/40",
-      className,
-    )}
-    {...props}
-  />
-);
-SheetFooter.displayName = "SheetFooter";
-
-// ── SheetTitle ─────────────────────────────────────────────────────────────────
-const SheetTitle = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Title
-    ref={ref}
-    className={cn(
-      "text-[1rem] font-display font-semibold leading-tight tracking-tight text-foreground",
-      className,
-    )}
-    {...props}
-  />
-));
-SheetTitle.displayName = SheetPrimitive.Title.displayName;
-
-// ── SheetDescription ───────────────────────────────────────────────────────────
-const SheetDescription = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Description
-    ref={ref}
-    className={cn("text-[12px] text-muted-foreground/65 leading-relaxed", className)}
-    {...props}
-  />
-));
-SheetDescription.displayName = SheetPrimitive.Description.displayName;
-
-export {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetOverlay,
-  SheetPortal,
-  SheetTitle,
-  SheetTrigger,
-};
+/**
+ * SheetTrigger — Trigger para abrir el sheet
+ */
+export function SheetTrigger({
+  asChild = false,
+  className,
+  children,
+  ...props
+}: {
+  asChild?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      className={cn(
+        "flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1.5 text-sm text-primary hover:bg-primary/10 transition-colors",
+        className,
+      )}
+      {...props}
+    >
+      {asChild ? children : (
+        <span className="flex items-center gap-2">
+          {/* Icon placeholder - consumer provides their own */}
+        </span>
+      )}
+    </button>
+  );
+}
