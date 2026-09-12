@@ -4,14 +4,15 @@
  * API compatible: Tabs, TabsList, TabsTrigger, TabsContent
  */
 import { cn } from "@/lib/utils";
-import { useState, useId } from "react";
+import { useState, useId, createContext, useContext, forwardRef, ReactNode } from "react";
 
 interface TabsProps {
-  children: React.ReactNode;
+  children: ReactNode;
   defaultValue?: string;
   value?: string;
   onValueChange?: (value: string) => void;
   orientation?: "horizontal" | "vertical";
+  className?: string;
 }
 
 interface TabsListProps {

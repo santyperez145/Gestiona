@@ -8,33 +8,36 @@
  * SheetTitle, SheetFooter
  */
 import { cn } from "@/lib/utils";
+import { forwardRef } from "react";
 
 export interface SheetHeaderProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   title?: string;
 }
 
+export interface SheetFooterProps {
+  children?: React.ReactNode;
+  className?: string;
+}
+
 export interface SheetContentProps {
   children: React.ReactNode;
-  /** Lado del panel: 'right' (por defecto) o 'left' */
   side?: "right" | "left";
-  /** Mostrar barra superior destacada (theme oscuro) */
   showHighlight?: boolean;
-  /** Título principal */
   title?: React.ReactNode;
-  /** Mostrar botón de cerrar */
   showClose?: boolean;
-  /** Texto del botón de cerrar */
   closeLabel?: string;
-  /** Clase personalizada */
   className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
  * Sheet — Contenedor raíz, no renderiza nada directamente
  */
-export function Sheet({ children }: { children: React.ReactNode }) {
+export function Sheet({ children, open = true, onOpenChange }: { children?: React.ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void }) {
+  if (!open) return null;
   return <div className="relative w-full">{children}</div>;
 }
 
@@ -65,6 +68,8 @@ export function SheetContent({
   closeLabel = "Cerrar",
   children,
   className,
+  open = true,
+  onOpenChange,
 }: SheetContentProps) {
   const sideClassMap = {
     right:
@@ -105,7 +110,7 @@ export function SheetContent({
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           {showClose && (
             <button
-              onClick={() => window.dispatchEvent(new Event("sheet-close"))}
+              onClick={() => onOpenChange?.(false)}
               className={closeButtonClass}
             >
               <svg
@@ -126,11 +131,50 @@ export function SheetContent({
       )}
 
       {children}
-
-      {/* Footer slot is available via className props passed to parent */}
     </div>
   );
 }
+
+/**
+ * SheetHeader — Header del sheet
+ */
+export function SheetHeader({ children, className, title }: SheetHeaderProps) {
+  return (
+    <div className={cn("flex flex-col gap-2 p-4", className)}>
+      {title && <h3 className="text-lg font-semibold text-foreground">{title}</h3>}
+      {children}
+    </div>
+  );
+}
+SheetHeader.displayName = "SheetHeader";
+
+/**
+ * SheetFooter — Footer del sheet
+ */
+export function SheetFooter({ children, className }: SheetFooterProps) {
+  return (
+    <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-5 pt-4 border-t border-border/40", className)}>
+      {children}
+    </div>
+  );
+}
+SheetFooter.displayName = "SheetFooter";
+
+/**
+ * SheetTitle — Título del sheet
+ */
+export function SheetTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h2 className={cn("text-lg font-semibold", className)} {...props} />;
+}
+SheetTitle.displayName = "SheetTitle";
+
+/**
+ * SheetDescription — Descripción del sheet
+ */
+export function SheetDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
+}
+SheetDescription.displayName = "SheetDescription";
 
 /**
  * SheetTrigger — Trigger para abrir el sheet
@@ -143,7 +187,7 @@ export function SheetTrigger({
 }: {
   asChild?: boolean;
   className?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <button
@@ -161,3 +205,21 @@ export function SheetTrigger({
     </button>
   );
 }
+SheetTrigger.displayName = "SheetTrigger";
+
+/**
+ * SheetClose — Botón de cerrar
+ */
+export const SheetClose = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, children, ...props }, ref) => (
+    <button ref={ref} className={cn("rounded-md p-1 text-muted-foreground hover:text-foreground", className)} {...props}>
+      {children}
+    </button>
+  )
+);
+SheetClose.displayName = "SheetClose";
+
+export {
+  Sheet, SheetTrigger, SheetClose, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription,
+};
+export default Sheet;

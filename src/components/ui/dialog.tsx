@@ -4,12 +4,13 @@
  * API compatible con shadcn/ui Dialog:
  * - Dialog: open, onOpenChange, children
  * - DialogContent: children, className, size
- * - DialogHeader: title, description
+ * - DialogHeader: title, description, children
  * - DialogFooter: children
  * - DialogTitle, DialogDescription
  * - DialogTrigger, DialogClose (passthrough)
  */
 import { cn } from "@/lib/utils";
+import { forwardRef, ReactNode } from "react";
 
 interface DialogProps {
   open?: boolean;
@@ -22,6 +23,8 @@ interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 interface DialogHeaderProps {
+  children?: React.ReactNode;
+  className?: string;
   title?: string;
   description?: string;
 }
@@ -35,7 +38,8 @@ const dialogSizes = {
 };
 
 // Root (passthrough para compatibilidad)
-function Dialog({ children }: DialogProps) {
+function Dialog({ children, open = true, onOpenChange }: DialogProps) {
+  if (!open) return null;
   return <div className="relative">{children}</div>;
 }
 
@@ -66,33 +70,37 @@ function DialogOverlay({ className, ...props }: React.HTMLAttributes<HTMLDivElem
 
 // Content
 const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
-  ({ className, size = "default", children, ...props }, ref) => (
-    <DialogPortal>
-      <DialogOverlay />
-      <div
-        ref={ref}
-        className={cn(
-          "relative z-50 grid w-full gap-4 border bg-card p-6 shadow-xl",
-          "rounded-[8px] border-border/70",
-          "animate-in fade-in-0 zoom-in-95",
-          dialogSizes[size],
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    </DialogPortal>
-  )
+  ({ className, size = "default", children, open = true, onOpenChange, ...props }, ref) => {
+    if (!open) return null;
+    return (
+      <DialogPortal>
+        <DialogOverlay />
+        <div
+          ref={ref}
+          className={cn(
+            "relative z-50 grid w-full gap-4 border bg-card p-6 shadow-xl",
+            "rounded-[8px] border-border/70",
+            "animate-in fade-in-0 zoom-in-95",
+            dialogSizes[size],
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </div>
+      </DialogPortal>
+    );
+  }
 );
 DialogContent.displayName = "DialogContent";
 
 // Header
-function DialogHeader({ title, description }: DialogHeaderProps) {
+function DialogHeader({ children, className, title, description }: DialogHeaderProps) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className={cn("flex flex-col gap-1", className)}>
       {title && <h2 className="text-lg font-semibold text-foreground">{title}</h2>}
       {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      {children && children}
     </div>
   );
 }
