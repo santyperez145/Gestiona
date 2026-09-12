@@ -5,6 +5,7 @@
  * - Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent
  */
 import { cn } from "@/lib/utils";
+import { forwardRef } from "react";
 
 const Card = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (

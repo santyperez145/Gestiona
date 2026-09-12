@@ -1,36 +1,28 @@
 /**
- * Nerqia Label — Etiqueta de formulario con estilo cockpit
+ * Nerqia Label — Etiqueta de formulario con estilo propio
  *
- * Tamaño reducido, transformado a mayúsculas, espaciado amplio,
- * diferenciable de estilos de fondo (primary/warm/teal/danger).
+ * API compatible con shadcn/ui Label:
+ * - className: string
+ * - htmlFor?: string
+ * - children: React.ReactNode
  */
 import { cn } from "@/lib/utils";
 
-export interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
-  variant?: "primary" | "warm" | "teal" | "danger";
-}
+interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {}
 
-export default function NerqiaLabel({
-  className,
-  htmlFor,
-  variant = "primary",
-  children,
-  ...props
-}: LabelProps) {
-  const variantClasses = {
-    primary: "text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70 font-display",
-    warm: "text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-500/70 font-display",
-    teal: "text-[10px] font-semibold uppercase tracking-[0.1em] text-teal-500/70 font-display",
-    danger: "text-[10px] font-semibold uppercase tracking-[0.1em] text-red-500/70 font-display",
-  };
-
-  return (
+const Label = forwardRef<HTMLLabelElement, LabelProps>(
+  ({ className, ...props }, ref) => (
     <label
-      htmlFor={htmlFor}
-      className={cn(variantClasses[variant], "peer-disabled:cursor-not-allowed peer-disabled:opacity-50", className)}
+      ref={ref}
+      className={cn(
+        "text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70 font-display",
+        className,
+      )}
       {...props}
-    >
-      {children}
-    </label>
-  );
-}
+    />
+  )
+);
+Label.displayName = "Label";
+
+export { Label };
+export default Label;

@@ -69,8 +69,8 @@ export default function CommerceSalesChart({
             <Area
               type="monotone"
               dataKey="sales"
-              stroke="hsl(var(--primary))"
-              strokeWidth={2}
+              stroke="#173aef"
+              strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#colorSales)"
             />

@@ -1,26 +1,29 @@
 /**
- * Nerqia Dialog — Modal con estilo cockpit
+ * Nerqia Dialog — Modal con estilo cockpit propio
  *
- * Overlay oscuro, contenido en tarjeta con borde izquierdo de acento.
+ * API compatible con shadcn/ui Dialog:
+ * - Dialog: open, onOpenChange, children
+ * - DialogContent: children, className, size
+ * - DialogHeader: title, description
+ * - DialogFooter: children
+ * - DialogTitle, DialogDescription
+ * - DialogTrigger, DialogClose (passthrough)
  */
 import { cn } from "@/lib/utils";
 
-export interface DialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface DialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children?: React.ReactNode;
+}
+
+interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  size?: "sm" | "default" | "md" | "lg" | "xl";
+}
+
+interface DialogHeaderProps {
   title?: string;
   description?: string;
-  children: React.ReactNode;
-  /** Muestra botones de acción (Cancelar/Aceptar) */
-  showActions?: boolean;
-  onCancel?: () => void;
-  onConfirm?: () => void;
-  confirmText?: string;
-  cancelText?: string;
-  /** Muestra barra de acento lateral */
-  accent?: boolean;
-  accentColor?: "primary" | "warm" | "teal" | "destructive";
-  size?: "default" | "sm" | "md" | "lg" | "xl";
 }
 
 const dialogSizes = {
@@ -31,87 +34,111 @@ const dialogSizes = {
   xl: "max-w-4xl",
 };
 
-export default function NerqiaDialog({
-  open,
-  onOpenChange,
-  title,
-  description,
-  children,
-  showActions = false,
-  onCancel,
-  onConfirm,
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
-  accent = false,
-  accentColor = "primary",
-  size = "default",
-}: DialogProps) {
-  if (!open) return null;
+// Root (passthrough para compatibilidad)
+function Dialog({ children }: DialogProps) {
+  return <div className="relative">{children}</div>;
+}
 
-  const accentClasses = {
-    primary: "border-l-primary/60",
-    warm: "border-l-amber-500/60",
-    teal: "border-l-teal-500/60",
-    destructive: "border-l-red-500/60",
-  };
+// Trigger (passthrough)
+const DialogTrigger = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, children, ...props }, ref) => (
+    <button ref={ref} className={className} {...props}>
+      {children}
+    </button>
+  )
+);
+DialogTrigger.displayName = "DialogTrigger";
 
+// Portal
+function DialogPortal({ children }: { children: React.ReactNode }) {
+  return <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">{children}</div>;
+}
+
+// Overlay
+function DialogOverlay({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[2px]"
-      onPointerDownCapture={(e) => {
-        if (e.target === e.currentTarget) {
-          onOpenChange(false);
-        }
-      }}
-    >
-      <div
-        className={cn(
-          "relative flex flex-col gap-4 overflow-y-auto rounded-[10px] border bg-card p-6",
-          "shadow-xl shadow-black/20",
-          accent ? accentClasses[accentColor] : "border-border/70",
-          dialogSizes[size],
-          "animate-in fade-in-0 zoom-in-95",
-        )}
-      >
-        {title && (
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-            {description && (
-              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-            )}
-          </div>
-        )}
-        <div>{children}</div>
-        {showActions && (
-          <div className="flex justify-end gap-2 pt-2">
-            {onCancel && (
-              <button
-                onClick={onCancel}
-                className="rounded-[8px] border border-border/60 bg-transparent px-4 py-2 text-sm text-muted-foreground hover:bg-muted/30 transition-colors"
-              >
-                {cancelText}
-              </button>
-            )}
-            {onConfirm && (
-              <button
-                onClick={onConfirm}
-                className="rounded-[8px] border border-border/60 bg-primary/5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-              >
-                {confirmText}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      className={cn("fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]", className)}
+      {...props}
+    />
   );
 }
 
-/** Portal para diálogos fullscreen */
-export function NerqiaDialogViewport({ children }: { children: React.ReactNode }) {
+// Content
+const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
+  ({ className, size = "default", children, ...props }, ref) => (
+    <DialogPortal>
+      <DialogOverlay />
+      <div
+        ref={ref}
+        className={cn(
+          "relative z-50 grid w-full gap-4 border bg-card p-6 shadow-xl",
+          "rounded-[8px] border-border/70",
+          "animate-in fade-in-0 zoom-in-95",
+          dialogSizes[size],
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    </DialogPortal>
+  )
+);
+DialogContent.displayName = "DialogContent";
+
+// Header
+function DialogHeader({ title, description }: DialogHeaderProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
+    <div className="flex flex-col gap-1">
+      {title && <h2 className="text-lg font-semibold text-foreground">{title}</h2>}
+      {description && <p className="text-sm text-muted-foreground">{description}</p>}
+    </div>
+  );
+}
+DialogHeader.displayName = "DialogHeader";
+
+// Footer
+function DialogFooter({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("flex items-center justify-end gap-2 pt-4", className)}
+      {...props}
+    >
       {children}
     </div>
   );
 }
+DialogFooter.displayName = "DialogFooter";
+
+// Title
+const DialogTitle = forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <h2 ref={ref} className={cn("text-lg font-semibold", className)} {...props} />
+  )
+);
+DialogTitle.displayName = "DialogTitle";
+
+// Description
+const DialogDescription = forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => (
+    <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+  )
+);
+DialogDescription.displayName = "DialogDescription";
+
+// Close
+const DialogClose = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, children, ...props }, ref) => (
+    <button ref={ref} className={cn("rounded-md p-1 text-muted-foreground hover:text-foreground", className)} {...props}>
+      {children}
+    </button>
+  )
+);
+DialogClose.displayName = "DialogClose";
+
+export {
+  Dialog, DialogTrigger, DialogPortal, DialogOverlay, DialogContent,
+  DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose,
+};
+export default Dialog;
