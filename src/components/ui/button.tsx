@@ -1,7 +1,6 @@
-/**
- * Nerqia Button — Botón completamente propio, sin shadcn/ui
- * Diseño: acento izquierdo, sombra sutil, bordes redondeados 10px, transición 200ms
- */
+// Nerqia Button — Botón completamente propio, sin shadcn/ui
+// Diseño: acento izquierdo, sombra sutil, bordes redondeados 10px, transición 200ms
+// Usa tokens de diseño Nerqia: primary para acción principal, outline con border-border y bg-card.
 import { cn } from "@/lib/utils";
 import { Slot } from "@radix-ui/react-slot";
 import { forwardRef } from "react";
@@ -13,13 +12,16 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 // Variant classes for Nerqia Button
+// La acción principal usa el token de color principal (`bg-primary`),
+// outline usa `border-border` y `bg-card` para respetar la superficie,
+// y secundario usa `bg-muted` para no competir con la acción principal.
 export const buttonVariants = {
-  default: "bg-[#173aef] text-white hover:bg-[#1430c7] shadow-[0_2px_14px_rgba(23,58,239,0.25)]",
-  destructive: "bg-red-600 text-white hover:bg-red-700 shadow-[0_2px_14px_rgba(220,38,38,0.25)]",
-  outline: "border-[1.5px] border-[#173aef]/40 bg-[#0b1120] text-[#173aef] hover:bg-[#173aef]/10 hover:border-[#173aef]/60",
-  secondary: "bg-[#14b8a6]/15 text-[#14b8a6] hover:bg-[#14b8a6]/25 border border-[#14b8a6]/20",
-  ghost: "text-[#b0bec5] hover:text-white hover:bg-white/5",
-  link: "text-[#173aef] underline-offset-[3px] hover:text-[#14b8a6]",
+  default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
+  destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
+  outline: "border border-border bg-card text-foreground hover:bg-muted hover:border-primary/60",
+  secondary: "bg-muted text-foreground hover:bg-muted/80 border border-border",
+  ghost: "text-muted-foreground hover:text-foreground hover:bg-muted",
+  link: "text-primary underline-offset-[3px] hover:text-primary/80",
 };
 
 // Size classes for Nerqia Button
@@ -39,7 +41,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center whitespace-nowrap font-display transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#173aef]/40 disabled:opacity-40 disabled:pointer-events-none",
+          "inline-flex items-center justify-center whitespace-nowrap font-display transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-40 disabled:pointer-events-none",
           buttonVariants[variant],
           buttonSizes[size],
           className,

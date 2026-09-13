@@ -139,7 +139,7 @@ export default function PlatformOperationsPage() {
         <KPICard label="Sin avance" value={loading ? '—' : metrics.stalled} icon={Clock3} color={metrics.stalled > 0 ? 'warning' : 'success'} sub="procesos de entrega en pausa" />
       </div>
 
-      <section className="border border-slate-500/25 bg-slate-500/[0.04] rounded-[10px] p-4 text-sm">
+      <section className="border border-border/60 bg-card rounded-[10px] p-4 text-sm">
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 w-4 h-4 shrink-0 text-primary" />
           <div>

@@ -378,9 +378,9 @@ export default function PlatformCommissionsPage() {
                     {r.org_id ? 'Acuerdo puntual' : isBase ? 'Regla base' : 'Por plan'}
                   </Badge>
                   <span className="text-sm font-medium">{planName(r.plan_id)}</span>
-                  {r.org_id && (
-                    <code className="text-[10px] font-mono text-muted-foreground">org {r.org_id.slice(0, 8)}</code>
-                  )}
+                  {r.org_name ? (
+                    <span className="text-xs text-muted-foreground">{r.org_name}</span>
+                  ) : null}
                   <div className="flex-1" />
                   <Badge
                     variant={inForce ? 'secondary' : 'outline'}
