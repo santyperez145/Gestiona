@@ -46,6 +46,12 @@ const LIFECYCLE_META: Record<string, { label: string; className: string; icon: t
   planned: { label: 'Planificado', className: 'text-muted-foreground bg-muted/50 border-border', icon: Clock3 },
 };
 
+const SCOPE_LABEL: Record<string, string> = {
+  platform: 'Nerqia',
+  merchant: 'Comercio',
+  both: 'Nerqia + comercio',
+};
+
 const CONNECTION_LABEL: Record<string, string> = {
   oauth: 'OAuth',
   delegation: 'Delegación',
@@ -53,12 +59,6 @@ const CONNECTION_LABEL: Record<string, string> = {
   webhook: 'Webhook',
   manual: 'Manual',
   none: 'Sin conexión',
-};
-
-const SCOPE_LABEL: Record<string, string> = {
-  platform: 'Nerqia',
-  merchant: 'Comercio',
-  both: 'Nerqia + comercio',
 };
 
 function errorMessage(error: { message?: string } | null) {

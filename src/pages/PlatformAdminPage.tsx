@@ -414,10 +414,6 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     if (tab === 'users' && users.length === 0 && isPlatformAdmin) loadUsers();
   }, [tab, isPlatformAdmin, users.length, loadUsers]);
 
-  useEffect(() => {
-    if (tab === 'support' && adminLogs.length === 0 && isPlatformAdmin) loadAdminLogs();
-  }, [tab, isPlatformAdmin, adminLogs.length, loadAdminLogs]);
-
   const loadAdminLogs = useCallback(async () => {
     setLoadingLogs(true);
     try {

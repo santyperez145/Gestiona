@@ -425,7 +425,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen text-white" style={{ background: "linear-gradient(160deg, #06060f 0%, #0c0c1c 40%, #080814 100%)" }}>
+    <div className="min-h-screen text-white bg-background bg-gradient-to-b from-background via-muted to-background">
 
       {/* Subtle dot-grid texture overlay */}
       <div
@@ -437,7 +437,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
       />
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50" style={{ background: "rgba(6,6,15,0.88)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <header className="sticky top-0 z-50 bg-muted/90 backdrop-blur-sm border-b border-border/5">
         {/* Top row */}
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           {/* Logo + name */}

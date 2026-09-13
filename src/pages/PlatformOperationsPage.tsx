@@ -135,7 +135,7 @@ export default function PlatformOperationsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KPICard label="Incidentes activos" value={loading ? '—' : rows.length} icon={AlertTriangle} color={rows.length > 0 ? 'warning' : 'success'} sub="fuentes cubiertas por la cola" />
         <KPICard label="Críticos" value={loading ? '—' : metrics.critical} icon={AlertTriangle} color={metrics.critical > 0 ? 'destructive' : 'success'} sub="prioridad de atención" />
-        <KPICard label="Reintentables" value={loading ? '—' : metrics.retryable} icon={RotateCcw} color={metrics.retryable > 0 ? 'purple' : 'success'} sub="sólo entrega descartada" />
+        <KPICard label="Reintentables" value={loading ? '—' : metrics.retryable} icon={RotateCcw} color={metrics.retryable > 0 ? 'warning' : 'success'} sub="sólo entrega descartada" />
         <KPICard label="Sin avance" value={loading ? '—' : metrics.stalled} icon={Clock3} color={metrics.stalled > 0 ? 'warning' : 'success'} sub="procesos de entrega en pausa" />
       </div>
 
@@ -175,7 +175,7 @@ export default function PlatformOperationsPage() {
               return (
                 <article key={`${row.source}:${row.ticket_id}`} className="grid gap-3 px-4 sm:px-5 py-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(145px,.75fr)_minmax(150px,.8fr)_auto] lg:items-center">
                   <div className="min-w-0 flex items-start gap-3">
-                    <span className={`mt-0.5 w-8 h-8 rounded-[7px] border flex items-center justify-center shrink-0 ${row.severity === 'critical' ? 'border-red-500/25 bg-red-500/10 text-red-300' : 'border-amber-500/25 bg-amber-500/10 text-amber-300'}`}><SourceIcon className="w-3.5 h-3.5" /></span>
+                    <span className={`mt-0.5 w-8 h-8 rounded-[7px] border flex items-center justify-center shrink-0 ${row.severity === 'critical' ? 'border-red-500/25 bg-red-500/10 text-red-400' : 'border-amber-500/25 bg-amber-500/10 text-amber-400'}`}><SourceIcon className="w-3.5 h-3.5" /></span>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate">{row.operation_label || source.label}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{row.org_name || (row.source === 'cron' ? 'Infraestructura de plataforma' : 'Comercio sin nombre disponible')} · {source.label}</p>
