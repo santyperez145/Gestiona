@@ -324,7 +324,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     [products]);
 
   // La marca de la tienda (si se entra por /tienda/:slug) pisa la del negocio.
-  const primaryColor = storeBranding?.primary_color || settings?.primary_color || "#D4A843";
+  const primaryColor = storeBranding?.primary_color || settings?.primary_color || "var(--primary)";
   const accentColor = settings?.catalog_accent_color || primaryColor;
   const businessName = storeBranding?.name || settings?.business_name || "Tienda online";
   const logoUrl = storeBranding?.logo_url || settings?.logo_url || null;
@@ -372,7 +372,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
             type="button"
             onClick={() => { void fetchData(); }}
             className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-[9px] px-4 py-2 text-sm font-semibold"
-            style={{ background: primaryColor, color: "#000" }}
+            style={{ background: primaryColor, color: "var(--primary-foreground)" }}
           >
             <RefreshCw className="w-4 h-4" /> Reintentar
           </button>
@@ -431,7 +431,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
       <div
         className="pointer-events-none fixed inset-0 z-0 opacity-[0.018]"
         style={{
-          backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`,
+          backgroundImage: `radial-gradient(circle, var(--card) 1px, transparent 1px)`,
           backgroundSize: "28px 28px",
         }}
       />
@@ -983,7 +983,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                 <a
                   href={`/tienda/${storeSlug}`}
                   className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[11px] text-sm font-bold transition-all active:scale-[0.98]"
-                  style={{ background: primaryColor, color: "#000" }}
+                  style={{ background: primaryColor, color: "var(--primary-foreground)" }}
                 >
                   Comprar en la tienda
                 </a>
