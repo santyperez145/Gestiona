@@ -188,8 +188,8 @@ export default function PlatformOperationsPage() {
                       <Button size="sm" variant="outline" disabled={retryingTicket === row.ticket_id} onClick={() => void retryOutbox(row)}>
                         {retryingTicket === row.ticket_id ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RotateCcw className="w-3.5 h-3.5 mr-1.5" />} Reintentar
                       </Button>
-                    ) : row.org_id && row.recommended_action === 'review_merchant' ? (
-                      <Link to={`/platform/orgs/${row.org_id}`} className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">Ver comercio</Link>
+                    ) : row.org_name && row.recommended_action === 'review_merchant' ? (
+                      <Link to={`/platform/orgs/${row.org_name}`} className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">Ver comercio</Link>
                     ) : row.recommended_action === 'open_system' ? (
                       <Link to="/platform/sistema" className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">Ver sistema</Link>
                     ) : (

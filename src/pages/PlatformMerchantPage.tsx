@@ -118,31 +118,31 @@ export default function PlatformMerchantPage() {
       supabase
         .from('platform_org_health')
         .select('*')
-        .eq('org_id', orgId)
+        .eq('org_name', orgId)
         .maybeSingle(),
       supabase
         .from('platform_org_activation')
         .select('*')
-        .eq('org_id', orgId),
+        .eq('org_name', orgId),
       supabase
         .from('organization_activation_readiness')
         .select('*')
-        .eq('org_id', orgId)
+        .eq('org_name', orgId)
         .maybeSingle(),
       supabase
         .from('platform_org_margin_coverage')
         .select('*')
-        .eq('org_id', orgId)
+        .eq('org_name', orgId)
         .maybeSingle(),
       supabase
         .from('platform_org_integration_health')
         .select('*')
-        .eq('org_id', orgId)
+        .eq('org_name', orgId)
         .order('display_name'),
       supabase
         .from('platform_activation_interventions')
         .select('*')
-        .eq('org_id', orgId)
+        .eq('org_name', orgId)
         .order('occurred_at', { ascending: false }),
     ]);
 

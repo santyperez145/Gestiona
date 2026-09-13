@@ -215,7 +215,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
       // Vistas públicas saneadas: sin costos, sin márgenes, sin credenciales.
       // Los precios de decant vienen ya calculados desde la base.
       fetchCatalogProducts(userId),
-      // Un link viejo puede traer user_id u org_id. La frontera pública
+      // Un link viejo puede traer user_id u org_name. La frontera pública
       // resuelve ambos sin pedirle a la página que lea settings por su cuenta.
       fetchCatalogBranding(userId),
       fetchCatalogSettings(userId),
@@ -243,7 +243,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     // vuelcan sobre `discount_price_ars`, que es el campo que usa toda la
     // página para badges, % OFF, combos y el mensaje de WhatsApp.
     const rows = productos;
-    const orgId = (rows[0] as any)?.org_id ?? branding.org_id;
+    const orgId = (rows[0] as any)?.org_name ?? branding.org_name;
     // Las cuotas que se muestran salen de lo que el comercio configuró.
     setOrgIdCuotas(orgId ?? null);
     if (orgId) {

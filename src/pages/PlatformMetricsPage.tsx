@@ -358,7 +358,7 @@ export default function PlatformMetricsPage() {
             {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando salud de organizaciones...</div> : filteredRows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">No hay organizaciones con esos filtros.</div> : (
               <div className="divide-y divide-border/50">
                 {filteredRows.map(row => (
-                  <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(80px,0.6fr))] md:items-center">
+                  <div key={row.org_name || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(80px,0.6fr))] md:items-center">
                     <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-xs text-muted-foreground">/{row.slug || "sin-slug"} · {row.plan_name || "Sin plan"}</p></div>
                     <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">GMV 30d</p><p className="mt-0.5 text-xs font-semibold">{formatARS(row.gmv_30d || 0)}</p></div>
                     <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Productos</p><p className="mt-0.5 text-xs font-semibold">{row.productos || 0}</p></div>
@@ -414,13 +414,13 @@ export default function PlatformMetricsPage() {
                 {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando organizaciones...</div> : prioritizedCohortMembers.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavía no hay organizaciones instrumentadas.</div> : (
                   <div className="divide-y divide-border/50">
                     {prioritizedCohortMembers.slice(0, 30).map(row => (
-                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.3fr)_repeat(4,minmax(90px,.6fr))_auto] md:items-center">
+                      <div key={row.org_name || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.3fr)_repeat(4,minmax(90px,.6fr))_auto] md:items-center">
                         <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-[10px] text-muted-foreground">/{row.slug || "sin-slug"} · alta {formatDate(row.org_created_at)}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Canal</p><p className="mt-0.5 text-xs font-semibold">{row.onboarding_goal === "online" ? "Online" : row.onboarding_goal === "pos" ? "POS" : "Sin elegir"}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Hitos</p><p className="mt-0.5 text-xs font-semibold">{row.readiness_done_count || 0}/{row.readiness_total || 8}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Primera venta</p><p className="mt-0.5 text-xs font-semibold">{row.activated ? formatDays(row.days_to_first_sale, "Mismo día") : "Pendiente"}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Acompañamiento</p><p className="mt-0.5 text-xs font-semibold">{row.activation_intervention_minutes || 0} min</p><p className="text-[9px] text-muted-foreground">{row.support_measurement_eligible ? "medición válida" : "histórico sin base"}</p></div>
-                        {row.org_id ? <Button asChild variant="outline" size="sm" className="h-8 text-xs"><Link to={`/platform/comercios/${row.org_id}`}>Merchant 360</Link></Button> : null}
+                        {row.org_name ? <Button asChild variant="outline" size="sm" className="h-8 text-xs"><Link to={`/platform/comercios/${row.org_name}`}>Merchant 360</Link></Button> : null}
                       </div>
                     ))}
                   </div>
@@ -454,7 +454,7 @@ export default function PlatformMetricsPage() {
                 {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando salud de inventario...</div> : stockMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavia no hay organizaciones para analizar.</div> : (
                   <div className="divide-y divide-border/50">
                     {stockMetrics.rows.slice(0, 30).map(row => (
-                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(90px,0.6fr))] md:items-center">
+                      <div key={row.org_name || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(90px,0.6fr))] md:items-center">
                         <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-xs text-muted-foreground">/{row.slug || "sin-slug"} - {row.conteos_cerrados || 0} conteos cerrados</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Precision</p><p className="mt-0.5 text-xs font-semibold">{row.precision_pct === null ? "Sin datos" : `${row.precision_pct}%`}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Medidos</p><p className="mt-0.5 text-xs font-semibold">{row.productos_medidos || 0}/{row.productos_total || 0}</p></div>
@@ -513,7 +513,7 @@ export default function PlatformMetricsPage() {
                 {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando adopcion...</div> : channelMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavia no hay datos para analizar.</div> : (
                   <div className="divide-y divide-border/50">
                     {channelMetrics.rows.slice(0, 30).map(row => (
-                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(90px,0.6fr))] md:items-center">
+                      <div key={row.org_name || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(90px,0.6fr))] md:items-center">
                         <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-xs text-muted-foreground">/{row.slug || "sin-slug"} - {row.store_slug ? `tienda /${row.store_slug}` : "sin tienda"}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Online</p><p className="mt-0.5 text-xs font-semibold">{row.online_orders_total || 0} ordenes</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">POS</p><p className="mt-0.5 text-xs font-semibold">{row.pos_sales_total || 0} ventas</p></div>
@@ -553,7 +553,7 @@ export default function PlatformMetricsPage() {
                 {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando adopción de recomendaciones...</div> : aiActionMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavía no hay organizaciones para analizar.</div> : (
                   <div className="divide-y divide-border/50">
                     {aiActionMetrics.rows.slice(0, 30).map(row => (
-                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(85px,0.6fr))] md:items-center">
+                      <div key={row.org_name || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(85px,0.6fr))] md:items-center">
                         <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-xs text-muted-foreground">/{row.slug || "sin-slug"} · última recomendación {formatDate(row.last_recommendation_at)}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Action Rate</p><p className="mt-0.5 text-xs font-semibold">{row.action_rate_pct === null ? "Sin datos" : `${row.action_rate_pct}%`}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Aplicadas</p><p className="mt-0.5 text-xs font-semibold text-emerald-400">{row.recommendations_applied || 0}</p></div>

@@ -15,7 +15,7 @@ import {
 
 type PaymentLink = {
   id: string;
-  org_id: string;
+  org_name: string;
   quote_number: string | null;
   customer_name: string;
   customer_phone: string | null;

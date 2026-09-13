@@ -144,7 +144,7 @@ function buildBrandedEmail(bodyHtml: string, logoUrl: string | null, businessNam
   const header = `
 <div style="text-align:center;padding:20px 16px 16px;background:#1A1A2E;border-radius:8px 8px 0 0">
   ${logoTag}
-  <h2 style="color:#D4A843;margin:0;font-size:20px;font-weight:700;letter-spacing:1px">${businessName}</h2>
+  <h2 style="color:var(--primary);margin:0;font-size:20px;font-weight:700;letter-spacing:1px">${businessName}</h2>
 </div>`;
   const footer = `
 <div style="text-align:center;margin-top:24px;padding:12px;font-size:11px;color:#888;border-top:1px solid #eee">

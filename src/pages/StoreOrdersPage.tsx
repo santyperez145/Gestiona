@@ -38,7 +38,7 @@ export default function StoreOrdersPage() {
   const storeSlug = selectedStore?.slug ?? null;
   const storeName = selectedStore?.name ?? "Tu tienda";
   const queue = useStoreOrderQueue(orgId,
-    selectedStore?.org_id === orgId ? commerceStores.selectedStoreId : null, searchParams);
+    selectedStore?.org_name === orgId ? commerceStores.selectedStoreId : null, searchParams);
   const ordersLoading = commerceStores.loading || queue.loading;
   const [recoveryPending, setRecoveryPending] = useState(0);
 
@@ -51,13 +51,13 @@ export default function StoreOrdersPage() {
       supabase
         .from("ecommerce_cart_sessions")
         .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
-        .eq("org_id", orgId)
-        .eq("store_id", commerceStores.selectedStoreId),
+        .eq("org_name", orgId)
+        .eq("store_name", commerceStores.selectedStoreId),
       supabase
         .from("store_stock_alerts")
         .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
-        .eq("org_id", orgId)
-        .eq("store_id", commerceStores.selectedStoreId)
+        .eq("org_name", orgId)
+        .eq("store_name", commerceStores.selectedStoreId)
         .is("notified_at", null),
     ]);
     if (carts.error) {

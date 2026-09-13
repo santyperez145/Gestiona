@@ -4005,7 +4005,7 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
             />
             <Bar dataKey="avgRevenue" name="avgRevenue" radius={[4, 4, 0, 0]}>
               {byDay.map((d, i) => (
-                <Cell key={i} fill={d.avgRevenue === maxRevenue ? '#D4A843' : '#6366f1'} />
+                <Cell key={i} fill={d.avgRevenue === maxRevenue ? 'hsl(var(--warning))' : 'hsl(var(--chart-1))'} />
               ))}
             </Bar>
           </BarChart>
