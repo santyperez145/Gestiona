@@ -199,7 +199,7 @@ return (
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a1a] via-[#0e0e1e] to-[#0a0a1a] p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted/90 via-muted/70 to-muted/90 p-4">
         <div className="text-center max-w-sm" data-payment-state="error" role="alert">
           <div className="w-16 h-16 rounded-full bg-amber-400/10 flex items-center justify-center mx-auto mb-4">
             <RefreshCw className="w-8 h-8 text-amber-400" />
