@@ -151,10 +151,10 @@ export default function FeatureFlagControls({ isSuperadmin }: { isSuperadmin: bo
   );
 
   return (
-    <section className="overflow-hidden border border-slate-500/25 rounded-[10px] bg-card" aria-labelledby="feature-flags-title">
+    <section className="overflow-hidden border border-border/25 rounded-[10px] bg-card" aria-labelledby="feature-flags-title">
       <div className="border-b border-border/50 px-4 sm:px-5 py-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 h-8 w-8 shrink-0 rounded-[7px] border border-slate-500/25 bg-slate-500/10 text-slate-300 flex items-center justify-center"><ShieldCheck className="w-4 h-4" /></span>
+          <span className="mt-0.5 h-8 w-8 shrink-0 rounded-[7px] border border-border/25 bg-muted/10 text-muted-foreground flex items-center justify-center"><ShieldCheck className="w-4 h-4" /></span>
           <div>
             <h2 id="feature-flags-title" className="text-sm font-semibold">Control de lanzamiento</h2>
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">El primer interruptor protege Checkout Brick: al pausarlo, el comprador conserva el checkout externo de MercadoPago. No reemplaza pruebas ni habilita experimentos porcentuales.</p>

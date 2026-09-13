@@ -49,7 +49,7 @@ const STATUS_STYLE = {
 
 const TONE_STYLE: Record<AnnouncementTone, string> = {
   info: "border-sky-500/25 bg-sky-500/[0.07] text-sky-700 dark:text-sky-200",
-  maintenance: "border-slate-500/25 bg-slate-500/[0.07] text-slate-700 dark:text-slate-200",
+  maintenance: "border-border/25 bg-muted/[0.07] text-muted-foreground dark:text-muted-foreground",
   warning: "border-amber-500/25 bg-amber-500/[0.07] text-amber-700 dark:text-amber-100",
   success: "border-emerald-500/25 bg-emerald-500/[0.07] text-emerald-700 dark:text-emerald-200",
 };
@@ -232,7 +232,7 @@ export default function PlatformAnnouncementsPage() {
       </div>
 
       <section className="overflow-hidden rounded-xl border border-border/60 bg-card">
-        <div className="flex items-center gap-2 border-b border-border/50 px-5 py-4"><BellRing className="h-4 w-4 text-slate-700 dark:text-slate-300" /><div><h2 className="text-sm font-semibold">Historial de comunicación</h2><p className="mt-0.5 text-xs text-muted-foreground">Archivar preserva trazabilidad; no se borra un mensaje operativo.</p></div></div>
+        <div className="flex items-center gap-2 border-b border-border/50 px-5 py-4"><BellRing className="h-4 w-4 text-muted-foreground dark:text-muted-foreground" /><div><h2 className="text-sm font-semibold">Historial de comunicación</h2><p className="mt-0.5 text-xs text-muted-foreground">Archivar preserva trazabilidad; no se borra un mensaje operativo.</p></div></div>
         {loading ? <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Cargando anuncios…</div> : error ? <div className="p-8 text-center text-sm text-muted-foreground"><p>{error}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void load()}>Reintentar</Button></div> : rows.length === 0 ? <div className="p-10 text-center"><Megaphone className="mx-auto h-7 w-7 text-muted-foreground/35" /><p className="mt-3 text-sm font-medium">Todavía no hay anuncios</p><p className="mt-1 text-xs text-muted-foreground">Publicá el primero cuando haya una comunicación que el comercio necesite ver dentro del sistema.</p></div> : (
           <div className="divide-y divide-border/50">
             {rows.map(row => {

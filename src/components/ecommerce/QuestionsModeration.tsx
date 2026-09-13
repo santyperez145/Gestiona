@@ -161,7 +161,7 @@ export default function QuestionsModeration({ storeId }: { storeId: string | nul
                   </Badge>
                 )}
                 {q.status === "hidden" && (
-                  <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/20 text-[11px]">Oculta</Badge>
+                  <Badge className="bg-muted/15 text-muted-foreground border-border/20 text-[11px]">Oculta</Badge>
                 )}
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => cambiarEstado(q)}>
                   {q.status === "published"

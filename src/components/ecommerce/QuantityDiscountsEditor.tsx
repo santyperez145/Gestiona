@@ -221,7 +221,7 @@ export default function QuantityDiscountsEditor({ categorias }: Props) {
                 </p>
               </div>
               {!r.is_active && (
-                <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/20 text-[11px]">Pausada</Badge>
+                <Badge className="bg-muted/15 text-muted-foreground border-border/20 text-[11px]">Pausada</Badge>
               )}
               <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => alternar(r)}>
                 {r.is_active ? <><EyeOff className="w-3 h-3" />Pausar</> : <><Eye className="w-3 h-3" />Activar</>}

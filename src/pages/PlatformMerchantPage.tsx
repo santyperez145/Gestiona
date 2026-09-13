@@ -410,7 +410,7 @@ export default function PlatformMerchantPage() {
 
             <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <CalendarClock className="w-4 h-4 text-slate-300" />
+                <CalendarClock className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <h2 className="text-sm font-semibold">Próximos pasos</h2>
                   <p className="text-[11px] text-muted-foreground">Acciones sugeridas a partir de señales visibles.</p>
@@ -463,7 +463,7 @@ export default function PlatformMerchantPage() {
                       <p className="text-xs font-medium">{milestone.label}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{milestone.detail}</p>
                       {!milestone.done && (
-                        <p className="mt-2 text-[9px] font-semibold uppercase tracking-wide text-slate-300">
+                        <p className="mt-2 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {milestone.owner === 'platform' ? 'Nerqia' : milestone.owner === 'shared' ? 'Responsabilidad compartida' : 'Comercio'}
                         </p>
                       )}
@@ -497,7 +497,7 @@ export default function PlatformMerchantPage() {
 
           <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
             <div className="flex items-center gap-2">
-              <Store className="w-4 h-4 text-slate-300" />
+              <Store className="w-4 h-4 text-muted-foreground" />
               <div>
                 <h2 className="text-sm font-semibold">Activación y publicación</h2>
                 <p className="text-[11px] text-muted-foreground">La primera venta se toma del evento más temprano entre POS y online; la publicación conserva evidencia propia.</p>
@@ -518,13 +518,13 @@ export default function PlatformMerchantPage() {
           <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
-                <Webhook className="w-4 h-4 text-slate-300" />
+                <Webhook className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <h2 className="text-sm font-semibold">Evidencia de integraciones</h2>
                   <p className="text-[11px] text-muted-foreground">Conexión, vigencia y última ejecución conocidas por la plataforma. No muestra secretos ni datos de cuenta.</p>
                 </div>
               </div>
-              <Link to="/platform/integraciones" className="text-xs text-slate-300 hover:text-slate-200 transition-colors shrink-0">Ver catálogo global</Link>
+              <Link to="/platform/integraciones" className="text-xs text-muted-foreground hover:text-muted-foreground transition-colors shrink-0">Ver catálogo global</Link>
             </div>
 
             {snapshot.integrations.length === 0 ? (
@@ -539,7 +539,7 @@ export default function PlatformMerchantPage() {
                   return (
                     <article key={integration.integration_key} className="rounded-[8px] border border-border/60 bg-muted/15 p-3.5 space-y-3">
                       <div className="flex items-start gap-3">
-                        <span className="w-8 h-8 rounded-[7px] border border-slate-500/25 bg-slate-500/10 text-slate-300 flex items-center justify-center shrink-0"><Webhook className="w-3.5 h-3.5" /></span>
+                        <span className="w-8 h-8 rounded-[7px] border border-border/25 bg-muted/10 text-muted-foreground flex items-center justify-center shrink-0"><Webhook className="w-3.5 h-3.5" /></span>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-xs font-semibold">{integration.display_name || integration.integration_key || 'Integración'}</h3>
@@ -589,7 +589,7 @@ export default function PlatformMerchantPage() {
         <TabsContent value="context" className="space-y-4">
           <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
             <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-slate-300" />
+              <Building2 className="w-4 h-4 text-muted-foreground" />
               <div>
                 <h2 className="text-sm font-semibold">Contexto del tenant</h2>
                 <p className="text-[11px] text-muted-foreground">Datos mínimos para entender la cuenta sin entrar a tablas crudas.</p>

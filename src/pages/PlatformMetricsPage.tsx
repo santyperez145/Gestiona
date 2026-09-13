@@ -544,8 +544,8 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Descartadas" value={aiActionMetrics.recommendationsDismissed} icon={AlertTriangle} color="destructive" sub="no cuentan como acción" />
               </div>
 
-              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-slate-200">Acciones verificables, no engagement decorativo</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Este primer corte de G8 mide sólo recomendaciones de oferta guardadas. “Aplicada” significa que la base validó margen y precio, actualizó el producto y registró el evento. Chats, sugerencias no persistidas y descartes quedan fuera del numerador.</p></div></div>
+              <section className="border border-border/25 bg-muted/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-muted-foreground">Acciones verificables, no engagement decorativo</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Este primer corte de G8 mide sólo recomendaciones de oferta guardadas. “Aplicada” significa que la base validó margen y precio, actualizó el producto y registró el evento. Chats, sugerencias no persistidas y descartes quedan fuera del numerador.</p></div></div>
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
@@ -583,8 +583,8 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Observaciones" value={riskSeriesMetrics.observations} icon={Clock3} color="blue" sub={riskSeriesMetrics.latest ? `desde ${formatSnapshotDate(riskSeriesMetrics.rows[0]?.snapshot_date || null)}` : "la serie empieza al medir"} />
               </div>
 
-              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-slate-200">Historia capturada, no retrospectiva inventada</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La foto se toma todos los días a las 03:15 de Argentina. Riesgo suma organizaciones sin ventas tras haber cobrado, en caída fuerte o dormidas; `sin activar` se conserva fuera del total porque pide onboarding, no una acción de churn.</p></div></div>
+              <section className="border border-border/25 bg-muted/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-muted-foreground">Historia capturada, no retrospectiva inventada</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La foto se toma todos los días a las 03:15 de Argentina. Riesgo suma organizaciones sin ventas tras haber cobrado, en caída fuerte o dormidas; `sin activar` se conserva fuera del total porque pide onboarding, no una acción de churn.</p></div></div>
               </section>
 
               <div className="rounded-[10px] border border-border/60 bg-card p-5">
@@ -693,8 +693,8 @@ export default function PlatformMetricsPage() {
                 )}
               </div>
 
-              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-slate-200">Estado operativo sin exponer secretos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La vista sólo entrega nombre, horario, actividad, estado y conteos. No expone el comando del cron, mensajes de retorno ni cuerpos de respuestas HTTP. “Sin ejecuciones” informa un job nuevo; no se trata como falla porque un horario semanal puede ser correcto.</p></div></div>
+              <section className="border border-border/25 bg-muted/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-muted-foreground">Estado operativo sin exponer secretos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La vista sólo entrega nombre, horario, actividad, estado y conteos. No expone el comando del cron, mensajes de retorno ni cuerpos de respuestas HTTP. “Sin ejecuciones” informa un job nuevo; no se trata como falla porque un horario semanal puede ser correcto.</p></div></div>
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">

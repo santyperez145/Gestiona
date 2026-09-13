@@ -72,7 +72,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
     <div className="platform-surface workspace-platform min-h-screen bg-background">
       {/* ── Barra de identidad de plataforma ──────────────────────────── */}
       <header
-        className="workspace-platform-topbar workspace-platform__topbar sticky top-0 z-40 border-b border-slate-500/20 topbar-surface"
+        className="workspace-platform-topbar workspace-platform__topbar sticky top-0 z-40 border-b border-border/20 topbar-surface"
       >
         <div className="platform-topbar-inner px-4 sm:px-6 h-14 flex items-center gap-3">
           <div className="platform-topbar__identity flex items-center gap-2 min-w-0">

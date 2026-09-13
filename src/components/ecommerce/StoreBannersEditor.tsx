@@ -286,7 +286,7 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
               />
               Activo
             </label>
-            {!b.is_active && <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/20 text-[10px]">No se muestra</Badge>}
+            {!b.is_active && <Badge className="bg-muted/15 text-muted-foreground border-border/20 text-[10px]">No se muestra</Badge>}
             <Button size="sm" className="gap-1.5 text-xs ml-auto" disabled={guardando === b.id} onClick={() => guardar(b)}>
               {guardando === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
               Guardar

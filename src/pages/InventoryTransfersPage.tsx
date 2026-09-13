@@ -58,7 +58,7 @@ interface Product {
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<TransferStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  draft:      { label: 'Borrador',     color: 'text-slate-400',   bg: 'bg-slate-500/10 border-slate-500/20',   icon: FileText },
+  draft:      { label: 'Borrador',     color: 'text-muted-foreground',   bg: 'bg-muted/10 border-border/20',   icon: FileText },
   pending:    { label: 'Pendiente',    color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20',   icon: Clock },
   in_transit: { label: 'En tránsito',  color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20',     icon: Truck },
   completed:  { label: 'Completada',   color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20',icon: CheckCircle },

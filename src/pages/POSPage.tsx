@@ -2783,7 +2783,7 @@ export default function POSPage() {
           <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium ${
             vipTier.name === "Platino" ? "bg-primary/15 border border-primary/30 text-primary" :
             vipTier.name === "Oro" ? "bg-yellow-500/15 border border-yellow-500/30 text-yellow-300" :
-            "bg-slate-500/15 border border-slate-500/30 text-slate-300"
+            "bg-muted/15 border border-border/30 text-muted-foreground"
           }`}>
             <span>⭐ {customer.trim()} · {vipTier.name} · {vipTier.points.toLocaleString("es-AR")} pts</span>
             <span className="font-bold">{vipTier.pct}% desc. aplicado</span>
@@ -3509,7 +3509,7 @@ export default function POSPage() {
       <div
         data-testid="pos-root"
         data-org-id={activeOrg?.id}
-        className={`pos-workspace relative flex h-full min-h-0 flex-col overflow-hidden ${posTheme === 'light' ? 'bg-white text-gray-900 [&_.bg-card]:bg-gray-50 [&_.bg-muted]:bg-gray-100 [&_.border-border]:border-gray-200 [&_.text-muted-foreground]:text-gray-500 [&_.text-foreground]:text-gray-900' : ''}`}
+        className={`pos-workspace relative flex h-full min-h-0 flex-col overflow-hidden ${posTheme === 'light' ? 'bg-white text-muted-foreground [&_.bg-card]:bg-muted [&_.bg-muted]:bg-muted [&_.border-border]:border-border [&_.text-muted-foreground]:text-muted-foreground [&_.text-foreground]:text-muted-foreground' : ''}`}
       >
         {/* Offline / sync banner */}
         {!isOnline && (

@@ -193,7 +193,7 @@ function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }
       {widget.widget_type === "gauge" ? (
         <div className="flex flex-col items-center py-2">
           <div className="relative w-24 h-12 overflow-hidden">
-            <div className="absolute inset-0 rounded-t-full border-4 border-gray-200" />
+            <div className="absolute inset-0 rounded-t-full border-4 border-border" />
             <div
               className="absolute inset-0 rounded-t-full border-4 border-blue-500 transition-all"
               style={{ clipPath: `polygon(0 100%, ${gaugePercent}% 100%, ${gaugePercent}% 0%, 0 0%)` }}
@@ -549,7 +549,7 @@ export default function TablerosView() {
                     />
                   ))}
                   <button onClick={openNewWidget}
-                    className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:border-blue-300 hover:text-blue-500 transition-colors min-h-[140px]">
+                    className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:border-blue-300 hover:text-blue-500 transition-colors min-h-[140px]">
                     <Plus className="w-6 h-6" />
                     <span className="text-sm font-medium">Agregar widget</span>
                   </button>

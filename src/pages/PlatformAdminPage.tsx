@@ -833,7 +833,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
           {/* Control Plane signals — all values come from protected platform views. */}
           <div className="pt-2 space-y-3">
             <div className="flex items-center gap-2">
-              <Webhook className="w-4 h-4 text-slate-300" />
+              <Webhook className="w-4 h-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Señales operativas</h2>
               <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/60">Business Core → canales</span>
               {controlPlane.loadedAt && <span className="ml-auto text-[10px] text-muted-foreground/50">Actualizado {fmtFull(controlPlane.loadedAt)}</span>}
@@ -1374,7 +1374,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                             <Switch
                               checked={u.isPlatformAdmin || false}
                               onCheckedChange={() => handleTogglePlatformAdmin(u)}
-                              className="data-[state=checked]:bg-slate-600"
+                              className="data-[state=checked]:bg-muted"
                             />
                             {u.isPlatformAdmin && (
                               <Select

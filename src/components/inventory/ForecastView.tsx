@@ -88,7 +88,7 @@ const VELOCITY_CONFIG = {
   fast: { label: "Rápida", color: "bg-emerald-500/15 text-emerald-400", icon: ArrowUp },
   medium: { label: "Media", color: "bg-blue-500/15 text-blue-400", icon: Minus },
   slow: { label: "Lenta", color: "bg-amber-500/15 text-amber-400", icon: ArrowDown },
-  dead: { label: "Sin movimiento", color: "bg-gray-500/15 text-gray-400", icon: Minus },
+  dead: { label: "Sin movimiento", color: "bg-muted/15 text-muted-foreground", icon: Minus },
 };
 
 // ─── Config Dialog ────────────────────────────────────────────────────────────

@@ -276,7 +276,7 @@ function ActivityPanel({
           <button
             onClick={() => (coachOpen && coach ? setCoachOpen(false) : runCoach())}
             disabled={coachLoading}
-            className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border border-primary/30 bg-slate-500/10 text-slate-300 hover:bg-primary/15 disabled:opacity-50 transition-all"
+            className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border border-primary/30 bg-muted/10 text-muted-foreground hover:bg-primary/15 disabled:opacity-50 transition-all"
           >
             {coachLoading
               ? <><Loader2 className="w-3 h-3 animate-spin" /> Analizando…</>
@@ -289,7 +289,7 @@ function ActivityPanel({
         {coachOpen && coach && !coachLoading && (
           <div className="mt-2.5 space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
             {/* Win probability + urgency strip */}
-            <div className="flex items-center gap-2.5 p-2 rounded-md bg-slate-500/5 border border-slate-500/25">
+            <div className="flex items-center gap-2.5 p-2 rounded-md bg-muted/5 border border-border/25">
               <div className="relative w-9 h-9 shrink-0">
                 <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />

@@ -191,7 +191,7 @@ return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm">Cargando link de pago...</p>
+          <p className="text-muted-foreground text-sm">Cargando link de pago...</p>
         </div>
       </div>
     );
@@ -205,11 +205,11 @@ return (
             <RefreshCw className="w-8 h-8 text-amber-400" />
           </div>
           <h1 className="text-xl font-bold text-white mb-2">No pudimos cargar el link</h1>
-          <p className="text-slate-400 text-sm">La red falló. El link sigue siendo válido; reintentá.</p>
+          <p className="text-muted-foreground text-sm">La red falló. El link sigue siendo válido; reintentá.</p>
           <Button
             type="button"
             onClick={() => { void fetchLink(); }}
-            className="mt-5 min-h-11 bg-amber-400 text-slate-950 hover:bg-amber-300"
+            className="mt-5 min-h-11 bg-amber-400 text-muted-foreground hover:bg-amber-300"
           >
             Reintentar
           </Button>
@@ -226,7 +226,7 @@ return (
             <XCircle className="w-8 h-8 text-red-400" />
           </div>
           <h1 className="text-xl font-bold text-white mb-2">Link no encontrado</h1>
-          <p className="text-slate-400 text-sm">Este link de pago no existe, venció o fue cancelado. Contactá al vendedor para obtener uno nuevo.</p>
+          <p className="text-muted-foreground text-sm">Este link de pago no existe, venció o fue cancelado. Contactá al vendedor para obtener uno nuevo.</p>
         </div>
       </div>
     );
@@ -252,7 +252,7 @@ return (
             </div>
           )}
           <h1 className="text-lg font-bold text-white">{org?.name}</h1>
-          {link.quote_number && <p className="text-slate-400 text-xs mt-0.5">Presupuesto #{link.quote_number}</p>}
+          {link.quote_number && <p className="text-muted-foreground text-xs mt-0.5">Presupuesto #{link.quote_number}</p>}
         </div>
 
         {/* Status banners */}
@@ -263,9 +263,9 @@ return (
             </div>
             <div>
               <p className="text-emerald-300 font-bold text-base">¡Pago confirmado! ✓</p>
-              <p className="text-slate-400 text-sm mt-0.5">Gracias, {link.customer_name.split(" ")[0]}. Tu pedido está procesado.</p>
+              <p className="text-muted-foreground text-sm mt-0.5">Gracias, {link.customer_name.split(" ")[0]}. Tu pedido está procesado.</p>
               {link.paid_at && (
-                <p className="text-slate-500 text-xs mt-1">
+                <p className="text-muted-foreground text-xs mt-1">
                   {new Intl.DateTimeFormat("es-AR", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" }).format(new Date(link.paid_at))}
                 </p>
               )}
@@ -278,7 +278,7 @@ return (
             <Clock className="w-5 h-5 text-blue-400 shrink-0" />
             <div>
               <p className="text-blue-300 font-semibold text-sm">Esperando confirmación</p>
-              <p className="text-slate-400 text-xs mt-0.5">El vendedor verificará el pago. Te contactará por WhatsApp.</p>
+              <p className="text-muted-foreground text-xs mt-0.5">El vendedor verificará el pago. Te contactará por WhatsApp.</p>
             </div>
           </div>
         )}
@@ -288,7 +288,7 @@ return (
             <XCircle className="w-5 h-5 text-red-400 shrink-0" />
             <div>
               <p className="text-red-300 font-semibold text-sm">Link cancelado</p>
-              <p className="text-slate-400 text-xs mt-0.5">Contactá al vendedor para más información.</p>
+              <p className="text-muted-foreground text-xs mt-0.5">Contactá al vendedor para más información.</p>
             </div>
           </div>
         )}
@@ -298,7 +298,7 @@ return (
             <AlertTriangle className="w-5 h-5 text-orange-400 shrink-0" />
             <div>
               <p className="text-orange-300 font-semibold text-sm">Presupuesto vencido</p>
-              <p className="text-slate-400 text-xs mt-0.5">Pedile al vendedor que genere un nuevo link.</p>
+              <p className="text-muted-foreground text-xs mt-0.5">Pedile al vendedor que genere un nuevo link.</p>
             </div>
           </div>
         )}
@@ -314,49 +314,49 @@ return (
         )}
 
         {/* Order summary */}
-        <div className="bg-slate-800/50 border border-slate-700/60 rounded-[14px] p-5">
+        <div className="bg-muted/50 border border-border/60 rounded-[14px] p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-slate-400 text-xs uppercase tracking-wider">Para</p>
+              <p className="text-muted-foreground text-xs uppercase tracking-wider">Para</p>
               <p className="text-white font-semibold text-base mt-0.5">{link.customer_name}</p>
             </div>
             <div className="text-right">
-              <p className="text-slate-400 text-xs uppercase tracking-wider">Total</p>
+              <p className="text-muted-foreground text-xs uppercase tracking-wider">Total</p>
               <p className="text-amber-400 text-2xl font-bold mt-0.5">{formatARS(link.total_ars)}</p>
             </div>
           </div>
 
           {(link.items || []).length > 0 && (
-            <div className="border-t border-slate-700/60 pt-3 space-y-2">
+            <div className="border-t border-border/60 pt-3 space-y-2">
               {link.items.map((item, i) => (
                 <div key={i} className="flex items-start justify-between text-sm gap-2">
-                  <span className="text-slate-300 flex-1">
-                    {item.qty > 1 && <span className="text-slate-500 mr-1.5 font-medium">{item.qty}×</span>}
+                  <span className="text-muted-foreground flex-1">
+                    {item.qty > 1 && <span className="text-muted-foreground mr-1.5 font-medium">{item.qty}×</span>}
                     {item.description}
                   </span>
-                  <span className="text-slate-400 shrink-0 font-mono">{formatARS(itemTotal(item))}</span>
+                  <span className="text-muted-foreground shrink-0 font-mono">{formatARS(itemTotal(item))}</span>
                 </div>
               ))}
             </div>
           )}
 
           {link.notes && (
-            <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700/60 italic">{link.notes}</p>
+            <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/60 italic">{link.notes}</p>
           )}
         </div>
 
         {/* Payment methods */}
         {canPay && (
           <div className="space-y-3">
-            <p className="text-xs text-slate-400 text-center font-medium uppercase tracking-wider">Elegí cómo pagar</p>
+            <p className="text-xs text-muted-foreground text-center font-medium uppercase tracking-wider">Elegí cómo pagar</p>
 
             {/* Mercado Pago */}
             {link.mp_link && (
               <div
-                className={`bg-slate-800/50 border rounded-[14px] p-4 cursor-pointer transition-all ${
+                className={`bg-muted/50 border rounded-[14px] p-4 cursor-pointer transition-all ${
                   activeMethod === "mp"
                     ? "border-[#009ee3]/60 ring-1 ring-[#009ee3]/20"
-                    : "border-slate-700/60 hover:border-slate-600"
+                    : "border-border/60 hover:border-border"
                 }`}
                 onClick={() => setActiveMethod(m => m === "mp" ? null : "mp")}
               >
@@ -366,24 +366,24 @@ return (
                   </div>
                   <div className="flex-1">
                     <p className="text-white font-semibold text-sm">Mercado Pago</p>
-                    <p className="text-slate-400 text-xs">Tarjeta, débito, Mercado Crédito, cuotas</p>
+                    <p className="text-muted-foreground text-xs">Tarjeta, débito, Mercado Crédito, cuotas</p>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    activeMethod === "mp" ? "border-[#009ee3] bg-[#009ee3]" : "border-slate-600"
+                    activeMethod === "mp" ? "border-[#009ee3] bg-[#009ee3]" : "border-border"
                   }`}>
                     {activeMethod === "mp" && <div className="w-2 h-2 rounded-full bg-white" />}
                   </div>
                 </div>
 
                 {activeMethod === "mp" && (
-                  <div className="mt-4 pt-4 border-t border-slate-700/60">
+                  <div className="mt-4 pt-4 border-t border-border/60">
                     <Button
                       className="w-full bg-[#009ee3] hover:bg-[#0081c1] text-white font-bold py-3 rounded-[10px] text-base"
                       onClick={e => { e.stopPropagation(); window.open(link.mp_link!, "_blank"); }}
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />Ir a Mercado Pago
                     </Button>
-                    <p className="text-center text-xs text-slate-500 mt-2">
+                    <p className="text-center text-xs text-muted-foreground mt-2">
                       Procesado de forma segura por Mercado Pago
                     </p>
                   </div>
@@ -394,10 +394,10 @@ return (
             {/* Bank transfer */}
             {(org?.bank_cbu || org?.bank_alias) && (
               <div
-                className={`bg-slate-800/50 border rounded-[14px] p-4 cursor-pointer transition-all ${
+                className={`bg-muted/50 border rounded-[14px] p-4 cursor-pointer transition-all ${
                   activeMethod === "transfer"
                     ? "border-emerald-500/60 ring-1 ring-emerald-500/20"
-                    : "border-slate-700/60 hover:border-slate-600"
+                    : "border-border/60 hover:border-border"
                 }`}
                 onClick={() => setActiveMethod(m => m === "transfer" ? null : "transfer")}
               >
@@ -407,17 +407,17 @@ return (
                   </div>
                   <div className="flex-1">
                     <p className="text-white font-semibold text-sm">Transferencia bancaria</p>
-                    <p className="text-slate-400 text-xs">CBU / Alias · Sin comisión adicional</p>
+                    <p className="text-muted-foreground text-xs">CBU / Alias · Sin comisión adicional</p>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    activeMethod === "transfer" ? "border-emerald-500 bg-emerald-500" : "border-slate-600"
+                    activeMethod === "transfer" ? "border-emerald-500 bg-emerald-500" : "border-border"
                   }`}>
                     {activeMethod === "transfer" && <div className="w-2 h-2 rounded-full bg-white" />}
                   </div>
                 </div>
 
                 {activeMethod === "transfer" && (
-                  <div className="mt-4 pt-4 border-t border-slate-700/60 space-y-2">
+                  <div className="mt-4 pt-4 border-t border-border/60 space-y-2">
                     {org?.bank_holder && <CopyField label="Titular" value={org.bank_holder} />}
                     {org?.bank_name   && <CopyField label="Banco"   value={org.bank_name} />}
                     {org?.bank_cbu    && <CopyField label="CBU"     value={org.bank_cbu} />}
@@ -466,16 +466,16 @@ return (
 
         {/* Security badges */}
         <div className="flex items-center justify-center gap-4 py-2">
-          <div className="flex items-center gap-1.5 text-slate-500 text-[10px]">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
             <Shield className="w-3 h-3" />Transacción segura
           </div>
-          <div className="flex items-center gap-1.5 text-slate-500 text-[10px]">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
             <Lock className="w-3 h-3" />Datos protegidos
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-slate-600 text-[10px] pb-4">
+        <p className="text-center text-muted-foreground text-[10px] pb-4">
           Powered by Nerqia · Link generado para {link.customer_name}
         </p>
       </div>

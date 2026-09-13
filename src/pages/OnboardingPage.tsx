@@ -363,7 +363,7 @@ export default function OnboardingPage() {
                 className="w-full rounded-[9px] border border-border/60 p-4 text-left transition-colors hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-500/10 text-slate-300"><Sparkles className="h-4 w-4" /></span>
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/10 text-muted-foreground"><Sparkles className="h-4 w-4" /></span>
                   <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Todavía quiero explorar</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Cargamos datos de ejemplo, pero no contaremos la organización como activada hasta que elijas un canal y vendas.</span></span>
                   {savingDestination === 'demo' ? <span className="mt-2 text-[11px] text-muted-foreground">Cargando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground" />}
                 </span>

@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-emerald-500/15 text-emerald-400 border-0",
   reviewed: "bg-blue-500/15 text-blue-400 border-0",
   processing: "bg-yellow-500/15 text-yellow-400 border-0",
-  pending: "bg-zinc-500/15 text-zinc-400 border-0",
+  pending: "bg-muted/15 text-muted-foreground border-0",
   failed: "bg-red-500/15 text-red-400 border-0",
 };
 

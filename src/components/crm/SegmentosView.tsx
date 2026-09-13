@@ -79,8 +79,8 @@ const SEGMENTS: Record<Segment, SegmentDef> = {
   attention:   { label: "Necesitan Atención", color: "#f97316", bg: "bg-orange-500/10", border: "border-orange-500/30", icon: <AlertTriangle className="w-3.5 h-3.5" />, description: "Han comprado bien pero hace tiempo que no vuelven" },
   at_risk:     { label: "En Riesgo",       color: "#ef4444", bg: "bg-red-500/10",    border: "border-red-500/30",    icon: <AlertTriangle className="w-3.5 h-3.5" />, description: "Buenos clientes que parecen estar yéndose" },
   cant_lose:   { label: "No Perder",       color: "#dc2626", bg: "bg-red-600/10",    border: "border-red-600/30",    icon: <Skull className="w-3.5 h-3.5" />,     description: "Compraban mucho pero desaparecieron — acción inmediata" },
-  lost:        { label: "Perdidos",        color: "#6b7280", bg: "bg-gray-500/10",   border: "border-gray-500/30",   icon: <Moon className="w-3.5 h-3.5" />,      description: "Sin actividad reciente y bajo historial" },
-  hibernating: { label: "Hibernando",      color: "#64748b", bg: "bg-slate-500/10",  border: "border-slate-500/30",  icon: <Moon className="w-3.5 h-3.5" />,      description: "Inactivos hace mucho — alguna actividad pasada" },
+  lost:        { label: "Perdidos",        color: "#6b7280", bg: "bg-muted/10",   border: "border-border/30",   icon: <Moon className="w-3.5 h-3.5" />,      description: "Sin actividad reciente y bajo historial" },
+  hibernating: { label: "Hibernando",      color: "#64748b", bg: "bg-muted/10",  border: "border-border/30",  icon: <Moon className="w-3.5 h-3.5" />,      description: "Inactivos hace mucho — alguna actividad pasada" },
 };
 
 // ── Scoring helpers ───────────────────────────────────────────────────────────

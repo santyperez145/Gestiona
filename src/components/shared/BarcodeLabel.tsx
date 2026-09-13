@@ -219,7 +219,7 @@ export function BarcodePrintSheet({ products, onClose }: BarcodePrintSheetProps)
           const code = p.barcode || p.sku || p.id.slice(0, 12);
           return (
             <div key={p.id} className="bg-white rounded border border-border/30 p-2 text-center">
-              <p className="text-[9px] font-medium text-gray-700 mb-1 truncate">{p.name}</p>
+              <p className="text-[9px] font-medium text-muted-foreground mb-1 truncate">{p.name}</p>
               <BarcodeSVG value={code} format={format} />
             </div>
           );

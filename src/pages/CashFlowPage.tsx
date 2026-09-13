@@ -514,7 +514,7 @@ export default function CashFlowPage() {
                           </td>
                           <td className="py-3 px-4 text-center">
                             {e.is_projected
-                              ? <Badge className="text-xs bg-primary/15 text-primary border-slate-500/25">Proyección</Badge>
+                              ? <Badge className="text-xs bg-primary/15 text-primary border-border/25">Proyección</Badge>
                               : <Badge className="text-xs bg-muted text-muted-foreground">Real</Badge>}
                             {e.is_recurring && (
                               <Badge className="text-xs bg-blue-500/15 text-blue-400 border-blue-500/20 ml-1">
@@ -655,7 +655,7 @@ export default function CashFlowPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Badge className="bg-primary/15 text-primary border-slate-500/25 text-xs">
+                  <Badge className="bg-primary/15 text-primary border-border/25 text-xs">
                     Proyectados
                   </Badge>
                   Movimientos futuros estimados

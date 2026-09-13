@@ -208,7 +208,7 @@ export function storeOrderFulfillmentTone(status: string) {
   if (status === "shipped") return "bg-blue-500/15 text-blue-400 border-0";
   if (status === "processing") return "bg-yellow-500/15 text-yellow-400 border-0";
   if (status === "cancelled") return "bg-destructive/15 text-destructive border-0";
-  return "bg-zinc-500/15 text-zinc-400 border-0";
+  return "bg-muted/15 text-muted-foreground border-0";
 }
 
 function fold(value: unknown) {

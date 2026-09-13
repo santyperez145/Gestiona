@@ -294,7 +294,7 @@ export default function CategoriesEditor() {
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {!f.is_active && (
-                    <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/20 text-[11px]">Oculta</Badge>
+                    <Badge className="bg-muted/15 text-muted-foreground border-border/20 text-[11px]">Oculta</Badge>
                   )}
                   <Select
                     value={f.parent_id ?? "__raiz__"}

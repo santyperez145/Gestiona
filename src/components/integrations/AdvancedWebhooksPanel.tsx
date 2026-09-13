@@ -513,7 +513,7 @@ export default function AdvancedWebhooksPanel() {
             return (
               <div key={webhook.id} className={`bg-card border rounded-xl overflow-hidden transition-all ${webhook.active ? 'border-border' : 'border-border/40 opacity-60'}`}>
                 <div className="p-4 flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${webhook.active ? 'bg-emerald-400 shadow-[0_0_8px_hsl(152_69%_60%/0.6)]' : 'bg-slate-500'}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${webhook.active ? 'bg-emerald-400 shadow-[0_0_8px_hsl(152_69%_60%/0.6)]' : 'bg-muted'}`} />
 
                   <button className="flex-1 text-left" onClick={() => { setExpandedId(isExpanded ? null : webhook.id); if (!isExpanded) loadDeliveries(webhook.id); }}>
                     <div className="flex items-center gap-2 mb-0.5">

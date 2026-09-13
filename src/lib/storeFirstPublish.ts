@@ -626,8 +626,8 @@ export function storeTrafficChannelTone(channel: StoreTrafficChannelId): string 
     social: 'bg-pink-500',
     organic_search: 'bg-emerald-500',
     referral: 'bg-amber-500',
-    direct: 'bg-slate-500',
-    other: 'bg-zinc-500',
+    direct: 'bg-muted',
+    other: 'bg-muted',
   }[channel];
 }
 

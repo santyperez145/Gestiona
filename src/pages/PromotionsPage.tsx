@@ -55,7 +55,7 @@ const STATUS_CFG: Record<PromoStatus, { label: string; color: string; bg: string
   scheduled: { label: 'Programada', color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20',     icon: Clock },
   active:    { label: 'Activa',     color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', icon: Play },
   paused:    { label: 'Pausada',    color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20',    icon: PauseCircle },
-  ended:     { label: 'Finalizada', color: 'text-slate-400',   bg: 'bg-slate-500/10 border-slate-500/20',    icon: CheckCircle },
+  ended:     { label: 'Finalizada', color: 'text-muted-foreground',   bg: 'bg-muted/10 border-border/20',    icon: CheckCircle },
   cancelled: { label: 'Cancelada',  color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20',        icon: XCircle },
 };
 

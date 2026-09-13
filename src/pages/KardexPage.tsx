@@ -87,7 +87,7 @@ const TYPE_META: Record<MovementType, { label: string; color: string; icon: Reac
   transfer_in:     { label: "Transferencia (+)", color: "bg-primary/15 text-primary border-primary/30", icon: <ArrowDownCircle className="w-3.5 h-3.5" /> },
   transfer_out:    { label: "Transferencia (−)", color: "bg-pink-500/15 text-pink-400 border-pink-500/30",    icon: <ArrowUpCircle className="w-3.5 h-3.5" /> },
   physical_count:  { label: "Toma Física",      color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",    icon: <ClipboardList className="w-3.5 h-3.5" /> },
-  initial:         { label: "Stock Inicial",    color: "bg-gray-500/15 text-gray-400 border-gray-500/30",    icon: <Package className="w-3.5 h-3.5" /> },
+  initial:         { label: "Stock Inicial",    color: "bg-muted/15 text-muted-foreground border-border/30",    icon: <Package className="w-3.5 h-3.5" /> },
   breakage:        { label: "Rotura/Pérdida",   color: "bg-red-500/15 text-red-400 border-red-500/30",       icon: <AlertTriangle className="w-3.5 h-3.5" /> },
   gift:            { label: "Regalo",           color: "bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30", icon: <Gift className="w-3.5 h-3.5" /> },
   reservation:     { label: "Reserva",          color: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: <Lock className="w-3.5 h-3.5" /> },

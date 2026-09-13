@@ -502,7 +502,7 @@ export default function PriceListsPage() {
                     {list.is_default && <Badge className="text-xs bg-primary/15 text-primary"><Star className="w-3 h-3 mr-1" />Predeterminada</Badge>}
                     <span className="text-sm">{CURRENCY_FLAGS[list.currency] ?? "💱"} {list.currency}</span>
                     {list.discount_type !== "none" && <Badge className="text-xs bg-emerald-500/15 text-emerald-400">{discountLabel(list)}</Badge>}
-                    {!list.is_active && <Badge className="text-xs bg-gray-500/15 text-gray-400">Inactiva</Badge>}
+                    {!list.is_active && <Badge className="text-xs bg-muted/15 text-muted-foreground">Inactiva</Badge>}
                     {list.applies_to !== "all" && <Badge className="text-xs bg-blue-500/15 text-blue-400">{list.applies_to === "segment" ? list.customer_segment : "Por cliente"}</Badge>}
                   </div>
                   {list.description && <p className="text-xs text-muted-foreground mt-1">{list.description}</p>}

@@ -24,7 +24,7 @@ import {
 
 const STATUS: Record<SupportStatus, { label: string; className: string }> = {
   open: { label: "Abierta", className: "border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-300" },
-  in_progress: { label: "En curso", className: "border-primary/30 bg-slate-500/10 text-primary dark:text-slate-300" },
+  in_progress: { label: "En curso", className: "border-primary/30 bg-muted/10 text-primary dark:text-muted-foreground" },
   waiting_customer: { label: "Esperando respuesta", className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300" },
   resolved: { label: "Resuelta", className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
   closed: { label: "Cerrada", className: "border-border bg-muted text-muted-foreground" },

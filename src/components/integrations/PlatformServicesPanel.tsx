@@ -12,7 +12,7 @@ export default function PlatformServicesPanel() {
       label: "Inteligencia Artificial",
       description: "Chat, predicciones, descripciones automáticas",
       color: "text-primary",
-      bg: "bg-slate-500/10",
+      bg: "bg-muted/10",
     },
     {
       icon: Mail,

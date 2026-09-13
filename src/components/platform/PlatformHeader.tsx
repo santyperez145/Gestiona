@@ -83,18 +83,18 @@ export default function PlatformHeader() {
             />
           </div>
 
-<Button variant="outline" size="sm" className="h-9 w-9 p-0 text-slate-700 dark:text-slate-300">
+<Button variant="outline" size="sm" className="h-9 w-9 p-0 text-muted-foreground dark:text-muted-foreground">
                 <Settings className="h-4 w-4" />
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-700 dark:text-slate-300 relative">
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground dark:text-muted-foreground relative">
                 <Bell className="h-4 w-4" />
                 <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive">
                   5
                 </Badge>
               </Button>
 
-              <Button size="sm" className="h-9 gap-2 bg-slate-700 hover:bg-slate-800 text-white dark:bg-slate-600 dark:hover:bg-slate-700">
+              <Button size="sm" className="h-9 gap-2 bg-muted hover:bg-muted text-white dark:bg-muted dark:hover:bg-muted">
                 <Building2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Nuevo Merchant</span>
           </Button>

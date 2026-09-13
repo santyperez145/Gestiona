@@ -170,7 +170,7 @@ export default function ReviewsModeration({ storeId }: { storeId: string | null 
                     </Badge>
                   )}
                   {r.status === "hidden" && (
-                    <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/20 text-[11px]">Oculta</Badge>
+                    <Badge className="bg-muted/15 text-muted-foreground border-border/20 text-[11px]">Oculta</Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 truncate">

@@ -70,10 +70,10 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
   };
 
   return (
-    <section className="space-y-4 rounded-[10px] border border-slate-500/25 bg-card p-4">
+    <section className="space-y-4 rounded-[10px] border border-border/25 bg-card p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-2">
-          <PackageCheck className="h-4 w-4 text-slate-300" />
+          <PackageCheck className="h-4 w-4 text-muted-foreground" />
           <div>
             <h2 className="text-sm font-semibold">Acceso por producto</h2>
             <p className="text-[11px] text-muted-foreground">Entitlement de la organización; los permisos del equipo se administran aparte.</p>

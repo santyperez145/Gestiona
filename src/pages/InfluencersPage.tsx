@@ -26,7 +26,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import PageHeader from "@/components/shared/PageHeader";
 
 const TIER_COLORS: Record<string, string> = {
-  nano: 'bg-zinc-500/20 text-zinc-300',
+  nano: 'bg-muted/20 text-muted-foreground',
   micro: 'bg-blue-500/20 text-blue-300',
   medio: 'bg-primary/20 text-primary',
   macro: 'bg-amber-500/20 text-amber-300',

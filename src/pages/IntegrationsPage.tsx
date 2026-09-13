@@ -809,10 +809,10 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
                 alt="WhatsApp QR Code"
                 className="w-52 h-52 object-contain"
               />
-              <p className="text-xs text-slate-600 text-center max-w-[200px]">
+              <p className="text-xs text-muted-foreground text-center max-w-[200px]">
                 Abrí WhatsApp → Dispositivos vinculados → Vincular dispositivo → escaneá este QR
               </p>
-              <p className="text-[10px] text-slate-400 flex items-center gap-1">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Loader2 className="w-2.5 h-2.5 animate-spin" />
                 Esperando escaneo…
               </p>

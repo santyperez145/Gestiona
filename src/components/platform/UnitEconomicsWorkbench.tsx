@@ -126,12 +126,12 @@ export default function UnitEconomicsWorkbench({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[10px] border border-slate-500/25 bg-slate-500/5 px-4 py-3 flex gap-3">
+      <div className="rounded-[10px] border border-border/25 bg-muted/5 px-4 py-3 flex gap-3">
         <Calculator className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-medium">Workbench de unit economics</p>
-            <Badge variant="outline" className="text-[10px] border-primary/30 text-slate-300">
+            <Badge variant="outline" className="text-[10px] border-primary/30 text-muted-foreground">
               simulación · no activa pricing
             </Badge>
           </div>

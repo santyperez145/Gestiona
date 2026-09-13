@@ -314,7 +314,7 @@ export default function AdminPage() {
                   <div key={v.userId} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/20 transition-colors">
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                       i === 0 ? "bg-yellow-500/20 text-yellow-400" :
-                      i === 1 ? "bg-zinc-400/20 text-zinc-400" :
+                      i === 1 ? "bg-muted/20 text-muted-foreground" :
                       i === 2 ? "bg-orange-600/20 text-orange-400" :
                       "bg-muted/40 text-muted-foreground"
                     }`}>
@@ -698,7 +698,7 @@ function SystemAuditLogTab() {
                           {l.tags && l.tags.length > 0 && l.tags.map(tag => <span key={tag} className="bg-muted/40 px-1.5 py-0.5 rounded">{tag}</span>)}
                         </div>
                       </div>
-                      <Eye className="w-4 h-4 text-gray-300 group-hover:text-blue-400 shrink-0 mt-1" />
+                      <Eye className="w-4 h-4 text-muted-foreground group-hover:text-blue-400 shrink-0 mt-1" />
                     </div>
                   );
                 })}

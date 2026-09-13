@@ -115,7 +115,7 @@ export default function PlatformDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+            <Building2 className="h-4 w-4 text-muted-foreground dark:text-muted-foreground" />
             Top Merchants
           </CardTitle>
         </CardHeader>
@@ -124,7 +124,7 @@ export default function PlatformDashboard() {
             {TOP_MERCHANTS.map((merchant, index) => (
               <div key={merchant.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-sm font-medium">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted dark:bg-muted text-sm font-medium">
                     {index + 1}
                   </div>
                   <div>
@@ -220,7 +220,7 @@ export default function PlatformDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+            <Activity className="h-4 w-4 text-muted-foreground dark:text-muted-foreground" />
             Operations Metrics
           </CardTitle>
         </CardHeader>
