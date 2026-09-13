@@ -291,14 +291,14 @@ export default function PlatformMetricsPage() {
 
       <Tabs value={tab} onValueChange={value => setTab(value as typeof tab)}>
         <TabsList className="w-full justify-start overflow-x-auto bg-transparent p-0 border-b border-border rounded-none">
-          <TabsTrigger value="funnel" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Funnel de activación</TabsTrigger>
-          <TabsTrigger value="health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Salud por organización</TabsTrigger>
-          <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Cohortes de activación</TabsTrigger>
-          <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Canales</TabsTrigger>
-          <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Inventario</TabsTrigger>
-          <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Recomendaciones IA</TabsTrigger>
-          <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Riesgo</TabsTrigger>
-          <TabsTrigger value="operations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-400">Operación</TabsTrigger>
+          <TabsTrigger value="funnel" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Funnel de activación</TabsTrigger>
+          <TabsTrigger value="health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Salud por organización</TabsTrigger>
+          <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Cohortes de activación</TabsTrigger>
+          <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Canales</TabsTrigger>
+          <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Inventario</TabsTrigger>
+          <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Recomendaciones IA</TabsTrigger>
+          <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Riesgo</TabsTrigger>
+          <TabsTrigger value="operations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Operación</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funnel" className="mt-5 space-y-5">
@@ -337,8 +337,8 @@ export default function PlatformMetricsPage() {
             </section>
           </div>
 
-          <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
-            <p className="font-semibold text-slate-200">Instrumentación disponible</p>
+          <section className="border border-border/60 bg-card p-4 text-sm">
+            <p className="font-semibold text-foreground">Instrumentación disponible</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">G1, GMV, onboarding, primera venta, publicación instrumentada, adopción por canal y precisión de inventario se calculan desde datos reales. El AI Action Rate mide el recomendador de ofertas persistido: una acción sólo cuenta cuando la base aplica el cambio.</p>
           </section>
         </TabsContent>
@@ -386,8 +386,8 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Ayuda por alta" value={cohortSummary.averageSupportMinutesPerEligibleOrg == null ? "Sin base" : `${cohortSummary.averageSupportMinutesPerEligibleOrg} min`} icon={Clock3} color="warning" sub={`${cohortSummary.interventionMinutes} minutos medidos`} />
               </div>
 
-              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
-                <p className="font-semibold text-slate-200">Conversión y costo con denominadores honestos</p>
+              <section className="border border-border/60 bg-card p-4 text-sm">
+                <p className="font-semibold text-foreground">Conversión y costo con denominadores honestos</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Activar significa vender en el canal elegido, no terminar el formulario. Las tasas de 7/14/30 días excluyen altas que todavía no cumplieron esa edad. Autoservicio y minutos empiezan en el watermark de instrumentación: la historia anterior queda como “sin base”, no como ayuda cero.</p>
               </section>
 

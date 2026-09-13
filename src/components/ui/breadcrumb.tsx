@@ -22,23 +22,22 @@ BreadcrumbList.displayName = "BreadcrumbList";
 
 const BreadcrumbItem = React.forwardRef<HTMLLIElement, React.ComponentPropsWithoutRef<"li"> & { className?: string }>(
   ({ className, ...props }, ref) => (
-    <li ref={ref} className={cn("inline-flex items-center gap-1.5 text-[11px] font-display text-[#8892a8] hover:text-[#173aef] transition-colors", className)} {...props} />
+    <li ref={ref} className={cn("inline-flex items-center gap-1.5 text-[11px] font-display text-muted-foreground hover:text-primary transition-colors", className)} {...props} />
   )
 );
 BreadcrumbItem.displayName = "BreadcrumbItem";
 
 const BreadcrumbLink = React.forwardRef<HTMLAnchorElement, React.ComponentPropsWithoutRef<"a"> & { className?: string; isActive?: boolean }>(
   ({ className, isActive = false, ...props }, ref) => (
-    <a ref={ref} className={cn("text-[11px] font-display transition-colors hover:underline", isActive ? "text-[#173aef] font-semibold" : "text-[#8892a8] hover:text-[#173aef]", className)} {...props} />
+    <a ref={ref} className={cn("text-[11px] font-display transition-colors hover:underline", isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-primary", className)} {...props} />
   )
 );
 BreadcrumbLink.displayName = "BreadcrumbLink";
 
 const BreadcrumbPage = React.forwardRef<HTMLSpanElement, React.ComponentPropsWithoutRef<"span"> & { className?: string }>(
   ({ className, ...props }, ref) => (
-    <span ref={ref} className={cn("text-[11px] font-display text-[#e8edf2] font-semibold", className)} {...props} />
+    <span ref={ref} className={cn("text-[11px] font-display text-foreground font-semibold", className)} {...props} />
   )
 );
-BreadcrumbPage.displayName = "BreadcrumbPage";
 
 export { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage };

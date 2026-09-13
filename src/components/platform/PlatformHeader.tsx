@@ -40,13 +40,13 @@ export default function PlatformHeader() {
   const activeTab = PLATFORM_TABS.find(tab => pathname === tab.to || pathname.startsWith(tab.to + "/"));
 
   return (
-    <div className="platform-header border-b border-slate-500/20 bg-slate-50/50 dark:bg-slate-950/10 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60">
+    <div className="platform-header border-b border-border bg-card/80 dark:bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/70">
       <div className="flex h-14 items-center justify-between px-4 sm:px-6">
         {/* Brand y Tabs */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-slate-700 dark:text-slate-300" />
-            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">Platform</span>
+            <Crown className="h-5 w-5 text-muted-foreground" />
+            <span className="font-semibold text-sm text-foreground">Platform</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -60,8 +60,8 @@ export default function PlatformHeader() {
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />

@@ -15,8 +15,8 @@ const RadioGroup = React.forwardRef<
   <RadioGroupPrimitive.Root
     ref={ref}
     className={cn(
-      "flex items-center gap-1 rounded-[10px] border border-[#173aef]/20 bg-[rgba(23,58,239,0.1)] p-1",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#173aef]/40 disabled:cursor-not-allowed disabled:opacity-50",
+      "flex items-center gap-1 rounded-[10px] border border-border/20 bg-primary/10 p-1",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50",
       className,
     )}
     {...props}
@@ -31,9 +31,9 @@ const RadioGroupItem = React.forwardRef<
   <RadioGroupPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-[8px] border border-[#173aef]/30 bg-transparent hover:bg-[#173aef]/5 hover:text-[#173aef] transition-all duration-200",
-      "data-[state=checked]:bg-[#173aef] data-[state=checked]:border-[#173aef] data-[state=checked]:text-white",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#173aef]/40 disabled:cursor-not-allowed disabled:opacity-50",
+      "relative flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-[8px] border border-border/30 bg-transparent hover:bg-muted/5 hover:text-primary transition-all duration-200",
+      "data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50",
       className,
     )}
     {...props}

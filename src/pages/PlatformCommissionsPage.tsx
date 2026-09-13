@@ -72,6 +72,7 @@ interface RuleRow extends CommissionRule {
   tax_rate_pct: number;
   effective_from: string | null;
   effective_until: string | null;
+  org_name?: string | null;
   approved_at: string | null;
 }
 

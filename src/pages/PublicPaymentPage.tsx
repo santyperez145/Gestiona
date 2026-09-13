@@ -67,13 +67,13 @@ function CopyField({ label, value }: { label: string; value: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div className="flex items-center justify-between bg-slate-900/60 rounded-lg px-3 py-2.5 gap-2">
-      <span className="text-slate-400 text-xs shrink-0">{label}</span>
+    <div className="flex items-center justify-between bg-card/90 rounded-lg px-3 py-2.5 gap-2">
+      <span className="text-muted-foreground text-xs shrink-0">{label}</span>
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className="text-white text-sm font-mono truncate">{value}</span>
+        <span className="text-foreground text-sm font-mono truncate">{value}</span>
         <button
           onClick={handleCopy}
-          className="shrink-0 text-slate-500 hover:text-amber-400 transition-colors"
+          className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
         >
           {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
         </button>
@@ -187,8 +187,8 @@ export default function PublicPaymentPage() {
 
   // ── Loading ───────────────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a1a] via-[#0e0e1e] to-[#0a0a1a]">
+return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
           <p className="text-slate-400 text-sm">Cargando link de pago...</p>

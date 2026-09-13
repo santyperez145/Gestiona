@@ -425,7 +425,7 @@ export default function DevolucionesPage() {
                   </div>;
                 })}</div>
                 <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => printInternalReceipt(operation)}><FileText className="mr-2 h-4 w-4" /> Comprobante interno</Button>{operation.credit_note_required && <Button size="sm" variant="outline" onClick={() => navigate("/facturas")}><ReceiptText className="mr-2 h-4 w-4" /> Emitir nota de crédito ARCA</Button>}</div>
-                <p className="text-xs text-muted-foreground">ID auditable: {operation.id} · {operation.restock ? "Stock repuesto" : "Sin reposición de stock"}</p>
+                <p className="text-xs text-muted-foreground">ID auditable: …{operation.id.slice(-8)} · {operation.restock ? "Stock repuesto" : "Sin reposición de stock"}</p>
               </div>}
             </article>;
           })}</div>}

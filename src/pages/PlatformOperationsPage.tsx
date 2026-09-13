@@ -143,8 +143,8 @@ export default function PlatformOperationsPage() {
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 w-4 h-4 shrink-0 text-primary" />
           <div>
-            <p className="font-semibold text-slate-100">Priorizar sin exponer datos sensibles</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">La cola no muestra payloads, destinos, IDs externos, montos ni errores crudos. Un reintento manual sólo existe para entregas descartadas y sólo para superadmin; nunca reintenta un cobro. Cada acción queda en <Link to="/platform/soporte" className="text-primary hover:text-slate-200">la auditoría de soporte</Link>.</p>
+            <p className="font-semibold text-foreground">Priorizar sin exponer datos sensibles</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">La cola no muestra payloads, destinos, IDs externos, montos ni errores crudos. Un reintento manual sólo existe para entregas descartadas y sólo para superadmin; nunca reintenta un cobro. Cada acción queda en <Link to="/platform/soporte" className="text-primary hover:text-foreground">la auditoría de soporte</Link>.</p>
           </div>
         </div>
       </section>

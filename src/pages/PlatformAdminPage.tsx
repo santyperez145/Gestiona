@@ -907,7 +907,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                     ) : (
                       <div className="divide-y divide-border/50">
                         {controlPlaneSummary.risks.slice(0, 4).map(row => (
-                          <div key={row.org_id || row.org_name} className="flex items-center gap-3 px-4 py-3">
+                          <div key={row.org_name || row.org_id} className="flex items-center gap-3 px-4 py-3">
                             <CircleAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-medium truncate">{row.org_name || 'Organización sin nombre'}</p>
