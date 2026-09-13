@@ -348,20 +348,20 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
 
   if (valid === null)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080812]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div
             className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin"
             style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }}
           />
-          <p className="text-white/20 text-xs tracking-widest uppercase">Cargando catálogo…</p>
+          <p className="text-muted-foreground text-xs tracking-widest uppercase">Cargando catálogo…</p>
         </div>
       </div>
     );
 
   if (loadError)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080812] text-white px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background text-white px-4">
         <div className="text-center max-w-sm">
           <div className="w-20 h-20 bg-white/5 rounded-[14px] flex items-center justify-center mx-auto mb-5 border border-white/10">
             <RefreshCw className="w-9 h-9 text-white/30" />
@@ -382,7 +382,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
 
   if (!valid)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080812] text-white px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background text-white px-4">
         <div className="text-center">
           <div className="w-20 h-20 bg-white/5 rounded-[14px] flex items-center justify-center mx-auto mb-5 border border-white/10">
             <Package className="w-9 h-9 text-white/20" />

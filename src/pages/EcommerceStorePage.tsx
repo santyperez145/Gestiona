@@ -1020,9 +1020,9 @@ export default function EcommerceStorePage() {
                 donde se mira el estado. */}
             <Badge className={
               !store?.id
-                ? "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"
+                ? "bg-muted/15 text-muted-foreground border-muted/20"
                 : !store?.is_active
-                ? "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"
+                ? "bg-muted/15 text-muted-foreground border-muted/20"
                 : readiness.canPublish
                   ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
                   : "bg-yellow-500/15 text-yellow-500 border-yellow-500/20"

@@ -186,9 +186,9 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       const bName = settings?.business_name || '';
 
       // ── Brand colors (primary = accent/prices, bg = cover/page bg, card = product cards)
-      const hexPrimary = settings?.primary_color || '#D4A843';
-      const hexBg      = settings?.catalog_bg_color   || '#0E0E1C';
-      const hexCard    = settings?.catalog_card_color  || '#16163A';
+      const hexPrimary = settings?.primary_color || 'hsl(var(--primary))';
+      const hexBg      = settings?.catalog_bg_color   || 'hsl(var(--background))';
+      const hexCard    = settings?.catalog_card_color  || 'hsl(var(--card))';
       const hexAccent  = settings?.catalog_accent_color || hexPrimary;
 
       const parseHex = (h: string): [number, number, number] => [
@@ -930,7 +930,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     if (!svgEl) return;
     const svgData = new XMLSerializer().serializeToString(svgEl);
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>@page{margin:0}body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;padding:40px}h2{font-size:24px;font-weight:700;margin:0 0 8px}p{font-size:12px;color:#666;margin:8px 0}svg{max-width:300px;max-height:300px}</style></head>
+<style>@page{margin:0}body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;padding:40px}h2{font-size:24px;font-weight:700;margin:0 0 8px}p{font-size:12px;color:var(--muted-foreground);margin:8px 0}svg{max-width:300px;max-height:300px}</style></head>
 <body><h2>${name}</h2><p>Escaneá para ver el catálogo</p>${svgData}<p>${url}</p></body></html>`;
     const w = window.open("", "_blank", "width=400,height=500");
     if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); w.close(); }
