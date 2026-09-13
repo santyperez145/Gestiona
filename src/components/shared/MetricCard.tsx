@@ -15,10 +15,10 @@ interface MetricCardProps {
 
 const TONE: Record<MetricTone, { icon: string; value: string; bar: string }> = {
   amber: { icon: "bg-primary/10 text-primary", value: "text-foreground", bar: "bg-primary" },
-  green: { icon: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400", value: "text-emerald-800 dark:text-emerald-300", bar: "bg-emerald-500" },
+  green: { icon: "bg-success/10 text-success", value: "text-success", bar: "bg-success" },
   red: { icon: "bg-destructive/10 text-destructive", value: "text-destructive", bar: "bg-destructive" },
-  yellow: { icon: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400", value: "text-yellow-800 dark:text-yellow-300", bar: "bg-yellow-500" },
-  blue: { icon: "bg-blue-500/10 text-blue-700 dark:text-blue-400", value: "text-blue-800 dark:text-blue-300", bar: "bg-blue-500" },
+  yellow: { icon: "bg-warning/10 text-warning", value: "text-warning", bar: "bg-warning" },
+  blue: { icon: "bg-primary/10 text-primary", value: "text-primary", bar: "bg-primary" },
   violet: { icon: "bg-muted/10 text-muted-foreground dark:text-primary", value: "text-primary dark:text-muted-foreground", bar: "bg-primary" },
   neutral: { icon: "bg-muted text-muted-foreground", value: "text-foreground", bar: "bg-muted-foreground/50" },
 };

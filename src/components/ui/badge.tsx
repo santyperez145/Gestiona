@@ -18,9 +18,9 @@ const badgeVariants = {
   secondary: "border bg-secondary/15 text-secondary",
   destructive: "border bg-destructive/15 text-destructive",
   outline: "border border-border/60 text-muted-foreground bg-transparent",
-  success: "border bg-emerald-500/15 text-emerald-500",
-  warning: "border bg-yellow-500/15 text-yellow-500",
-  blue: "border bg-blue-500/15 text-blue-500",
+  success: "border bg-success/15 text-success",
+  warning: "border bg-warning/15 text-warning",
+  blue: "border bg-primary/15 text-primary",
 };
 
 const badgeSizes = {
