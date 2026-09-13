@@ -12,7 +12,7 @@ const Label = forwardRef<HTMLLabelElement, LabelProps>(
     <label
       ref={ref}
       className={cn(
-        "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8892a8] font-display",
+        "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground font-display",
         "block mb-1.5",
         className,
       )}

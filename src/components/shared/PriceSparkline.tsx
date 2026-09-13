@@ -66,7 +66,7 @@ function PriceSparklineInner({ productId, orgId, width = 72 }: Props) {
   const deltaPct = first > 0 ? ((delta / first) * 100).toFixed(1) : "0";
   const isUp = delta > 0;
   const isFlat = delta === 0;
-  const lineColor = isUp ? "#22c55e" : isFlat ? "#6b7280" : "#ef4444";
+  const lineColor = isUp ? "hsl(var(--success))" : isFlat ? "hsl(var(--muted-foreground))" : "hsl(var(--destructive))";
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;

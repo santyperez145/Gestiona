@@ -445,8 +445,8 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Stock negativo" value={stockMetrics.negativeStockProducts} icon={AlertTriangle} color={stockMetrics.negativeStockProducts > 0 ? "destructive" : "success"} sub="invariante que debe quedar en cero" />
               </div>
 
-              <section className="border border-slate-500/25 bg-slate-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><PackageCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-slate-200">La plataforma mide evidencia, no supuestos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">El porcentaje compara el ultimo asiento del Kardex con el stock actual. Los productos sin movimiento quedan visibles como no medidos; las variantes se contrastan contra su propio Kardex y contra el total del producto padre.</p></div></div>
+              <section className="border border-border/25 bg-muted/30 p-4 text-sm">
+                <div className="flex items-start gap-3"><PackageCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><p className="font-semibold text-foreground">La plataforma mide evidencia, no supuestos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">El porcentaje compara el ultimo asiento del Kardex con el stock actual. Los productos sin movimiento quedan visibles como no medidos; las variantes se contrastan contra su propio Kardex y contra el total del producto padre.</p></div></div>
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">

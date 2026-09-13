@@ -1297,7 +1297,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                         Banear
                       </label>
                       <label className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/30">
-                        <Switch checked={u.isPlatformAdmin || false} onCheckedChange={() => handleTogglePlatformAdmin(u)} className="data-[state=checked]:bg-slate-600 scale-75" />
+                        <Switch checked={u.isPlatformAdmin || false} onCheckedChange={() => handleTogglePlatformAdmin(u)} className="data-[state=checked]:bg-border/20 scale-75" />
                         Staff
                       </label>
                       {u.isPlatformAdmin && (

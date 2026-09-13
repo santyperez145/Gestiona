@@ -375,7 +375,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               title={effectiveCollapsed ? 'Panel de plataforma' : undefined}
               className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
                 effectiveCollapsed ? 'justify-center' : ''
-              } text-slate-500 hover:bg-slate-500/10 hover:text-slate-800 hover:border-slate-400/30 dark:text-slate-400 dark:hover:text-slate-200`}
+              } text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border/60`}
             >
               <Crown className="w-3.5 h-3.5 shrink-0" />
               {!effectiveCollapsed && <span>Panel de plataforma</span>}

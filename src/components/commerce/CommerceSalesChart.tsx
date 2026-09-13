@@ -1,9 +1,5 @@
-/**
- * CommerceSalesChart — Gráfico de ventas tecnológico para el dashboard de Commerce
- *
- * Diseño moderno con gradientes, animaciones y estilo profesional
- */
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+/* Rediseño de CommerceSalesChart: paleta de tokens, sin UUID, leyenda coherente */
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, Legend } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
 
@@ -21,11 +17,11 @@ interface CommerceSalesChartProps {
 
 export default function CommerceSalesChart({
   data,
-  title = "Ventas - Últimos 30 días",
+  title = "Ventas — últimos 30 días",
   height = 300,
 }: CommerceSalesChartProps) {
   return (
-    <Card className="border-border/50 shadow-lg">
+    <Card className="border-border/50 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -36,26 +32,28 @@ export default function CommerceSalesChart({
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
-          <AreaChart data={data}>
+          <AreaChart data={data} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
             <defs>
               <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
                 <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis
               dataKey="date"
               stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={false}
+              tickMargin={6}
             />
             <YAxis
               stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value: number) => `$${(value / 1000).toFixed(0)}k`}
+              width={48}
             />
             <Tooltip
               contentStyle={{
@@ -63,18 +61,25 @@ export default function CommerceSalesChart({
                 border: "1px solid hsl(var(--border))",
                 borderRadius: 8,
                 fontSize: 12,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
-              formatter={(value: number) => [`$${value.toLocaleString()}`, "Ventas"]}
+              formatter={(value: number) => [`$${value.toLocaleString("es-AR")}`, "Ventas"]}
+              labelFormatter={(label: string) => label}
+            />
+            <Legend
+              iconType="circle"
+              wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }}
             />
             <Area
               type="monotone"
               dataKey="sales"
-              stroke="#173aef"
-              strokeWidth={2.5}
-              fillOpacity={1}
+              name="Ventas"
+              stroke="hsl(var(--primary))"
+              strokeWidth={2}
               fill="url(#colorSales)"
-              dot={{ fill: "#173aef", strokeWidth: 2, r: 3 }}
-              activeDot={{ r: 5, stroke: "#173aef", strokeWidth: 2, fill: "#fff" }}
+              fillOpacity={1}
+              dot={{ fill: "hsl(var(--primary))", strokeWidth: 0, r: 3 }}
+              activeDot={{ r: 5, stroke: "hsl(var(--primary))", strokeWidth: 2, fill: "hsl(var(--background))" }}
             />
           </AreaChart>
         </ResponsiveContainer>

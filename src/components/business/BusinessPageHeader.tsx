@@ -61,7 +61,7 @@ export default function BusinessPageHeader({
       {/* Header Principal */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
+          <div className="p-3 rounded-lg bg-warning/10 text-warning">
             <Icon className="h-6 w-6" />
           </div>
           <div>

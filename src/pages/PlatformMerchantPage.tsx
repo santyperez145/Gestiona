@@ -294,7 +294,7 @@ export default function PlatformMerchantPage() {
       <PageHeader
         icon={Building2}
         title={snapshot.organization.name}
-        description={`/${snapshot.organization.slug} · Merchant 360 · actualizado ${formatDateTime(snapshot.loadedAt)}`}
+        description={`${snapshot.organization.name} · Merchant 360 · actualizado ${formatDateTime(snapshot.loadedAt)}`}
         badge={{ label: 'Control Plane', variant: 'default' }}
         actions={(
           <div className="flex items-center gap-2">
@@ -315,8 +315,8 @@ export default function PlatformMerchantPage() {
             {snapshot.organization.logo_url ? (
               <img src={snapshot.organization.logo_url} alt="" className="w-12 h-12 rounded-[10px] object-cover border border-border/60" />
             ) : (
-              <div className="w-12 h-12 rounded-[10px] bg-slate-500/10 border border-slate-500/25 flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-slate-300" />
+              <div className="w-12 h-12 rounded-[10px] bg-muted/15 border border-border/40 flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5 text-muted-foreground" />
               </div>
             )}
             <div className="min-w-0">
@@ -356,7 +356,7 @@ export default function PlatformMerchantPage() {
           <section className="rounded-[10px] border border-slate-500/25 bg-card p-4 space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-slate-300" />
+                <ShieldCheck className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <h2 className="text-sm font-semibold">Calidad del margen</h2>
                   <p className="text-[11px] text-muted-foreground">Cobertura agregada; no expone productos, clientes ni costos por operación.</p>
@@ -385,7 +385,7 @@ export default function PlatformMerchantPage() {
           <div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
             <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-slate-300" />
+                <Activity className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <h2 className="text-sm font-semibold">Lectura operativa</h2>
                   <p className="text-[11px] text-muted-foreground">Señales del Business Core, no una opinión manual.</p>
