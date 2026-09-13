@@ -199,9 +199,9 @@ export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('¡Gracias por su compra!');
   // Catalog-specific colors
-  const [catalogBg, setCatalogBg] = useState('#0E0E1C');
-  const [catalogCard, setCatalogCard] = useState('#16163A');
-  const [catalogAccent, setCatalogAccent] = useState('#D4A843');
+  const [catalogBg, setCatalogBg] = useState('hsl(var(--background))');
+  const [catalogCard, setCatalogCard] = useState('hsl(var(--card))');
+  const [catalogAccent, setCatalogAccent] = useState('hsl(var(--primary))');
   const [uploading, setUploading] = useState(false);
 
   // Brand palettes (stored in settings DB)
@@ -474,9 +474,9 @@ export default function SettingsPage() {
       setBusinessName(s.business_name || '');
       setLogoUrl(s.logo_url || '');
       setReceiptFooter(s.receipt_footer || '¡Gracias por su compra!');
-      setCatalogBg(s.catalog_bg_color || '#0E0E1C');
-      setCatalogCard(s.catalog_card_color || '#16163A');
-      setCatalogAccent(s.catalog_accent_color || s.primary_color || '#D4A843');
+      setCatalogBg(s.catalog_bg_color || 'hsl(var(--background))');
+      setCatalogCard(s.catalog_card_color || 'hsl(var(--card))');
+      setCatalogAccent(s.catalog_accent_color || s.primary_color || 'hsl(var(--primary))');
       setBrandPalettes(Array.isArray(s.brand_palettes) ? s.brand_palettes : []);
       setDiscountCash(String(s.discount_cash_percent ?? 10));
       setDiscountTransfer(String(s.discount_transfer_percent ?? 5));

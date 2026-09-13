@@ -40,8 +40,8 @@ export default function OnboardingPage() {
   const [rubrosError, setRubrosError] = useState('');
   const [cargandoRubros, setCargandoRubros] = useState(true);
   const [rubroCode, setRubroCode] = useState('');
-  // Cobalto Nerqia (#173aef): no violeta genérico ni dorado de un rubro.
-  const [color, setColor] = useState('#173aef');
+  // Cobalto Nerqia: token primario del sistema, no violeta genérico ni dorado de un rubro.
+  const [color, setColor] = useState('hsl(var(--primary))');
   const [savingDestination, setSavingDestination] = useState<FinishDestination | null>(null);
 
   useEffect(() => {
