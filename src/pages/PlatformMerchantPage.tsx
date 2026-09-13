@@ -353,7 +353,7 @@ export default function PlatformMerchantPage() {
             <KPICard label="Ventas POS" value={activation ? activation.pos_sales_30d || 0 : '—'} icon={Package} color="warning" sub="últimos 30 días" />
           </div>
 
-          <section className="rounded-[10px] border border-slate-500/25 bg-card p-4 space-y-4">
+          <section className="rounded-[10px] border border-border/25 bg-card p-4 space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-muted-foreground" />
@@ -430,10 +430,10 @@ export default function PlatformMerchantPage() {
             </section>
           </div>
 
-          <section className="space-y-4 rounded-[10px] border border-slate-500/25 bg-card p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
-                <Rocket className="h-4 w-4 text-slate-300" />
+                <Rocket className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <h2 className="text-sm font-semibold">Ruta a la primera venta</h2>
                   <p className="text-[11px] text-muted-foreground">La misma definición que ve el comercio; soporte no inventa una segunda lectura.</p>
@@ -445,7 +445,7 @@ export default function PlatformMerchantPage() {
                   <span>{readiness?.progress || 0}%</span>
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-slate-400" style={{ width: `${readiness?.progress || 0}%` }} />
+                  <div className="h-full rounded-full bg-primary/70" style={{ width: `${readiness?.progress || 0}%` }} />
                 </div>
               </div>
             </div>
