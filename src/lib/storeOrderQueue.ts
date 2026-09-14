@@ -272,6 +272,45 @@ export function isStoreOrderAwaitingShipment(order: StoreOrderQueueRow) {
   return isStoreOrderAwaitingFulfillment(order) && !esPedidoRetiro(order);
 }
 
+export type OrderSLAStatus = "normal" | "alert" | "overdue";
+
+export interface OrderSLAInfo {
+  slaStatus: OrderSLAStatus;
+  actionRequired: string | null;
+}
+
+/**
+ * SLA derivado de la fila de cola: combinación de estado de fulfillment
+ * y antigüedad (Shopify: unfulfilled aging). No inventa datos: usa solo
+ * `created_at` y `fulfillment_status` de la base.
+ */
+export function deriveOrderSLA(
+  order: Pick<StoreOrderQueueRow, "created_at" | "fulfillment_status" | "payment_status">,
+  staleHours = STORE_ORDER_STALE_HOURS,
+): OrderSLAInfo {
+  const now = Date.now();
+  const created = new Date(order.created_at).getTime();
+  const ageHours = (now - created) / (1000 * 60 * 60);
+
+  if (!isStoreOrderAwaitingFulfillment(order)) {
+    return { slaStatus: "normal", actionRequired: null };
+  }
+
+  if (ageHours > staleHours * 2) {
+    return {
+      slaStatus: "overdue",
+      actionRequired: "Atrasado SLA — revisor asignación o contacto al cliente",
+    };
+  }
+  if (ageHours > staleHours) {
+    return {
+      slaStatus: "alert",
+      actionRequired: "Preparar despacho o notificar al cliente",
+    };
+  }
+  return { slaStatus: "normal", actionRequired: null };
+}
+
 /** Seleccionable significa que al menos una de las dos transiciones masivas
  * puede aplicar. La RPC sigue siendo la autoridad final. */
 export function isStoreOrderBulkSelectable(order: StoreOrderQueueRow) {

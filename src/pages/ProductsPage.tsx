@@ -9,6 +9,7 @@ import { useEntitlements } from "@/lib/useEntitlements";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB, getVariantsByUserDB } from "@/lib/supabaseStore";
 import ProductPriceListsSection from "@/components/products/ProductPriceListsSection";
+import ProductTableOwn from "@/components/products/ProductTableOwn";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCountdown } from "@/hooks/useCountdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -1644,318 +1645,29 @@ export default function ProductsPage() {
         <>
           {Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([brand, items]) => (
             <div key={brand} className="workspace-products-brand-group mb-6">
-              <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                {brand} <span className="text-xs font-normal">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
+              <h2 className="text-sm font-display font-semibold text-[#c4b8a8] uppercase tracking-wider mb-2">
+                {brand} <span className="text-xs font-normal text-[#c4b8a8]/50">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
               </h2>
-              <div className="workspace-products-table-shell hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
-                <table className="workspace-products-table w-full text-sm">
-                  <thead>
-                     <tr className="border-b border-border text-muted-foreground">
-                       <th className="p-3 w-8">
-                         <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground transition-colors">
-                           {selectedIds.size > 0 && selectedIds.size === filteredSorted.length ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
-                         </button>
-                       </th>
-                       {([
-                         { col: "name" as const, label: "Nombre", align: "left" },
-                       ]).map(h => (
-                         <th key={h.col} className={`text-${h.align} p-3 font-medium cursor-pointer hover:text-foreground select-none`}
-                           onClick={() => setProductSort(s => ({ col: h.col, dir: s.col === h.col && s.dir === "asc" ? "desc" : "asc" }))}>
-                           <span className="inline-flex items-center gap-1">{h.label}
-                             {productSort.col === h.col ? (productSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
-                           </span>
-                         </th>
-                       ))}
-                       <th className="text-center p-3 font-medium">Gen.</th>
-                       <th className="text-left p-3 font-medium">Cat.</th>
-                       <th className="text-right p-3 font-medium">Costo</th>
-                       {([
-                         { col: "sale_price_ars" as const, label: "Venta" },
-                       ]).map(h => (
-                         <th key={h.col} className="text-right p-3 font-medium cursor-pointer hover:text-foreground select-none"
-                           onClick={() => setProductSort(s => ({ col: h.col, dir: s.col === h.col && s.dir === "desc" ? "asc" : "desc" }))}>
-                           <span className="inline-flex items-center gap-1 justify-end">{h.label}
-                             {productSort.col === h.col ? (productSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
-                           </span>
-                         </th>
-                       ))}
-                       <th className="text-right p-3 font-medium">Oferta</th>
-                       <th className="p-3 font-medium hidden lg:table-cell" title="Tendencia de precio (historial)">Tendencia</th>
-                       <th className="text-right p-3 font-medium cursor-pointer hover:text-foreground select-none"
-                         onClick={() => setProductSort(s => ({ col: "margin", dir: s.col === "margin" && s.dir === "desc" ? "asc" : "desc" }))}>
-                         <span className="inline-flex items-center gap-1 justify-end">Ganancia
-                           {productSort.col === "margin" ? (productSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
-                         </span>
-                       </th>
-                       <th className="text-right p-3 font-medium cursor-pointer hover:text-foreground select-none"
-                         onClick={() => setProductSort(s => ({ col: "stock", dir: s.col === "stock" && s.dir === "desc" ? "asc" : "desc" }))}>
-                         <span className="inline-flex items-center gap-1 justify-end">Stock
-                           {productSort.col === "stock" ? (productSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
-                         </span>
-                       </th>
-                       <th className="text-right p-3 font-medium hidden xl:table-cell" title="Umbral de alerta de stock bajo — click para editar">Alerta</th>
-                       <th className="text-right p-3 font-medium" title="Días de stock restante según velocidad de ventas (últimos 60 días)">Días ⚡</th>
-                       <th className="text-right p-3 font-medium" title="Días desde la última venta registrada (últimos 60 días)">Sin mvto</th>
-                       <th className="text-center p-3 font-medium">Mod.</th>
-                       <th className="text-center p-3 font-medium">Acc.</th>
-                     </tr>
-                  </thead>
-                  <tbody>
-                     {items.map((p: any) => (
-                       <tr key={p.id} className={`border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${selectedIds.has(p.id) ? 'bg-primary/5' : ''}`}>
-                          <td className="p-3 w-8">
-                            <button onClick={() => setSelectedIds(prev => { const s = new Set(prev); if (s.has(p.id)) s.delete(p.id); else s.add(p.id); return s; })} className="text-muted-foreground hover:text-primary transition-colors">
-                              {selectedIds.has(p.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
-                            </button>
-                          </td>
-                          <td className="p-3 font-medium max-w-[200px] truncate">
-                            <div className="flex items-center gap-2">
-                              {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
-                              <span className="truncate">{p.name}</span>
-                              {/* El puntaje de la ficha, sólo si no está completa:
-                                  un catálogo lleno de números verdes no dice nada. */}
-                              <BadgeCalidad producto={calidadPorProducto.get(p.id) ?? p} />
-                              {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
-                              {variantCounts[p.id] > 0 && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} variantes`}>
-                                  <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
-                                </span>
-                              )}
-                              {p.expiry_date && (() => {
-                                const exp = new Date(p.expiry_date);
-                                const isExpired = exp < today;
-                                const isSoon = exp <= in30Days;
-                                if (!isExpired && !isSoon) return null;
-                                return (
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${isExpired ? 'bg-destructive/20 text-destructive' : 'bg-orange-500/20 text-orange-400'}`} title={`Vence: ${exp.toLocaleDateString('es-AR')}`}>
-                                    {isExpired ? 'VENC.' : 'PROX.'}
-                                  </span>
-                                );
-                              })()}
-                              {(p.tags || []).slice(0, 2).map((t: string) => (
-                                <span key={t} className="px-1.5 py-0.5 rounded-full text-[9px] bg-primary/10 text-primary shrink-0">{t}</span>
-                              ))}
-                            </div>
-                          </td>
-                         <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
-                         <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${colorDeCategoria(p.category)}`}>{nombreCategoria(p.category)}</span></td>
-                         <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
-                         <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
-                         <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-yellow-400">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
-                         <td className="p-3 hidden lg:table-cell">
-                           <PriceSparkline productId={p.id} orgId={activeOrg?.id} width={72} />
-                         </td>
-                         <td className="p-3 text-right">
-                           {(() => {
-                             const margin = Number(p.sale_price_ars) > 0 ? (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 : 0;
-                             const isLowMargin = margin < 30 && margin > 0;
-                             return (
-                               <span className={`text-xs flex items-center justify-end gap-1 ${Number(p.profit_per_unit_ars) > 0 ? (isLowMargin ? 'text-yellow-400' : 'text-emerald-400') : 'text-destructive'}`}>
-                                 {isLowMargin && <AlertTriangle className="w-3 h-3" />}
-                                 {formatARS(Number(p.profit_per_unit_ars))}
-                                 <span className="text-[10px] text-muted-foreground">({Math.round(margin)}%)</span>
-                               </span>
-                             );
-                           })()}
-                         </td>
-                         <td className="p-3 text-right">
-                           {editingStock?.id === p.id ? (
-                             <input
-                               type="number"
-                               min="0"
-                               autoFocus
-                               value={editingStock.value}
-                               onChange={e => setEditingStock({ id: p.id, value: e.target.value })}
-                               onBlur={() => saveInlineStock(p.id, editingStock.value)}
-                               onKeyDown={e => {
-                                 if (e.key === "Enter") saveInlineStock(p.id, editingStock.value);
-                                 if (e.key === "Escape") setEditingStock(null);
-                               }}
-                               className="w-16 text-right text-xs border border-primary/40 rounded bg-background px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
-                             />
-                           ) : (
-                             <button
-                               onClick={() => setEditingStock({ id: p.id, value: String(p.stock) })}
-                               className="group relative"
-                               title="Click para editar stock"
-                             >
-                               {p.stock <= 0 ? (
-                                 <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">0</span>
-                               ) : p.stock <= 3 ? (
-                                 <span className="text-destructive font-bold flex items-center justify-end gap-1 group-hover:text-primary transition-colors"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                               ) : (
-                                 <span className="text-emerald-400 font-medium group-hover:text-primary transition-colors">{p.stock}</span>
-                               )}
-                             </button>
-                           )}
-                         </td>
-                         <td className="p-3 text-right hidden xl:table-cell">
-                           {editingThreshold?.id === p.id ? (
-                             <input
-                               type="number" min="0" autoFocus
-                               value={editingThreshold.value}
-                               onChange={e => setEditingThreshold({ id: p.id, value: e.target.value })}
-                               onBlur={() => saveInlineThreshold(p.id, editingThreshold.value)}
-                               onKeyDown={e => {
-                                 if (e.key === "Enter") saveInlineThreshold(p.id, editingThreshold.value);
-                                 if (e.key === "Escape") setEditingThreshold(null);
-                               }}
-                               className="w-14 text-right text-xs border border-yellow-500/40 rounded bg-background px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-warning/60"
-                             />
-                           ) : (
-                             <button
-                               onClick={() => setEditingThreshold({ id: p.id, value: String((p as any).low_stock_threshold ?? 3) })}
-                               className="text-xs text-muted-foreground hover:text-yellow-400 transition-colors"
-                               title="Click para editar umbral de alerta"
-                             >
-                               {(p as any).low_stock_threshold ?? 3}
-                             </button>
-                           )}
-                         </td>
-                         <td className="p-3 text-right">
-                           {(() => {
-                             const vel = salesVelocity[p.id] || 0;
-                             if (p.stock <= 0) return <span className="text-xs text-muted-foreground">—</span>;
-                             if (vel === 0) return <span className="text-xs text-muted-foreground" title="Sin ventas en 60 días">∞</span>;
-                             const days = Math.round(p.stock / vel);
-                             const color = days <= 7 ? 'text-destructive font-bold' : days <= 21 ? 'text-yellow-400 font-medium' : 'text-emerald-400';
-                             return (
-                               <span className={`text-xs ${color}`} title={`${(vel * 30).toFixed(1)} uds/mes · stock para ~${plural(days, "día")}`}>
-                                 {days}d
-                               </span>
-                             );
-                           })()}
-                         </td>
-                         <td className="p-3 text-right">
-                           {(() => {
-                             const last = lastSaleDate[p.id];
-                             if (!last) return <span className="text-xs text-muted-foreground" title="Sin ventas registradas en 60 días">+60d</span>;
-                             const daysSince = daysSinceKnownDate(last, today);
-                             if (daysSince === null) return <span className="text-xs text-muted-foreground" title="No pudimos interpretar la fecha de la última venta">—</span>;
-                             const color = daysSince >= 30 ? 'text-destructive font-bold' : daysSince >= 14 ? 'text-yellow-400' : 'text-muted-foreground';
-                             return <span className={`text-xs ${color}`} title={`Última venta: ${last}`}>{daysSince}d</span>;
-                           })()}
-                         </td>
-                         <td className="p-3 text-center">
-                           <span className="text-[10px] text-muted-foreground flex items-center justify-center gap-1" title={new Date(p.updated_at).toLocaleString('es-AR')}>
-                             <Clock className="w-3 h-3" />
-                             {new Date(p.updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
-                           </span>
-                         </td>
-                         <td className="p-3 text-center space-x-1">
-                           {canEdit && <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>}
-                           {canEdit && (
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               title={p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "Quitar descuento" : "Aplicar descuento rápido"}
-                               onClick={() => toggleQuickDiscount(p)}
-                             >
-                               <Tag className={`w-3.5 h-3.5 ${p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "text-yellow-400" : "text-muted-foreground"}`} />
-                             </Button>
-                           )}
-                           <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
-                           {operaPerfumes && perfumeDetailsByProduct[p.id] && (
-                             <Button variant="ghost" size="sm" title="Perfumes similares" onClick={() => setRecoTargetId(p.id)}><Sparkles className="w-3.5 h-3.5 text-primary" /></Button>
-                           )}
-                           {(canShare || p.barcode) && (
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               title={canShare ? "Compartir producto" : "Copiar código de barras"}
-                               onClick={() => {
-                                 if (canShare) {
-                                   shareProduct({ name: p.name, sale_price_ars: p.sale_price_ars, stock: p.stock });
-                                 } else if (p.barcode) {
-                                   copyText(p.barcode, "Código de barras");
-                                 }
-                               }}
-                             >
-                               {canShare ? <Share2 className="w-3.5 h-3.5 text-muted-foreground" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
-                             </Button>
-                           )}
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             title="Calculadora de rentabilidad"
-                             onClick={() => { setCalcProduct(p); setCalcOpen(true); }}
-                           >
-                             <Calculator className="w-3.5 h-3.5 text-muted-foreground" />
-                           </Button>
-                           {canDelete && (
-                             <ConfirmDialog
-                               trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                               title="¿Eliminar producto?"
-                               description={`Se eliminará "${p.name}" y no se podrá recuperar.`}
-                               confirmText="Eliminar"
-                               onConfirm={() => handleDelete(p)}
-                             />
-                           )}
-                         </td>
-                       </tr>
-                     ))}
-                  </tbody>
-                </table>
-              </div>
-               <div className="workspace-products-mobile-list md:hidden space-y-2">
-                {items.map((p: any) => (
-                  <div key={p.id} className="bg-card border border-border rounded-lg p-3">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 rounded object-cover shrink-0" />}
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm truncate">{p.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${colorDeCategoria(p.category)}`}>{nombreCategoria(p.category)}</span>
-                            <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3 h-3" /></Button>}
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            title={p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "Quitar descuento" : "Aplicar descuento rápido"}
-                            onClick={() => toggleQuickDiscount(p)}
-                          >
-                            <Tag className={`w-3 h-3 ${p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "text-yellow-400" : "text-muted-foreground"}`} />
-                          </Button>
-                        )}
-                        {canDelete && (
-                          <ConfirmDialog
-                            trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
-                            title="¿Eliminar producto?"
-                            confirmText="Eliminar"
-                            onConfirm={() => handleDelete(p)}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div><span className="text-muted-foreground block">Costo</span><span>{formatUSD(Number(p.total_cost_usd))}</span></div>
-                      <div><span className="text-muted-foreground block">Venta</span><span>{formatARS(Number(p.sale_price_ars))}</span></div>
-                      <div><span className="text-muted-foreground block">Ganancia</span>
-                        <span className={Number(p.profit_per_unit_ars) > 0 ? 'text-emerald-400' : 'text-destructive'}>{formatARS(Number(p.profit_per_unit_ars))}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-muted-foreground">Stock:</span>
-                        {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
-                          <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                        ) : <span className="text-emerald-400 text-xs font-medium">{p.stock} uds</span>}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(p.updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ProductTableOwn
+                rows={items.map((p: any) => ({
+                  id: p.id,
+                  name: p.name,
+                  brand: p.brand,
+                  category: p.category,
+                  image_url: p.image_url,
+                  sale_price_ars: Number(p.sale_price_ars) || 0,
+                  discount_price_ars: p.discount_price_ars ? Number(p.discount_price_ars) : undefined,
+                  stock: p.stock ?? 0,
+                  profit_per_unit_ars: p.profit_per_unit_ars,
+                  featured: p.featured,
+                }))}
+                selectedIds={selectedIds}
+                onToggleRow={(id) => setSelectedIds(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; })}
+                onToggleAll={toggleSelectAll}
+                sortCol={productSort.col}
+                sortDir={productSort.dir}
+                onSort={(col) => setProductSort(s => ({ col, dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
+              />
             </div>
           ))}
           <DataPagination

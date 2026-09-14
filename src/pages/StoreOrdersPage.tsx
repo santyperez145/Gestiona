@@ -12,16 +12,18 @@ import WorkspaceState from "@/components/shared/WorkspaceState";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import StoreOrdersWorkspace from "@/components/ecommerce/StoreOrdersWorkspace";
 import StoreRecoveryWorkspace from "@/components/ecommerce/StoreRecoveryWorkspace";
+import StoreOrdersSLAPanel from "@/components/ecommerce/StoreOrdersSLAPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useStoreOrderQueue } from "@/hooks/useStoreOrderQueue";
 import { parseStoreOrdersCola } from "@/lib/storeOrdersCanonical";
 import { urlPublicaDeTienda } from "@/lib/storeFirstPublish";
+import { deriveOrderSLA, type OrderSLAInfo } from "@/lib/storeOrderQueue";
 import {
   filterAbandonedCartsForQueue,
   type AbandonedCartRow,
 } from "@/lib/abandonedCarts";
 import { countPendingStockAlerts } from "@/lib/stockAlerts";
-import { RotateCcw, Settings, ShoppingBag } from "lucide-react";
+import { RotateCcw, Settings, ShoppingBag, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StoreWorkspacePicker from "@/components/ecommerce/StoreWorkspacePicker";
 import { useCommerceStores } from "@/hooks/useCommerceStores";
@@ -86,7 +88,22 @@ export default function StoreOrdersPage() {
 
   useEffect(() => { void loadRecoveryCounts(); }, [loadRecoveryCounts]);
 
-  const ordersAttention = queue.data?.attention ?? 0;
+  const slaMetrics = queue.data
+    ? {
+        totalToday: queue.data.store_total,
+        pending: queue.data.counts.despachar + queue.data.counts.retirar,
+        overdue: queue.data.counts.atrasados,
+        actionsAvailable: queue.data.attention,
+      }
+    : { totalToday: 0, pending: 0, overdue: 0, actionsAvailable: 0 };
+  const slaMetrics = queue.data
+    ? {
+        totalToday: queue.data.store_total,
+        pending: queue.data.counts.despachar + queue.data.counts.retirar,
+        overdue: queue.data.counts.atrasados,
+        actionsAvailable: queue.data.attention,
+      }
+    : { totalToday: 0, pending: 0, overdue: 0, actionsAvailable: 0 };
 
   const urlPublica = urlPublicaDeTienda(
     typeof window === "undefined" ? "" : window.location.origin,
@@ -162,6 +179,12 @@ export default function StoreOrdersPage() {
             label: "Pedidos",
             icon: ShoppingBag,
             count: ordersAttention > 0 ? ordersAttention : undefined,
+          },
+          {
+            id: "sla",
+            label: "SLA",
+            icon: Clock,
+            count: slaMetrics.overdue > 0 ? slaMetrics.overdue : undefined,
           },
           {
             id: "recuperacion",
