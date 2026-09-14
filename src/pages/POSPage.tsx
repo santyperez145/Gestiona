@@ -1158,20 +1158,10 @@ export default function POSPage() {
     setOfflineStorageError(null);
     try {
       const own = JSON.parse(localStorage.getItem(offlineKey) || "[]");
-      const legacyKey = "gestiona.pos.offline_sales.default";
-      const legacy = JSON.parse(localStorage.getItem(legacyKey) || "[]");
       const ownIds = new Set(own.map((sale: any) => sale?.id).filter(Boolean));
-      const migrating = legacy.filter((sale: any) => sale?.org_id === activeOrg.id && !ownIds.has(sale?.id));
-      const untouchedLegacy = legacy.filter((sale: any) => sale?.org_id !== activeOrg.id);
-      const merged = [...own, ...migrating];
-      // Primero queda a salvo bajo la organización correcta; recién entonces
-      // se retira esa parte de la clave heredada. Las ventas de otra org no se
-      // borran al cambiar de workspace.
-      if (migrating.length) localStorage.setItem(offlineKey, JSON.stringify(merged));
-      if (legacy.length) {
-        if (untouchedLegacy.length) localStorage.setItem(legacyKey, JSON.stringify(untouchedLegacy));
-        else localStorage.removeItem(legacyKey);
-      }
+      const merged = [...own];
+      // Se mantiene la clave de la organización activa; la migración de legacy
+      // se retiró porque el POS opera exclusivamente con `offlineKey` actual.
       setOfflineSales(merged);
       setOfflineStorageError(null);
     } catch (error) {
