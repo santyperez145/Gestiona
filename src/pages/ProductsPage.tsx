@@ -1667,6 +1667,7 @@ export default function ProductsPage() {
                 sortCol={productSort.col}
                 sortDir={productSort.dir}
                 onSort={(col: string) => setProductSort(s => ({ col: s.col === col ? col : (col as any), dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
+                onEdit={(id) => setEditing(items.find(p => p.id === id) || null)}
               />
             </div>
           ))}

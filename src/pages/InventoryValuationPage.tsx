@@ -31,7 +31,7 @@ interface ValuationRow {
 }
 
 interface InventoryLayer {
-  id: string;
+  [id: string;
   product_name: string;
   layer_date: string;
   layer_type: string;
@@ -210,7 +210,7 @@ export default function InventoryValuationPage() {
                 </div>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-muted/30 border-b">
+                  <thead className="border-b border-[#1a1a2e]/40">
                     <tr>
                       <th className="text-left py-3 px-4">Producto</th>
                       <th className="text-right py-3 px-4">Unidades</th>
@@ -224,7 +224,7 @@ export default function InventoryValuationPage() {
                     {filtered.map(row => {
                       const marginPct = row.market_value > 0 ? (row.gain_loss / row.market_value) * 100 : 0;
                       return (
-                        <tr key={row.product_id} className="border-b last:border-0 hover:bg-muted/20">
+                        <tr key={row.product_id} className="border-b last:border-0 hover:bg-[#1a1a2e]/30">
                           <td className="py-3 px-4">
                             <p className="font-medium">{row.product_name}</p>
                             <p className="text-xs text-muted-foreground">{row.sku} · {row.category}</p>
@@ -271,7 +271,7 @@ export default function InventoryValuationPage() {
                 <div className="p-8 text-center text-muted-foreground text-sm">Sin compras registradas para mostrar capas de costo.</div>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-muted/30 border-b">
+                  <thead className="border-b border-[#1a1a2e]/40">
                     <tr>
                       <th className="text-left py-3 px-4">Producto</th>
                       <th className="text-left py-3 px-4">Fecha Ingreso</th>
@@ -283,7 +283,7 @@ export default function InventoryValuationPage() {
                   </thead>
                   <tbody>
                     {layers.map(layer => (
-                      <tr key={layer.id} className="border-b last:border-0 hover:bg-muted/20">
+                      <tr key={layer.id} className="border-b last:border-0 hover:bg-[#1a1a2e]/30">
                         <td className="py-3 px-4 font-medium">{layer.product_name}</td>
                         <td className="py-3 px-4">{new Date(layer.layer_date).toLocaleDateString("es-AR")}</td>
                         <td className="py-3 px-4">

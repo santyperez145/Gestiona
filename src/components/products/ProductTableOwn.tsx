@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowUpDown, ChevronUp, ChevronDown, Pencil } from "lucide-react";
 
 export interface ProductRow {
   id: string;
@@ -26,6 +26,7 @@ interface Props {
   sortCol?: string;
   sortDir?: "asc" | "desc";
   onSort?: (col: string) => void;
+  onEdit?: (id: string) => void;
 }
 
 function SortIcon({ active, dir }: { active?: boolean; dir?: "asc" | "desc" }) {
@@ -41,12 +42,13 @@ export default function ProductTableOwn({
   sortCol,
   sortDir,
   onSort,
+  onEdit,
 }: Props) {
   const allSelected = rows.length > 0 && rows.every((r) => selectedIds.has(r.id));
   const someSelected = rows.some((r) => selectedIds.has(r.id)) && !allSelected;
 
   return (
-    <div className="relative w-full overflow-auto rounded-xl border border-[#1a1a2e]/60 bg-[#0b0b18]/80 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_12px_40px_rgba(0,0,0,0.6)]" aria-label="Tabla de productos propia">
+    <div className="relative w-full overflow-auto rounded-xl border border-[#1a1a2e]/60 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_12px_40px_rgba(0,0,0,0.6)]" aria-label="Tabla de productos propia">
       <table className="w-full text-[12px] leading-relaxed">
         <thead>
           <tr className="border-b border-[#1a1a2e]/70">
@@ -66,10 +68,12 @@ export default function ProductTableOwn({
               { col: "sale_price_ars", label: "Venta", align: "right" },
               { col: "stock", label: "Stock", align: "right" },
               { col: "profit_per_unit_ars", label: "Ganancia", align: "right" },
+              { col: "status", label: "Estado", align: "center" },
+              { col: "actions", label: "Acciones", align: "center" },
             ].map((h) => (
               <th
                 key={h.col}
-                className={cn("px-3 py-3 font-bold tracking-wider uppercase text-[10px] text-[#c4b8a8]/70 hover:text-[#f59e0b]/90 transition-colors cursor-pointer select-none", h.align === "right" ? "text-right" : "text-left")}
+                className={cn("px-3 py-3 font-bold tracking-wider uppercase text-[10px] text-[#c4b8a8]/70 hover:text-[#f59e0b]/90 transition-colors cursor-pointer select-none", h.align === "right" ? "text-right" : "text-center")}
                 onClick={() => onSort?.(h.col)}
               >
                 <span className="inline-flex items-center gap-1">
@@ -78,7 +82,6 @@ export default function ProductTableOwn({
                 </span>
               </th>
             ))}
-            <th className="px-3 py-3 text-left font-bold tracking-wider uppercase text-[10px] text-[#c4b8a8]/70">Estado</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#1a1a2e]/60">
@@ -160,7 +163,7 @@ export default function ProductTableOwn({
                     <span className="block text-[9px] text-emerald-400/50">({Math.round((Number(p.profit_per_unit_ars) / p.sale_price_ars) * 100)}%)</span>
                   )}
                 </td>
-                <td className="px-3 py-3">
+                <td className="px-3 py-3 text-center">
                   <div className="flex items-center gap-1.5">
                     <span className={cn("w-2 h-2 rounded-full", critical ? "bg-rose-400 animate-pulse" : low ? "bg-amber-300" : "bg-emerald-400")} />
                     <span className={cn("text-[10px] font-semibold", critical ? "text-rose-400" : low ? "text-amber-300" : "text-emerald-400")}>
