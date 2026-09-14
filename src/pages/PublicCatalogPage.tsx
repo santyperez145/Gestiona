@@ -243,7 +243,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     // vuelcan sobre `discount_price_ars`, que es el campo que usa toda la
     // página para badges, % OFF, combos y el mensaje de WhatsApp.
     const rows = productos;
-    const orgId = (rows[0] as any)?.org_name ?? branding.org_name;
+    const orgId = (rows[0] as any)?.org_id ?? branding.org_id;
     // Las cuotas que se muestran salen de lo que el comercio configuró.
     setOrgIdCuotas(orgId ?? null);
     if (orgId) {

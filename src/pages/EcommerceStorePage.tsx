@@ -370,7 +370,7 @@ export default function EcommerceStorePage() {
     });
     if (!accepted) return;
     const { error } = await supabase.rpc("set_primary_ecommerce_store", {
-      p_store_name: store.id,
+      p_store_id: store.id,
     });
     if (error) {
       console.error("No se pudo cambiar la tienda principal", error);
@@ -385,9 +385,9 @@ export default function EcommerceStorePage() {
     if (!orgId || !store?.id || tab !== "categorias") return;
     Promise.all([
       supabase.from("ecommerce_categories").select("slug, name")
-        .eq("org_name", orgId).eq("is_active", true).order("sort_order"),
+        .eq("org_id", orgId).eq("is_active", true).order("sort_order"),
       supabase.from("store_pages").select("slug, title")
-        .eq("org_name", orgId).eq("store_name", store.id)
+        .eq("org_id", orgId).eq("store_id", store.id)
         .eq("status", "published").order("title"),
     ]).then(([c, g]) => {
       setMenuCategorias((c.data ?? []) as { slug: string; name: string }[]);
@@ -409,8 +409,8 @@ export default function EcommerceStorePage() {
       const { data, error } = await supabase
         .from("ecommerce_orders")
         .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at, carrier, shipping_service")
-        .eq("org_name", orgId)
-        .eq("store_name", store.id)
+        .eq("org_id", orgId)
+        .eq("store_id", store.id)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(4);
@@ -441,10 +441,10 @@ export default function EcommerceStorePage() {
     }
     setPerformanceError(null);
     const { data, error } = await supabase.rpc("get_store_performance_snapshot", {
-      p_org_name: orgId,
+      p_org_id: orgId,
       p_from: performanceFromParam,
       p_to: performanceToParam,
-      p_store_name: store.id,
+      p_store_id: store.id,
     });
     if (requestId !== performanceRequestRef.current) return;
     if (error) {
@@ -495,7 +495,7 @@ export default function EcommerceStorePage() {
     // pedidos. La base vuelve a validar que sea una sucursal propia y activa.
     supabase.from("locations")
       .select("id, name, is_main")
-      .eq("org_name", orgId)
+      .eq("org_id", orgId)
       .eq("active", true)
       .order("is_main", { ascending: false })
       .order("name")
@@ -511,7 +511,7 @@ export default function EcommerceStorePage() {
     // retiro está vacío, se ofrece copiarlo. No se escribe solo.
     supabase.from("afip_connection_status")
       .select("domicilio")
-      .eq("org_name", orgId)
+      .eq("org_id", orgId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) {
@@ -523,7 +523,7 @@ export default function EcommerceStorePage() {
 
     supabase.from("settings")
       .select("bank_cbu, bank_alias, bank_name, bank_holder")
-      .eq("org_name", orgId)
+      .eq("org_id", orgId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) {
@@ -551,8 +551,8 @@ export default function EcommerceStorePage() {
       supabase
         .from("store_stock_alerts")
           .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
-          .eq("org_name", orgId)
-          .eq("store_name", store.id)
+          .eq("org_id", orgId)
+          .eq("store_id", store.id)
         .is("notified_at", null)
         .order("created_at", { ascending: false })
         .then(({ data, error }) => {
@@ -587,13 +587,13 @@ export default function EcommerceStorePage() {
     if (!orgId || !store?.id) return;
     try {
       const [assortment, zonas, tarifas, paginas, cobro] = await Promise.all([
-        supabase.rpc("get_store_assortment_summary", { p_store_name: store.id }),
+        supabase.rpc("get_store_assortment_summary", { p_store_id: store.id }),
         supabase.from("shipping_zones").select("id, provinces")
-          .eq("org_name", orgId).eq("is_active", true),
-        supabase.from("shipping_rates").select("zone_id").eq("org_name", orgId).eq("is_active", true),
+          .eq("org_id", orgId).eq("is_active", true),
+        supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
         supabase.from("store_pages").select("slug, content, status")
-          .eq("org_name", orgId)
-          .eq("store_name", store.id)
+          .eq("org_id", orgId)
+          .eq("store_id", store.id)
           .in("slug", ["politica-de-privacidad", "terminos-y-condiciones"]),
         fetchPaymentStatus(orgId),
       ]);
@@ -664,10 +664,10 @@ export default function EcommerceStorePage() {
 
     setAnalyticsBusy(true);
     const { data, error } = await supabase.rpc("set_store_first_party_analytics", {
-      p_org_name: orgId,
+      p_org_id: orgId,
       p_enabled: enabled,
       p_acknowledged: enabled,
-      p_store_name: store.id,
+      p_store_id: store.id,
     });
     setAnalyticsBusy(false);
     if (error) {
@@ -727,7 +727,7 @@ export default function EcommerceStorePage() {
       storefront_layout: store.storefront_layout,
     } : themeEditorConfig;
     const row = {
-      org_name: orgId,
+      org_id: orgId,
       name,
       slug,
       theme: publishedDesign.theme,
@@ -788,7 +788,7 @@ export default function EcommerceStorePage() {
       bank_alias: bankForm.bank_alias.trim() || null,
       bank_name: bankForm.bank_name.trim() || null,
       bank_holder: bankForm.bank_holder.trim() || null,
-    }).eq("org_name", orgId);
+    }).eq("org_id", orgId);
     setLoading(false);
     if (bankError) {
       console.error("No se pudieron guardar los datos bancarios", bankError);
@@ -824,7 +824,7 @@ export default function EcommerceStorePage() {
     // que alguien abra Páginas y pulse Sembrar. No publica — el dueño firma.
     if (storeShouldSeedPagesOnCreate(isCreatingStore) && saved?.id) {
       const { error: seedError } = await supabase.rpc("seed_store_pages", {
-        p_store_name: saved.id,
+        p_store_id: saved.id,
       });
       if (seedError) {
         console.error("No se pudieron sembrar las páginas legales", seedError);
