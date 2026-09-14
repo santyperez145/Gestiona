@@ -21,10 +21,13 @@ describe("contrato operativo de la cola offline del POS", () => {
     expect(pos).toContain('toast.error("La sincronización quedó incompleta"');
   });
 
-  it("preserva la cola de otras organizaciones durante la migración heredada", () => {
-    expect(pos).toContain("const untouchedLegacy = legacy.filter");
-    expect(pos).toContain("localStorage.setItem(legacyKey, JSON.stringify(untouchedLegacy))");
-    expect(pos).toContain("Primero queda a salvo bajo la organización correcta");
+  it("eliminó la migración legacy heredada y opera solo con la cola canónica", () => {
+    expect(pos).toContain("const own = JSON.parse(localStorage.getItem(offlineKey)");
+    expect(pos).not.toContain("const legacyKey = \"gestiona.pos.offline_sales.default\"");
+    expect(pos).not.toContain("const untouchedLegacy = legacy.filter");
+    expect(pos).not.toContain("const migrating = legacy.filter");
+    expect(pos).not.toContain("localStorage.setItem(legacyKey");
+    expect(pos).toContain("Se mantiene la clave de la organización activa; la migración de legacy se retiró porque el POS opera exclusivamente con `offlineKey` actual.");
   });
 
   it("persiste una venta offline antes de limpiar o emitir el recibo", () => {

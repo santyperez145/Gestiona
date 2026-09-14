@@ -31,7 +31,7 @@ interface ValuationRow {
 }
 
 interface InventoryLayer {
-  [id: string;
+  id: string;
   product_name: string;
   layer_date: string;
   layer_type: string;
