@@ -1,33 +1,27 @@
-/**
- * Pedidos de la tienda online — cola operativa de primer nivel.
- *
- * Shopify/Tiendanube separan Pedidos de Diseño/Pagos. Recuperación
- * (abandonados + reposición) vive acá como hermano, no en Ajustes.
- */
-import { useCallback, useEffect, useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import WorkspaceState from "@/components/shared/WorkspaceState";
-import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
-import StoreOrdersWorkspace from "@/components/ecommerce/StoreOrdersWorkspace";
-import StoreRecoveryWorkspace from "@/components/ecommerce/StoreRecoveryWorkspace";
-import StoreOrdersSLAPanel from "@/components/ecommerce/StoreOrdersSLAPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useStoreOrderQueue } from "@/hooks/useStoreOrderQueue";
 import { parseStoreOrdersCola } from "@/lib/storeOrdersCanonical";
 import { urlPublicaDeTienda } from "@/lib/storeFirstPublish";
-import { deriveOrderSLA, type OrderSLAInfo } from "@/lib/storeOrderQueue";
-import {
-  filterAbandonedCartsForQueue,
-  type AbandonedCartRow,
-} from "@/lib/abandonedCarts";
+import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
+import { countFulfillmentPulse, STORE_ORDER_STALE_HOURS } from "@/lib/storeOrderQueue";
+import { filterAbandonedCartsForQueue, type AbandonedCartRow } from "@/lib/abandonedCarts";
 import { countPendingStockAlerts } from "@/lib/stockAlerts";
 import { RotateCcw, Settings, ShoppingBag, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StoreWorkspacePicker from "@/components/ecommerce/StoreWorkspacePicker";
 import { useCommerceStores } from "@/hooks/useCommerceStores";
 import PageHeader from "@/components/shared/PageHeader";
+import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
+import WorkspaceState from "@/components/shared/WorkspaceState";
+import StoreOrdersWorkspace from "@/components/ecommerce/StoreOrdersWorkspace";
+import StoreRecoveryWorkspace from "@/components/ecommerce/StoreRecoveryWorkspace";
+import StoreOrdersSLAPanel from "@/components/ecommerce/StoreOrdersSLAPanel";
+import { deriveOrderSLA, type OrderSLAInfo } from "@/lib/storeOrderQueue";
+import type { StoreOrderQueueRow } from "@/lib/storeOrderQueue";
 
 export default function StoreOrdersPage() {
   usePageTitle("Pedidos");
@@ -39,27 +33,31 @@ export default function StoreOrdersPage() {
   const selectedStore = commerceStores.selectedStore;
   const storeSlug = selectedStore?.slug ?? null;
   const storeName = selectedStore?.name ?? "Tu tienda";
-  const queue = useStoreOrderQueue(orgId,
-    selectedStore?.org_id === orgId ? commerceStores.selectedStoreId : null, searchParams);
+  const storeId = commerceStores.selectedStoreId;
+  const queue = useStoreOrderQueue(orgId, storeId, searchParams);
   const ordersLoading = commerceStores.loading || queue.loading;
   const [recoveryPending, setRecoveryPending] = useState(0);
 
   const loadRecoveryCounts = useCallback(async () => {
-    if (!orgId || !commerceStores.selectedStoreId) {
+    if (!orgId || !storeId) {
       setRecoveryPending(0);
       return;
     }
     const [carts, alerts] = await Promise.all([
       supabase
         .from("ecommerce_cart_sessions")
-        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
+        .select(
+          "id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at",
+        )
         .eq("org_id", orgId)
-        .eq("store_id", commerceStores.selectedStoreId),
+        .eq("store_id", storeId),
       supabase
         .from("store_stock_alerts")
-        .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
+        .select(
+          "id, email, product_id, variant_id, notified_at, created_at, products(name, stock)",
+        )
         .eq("org_id", orgId)
-        .eq("store_id", commerceStores.selectedStoreId)
+        .eq("store_id", storeId)
         .is("notified_at", null),
     ]);
     if (carts.error) {
@@ -68,7 +66,9 @@ export default function StoreOrdersPage() {
     if (alerts.error) {
       console.error("StoreOrdersPage / recovery reposición:", alerts.error);
     }
-    const abandoned = filterAbandonedCartsForQueue((carts.data ?? []) as AbandonedCartRow[]).length;
+    const abandoned = filterAbandonedCartsForQueue(
+      (carts.data ?? []) as AbandonedCartRow[],
+    ).length;
     const stockRows = (alerts.data ?? []).map((raw) => {
       const r = raw as Record<string, unknown>;
       const prod = r.products as { name?: string; stock?: number } | null;
@@ -84,18 +84,14 @@ export default function StoreOrdersPage() {
       };
     });
     setRecoveryPending(abandoned + countPendingStockAlerts(stockRows));
-  }, [commerceStores.selectedStoreId, orgId]);
+  }, [storeId, orgId]);
 
-  useEffect(() => { void loadRecoveryCounts(); }, [loadRecoveryCounts]);
+  useEffect(() => {
+    void loadRecoveryCounts();
+  }, [loadRecoveryCounts]);
 
-  const slaMetrics = queue.data
-    ? {
-        totalToday: queue.data.store_total,
-        pending: queue.data.counts.despachar + queue.data.counts.retirar,
-        overdue: queue.data.counts.atrasados,
-        actionsAvailable: queue.data.attention,
-      }
-    : { totalToday: 0, pending: 0, overdue: 0, actionsAvailable: 0 };
+  const ordersAttention = (queue.data?.attention ?? 0) + recoveryPending;
+
   const slaMetrics = queue.data
     ? {
         totalToday: queue.data.store_total,
@@ -141,8 +137,8 @@ export default function StoreOrdersPage() {
     }, { replace: true });
   };
 
-  const storeSettingsUrl = commerceStores.selectedStoreId
-    ? `/tienda-online?store=${encodeURIComponent(commerceStores.selectedStoreId)}`
+  const storeSettingsUrl = storeId
+    ? `/tienda-online?store=${encodeURIComponent(storeId)}`
     : "/tienda-online";
 
   return (
@@ -151,19 +147,19 @@ export default function StoreOrdersPage() {
         icon={ShoppingBag}
         eyebrow="Commerce · Cola"
         title="Pedidos"
-        actions={(
+        actions={
           <Button variant="outline" size="sm" className="min-h-11 gap-1.5" asChild>
             <Link to={storeSettingsUrl}>
               <Settings className="h-4 w-4" />
               Configurar tienda
             </Link>
           </Button>
-        )}
+        }
       />
 
       <StoreWorkspacePicker
         stores={commerceStores.stores}
-        selectedStoreId={commerceStores.selectedStoreId}
+        selectedStoreId={storeId}
         loading={commerceStores.loading}
         error={commerceStores.error}
         onSelect={selectStore}
@@ -207,14 +203,14 @@ export default function StoreOrdersPage() {
       ) : cola === "recuperacion" ? (
         <StoreRecoveryWorkspace
           orgId={orgId}
-          storeId={commerceStores.selectedStoreId}
+          storeId={storeId}
           storeSlug={storeSlug}
         />
       ) : (
         <StoreOrdersWorkspace
-          key={`${orgId}:${commerceStores.selectedStoreId}`}
+          key={`${orgId}:${storeId}`}
           orgId={orgId}
-          storeId={commerceStores.selectedStoreId}
+          storeId={storeId}
           storeName={storeName}
           publicStoreUrl={urlPublica}
           orders={queue.data?.rows ?? []}

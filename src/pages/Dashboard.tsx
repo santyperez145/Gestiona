@@ -43,6 +43,8 @@ import { useEntitlements } from "@/lib/useEntitlements";
 import CommerceDashboardHeader from "@/components/commerce/CommerceDashboardHeader";
 import CommerceDashboardKPICard from "@/components/commerce/CommerceDashboardKPICard";
 import CommerceSalesChart from "@/components/commerce/CommerceSalesChart";
+import DashboardChartWrapper from "@/components/analytics/ChartWrapper";
+import DashboardTooltip from "@/components/analytics/DashboardTooltip";
 
 import { plural } from "@/lib/plural";
 import CommerceQuickActions from "@/components/commerce/CommerceQuickActions";
@@ -1570,7 +1572,7 @@ export default function Dashboard() {
     },
   ];
 
-  const tooltipStyle = { background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))' };
+  const tooltipStyle = { background: '#0b0b18', border: '1px solid #1a1a2e', borderRadius: 8, color: '#f5f3ed' };
 
   const greeting = (() => {
     const h = new Date().getHours();
