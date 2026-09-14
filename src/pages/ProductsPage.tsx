@@ -1666,7 +1666,7 @@ export default function ProductsPage() {
                 onToggleAll={toggleSelectAll}
                 sortCol={productSort.col}
                 sortDir={productSort.dir}
-                onSort={(col) => setProductSort(s => ({ col, dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
+                onSort={(col: string) => setProductSort(s => ({ col: s.col === col ? col : (col as any), dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
               />
             </div>
           ))}
