@@ -184,6 +184,19 @@ export default function ProductTableOwn({
                     </span>
                   </div>
                 </td>
+                <td className="px-3 py-3 text-center">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onEdit?.(p.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-[#173aef] bg-[#173aef]/10 border border-[#173aef]/20 hover:bg-[#173aef]/20 hover:border-[#173aef]/40 transition-all"
+                      aria-label={`Editar ${p.name}`}
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Editar
+                    </button>
+                  </div>
+                </td>
               </tr>
             );
           })}
