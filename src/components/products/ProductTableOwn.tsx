@@ -53,7 +53,7 @@ export default function ProductTableOwn({
   const someSelected = rows.some((r) => selectedIds.has(r.id)) && !allSelected;
 
   return (
-    <div className="relative w-full overflow-x-auto rounded-xl border border-[#1a1a2e]/60 bg-[#0b0b18]/90 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_12px_40px_rgba(0,0,0,0.6)]" aria-label="Tabla de productos propia">
+    <div className="relative w-full overflow-x-auto rounded-xl border border-[#1a1a2e]/60 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_12px_40px_rgba(0,0,0,0.6)]" aria-label="Tabla de productos propia">
       <table className="w-full text-[13px] leading-snug">
         <thead>
           <tr className="border-b border-[#2a2a3e] bg-[#0f0f23]/80">

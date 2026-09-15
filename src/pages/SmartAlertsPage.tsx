@@ -215,7 +215,7 @@ export default function SmartAlertsPage() {
                 <Select value={newRule.category} onValueChange={v => setNewRule(n => ({ ...n, category: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {["stock","sales","financial","operations","customer","business","system"].map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+                    {[["stock","Stock"],["sales","Ventas"],["financial","Financiero"],["operations","Operaciones"],["customer","Cliente"],["business","Negocio"],["system","Sistema"]].map(([c, label]) => <SelectItem key={c} value={c} className="capitalize">{label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
