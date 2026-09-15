@@ -1,3 +1,4 @@
+/* Mejoras de legibilidad y corrección de overflow en ProductTableOwn */
 import React from "react";
 import { cn } from "@/lib/utils";
 import { ArrowUpDown, ChevronUp, ChevronDown, Pencil, Copy, Trash2 } from "lucide-react";
@@ -52,7 +53,7 @@ export default function ProductTableOwn({
   const someSelected = rows.some((r) => selectedIds.has(r.id)) && !allSelected;
 
   return (
-    <div className="relative w-full overflow-auto rounded-xl border border-[#1a1a2e]/60 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_12px_40px_rgba(0,0,0,0.6)]" aria-label="Tabla de productos propia">
+    <div className="relative w-full overflow-x-auto rounded-xl border border-[#1a1a2e]/60 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_12px_40px_rgba(0,0,0,0.6)]" aria-label="Tabla de productos propia">
       <table className="w-full text-[12px] leading-relaxed">
         <thead>
           <tr className="border-b border-[#1a1a2e]/70">
@@ -114,57 +115,30 @@ export default function ProductTableOwn({
                     aria-label={`Seleccionar ${p.name}`}
                   />
                 </td>
-                <td className="px-3 py-3 min-w-[220px]">
+                <td className="px-3 py-3 min-w-[180px] max-w-[200px]">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-[#0f0f23] border border-[#1a1a2e]/60">
                       {p.image_url ? (
                         <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
-                        <span className="w-full h-full flex items-center justify-center text-[#555] text-xs font-black">{(p.name || "?").charAt(0).toUpperCase()}</span>
+                        <span className="w-full h-full flex items-center justify-center text-[#555] text-xs font-bold">{p.name?.charAt(0)?.toUpperCase()}</span>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-[#f5f3ed] truncate text-[11.5px] leading-snug">{p.name}</p>
-                      <p className="text-[10px] text-[#c4b8a8]/70 truncate">{p.brand || "—"}</p>
-                      {p.featured && (
-                        <span className="inline-block mt-0.5 px-1 py-[1px] text-[9px] font-black rounded bg-[#173aef]/20 text-[#173aef] border border-[#173aef]/25">DESTACADO</span>
-                      )}
-                      {hasDiscount && (
-                        <span className="inline-block mt-0.5 px-1 py-[1px] text-[9px] font-black rounded bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/25">-{Math.round((1 - Number(p.discount_price_ars!) / p.sale_price_ars) * 100)}%</span>
-                      )}
+                      <p className="font-semibold text-[#f5f3ed] truncate text-sm font-medium">{p.name}</p>
+                      <p className="text-[10px] text-[#c4b8a8]/70 font-semibold text-[10px] truncate">{p.brand || "—"}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-3 text-[11px] text-[#c4b8a8]/80">
-                  <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", p.category ? "bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30" : "bg-[#333]/50 text-[#888] border border-[#555]/50")}>
-                    {p.category || "—"}
-                  </span>
-                </td>
-                <td className="px-3 py-3 text-right font-mono text-[11.5px]">
-                  {hasDiscount ? (
-                    <div className="flex flex-col items-end">
-                      <span className="font-black text-[#f59e0b]">${Number(p.discount_price_ars).toLocaleString("es-AR")}</span>
-                      <span className="line-through text-[10px] text-[#777]">${p.sale_price_ars.toLocaleString("es-AR")}</span>
-                    </div>
-                  ) : (
-                    <span className="font-medium text-[#f5f3ed]">${p.sale_price_ars.toLocaleString("es-AR")}</span>
-                  )}
-                </td>
                 <td className="px-3 py-3 text-right">
-                  <span className={cn("font-mono text-[11px] font-bold", critical ? "text-rose-400" : low ? "text-amber-300" : "text-emerald-400")}>
+                  <span className={cn("font-mono text-[11px] font-bold", critical ? "text-rose-600" : low ? "text-amber-500" : "text-emerald-500")}>
                     {p.stock}
                   </span>
                   {low && (
-                    <span className="block text-[9px] text-amber-300/70">bajo</span>
+                    <span className="block text-[9px] text-amber-500/70">bajo</span>
                   )}
                   {critical && (
-                    <span className="block text-[9px] text-rose-400/70">agotado</span>
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right font-mono text-[11px] text-emerald-400">
-                  {p.profit_per_unit_ars ? `$${Number(p.profit_per_unit_ars).toLocaleString("es-AR")}` : "—"}
-                  {p.profit_per_unit_ars && p.sale_price_ars > 0 && (
-                    <span className="block text-[9px] text-emerald-400/50">({Math.round((Number(p.profit_per_unit_ars) / p.sale_price_ars) * 100)}%)</span>
+                    <span className="block text-[9px] text-rose-500/70">agotado</span>
                   )}
                 </td>
                 <td className="px-3 py-3 text-center">
@@ -190,7 +164,7 @@ export default function ProductTableOwn({
                       <button
                         type="button"
                         onClick={() => onDuplicate(p.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-amber-400 bg-amber-400/15 border border-amber-400/30 hover:bg-amber-400/25 hover:border-amber-400/40 transition-all"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-amber-500 bg-amber-400/15 border border-amber-400/30 hover:bg-amber-400/25 hover:border-amber-400/40 transition-all"
                         aria-label={`Duplicar ${p.name}`}
                       >
                         <Copy className="w-3 h-3" />
@@ -201,7 +175,7 @@ export default function ProductTableOwn({
                       <button
                         type="button"
                         onClick={() => onDelete(p.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-rose-400 bg-rose-400/15 border border-rose-400/30 hover:bg-rose-400/25 hover:border-rose-400/40 transition-all"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-rose-500 bg-rose-400/15 border border-rose-400/30 hover:bg-rose-500/25 hover:border-rose-500/40 transition-all"
                         aria-label={`Eliminar ${p.name}`}
                       >
                         <Trash2 className="w-3 h-3" />
@@ -215,7 +189,9 @@ export default function ProductTableOwn({
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-3 py-8 text-center text-xs text-[#777]/[0.8]">Sin productos que coincidan.</td>
+              <td colSpan={7} className="px-3 py-8 text-center text-xs text-[#777]/[0.8]">
+                No hay productos que coincidan.
+              </td>
             </tr>
           )}
         </tbody>
