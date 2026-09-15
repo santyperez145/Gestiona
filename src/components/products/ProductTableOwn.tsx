@@ -164,7 +164,20 @@ export default function ProductTableOwn({
                   )}
                 </td>
                 <td className="px-3 py-3 text-center">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onEdit?.(p.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-[#173aef] bg-[#173aef]/10 border border-[#173aef]/20 hover:bg-[#173aef]/20 hover:border-[#173aef]/40 transition-all"
+                      aria-label={`Editar ${p.name}`}
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Editar
+                    </button>
+                  </div>
+                </td>
+                <td className="px-3 py-3 text-center">
+                  <div className="flex items-center justify-center gap-1.5">
                     <span className={cn("w-2 h-2 rounded-full", critical ? "bg-rose-400 animate-pulse" : low ? "bg-amber-300" : "bg-emerald-400")} />
                     <span className={cn("text-[10px] font-semibold", critical ? "text-rose-400" : low ? "text-amber-300" : "text-emerald-400")}>
                       {critical ? "Agotado" : low ? "Alerta" : "Activo"}
