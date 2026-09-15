@@ -125,7 +125,7 @@ export default function ProductTableOwn({
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-[#f5f3ed] truncate text-[11.5px] leading-snug">{p.name}</p>
-                      <p className="text-[10px] text-[#c4b8a8]/50 truncate">{p.brand || "—"}</p>
+                      <p className="text-[10px] text-[#c4b8a8]/70 truncate">{p.brand || "—"}</p>
                       {p.featured && (
                         <span className="inline-block mt-0.5 px-1 py-[1px] text-[9px] font-black rounded bg-[#173aef]/20 text-[#173aef] border border-[#173aef]/25">DESTACADO</span>
                       )}
@@ -135,8 +135,8 @@ export default function ProductTableOwn({
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-3 text-[11px] text-[#c4b8a8]/70">
-                  <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", p.category ? "bg-[#f59e0b]/10 text-[#f59e0b]/90 border border-[#f59e0b]/20" : "bg-[#333]/40 text-[#888]")}>
+                <td className="px-3 py-3 text-[11px] text-[#c4b8a8]/80">
+                  <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", p.category ? "bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30" : "bg-[#333]/50 text-[#888] border border-[#555]/50")}>
                     {p.category || "—"}
                   </span>
                 </td>
@@ -170,7 +170,7 @@ export default function ProductTableOwn({
                 <td className="px-3 py-3 text-center">
                   <div className="flex items-center justify-center gap-1.5">
                     <span className={cn("w-2 h-2 rounded-full", critical ? "bg-rose-400 animate-pulse" : low ? "bg-amber-300" : "bg-emerald-400")} />
-                    <span className={cn("text-[10px] font-semibold", critical ? "text-rose-400" : low ? "text-amber-300" : "text-emerald-400")}>
+                    <span className={cn("text-[10px] font-semibold", critical ? "text-rose-600" : low ? "text-amber-500" : "text-emerald-500")}>
                       {critical ? "Agotado" : low ? "Alerta" : "Activo"}
                     </span>
                   </div>
@@ -180,7 +180,7 @@ export default function ProductTableOwn({
                     <button
                       type="button"
                       onClick={() => onEdit?.(p.id)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-[#173aef] bg-[#173aef]/10 border border-[#173aef]/20 hover:bg-[#173aef]/20 hover:border-[#173aef]/40 transition-all"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-[#173aef] bg-[#173aef]/15 border border-[#173aef]/30 hover:bg-[#173aef]/25 hover:border-[#173aef]/40 transition-all"
                       aria-label={`Editar ${p.name}`}
                     >
                       <Pencil className="w-3 h-3" />
@@ -190,7 +190,7 @@ export default function ProductTableOwn({
                       <button
                         type="button"
                         onClick={() => onDuplicate(p.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 hover:bg-amber-400/20 hover:border-amber-400/40 transition-all"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-amber-400 bg-amber-400/15 border border-amber-400/30 hover:bg-amber-400/25 hover:border-amber-400/40 transition-all"
                         aria-label={`Duplicar ${p.name}`}
                       >
                         <Copy className="w-3 h-3" />
@@ -201,7 +201,7 @@ export default function ProductTableOwn({
                       <button
                         type="button"
                         onClick={() => onDelete(p.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-rose-400 bg-rose-400/10 border border-rose-400/20 hover:bg-rose-400/20 hover:border-rose-400/40 transition-all"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-rose-400 bg-rose-400/15 border border-rose-400/30 hover:bg-rose-400/25 hover:border-rose-400/40 transition-all"
                         aria-label={`Eliminar ${p.name}`}
                       >
                         <Trash2 className="w-3 h-3" />
@@ -215,7 +215,7 @@ export default function ProductTableOwn({
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-3 py-8 text-center text-xs text-[#777]">Sin productos que coincidan.</td>
+              <td colSpan={7} className="px-3 py-8 text-center text-xs text-[#777]/[0.8]">Sin productos que coincidan.</td>
             </tr>
           )}
         </tbody>
