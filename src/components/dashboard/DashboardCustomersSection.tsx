@@ -43,12 +43,12 @@ export default function DashboardCustomersSection({
   monthGrossProfit,
   salesByChannel,
 }: DashboardCustomersSectionProps) {
-  const colors = [
-  "hsl(var(--primary))",           // Blue-ish primary (C2 blue)
-  "hsl(142 76% 36%)",              // Teal (C2 teal)
-  "hsl(38 92% 50%)",               // Orange (C2 orange)
-  "hsl(204 72% 45%)",              // Purple (C2 purple)
-];
+const colors = [
+    "hsl(219 83% 51%)",           // Blue-ish primary (C2 blue) - #173aef
+    "hsl(142 76% 36%)",              // Teal (C2 teal)
+    "hsl(38 92% 50%)",               // Orange (C2 orange)
+    "hsl(204 72% 45%)",              // Purple (C2 purple)
+  ];
 
   return (
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Clientes y canales">

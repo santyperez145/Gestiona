@@ -20,9 +20,9 @@ interface CommerceChannelPerformanceProps {
 
 const channelIcons = { online: Globe, pos: Store, marketplace: ShoppingBag };
 const channelColors = {
-  online: "hsl(var(--primary))",
-  pos: "hsl(142 76% 36%)",
-  marketplace: "hsl(38 92% 50%)",
+  online: "#173aef",
+  pos: "#14b8a6",
+  marketplace: "#f59e0b",
 };
 
 export default function CommerceChannelPerformance({
