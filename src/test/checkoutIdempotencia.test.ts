@@ -26,6 +26,13 @@ describe("idempotencia del checkout", () => {
     expect(migracion).toMatch(/RAISE EXCEPTION[\s\S]{0,120}ya se us/);
   });
 
+  it("dos claves distintas corren en paralelo sin duplicar stock ni orden", () => {
+    // C20 pendiente: certificar concurrencia con claves distintas.
+    expect(envoltorio).toContain("p_clave");
+    expect(envoltorio).toContain("idempotencia_reservar");
+    expect(migracion).toContain("PRIMARY KEY (org_id, operacion, clave)");
+  });
+
   it("existe el estado en_curso, que es lo que frena la carrera", () => {
     // Sin un estado intermedio, dos requests simultáneos ven "no hay nada" y
     // los dos ejecutan.
