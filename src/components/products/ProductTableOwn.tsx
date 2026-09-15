@@ -126,7 +126,7 @@ export default function ProductTableOwn({
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-[#f5f3ed] truncate text-sm font-medium">{p.name}</p>
-                      <p className="text-[10px] text-[#c4b8a8]/70 font-semibold text-[10px] truncate">{p.brand || "—"}</p>
+                      <p className="text-[10px] text-[#e4e4e7] font-semibold text-[10px] truncate">{p.brand || "—"}</p>
                     </div>
                   </div>
                 </td>
@@ -141,9 +141,15 @@ export default function ProductTableOwn({
                     <span className="block text-[9px] text-rose-500/70">agotado</span>
                   )}
                 </td>
+                <td className="px-3 py-3 text-right font-mono text-[11.5px] text-[#f5f3ed]">
+                  {p.profit_per_unit_ars ? `$${Number(p.profit_per_unit_ars).toLocaleString("es-AR")}` : "—"}
+                  {p.profit_per_unit_ars && p.sale_price_ars > 0 && (
+                    <span className="block text-[9px] text-emerald-500/50">({Math.round((Number(p.profit_per_unit_ars) / p.sale_price_ars) * 100)}%)</span>
+                  )}
+                </td>
                 <td className="px-3 py-3 text-center">
                   <div className="flex items-center justify-center gap-1.5">
-                    <span className={cn("w-2 h-2 rounded-full", critical ? "bg-rose-400 animate-pulse" : low ? "bg-amber-300" : "bg-emerald-400")} />
+                    <span className={cn("w-2 h-2 rounded-full", critical ? "bg-rose-500 animate-pulse" : low ? "bg-amber-500" : "bg-emerald-500")} />
                     <span className={cn("text-[10px] font-semibold", critical ? "text-rose-600" : low ? "text-amber-500" : "text-emerald-500")}>
                       {critical ? "Agotado" : low ? "Alerta" : "Activo"}
                     </span>

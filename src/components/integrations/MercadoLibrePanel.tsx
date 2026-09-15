@@ -278,11 +278,11 @@ export default function MercadoLibrePanel() {
                   {listings.map(l => (
                     <tr key={l.id} className="hover:bg-muted/20">
                       <td className="px-3 py-2">
-                        {listing.permalink ? (
-                          <a href={listing.permalink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                        {l.permalink ? (
+                          <a href={l.permalink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
                             ID de publicación
                           </a>
-                        ) : listing.meli_item_id}
+                        ) : l.meli_item_id}
                         {l.last_error && <p className="text-[10px] text-destructive mt-0.5">{l.last_error}</p>}
                       </td>
                       <td className="px-3 py-2 hidden sm:table-cell">
