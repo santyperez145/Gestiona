@@ -115,7 +115,7 @@ export default function ProductTableOwn({
                     aria-label={`Seleccionar ${p.name}`}
                   />
                 </td>
-                <td className="px-3 py-3 min-w-[180px] max-w-[200px]">
+                <td className="px-3 py-3 min-w-[160px] max-w-[200px] text-[11px] text-[#f5f3ed]/80">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-[#0f0f23] border border-[#1a1a2e]/60">
                       {p.image_url ? (
@@ -142,9 +142,17 @@ export default function ProductTableOwn({
                   )}
                 </td>
                 <td className="px-3 py-3 text-right font-mono text-[11.5px] text-[#f5f3ed]">
-                  {p.profit_per_unit_ars ? `$${Number(p.profit_per_unit_ars).toLocaleString("es-AR")}` : "—"}
-                  {p.profit_per_unit_ars && p.sale_price_ars > 0 && (
-                    <span className="block text-[9px] text-emerald-500/50">({Math.round((Number(p.profit_per_unit_ars) / p.sale_price_ars) * 100)}%)</span>
+                  {p.profit_per_unit_ars ? (
+                    <>
+                      <span className="font-black text-[#f59e0b]">${Number(p.profit_per_unit_ars).toLocaleString("es-AR")}</span>
+                      {p.sale_price_ars > 0 && (
+                        <span className="block text-[9px] text-emerald-500/50">({Math.round((Number(p.profit_per_unit_ars) / p.sale_price_ars) * 100)}%)</span>
+                      )}
+                    </>
+                  ) : p.sale_price_ars ? (
+                    <span className="font-medium">${p.sale_price_ars.toLocaleString("es-AR")}</span>
+                  ) : (
+                    "—"
                   )}
                 </td>
                 <td className="px-3 py-3 text-center">

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull, faltaCotizacion } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB, getVariantsByUserDB } from "@/lib/supabaseStore";
 import ProductPriceListsSection from "@/components/products/ProductPriceListsSection";
@@ -839,11 +840,22 @@ export default function ProductsPage() {
   const totalStock = filtered.reduce((s, p) => s + p.stock, 0);
   const totalValue = filtered.reduce((s, p) => s + (Number(p.total_cost_usd) * p.stock), 0);
 
+  const { ask, dialog } = useConfirmDialog();
+
   const handleDelete = async (p: any) => {
-    await deleteProductDB(p.id);
-    if (user) await logAudit(user.id, 'delete', 'product', p.id, { name: p.name });
-    reload();
-    toast.success("Producto eliminado");
+    const ok = await ask({
+      title: "Eliminar producto",
+      description: `¿Estás seguro de que quieres eliminar el producto "${p.name}"?`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      variant: "destructive",
+    });
+    if (ok) {
+      await deleteProductDB(p.id);
+      if (user) await logAudit(user.id, 'delete', 'product', p.id, { name: p.name });
+      reload();
+      toast.success("Producto eliminado");
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -1669,7 +1681,7 @@ export default function ProductsPage() {
                 onSort={(col: string) => setProductSort(s => ({ col: s.col === col ? col : (col as any), dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
                 onEdit={(id) => setEditing(items.find(p => p.id === id) || null)}
                 onDuplicate={(id) => { const src = items.find(p => p.id === id); if(src){ const dup = { ...src, id: undefined, name: `Copia de ${src.name}` }; setEditing(dup); setOpen(true); } }}
-                onDelete={(id) => { const p = items.find(x => x.id === id); if(p){ if(confirm("¿Eliminar "+p.name+"?")){ handleDelete(p); } } }}
+                                onDelete={(id) => { const p = items.find(x => x.id === id); if(p){ handleDelete(p); } }}
               />
             </div>
           ))}
