@@ -359,7 +359,7 @@ export default function SmartAlertsPage() {
                   <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
                     <span>Métrica: {rule.metric}</span>
                     <span>Umbral: {rule.condition_op} {rule.threshold}</span>
-                    <span>Cooldown: {rule.cooldown_min}min</span>
+                    <span>Tolerancia: {rule.cooldown_min}min</span>
                     <span>Disparos: {rule.trigger_count}</span>
                   </div>
                   <div className="flex gap-1 mt-1">

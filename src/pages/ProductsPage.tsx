@@ -3703,7 +3703,7 @@ function MercadoLibrePublishCard({ productId, orgId, productCategory }: {
       <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-emerald-500">Publicado en MercadoLibre</p>
-          <p className="text-[11px] text-muted-foreground">{listing.meli_item_id} · {listing.status}</p>
+          <p className="text-[11px] text-muted-foreground">ID de publicación · {listing.status}</p>
         </div>
         {listing.permalink && (
           <a href={listing.permalink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 shrink-0">

@@ -805,7 +805,7 @@ export default function SettingsPage() {
                   onChange={(c) => setCatalogBg(c)}
                 />
                 <ColorPicker
-                  label="Cards"
+                  label="Cajas"
                   value={catalogCard}
                   onChange={(c) => setCatalogCard(c)}
                 />
@@ -1286,7 +1286,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setSmtpPassVisible(v => !v)}
-                    aria-label={smtpPassVisible ? 'Ocultar credencial' : 'Mostrar credencial'}
+                    aria-label={smtpPassVisible ? 'Ocultar perfil' : 'Mostrar perfil'}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {smtpPassVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
