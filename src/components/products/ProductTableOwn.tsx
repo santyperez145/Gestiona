@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, ChevronUp, ChevronDown, Pencil } from "lucide-react";
+import { ArrowUpDown, ChevronUp, ChevronDown, Pencil, Copy, Trash2 } from "lucide-react";
 
 export interface ProductRow {
   id: string;
@@ -27,6 +27,8 @@ interface Props {
   sortDir?: "asc" | "desc";
   onSort?: (col: string) => void;
   onEdit?: (id: string) => void;
+  onDuplicate?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 function SortIcon({ active, dir }: { active?: boolean; dir?: "asc" | "desc" }) {
@@ -43,6 +45,8 @@ export default function ProductTableOwn({
   sortDir,
   onSort,
   onEdit,
+  onDuplicate,
+  onDelete,
 }: Props) {
   const allSelected = rows.length > 0 && rows.every((r) => selectedIds.has(r.id));
   const someSelected = rows.some((r) => selectedIds.has(r.id)) && !allSelected;
@@ -165,19 +169,6 @@ export default function ProductTableOwn({
                 </td>
                 <td className="px-3 py-3 text-center">
                   <div className="flex items-center justify-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => onEdit?.(p.id)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-[#173aef] bg-[#173aef]/10 border border-[#173aef]/20 hover:bg-[#173aef]/20 hover:border-[#173aef]/40 transition-all"
-                      aria-label={`Editar ${p.name}`}
-                    >
-                      <Pencil className="w-3 h-3" />
-                      Editar
-                    </button>
-                  </div>
-                </td>
-                <td className="px-3 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
                     <span className={cn("w-2 h-2 rounded-full", critical ? "bg-rose-400 animate-pulse" : low ? "bg-amber-300" : "bg-emerald-400")} />
                     <span className={cn("text-[10px] font-semibold", critical ? "text-rose-400" : low ? "text-amber-300" : "text-emerald-400")}>
                       {critical ? "Agotado" : low ? "Alerta" : "Activo"}
@@ -185,16 +176,38 @@ export default function ProductTableOwn({
                   </div>
                 </td>
                 <td className="px-3 py-3 text-center">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-center gap-1">
                     <button
                       type="button"
                       onClick={() => onEdit?.(p.id)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-[#173aef] bg-[#173aef]/10 border border-[#173aef]/20 hover:bg-[#173aef]/20 hover:border-[#173aef]/40 transition-all"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-[#173aef] bg-[#173aef]/10 border border-[#173aef]/20 hover:bg-[#173aef]/20 hover:border-[#173aef]/40 transition-all"
                       aria-label={`Editar ${p.name}`}
                     >
                       <Pencil className="w-3 h-3" />
                       Editar
                     </button>
+                    {onDuplicate && (
+                      <button
+                        type="button"
+                        onClick={() => onDuplicate(p.id)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 hover:bg-amber-400/20 hover:border-amber-400/40 transition-all"
+                        aria-label={`Duplicar ${p.name}`}
+                      >
+                        <Copy className="w-3 h-3" />
+                        Copiar
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        type="button"
+                        onClick={() => onDelete(p.id)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-rose-400 bg-rose-400/10 border border-rose-400/20 hover:bg-rose-400/20 hover:border-rose-400/40 transition-all"
+                        aria-label={`Eliminar ${p.name}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Borrar
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
