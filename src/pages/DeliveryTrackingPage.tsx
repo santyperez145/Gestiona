@@ -511,10 +511,10 @@ export default function DeliveryTrackingPage() {
           <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="rounded-xl border border-border/50 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-border/50 bg-muted/20">
-              <tr className="text-muted-foreground text-xs">
+        <div className="rounded-xl border border-border/50 overflow-x-auto bg-[color:var(--b1)_/50]">
+          <table className="w-full text-xs antialiased">
+            <thead className="border-b border-border/50 bg-[color:var(--b2)_/50]">
+              <tr className="text-[10px] text-[color:var(--bc)]">
                 <th className="text-left px-3 py-2.5">Código</th>
                 <th className="text-left px-3 py-2.5">Destinatario</th>
                 <th className="text-left px-3 py-2.5 hidden md:table-cell">Dirección</th>
@@ -527,12 +527,12 @@ export default function DeliveryTrackingPage() {
               {filtered.map(d => {
                 const cfg = STATUS_CFG[d.status];
                 return (
-                  <tr key={d.id} className="border-b border-border/30 hover:bg-muted/20">
-                    <td className="px-3 py-2">
+                  <tr key={d.id} className="border-b border-border/30 hover:bg-[color:var(--m1)_/30]">
+                    <td className="px-3 py-2 text-[color:var(--fg)]">
                       <div className="flex items-center gap-1.5">
-                        <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{d.tracking_code}</code>
+                        <code className="text-xs font-mono bg-[color:var(--m1)] px-1.5 py-0.5 rounded">{d.tracking_code}</code>
                         <button onClick={() => navigator.clipboard.writeText(d.tracking_code).then(() => toast.success("Código copiado"))}
-                          className="text-muted-foreground hover:text-foreground">
+                          className="text-[color:var(--muted)] hover:text-[color:var(--foreground)]">
                           <Copy className="w-3 h-3" />
                         </button>
                       </div>
@@ -540,23 +540,23 @@ export default function DeliveryTrackingPage() {
                         {d.priority !== "normal" ? d.priority.toUpperCase() : ""}
                       </p>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 text-[color:var(--fg)]">
                       <p className="font-medium">{d.customer_name}</p>
                       {d.customer_phone && (
-                        <a href={`tel:${d.customer_phone}`} className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
+                        <a href={`tel:${d.customer_phone}`} className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] flex items-center gap-1">
                           <Phone className="w-3 h-3" />{d.customer_phone}
                         </a>
                       )}
                     </td>
-                    <td className="px-3 py-2 hidden md:table-cell">
+                    <td className="px-3 py-2 hidden md:table-cell text-[color:var(--fg)]">
                       <p className="text-xs">{d.address_street}</p>
                       <p className="text-xs text-muted-foreground">{d.address_city}</p>
                     </td>
-                    <td className="px-3 py-2 hidden lg:table-cell">
+                    <td className="px-3 py-2 hidden lg:table-cell text-[color:var(--fg)]">
                       <p className="text-xs">{d.driver_name || "—"}</p>
                       <p className="text-xs text-muted-foreground">{CARRIER_LABELS[d.carrier]}</p>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 text-[color:var(--fg)]">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg?.cls}`}>{cfg?.label}</span>
                       {d.cod_amount > 0 && !d.cod_collected && (
                         <p className="text-[10px] text-yellow-500 mt-0.5">COD {fmtCurrency(d.cod_amount)}</p>
@@ -571,7 +571,7 @@ export default function DeliveryTrackingPage() {
                           <Edit2 className="w-3.5 h-3.5" />
                         </Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteDelivery(d.id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </td>

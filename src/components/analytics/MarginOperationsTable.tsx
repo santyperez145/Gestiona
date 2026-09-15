@@ -70,13 +70,13 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold">Operaciones explicables</h3>
+          <h3 className="text-sm font-semibold text-foreground">Operaciones explicables</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Un ticket conserva sus líneas, mix de cobro, promoción y fuentes sin duplicar importes.</p>
         </div>
         <span className="text-xs text-muted-foreground">{operations.length} operaciones</span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1050px] text-xs">
+        <table className="w-full min-w-[1050px] text-xs antialiased">
           <thead className="bg-muted/30 text-muted-foreground uppercase tracking-wide text-[10px]">
             <tr>
               <th className="text-left px-4 py-3">Operación</th>
@@ -97,15 +97,15 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
               const blockers = operation.margin_blockers ?? [];
               return (
                 <Fragment key={key}>
-                  <tr>
-                    <td className="px-4 py-3">
+                  <tr className="hover:bg-muted/20">
+                    <td className="px-4 py-3 text-foreground">
                       <span className="font-medium">#{operation.operation_reference || "Sin referencia"}</span>
                       <span className="block text-[10px] text-muted-foreground">{dateLabel(operation.sold_at)} · {operation.line_count || 0} líneas · {operation.units || 0} u.</span>
                     </td>
-                    <td className="px-3 py-3">{CHANNEL_LABEL[operation.channel || ""] || operation.channel || "Sin atribuir"}</td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 text-foreground">{CHANNEL_LABEL[operation.channel || ""] || operation.channel || "Sin atribuir"}</td>
+                    <td className="px-3 py-3 text-foreground">
                       <div className="flex flex-wrap gap-1">
-                        {(operation.payment_methods ?? []).map(method => <span key={method} className="rounded bg-muted px-1.5 py-0.5">{method}</span>)}
+                        {(operation.payment_methods ?? []).map(method => <span key={method} className="rounded bg-muted/80 px-1.5 py-0.5 text-foreground">{method}</span>)}
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -114,18 +114,18 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
                       ) : operation.promotion_evidence_status === "measured" ? (
                         <span className="text-emerald-600 dark:text-emerald-400">{formatARS(operation.measured_discount_ars || 0)} medidos</span>
                       ) : (
-                        <span className="text-amber-700 dark:text-amber-300">Evidencia parcial</span>
+                        <span className="text-amber-600 dark:text-amber-400">Evidencia parcial</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono">{formatARS(operation.revenue_ars || 0)}</td>
-                    <td className="px-3 py-3 text-right font-mono font-semibold">{amount(operation.contribution_margin_ars)}</td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 text-right font-mono text-foreground">{formatARS(operation.revenue_ars || 0)}</td>
+                    <td className="px-3 py-3 text-right font-mono font-semibold text-foreground">{amount(operation.contribution_margin_ars)}</td>
+                    <td className="px-3 py-3 text-foreground">
                       {operation.is_explainable ? (
                         <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5" /> 100% explicable</span>
                       ) : blockers.length > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400"><RotateCcw className="w-3.5 h-3.5" /> Devolución pendiente</span>
+                        <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400"><RotateCcw className="w-3.5 h-3.5" /> Devolución pendiente</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-300"><AlertTriangle className="w-3.5 h-3.5" /> {operation.coverage_pct || 0}% cubierto</span>
+                        <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400"><AlertTriangle className="w-3.5 h-3.5" /> {operation.coverage_pct || 0}% cubierto</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-right">
@@ -152,21 +152,21 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
                           <div className="rounded-xl border border-border/60 bg-card p-3">
                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Mix de cobro persistido</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                              {mix.map(leg => <span key={leg.method} className="rounded-md border border-border px-2 py-1">{leg.method}: {formatARS(leg.amount_ars)}</span>)}
+                              {mix.map(leg => <span key={leg.method} className="rounded-md border border-border px-2 py-1 text-foreground">{leg.method}: {formatARS(leg.amount_ars)}</span>)}
                               {mix.length === 0 && <span className="text-muted-foreground">Sin desglose</span>}
                             </div>
                             {Math.abs(Number(operation.payment_mix_difference_ars || 0)) > 0.01 && (
-                              <p className="mt-2 text-[10px] text-amber-700 dark:text-amber-300">Diferencia contra ingresos: {formatARS(operation.payment_mix_difference_ars || 0)}</p>
+                              <p className="mt-2 text-[10px] text-amber-600 dark:text-amber-400">Diferencia contra ingresos: {formatARS(operation.payment_mix_difference_ars || 0)}</p>
                             )}
                           </div>
                           <div className="rounded-xl border border-border/60 bg-card p-3">
                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Evidencia de promoción</p>
-                            <p className="mt-2">Descuento medido: <span className="font-mono">{formatARS(operation.measured_discount_ars || 0)}</span></p>
+                            <p className="mt-2">Descuento medido: <span className="font-mono text-foreground">{formatARS(operation.measured_discount_ars || 0)}</span></p>
                             {(operation.coupon_codes ?? []).length > 0 && <p className="mt-1 text-muted-foreground">Cupones: {(operation.coupon_codes ?? []).join(", ")}</p>}
                             {(operation.promotion_missing_evidence ?? []).length > 0 && (
-                              <p className="mt-1 text-amber-700 dark:text-amber-300">Falta {operation.promotion_missing_evidence?.map(item => EVIDENCE_LABEL[item] || item).join(", ")}</p>
+                              <p className="mt-1 text-amber-600 dark:text-amber-400">Falta {operation.promotion_missing_evidence?.map(item => EVIDENCE_LABEL[item] || item).join(", ")}</p>
                             )}
-                            {blockers.length > 0 && <p className="mt-1 text-red-600 dark:text-red-400">El margen queda bloqueado hasta reconciliar la devolución.</p>}
+                            {blockers.length > 0 && <p className="mt-1 text-rose-600 dark:text-rose-400">El margen queda bloqueado hasta reconciliar la devolución.</p>}
                           </div>
                         </div>
                       </td>

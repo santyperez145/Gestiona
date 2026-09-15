@@ -183,55 +183,55 @@ export default function StockReservationsTab() {
       {filtered.length === 0 ? (
         <EmptyState icon={Lock} title="Sin reservas" description="Cuando reserves stock para un cliente, aparece acá." />
       ) : (
-        <div className="bg-card border border-border/60 rounded-[10px] overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="bg-[color:var(--b1)] border border-[color:var(--border)]/60 rounded-[10px] overflow-x-auto shadow-sm">
+          <table className="w-full text-xs antialiased">
             <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Producto</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cliente</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cant.</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vence</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acciones</th>
+              <tr className="border-b border-[color:var(--border)] bg-[color:var(--b2)]/50">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Producto</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Cliente</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Cant.</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Vence</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Estado</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-[color:var(--border)]">
               {filtered.map(r => {
                 const meta = STATUS_META[r.status] ?? STATUS_META.active;
                 const vence = r.expires_at ? new Date(r.expires_at) : null;
                 const pronto = vence && vence.getTime() - Date.now() < 3 * 86400000;
                 return (
-                  <tr key={r.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3 font-medium">{r.products?.name ?? "—"}</td>
-                    <td className="px-4 py-3">
+                  <tr key={r.id} className="hover:bg-[color:var(--m1)]/30 transition-colors">
+                    <td className="px-4 py-3 font-medium text-[color:var(--fg)]">{r.products?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-[color:var(--fg)]">
                       <span>{r.customer_name}</span>
-                      {r.customer_phone && <span className="block text-[11px] text-muted-foreground">{r.customer_phone}</span>}
+                      {r.customer_phone && <span className="block text-[11px] text-[color:var(--muted)]">{r.customer_phone}</span>}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono">{r.quantity}</td>
+                    <td className="px-4 py-3 text-right font-mono text-[color:var(--fg)]">{r.quantity}</td>
                     <td className="px-4 py-3 text-xs">
                       {vence
-                        ? <span className={pronto && r.status === "active" ? "text-amber-400 font-semibold" : "text-muted-foreground"}>
+                        ? <span className={pronto && r.status === "active" ? "text-[color:var(--warning)] font-semibold" : "text-[color:var(--muted)]"}>
                             {vence.toLocaleDateString("es-AR")}
                           </span>
-                        : <span className="text-muted-foreground">Sin vencimiento</span>}
+                        : <span className="text-[color:var(--muted)]">Sin vencimiento</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="outline" className={`text-xs border ${meta.cls}`}>{meta.label}</Badge>
+                      <Badge variant="outline" className={`text-xs border ${meta.cls} bg-[color:var(--b1)]`}>{meta.label}</Badge>
                     </td>
                     <td className="px-4 py-3 text-right">
                       {r.status === "active" ? (
                         <div className="flex gap-1 justify-end">
                           <Button variant="ghost" size="sm" title="Marcar como cumplida (se concretó la venta)"
                             onClick={() => resolve(r.id, "fulfilled")}>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <Check className="w-3.5 h-3.5 text-[color:var(--success)]" />
                           </Button>
                           <Button variant="ghost" size="sm" title="Cancelar reserva (libera el stock)"
                             onClick={() => resolve(r.id, "cancelled")}>
-                            <X className="w-3.5 h-3.5 text-destructive" />
+                            <X className="w-3.5 h-3.5 text-[color:var(--destructive)]" />
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-[11px] text-[color:var(--muted)]">
                           {r.resolved_at ? new Date(r.resolved_at).toLocaleDateString("es-AR") : "—"}
                         </span>
                       )}

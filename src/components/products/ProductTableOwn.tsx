@@ -1,4 +1,4 @@
-/* Mejoras de legibilidad y corrección de overflow en ProductTableOwn */
+/* Tabla propia Nerqia — modo claro y oscuro sin shadcn genérico */
 import React from "react";
 import { cn } from "@/lib/utils";
 import { ArrowUpDown, ChevronUp, ChevronDown, Pencil, Copy, Trash2 } from "lucide-react";
@@ -53,15 +53,15 @@ export default function ProductTableOwn({
   const someSelected = rows.some((r) => selectedIds.has(r.id)) && !allSelected;
 
   return (
-    <div className="relative w-full overflow-x-auto rounded-xl border border-[#1a1a2e]/60 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_12px_40px_rgba(0,0,0,0.6)]" aria-label="Tabla de productos propia">
-      <table className="w-full text-[12px] leading-relaxed">
+    <div className="relative w-full overflow-x-auto rounded-xl border border-[#1a1a2e]/60 bg-[#0b0b18]/90 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_12px_40px_rgba(0,0,0,0.6)]" aria-label="Tabla de productos propia">
+      <table className="w-full text-[13px] leading-snug">
         <thead>
-          <tr className="border-b border-[#1a1a2e]/70">
+          <tr className="border-b border-[#2a2a3e] bg-[#0f0f23]/80">
             <th className="w-10 px-2 py-3 text-left">
               <button
                 type="button"
                 onClick={onToggleAll}
-                className="text-[#c4b8a8]/60 hover:text-[#f59e0b] transition-colors"
+                className="text-[#c4b8a8]/70 hover:text-[#f59e0b] transition-colors"
                 aria-label={allSelected ? "Desmarcar todos" : "Marcar todos"}
               >
                 <span className={cn("inline-block w-3.5 h-3.5 rounded-[3px] border", allSelected ? "bg-[#f59e0b] border-[#f59e0b]" : someSelected ? "bg-[#f59e0b]/20 border-[#f59e0b]/60" : "border-[#555]/60 bg-transparent")} />
@@ -78,7 +78,7 @@ export default function ProductTableOwn({
             ].map((h) => (
               <th
                 key={h.col}
-                className={cn("px-3 py-3 font-bold tracking-wider uppercase text-[10px] text-[#c4b8a8]/70 hover:text-[#f59e0b]/90 transition-colors cursor-pointer select-none", h.align === "right" ? "text-right" : "text-center")}
+                className={cn("px-3 py-3 font-bold tracking-wider uppercase text-[10px] text-[#e4e4e7]/80 hover:text-[#f59e0b]/90 transition-colors cursor-pointer select-none", h.align === "right" ? "text-right" : "text-center")}
                 onClick={() => onSort?.(h.col)}
               >
                 <span className="inline-flex items-center gap-1">
@@ -89,7 +89,7 @@ export default function ProductTableOwn({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#1a1a2e]/60">
+        <tbody className="divide-y divide-[#2a2a3e]/60">
           {rows.map((p) => {
             const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < p.sale_price_ars;
             const low = p.stock <= (p.low_stock_threshold ?? 3);
@@ -115,38 +115,38 @@ export default function ProductTableOwn({
                     aria-label={`Seleccionar ${p.name}`}
                   />
                 </td>
-                <td className="px-3 py-3 min-w-[160px] max-w-[200px] text-[11px] text-[#f5f3ed]/80">
+                <td className="px-3 py-3 min-w-[180px] max-w-[220px] text-[13px] text-[#f5f3ed]/95">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-[#0f0f23] border border-[#1a1a2e]/60">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-[#0f0f23] border border-[#1a1a2e]/60 shadow-sm">
                       {p.image_url ? (
                         <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
-                        <span className="w-full h-full flex items-center justify-center text-[#555] text-xs font-bold">{p.name?.charAt(0)?.toUpperCase()}</span>
+                        <span className="w-full h-full flex items-center justify-center text-[#777] text-sm font-bold">{p.name?.charAt(0)?.toUpperCase()}</span>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-[#f5f3ed] truncate text-sm font-medium">{p.name}</p>
-                      <p className="text-[10px] text-[#e4e4e7] font-semibold text-[10px] truncate">{p.brand || "—"}</p>
+                      <p className="font-semibold text-[#f5f3ed] truncate text-[13px] leading-tight">{p.name}</p>
+                      <p className="text-[11px] text-[#c4b8a8]/80 font-medium truncate">{p.brand || "—"}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-3 py-3 text-right">
-                  <span className={cn("font-mono text-[11px] font-bold", critical ? "text-rose-600" : low ? "text-amber-500" : "text-emerald-500")}>
+                  <span className={cn("font-mono text-[13px] font-bold", critical ? "text-rose-500" : low ? "text-amber-400" : "text-emerald-400")}>
                     {p.stock}
                   </span>
                   {low && (
-                    <span className="block text-[9px] text-amber-500/70">bajo</span>
+                    <span className="block text-[10px] text-amber-400/80">bajo</span>
                   )}
                   {critical && (
-                    <span className="block text-[9px] text-rose-500/70">agotado</span>
+                    <span className="block text-[10px] text-rose-400/80">agotado</span>
                   )}
                 </td>
-                <td className="px-3 py-3 text-right font-mono text-[11.5px] text-[#f5f3ed]">
+                <td className="px-3 py-3 text-right font-mono text-[13px] text-[#f5f3ed]">
                   {p.profit_per_unit_ars ? (
                     <>
                       <span className="font-black text-[#f59e0b]">${Number(p.profit_per_unit_ars).toLocaleString("es-AR")}</span>
                       {p.sale_price_ars > 0 && (
-                        <span className="block text-[9px] text-emerald-500/50">({Math.round((Number(p.profit_per_unit_ars) / p.sale_price_ars) * 100)}%)</span>
+                        <span className="block text-[10px] text-emerald-400/60">({Math.round((Number(p.profit_per_unit_ars) / p.sale_price_ars) * 100)}%)</span>
                       )}
                     </>
                   ) : p.sale_price_ars ? (
@@ -158,13 +158,13 @@ export default function ProductTableOwn({
                 <td className="px-3 py-3 text-center">
                   <div className="flex items-center justify-center gap-1.5">
                     <span className={cn("w-2 h-2 rounded-full", critical ? "bg-rose-500 animate-pulse" : low ? "bg-amber-500" : "bg-emerald-500")} />
-                    <span className={cn("text-[10px] font-semibold", critical ? "text-rose-600" : low ? "text-amber-500" : "text-emerald-500")}>
+                    <span className={cn("text-[11px] font-semibold", critical ? "text-rose-500" : low ? "text-amber-400" : "text-emerald-400")}>
                       {critical ? "Agotado" : low ? "Alerta" : "Activo"}
                     </span>
                   </div>
                 </td>
                 <td className="px-3 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
+                  <div className="flex items-center justify-center gap-1.5 flex-wrap">
                     <button
                       type="button"
                       onClick={() => onEdit?.(p.id)}
@@ -178,7 +178,7 @@ export default function ProductTableOwn({
                       <button
                         type="button"
                         onClick={() => onDuplicate(p.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-amber-500 bg-amber-400/15 border border-amber-400/30 hover:bg-amber-400/25 hover:border-amber-400/40 transition-all"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-amber-400 bg-amber-400/15 border border-amber-400/30 hover:bg-amber-400/25 hover:border-amber-400/40 transition-all"
                         aria-label={`Duplicar ${p.name}`}
                       >
                         <Copy className="w-3 h-3" />
@@ -189,7 +189,7 @@ export default function ProductTableOwn({
                       <button
                         type="button"
                         onClick={() => onDelete(p.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-rose-500 bg-rose-400/15 border border-rose-400/30 hover:bg-rose-500/25 hover:border-rose-500/40 transition-all"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-rose-400 bg-rose-400/15 border border-rose-400/30 hover:bg-rose-500/25 hover:border-rose-500/40 transition-all"
                         aria-label={`Eliminar ${p.name}`}
                       >
                         <Trash2 className="w-3 h-3" />
