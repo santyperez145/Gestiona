@@ -1,10 +1,15 @@
 /**
- * Crea una preferencia de Checkout Pro para un cobro operado desde Nerqia.
+ * Crea una orden con Checkout API Orders para un cobro operado desde Nerqia.
  *
  * La organización enviada por el navegador nunca es autoridad: se exige una
  * sesión real y `sales.create` dentro de ese tenant. El monto, cuando el cobro
  * apunta a `payment_links` o `quotes`, se lee del Core — no del body.
  * Sin fuente durable (POS ad-hoc) se admite el total del cajero.
+ *
+ * Usa la nueva Checkout API Orders (recomendada por MP 2026) en lugar de la
+ * legacy `checkout/preferences`. Esto permite: ítems reales del carrito con
+ * impuestos por línea, `auto_return` y deep links, y `application_fee` con
+ * split consultable por MP.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
@@ -169,28 +174,44 @@ Deno.serve(async (req) => {
     const returnBase = publicReturnBase(Deno.env.get("PUBLIC_BASE_URL"));
 
     const payload = {
-      items: [{
-        id: `gestiona-${crypto.randomUUID()}`,
-        title,
-        quantity: 1,
-        unit_price: total,
-        currency_id: "ARS",
-      }],
-      ...(externalRef ? { external_reference: externalRef } : {}),
-      ...(marketplaceFee > 0 ? { marketplace_fee: marketplaceFee } : {}),
-      ...(returnBase ? {
-        back_urls: { success: returnBase, pending: returnBase, failure: returnBase },
-        auto_return: "approved",
-      } : {}),
+      type: "online",
+      external_reference: externalRef || undefined,
+      total_amount: String(total),
+      transactions: {
+        payments: [
+          {
+            amount: String(total),
+            payment_method: {
+              id: "mercadopago",
+              type: "credit_card",
+            },
+          },
+        ],
+      },
+      payer: {
+        email: "comprador@nerqia.app",
+      },
+      items: [
+        {
+          id: externalRef || `gestiona-${crypto.randomUUID()}`,
+          title,
+          currency_id: "ARS",
+          quantity: 1,
+          unit_price: String(total),
+        },
+      ],
+      ...(marketplaceFee > 0 ? { application_fee: marketplaceFee } : {}),
+      ...(returnBase ? { back_urls: { success: returnBase, pending: returnBase, failure: returnBase } } : {}),
+      ...(returnBase ? { auto_return: "approved" } : {}),
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?org_id=${orgId}`,
       metadata: { channel, amount_source: source.kind },
     };
-
-    const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
+    const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${credentials.accessToken}`,
         "Content-Type": "application/json",
+        "X-Idempotency-Key": crypto.randomUUID(),
       },
       body: JSON.stringify(payload),
     });
