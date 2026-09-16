@@ -227,3 +227,53 @@ export function abandonedCartRecoveryChannelCopy(input: {
     body: "El cron envía si hay canal de correo listo. Si no llega mail, Copiar / Abrir / WhatsApp usan el mismo link — no inventamos un segundo envío.",
   };
 }
+
+/** Historial de recuperación para el Recovery Ledger. */
+export interface RecoveryLedgerEntry {
+  id: string;
+  customer_email: string | null;
+  items_count: number;
+  total: number;
+  status: string;
+  abandoned_email_sent: boolean;
+  recovery_token: string | null;
+  created_at: string;
+  updated_at: string;
+  converted_at: string | null;
+}
+
+/** Consulta el historial de carritos recuperables (ledger). */
+export async function getRecoveryHistory(
+  orgId: string,
+  storeId: string,
+  desde: string,
+  hasta: string,
+): Promise<RecoveryLedgerEntry[]> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data, error } = await supabase
+    .from("ecommerce_cart_sessions")
+    .select("id, customer_email, items, subtotal, total, status, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
+    .eq("org_id", orgId)
+    .eq("store_id", storeId)
+    .gte("created_at", desde)
+    .lte("created_at", hasta)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("getRecoveryHistory error:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    customer_email: row.customer_email,
+    items_count: abandonedCartItemCount(row.items),
+    total: Number(row.total) || Number(row.subtotal) || 0,
+    status: row.status,
+    abandoned_email_sent: row.abandoned_email_sent ?? false,
+    recovery_token: row.recovery_token,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    converted_at: row.status === "converted" ? row.updated_at : null,
+  }));
+}

@@ -10,6 +10,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import AbandonedCartsPanel from "@/components/ecommerce/AbandonedCartsPanel";
 import StockAlertsPanel from "@/components/ecommerce/StockAlertsPanel";
+import RecoveryLedgerTab from "@/components/ecommerce/RecoveryLedgerTab";
 import {
   filterAbandonedCartsForQueue,
   parseRecoveryEmailChannel,
@@ -24,6 +25,7 @@ import {
 } from "@/lib/stockAlerts";
 
 type RecoveryVista = "abandonados" | "reposicion";
+type RecoveryTab = "colas" | "ledger";
 
 function parseRecoveryVista(raw: string | null): RecoveryVista {
   return raw === "reposicion" ? "reposicion" : "abandonados";
@@ -38,6 +40,7 @@ interface Props {
 export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const vista = parseRecoveryVista(searchParams.get("vista"));
+  const tab = (searchParams.get("tab") || "colas") as RecoveryTab;
 
   const [abandonedCartRows, setAbandonedCartRows] = useState<AbandonedCartRow[]>([]);
   const [abandonedCarts, setAbandonedCarts] = useState(0);
@@ -181,27 +184,64 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
     }, { replace: true });
   };
 
+  const setTab = (next: RecoveryTab) => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set("cola", "recuperacion");
+      if (next === "ledger") p.set("tab", "ledger");
+      else p.delete("tab");
+      return p;
+    }, { replace: true });
+  };
+
   return (
     <div className="commerce-recovery space-y-4">
-      <div className="commerce-orders-views flex flex-wrap gap-1.5" role="tablist" aria-label="Colas de recuperación">
-        <button
-          type="button"
-          className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold ${vista === "abandonados" ? "is-active" : ""}`}
-          onClick={() => setVista("abandonados")}
-        >
-          Carritos abandonados
-          {abandonedCarts > 0 ? ` (${abandonedCarts})` : ""}
-        </button>
-        <button
-          type="button"
-          className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold ${vista === "reposicion" ? "is-active" : ""}`}
-          onClick={() => setVista("reposicion")}
-        >
-          Avisos de reposición
-          {stockAlertsPending > 0 ? ` (${stockAlertsPending})` : ""}
-        </button>
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold ${vista === "abandonados" ? "is-active" : ""}`}
+            onClick={() => setVista("abandonados")}
+          >
+            Carritos abandonados
+            {abandonedCarts > 0 ? ` (${abandonedCarts})` : ""}
+          </button>
+          <button
+            type="button"
+            className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold ${vista === "reposicion" ? "is-active" : ""}`}
+            onClick={() => setVista("reposicion")}
+          >
+            Avisos de reposición
+            {stockAlertsPending > 0 ? ` (${stockAlertsPending})` : ""}
+          </button>
+        </div>
+        <div className="flex-1 flex justify-end">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold ${tab === "colas" ? "is-active" : ""}`}
+              onClick={() => setTab("colas")}
+            >
+              Colas operativas
+            </button>
+            <button
+              type="button"
+              className={`commerce-orders-view min-h-11 px-3 py-1.5 text-xs font-semibold ${tab === "ledger" ? "is-active" : ""}`}
+              onClick={() => setTab("ledger")}
+            >
+              Ledger de recuperación
+            </button>
+          </div>
+        </div>
       </div>
-      {vista === "reposicion" ? (
+
+      {tab === "ledger" ? (
+        <RecoveryLedgerTab
+          orgId={orgId}
+          storeId={storeId}
+          storeSlug={storeSlug}
+        />
+      ) : vista === "reposicion" ? (
         <StockAlertsPanel
           alerts={stockAlertRows}
           loading={stockAlertsLoading}
