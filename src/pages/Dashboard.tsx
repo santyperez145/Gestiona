@@ -2443,7 +2443,7 @@ export default function Dashboard() {
                 </div>
                 <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? "bg-yellow-400" : pct >= 75 ? "bg-green-400" : pct >= 50 ? "bg-blue-400" : "bg-primary"}`}
+                    className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? "bg-[#14b8a6]" : pct >= 75 ? "bg-[#173aef]" : pct >= 50 ? "bg-[#f59e0b]" : "bg-[#173aef]/60"}`}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -2591,7 +2591,7 @@ export default function Dashboard() {
                 </div>
                 <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ${weekPct >= 100 ? "bg-yellow-400" : weekPct >= 75 ? "bg-green-400" : weekPct >= 50 ? "bg-blue-400" : "bg-emerald-500"}`}
+                    className={`h-full rounded-full transition-all duration-700 ${weekPct >= 100 ? "bg-[#14b8a6]" : weekPct >= 75 ? "bg-[#173aef]" : weekPct >= 50 ? "bg-[#f59e0b]" : "bg-[#173aef]/60"}`}
                     style={{ width: `${weekPct}%` }}
                   />
                 </div>

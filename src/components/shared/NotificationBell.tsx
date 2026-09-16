@@ -35,8 +35,18 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
       .from('notifications')
       .select('*')
       .eq('user_id', user.id)
+      .eq('read', false)
       .order('created_at', { ascending: false })
       .limit(30);
+    // Refetch unread count independently for accurate badge
+    const { count: unreadCountDb, error: countError } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
+    if (!countError) {
+      setUnreadCount(unreadCountDb ?? 0);
+    }
 
     if (error) {
       // Sin esto, «no tengo permiso» y «no hay nada» se ven igual.
