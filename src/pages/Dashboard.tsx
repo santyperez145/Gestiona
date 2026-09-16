@@ -162,7 +162,7 @@ function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; or
         {sellers.map(([name, total]) => {
           const goal = sellerGoals[name] || 0;
           const pct = goal > 0 ? Math.min(100, Math.round(total / goal * 100)) : 0;
-          const barColor = pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-primary" : pct >= 30 ? "bg-yellow-500" : "bg-destructive/60";
+          const barColor = pct >= 100 ? "bg-[#14b8a6]" : pct >= 60 ? "bg-[#173aef]" : pct >= 30 ? "bg-[#f59e0b]" : "bg-[#173aef]/60";
           return (
             <div key={name}>
               <div className="flex items-center justify-between mb-1">
