@@ -105,10 +105,10 @@ export function useModulePermissions(module: string): ModulePermissions {
       if (data) {
         setPerms({
           canView:   data.can_view   ?? true,
-          canCreate: data.can_create ?? false,
-          canEdit:   data.can_edit   ?? false,
-          canDelete: data.can_delete ?? false,
-          canExport: data.can_export ?? false,
+          canCreate: data.can_create ?? true,
+          canEdit:   data.can_edit   ?? true,
+          canDelete: data.can_delete ?? true,
+          canExport: data.can_export ?? true,
           fromDb:    true,
         });
       } else {
