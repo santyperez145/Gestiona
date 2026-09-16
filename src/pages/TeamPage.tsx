@@ -18,6 +18,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 import { plural } from "@/lib/plural";
+import { roleLabel } from "@/lib/roleLabels";
 interface Member {
   id: string;
   user_id: string;
@@ -287,7 +288,7 @@ export default function TeamPage() {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Badge variant="outline">{m.role}</Badge>
+                    <Badge variant="outline">{roleLabel(m.role)}</Badge>
                   )}
                   {canManage && m.role !== 'owner' && (
                     <Button size="icon" variant="ghost" onClick={() => removeMember(m.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>

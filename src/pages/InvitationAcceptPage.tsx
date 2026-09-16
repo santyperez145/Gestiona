@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
+import { roleLabel } from '@/lib/roleLabels';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Mail, Check, AlertTriangle } from 'lucide-react';
@@ -96,7 +97,7 @@ export default function InvitationAcceptPage() {
                 Te invitaron a {org?.name}
               </h1>
               <p className="text-[12px] text-muted-foreground/60 mb-6 leading-relaxed">
-                Vas a unirte como <strong className="text-foreground font-semibold">{invite.role}</strong> con el email{' '}
+                Vas a unirte como <strong className="text-foreground font-semibold">{roleLabel(invite.role)}</strong> con el email{' '}
                 <span className="font-mono text-foreground/80">{invite.email}</span>.
               </p>
               {!user ? (

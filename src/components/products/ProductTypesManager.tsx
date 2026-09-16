@@ -206,7 +206,7 @@ export default function ProductTypesManager({ orgId, open, onOpenChange, onChang
               </p>
               {currentProfile && (
                 <p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-primary/80">
-                  Perfil actual: {presets.find(preset => preset.code === currentProfile.industry_code)?.name || currentProfile.industry_code} · versión {currentProfile.profile_version}
+                  Perfil actual: {presets.find(preset => preset.code === currentProfile.industry_code)?.name || "Personalizado"} · versión {currentProfile.profile_version}
                 </p>
               )}
             </div>
@@ -218,7 +218,7 @@ export default function ProductTypesManager({ orgId, open, onOpenChange, onChang
               <Button type="button" size="sm" className="w-full" onClick={applyBusinessProfile} disabled={applyingProfile || !selectedIndustryCode || !canConfigureProfile}>
                 <Sparkles className="mr-1.5 h-3.5 w-3.5" />{applyingProfile ? "Aplicando..." : "Aplicar estructura sugerida"}
               </Button>
-              {!canConfigureProfile && <p className="text-[10px] text-muted-foreground">Sólo owner o admin puede cambiar el perfil.</p>}
+              {!canConfigureProfile && <p className="text-[10px] text-muted-foreground">Sólo el propietario o un administrador puede cambiar el perfil.</p>}
             </div>
           </div>
           {selectedPreset && selectedProfileSummary.typeCount > 0 && (

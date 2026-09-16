@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { roleLabel } from "@/lib/roleLabels";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
@@ -1466,7 +1467,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
                   </div>
                   <div>
                     <p className="font-semibold text-sm">{r.name}</p>
-                    <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
+                    <p className="text-[10px] text-muted-foreground">{roleLabel(r.role)}</p>
                   </div>
                 </div>
                 <span className="text-[10px] text-muted-foreground bg-muted rounded-[5px] px-2 py-0.5">{sharePct.toFixed(1)}%</span>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, ShoppingBag, Store, Globe } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { chartColors } from "@/lib/chartTheme";
 
 interface ChannelData {
   name: string;
@@ -20,9 +21,9 @@ interface CommerceChannelPerformanceProps {
 
 const channelIcons = { online: Globe, pos: Store, marketplace: ShoppingBag };
 const channelColors = {
-  online: "#173aef",
-  pos: "#14b8a6",
-  marketplace: "#f59e0b",
+  online: chartColors.sales,
+  pos: chartColors.margin,
+  marketplace: chartColors.warning,
 };
 
 export default function CommerceChannelPerformance({
@@ -79,7 +80,7 @@ export default function CommerceChannelPerformance({
               <div key={channel.name} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: `${channel.color || channelColors[channel.icon]}15` }}>
+                    <div className="p-2 rounded-lg shrink-0 bg-muted/30">
                       <Icon className="h-4 w-4" style={{ color: channel.color || channelColors[channel.icon] }} />
                     </div>
                     <div className="min-w-0">

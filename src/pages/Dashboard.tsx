@@ -66,7 +66,7 @@ const DailyBriefingModal = lazy(() => import("@/components/shared/DailyBriefingM
 const StockHeatmapWidget = lazy(() => import("@/components/shared/StockHeatmapWidget"));
 const InfluencerROIWidget = lazy(() => import("@/components/dashboard/InfluencerROIWidget"));
 
-const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
+import { chartColors, chartPalette as CHART_COLORS, chartTooltipStyle } from "@/lib/chartTheme";
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
 
@@ -381,7 +381,7 @@ function GaugeChart({ value, max, label, color }: { value: number; max: number; 
   const rad = (angle * Math.PI) / 180;
   const x = 50 + 40 * Math.cos(Math.PI - rad);
   const y = 50 - 40 * Math.sin(Math.PI - rad);
-  const largeArc = angle > 90 ? 1 : 0;
+  const largeArc = 0;
 
   return (
     <div className="flex flex-col items-center">
@@ -1572,7 +1572,7 @@ export default function Dashboard() {
     },
   ];
 
-  const tooltipStyle = { background: '#0b0b18', border: '1px solid #1a1a2e', borderRadius: 8, color: '#f5f3ed' };
+  const tooltipStyle = chartTooltipStyle;
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -3017,10 +3017,10 @@ export default function Dashboard() {
       {/* ROI & Margin Gauges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-card border border-border rounded-xl p-5 shadow-card flex items-center justify-center">
-          <GaugeChart value={stats.profitMargin} max={100} label="Margen Bruto" color="hsl(152, 58%, 42%)" />
+          <GaugeChart value={stats.profitMargin} max={100} label="Margen bruto" color={chartColors.profit} />
         </div>
         <div className="bg-card border border-border rounded-xl p-5 shadow-card flex items-center justify-center">
-          <GaugeChart value={stats.roi} max={200} label="ROI" color="hsl(40, 72%, 52%)" />
+          <GaugeChart value={stats.roi} max={200} label="Retorno de inversión" color={chartColors.sales} />
         </div>
         <div className="bg-card border border-border rounded-xl p-5 shadow-card">
           <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-4">Cobranza</h3>
@@ -3050,10 +3050,10 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [formatARS(v), name === 'total' ? 'Ventas' : 'Ganancia']} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [formatARS(v), name]} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="total" fill="hsl(40, 70%, 50%)" radius={[4, 4, 0, 0]} name="Ventas" />
-                <Bar dataKey="profit" fill="hsl(150, 60%, 40%)" radius={[4, 4, 0, 0]} name="Ganancia" />
+                <Bar dataKey="total" fill={chartColors.sales} radius={[4, 4, 0, 0]} name="Ventas" />
+                <Bar dataKey="profit" fill={chartColors.profit} radius={[4, 4, 0, 0]} name="Ganancia" />
               </BarChart>
             </ResponsiveContainer>
           ) : <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Sin datos de ventas aún</div>}
@@ -3104,7 +3104,7 @@ export default function Dashboard() {
                 <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `${v.toFixed(0)}%`} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen']} />
-                <Line type="monotone" dataKey="margin" stroke="hsl(200, 60%, 50%)" strokeWidth={2} dot={{ r: 4, fill: 'hsl(200, 60%, 50%)' }} name="Margen" />
+                <Line type="monotone" dataKey="margin" stroke={chartColors.margin} strokeWidth={2} dot={{ r: 4, fill: chartColors.margin }} name="Margen" />
               </LineChart>
             </ResponsiveContainer>
           ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos</div>}
@@ -3116,14 +3116,14 @@ export default function Dashboard() {
         <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary" />Pipeline de Ventas
+              <Target className="w-4 h-4 text-primary" />Oportunidades de venta
             </h2>
-            <Link to="/clientes?vista=pipeline" className="text-xs text-primary hover:underline">Ver pipeline →</Link>
+            <Link to="/clientes?vista=pipeline" className="text-xs text-primary hover:underline">Ver oportunidades →</Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="text-center">
               <p className="text-2xl font-black font-display text-foreground">{pipelineStats.total}</p>
-              <p className="text-xs text-muted-foreground">Total deals</p>
+              <p className="text-xs text-muted-foreground">Total de oportunidades</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-black font-display text-emerald-400">{pipelineStats.won}</p>
@@ -3137,7 +3137,7 @@ export default function Dashboard() {
               <p className="text-2xl font-black font-display text-yellow-400">
                 {pipelineStats.total > 0 ? ((pipelineStats.won / pipelineStats.total) * 100).toFixed(0) : 0}%
               </p>
-              <p className="text-xs text-muted-foreground">Win rate</p>
+              <p className="text-xs text-muted-foreground">Tasa de cierre</p>
             </div>
           </div>
           {/* Funnel bar */}
@@ -3188,11 +3188,11 @@ export default function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} />
               <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [formatARS(v), name === 'profit' ? 'Ganancia bruta' : name === 'expenses' ? 'Gastos' : 'Neto']} />
-              <Legend formatter={(v: string) => v === 'profit' ? 'Ganancia bruta' : v === 'expenses' ? 'Gastos' : 'Resultado neto'} />
-              <Bar dataKey="profit" fill="hsl(150, 60%, 40%)" radius={[3, 3, 0, 0]} name="profit" />
-              <Bar dataKey="expenses" fill="hsl(0, 65%, 45%)" radius={[3, 3, 0, 0]} name="expenses" />
-              <Bar dataKey="netProfit" fill="hsl(40, 70%, 50%)" radius={[3, 3, 0, 0]} name="netProfit" />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [formatARS(v), name]} />
+              <Legend />
+              <Bar dataKey="profit" fill={chartColors.profit} radius={[3, 3, 0, 0]} name="Ganancia bruta" />
+              <Bar dataKey="expenses" fill={chartColors.expenses} radius={[3, 3, 0, 0]} name="Gastos" />
+              <Bar dataKey="netProfit" fill={chartColors.sales} radius={[3, 3, 0, 0]} name="Resultado neto" />
             </BarChart>
           </ResponsiveContainer>
         </div>

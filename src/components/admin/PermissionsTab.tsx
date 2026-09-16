@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Shield, Loader2, RotateCcw, Eye, Plus, Pencil, Trash2, Download, Lock } from "lucide-react";
 import { defaultsForRole, PERMISSION_MODULES, PERMISSION_MODULE_LABEL } from "@/lib/usePermissions";
 import type { AppRole } from "@/lib/useUserRole";
+import { useRefreshPermissions } from "@/lib/permissionsContext";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ const MODULES: { value: string; label: string }[] = PERMISSION_MODULES.map(m => 
 const ROLES: { value: AppRole; label: string }[] = [
   { value: "admin", label: "Administrador" },
   { value: "vendedor", label: "Vendedor" },
-  { value: "viewer", label: "Viewer" },
+  { value: "viewer", label: "Sólo lectura" },
 ];
 
 const ACTIONS: { key: "can_view" | "can_create" | "can_edit" | "can_delete" | "can_export"; label: string; icon: typeof Eye }[] = [
@@ -50,6 +51,7 @@ function cellKey(role: string, module: string) {
 }
 
 export default function PermissionsTab() {
+  const refreshPermissions = useRefreshPermissions();
   const { activeOrg, activeRole } = useOrg();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Set<string>>(new Set());
@@ -113,10 +115,12 @@ export default function PermissionsTab() {
           { onConflict: "org_id,role,module" }
         );
       if (error) throw error;
+      refreshPermissions?.();
     } catch (err: any) {
       // Revert on failure
       setPerms((prev) => ({ ...prev, [key]: current }));
-      toast.error("Error al guardar permiso: " + (err.message || "desconocido"));
+      console.error('[PermissionsTab] save failed', err);
+      toast.error("No pudimos guardar el permiso. Conservamos el valor anterior; intentá de nuevo.");
     } finally {
       setSaving((prev) => {
         const next2 = new Set(prev);
@@ -133,6 +137,7 @@ export default function PermissionsTab() {
       const { error } = await supabase.rpc("seed_default_permissions", { p_org_id: activeOrg.id });
       if (error) throw error;
       toast.success("Permisos faltantes completados con valores por defecto");
+      refreshPermissions?.();
       await load();
     } catch (err: any) {
       toast.error("Error: " + (err.message || "no se pudo restablecer"));

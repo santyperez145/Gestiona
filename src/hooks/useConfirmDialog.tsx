@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 export type ConfirmAskOptions = {
@@ -16,6 +16,7 @@ export type ConfirmAskOptions = {
 export function useConfirmDialog() {
   const [opts, setOpts] = useState<ConfirmAskOptions | null>(null);
   const resolveRef = useRef<((value: boolean) => void) | null>(null);
+  useEffect(() => () => { resolveRef.current?.(false); resolveRef.current = null; }, []);
 
   const close = useCallback((value: boolean) => {
     resolveRef.current?.(value);

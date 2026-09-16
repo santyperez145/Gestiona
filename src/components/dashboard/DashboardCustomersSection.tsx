@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, Users } from "lucide-react";
 import CommerceChannelPerformance from "@/components/commerce/CommerceChannelPerformance";
 import { formatARS } from "@/lib/supabaseStore";
+import { chartPalette } from "@/lib/chartTheme";
 
 type TopCustomer = {
   name: string;
@@ -43,12 +44,7 @@ export default function DashboardCustomersSection({
   monthGrossProfit,
   salesByChannel,
 }: DashboardCustomersSectionProps) {
-const colors = [
-    "hsl(219 83% 51%)",           // Blue-ish primary (C2 blue) - #173aef
-    "hsl(142 76% 36%)",              // Teal (C2 teal)
-    "hsl(38 92% 50%)",               // Orange (C2 orange)
-    "hsl(204 72% 45%)",              // Purple (C2 purple)
-  ];
+  const colors = chartPalette;
 
   return (
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Clientes y canales">
@@ -86,7 +82,7 @@ const colors = [
       <CommerceChannelPerformance
         title="Ventas por canal"
         channels={salesByChannel.map((channel, index) => ({
-          name: CHANNEL_LABELS[channel.source] || channel.source,
+          name: CHANNEL_LABELS[channel.source] || "Otro canal",
           sales: channel.units,
           orders: channel.orders,
           revenue: channel.revenue,

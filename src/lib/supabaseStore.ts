@@ -252,12 +252,12 @@ export async function updateProductDB(id: string, updates: any) {
   if (Object.prototype.hasOwnProperty.call(updates ?? {}, 'stock')) {
     throw new Error('El stock se ajusta mediante Kardex, no al editar el producto');
   }
-  const { error } = await supabase.from('products').update(updates).eq('id', id);
+  const { error } = await supabase.from('products').update(updates).eq('id', id).eq('org_id', requireActiveOrgId()).select('id').single();
   if (error) throw error;
 }
 
-export async function deleteProductDB(id: string) {
-  const { error } = await supabase.from('products').delete().eq('id', id);
+export async function deleteProductDB(id: string, orgId = requireActiveOrgId()) {
+  const { error } = await supabase.from('products').delete().eq('id', id).eq('org_id', orgId).select('id').single();
   if (error) throw error;
 }
 

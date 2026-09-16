@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { roleLabel } from "@/lib/roleLabels";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
@@ -190,7 +191,7 @@ export default function SellerCommissionsPage() {
               <div key={m.user_id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border/40">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{sellerName(m)}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{m.role}</p>
+                  <p className="text-xs text-muted-foreground">{roleLabel(m.role)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   {m.commission_enabled ? (

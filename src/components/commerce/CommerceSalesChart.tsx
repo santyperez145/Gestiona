@@ -1,5 +1,7 @@
 /* Diferencial Nerqia: todos los gráficos con paleta propia, sin verdes/amarillos genéricos */
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, Legend } from "recharts";
+import { useId } from "react";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, Legend } from "recharts";
+import { chartColors, chartTooltipStyle } from "@/lib/chartTheme";
 import ChartWrapper from "@/components/analytics/ChartWrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
@@ -21,6 +23,7 @@ export default function CommerceSalesChart({
   title = "Ventas — últimos 30 días",
   height = 300,
 }: CommerceSalesChartProps) {
+  const gradientId = useId().replace(/:/g, '');
   return (
     <Card className="border-border/50 shadow-sm">
       <CardHeader className="pb-3">
@@ -36,20 +39,20 @@ export default function CommerceSalesChart({
           <ResponsiveContainer width="100%" height={height}>
             <AreaChart data={data} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
               <defs>
-                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#173aef" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#173aef" stopOpacity={0} />
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={chartColors.sales} stopOpacity={0.18} />
+                  <stop offset="95%" stopColor={chartColors.sales} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="date" stroke="#c4b8a8" fontSize={11} tickLine={false} axisLine={false} tickMargin={6} />
-              <YAxis stroke="#c4b8a8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} width={48} />
+              <XAxis dataKey="date" stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} tickMargin={6} />
+              <YAxis stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} width={48} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#0b0b18", border: "1px solid #1a1a2e", borderRadius: 8, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}
+                contentStyle={chartTooltipStyle}
                 formatter={(value: number) => [`$${value.toLocaleString("es-AR")}`, "Ventas"]}
                 labelFormatter={(label: string) => label}
               />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: "#c4b8a8" }} />
-              <Area type="monotone" dataKey="sales" name="Ventas" stroke="#173aef" strokeWidth={2} fill="url(#colorSales)" fillOpacity={1} dot={{ fill: "#173aef", strokeWidth: 0, r: 3 }} activeDot={{ r: 5, stroke: "#173aef", strokeWidth: 2, fill: "#0b0b18" }} />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: chartColors.text }} />
+              <Area type="monotone" dataKey="sales" name="Ventas" stroke={chartColors.sales} strokeWidth={2} fill={`url(#${gradientId})`} fillOpacity={1} dot={{ fill: chartColors.sales, strokeWidth: 0, r: 3 }} activeDot={{ r: 5, stroke: chartColors.sales, strokeWidth: 2, fill: "hsl(var(--card))" }} />
             </AreaChart>
           </ResponsiveContainer>
         </ChartWrapper>

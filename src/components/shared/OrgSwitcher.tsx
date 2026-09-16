@@ -1,4 +1,5 @@
 import { useOrg } from '@/lib/orgContext';
+import { roleLabel } from '@/lib/roleLabels';
 import { Building2, Check, ChevronsUpDown, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,7 +49,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
             {m.role === 'owner' && <Crown className="w-3.5 h-3.5 text-primary" />}
             {m.role !== 'owner' && <Building2 className="w-3.5 h-3.5 text-muted-foreground" />}
             <span className="flex-1 truncate">{m.organization.name}</span>
-            <span className="text-[10px] text-muted-foreground capitalize">{m.role}</span>
+            <span className="text-[10px] text-muted-foreground">{roleLabel(m.role)}</span>
             {m.org_id === activeOrg.id && <Check className="w-3.5 h-3.5 text-primary" />}
           </DropdownMenuItem>
         ))}

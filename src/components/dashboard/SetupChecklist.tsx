@@ -151,7 +151,7 @@ export default function SetupChecklist({
               </div>
             </div>
             {!canChangeGoal && (
-              <p className="mt-2 text-[10px] text-muted-foreground">Sólo owner o admin puede cambiar el canal objetivo.</p>
+              <p className="mt-2 text-[10px] text-muted-foreground">Sólo el propietario o un administrador puede cambiar el canal objetivo.</p>
             )}
           </div>
 

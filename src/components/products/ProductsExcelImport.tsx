@@ -256,7 +256,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   if (!canImport) return (
     <div className="h-full space-y-4 overflow-y-auto p-5 sm:p-7">
       <Alert variant="warning"><ShieldCheck className="h-4 w-4 shrink-0" /><div>
-        <AlertTitle>Importación reservada a owner o admin</AlertTitle>
+        <AlertTitle>Importación reservada al propietario o administradores</AlertTitle>
         <AlertDescription>El lote puede cambiar costos, precios y stock. Pedile a un administrador que lo revise y apruebe.</AlertDescription>
       </div></Alert>
       <Button variant="outline" onClick={onClose}>Cerrar</Button>

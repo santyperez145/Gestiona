@@ -10,13 +10,13 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB, getVariantsByUserDB } from "@/lib/supabaseStore";
 import ProductPriceListsSection from "@/components/products/ProductPriceListsSection";
-import ProductTableOwn from "@/components/products/ProductTableOwn";
+import ProductTableOwn, { type ProductSortColumn } from "@/components/products/ProductTableOwn";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCountdown } from "@/hooks/useCountdown";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink, RefreshCw, MoreHorizontal } from "lucide-react";
@@ -431,7 +431,7 @@ export default function ProductsPage() {
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   const [editingThreshold, setEditingThreshold] = useState<{ id: string; value: string } | null>(null);
   const [showAging, setShowAging] = useState(false);
-  const [productSort, setProductSort] = useState<{ col: "name" | "sale_price_ars" | "stock" | "margin"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
+  const [productSort, setProductSort] = useState<{ col: ProductSortColumn; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
   const [productView, setProductView] = usePersistedState<'list' | 'grid'>(orgViewKey("products.view", activeOrg?.id), 'list');
   const [productsWorkspaceTab, setProductsWorkspaceTab] = usePersistedState<"catalog" | "overview">(
     orgViewKey("products.workspace-tab", activeOrg?.id),
@@ -439,6 +439,8 @@ export default function ProductsPage() {
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const deletingRef = useRef(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { shareProduct, canShare } = useWebShare();
   const { copy: copyText } = useClipboard();
   const [calcProduct, setCalcProduct] = useState<any | null>(null);
@@ -584,13 +586,16 @@ export default function ProductsPage() {
     setLastLoadedAt(null);
     setLoading(true);
     setRefreshing(false);
+    closeProductEditor();
+    setSelectedIds(new Set());
+    setDeleteError(null);
     void reload();
     return () => { loadRequestRef.current += 1; };
-  }, [activeOrg?.id, reload]);
+  }, [activeOrg?.id, reload, closeProductEditor]);
 
   useEffect(() => {
     const identityId = identityParams.get("identity");
-    if (!identityId || loading) return;
+    if (!identityId || loading || !canEdit) return;
     const product = products.find(item => item.id === identityId);
     if (!product) return;
     setEditing(product);
@@ -598,18 +603,18 @@ export default function ProductsPage() {
     const next = new URLSearchParams(identityParams);
     next.delete("identity");
     setIdentityParams(next, { replace: true });
-  }, [identityParams, loading, products, setIdentityParams]);
+  }, [identityParams, loading, products, setIdentityParams, canEdit]);
 
   // Readiness / Commerce mandan acá con ?completar=pesos: abrir el estimador
   // sin obligar a buscar el menú. Se limpia el query para no reabrir al cerrar.
   useEffect(() => {
     if (identityParams.get("completar") !== "pesos") return;
-    if (loading) return;
+    if (loading || !canEdit) return;
     setPesosOpen(true);
     const next = new URLSearchParams(identityParams);
     next.delete("completar");
     setIdentityParams(next, { replace: true });
-  }, [identityParams, loading, setIdentityParams]);
+  }, [identityParams, loading, setIdentityParams, canEdit]);
 
   useEffect(() => {
     if (identityParams.get("importar") !== "1") return;
@@ -842,7 +847,44 @@ export default function ProductsPage() {
 
   const { ask, dialog } = useConfirmDialog();
 
+  const deleteProducts = async (ids: string[]) => {
+    if (!canDelete || !online || !activeOrg?.id || deletingRef.current) return;
+    const orgId = activeOrg.id;
+    deletingRef.current = true;
+    setBulkDeleting(true);
+    setDeleteError(null);
+    const deleted = new Set<string>();
+    try {
+      for (const id of ids) {
+        if (activeOrgIdRef.current !== orgId) break;
+        await deleteProductDB(id, orgId);
+        deleted.add(id);
+        const product = products.find(item => item.id === id);
+        if (user && product) await logAudit(user.id, 'delete', 'product', id, { name: product.name, bulk: ids.length > 1 });
+      }
+      if (activeOrgIdRef.current === orgId && deleted.size) toast.success(`${plural(deleted.size, "producto")} eliminado${deleted.size === 1 ? '' : 's'}`);
+    } catch (error) {
+      console.error('[ProductsPage] delete failed', { orgId, deleted: deleted.size, error });
+      const code = (error as { code?: string })?.code;
+      const message = code === '23503'
+        ? 'Este producto tiene operaciones vinculadas. Desactivalo desde su ficha para conservar el historial.'
+        : code === '42501' || code === 'PGRST116'
+          ? 'No se pudo eliminar el producto. Revisá tus permisos y actualizá el catálogo.'
+          : 'No pudimos completar la eliminación. Los productos pendientes siguen seleccionados para reintentar.';
+      if (activeOrgIdRef.current === orgId) setDeleteError(message);
+    } finally {
+      deletingRef.current = false;
+      setBulkDeleting(false);
+      if (activeOrgIdRef.current === orgId) {
+        setSelectedIds(previous => new Set([...previous].filter(id => !deleted.has(id))));
+        await reload();
+      }
+    }
+  };
+
   const handleDelete = async (p: any) => {
+    if (!canDelete || !online || deletingRef.current) return;
+    const orgId = activeOrg?.id;
     const ok = await ask({
       title: "Eliminar producto",
       description: `¿Estás seguro de que quieres eliminar el producto "${p.name}"?`,
@@ -850,36 +892,20 @@ export default function ProductsPage() {
       cancelText: "Cancelar",
       variant: "destructive",
     });
-    if (ok) {
-      await deleteProductDB(p.id);
-      if (user) await logAudit(user.id, 'delete', 'product', p.id, { name: p.name });
-      reload();
-      toast.success("Producto eliminado");
-    }
+    if (ok && activeOrgIdRef.current === orgId) await deleteProducts([p.id]);
   };
 
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    setBulkDeleting(true);
-    let deleted = 0;
-    for (const id of selectedIds) {
-      const p = products.find((x: any) => x.id === id);
-      await deleteProductDB(id);
-      if (user && p) await logAudit(user.id, 'delete', 'product', id, { name: p.name, bulk: true });
-      deleted++;
-    }
-    setSelectedIds(new Set());
-    setBulkDeleting(false);
-    reload();
-    toast.success(`${deleted} producto${deleted !== 1 ? 's' : ''} eliminado${deleted !== 1 ? 's' : ''}`);
+    await deleteProducts([...selectedIds]);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredSorted.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredSorted.map((p: any) => p.id)));
-    }
+  const toggleSelectGroup = (items: any[]) => {
+    setSelectedIds(previous => {
+      const next = new Set(previous);
+      const all = items.every(item => next.has(item.id));
+      items.forEach(item => all ? next.delete(item.id) : next.add(item.id));
+      return next;
+    });
   };
 
   const toggleQuickDiscount = async (p: any) => {
@@ -1054,21 +1080,25 @@ export default function ProductsPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            {canCreate && (productLimit !== null && products.length >= productLimit ? (
+            {canCreate && (
               <Button
                 className="bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
-                onClick={() => toast.error(`Límite de ${plural(productLimit, "producto")} alcanzado en el plan ${plan?.name}. Actualizá tu plan.`)}
+                onClick={() => {
+                  if (productLimit !== null && products.length >= productLimit) {
+                    toast.error(`Límite de ${plural(productLimit, "producto")} alcanzado en el plan ${plan?.name}. Actualizá tu plan.`);
+                    return;
+                  }
+                  setEditing(null);
+                  setOpen(true);
+                }}
               >
                 <Plus className="w-4 h-4 mr-2" />Nuevo
               </Button>
-            ) : (
-              <Dialog open={open} onOpenChange={handleProductEditorOpenChange}>
-                <DialogTrigger asChild>
-                  <Button className="bg-primary text-primary-foreground font-semibold hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
-                </DialogTrigger>
+            )}
+              <Dialog open={open && (editing?.id ? canEdit : canCreate)} onOpenChange={handleProductEditorOpenChange}>
                 <DialogContent size="full" className={FULLSCREEN_PRODUCT_WORKSPACE}>
                   <DialogHeader className="mb-0 shrink-0 border-b border-border/70 bg-card/95 px-5 py-4 pr-14 backdrop-blur sm:px-7">
-                    <DialogTitle>{editing ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
+                    <DialogTitle>{editing?.id ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
                     <DialogDescription>
                       {fromWizard && !editing && products.length === 0
                         ? firstProductFormDescription(handoffGoal)
@@ -1102,7 +1132,6 @@ export default function ProductsPage() {
                   </div>
                 </DialogContent>
               </Dialog>
-            ))}
             <ConfirmDialog
               open={discardProductChangesOpen}
               onOpenChange={setDiscardProductChangesOpen}
@@ -1115,6 +1144,9 @@ export default function ProductsPage() {
           </div>
         }
       />
+
+      {dialog}
+      {deleteError && <WorkspaceState kind="error-recoverable" layout="banner" title="Eliminación pendiente" description={deleteError} actionLabel="Actualizar catálogo" onAction={() => void reload()} />}
 
       {refreshing && (
         <WorkspaceState kind="refreshing" layout="banner" title="Actualizando catálogo" description="Mantenemos visible la última lectura válida mientras consultamos productos y datos relacionados." />
@@ -1630,14 +1662,14 @@ export default function ProductsPage() {
                     )}
                   </div>
                 )}
-                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <div className="absolute bottom-2 right-2 flex gap-1">
                   {operaPerfumes && perfumeDetailsByProduct[p.id] && (
                     <button type="button" onClick={() => setRecoTargetId(p.id)} title="Perfumes similares" className="min-h-9 min-w-9 grid place-items-center bg-card/95 hover:bg-card border border-border" style={{ borderRadius: 6 }}>
                       <Sparkles className="w-3.5 h-3.5 text-primary" />
                     </button>
                   )}
                   {canEdit && (
-                    <button type="button" onClick={() => { setEditing(p); setOpen(true); }} className="min-h-9 min-w-9 grid place-items-center bg-card/95 hover:bg-card border border-border" style={{ borderRadius: 6 }}>
+                    <button type="button" aria-label={`Editar ${p.name}`} onClick={() => { setEditing(p); setOpen(true); }} className="min-h-9 min-w-9 grid place-items-center bg-card/95 hover:bg-card border border-border" style={{ borderRadius: 6 }}>
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -1657,31 +1689,39 @@ export default function ProductsPage() {
         <>
           {Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([brand, items]) => (
             <div key={brand} className="workspace-products-brand-group mb-6">
-              <h2 className="text-sm font-display font-semibold text-[#c4b8a8] uppercase tracking-wider mb-2">
-                {brand} <span className="text-xs font-normal text-[#c4b8a8]/50">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
+              <h2 className="text-sm font-display font-semibold text-foreground mb-2">
+                {brand} <span className="text-xs font-normal text-muted-foreground">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
               </h2>
               <ProductTableOwn
                 rows={items.map((p: any) => ({
                   id: p.id,
                   name: p.name,
                   brand: p.brand,
-                  category: p.category,
+                  category: nombreCategoria(p.category) || 'Sin categoría',
                   image_url: p.image_url,
                   sale_price_ars: Number(p.sale_price_ars) || 0,
                   discount_price_ars: p.discount_price_ars ? Number(p.discount_price_ars) : undefined,
                   stock: p.stock ?? 0,
-                  profit_per_unit_ars: p.profit_per_unit_ars,
-                  featured: p.featured,
+                  profit_per_unit_ars: (() => {
+                    const cost = costoArsONull({ costUsd: p.total_cost_usd, costArs: p.cost_ars, costCurrency: p.cost_currency }, cotizacion);
+                    const price = p.discount_price_ars != null && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+                    return cost === null ? null : price - cost;
+                  })(),
+                  low_stock_threshold: p.low_stock_threshold,
                 }))}
                 selectedIds={selectedIds}
                 onToggleRow={(id) => setSelectedIds(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; })}
-                onToggleAll={toggleSelectAll}
+                onToggleAll={() => toggleSelectGroup(items)}
                 sortCol={productSort.col}
                 sortDir={productSort.dir}
-                onSort={(col: string) => setProductSort(s => ({ col: s.col === col ? col : (col as any), dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
-                onEdit={(id) => setEditing(items.find(p => p.id === id) || null)}
-                onDuplicate={(id) => { const src = items.find(p => p.id === id); if(src){ const dup = { ...src, id: undefined, name: `Copia de ${src.name}` }; setEditing(dup); setOpen(true); } }}
-                                onDelete={(id) => { const p = items.find(x => x.id === id); if(p){ handleDelete(p); } }}
+                onSort={(col) => setProductSort(s => ({ col, dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
+                onEdit={(id) => { if (!canEdit) return; const product = items.find(p => p.id === id); if (product) { setEditing(product); setOpen(true); } }}
+                onDuplicate={canCreate && (productLimit === null || products.length < productLimit) ? (id) => {
+                  const source = items.find(p => p.id === id);
+                  if (source) { setEditing({ ...source, id: undefined, name: `Copia de ${source.name}`, stock: 0, sku: '', barcode: '', lot_number: '', expiry_date: null }); setOpen(true); }
+                } : undefined}
+                onDelete={canDelete ? (id) => { const product = items.find(p => p.id === id); if (product) void handleDelete(product); } : undefined}
+                busy={bulkDeleting || !online}
               />
             </div>
           ))}
@@ -1727,7 +1767,7 @@ export default function ProductsPage() {
       </Dialog>
 
       {/* Floating bulk action bar */}
-      {selectedIds.size > 0 && (
+      {canDelete && selectedIds.size > 0 && (
         <div className="workspace-products-bulk-bar fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-border rounded-2xl shadow-xl px-4 py-3 animate-in slide-in-from-bottom-4 duration-200">
           <CheckCheck className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium">{selectedIds.size} producto{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}</span>
@@ -1779,7 +1819,7 @@ function ChipSelect({ items, selected, onToggle }: { items: TaxItem[]; selected:
   );
 }
 
-function ProductForm({ product, settings, userId, orgId, firstUse = false, handoffGoal = null, onDirtyChange, onSave }: {
+export function ProductForm({ product, settings, userId, orgId, firstUse = false, handoffGoal = null, onDirtyChange, onSave }: {
   product: any;
   settings: any;
   userId: string;
@@ -1789,6 +1829,11 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
   onDirtyChange: (dirty: boolean) => void;
   onSave: () => void;
 }) {
+  const { canCreate, canEdit } = useModulePermissions("products");
+  const canSave = product?.id ? canEdit : canCreate;
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [name, setName] = useState(product?.name || '');
   const [brand, setBrand] = useState(product?.brand || '');
   const [category, setCategory] = useState(product?.category || '');
@@ -2215,9 +2260,6 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         uploaded[idx] = urlData.publicUrl;
       }));
       return imageItems.map((_, i) => uploaded[i]);
-    } catch (err: any) {
-      toast.error('Error subiendo imagen: ' + err.message);
-      return imageItems.map(it => it.url);
     } finally {
       setUploading(false);
     }
@@ -2225,6 +2267,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingRef.current || !canSave) return;
     const resolvedCost = enPesos ? costoPesos : cost;
     const draft = validateProductDraft({
       name,
@@ -2246,6 +2289,9 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         return;
       }
     }
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError(null);
     try {
       if (variantsNeedLocation && showVariants) {
         const existingForLocation = product?.id ? await getVariantsDB(product.id) : [];
@@ -2305,13 +2351,13 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         ...(Object.keys(customFieldValues).length > 0 ? { custom_fields: customFieldValues } : {}),
       };
       let productId = product?.id;
-      if (product) {
+      if (product?.id) {
         await updateProductDB(product.id, data);
         // ⚠️ Sobre un producto sin stock no se fuerza ningún ajuste. La
         // autoridad lo ignoraría igual, pero pedirle un movimiento que no va a
         // ocurrir deja un «Ajuste de stock» en el log de auditoría que nunca
         // pasó.
-        if (!showVariants && manejaStock) {
+        if (!showVariants && manejaStock && variantTotal !== Number(product.stock)) {
           await setStockAbsoluteDB({
             productId: product.id,
             newStock: variantTotal,
@@ -2403,7 +2449,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
       }
       const costNote = productCostWarning(resolvedCost);
       toast.success(
-        product
+        product?.id
           ? 'Producto actualizado'
           : firstUse && handoffGoal === 'pos'
             ? 'Producto listo para el mostrador. El POS ya puede cobrarlo.'
@@ -2412,12 +2458,21 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
               : 'Producto agregado',
         costNote && !product ? { description: costNote } : undefined,
       );
-      broadcastSync({ type: "product_saved", name: data.name, action: product ? "update" : "create" });
+      broadcastSync({ type: "product_saved", name: data.name, action: product?.id ? "update" : "create" });
       markClean();
       onSave();
     } catch (err: any) {
       console.error('Error guardando producto:', err);
-      toast.error(err?.message || "Error al guardar el producto");
+      const message = err?.code === '23505'
+        ? 'Ya existe un producto con esos identificadores. Revisá el código interno y el código de barras.'
+        : err?.code === '42501' || err?.code === 'PGRST116'
+          ? 'No se pudo guardar el producto. Revisá tus permisos y actualizá el catálogo.'
+          : 'No pudimos completar el guardado. Conservamos tus cambios para que puedas revisar e intentar de nuevo.';
+      setSaveError(message);
+      toast.error(message);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -2428,10 +2483,11 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
       onInputCapture={markDirty}
       onChangeCapture={markDirty}
       className="flex h-full min-h-0 flex-col"
-      aria-label={product ? `Editar ${product.name}` : 'Crear producto'}
+      aria-label={product?.id ? `Editar ${product.name}` : 'Crear producto'}
     >
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-7 sm:py-7">
+      {saveError && <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">{saveError}</p>}
       {creatingFirstProduct && (
         <div className="rounded-[10px] border border-primary/20 bg-primary/[0.05] p-3">
           <p className="text-sm font-semibold">Para cobrar hace falta esto</p>
@@ -3593,11 +3649,11 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
             ? 'Nombre, precio de venta y unidades. El costo puede esperar.'
             : 'El guardado actualiza la ficha canónica; el stock se asienta por Kardex.'}
         </p>
-        <Button type="submit" disabled={uploading} className="w-full min-w-44 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 sm:w-auto">
-          {firstProductSubmitLabel({
+        <Button type="submit" disabled={saving || uploading || !canSave} className="w-full min-w-44 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 sm:w-auto">
+          {saving ? 'Guardando producto…' : firstProductSubmitLabel({
             firstUse: creatingFirstProduct,
             uploading,
-            editing: Boolean(product),
+            editing: Boolean(product?.id),
             goal: handoffGoal,
           })}
         </Button>

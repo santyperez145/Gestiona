@@ -90,8 +90,9 @@ export function nombreDeCategoria(
   slug: string,
   categorias: CategoriaTienda[] = [],
 ): string {
-  const propia = categorias.find(c => c.slug === slug);
+  const propia = categorias.find(c => c.slug === slug || c.id === slug);
   if (propia?.name?.trim()) return propia.name.trim();
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug ?? '')) return "Categoría no disponible";
   return NOMBRES_HEREDADOS[slug] ?? slugALegible(slug);
 }
 
