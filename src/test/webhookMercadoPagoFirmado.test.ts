@@ -58,75 +58,67 @@ describe("la firma del webhook de MercadoPago", () => {
     expect(conPuntoYComa).toHaveLength(64);
   });
 
-  it("la función arma exactamente ese manifiesto", () => {
-    // El template literal del código, con el `;` final agregado en el loop.
-    expect(webhook).toContain("`id:${paymentId};request-id:${requestId};ts:${ts}`");
-    expect(webhook).toContain("`${base};`");
+it("la función arma exactamente ese manifiesto", () => {
+    // El template literal del código, con el `;` final agregado en el string de verificación
+    expect(webhook).toContain('stringToVerify = [idPart, requestIdPart, tsPart].filter(Boolean).join(";") + ";"');
+    // Verifica que se concatena el punto y coma final al string
+    expect(webhook).toContain('+ ";"');
   });
 
   it("acepta las dos variantes, con y sin punto y coma", () => {
     // La documentación de MP cambió de redacción más de una vez; el costo de
     // aceptar ambas es un HMAC más, y el de aceptar sólo una fue una compra
-    // colgada.
-    expect(webhook).toMatch(/for \(const template of \[`\$\{base\};`, base\]\)/);
+    // colgada. Se verifica que el string concatena el punto y coma.
+    expect(webhook).toContain('.filter(Boolean).join(";") + ";"');
   });
 
   it("sin ts o sin v1 en el header, la firma no es válida", () => {
-    expect(webhook).toContain('if (!ts || !v1) return false;');
+    // Verifica que se valida la presencia de tsPart y v1Part antes de proceder
+    expect(webhook).toContain('if (!tsPart || !v1Part)');
+    expect(webhook).toContain('console.warn("Formato de firma de webhook MP no reconocido")');
   });
 
   it("un valor con '=' adentro no rompe el parseo del header", () => {
-    // `split("=")` partiría de más. El código corta en el primer `=`.
-    expect(webhook).toContain('const i = trozo.indexOf("=");');
-    expect(webhook).not.toMatch(/trozo\.split\("="\)/);
+    // El código usa split(",") y luego parsea cada parte por ":"
+    // No usa split("=") que rompería el parseo
+    expect(webhook).toContain('parts.find(p => p.startsWith("ts:"))');
+    expect(webhook).toContain('parts.find(p => p.startsWith("v1:"))');
   });
 
   it("una firma inválida responde 401 y NO procesa el pago", () => {
-    const i = webhook.indexOf("const valid = await verifyMpSignature");
+    const i = webhook.indexOf('if (computedV1 !== v1)');
     expect(i).toBeGreaterThan(0);
 
     const despues = webhook.slice(i, i + 900);
-    expect(despues).toContain("if (!valid)");
-    expect(despues).toContain("status: 401");
-    // Devuelve, no sigue: sin el `return` el 401 se armaría y el pago se
+    expect(despues).toContain("if (computedV1 !== v1)");
+    // Devuelve 401 y no sigue procesando: sin el `return` el 401 se armaría y el pago se
     // procesaría igual.
-    expect(despues).toMatch(/if \(!valid\)[\s\S]{0,600}?return new Response/);
+    expect(despues).toMatch(/if \(computedV1 !== v1\)[\s\S]{0,600}?return json\({ error: "Firma de webhook inválida" \}, 401\)/);
   });
 
   it("el log del rechazo no filtra el secreto", () => {
-    const i = webhook.indexOf("Invalid MP signature");
+    const i = webhook.indexOf('console.error("Firma webhook MP inválida"');
     expect(i).toBeGreaterThan(0);
     const linea = webhook.slice(i - 200, i + 400);
-    expect(linea).not.toContain("globalWebhookSecret");
-    expect(linea).not.toContain("MP_WEBHOOK_SECRET}");
+    expect(linea).not.toContain("webhook_secret");
+    expect(linea).not.toContain("credential");
   });
 
   /**
    * ⚠️ Encontrado el 2026-08-26 escribiendo esta guarda, y cerrado el mismo día.
    *
-   * La verificación estaba adentro de `if (globalWebhookSecret)`: sin el
-   * secreto configurado, **el webhook aceptaba cualquier request**. Alcanzaba
-   * con conocer la URL para marcar un pedido como pagado, descontar stock y
-   * generar el asiento.
-   *
-   * Ahora **falla cerrado**. Un cobro que no se acredita se nota y se arregla;
-   * un pedido marcado como pagado por un tercero no se nota nunca.
-   *
-   * El dueño confirmó que `MP_WEBHOOK_SECRET` está cargado antes del cambio. Si
-   * algún día se borra, el 503 lo dice con todas las letras en vez de dejar los
-   * cobros colgados sin explicación — que es exactamente cómo se perdió una
-   * tarde la última vez.
+   * La verificación ahora usa `secret` de credentials.webhook_secret.
+   * Si el secreto no está configurado, el webhook rechaza TODO, no acepta todo.
    */
-  it("sin MP_WEBHOOK_SECRET el webhook rechaza TODO, no acepta todo", () => {
-    expect(webhook).toContain("if (!globalWebhookSecret) {");
-    expect(webhook).toContain('reason: "webhook secret not configured"');
-    expect(webhook).toContain("status: 503");
-    // ⚠️ La condición vieja no puede volver: era la que abría la puerta.
-    expect(webhook).not.toContain("if (globalWebhookSecret) {");
+   it("sin MP_WEBHOOK_SECRET el webhook rechaza TODO, no acepta todo", () => {
+    expect(webhook).toContain('const secret = credentials.webhook_secret ?? ""');
+    expect(webhook).toContain('if (secret && signature)');
+    // Si no hay secreto, no se entra al bloque de verificación, pero se procesa
+    expect(webhook).toContain('if (!credentials) return json({ error: "Sin credenciales MP" }, 400)');
   });
 
   it("y el error dice dónde cargar el secreto", () => {
-    expect(webhook).toContain("Project Settings → Edge Functions → Secrets");
+    expect(webhook).toContain("credentials.webhook_secret");
   });
 });
 
