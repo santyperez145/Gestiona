@@ -1,5 +1,4 @@
 ﻿import { useState, useEffect } from "react";
-import { activityOptions } from "@/lib/marketingExtraDB";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Trash2, Edit } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Gift } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -20,45 +18,29 @@ import CommerceKPICard from "@/components/commerce/CommerceKPICard";
 import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
-import { Activity } from "lucide-react";
+import { Activity, BarChart3, BarChart4, Bell, Building2, Calendar, CheckCircle, CheckCircle2, Copy, DollarSign, ExternalLink, ExternalLink2, Eye, FileSpreadsheet, Gift, Gift2, Gift3, Gift4, Instagram, Instagram2, Link2, Mail, Megaphone, RefreshCw, Send, Shield, Sparkles, Store, Target, Trash2, Users, Wallet, Zap } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useMemo } from "react";
 import { calcInfluencerROI, calcCPM, calcFulfillmentRate } from "@/lib/businessCalc";
-import { Wallet } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp } from "lucide-react";
-import { DollarSign } from "lucide-react";
-import { CheckCircle } from "lucide-react";
-import { Target } from "lucide-react";
-import { Megaphone } from "lucide-react";
-import { RefreshCw, FileSpreadsheet, Tag, RefreshCw as RefreshCw2, Link2, ExternalLink } from "lucide-react";
+import { Activity as ActivityIcon } from "lucide-react";
+import { BarChart as BarChartIcon } from "lucide-react";
+import { BarChart3 as BarChart3Icon } from "lucide-react";
+import { RefreshCw as RefreshCw2 } from "lucide-react";
+import { FileSpreadsheet as FileSpreadsheetIcon } from "lucide-react";
+import { Tag as TagIcon } from "lucide-react";
+import { Link2 as Link2Icon } from "lucide-react";
+import { ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { ExchangeForm } from "@/components/influencers/ExchangeForm";
 import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
-import { BarChart3 } from "lucide-react";
-import { Copy } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useCallback } from "react";
-import { Gift2 } from "lucide-react";
-import { useCallback as useCallback2, useState as useState2 } from "react";
-import { CheckCircle2, Instagram, Target, ExternalLink2, Send, Sparkles, Gift3 } from "lucide-react";
-import { Gift4 } from "lucide-react";
-import { Instagram2 } from "lucide-react";
-import { Zap } from "lucide-react";
-import { Bell } from "lucide-react";
-import { Eye } from "lucide-react";
-import { Mail } from "lucide-react";
-import { Calendar } from "lucide-react";
-import { Shield } from "lucide-react";
-import { BarChart4 } from "lucide-react";
-import { Users } from "lucide-react";
-import { Building2 } from "lucide-react";
-import { ArrowRightLeft } from "lucide-react";
-import { Store } from "lucide-react";
-
-// Re-export for compatibility
-export { Activity, BarChart3, BarChart4, Bell, Building2, Calendar, CheckCircle, CheckCircle2, Copy, DollarSign, Edit, ExternalLink, ExternalLink2, Eye, FileSpreadsheet, Gift, Gift2, Gift3, Gift4, Instagram, Instagram2, Link2, Mail, Megaphone, Plus, RefreshCw, Send, Shield, Sparkles, Store, Target, Toast, Trash2, Users, Wallet, Zap } from "lucide-react";
+import { Gift2 as Gift2Icon } from "lucide-react";
+import { Gift3 as Gift3Icon } from "lucide-react";
+import { Gift4 as Gift4Icon } from "lucide-react";
 
 /**
  * Canjes & Influencers — gestión completa de campañas, contratos, entregables, pagos y brand portal.

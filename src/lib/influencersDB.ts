@@ -125,6 +125,11 @@ export async function listDeliverables(influencerId?: string): Promise<Influence
   return (data || []) as InfluencerDeliverable[];
 }
 
+/** Alias para compatibilidad con código existente */
+export async function listInfluencerDeliverables(): Promise<InfluencerDeliverable[]> {
+  return listDeliverables();
+}
+
 export async function createDeliverable(payload: Partial<InfluencerDeliverable> & { org_id: string; influencer_id: string }): Promise<InfluencerDeliverable> {
   const orgId = requireActiveOrgId();
   const { data, error } = await supabase.from('influencer_deliverables').insert({ ...payload, org_id: orgId }).select().single();
@@ -195,4 +200,86 @@ export async function updateBrandPortal(id: string, updates: Partial<BrandPortal
 export async function deleteBrandPortal(id: string): Promise<void> {
   const { error } = await supabase.from('brand_portal_profiles').delete().eq('id', id);
   if (error) throw error;
+}
+
+/** ─── Influencers (CRUD básico) ─── */
+export async function listInfluencers(): Promise<Influencer[]> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('influencers').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as Influencer[];
+}
+
+export async function createInfluencer(payload: Partial<Influencer> & { org_id: string; user_id: string }): Promise<Influencer> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('influencers').insert({ ...payload, org_id: orgId }).select().single();
+  if (error) throw error;
+  return data as Influencer;
+}
+
+export async function updateInfluencer(id: string, updates: Partial<Influencer>) {
+  const { error } = await supabase.from('influencers').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteInfluencer(id: string): Promise<void> {
+  const { error } = await supabase.from('influencers').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function findInfluencerByCode(referralCode: string): Promise<Influencer | null> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('influencers').select('*').eq('org_id', orgId).eq('referral_code', referralCode).single();
+  if (error) return null;
+  return data as Influencer;
+}
+
+/** ─── Influencer Sales (para campañas) ─── */
+export async function listInfluencerSales(): Promise<{
+  id: string;
+  org_id: string;
+  influencer_id: string;
+  sale_id: string;
+  sale_total_ars: number;
+  commission_ars: number;
+  created_at: string;
+  influencer_name?: string;
+}[]> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('influencer_sales').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as any[];
+}
+
+/** ─── Payouts (liquidaciones) ─── */
+export async function listPayouts(): Promise<{
+  id: string;
+  org_id: string;
+  total_amount: number;
+  paid_amount: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  period_start: string;
+  period_end: string;
+  created_at: string;
+  paid_at?: string;
+  notes?: string;
+}>[] {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('influencer_payouts').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as any[];
+}
+
+export async function createPayout(payload: {
+  org_id: string;
+  total_amount: number;
+  status?: 'pending' | 'processing' | 'completed' | 'cancelled';
+  period_start: string;
+  period_end: string;
+  notes?: string;
+}): Promise<any> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('influencer_payouts').insert({ ...payload, org_id: orgId }).select().single();
+  if (error) throw error;
+  return data;
 }
