@@ -12,68 +12,187 @@ export type Influencer = {
   notes?: string; avatar_url?: string;
 };
 
-export async function listInfluencers(): Promise<Influencer[]> {
+export type InfluencerContract = {
+  id: string;
+  org_id: string;
+  influencer_id: string;
+  influencer_name: string;
+  contract_type: 'fixed' | 'percentage' | 'hybrid';
+  contract_amount: number;
+  commission_percent: number;
+  commission_fixed: number;
+  is_signed: boolean;
+  valid_from: string;
+  valid_until: string;
+  status: 'active' | 'paused' | 'expired' | 'cancelled';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InfluencerDeliverable = {
+  id: string;
+  org_id: string;
+  influencer_id: string;
+  influencer_name: string;
+  campaign_name: string;
+  description: string;
+  due_date: string;
+  status: 'pendiente' | 'en_progreso' | 'completado' | 'entregado';
+  delivery_date?: string;
+  notes?: string;
+  created_at: string;
+};
+
+export type InfluencerPayment = {
+  id: string;
+  org_id: string;
+  influencer_id: string;
+  influencer_name: string;
+  amount: number;
+  currency: string;
+  payment_method: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+  period_start?: string;
+  period_end?: string;
+  notes?: string;
+  created_at: string;
+  completed_at?: string;
+};
+
+export type BrandPortalProfile = {
+  id: string;
+  org_id: string;
+  influencer_id: string;
+  influencer_name: string;
+  portal_name: string;
+  description: string;
+  website_url?: string;
+  instagram_handle?: string;
+  tiktok_handle?: string;
+  youtube_handle?: string;
+  followers_ig: number;
+  followers_tiktok: number;
+  engagement_rate: number;
+  tier: 'nano' | 'micro' | 'medio' | 'macro';
+  status: 'active' | 'inactive' | 'pending';
+  category: string;
+  bio?: string;
+  created_at: string;
+};
+
+/** ─── Contratos ─── */
+export async function listInfluencerContracts(): Promise<InfluencerContract[]> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencers').select('*').eq('org_id', orgId).order('total_generated_ars', { ascending: false });
+  const { data, error } = await supabase
+    .from('influencer_contracts')
+    .select('*')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data || []) as Influencer[];
+  return (data || []) as InfluencerContract[];
 }
 
-export async function createInfluencer(payload: Partial<Influencer> & { user_id: string }) {
+export async function createContract(payload: Partial<InfluencerContract> & { org_id: string; influencer_id: string }): Promise<InfluencerContract> {
   const orgId = requireActiveOrgId();
-  const insertData: any = { ...payload, org_id: orgId };
-  if (insertData.referral_code) insertData.referral_code = insertData.referral_code.toUpperCase().replace(/\s+/g, '');
-  const { data, error } = await supabase.from('influencers').insert(insertData).select().single();
+  const { data, error } = await supabase.from('influencer_contracts').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
-  return data;
+  return data as InfluencerContract;
 }
 
-export async function updateInfluencer(id: string, updates: Partial<Influencer>) {
-  if (updates.referral_code) updates.referral_code = updates.referral_code.toUpperCase().replace(/\s+/g, '');
-  const { error } = await supabase.from('influencers').update(updates).eq('id', id);
+export async function updateContract(id: string, updates: Partial<InfluencerContract>) {
+  const { error } = await supabase.from('influencer_contracts').update(updates).eq('id', id);
   if (error) throw error;
 }
 
-export async function deleteInfluencer(id: string) {
-  const { error } = await supabase.from('influencers').delete().eq('id', id);
+export async function signContract(id: string): Promise<void> {
+  const { error } = await supabase.from('influencer_contracts').update({ is_signed: true, updated_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 }
 
-export async function listInfluencerSales(influencerId?: string) {
+export async function deleteContract(id: string): Promise<void> {
+  const { error } = await supabase.from('influencer_contracts').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** ─── Entregables ─── */
+export async function listDeliverables(influencerId?: string): Promise<InfluencerDeliverable[]> {
   const orgId = requireActiveOrgId();
-  let q = supabase.from('influencer_sales').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  let q = supabase.from('influencer_deliverables').select('*').eq('org_id', orgId).order('due_date', { ascending: true });
   if (influencerId) q = q.eq('influencer_id', influencerId);
   const { data, error } = await q;
   if (error) throw error;
-  return data || [];
+  return (data || []) as InfluencerDeliverable[];
 }
 
-export async function listPayouts(influencerId?: string) {
+export async function createDeliverable(payload: Partial<InfluencerDeliverable> & { org_id: string; influencer_id: string }): Promise<InfluencerDeliverable> {
   const orgId = requireActiveOrgId();
-  let q = supabase.from('influencer_payouts').select('*').eq('org_id', orgId).order('paid_at', { ascending: false });
-  if (influencerId) q = q.eq('influencer_id', influencerId);
-  const { data, error } = await q;
+  const { data, error } = await supabase.from('influencer_deliverables').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
-  return data || [];
+  return data as InfluencerDeliverable;
 }
 
-export async function createPayout(influencerId: string, amount: number, salesIds: string[], userId: string, opts: { period_start?: string; period_end?: string; payment_method?: string; notes?: string } = {}) {
-  const orgId = requireActiveOrgId();
-  const { data: payout, error } = await supabase.from('influencer_payouts').insert({
-    org_id: orgId, influencer_id: influencerId, amount_ars: amount,
-    period_start: opts.period_start, period_end: opts.period_end,
-    payment_method: opts.payment_method, notes: opts.notes,
-    sales_count: salesIds.length, created_by: userId,
-  }).select().single();
+export async function updateDeliverable(id: string, updates: Partial<InfluencerDeliverable>) {
+  const { error } = await supabase.from('influencer_deliverables').update(updates).eq('id', id);
   if (error) throw error;
-  if (salesIds.length > 0) {
-    await supabase.from('influencer_sales').update({ paid: true, paid_at: new Date().toISOString(), payout_id: payout.id }).in('id', salesIds);
-  }
-  return payout;
 }
 
-export async function findInfluencerByCode(code: string) {
+export async function completeDeliverable(id: string): Promise<void> {
+  const { error } = await supabase.from('influencer_deliverables').update({ status: 'completado', delivery_date: new Date().toISOString() }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteDeliverable(id: string): Promise<void> {
+  const { error } = await supabase.from('influencer_deliverables').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** ─── Pagos / Liquidaciones ─── */
+export async function listPayments(): Promise<InfluencerPayment[]> {
   const orgId = requireActiveOrgId();
-  const { data } = await supabase.from('influencers').select('*').eq('org_id', orgId).ilike('referral_code', code.trim()).eq('status', 'activo').maybeSingle();
-  return data as Influencer | null;
+  const { data, error } = await supabase.from('influencer_payments').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as InfluencerPayment[];
+}
+
+export async function createPayment(payload: Partial<InfluencerPayment> & { org_id: string; influencer_id: string }): Promise<InfluencerPayment> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('influencer_payments').insert({ ...payload, org_id: orgId }).select().single();
+  if (error) throw error;
+  return data as InfluencerPayment;
+}
+
+export async function updatePayment(id: string, updates: Partial<InfluencerPayment>) {
+  const { error } = await supabase.from('influencer_payments').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function processPayment(id: string): Promise<void> {
+  const { error } = await supabase.from('influencer_payments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+  if (error) throw error;
+}
+
+/** ─── Brand Portal ─── */
+export async function listBrandPortals(): Promise<BrandPortalProfile[]> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('brand_portal_profiles').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as BrandPortalProfile[];
+}
+
+export async function createBrandPortal(payload: Partial<BrandPortalProfile> & { org_id: string; influencer_id: string }): Promise<BrandPortalProfile> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase.from('brand_portal_profiles').insert({ ...payload, org_id: orgId }).select().single();
+  if (error) throw error;
+  return data as BrandPortalProfile;
+}
+
+export async function updateBrandPortal(id: string, updates: Partial<BrandPortalProfile>) {
+  const { error } = await supabase.from('brand_portal_profiles').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteBrandPortal(id: string): Promise<void> {
+  const { error } = await supabase.from('brand_portal_profiles').delete().eq('id', id);
+  if (error) throw error;
 }
