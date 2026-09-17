@@ -30,7 +30,7 @@
  * "libro mayor" llega igual.
  */
 import type { LucideIcon } from "lucide-react";
-import { financeProductRoutes, navRoutes, type NavGroupId, type NavRole } from "@/app/routeManifest";
+import { financeProductRoutes, influencerMarketingProductRoutes, navRoutes, type NavGroupId, type NavRole } from "@/app/routeManifest";
 
 export type { NavGroupId, NavRole };
 
