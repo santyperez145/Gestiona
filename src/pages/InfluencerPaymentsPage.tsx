@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { listInfluencerSales, listInfluencerPayouts, listInfluencers, type InfluencerPayment, createPayment, processPayment } from "@/lib/influencersDB";
+import { listInfluencerSales, listPayouts, listInfluencers, listPayments, type InfluencerPayment, createPayment, processPayment } from "@/lib/influencersDB";
 import { toast } from "sonner";
 
 /**
@@ -24,9 +24,9 @@ export default function InfluencerPaymentsPage() {
     try {
       const [s, p, inf, pmts] = await Promise.all([
         listInfluencerSales(),
-        listInfluencerPayouts(),
+        listPayouts(),
         listInfluencers(),
-        listInfluencerPayments()
+        listPayments()
       ]);
       setSales(s);
       setPayouts(p);
@@ -50,7 +50,7 @@ export default function InfluencerPaymentsPage() {
   });
 
   const totalCommissions = sales.reduce((s, r) => s + Number(r.commission_ars || 0), 0);
-  const totalPaid = payouts.reduce((s, r) => s + Number(r.amount_ars || 0), 0);
+  const totalPaid = payouts.reduce((s, r) => s + Number(r.paid_amount || 0), 0);
   const pendingSales = sales.filter((r) => !r.paid);
   const pendingPayouts = payments.filter((p) => p.status === "pending" || p.status === "processing");
   const completedPayouts = payments.filter((p) => p.status === "completed");

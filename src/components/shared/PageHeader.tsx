@@ -74,3 +74,5 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
     </div>
   );
 }
+
+export { PageHeader };

@@ -100,16 +100,19 @@ export default function SettlementsTab() {
   const handlePay = async (group: any, method: string, notes: string) => {
     if (!user) return;
     try {
-      await createPayout(group.influencer_id, group.total_commission, group.sales.map((s: any) => s.id), user.id, {
+      await createPayout({
+        org_id: group.org_id || '',
+        influencer_id: group.influencer_id,
+        total_amount: group.total_commission,
+        status: 'completed',
         period_start: new Date(from + 'T00:00:00').toISOString(),
         period_end: new Date(to + 'T23:59:59').toISOString(),
         payment_method: method,
         notes,
       });
       toast.success("Liquidación registrada");
+    } finally {
       reload();
-    } catch (e: any) {
-      toast.error(e.message);
     }
   };
 

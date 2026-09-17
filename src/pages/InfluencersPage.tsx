@@ -314,7 +314,14 @@ function PayoutsTab() {
 
   const submit = async () => {
     if (!selInf || pendingSales.length === 0) return toast.error('Sin comisiones pendientes');
-    await createPayout(selInf, total, pendingSales.map(s => s.id), user!.id);
+    await createPayout({
+      org_id: '',
+      influencer_id: selInf,
+      total_amount: total,
+      status: 'completed',
+      period_start: new Date().toISOString().slice(0,10),
+      period_end: new Date().toISOString().slice(0,10),
+    });
     toast.success('Liquidación registrada');
     setOpen(false); setSelInf(''); reload();
   };

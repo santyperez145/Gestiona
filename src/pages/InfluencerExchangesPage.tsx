@@ -4,21 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Edit } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
-
 import { supabase } from "@/integrations/supabase/client";
 import {
   getExchangesDB, addExchangeDB, updateExchangeDB, deleteExchangeDB, generateInfluencerCode, formatARS as _fmt,
 } from "@/lib/supabaseStore";
 import { useAuth } from "@/lib/auth";
-import { listInfluencers, listInfluencerDeliverables, createDeliverable, updateDeliverable, deleteDeliverable, type Influencer } from "@/lib/influencersDB";
+import { listInfluencers, listInfluencerContracts, listDeliverables, createDeliverable, updateDeliverable, deleteDeliverable, listPayments, listBrandPortals, type Influencer } from "@/lib/influencersDB";
 import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 import CommerceKPICard from "@/components/commerce/CommerceKPICard";
 import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
-import { Activity, BarChart3, BarChart4, Bell, Building2, Calendar, CheckCircle, CheckCircle2, Copy, DollarSign, ExternalLink, ExternalLink2, Eye, FileSpreadsheet, Gift, Gift2, Gift3, Gift4, Instagram, Instagram2, Link2, Mail, Megaphone, RefreshCw, Send, Shield, Sparkles, Store, Target, Trash2, Users, Wallet, Zap } from "lucide-react";
+import { Activity, BarChart3, BarChart4, Bell, Building2, Calendar, CheckCircle, CheckCircle2, Copy, DollarSign, ExternalLink, Eye, FileSpreadsheet, Gift, Instagram, Link2, Mail, Megaphone, RefreshCw, Send, Shield, Sparkles, Store, Target, Trash2, Users, Wallet, Zap } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useMemo } from "react";
@@ -33,14 +32,11 @@ import { FileSpreadsheet as FileSpreadsheetIcon } from "lucide-react";
 import { Tag as TagIcon } from "lucide-react";
 import { Link2 as Link2Icon } from "lucide-react";
 import { ExternalLink as ExternalLinkIcon } from "lucide-react";
-import { ExchangeForm } from "@/components/influencers/ExchangeForm";
 import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
 import { useParams } from "react-router-dom";
 import { useCallback } from "react";
-import { Gift2 as Gift2Icon } from "lucide-react";
-import { Gift3 as Gift3Icon } from "lucide-react";
-import { Gift4 as Gift4Icon } from "lucide-react";
+import { Gift as GiftIcon } from "lucide-react";
 
 /**
  * Canjes & Influencers — gestión completa de campañas, contratos, entregables, pagos y brand portal.
@@ -87,8 +83,8 @@ export default function InfluencerExchangesPage() {
           getExchangesDB(user.id),
           listInfluencers(),
           listInfluencerContracts(),
-          listInfluencerDeliverables(),
-          listInfluencerPayments(),
+          listDeliverables(),
+          listPayments(),
           listBrandPortals(),
         ]);
         setExchanges(ex);
@@ -198,10 +194,10 @@ export default function InfluencerExchangesPage() {
       case "dashboard":
         return (
           <div className="grid gap-4 md:grid-cols-4">
-            <CommerceKPICard label="Inversión" value={_fmt(totalInversion)} icon={Target} sub="Costo real" />
-            <CommerceKPICard label="Ventas generadas" value={totalSalesGenerated > 0 ? _fmt(totalSalesGenerated) : "Sin datos"} icon={DollarSign} sub={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%` : ""} />
-            <CommerceKPICard label="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} sub={`${totalActual}/${totalExpected} posts`} />
-            <CommerceKPICard label="CPM" value={cpm !== null ? _fmt(cpm) : "—"} icon={Megaphone} sub={`${(totalReach / 1000).toFixed(1)}K alcance`} />
+            <CommerceKPICard title="Inversión" value={_fmt(totalInversion)} icon={Target} description="Costo real" />
+            <CommerceKPICard title="Ventas generadas" value={totalSalesGenerated > 0 ? _fmt(totalSalesGenerated) : "Sin datos"} icon={DollarSign} description={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%` : "Cargá ventas atribuidas"} />
+            <CommerceKPICard title="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} description={`${totalActual}/${totalExpected} posts`} />
+            <CommerceKPICard title="CPM" value={cpm !== null ? _fmt(cpm) : "—"} icon={Megaphone} description={`${(totalReach / 1000).toFixed(1)}K alcance`} />
           </div>
         );
       case "liquidaciones":
@@ -456,10 +452,10 @@ export default function InfluencerExchangesPage() {
       {/* KPIs para canjes y dashboard */}
       {(pageTab === "canjes" || pageTab === "dashboard") && exchanges.length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <CommerceKPICard label="Inversión (costo)" value={_fmt(totalInversion)} icon={Target} sub="Lo que realmente costó" />
-          <CommerceKPICard label="Ventas generadas" value={totalSalesGenerated > 0 ? _fmt(totalSalesGenerated) : "Sin datos"} icon={DollarSign} sub={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%` : "Cargá ventas atribuidas"} />
-          <CommerceKPICard label="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} sub={`${totalActual}/${totalExpected} posts`} />
-          <CommerceKPICard label="CPM" value={cpm !== null ? _fmt(cpm) : "—"} icon={Megaphone} sub={`${(totalReach / 1000).toFixed(1)}K alcance`} />
+          <CommerceKPICard title="Inversión (costo)" value={_fmt(totalInversion)} icon={Target} description="Lo que realmente costó" />
+          <CommerceKPICard title="Ventas generadas" value={totalSalesGenerated > 0 ? _fmt(totalSalesGenerated) : "Sin datos"} icon={DollarSign} description={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%` : "Cargá ventas atribuidas"} />
+          <CommerceKPICard title="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} description={`${totalActual}/${totalExpected} posts`} />
+          <CommerceKPICard title="CPM" value={cpm !== null ? _fmt(cpm) : "—"} icon={Megaphone} description={`${(totalReach / 1000).toFixed(1)}K alcance`} />
         </div>
       )}
 

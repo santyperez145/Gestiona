@@ -57,7 +57,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   AlertCircle, AlertTriangle, ArrowRightLeft, BarChart3, Bell, BookOpen,
-  Brain, Calendar, CheckSquare, ClipboardList, CreditCard, Crown,
+  Brain, Building2, Calendar, CheckSquare, ClipboardList, CreditCard, Crown,
   DollarSign, FileText, Gift, History, Kanban, Landmark,
   Layers, LayoutDashboard, LineChart, Link2, Mail, Megaphone,
   Headphones, MessageCircle, Package, Plug, Receipt, RefreshCw, RotateCcw,
@@ -395,7 +395,7 @@ export function influencerMarketingProductRoutes(): RouteDefinition[] {
  */
 export function businessRoutes(role: NavRole): RouteDefinition[] {
   return [...ROUTES, ...INTERNAL_ROUTES]
-    .filter(r => r.component && r.productSurface !== "finance" && r.roles.includes(role));
+    .filter(r => r.component && r.productSurface !== "finance" && r.productSurface !== "influencer-marketing" && r.roles.includes(role));
 }
 
 /** Los alias de negocio, como pares `[url vieja, destino]`. */

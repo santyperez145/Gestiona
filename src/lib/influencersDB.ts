@@ -1,5 +1,10 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as _supabase } from '@/integrations/supabase/client';
 import { requireActiveOrgId } from './orgContext';
+
+// New tables (influencer_contracts, influencer_deliverables, influencer_payments,
+// brand_portal_profiles) are not in the Supabase generated types yet. Cast to any
+// to avoid type-check failures until the migration is deployed.
+const sb: any = _supabase;
 
 export type Influencer = {
   id: string; org_id: string; user_id: string; name: string;
@@ -84,7 +89,7 @@ export type BrandPortalProfile = {
 /** ─── Contratos ─── */
 export async function listInfluencerContracts(): Promise<InfluencerContract[]> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('influencer_contracts')
     .select('*')
     .eq('org_id', orgId)
@@ -95,30 +100,30 @@ export async function listInfluencerContracts(): Promise<InfluencerContract[]> {
 
 export async function createContract(payload: Partial<InfluencerContract> & { org_id: string; influencer_id: string }): Promise<InfluencerContract> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencer_contracts').insert({ ...payload, org_id: orgId }).select().single();
+  const { data, error } = await sb.from('influencer_contracts').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
   return data as InfluencerContract;
 }
 
 export async function updateContract(id: string, updates: Partial<InfluencerContract>) {
-  const { error } = await supabase.from('influencer_contracts').update(updates).eq('id', id);
+  const { error } = await sb.from('influencer_contracts').update(updates).eq('id', id);
   if (error) throw error;
 }
 
 export async function signContract(id: string): Promise<void> {
-  const { error } = await supabase.from('influencer_contracts').update({ is_signed: true, updated_at: new Date().toISOString() }).eq('id', id);
+  const { error } = await sb.from('influencer_contracts').update({ is_signed: true, updated_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteContract(id: string): Promise<void> {
-  const { error } = await supabase.from('influencer_contracts').delete().eq('id', id);
+  const { error } = await sb.from('influencer_contracts').delete().eq('id', id);
   if (error) throw error;
 }
 
 /** ─── Entregables ─── */
 export async function listDeliverables(influencerId?: string): Promise<InfluencerDeliverable[]> {
   const orgId = requireActiveOrgId();
-  let q = supabase.from('influencer_deliverables').select('*').eq('org_id', orgId).order('due_date', { ascending: true });
+  let q = sb.from('influencer_deliverables').select('*').eq('org_id', orgId).order('due_date', { ascending: true });
   if (influencerId) q = q.eq('influencer_id', influencerId);
   const { data, error } = await q;
   if (error) throw error;
@@ -132,140 +137,122 @@ export async function listInfluencerDeliverables(): Promise<InfluencerDeliverabl
 
 export async function createDeliverable(payload: Partial<InfluencerDeliverable> & { org_id: string; influencer_id: string }): Promise<InfluencerDeliverable> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencer_deliverables').insert({ ...payload, org_id: orgId }).select().single();
+  const { data, error } = await sb.from('influencer_deliverables').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
   return data as InfluencerDeliverable;
 }
 
 export async function updateDeliverable(id: string, updates: Partial<InfluencerDeliverable>) {
-  const { error } = await supabase.from('influencer_deliverables').update(updates).eq('id', id);
+  const { error } = await sb.from('influencer_deliverables').update(updates).eq('id', id);
   if (error) throw error;
 }
 
 export async function completeDeliverable(id: string): Promise<void> {
-  const { error } = await supabase.from('influencer_deliverables').update({ status: 'completado', delivery_date: new Date().toISOString() }).eq('id', id);
+  const { error } = await sb.from('influencer_deliverables').update({ status: 'completado', delivery_date: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteDeliverable(id: string): Promise<void> {
-  const { error } = await supabase.from('influencer_deliverables').delete().eq('id', id);
+  const { error } = await sb.from('influencer_deliverables').delete().eq('id', id);
   if (error) throw error;
 }
 
 /** ─── Pagos / Liquidaciones ─── */
 export async function listPayments(): Promise<InfluencerPayment[]> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencer_payments').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('influencer_payments').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as InfluencerPayment[];
 }
 
 export async function createPayment(payload: Partial<InfluencerPayment> & { org_id: string; influencer_id: string }): Promise<InfluencerPayment> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencer_payments').insert({ ...payload, org_id: orgId }).select().single();
+  const { data, error } = await sb.from('influencer_payments').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
   return data as InfluencerPayment;
 }
 
 export async function updatePayment(id: string, updates: Partial<InfluencerPayment>) {
-  const { error } = await supabase.from('influencer_payments').update(updates).eq('id', id);
+  const { error } = await sb.from('influencer_payments').update(updates).eq('id', id);
   if (error) throw error;
 }
 
 export async function processPayment(id: string): Promise<void> {
-  const { error } = await supabase.from('influencer_payments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+  const { error } = await sb.from('influencer_payments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 }
 
 /** ─── Brand Portal ─── */
 export async function listBrandPortals(): Promise<BrandPortalProfile[]> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('brand_portal_profiles').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('brand_portal_profiles').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as BrandPortalProfile[];
 }
 
 export async function createBrandPortal(payload: Partial<BrandPortalProfile> & { org_id: string; influencer_id: string }): Promise<BrandPortalProfile> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('brand_portal_profiles').insert({ ...payload, org_id: orgId }).select().single();
+  const { data, error } = await sb.from('brand_portal_profiles').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
   return data as BrandPortalProfile;
 }
 
 export async function updateBrandPortal(id: string, updates: Partial<BrandPortalProfile>) {
-  const { error } = await supabase.from('brand_portal_profiles').update(updates).eq('id', id);
+  const { error } = await sb.from('brand_portal_profiles').update(updates).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteBrandPortal(id: string): Promise<void> {
-  const { error } = await supabase.from('brand_portal_profiles').delete().eq('id', id);
+  const { error } = await sb.from('brand_portal_profiles').delete().eq('id', id);
   if (error) throw error;
 }
 
 /** ─── Influencers (CRUD básico) ─── */
 export async function listInfluencers(): Promise<Influencer[]> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencers').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('influencers').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as Influencer[];
 }
 
 export async function createInfluencer(payload: Partial<Influencer> & { org_id: string; user_id: string }): Promise<Influencer> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencers').insert({ ...payload, org_id: orgId }).select().single();
+  const { data, error } = await sb.from('influencers').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
   return data as Influencer;
 }
 
 export async function updateInfluencer(id: string, updates: Partial<Influencer>) {
-  const { error } = await supabase.from('influencers').update(updates).eq('id', id);
+  const { error } = await sb.from('influencers').update(updates).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteInfluencer(id: string): Promise<void> {
-  const { error } = await supabase.from('influencers').delete().eq('id', id);
+  const { error } = await sb.from('influencers').delete().eq('id', id);
   if (error) throw error;
 }
 
 export async function findInfluencerByCode(referralCode: string): Promise<Influencer | null> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencers').select('*').eq('org_id', orgId).eq('referral_code', referralCode).single();
+  const { data, error } = await sb.from('influencers').select('*').eq('org_id', orgId).eq('referral_code', referralCode).single();
   if (error) return null;
   return data as Influencer;
 }
 
 /** ─── Influencer Sales (para campañas) ─── */
-export async function listInfluencerSales(): Promise<{
-  id: string;
-  org_id: string;
-  influencer_id: string;
-  sale_id: string;
-  sale_total_ars: number;
-  commission_ars: number;
-  created_at: string;
-  influencer_name?: string;
-}[]> {
+export async function listInfluencerSales(influencerId?: string): Promise<any[]> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencer_sales').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  let q = sb.from('influencer_sales').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  if (influencerId) q = q.eq('influencer_id', influencerId);
+  const { data, error } = await q;
   if (error) throw error;
   return (data || []) as any[];
 }
 
 /** ─── Payouts (liquidaciones) ─── */
-export async function listPayouts(): Promise<{
-  id: string;
-  org_id: string;
-  total_amount: number;
-  paid_amount: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
-  period_start: string;
-  period_end: string;
-  created_at: string;
-  paid_at?: string;
-  notes?: string;
-}>[] {
+export async function listPayouts(): Promise<any[]> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencer_payouts').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('influencer_payouts').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as any[];
 }
@@ -273,13 +260,18 @@ export async function listPayouts(): Promise<{
 export async function createPayout(payload: {
   org_id: string;
   total_amount: number;
+  influencer_id?: string;
   status?: 'pending' | 'processing' | 'completed' | 'cancelled';
   period_start: string;
   period_end: string;
   notes?: string;
+  amount_ars?: number;
+  sales_ids?: string[];
+  user_id?: string;
+  payment_method?: string;
 }): Promise<any> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await supabase.from('influencer_payouts').insert({ ...payload, org_id: orgId }).select().single();
+  const { data, error } = await sb.from('influencer_payouts').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
   return data;
 }

@@ -9,8 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { OrgProvider, useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
-import {
-  businessRoutes, businessAliases, financeProductRoutes, publicPages, publicAliases,
+import { businessRoutes, businessAliases, financeProductRoutes, influencerMarketingProductRoutes, publicPages, publicAliases,
 } from "@/app/routeManifest";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -37,6 +36,8 @@ const ModuleGuard = lazy(() => import("@/components/auth/ModuleGuard"));
 const PlatformLayout = lazy(() => import("@/components/PlatformLayout"));
 const FinanceLayout = lazy(() => import("@/components/finance-product/FinanceLayout"));
 const FinanceProductGate = lazy(() => import("@/components/finance-product/FinanceProductGate"));
+const InfluencerMarketingLayout = lazy(() => import("@/components/influencers/InfluencerMarketingLayout"));
+const InfluencerMarketingGate = lazy(() => import("@/components/influencers/InfluencerMarketingGate"));
 const PermissionsProvider = lazy(() =>
   import("@/lib/permissionsContext").then(module => ({ default: module.PermissionsProvider })),
 );
@@ -226,6 +227,44 @@ function FinanceRoutes() {
   );
 }
 
+function InfluencerMarketingRoutes() {
+  const { user, loading: authLoading } = useAuth();
+  const { activeOrg, activeRole, platformRole, loading: orgLoading } = useOrg();
+
+  if (authLoading || orgLoading) return <AppLoader label="Verificando acceso a Influencer Marketing..." />;
+  if (!user) return <AuthPage />;
+  if (!activeOrg || !activeRole) {
+    return platformRole ? <Navigate to="/platform" replace /> : <ViewerGate />;
+  }
+  const routes = influencerMarketingProductRoutes();
+  const overviewRoute = routes.find(route => route.path === "/influencer-marketing");
+  const childRoutes = routes.filter(route => route.path !== "/influencer-marketing");
+
+  return (
+    <MfaGate isAdmin={activeRole === 'owner' || activeRole === 'admin'} orgRequiresMfa={false}>
+      <PermissionsProvider>
+        <InfluencerMarketingLayout>
+          <InfluencerMarketingGate>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {overviewRoute?.component && <Route index element={<overviewRoute.component />} />}
+                {childRoutes.map(route => (
+                  <Route
+                    key={route.id}
+                    path={route.path.slice("/influencer-marketing".length)}
+                    element={route.component ? <route.component /> : <Navigate to="/influencer-marketing" replace />}
+                  />
+                ))}
+                <Route path="*" element={<Navigate to="/influencer-marketing" replace />} />
+              </Routes>
+            </Suspense>
+          </InfluencerMarketingGate>
+        </InfluencerMarketingLayout>
+      </PermissionsProvider>
+    </MfaGate>
+  );
+}
+
 function ProtectedRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
@@ -344,6 +383,7 @@ function ApplicationRoutes() {
       <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
       <Route path="/platform/*" element={<PlatformRoutes />} />
       <Route path="/finance/*" element={<FinanceRoutes />} />
+      <Route path="/influencer-marketing/*" element={<InfluencerMarketingRoutes />} />
       <Route path="/app/*" element={<ProtectedRoutes />} />
       <Route path="/*" element={<ProtectedRoutes />} />
     </Routes>
