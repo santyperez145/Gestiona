@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
-import { Filter, Users, Sparkles, BarChart3, TrendingUp, CheckCircle2, ShieldCheck } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Filter, Sparkles, BarChart3, Users, Bell, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  listInfluencerSales,
-  listPayouts,
-  type Influencer,
-} from "@/lib/influencersDB";
+import { listInfluencerSales, listPayouts } from "@/lib/influencersDB";
 
 /** Campañas del flujo Influencer Marketing.
  *  Sin mocks: cualquier métrica se calcula sobre filas reales de Supabase. */
@@ -26,7 +22,6 @@ export default function CampaignsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Sin datos inventados: vacío honesto con carga.
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -65,7 +60,7 @@ export default function CampaignsPage() {
             </Card>
             <Card className="h-[120px]">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Pagos Realizados</CardDescription>
+                <CardTitle className="text-sm font-medium">Pagos Realizados</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">Desde influencer_payouts</CardDescription>
               </CardHeader>
               <CardContent className="text-center">
@@ -136,7 +131,9 @@ export default function CampaignsPage() {
                     <td className="px-4 py-3 text-sm">${Number(r.sale_total_ars || 0).toLocaleString("es-AR")}</td>
                     <td className="px-4 py-3 text-sm">${Number(r.commission_ars || 0).toLocaleString("es-AR")}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={r.paid ? "secondary" : "default"}>{r.paid ? "Pagada" : "Pendiente"}</Badge>
+                      <Badge variant={r.paid ? "secondary" : "default"}>
+                        {r.paid ? "Pagada" : "Pendiente"}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3 text-sm">{r.payout_id ? "Asignado" : "—"}</td>
                   </tr>

@@ -68,6 +68,7 @@ const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
   business: ["/caja", "/ventas", "/compras", "/ordenes-compra", "/proveedores", "/kardex", "/transferencias", "/sucursales", "/lotes", "/bundles", "/listas-precios", "/valuacion-inventario"],
   marketing: ["/marketing", "/email-campaigns", "/whatsapp-campaigns", "/fidelidad", "/catalogo", "/afiliados", "/referidos"],
   influencers: ["/influencers", "/canjes", "/brief-composer", "/campaign-matching"],
+  "influencer-marketing": ["/influencer-marketing"],
   finance: ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones", "/billetera", "/movimientos", "/comisiones", "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones"],
   reportes: ["/reportes", "/analytics", "/ia"],
   sistema: ["/soporte", "/alertas", "/integraciones", "/equipo", "/ajustes", "/admin", "/calidad-datos", "/mi-plan", "/perfil"],
