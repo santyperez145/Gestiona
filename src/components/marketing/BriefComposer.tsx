@@ -133,9 +133,10 @@ export default function BriefComposer({ onClose, products, themes }: { onClose: 
     onClose();
   };
 
-  const getTotalCreatorReach = () => creators.filter((c) => selectedCreators.includes(c.id)).reduce((sum, c) => sum + (c.reach || 0), 0);
+  const getTotalCreatorReach = () => selectedCreators.reduce((sum, cId) => sum + (sampleCreators.find((c) => c.id === cId)?.reach || 0), 0);
   const getEstimatedCTR = () => {
-    const avgCTR = creators.filter((c) => selectedCreators.includes(c.id)).reduce((sum, c) => sum + (c.ctr || 0), 0) / Math.max(selectedCreators.length, 1);
+    const selected = sampleCreators.filter((c) => selectedCreators.includes(c.id));
+    const avgCTR = selected.reduce((sum, c) => sum + (c.ctr || 0), 0) / Math.max(selected.length, 1);
     return ((avgCTR || 0) * 1000).toFixed(2);
   };
 

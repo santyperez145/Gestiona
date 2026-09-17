@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-supabase-client-event-sig",
 };
-    10|
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -17,7 +17,7 @@ const json = (body: unknown, status = 200) =>
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-    20|  // Verificar firma de webhook de Mercado Pago (formato oficial 2026)
+  // Verificar firma de webhook de Mercado Pago (formato oficial 2026)
   // x-signature: id:DATA_ID;request-id:REQUEST_ID;ts:TIMESTAMP,v1:HMAC
   const signature = req.headers.get("x-signature") ?? req.headers.get("x-signature-256");
   const payload = await req.text();
@@ -38,7 +38,7 @@ serve(async (req) => {
       const parts = signature.split(",");
       const tsPart = parts.find(p => p.startsWith("ts:"));
       const v1Part = parts.find(p => p.startsWith("v1:"));
-      
+
       if (!tsPart || !v1Part) {
         console.warn("Formato de firma de webhook MP no reconocido");
       } else {
@@ -47,8 +47,8 @@ serve(async (req) => {
         // Construir el string a verificar: id:DATA_ID;request-id:REQUEST_ID;ts:TIMESTAMP;
         const idPart = parts.find(p => p.startsWith("id:")) ?? "";
         const requestIdPart = parts.find(p => p.startsWith("request-id:")) ?? "";
-        const stringToVerify = [idPart, requestIdPart, tsPart].filter(Boolean).join(";") + ";";  // ✅ FIXED: Added final semicolon
-        
+        const stringToVerify = [idPart, requestIdPart, tsPart].filter(Boolean).join(";") + ";";
+
         // HMAC-SHA256 con el secreto
         const encoder = new TextEncoder();
         const keyData = encoder.encode(secret);
@@ -64,7 +64,7 @@ serve(async (req) => {
         const computedV1 = Array.from(new Uint8Array(signatureBytes))
           .map(b => b.toString(16).padStart(2, "0"))
           .join("");
-        
+
         if (computedV1 !== v1) {
           console.error("Firma webhook MP inválida", { computed: computedV1, received: v1 });
           return json({ error: "Firma de webhook inválida" }, 401);
@@ -77,7 +77,7 @@ serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    80|    return json({ error: "Método no permitido" }, 405);
+    return json({ error: "Método no permitido" }, 405);
   }
 
   const data = await JSON.parse(payload).catch(() => ({}));
@@ -87,7 +87,7 @@ serve(async (req) => {
   // Procesar tipos de webhook críticos
   switch (type) {
     case "payment": {
-    90|      const paymentId = dataObj.id;
+      const paymentId = dataObj.id;
       const paymentStatus = dataObj.payment_status;
       const mpCustomerId = dataObj?.payer?.id ?? null;
       const paymentMethod = dataObj.payment_method_id ?? null;
@@ -97,7 +97,7 @@ serve(async (req) => {
 
       // Actualizar estado de venta local
       if (paymentId) {
-   100|        await createClient(
+        await createClient(
           requireEnv("SUPABASE_URL"),
           requireEnv("SUPABASE_SERVICE_ROLE_KEY")
         ).from("sales").upsert({
@@ -107,7 +107,7 @@ serve(async (req) => {
           payment_method: paymentMethod ?? "mercado_pago",
           payment_status: paymentStatus,
           total_ars: amount,
-   110|          currency,
+          currency,
           processed_at: new Date().toISOString(),
         }, { onConflict: "mp_payment_id" });
       }
@@ -117,7 +117,7 @@ serve(async (req) => {
         if (orderId) {
           await createClient(
             requireEnv("SUPABASE_URL"),
-   120|            requireEnv("SUPABASE_SERVICE_ROLE_KEY")
+            requireEnv("SUPABASE_SERVICE_ROLE_KEY")
           ).from("orders").update({
             payment_status: paymentStatus,
             mp_payment_id: paymentId,
@@ -127,7 +127,7 @@ serve(async (req) => {
       }
       break;
     }
-   130|
+
     case "subscription_preapproval": {
       const preapprovalId = dataObj.id;
       const subStatus = dataObj.status;
@@ -137,7 +137,7 @@ serve(async (req) => {
         requireEnv("SUPABASE_URL"),
         requireEnv("SUPABASE_SERVICE_ROLE_KEY")
       ).from("subscriptions").upsert({
-   140|        mp_preapproval_id: preapprovalId,
+        mp_preapproval_id: preapprovalId,
         org_id: req.headers.get("x-org-id") ?? "",
         status: subStatus,
         mp_subscription_id: subscriptionId,
@@ -147,7 +147,7 @@ serve(async (req) => {
       console.log(`Webhook MP: subscription_preapproval - ${preapprovalId}: ${subStatus}`);
       break;
     }
-   150|
+
     case "subscription_authorized_payment": {
       const preapprovalId = dataObj.preapproval_id;
       const paymentId = dataObj.id;
@@ -157,7 +157,7 @@ serve(async (req) => {
 
       if (preapprovalId && paymentId) {
         await createClient(
-   160|          requireEnv("SUPABASE_URL"),
+          requireEnv("SUPABASE_URL"),
           requireEnv("SUPABASE_SERVICE_ROLE_KEY")
         ).from("subscriptions").upsert({
           mp_preapproval_id: preapprovalId,
@@ -167,7 +167,7 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         }, { onConflict: "mp_preapproval_id" });
       }
-   170|      break;
+      break;
     }
 
     case "order": {
@@ -177,7 +177,7 @@ serve(async (req) => {
       const currency = dataObj.currency_id ?? "ARS";
       const items = dataObj?.items ?? [];
 
-   180|      await createClient(
+      await createClient(
         requireEnv("SUPABASE_URL"),
         requireEnv("SUPABASE_SERVICE_ROLE_KEY")
       ).from("orders").upsert({
@@ -187,7 +187,7 @@ serve(async (req) => {
         total_ars: totalAmount,
         currency,
         items_json: JSON.stringify(items.map((it: any) => ({
-   190|          id: it.id,
+          id: it.id,
           title: it.title,
           quantity: it.quantity,
           unit_price: it.unit_price,
@@ -197,7 +197,7 @@ serve(async (req) => {
 
       console.log(`Webhook MP: order ${orderId} creado - ${orderStatus}: $${totalAmount}`);
       break;
-   200|    }
+    }
 
     case "refund": {
       const refundId = dataObj.id;
@@ -207,7 +207,7 @@ serve(async (req) => {
       const currency = dataObj?.currency_id ?? "ARS";
 
       await createClient(
-   210|        requireEnv("SUPABASE_URL"),
+        requireEnv("SUPABASE_URL"),
         requireEnv("SUPABASE_SERVICE_ROLE_KEY")
       ).from("refunds").upsert({
         mp_refund_id: refundId,
@@ -217,7 +217,7 @@ serve(async (req) => {
         currency,
         reason,
         processed_at: new Date().toISOString(),
-   220|      }, { onConflict: "mp_refund_id" });
+      }, { onConflict: "mp_refund_id" });
       break;
     }
 
@@ -227,7 +227,7 @@ serve(async (req) => {
       const status = dataObj.status;
 
       await createClient(
-   230|        requireEnv("SUPABASE_URL"),
+        requireEnv("SUPABASE_URL"),
         requireEnv("SUPABASE_SERVICE_ROLE_KEY")
       ).from("chargebacks").upsert({
         mp_chargeback_id: chargebackId,
@@ -237,7 +237,7 @@ serve(async (req) => {
         recorded_at: new Date().toISOString(),
       }, { onConflict: "mp_chargeback_id" });
 
-   240|      if (paymentId) {
+      if (paymentId) {
         await createClient(
           requireEnv("SUPABASE_URL"),
           requireEnv("SUPABASE_SERVICE_ROLE_KEY")
@@ -247,7 +247,7 @@ serve(async (req) => {
         }).eq("mp_payment_id", paymentId);
       }
       break;
-   250|    }
+    }
 
     case "installment": {
       const preapprovalId = dataObj.preapproval_id ?? null;
@@ -257,24 +257,20 @@ serve(async (req) => {
 
       if (preapprovalId && paymentId) {
         await createClient(
-   260|          requireEnv("SUPABASE_URL"),
+          requireEnv("SUPABASE_URL"),
           requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-        ).from("subscriptions").upsert({
-          mp_preapproval_id: preapprovalId,
-          org_id: req.headers.get("x-org-id") ?? "",
-          last_installment_payment: paymentId,
-          last_installment_amount: amount,
+        ).from("subscriptions").update({
+          mp_last_installment_payment: paymentId,
+          mp_last_installment_amount: amount,
           updated_at: new Date().toISOString(),
-        }, { onConflict: "mp_preapproval_id" });
+        }).eq("mp_preapproval_id", preapprovalId);
       }
-   270|      break;
+      break;
     }
 
     default:
-      console.log(`Webhook MP no procesado: ${type}`);
-      break;
+      console.log(`Webhook MP ignorado: ${type}`);
   }
 
-  // Responder siempre 200 OK a MP (no reintentar)
-  return new Response("ok", { status: 200, headers: corsHeaders });
-   280|});
+  return json({ received: true });
+});

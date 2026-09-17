@@ -4,12 +4,13 @@ import { llamarIA } from "@/lib/ia";
 import { getMarketingPostsDB, addMarketingPostDB, deleteMarketingPostDB, getProductsDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Edit, TrendingUp, DollarSign, Users, Calendar, Target, BarChart3, Sparkles, Megaphone, RefreshCw, Loader2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { PlannerView } from "@/components/marketing";
-import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { useSearchParams } from "react-router-dom";
@@ -18,6 +19,10 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import EmptyState from "@/components/shared/EmptyState";
 import { toast } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
+import PlannerView from "@/components/marketing/PlannerView";
+import TemplatesPage from "@/pages/TemplatesPage";
+import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
 
 export default function MarketingPage() {
   usePageTitle("Marketing");
@@ -103,13 +108,14 @@ export default function MarketingPage() {
         {activeTab === "planner" && <PlannerView orgId={activeOrg?.id || ""} products={products} />}
         {activeTab === "images" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Sparkles className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Generador de imágenes</h3></div>}
         {activeTab === "calendar" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Calendar className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Calendario editorial</h3></div>}
-        {activeTab === "templates" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Sparkles className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Plantillas</h3></div>}
+        {activeTab === "templates" && <TemplatesPage />}
         {activeTab === "combos" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><RefreshCw className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Combinaciones</h3></div>}
         {activeTab === "automations" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><RefreshCw className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Automatizaciones</h3></div>}
         {activeTab === "brand" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Sparkles className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Identidad de marca</h3></div>}
         {activeTab === "ofertas" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Sparkles className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Ofertas</h3></div>}
       </div>
       <Dialog open={open} onOpenChange={setOpen}><DialogContent className="bg-card border-border/60 max-w-2xl"><DialogHeader><DialogTitle className="font-display">Nuevo Post</DialogTitle></DialogHeader><NewPostForm onSave={() => { setOpen(false); reload(); }} /></DialogContent></Dialog>
+      <Toaster />
     </div>
   );
 }
