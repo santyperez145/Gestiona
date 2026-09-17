@@ -11,12 +11,12 @@
  * La causa era un fallback silencioso. `moduleForRoute(path, section)` caía a
  * `SECTION_MODULE[section]`, cuyas claves eran las secciones viejas
  * —`principal`, `inventario`, `ventas`, `analytics`, `admin`— mientras la
- * navegación ya usaba `diario`, `trabajo`, `compras`, `cobranzas`, `reportes`
- * y `sistema`. **Coincidían 2 de 8.** Para los otros seis grupos el fallback
- * devolvía `""`, que significa "sin restricción".
+ * navegación ya usaba `diario`, `trabajo`, `compras`… — coincidían 2 de 8.
+ * Para los otros seis grupos el fallback devolvía "", que significa "sin restricción".
  *
  * O sea que apagar un módulo en Admin → Permisos no hacía nada para
  * `/ventas`, `/ajustes`, `/kardex`, `/deudas`, `/analytics` y 24 rutas más.
+ *
  * Es exactamente el bug que el docstring de `moduleMap.ts` decía haber
  * arreglado: renombrar los grupos del sidebar lo reintrodujo en silencio.
  *
@@ -41,14 +41,13 @@
  * Al generar el router desde acá apareció la misma falla en otra forma: el
  * reparto admin/vendedor estaba **a la vez** en este archivo y en un
  * `{isAdmin && (...)}` de `App.tsx`. Medido: **5 rutas divergían** —`/tareas`,
- * `/seguimiento`, `/calendario`, `/envios` y `/perfil`—. El sidebar se las
- * mostraba a un vendedor y el router no las montaba, así que el clic caía en
- * el `path="*"` y lo rebotaba al dashboard. Incluido su propio perfil.
+ * `/seguimiento`, `/calendario`, `/envios` y `/perfil` figuraban para vendedor en el menú y no se
+ * montaban, así que el clic rebotaba al dashboard. Incluido su propio perfil.
  *
  * Por eso `roles` vive al nivel de la ruta y no dentro de `nav`: gobierna las
  * dos cosas, y una sola decisión no puede estar escrita dos veces.
  *
- * ── Lo que `App.tsx` todavía declara a mano ───────────────────────────────
+ * ── Lo que `App.tsx` todavía declara a mano ────────────────────────────────
  *
  * Sólo lo que este archivo no modela: las rutas con parámetros
  * (`/tienda/:slug/*`, `/pagar/:linkId`), los montajes de superficie
@@ -157,6 +156,7 @@ export interface RouteDefinition {
 
 const AMBOS: NavRole[] = ["admin", "vendedor"];
 const SOLO_ADMIN: NavRole[] = ["admin"];
+
 /**
  * Rutas públicas: se renderizan fuera de `ProtectedRoutes`, así que no hay rol
  * que las gobierne. Se declara igual para que el tipo cierre y para no
@@ -239,19 +239,14 @@ export const ROUTES: RouteDefinition[] = [
   { id: "afip", path: "/afip", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AFIPPage")), module: "invoices", status: "canonical", nav: { label: "ARCA y factura electrónica", icon: Shield, group: "finance", keywords: ["arca", "afip", "cae", "facturar", "wsfe", "monotributo"] } },
   { id: "multi_divisa", path: "/multi-divisa", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/MultiCurrencyPage")), module: "finance", aliases: [{ path: "/tipo-cambio", redirectTo: "/multi-divisa" }], status: "canonical", nav: { label: "Multi-divisa", icon: DollarSign, group: "finance", keywords: ["dólar", "tipo de cambio", "fx", "cotización"] } },
   { id: "suscripciones", path: "/suscripciones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SubscriptionsPage")), module: "finance", status: "canonical", nav: { label: "Suscripciones", icon: CreditCard, group: "finance", keywords: ["abonos", "cobro recurrente", "membresías"] } },
-  { id: "marketing", path: "/marketing", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/MarketingPage")), module: "marketing", aliases: [{ path: "/automatizaciones", redirectTo: "/marketing?vista=automations" }, { path: "/combos-banners", redirectTo: "/marketing?vista=combos" }, { path: "/marca-ia", redirectTo: "/marketing?vista=brand" }, { path: "/templates", redirectTo: "/marketing?vista=templates" },
-    { path: "/ofertas-ia", redirectTo: "/marketing?vista=ofertas" },
-    // Consolidación 2026-08-27: desde MKT-001 el planner y Publicaciones
-    // muestran la MISMA tabla (social_posts). Dos páginas para una autoridad
-    // eran el duplicado; el planner es ahora la vista ?vista=planner.
-    { path: "/planner-social", redirectTo: "/marketing?vista=planner" }], status: "canonical", nav: { label: "Campañas", icon: Megaphone, group: "marketing", keywords: ["marketing", "publicidad", "anuncios", "planner", "calendario de contenido", "posteos", "instagram", "redes", "ofertas ia"] } },
+  { id: "marketing", path: "/marketing", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/MarketingPage")), module: "marketing", aliases: [{ path: "/automatizaciones", redirectTo: "/marketing?vista=automations" }, { path: "/combos-banners", redirectTo: "/marketing?vista=combos" }, { path: "/marca-ia", redirectTo: "/marketing?vista=brand" }, { path: "/templates", redirectTo: "/marketing?vista=templates" }, { path: "/ofertas-ia", redirectTo: "/marketing?vista=ofertas" }, { path: "/planner-social", redirectTo: "/marketing?vista=planner" }], status: "canonical", nav: { label: "Campañas", icon: Megaphone, group: "marketing", keywords: ["marketing", "publicidad", "anuncios", "planner", "calendario de contenido", "posteos", "instagram", "redes", "ofertas ia"] } },
   { id: "cupones", path: "/cupones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CouponsPage")), module: "marketing", status: "canonical", nav: { label: "Cupones", icon: Tag, group: "commerce", keywords: ["descuentos", "códigos", "promo", "tienda"] } },
   { id: "promociones", path: "/promociones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PromotionsPage")), module: "marketing", status: "canonical", nav: { label: "Promociones", icon: Zap, group: "commerce", keywords: ["ofertas", "flash sale", "2x1", "liquidación", "tienda"] } },
   { id: "email_campaigns", path: "/email-campaigns", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EmailCampaignsPage")), module: "marketing", aliases: [{ path: "/secuencias-email", redirectTo: "/email-campaigns" }], status: "canonical", nav: { label: "Email", icon: Mail, group: "marketing", keywords: ["newsletter", "mailing", "correo masivo"] } },
   { id: "whatsapp_campaigns", path: "/whatsapp-campaigns", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/WhatsAppCampaignsPage")), module: "marketing", status: "canonical", nav: { label: "WhatsApp", icon: MessageCircle, group: "marketing", keywords: ["difusión", "wsp", "mensajes masivos"] } },
   { id: "fidelidad", path: "/fidelidad", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LoyaltyAdvancedPage")), module: "marketing", aliases: [{ path: "/fidelidad-avanzada", redirectTo: "/fidelidad" }], status: "canonical", nav: { label: "Fidelidad", icon: Star, group: "marketing", keywords: ["puntos", "recompensas", "loyalty", "clientes frecuentes"] } },
-  { id: "influencers", path: "/influencers", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencersPage")), module: "influencers", status: "canonical", nav: { label: "Influencers", icon: Users2, group: "influencers", keywords: ["creadores", "instagram", "tiktok"] }, productSurface: "influencer-marketing" },
   { id: "canjes", path: "/canjes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerExchangesPage")), module: "influencers", aliases: [{ path: "/liquidaciones", redirectTo: "/canjes" }], status: "canonical", nav: { label: "Canjes con influencers", icon: Gift, group: "influencers", keywords: ["regalos", "colaboraciones", "prensa"] }, productSurface: "influencer-marketing" },
+  { id: "influencers", path: "/influencers", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencersPage")), module: "influencers", status: "canonical", nav: { label: "Influencers", icon: Users2, group: "influencers", keywords: ["creadores", "instagram", "tiktok"] }, productSurface: "influencer-marketing" },
   { id: "brief_composer", path: "/brief-composer", roles: SOLO_ADMIN, component: lazy(() => import("@/components/marketing/BriefComposer")), module: "influencers", status: "canonical", nav: { label: "Brief Composer", icon: Sparkles, group: "influencers", keywords: ["brief", "ia", "campaña"] }, productSurface: "influencer-marketing" },
   { id: "campaign_matching", path: "/campaign-matching", roles: SOLO_ADMIN, component: lazy(() => import("@/components/marketing/CampaignMatching")), module: "influencers", status: "canonical", nav: { label: "Matching de Campañas", icon: Target, group: "influencers", keywords: ["matching", "influencer", "colaboración"] }, productSurface: "influencer-marketing" },
   { id: "influencer-marketing", path: "/influencer-marketing", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerMarketingPage")), module: "influencers", status: "canonical", nav: { label: "Influencer Marketing", icon: Target, group: "influencers", keywords: ["influencer", "marketing", "plataforma"] }, productSurface: "influencer-marketing" },
@@ -310,11 +305,8 @@ export const PUBLIC_ROUTES: RouteDefinition[] = [
     component: lazy(() => import("@/pages/PricingPage")),
     module: null,
     openReason: "Pagina publica de precios: la abre alguien sin sesion.",
-    // `/pricing` renderizaba la MISMA pagina en paralelo. Dos URLs canonicas
-    // para lo mismo parten el SEO y la telemetria; ahora una redirige.
     aliases: [{ path: "/pricing", redirectTo: "/precios" }],
-    status: "canonical",
-  },
+    status: "canonical" },
   { id: "login", path: "/login", roles: PUBLICO, module: null,
     openReason: "Entrada al sistema: la abre alguien que todavia no tiene sesion.",
     status: "canonical" },
@@ -336,10 +328,12 @@ export const PUBLIC_ROUTES: RouteDefinition[] = [
     status: "canonical" },
 ];
 
-/** Las rutas del producto Influencer Marketing, fuera del chrome de Business y Marketing. */
-export function influencerMarketingProductRoutes(): RouteDefinition[] {
-  return ROUTES.filter(r => r.status === "canonical" && r.productSurface === "influencer-marketing");
-}
+/**
+ * Rutas de negocio alcanzables por URL que **no** salen en el sidebar. Van
+ * declaradas igual: sin entrada acá no tendrian modulo de permisos, que es
+ * como estuvieron hasta el 2026-08-26.
+ */
+export const INTERNAL_ROUTES: RouteDefinition[] = [
   { id: "caja_turno", path: "/caja/turno", roles: AMBOS,
     component: lazy(() => import("@/pages/CashSessionPage")),
     module: "pos", status: "internal" },
@@ -374,12 +368,17 @@ export function allRoutes(): RouteDefinition[] {
 
 /** Las rutas que el sidebar muestra, en el orden declarado. */
 export function navRoutes(): RouteDefinition[] {
-  return ROUTES.filter(r => r.nav && r.status === "canonical" && r.productSurface !== "finance");
+  return ROUTES.filter(r => r.nav && r.status === "canonical" && !(r.productSurface === "finance" || r.productSurface === "influencer-marketing"));
 }
 
 /** Navegación y páginas propias de Finance, fuera del chrome de Business. */
 export function financeProductRoutes(): RouteDefinition[] {
   return ROUTES.filter(r => r.status === "canonical" && r.productSurface === "finance");
+}
+
+/** Navegación y páginas propias de Influencer Marketing, fuera del chrome de Business y Marketing. */
+export function influencerMarketingProductRoutes(): RouteDefinition[] {
+  return ROUTES.filter(r => r.status === "canonical" && r.productSurface === "influencer-marketing");
 }
 
 /**
