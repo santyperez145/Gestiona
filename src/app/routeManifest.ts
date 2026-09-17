@@ -77,7 +77,7 @@ export type LazyPage = LazyExoticComponent<ComponentType<Record<string, never>>>
 export type NavRole = "admin" | "vendedor" | "viewer";
 
 export type NavGroupId =
-  | "diario" | "commerce" | "business" | "marketing" | "finance" | "reportes" | "sistema" | "influencers";
+  | "diario" | "commerce" | "business" | "marketing" | "finance" | "reportes" | "sistema" | "influencers" | "influencer-marketing";
 
 /**
  * `canonical` es la URL real de la pantalla. `alias` no aparece acá como
@@ -143,7 +143,7 @@ export interface RouteDefinition {
   aliases?: RouteAlias[];
   status: RouteStatus;
   /** Superficie de producto. Ausente significa Business. */
-  productSurface?: "business" | "finance";
+  productSurface?: "business" | "finance" | "influencer-marketing";
   /**
    * `immersive` reserva todo el espacio restante del AppLayout para una tarea
    * operativa continua. No es otra superficie ni otro router: conserva rail,
@@ -250,13 +250,11 @@ export const ROUTES: RouteDefinition[] = [
   { id: "email_campaigns", path: "/email-campaigns", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EmailCampaignsPage")), module: "marketing", aliases: [{ path: "/secuencias-email", redirectTo: "/email-campaigns" }], status: "canonical", nav: { label: "Email", icon: Mail, group: "marketing", keywords: ["newsletter", "mailing", "correo masivo"] } },
   { id: "whatsapp_campaigns", path: "/whatsapp-campaigns", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/WhatsAppCampaignsPage")), module: "marketing", status: "canonical", nav: { label: "WhatsApp", icon: MessageCircle, group: "marketing", keywords: ["difusión", "wsp", "mensajes masivos"] } },
   { id: "fidelidad", path: "/fidelidad", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LoyaltyAdvancedPage")), module: "marketing", aliases: [{ path: "/fidelidad-avanzada", redirectTo: "/fidelidad" }], status: "canonical", nav: { label: "Fidelidad", icon: Star, group: "marketing", keywords: ["puntos", "recompensas", "loyalty", "clientes frecuentes"] } },
-  { id: "canjes", path: "/canjes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerExchangesPage")), module: "influencers", aliases: [{ path: "/liquidaciones", redirectTo: "/canjes" }], status: "canonical", nav: { label: "Canjes con influencers", icon: Gift, group: "influencers", keywords: ["regalos", "colaboraciones", "prensa"] } },
-  { id: "influencers", path: "/influencers", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencersPage")), module: "influencers", status: "canonical", nav: { label: "Influencers", icon: Users2, group: "influencers", keywords: ["creadores", "instagram", "tiktok"] } },
-  { id: "afiliados", path: "/afiliados", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AffiliateProgramPage")), module: "marketing", status: "canonical", nav: { label: "Afiliados", icon: UserPlus, group: "marketing", keywords: ["comisión por venta", "partners"] } },
-  { id: "referidos", path: "/referidos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ReferralsPage")), module: "marketing", status: "canonical", nav: { label: "Referidos", icon: Trophy, group: "marketing", keywords: ["recomendaciones", "traé un amigo"] } },
-  { id: "catalogo", path: "/catalogo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CatalogPage")), module: "marketing", status: "canonical", nav: { label: "Catálogo por WhatsApp", icon: BookOpen, group: "marketing", keywords: ["lista de precios", "compartir productos", "pdf"] } },
-  { id: "brief_composer", path: "/brief-composer", roles: SOLO_ADMIN, component: lazy(() => import("@/components/marketing/BriefComposer")), module: "influencers", status: "canonical", nav: { label: "Brief Composer", icon: Sparkles, group: "influencers", keywords: ["brief", "ia", "campaña"] } },
-  { id: "campaign_matching", path: "/campaign-matching", roles: SOLO_ADMIN, component: lazy(() => import("@/components/marketing/CampaignMatching")), module: "influencers", status: "canonical", nav: { label: "Matching de Campañas", icon: Target, group: "influencers", keywords: ["matching", "influencer", "colaboración"] } },
+  { id: "influencers", path: "/influencers", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencersPage")), module: "influencers", status: "canonical", nav: { label: "Influencers", icon: Users2, group: "influencers", keywords: ["creadores", "instagram", "tiktok"] }, productSurface: "influencer-marketing" },
+  { id: "canjes", path: "/canjes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerExchangesPage")), module: "influencers", aliases: [{ path: "/liquidaciones", redirectTo: "/canjes" }], status: "canonical", nav: { label: "Canjes con influencers", icon: Gift, group: "influencers", keywords: ["regalos", "colaboraciones", "prensa"] }, productSurface: "influencer-marketing" },
+  { id: "brief_composer", path: "/brief-composer", roles: SOLO_ADMIN, component: lazy(() => import("@/components/marketing/BriefComposer")), module: "influencers", status: "canonical", nav: { label: "Brief Composer", icon: Sparkles, group: "influencers", keywords: ["brief", "ia", "campaña"] }, productSurface: "influencer-marketing" },
+  { id: "campaign_matching", path: "/campaign-matching", roles: SOLO_ADMIN, component: lazy(() => import("@/components/marketing/CampaignMatching")), module: "influencers", status: "canonical", nav: { label: "Matching de Campañas", icon: Target, group: "influencers", keywords: ["matching", "influencer", "colaboración"] }, productSurface: "influencer-marketing" },
+  { id: "influencer-marketing", path: "/influencer-marketing", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerMarketingPage")), module: "influencers", status: "canonical", nav: { label: "Influencer Marketing", icon: Target, group: "influencers", keywords: ["influencer", "marketing", "plataforma"] }, productSurface: "influencer-marketing" },
   { id: "reportes", path: "/reportes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ReportsPage")), module: "reports", status: "canonical", nav: { label: "Reportes", icon: TrendingUp, group: "reportes", keywords: ["informes", "exportar", "excel"] } },
   {
     id: "analytics", path: "/analytics", roles: SOLO_ADMIN,
@@ -338,12 +336,10 @@ export const PUBLIC_ROUTES: RouteDefinition[] = [
     status: "canonical" },
 ];
 
-/**
- * Rutas de negocio alcanzables por URL que **no** salen en el sidebar. Van
- * declaradas igual: sin entrada acá no tendrian modulo de permisos, que es
- * como estuvieron hasta el 2026-08-26.
- */
-export const INTERNAL_ROUTES: RouteDefinition[] = [
+/** Las rutas del producto Influencer Marketing, fuera del chrome de Business y Marketing. */
+export function influencerMarketingProductRoutes(): RouteDefinition[] {
+  return ROUTES.filter(r => r.status === "canonical" && r.productSurface === "influencer-marketing");
+}
   { id: "caja_turno", path: "/caja/turno", roles: AMBOS,
     component: lazy(() => import("@/pages/CashSessionPage")),
     module: "pos", status: "internal" },
