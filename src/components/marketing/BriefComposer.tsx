@@ -53,7 +53,7 @@ const sampleCreators = [
   { id: "c4", name: "Diego Ramírez", username: "diego.ramirez", followers: 850000, reach: 2400000, ctr: 1.2, price: 450000, tier: "macro" },
 ];
 
-export default function BriefComposer({ onClose, products, themes }: { onClose: () => void; products: any[]; themes: any[] }) {
+export default function BriefComposer({ onClose }: { onClose?: () => void; products?: any[]; themes?: any[] }) {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const [step, setStep] = useState(1);

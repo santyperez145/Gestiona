@@ -105,7 +105,7 @@ export default function MarketingPage() {
           ))}
         </div>
         {activeTab === "posts" && <PostsTab posts={filtered} filter={filter} setFilter={setFilter} onDelete={async (id: string) => { await deleteMarketingPostDB(id); reload(); }} />}
-        {activeTab === "planner" && <PlannerView orgId={activeOrg?.id || ""} products={products} />}
+        {activeTab === "planner" && <PlannerView />}
         {activeTab === "images" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Sparkles className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Generador de imágenes</h3></div>}
         {activeTab === "calendar" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Calendar className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Calendario editorial</h3></div>}
         {activeTab === "templates" && <TemplatesPage />}
