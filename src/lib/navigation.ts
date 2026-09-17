@@ -104,11 +104,11 @@ export const NAV_ITEMS: NavItem[] = navRoutes().map(r => ({
 }));
 
 /** Otras superficies no ocupan el sidebar Business, pero sí el buscador global. */
-export const PRODUCT_NAV_ITEMS: NavItem[] = financeProductRoutes()
+export const PRODUCT_NAV_ITEMS: NavItem[] = [...financeProductRoutes(), ...influencerMarketingProductRoutes()]
   .filter(route => route.nav)
   .map(route => ({
     to: route.path,
-    label: `Finance · ${route.nav!.label}`,
+    label: route.nav!.label,
     icon: route.nav!.icon,
     roles: route.roles,
     group: route.nav!.group,
