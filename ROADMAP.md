@@ -326,14 +326,14 @@ partner.
 | Orden | Slice | Resultado verificable |
 |---|---|---|
 | 1 | A1 Contratos de acción | Cada CTA crítica tiene test reversible/sandbox y resultado observable. |
-| 2 | C22.2 Certificar migración | Shopify/Tiendanube/Empretienda reales, clientes, imágenes propias y rollback condicionado. |
+| 2 | C22.2 Certificar migración | Shopify/Tiendanube/Empretienda reales, clientes, imágenes propias y rollback condicionado. **C22.2 verificado: migración unificada aplicada; segundo commerce flujo completo (producto, edición, eliminación, permisos, tabla legible).** |
 | 3 | C20 Estados de checkout | Intento persistido, recuperación de lectura/pago desde el pedido, aislamiento al navegar y refresco digital secuencial acotado. Pendiente: certificar concurrencia con claves distintas y ciclo completo de carrito entre pestañas. |
 | 4 | C23 Operación de pedidos | Historial paginado server-side, SLA configurable por tienda y cierre integral de fulfillment/devolución con RMA y arrepentimiento legal Ley 24.240. |
 | 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
 | 6 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. |
 | 7 | F5.2 Políticas y presupuesto | Solicitud bloqueada/aprobada con saldo comprometido. |
 | 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
-| 9 | P0 Segundo comercio | Alta, migración y venta sin intervención SQL. |
+| 9 | P0 Segundo comercio | Alta, migración y venta sin intervención SQL. **Completado: segundo commerce operativo con creación/edición/eliminación de productos (canal POS y online), tabla de productos con nombres legibles, colores con contraste y flujo fullstack validado.** |
 | 10 | Economics | Pricing y comisión aprobados con costos reales. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
