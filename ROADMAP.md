@@ -289,6 +289,16 @@ Estos puntos no se cierran con más código:
 6. **Merchant analytics:** adquisición, embudo, margen y cohortes accionables.
 7. **Prueba real:** dos tiendas, segundo comercio y primera venta completa.
 
+### P2 — Localización Admin/Finance/Influencers/Marketing
+
+La plataforma de marketing e influencer marketing está desarrollada y se vuelve a lado del negocio con sidebar y colores propios, diseño propio acorde a lo que hace o como es go.marz, todo bien completo aparte debe salir en el sidebar normal de bussiness con el link de redireccion a esta otra plataforma tal como tienene finance o platform, abajo de todo.
+
+**Pendiente:**
+- **admin-localization-audit:** auditoría de textos en inglés e IDs visibles en Admin y superficies internas.
+- **admin-human-readable:** reemplazar IDs visibles por nombres humanos y traducir etiquetas/estados/acciones.
+- **platform-localization-audit:** auditar Finance, Influencers y Marketing para textos sin localizar.
+- **localization-guards:** agregar guardas y pruebas para impedir IDs visibles y cadenas inglesas críticas.
+
 ### P2 — Finance Mendel-class
 
 1. Proveedor privado de inspección/extracción y primer documento real.
