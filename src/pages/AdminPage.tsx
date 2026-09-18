@@ -99,9 +99,9 @@ export default function AdminPage() {
 
       vendorMap[p.user_id] = {
         userId: p.user_id,
-        email: p.display_name || p.user_id,
+        email: p.phone || p.display_name || "—",
         displayName: p.display_name || "Sin nombre",
-        role,
+        role: role || "viewer",
         totalSales: userSales.length,
         totalRevenue,
         totalProfit,
