@@ -1715,7 +1715,7 @@ export default function ProductsPage() {
                 sortCol={productSort.col}
                 sortDir={productSort.dir}
                 onSort={(col) => setProductSort(s => ({ col, dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
-                onEdit={(id) => { if (!canEdit) return; const product = items.find(p => p.id === id); if (product) { setEditing(product); setOpen(true); } }}
+                onEdit={canEdit ? (id) => { const product = items.find(p => p.id === id); if (product) { setEditing(product); setOpen(true); } } : undefined}
                 onDuplicate={canCreate && (productLimit === null || products.length < productLimit) ? (id) => {
                   const source = items.find(p => p.id === id);
                   if (source) { setEditing({ ...source, id: undefined, name: `Copia de ${source.name}`, stock: 0, sku: '', barcode: '', lot_number: '', expiry_date: null }); setOpen(true); }

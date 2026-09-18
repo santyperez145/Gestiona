@@ -120,7 +120,7 @@ describe('flujo real de Productos con backend simulado', () => {
     log.mockRestore();
   });
   it('solo lectura no permite editar, crear, duplicar ni eliminar', async () => {
-    Object.assign(mocks.permissions, { canCreate: false, canEdit: false, canDelete: false });
+    mocks.permissions = { ...mocks.permissions, canCreate: false, canEdit: false, canDelete: false };
     await openPage();
     expect(screen.queryByRole('button', { name: /^(Editar|Duplicar|Eliminar) Producto de prueba$/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nuevo' })).not.toBeInTheDocument();
