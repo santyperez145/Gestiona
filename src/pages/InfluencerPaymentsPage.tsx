@@ -91,7 +91,7 @@ export default function InfluencerPaymentsPage() {
               <tbody className="divide-y">
                 {payouts.map((p) => (
                   <tr key={p.id} className="hover:bg-muted">
-                    <td className="px-4 py-3 text-sm">{p.payout_id || p.id}</td>
+                    <td className="px-4 py-3 text-sm">{p.payout_id ? `LP-${p.payout_id.slice(0, 8)}` : "—"}</td>
                     <td className="px-4 py-3 text-sm">{p.influencer_name || "—"}</td>
                     <td className="px-4 py-3 text-sm">${Number(p.amount_ars || 0).toLocaleString("es-AR")}</td>
                     <td className="px-4 py-3 text-sm">{p.payment_method || "transfer"}</td>
@@ -126,7 +126,7 @@ export default function InfluencerPaymentsPage() {
               <tbody className="divide-y">
                 {filteredSales.map((r) => (
                   <tr key={r.id} className="hover:bg-muted">
-                    <td className="px-4 py-3 text-sm">{r.sale_id || r.id}</td>
+                    <td className="px-4 py-3 text-sm">{r.sale_id ? `V-${r.sale_id.slice(0, 8)}` : "—"}</td>
                     <td className="px-4 py-3 text-sm">{r.influencer_name || "—"}</td>
                     <td className="px-4 py-3 text-sm">${Number(r.sale_total_ars || 0).toLocaleString("es-AR")}</td>
                     <td className="px-4 py-3 text-sm">${Number(r.commission_ars || 0).toLocaleString("es-AR")}</td>
