@@ -392,7 +392,7 @@ export default function AdminPage() {
                           v.role.includes("admin") ? "bg-yellow-500/15 text-yellow-400" :
                           v.role.includes("vendedor") ? "bg-blue-500/15 text-blue-400" :
                           "bg-muted/40 text-muted-foreground"
-                        }`}>{v.role || "viewer"}</span>
+                        }`}>{v.role === "viewer" ? "Solo lectura" : v.role === "admin" ? "Administrador" : v.role === "vendedor" ? "Vendedor" : v.role}</span>
                       </td>
                       <td className="px-4 py-3 text-right">{v.totalProducts}</td>
                       <td className="px-4 py-3 text-right">{v.totalSales}</td>
