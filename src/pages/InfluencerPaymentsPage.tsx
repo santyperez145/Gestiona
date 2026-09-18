@@ -94,7 +94,7 @@ export default function InfluencerPaymentsPage() {
                     <td className="px-4 py-3 text-sm">{p.payout_id ? `LP-${p.payout_id.slice(0, 8)}` : "—"}</td>
                     <td className="px-4 py-3 text-sm">{p.influencer_name || "—"}</td>
                     <td className="px-4 py-3 text-sm">${Number(p.amount_ars || 0).toLocaleString("es-AR")}</td>
-                    <td className="px-4 py-3 text-sm">{p.payment_method || "transfer"}</td>
+                    <td className="px-4 py-3 text-sm">{p.payment_method === "transfer" ? "Transferencia" : p.payment_method === "card" ? "Tarjeta" : p.payment_method || "—"}</td>
                     <td className="px-4 py-3 text-sm"><Badge variant={p.status === "paid" ? "secondary" : "outline"}>{p.status || "pendiente"}</Badge></td>
                     <td className="px-4 py-3 text-sm">{p.paid_at || p.created_at || "—"}</td>
                   </tr>
