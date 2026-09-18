@@ -4,7 +4,7 @@ import { requireActiveOrgId } from './orgContext';
 // New tables (influencer_contracts, influencer_deliverables, influencer_payments,
 // brand_portal_profiles) are not in the Supabase generated types yet. Cast to any
 // to avoid type-check failures until the migration is deployed.
-const sb: any = _supabase;
+export const sb: any = _supabase;
 
 export type Influencer = {
   id: string; org_id: string; user_id: string; name: string;

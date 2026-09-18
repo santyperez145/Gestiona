@@ -192,20 +192,21 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
       settings = await getSettingsDB(user.id);
     } catch { /* ignore — use defaults */ }
 
-    // ⚠️ Esto crea productos con su costo. Con una cotización inventada, cada
-    // producto importado nace con un costo en pesos que no es el que se pagó, y
-    // después ese número alimenta márgenes y precios sugeridos. Se frena.
-    const cotizacion = cotizacionDe(settings);
-    if (cotizacion === null) {
+// ⚠️ Esto crea productos con su costo. Con una cotización inventada, cada
+  // producto importado nace con un costo en pesos que no es el que se pagó, y
+  // después ese número alimenta márgenes y precios sugeridos. Se frena.
+  const cotizacion = cotizacionDe(settings);
+  if (cotizacion === null) {
       toast.error('Cargá el tipo de cambio en Ajustes antes de importar: los costos de la factura vienen en dólares.');
       setSaving(false);
       return;
-    }
-    const exchangeRate = cotizacion;
-    const customsPct = Number(settings?.customs_percent) || 15;
+  }
+  const exchangeRate = cotizacion;
+  // El costo ya incluye el 15% de aduana/pasero/impuestos, no se necesita calcularlo de nuevo
+  const customsPct = 15;  // Eliminado del estado, ahora es fijo
 
-    let saved = 0;
-    const updated = [...items];
+  const updated: any[] = items.map(it => ({ ...it, _saved: it._saved, _error: it._error }));
+  let saved = 0;
 
     for (let i = 0; i < updated.length; i++) {
       const it = updated[i];
@@ -215,8 +216,8 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
         if (mode === "products") {
           // Build a product record — cost_usd comes from unit_price (if USD)
           const costUSD = it.currency === "USD" ? it.unit_price : it.unit_price / exchangeRate;
-          const customsFee = costUSD * (customsPct / 100);
-          const totalCostUSD = costUSD + customsFee;
+          // El costo ya incluye el 15% de aduana/pasero/impuestos, no se necesita calcularlo de nuevo
+          const totalCostUSD = costUSD;  // Eliminado el cálculo de customsFee
           const salePrice = Math.round(totalCostUSD * exchangeRate * 2); // default 2× margin
 
           await addProductDB({
@@ -224,7 +225,7 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
             brand: it.brand || "",
             category: guessCategory(`${it.name} ${it.brand || ""}`),
             cost_usd: parseFloat(costUSD.toFixed(4)),
-            customs_fee: parseFloat(customsFee.toFixed(4)),
+            customs_fee: 0,  // No se aplica comisión adicional de aduana
             total_cost_usd: parseFloat(totalCostUSD.toFixed(4)),
             sale_price_ars: salePrice,
             stock: it.qty,

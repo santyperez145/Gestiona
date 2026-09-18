@@ -83,7 +83,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [skipInvalid, setSkipInvalid] = useState(false);
-  const [stockMode, setStockState] = useState<"replace" | "ignore">("replace");
+  const [stockMode, setStockMode] = useState<"replace" | "ignore">("replace");
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationId, setLocationId] = useState("");
   const [stores, setStores] = useState<DestinationStore[]>([]);

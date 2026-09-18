@@ -81,10 +81,10 @@ describe("previewProductImportRow", () => {
   it("sugiere el precio y calcula margen con los mismos parámetros del RPC", () => {
     const row = buildProductImportRow({ Nombre: "Producto", Costo: 10, Stock: 3 });
     const preview = previewProductImportRow(row, params);
-    expect(preview.totalCostUSD).toBeCloseTo(11);
-    expect(preview.salePriceARS).toBe(24_750);
-    expect(preview.profitARS).toBe(8_250);
-    expect(preview.marginPercent).toBeCloseTo(33.33, 1);
+    expect(preview.totalCostUSD).toBeCloseTo(10);  // Ya incluye aduana en el costo, no se suma 15% aparte
+    expect(preview.salePriceARS).toBe(30_000);     // 10 * 1500 * 2
+    expect(preview.profitARS).toBe(20_000);
+    expect(preview.marginPercent).toBeCloseTo(66.67, 1);
   });
 
   it("señala stock fraccionario y costo ausente antes de enviar", () => {
