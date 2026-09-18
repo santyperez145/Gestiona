@@ -83,7 +83,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [skipInvalid, setSkipInvalid] = useState(false);
-  const [stockMode, setStockMode] = useState<"replace" | "ignore">("replace");
+  const [stockMode, setStockState] = useState<"replace" | "ignore">("replace");
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationId, setLocationId] = useState("");
   const [stores, setStores] = useState<DestinationStore[]>([]);
@@ -93,7 +93,6 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   // comercio importa cientos de productos con el costo de otro dólar sin haber
   // mirado el campo.
   const [exchangeRate, setExchangeRate] = useState(0);
-  const [customsPercent, setCustomsPercent] = useState(15);
   const [marginPercent, setMarginPercent] = useState(80);
   const [autoPrice, setAutoPrice] = useState(true);
   const canImport = activeRole === "owner" || activeRole === "admin";
@@ -102,7 +101,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
     if (!activeOrg?.id) return;
     let mounted = true;
     Promise.all([
-      supabase.from("settings").select("exchange_rate, customs_percent").eq("org_id", activeOrg.id).maybeSingle(),
+      supabase.from("settings").select("exchange_rate").eq("org_id", activeOrg.id).maybeSingle(),
       supabase.from("locations").select("id, name").eq("org_id", activeOrg.id).eq("active", true).order("name"),
       supabase.from("ecommerce_stores").select("id, name, slug, is_primary, is_active")
         .eq("org_id", activeOrg.id).order("is_primary", { ascending: false }).order("name"),
@@ -111,9 +110,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
       if (settings.error) toast.error("No pudimos cargar la cotización del negocio");
       else {
         const rate = Number(settings.data?.exchange_rate);
-        const customs = Number(settings.data?.customs_percent);
         if (rate > 0) setExchangeRate(rate);
-        if (customs >= 0) setCustomsPercent(customs);
       }
       if (locationResult.error) toast.error("No pudimos cargar las sucursales");
       else {
@@ -135,8 +132,8 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   }, [activeOrg?.id]);
 
   const params = useMemo(() => ({
-    exchangeRate, customsPercent, defaultMarginPercent: marginPercent, autoFillSalePrice: autoPrice,
-  }), [exchangeRate, customsPercent, marginPercent, autoPrice]);
+    exchangeRate, defaultMarginPercent: marginPercent, autoFillSalePrice: autoPrice,
+  }), [exchangeRate, marginPercent, autoPrice]);
   const previews = useMemo(() => rows.map(row => previewProductImportRow(row, params)), [rows, params]);
   const localStats = useMemo(() => ({
     issues: previews.filter(row => row.localIssues.length).length,
@@ -199,7 +196,6 @@ export default function ProductsExcelImport({ onClose, onImported }: {
         p_stock_mode: stockMode,
         p_location_id: locationId || undefined,
         p_exchange_rate: exchangeRate,
-        p_customs_percent: customsPercent,
         p_default_margin_percent: marginPercent,
         p_auto_fill_sale_price: autoPrice,
       });
@@ -310,11 +306,10 @@ export default function ProductsExcelImport({ onClose, onImported }: {
         <div className="overflow-hidden rounded-lg border border-border">
           <button type="button" className="flex w-full items-center gap-2 bg-muted/30 px-4 py-2.5 text-left" onClick={() => setExpanded(value => !value)}>
             <Info className="h-4 w-4 text-primary" /><span className="flex-1 text-sm font-medium">Reglas de costo y margen</span>
-            <span className="hidden text-xs text-muted-foreground sm:inline">USD {exchangeRate} · aduana {customsPercent}%</span>{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <span className="hidden text-xs text-muted-foreground sm:inline">USD {exchangeRate} · margen {marginPercent}%</span>{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
           {expanded && <div className="grid gap-3 p-4 sm:grid-cols-3">
             <div><Label className="text-xs">Cotización USD → ARS</Label><Input type="number" min="1" value={exchangeRate} onChange={event => setExchangeRate(Number(event.target.value))} className="mt-1 h-9" /></div>
-            <div><Label className="text-xs">Aduana / pasero (%)</Label><Input type="number" min="0" max="500" value={customsPercent} onChange={event => setCustomsPercent(Number(event.target.value))} className="mt-1 h-9" /></div>
             <div><Label className="text-xs">Margen sugerido (%)</Label><Input type="number" min="-99" max="5000" value={marginPercent} onChange={event => setMarginPercent(Number(event.target.value))} className="mt-1 h-9" /></div>
             <label className="flex items-center gap-2 text-xs sm:col-span-3"><Checkbox checked={autoPrice} onCheckedChange={value => setAutoPrice(value === true)} />Sugerir precio cuando hay costo pero falta precio</label>
           </div>}

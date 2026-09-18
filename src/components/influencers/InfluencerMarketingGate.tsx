@@ -14,7 +14,7 @@ import { moduleForPath } from "@/app/routeManifest";
  */
 export function useInfluencerProductAccess() {
   const { user } = useAuth();
-  const { activeOrg } = useOrg();
+  const { activeOrg, activeRole } = useOrg();
   const [access, setAccess] = useState<{ allowed: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,8 +27,7 @@ export function useInfluencerProductAccess() {
     // El módulo se verifica contra routeManifest y permisos del usuario.
     // Para la superficie, el acceso lo gobierna que la ruta exista y el rol sea admin.
     const module = moduleForPath("/influencers");
-    const isAdmin = user.role === "admin" || user.role === "owner";
-    const hasModule = module === "influencers" && isAdmin;
+    const hasModule = module === "influencers" && (activeRole === "admin" || activeRole === "owner");
 
     // Simular verificación asíncrona
     const timer = setTimeout(() => {
@@ -37,7 +36,7 @@ export function useInfluencerProductAccess() {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [user, activeOrg]);
+  }, [user, activeOrg, activeRole]);
 
   return { access, loading };
 }

@@ -178,7 +178,6 @@ export function buildProductImportRow(row: Record<string, unknown>): ProductImpo
 
 export interface ProductImportCalculationParams {
   exchangeRate: number;
-  customsPercent: number;
   defaultMarginPercent: number;
   autoFillSalePrice: boolean;
 }
@@ -204,12 +203,12 @@ export function previewProductImportRow(
   let price = importedPrice ?? 0;
   if (params.autoFillSalePrice && price <= 0 && (cost ?? 0) > 0 && params.exchangeRate > 0) {
     price = Math.round(
-      (cost ?? 0) * (1 + params.customsPercent / 100) * params.exchangeRate
+      (cost ?? 0) * params.exchangeRate
       * (1 + params.defaultMarginPercent / 100),
     );
   }
 
-  const totalCostUSD = (cost ?? 0) * (1 + params.customsPercent / 100);
+  const totalCostUSD = cost ?? 0;
   const profitARS = price - totalCostUSD * params.exchangeRate;
   const issues: string[] = [];
   if (!row.name.trim()) issues.push("Falta el nombre");
