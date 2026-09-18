@@ -1,529 +1,541 @@
-﻿import { useState, useEffect, useMemo, useRef } from "react";
-import { useAuth } from "@/lib/auth";
-import { useOrg } from "@/lib/orgContext";
+﻿import { useState, useMemo, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import FinancePageHeader from "@/components/finance/FinancePageHeader";
-import FinanceKPICard from "@/components/finance/FinanceKPICard";
-import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
-import FilePicker from "@/components/shared/FilePicker";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { usePageTitle } from "@/hooks/usePageTitle";
-import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { plural } from "@/lib/plural";
-import {
-  Landmark, Plus, CheckCircle2, AlertTriangle, Upload,
-  Loader2, Trash2, RefreshCw, TrendingUp, TrendingDown,
-  ChevronDown, ChevronUp, X,
+  AlertTriangle,
+  Banknote,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  FileText,
+  Loader2,
+  RefreshCw,
+  Search,
+  TrendingDown,
+  TrendingUp,
+  XCircle,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface BankTx {
+// ── Types ────────────────────────────────────────────────────
+interface BankAccount {
   id: string;
   org_id: string;
-  date: string;
-  description: string;
-  amount_ars: number; // positive = credit, negative = debit
-  type: "credit" | "debit";
-  matched: boolean;
-  match_ref?: string | null;
-  account: string;
-  notes?: string | null;
+  bank_name: string;
+  bank_cbu: string;
+  bank_alias: string;
+  bank_holder: string;
+  is_primary: boolean;
+  status: "active" | "inactive" | "error";
+  connection_type: "direct" | "oauth" | "csv";
+  last_connection: string | null;
   created_at: string;
 }
 
-interface Sale {
+interface BankStatement {
   id: string;
-  date: string;
-  customer_name: string;
-  total_ars: number;
-  method: string;
+  org_id: string;
+  bank_account_id: string | null;
+  statement_date: string;
+  file_name: string;
+  file_size: number | null;
+  sha256_hash: string;
+  status: "pending" | "processed" | "imported" | "error";
+  import_attempts: number;
+  last_import_at: string | null;
+  created_at: string;
 }
 
-interface Expense {
+interface BankMatch {
   id: string;
-  date: string;
-  description: string;
-  amount: number;
+  org_id: string;
+  bank_transaction_id: string | null;
+  ecommerce_transaction_id: string | null;
+  match_type: "exact" | "partial" | "approximate";
+  bank_amount: number;
+  bank_date: string;
+  ecommerce_amount: number | null;
+  ecommerce_date: string | null;
+  confidence_score: number;
+  match_status: "pending" | "confirmed" | "rejected";
+  notes: string | null;
+  created_at: string;
 }
 
-interface DebtPayment {
+interface BankReconciliation {
   id: string;
-  updated_at: string;
-  customer_name: string;
-  amount_ars: number;
-  description: string;
+  org_id: string;
+  statement_date: string;
+  statement_end_date: string | null;
+  total_bank_amount: number;
+  total_ecommerce_amount: number;
+  difference: number;
+  matched_count: number;
+  unmatched_bank_count: number;
+  unmatched_ecommerce_count: number;
+  status: "pending" | "confirmed" | "error";
+  reconciled_at: string | null;
+  notes: string | null;
+  created_at: string;
 }
 
-interface SupplierPayment {
-  id: string;
-  paid_at: string;
-  amount_ars: number;
-  method: string;
-  supplier_name: string;
+// ── Helpers ────────────────────────────────────────────────────
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
-const TX_EMPTY = {
-  date: new Date().toISOString().slice(0, 10),
-  description: "",
-  amount_ars: "",
-  type: "credit" as "credit" | "debit",
-  account: "Cuenta Principal",
-  notes: "",
-};
-
-// ─── CSV Parser (simple bank statement format) ────────────────────────────────
-
-function parseBankCSV(text: string): Omit<BankTx, "id" | "org_id" | "matched" | "created_at">[] {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  const rows: Omit<BankTx, "id" | "org_id" | "matched" | "created_at">[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ""));
-    if (cols.length < 3) continue;
-    const [date, description, amountStr] = cols;
-    const amount = parseFloat(amountStr.replace(/[^0-9.-]/g, ""));
-    if (isNaN(amount)) continue;
-    rows.push({
-      date: date || new Date().toISOString().slice(0, 10),
-      description: description || "Sin descripción",
-      amount_ars: Math.abs(amount),
-      type: amount >= 0 ? "credit" : "debit",
-      account: cols[3] || "Cuenta Principal",
-      notes: null,
-    });
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  try {
+    return format(parseISO(dateStr), "dd/MM/yyyy", { locale: es });
+  } catch {
+    return dateStr;
   }
-  return rows;
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+function statusBadge(status: string): string {
+  switch (status) {
+    case "pending": return "yellow";
+    case "processed": case "confirmed": case "imported": return "green";
+    case "error": case "rejected": return "red";
+    default: return "gray";
+  }
+}
 
-export default function BankReconciliationPage() {
-  usePageTitle("Banco / Conciliación");
-  const { user } = useAuth();
-  const { activeOrg } = useOrg();
-  const { ask, dialog } = useConfirmDialog();
+function confidenceColor(score: number): string {
+  if (score >= 90) return "text-green-600";
+  if (score >= 70) return "text-yellow-600";
+  return "text-red-600";
+}
 
-  const [txs, setTxs] = useState<BankTx[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [debtPayments, setDebtPayments] = useState<DebtPayment[]>([]);
-  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>([]);
+// ── Component ──────────────────────────────────────────────────
+export default function FinanceBankReconciliationPage() {
+  const [activeTab, setActiveTab] = useState<"accounts" | "statements" | "matches" | "reconciliations">("accounts");
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(TX_EMPTY);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [matchOpen, setMatchOpen] = useState<string | null>(null);
-  const [filterMatched, setFilterMatched] = useState<"all" | "unmatched" | "matched">("all");
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10);
-  });
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // ── Load ────────────────────────────────────────────────────────────────────
+  const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [statements, setStatements] = useState<BankStatement[]>([]);
+  const [matches, setMatches] = useState<BankMatch[]>([]);
+  const [reconciliations, setReconciliations] = useState<BankReconciliation[]>([]);
 
-  const load = async () => {
-    if (!activeOrg) return;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const [showNewStatement, setShowNewStatement] = useState(false);
+  const [showNewReconciliation, setShowNewReconciliation] = useState(false);
+
+  const sb = supabase as any;
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const [{ data: bankTxs }, { data: salesData }, { data: expData }, { data: debtData }, { data: suppPayData }] = await Promise.all([
-        supabase.from("bank_transactions").select("*").eq("org_id", activeOrg.id).order("date", { ascending: false }),
-        supabase.from("sales").select("id,date,customer_name,total_ars,payment_method").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo + "T23:59:59"),
-        supabase.from("expenses").select("id,date,description,amount_ars").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo),
-        supabase.from("debts").select("id,updated_at,customer_name,amount_ars,description").eq("org_id", activeOrg.id).eq("status", "paid").gte("updated_at", dateFrom).lte("updated_at", dateTo + "T23:59:59"),
-        supabase.from("supplier_payments").select("id,paid_at,amount_ars,method,supplier_debt_id,supplier_debts(supplier_name)").eq("org_id", activeOrg.id).gte("paid_at", dateFrom).lte("paid_at", dateTo + "T23:59:59"),
+      const [{ data: accountsData }, { data: statementsData }, { data: matchesData }, { data: reconciliationsData }] = await Promise.all([
+        sb.from("bank_accounts").select("*").order("created_at", { ascending: false }),
+        sb.from("bank_statements").select("*").order("created_at", { ascending: false }),
+        sb.from("bank_matches").select("*").order("created_at", { ascending: false }),
+        sb.from("bank_reconciliation").select("*").order("created_at", { ascending: false }),
       ]);
-      setTxs((bankTxs || []) as BankTx[]);
-      // Las columnas reales son `payment_method` y `amount_ars`; se normalizan
-      // a los nombres que usa la conciliación.
-      setSales((salesData || []).map(s => ({
-        id: s.id, date: s.date, customer_name: s.customer_name,
-        total_ars: s.total_ars, method: s.payment_method,
-      })));
-      setExpenses((expData || []).map(e => ({
-        id: e.id, date: e.date, description: e.description, amount: e.amount_ars,
-      })));
-      setDebtPayments((debtData || []).map(d => ({
-        id: d.id,
-        updated_at: d.updated_at,
-        customer_name: d.customer_name,
-        amount_ars: d.amount_ars,
-        description: d.description,
-      })));
-      setSupplierPayments((suppPayData || []).map(p => ({
-        id: p.id,
-        paid_at: p.paid_at,
-        amount_ars: p.amount_ars,
-        method: p.method,
-        supplier_name: (p.supplier_debts as { supplier_name?: string } | null)?.supplier_name || "Proveedor",
-      })));
+      setAccounts((accountsData ?? []) as BankAccount[]);
+      setStatements((statementsData ?? []) as BankStatement[]);
+      setMatches((matchesData ?? []) as BankMatch[]);
+      setReconciliations((reconciliationsData ?? []) as BankReconciliation[]);
+    } catch (err: any) {
+      setError(err.message ?? "Error al cargar datos");
     } finally {
       setLoading(false);
     }
-  };
+  }, [sb]);
 
-  useEffect(() => { load(); }, [activeOrg]);
+  useEffect(() => { void fetchData(); }, [fetchData]);
 
-  // ── Filtered ────────────────────────────────────────────────────────────────
-
-  const filtered = useMemo(() => {
-    return txs
-      .filter(t => t.date >= dateFrom && t.date <= dateTo)
-      .filter(t =>
-        filterMatched === "all" ? true :
-        filterMatched === "matched" ? t.matched :
-        !t.matched
-      );
-  }, [txs, dateFrom, dateTo, filterMatched]);
-
-  const stats = useMemo(() => {
-    const credits = filtered.filter(t => t.type === "credit").reduce((s, t) => s + t.amount_ars, 0);
-    const debits = filtered.filter(t => t.type === "debit").reduce((s, t) => s + t.amount_ars, 0);
-    const matched = filtered.filter(t => t.matched).length;
-    const unmatched = filtered.filter(t => !t.matched).length;
-    return { credits, debits, net: credits - debits, matched, unmatched };
-  }, [filtered]);
-
-  // ── Create tx ────────────────────────────────────────────────────────────────
-
-  const handleCreate = async () => {
-    if (!activeOrg) return;
-    if (!form.description || !form.amount_ars || !form.date) { toast.error("Completá todos los campos"); return; }
-    setSaving(true);
-    try {
-      const { error } = await supabase.from("bank_transactions").insert({
-        org_id: activeOrg.id,
-        date: form.date,
-        description: form.description,
-        amount_ars: Number(form.amount_ars),
-        type: form.type,
-        matched: false,
-        account: form.account || "Cuenta Principal",
-        notes: form.notes || null,
-      });
-      if (error) throw error;
-      toast.success("Movimiento registrado");
-      setOpen(false); setForm(TX_EMPTY); load();
-    } catch { toast.error("Error al guardar"); }
-    finally { setSaving(false); }
-  };
-
-  // ── Delete ────────────────────────────────────────────────────────────────────
-
-  const handleDelete = async (id: string) => {
-    if (!(await ask({ title: "¿Eliminar este movimiento?", confirmText: "Eliminar", variant: "destructive" }))) return;
-    setDeleting(id);
-    try {
-      await supabase.from("bank_transactions").delete().eq("id", id);
-      setTxs(prev => prev.filter(t => t.id !== id));
-    } finally { setDeleting(null); }
-  };
-
-  // ── Match ─────────────────────────────────────────────────────────────────────
-
-  const handleMatch = async (txId: string, ref: string) => {
-    await supabase.from("bank_transactions").update({ matched: true, match_ref: ref }).eq("id", txId);
-    setTxs(prev => prev.map(t => t.id === txId ? { ...t, matched: true, match_ref: ref } : t));
-    setMatchOpen(null);
-    toast.success("Movimiento conciliado");
-  };
-
-  // ── Auto-match ────────────────────────────────────────────────────────────────
-
-  const handleAutoMatch = async () => {
-    let matched = 0;
-    for (const tx of filtered.filter(t => !t.matched)) {
-      if (tx.type === "credit") {
-        // Try sales first
-        const sale = sales.find(s => Math.abs(s.total_ars - tx.amount_ars) < 1 && s.date.slice(0, 10) === tx.date);
-        if (sale) { await handleMatch(tx.id, `Venta ${sale.customer_name} ${sale.id.slice(0, 8)}`); matched++; continue; }
-        // Try debt payments (cobros de deuda)
-        const debt = debtPayments.find(d => Math.abs(d.amount_ars - tx.amount_ars) < 1 && d.updated_at?.slice(0, 10) === tx.date);
-        if (debt) { await handleMatch(tx.id, `Cobro deuda: ${debt.customer_name}`); matched++; continue; }
-      } else {
-        // Try expenses
-        const exp = expenses.find(e => Math.abs(e.amount - tx.amount_ars) < 1 && e.date === tx.date);
-        if (exp) { await handleMatch(tx.id, `Gasto: ${exp.description}`); matched++; continue; }
-        // Try supplier payments
-        const sp = supplierPayments.find(p => Math.abs(p.amount_ars - tx.amount_ars) < 1 && p.paid_at.slice(0, 10) === tx.date);
-        if (sp) { await handleMatch(tx.id, `Pago proveedor: ${sp.supplier_name}`); matched++; continue; }
-      }
+  const filteredStatements = useMemo(() => {
+    let result = statements;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((s) => s.file_name.toLowerCase().includes(q) || s.sha256_hash.toLowerCase().includes(q));
     }
-    if (matched > 0) toast.success(`${matched} movimiento(s) conciliados automáticamente`);
-    else toast.info("No se encontraron coincidencias automáticas");
-  };
+    if (statusFilter !== "all") result = result.filter((s) => s.status === statusFilter);
+    if (dateFrom) result = result.filter((s) => s.statement_date >= dateFrom);
+    if (dateTo) result = result.filter((s) => s.statement_date <= dateTo);
+    return result;
+  }, [statements, searchQuery, statusFilter, dateFrom, dateTo]);
 
-  // ── CSV import ────────────────────────────────────────────────────────────────
+  const filteredMatches = useMemo(() => {
+    let result = matches;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((m) => (m.notes ?? "").toLowerCase().includes(q) || m.bank_transaction_id?.toLowerCase().includes(q) || m.ecommerce_transaction_id?.toLowerCase().includes(q));
+    }
+    if (statusFilter !== "all") result = result.filter((m) => m.match_status === statusFilter);
+    return result;
+  }, [matches, searchQuery, statusFilter]);
 
-  const handleCSVImport = async (file: File) => {
-    if (!file || !activeOrg) return;
-    const text = await file.text();
-    const rows = parseBankCSV(text);
-    if (rows.length === 0) { toast.error("No se pudieron leer movimientos del CSV"); return; }
+  const filteredReconciliations = useMemo(() => {
+    let result = reconciliations;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((r) => r.notes?.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
+    }
+    if (statusFilter !== "all") result = result.filter((r) => r.status === statusFilter);
+    return result;
+  }, [reconciliations, searchQuery, statusFilter]);
+
+  const handleImportStatement = async (file: File) => {
+    setError(null);
     try {
-      const { error } = await supabase.from("bank_transactions").insert(
-        rows.map(r => ({ ...r, org_id: activeOrg.id, matched: false }))
-      );
-      if (error) throw error;
-      toast.success(`${plural(rows.length, "movimiento")} importados`);
-      load();
-    } catch { toast.error("Error al importar"); }
+      const sha256 = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      const hash = Array.from(new Uint8Array(sha256)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      const { error: insertError } = await sb.from("bank_statements").insert({
+        org_id: "", bank_account_id: accounts[0]?.id ?? null, statement_date: new Date().toISOString().split("T")[0],
+        file_name: file.name, file_size: file.size, sha256_hash: hash, status: "pending",
+      });
+      if (insertError) throw insertError;
+      await fetchData();
+      setShowNewStatement(false);
+    } catch (err: any) {
+      setError(err.message ?? "Error al importar estado");
+    }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  const handleConfirmMatch = async (matchId: string) => {
+    try {
+      const { error } = await sb.from("bank_matches").update({ match_status: "confirmed" }).eq("id", matchId);
+      if (error) throw error;
+      await fetchData();
+    } catch (err: any) { setError(err.message ?? "Error al confirmar match"); }
+  };
 
-  const matchTx = txs.find(t => t.id === matchOpen);
-  const matchCandidates: { id: string; label: string; sublabel: string; amount: number; ref: string }[] = matchTx
-    ? [
-        ...(matchTx.type === "credit" ? sales : [])
-          .filter(s => Math.abs(s.total_ars - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
-          .map(s => ({ id: s.id, label: `Venta — ${s.customer_name}`, sublabel: s.date?.slice(0, 10), amount: s.total_ars, ref: `Venta ${s.customer_name} ${s.id.slice(0, 8)}` })),
-        ...(matchTx.type === "credit" ? debtPayments : [])
-          .filter(d => Math.abs(d.amount_ars - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
-          .map(d => ({ id: d.id, label: `Cobro deuda — ${d.customer_name}`, sublabel: d.updated_at?.slice(0, 10), amount: d.amount_ars, ref: `Cobro deuda: ${d.customer_name}` })),
-        ...(matchTx.type === "debit" ? expenses : [])
-          .filter(e => Math.abs(e.amount - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
-          .map(e => ({ id: e.id, label: `Gasto — ${e.description}`, sublabel: e.date, amount: e.amount, ref: `Gasto: ${e.description}` })),
-        ...(matchTx.type === "debit" ? supplierPayments : [])
-          .filter(p => Math.abs(p.amount_ars - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
-          .map(p => ({ id: p.id, label: `Pago proveedor — ${p.supplier_name}`, sublabel: p.paid_at.slice(0, 10), amount: p.amount_ars, ref: `Pago proveedor: ${p.supplier_name}` })),
-      ]
-    : [];
+  const handleRejectMatch = async (matchId: string) => {
+    try {
+      const { error } = await sb.from("bank_matches").update({ match_status: "rejected" }).eq("id", matchId);
+      if (error) throw error;
+      await fetchData();
+    } catch (err: any) { setError(err.message ?? "Error al rechazar match"); }
+  };
+
+  const handleConfirmReconciliation = async (reconId: string) => {
+    try {
+      const { error } = await sb.from("bank_reconciliation").update({ status: "confirmed", reconciled_at: new Date().toISOString() }).eq("id", reconId);
+      if (error) throw error;
+      await fetchData();
+    } catch (err: any) { setError(err.message ?? "Error al confirmar conciliación"); }
+  };
+
+  const kpis = useMemo(() => ({
+    totalBank: reconciliations.reduce((s, r) => s + (r.total_bank_amount ?? 0), 0),
+    totalEcommerce: reconciliations.reduce((s, r) => s + (r.total_ecommerce_amount ?? 0), 0),
+    totalDifference: reconciliations.reduce((s, r) => s + (r.difference ?? 0), 0),
+    confirmedCount: reconciliations.filter((r) => r.status === "confirmed").length,
+    pendingCount: reconciliations.filter((r) => r.status === "pending").length,
+    totalStatements: statements.length,
+    processedStatements: statements.filter((s) => s.status === "processed").length,
+    totalMatches: matches.length,
+    confirmedMatches: matches.filter((m) => m.match_status === "confirmed").length,
+  }), [reconciliations, statements, matches]);
+
+  if (loading && !accounts.length && !statements.length) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Cargando conciliación bancaria...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <PageHeader
-        icon={Landmark}
-        title="Conciliación Bancaria"
-        description="Reconciliá movimientos bancarios con ventas y gastos del sistema"
-        actions={
-          <div className="flex flex-wrap gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={handleAutoMatch}>
-              <RefreshCw className="w-4 h-4 mr-1" /> Auto-conciliar
-            </Button>
-            <FilePicker
-              mode="button"
-              accept=".csv,text/csv"
-              title="Importar CSV"
-              icon={Upload}
-              inputRef={fileRef}
-              onFile={handleCSVImport}
-            />
-            <Button size="sm" onClick={() => setOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Cargar movimiento
-            </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Conciliación bancaria</h1>
+          <p className="text-sm text-muted-foreground">Match bancario, exportación contable y estado de cuenta</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
+            Refrescar
+          </Button>
+          <Button onClick={() => setShowNewStatement(true)}>
+            <FileText className="mr-2 h-4 w-4" />
+            Importar estado
+          </Button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span>{error}</span>
           </div>
-        }
-      />
-
-      {/* Date range + filters */}
-      <div className="flex flex-wrap gap-3 items-end">
-        <div className="space-y-1 pb-12">
-          <Label className="text-xs text-muted-foreground">Desde</Label>
-          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 w-36" />
-        </div>
-        <div className="space-y-1 pb-12">
-          <Label className="text-xs text-muted-foreground">Hasta</Label>
-          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 w-36" />
-        </div>
-        <Button size="sm" variant="outline" onClick={load} disabled={loading}>
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Filtrar"}
-        </Button>
-        <div className="flex gap-1 ml-auto">
-          {(["all", "unmatched", "matched"] as const).map(f => (
-            <Button key={f} size="sm" variant={filterMatched === f ? "default" : "outline"} onClick={() => setFilterMatched(f)} className="h-8 text-xs">
-              {f === "all" ? "Todos" : f === "unmatched" ? "Sin conciliar" : "Conciliados"}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPICard label="Ingresos" value={formatARS(stats.credits)} icon={TrendingUp} color="success" sub="créditos del período" />
-        <KPICard label="Egresos" value={formatARS(stats.debits)} icon={TrendingDown} color="destructive" sub="débitos del período" />
-        <KPICard label="Balance neto" value={formatARS(stats.net)} icon={Landmark} color={stats.net >= 0 ? "success" : "destructive"} sub="créditos − débitos" />
-        <KPICard label="Sin conciliar" value={stats.unmatched} icon={AlertTriangle} color={stats.unmatched > 0 ? "warning" : "success"} sub={`${stats.matched} conciliados`} />
-      </div>
-
-      {/* CSV format hint */}
-      <p className="text-xs text-muted-foreground">
-        Formato CSV para importar: <code>fecha,descripción,monto (positivo=ingreso / negativo=egreso),cuenta</code>
-      </p>
-
-      {/* Table */}
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Cargando...
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Landmark className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>No hay movimientos en el período seleccionado.</p>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
-        <div className="table-wrap">
-          <table className="w-full text-sm table-compact-mobile">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Fecha</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Descripción</th>
-                <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Monto</th>
-                <th className="text-center px-3 py-2.5 font-medium text-muted-foreground hidden md:table-cell">Estado</th>
-                <th className="text-center px-4 py-2.5 font-medium text-muted-foreground">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(tx => (
-                <tr key={tx.id} className={`border-b border-border/50 hover:bg-muted/10 ${tx.matched ? "" : "bg-yellow-950/5"}`}>
-                  <td className="px-4 py-2.5 font-mono text-xs whitespace-nowrap">{tx.date}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="font-medium">{tx.description}</div>
-                    {tx.match_ref && <div className="text-xs text-muted-foreground">{tx.match_ref}</div>}
-                    {tx.notes && <div className="text-xs text-muted-foreground italic">{tx.notes}</div>}
-                  </td>
-                  <td className={`px-3 py-2.5 text-right font-mono font-semibold ${tx.type === "credit" ? "text-emerald-400" : "text-red-400"}`}>
-                    {tx.type === "credit" ? "+" : "-"}{formatARS(tx.amount_ars)}
-                  </td>
-                  <td className="px-3 py-2.5 text-center hidden md:table-cell">
-                    {tx.matched
-                      ? <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">Conciliado</Badge>
-                      : <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">Pendiente</Badge>}
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    <div className="flex justify-center gap-1">
-                      {!tx.matched && (
-                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setMatchOpen(tx.id)}>
-                          Conciliar
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                        disabled={deleting === tx.id}
-                        onClick={() => handleDelete(tx.id)}>
-                        {deleting === tx.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)} className="ml-auto mt-2">
+            <XCircle className="h-4 w-4" />
+          </Button>
         </div>
       )}
 
-      {/* Create dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Cargar movimiento bancario</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Fecha</Label>
-                <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tipo</Label>
-                <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v as "credit" | "debit" }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="credit">Ingreso (+)</SelectItem>
-                    <SelectItem value="debit">Egreso (−)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      <div className="grid gap-4 sm:grid-cols-4">
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Total bancario</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{formatCurrency(kpis.totalBank)}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Total ecommerce</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{formatCurrency(kpis.totalEcommerce)}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Diferencia</CardTitle></CardHeader><CardContent><div className={cn("text-2xl font-bold", kpis.totalDifference !== 0 ? "text-red-600" : "text-green-600")}>{formatCurrency(kpis.totalDifference)}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Matches confirmados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{kpis.confirmedMatches} / {kpis.totalMatches}</div></CardContent></Card>
+      </div>
+
+      <div className="flex gap-2 border-b">
+        {[{ id: "accounts", label: "Cuentas", icon: Banknote }, { id: "statements", label: "Estados", icon: FileText }, { id: "matches", label: "Matches", icon: CheckCircle2 }, { id: "reconciliations", label: "Conciliaciones", icon: TrendingUp }].map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={cn("relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors", activeTab === tab.id ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground")}>
+            <tab.icon className="h-4 w-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Estado" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="pending">Pendiente</SelectItem>
+            <SelectItem value="processed">Procesado</SelectItem>
+            <SelectItem value="confirmed">Confirmado</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="Desde" />
+        <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="Hasta" />
+        <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setDateFrom(""); setDateTo(""); }}>Limpiar</Button>
+      </div>
+
+      {activeTab === "accounts" && (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Banco</TableHead>
+                <TableHead>CBU</TableHead>
+                <TableHead>Alias</TableHead>
+                <TableHead>Titular</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Última conexión</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accounts.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No hay cuentas bancarias registradas</TableCell></TableRow>
+              ) : (
+                accounts.map((account) => (
+                  <TableRow key={account.id}>
+                    <TableCell className="font-medium">{account.bank_name}</TableCell>
+                    <TableCell className="font-mono text-xs">{account.bank_cbu}</TableCell>
+                    <TableCell>{account.bank_alias || "—"}</TableCell>
+                    <TableCell>{account.bank_holder}</TableCell>
+                    <TableCell><Badge variant="outline">{account.connection_type}</Badge></TableCell>
+                    <TableCell><Badge variant={account.status === "active" ? "default" : "secondary"}>{account.status}</Badge></TableCell>
+                    <TableCell>{formatDate(account.last_connection)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {activeTab === "statements" && (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Archivo</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Tamaño</TableHead>
+                <TableHead>Hash</TableHead>
+                <TableHead>Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredStatements.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay estados bancarios importados</TableCell></TableRow>
+              ) : (
+                filteredStatements.map((statement) => (
+                  <TableRow key={statement.id}>
+                    <TableCell className="font-medium">{statement.file_name}</TableCell>
+                    <TableCell>{formatDate(statement.statement_date)}</TableCell>
+                    <TableCell>{statement.file_size ? `${(statement.file_size / 1024).toFixed(1)} KB` : "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{statement.sha256_hash.slice(0, 16)}...</TableCell>
+                    <TableCell><Badge variant={statusBadge(statement.status) as any}>{statement.status}</Badge></TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {activeTab === "matches" && (
+        <div className="space-y-4">
+          {filteredMatches.length === 0 ? (
+            <div className="rounded-lg border p-8 text-center text-muted-foreground">No hay matches de conciliación</div>
+          ) : (
+            filteredMatches.map((match) => (
+              <Card key={match.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{match.match_type}</Badge>
+                        <Badge variant={statusBadge(match.match_status) as any}>{match.match_status}</Badge>
+                        <span className={cn("text-sm font-medium", confidenceColor(match.confidence_score))}>{match.confidence_score}% confianza</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">Banco: {formatCurrency(match.bank_amount)} · {formatDate(match.bank_date)}</div>
+                      <div className="text-sm text-muted-foreground">Ecommerce: {match.ecommerce_amount ? `${formatCurrency(match.ecommerce_amount)} · ${formatDate(match.ecommerce_date)}` : "—"}</div>
+                      {match.notes && <div className="text-sm">{match.notes}</div>}
+                    </div>
+                    <div className="flex gap-2">
+                      {match.match_status === "pending" && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => handleConfirmMatch(match.id)}><CheckCircle2 className="mr-1 h-4 w-4" />Confirmar</Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleRejectMatch(match.id)}><XCircle className="mr-1 h-4 w-4" />Rechazar</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {activeTab === "reconciliations" && (
+        <div className="space-y-4">
+          {filteredReconciliations.length === 0 ? (
+            <div className="rounded-lg border p-8 text-center text-muted-foreground">No hay conciliaciones realizadas</div>
+          ) : (
+            filteredReconciliations.map((recon) => (
+              <Card key={recon.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{formatDate(recon.statement_date)}</Badge>
+                        <Badge variant={statusBadge(recon.status) as any}>{recon.status}</Badge>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div><span className="text-muted-foreground">Banco:</span> <span className="font-medium">{formatCurrency(recon.total_bank_amount)}</span></div>
+                        <div><span className="text-muted-foreground">Ecommerce:</span> <span className="font-medium">{formatCurrency(recon.total_ecommerce_amount)}</span></div>
+                        <div><span className="text-muted-foreground">Diferencia:</span> <span className={cn("font-medium", recon.difference !== 0 ? "text-red-600" : "text-green-600")}>{formatCurrency(recon.difference)}</span></div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Matches: {recon.matched_count} · Sin match banco: {recon.unmatched_bank_count} · Sin match ecommerce: {recon.unmatched_ecommerce_count}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      {recon.status === "pending" && (
+                        <Button size="sm" onClick={() => handleConfirmReconciliation(recon.id)}><CheckCircle2 className="mr-1 h-4 w-4" />Confirmar</Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      <Dialog open={showNewStatement} onOpenChange={setShowNewStatement}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar estado bancario</DialogTitle>
+            <DialogDescription>Seleccione el archivo CSV o PDF del banco a conciliar.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="statement-file">Archivo</Label>
+              <Input id="statement-file" type="file" accept=".csv,.pdf,.xlsx" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleImportStatement(file); }} />
             </div>
-            <div className="space-y-1.5">
-              <Label>Descripción</Label>
-              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Ej: Transferencia de cliente" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Monto (ARS)</Label>
-                <Input type="number" min={0} value={form.amount_ars} onChange={e => setForm(f => ({ ...f, amount_ars: e.target.value }))} placeholder="0" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Cuenta</Label>
-                <Input value={form.account} onChange={e => setForm(f => ({ ...f, account: e.target.value }))} placeholder="Cuenta Principal" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Notas (opcional)</Label>
-              <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
+            <div className="grid gap-2">
+              <Label htmlFor="statement-account">Cuenta bancaria</Label>
+              <select id="statement-account" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Seleccionar cuenta</option>
+                {accounts.map((acc) => (<option key={acc.id} value={acc.id}>{acc.bank_name} - {acc.bank_alias || acc.bank_cbu}</option>))}
+              </select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
-            </Button>
+            <Button variant="outline" onClick={() => setShowNewStatement(false)}>Cancelar</Button>
+            <Button onClick={() => setShowNewStatement(false)}>Importar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Manual match dialog */}
-      <Dialog open={!!matchOpen} onOpenChange={v => !v && setMatchOpen(null)}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={showNewReconciliation} onOpenChange={setShowNewReconciliation}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Conciliar movimiento</DialogTitle>
+            <DialogTitle>Nueva conciliación</DialogTitle>
+            <DialogDescription>Inicie una nueva conciliación bancaria manual.</DialogDescription>
           </DialogHeader>
-          {matchTx && (
-            <div className="space-y-4 py-2">
-              <div className="rounded-lg border border-border p-3 text-sm">
-                <div className="font-medium">{matchTx.description}</div>
-                <div className={`font-bold ${matchTx.type === "credit" ? "text-emerald-400" : "text-red-400"}`}>
-                  {matchTx.type === "credit" ? "+" : "-"}{formatARS(matchTx.amount_ars)}
-                </div>
-              </div>
-              <div className="space-y-2 pb-12">
-                <Label className="text-xs text-muted-foreground">Posibles coincidencias (±10%)</Label>
-                {matchCandidates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No se encontraron coincidencias (±15%).</p>
-                ) : (
-                  matchCandidates.slice(0, 6).map(c => (
-                    <button
-                      key={c.id}
-                      className="w-full text-left rounded-lg border border-border p-3 hover:bg-muted/30 text-sm flex justify-between items-center gap-2"
-                      onClick={() => handleMatch(matchTx.id, c.ref)}
-                    >
-                      <div>
-                        <div className="font-medium">{c.label}</div>
-                        <div className="text-xs text-muted-foreground">{c.sublabel}</div>
-                      </div>
-                      <div className="font-mono font-semibold">{formatARS(c.amount)}</div>
-                    </button>
-                  ))
-                )}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => handleMatch(matchTx.id, "Conciliado manualmente")}
-                >
-                  Marcar como conciliado (manual)
-                </Button>
-              </div>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="recon-date">Fecha de estado</Label>
+              <Input id="recon-date" type="date" />
             </div>
-          )}
+            <div className="grid gap-2">
+              <Label htmlFor="recon-end-date">Fecha fin</Label>
+              <Input id="recon-end-date" type="date" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="recon-notes">Notas</Label>
+              <Textarea id="recon-notes" placeholder="Observaciones..." rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewReconciliation(false)}>Cancelar</Button>
+            <Button onClick={() => setShowNewReconciliation(false)}>Crear conciliación</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-      {dialog}
     </div>
   );
 }

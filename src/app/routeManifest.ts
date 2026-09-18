@@ -58,7 +58,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   AlertCircle, AlertTriangle, ArrowRightLeft, BarChart3, Bell, BookOpen,
   Brain, Building2, Calendar, CheckSquare, ClipboardList, CreditCard, Crown,
-  DollarSign, FileText, Gift, History, Kanban, Landmark,
+  DollarSign, FileClock, FileText, Gift, History, Kanban, Landmark,
   Layers, LayoutDashboard, LineChart, Link2, Mail, Megaphone,
   Headphones, MessageCircle, Package, Plug, Receipt, RefreshCw, RotateCcw,
   Scale, ScanBarcode, ScanLine, ScanSearch, Settings, Share2,
@@ -233,6 +233,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "cash_flow", path: "/finance/flujo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CashFlowPage")), module: "finance", aliases: [{ path: "/cash-flow", redirectTo: "/finance/flujo" }], status: "canonical", productSurface: "finance", nav: { label: "Flujo de caja", icon: BarChart3, group: "finance", keywords: ["cash flow", "proyección de plata", "liquidez"] } },
   { id: "pl_dashboard", path: "/finance/resultados", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PLDashboardPage")), module: "finance", aliases: [{ path: "/pl-dashboard", redirectTo: "/finance/resultados" }, { path: "/escenarios-financieros", redirectTo: "/finance/resultados" }], status: "canonical", productSurface: "finance", nav: { label: "Resultados", icon: TrendingUp, group: "finance", keywords: ["p&l", "pl", "ganancias y pérdidas", "rentabilidad", "estado de resultados"] } },
   { id: "banco", path: "/finance/banco", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BankReconciliationPage")), module: "finance", aliases: [{ path: "/banco", redirectTo: "/finance/banco" }], status: "canonical", productSurface: "finance", nav: { label: "Banco", icon: Landmark, group: "finance", keywords: ["conciliar", "extracto", "movimientos bancarios"] } },
+  { id: "bank_reconciliation", path: "/finance/banco/reconciliacion", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BankReconciliationPage")), module: "finance", status: "canonical", productSurface: "finance", nav: { label: "Conciliación bancaria", icon: Landmark, group: "finance", keywords: ["reconciliación", "match bancario", "estado cuenta", "exportación contable", "ARCA"] } },
   { id: "movimientos", path: "/movimientos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinancialMovementsPage")), module: "payments", status: "canonical", nav: { label: "Movimientos operativos", icon: BookOpen, group: "finance", keywords: ["libro mayor", "movimientos", "caja", "asientos", "financial movements"] } },
   { id: "cheques", path: "/cheques", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ChequesPage")), module: "finance", status: "canonical", nav: { label: "Cheques", icon: FileText, group: "finance", keywords: ["echeq", "valores", "cartera"] } },
   { id: "comisiones", path: "/comisiones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SellerCommissionsPage")), module: "finance", status: "canonical", nav: { label: "Comisiones", icon: Receipt, group: "finance", keywords: ["vendedores", "aranceles", "mercadopago"] } },
