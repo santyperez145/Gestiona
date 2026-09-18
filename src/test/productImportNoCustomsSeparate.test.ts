@@ -33,7 +33,7 @@ describe("C28.1: el 15% de aduana/pasero/impuestos ya no es un cálculo aparte",
 
   it("el importador de facturas IA guarda cost_usd como el costo total (ya incluye aduana)", () => {
     // totalCostUSD ya incluye el 15% porque costUSD es el costo total (no se suma aparte)
-    expect(invoiceDialog).toContain("const totalCostUSD = costUSD;");  // Eliminado el cálculo de customsFee
+  expect(invoiceDialog).toContain("const totalCostUSD = costUSD;");  // Eliminado el cálculo de customsFee
     expect(invoiceDialog).toContain("cost_usd: parseFloat(costUSD.toFixed(4))");
     expect(invoiceDialog).toContain("total_cost_usd: parseFloat(totalCostUSD.toFixed(4))");
   });
