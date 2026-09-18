@@ -125,7 +125,7 @@ export default function FinanceSolicitudesPage() {
         p_currency: newRequest.currency,
         p_category: newRequest.category,
         p_cost_center: newRequest.cost_center,
-        p_motivo: newRequest.motivo,
+        p_motivo: newRequest.motive,
       });
       if (error) throw error;
       setNotice(`Solicitud creada: ${data?.id ?? "ok"}`);
@@ -326,7 +326,7 @@ export default function FinanceSolicitudesPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="solicitud-motivo">Motivo</Label>
-              <Textarea id="solicitud-motivo" value={newRequest.motivo || ""} onChange={(e) => setNewRequest({ ...newRequest, motivo: e.target.value })} placeholder="Por qué se solicita este gasto" rows={3} />
+              <Textarea id="solicitud-motivo" value={newRequest.motive || ""} onChange={(e) => setNewRequest({ ...newRequest, motive: e.target.value })} placeholder="Por qué se solicita este gasto" rows={3} />
             </div>
           </div>
           <DialogFooter>
