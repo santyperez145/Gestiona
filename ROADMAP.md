@@ -344,6 +344,21 @@ producto Shopify con variante, imagen, stock, publicación, identidad y redirect
 reconcilió todo y terminó en rollback. Falta certificación con exports de
 comercios; Empretienda todavía sólo se detecta por el nombre del archivo.
 
+### Localización P2 (2026-09-19)
+
+Auditorías completas y correcciones aplicadas:
+
+| Superficie | Hallazgos críticos | Estado |
+|---|---|---|
+| Admin | Roles en inglés, IDs visibles, phone/email incorrectos | ✅ Corregido: roles traducidos, phone como fallback, display_name visible |
+| Finance | "Nerqia Finance", "Supplier Invoice Draft", "Budget Pulse" | ✅ Corregido: "Nerqia / Documentos", "Borrador de factura de proveedor", "Pulso del presupuesto" |
+| Finance | Estados técnicos en inglés en Solicitudes | ✅ Corregido: "en revisión", "aprobado", "rechazado" |
+| Bank Reconciliation | Estados/métodos técnicos: pending, exact, oauth, csv, etc. | ✅ Corregido: statusLabel(), matchTypeLabel(), connectionTypeLabel() |
+| Influencer Marketing | "Influencer Marketing", "Analytics", "Brand Portal", "Dashboard", "Payout", "Ventas atr." | ✅ Corregido: "Marketing de Influencers", "Analítica", "Portal de Marca", "Panel de Control", "Liquidación", "Ventas atribuidas" |
+| Influencer Payments | payment_method sin traducir | ✅ Corregido: "Transferencia", "Tarjeta" |
+
+Typecheck, lint, tests y build verificados: ✅ PASSED (build 15.7s, exit code 0)
+
 ## 7. Definition of Done
 
 Una entrega está terminada cuando:
