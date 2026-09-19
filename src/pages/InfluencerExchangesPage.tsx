@@ -332,7 +332,7 @@ export default function InfluencerExchangesPage() {
             <div className="overflow-x-auto rounded-[10px] border border-border/60 bg-card">
               <table className="w-full text-sm">
                 <thead><tr className="border-b">
-                  <th className="text-left p-3">Payout</th>
+                  <th className="text-left p-3">Liquidación</th>
                   <th className="text-left p-3">Influencer</th>
                   <th className="text-right p-3">Monto</th>
                   <th className="text-center p-3">Estado</th>
@@ -357,7 +357,7 @@ export default function InfluencerExchangesPage() {
       case "brand":
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Brand Portal — Perfiles de Marcas</h3>
+            <h3 className="text-lg font-semibold">Portal de Marca — Perfiles de Marcas</h3>
             <div className="grid gap-4 md:grid-cols-3">
               {brandProfiles.map(bp => (
                 <div key={bp.id} className="rounded-lg border border-border/60 p-4 bg-card">
@@ -398,7 +398,7 @@ export default function InfluencerExchangesPage() {
                     <th className="text-left p-3 font-medium">Producto</th>
                     <th className="text-center p-3 font-medium">Código</th>
                     <th className="text-right p-3 font-medium">Inversión</th>
-                    <th className="text-right p-3 font-medium">Ventas atr.</th>
+                    <th className="text-right p-3 font-medium">Ventas atribuidas</th>
                     <th className="text-center p-3 font-medium">Posts</th>
                     <th className="text-center p-3 font-medium">Estado</th>
                   </tr></thead>
@@ -437,13 +437,13 @@ export default function InfluencerExchangesPage() {
       {/* Tabs internos */}
       <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-xl w-fit">
         {[
-          { id: "dashboard", label: "Dashboard" },
+          { id: "dashboard", label: "Panel de Control" },
           { id: "canjes", label: "Canjes" },
           { id: "liquidaciones", label: "Liquidaciones" },
           { id: "contratos", label: "Contratos" },
           { id: "entregables", label: "Entregables" },
           { id: "pagos", label: "Pagos" },
-          { id: "brand", label: "Brand Portal" },
+          { id: "brand", label: "Portal de Marca" },
         ].map(t => (
           <button key={t.id} onClick={() => setPageTab(t.id as any)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${pageTab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{t.label}</button>
         ))}

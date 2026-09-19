@@ -87,7 +87,7 @@ export default function InfluencerMarketingPage() {
       {/* Header con branding Nerqia */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold">Influencer Marketing</h1>
+          <h1 className="text-2xl font-display font-bold">Marketing de Influencers</h1>
           <p className="text-sm text-muted-foreground">
             Plataforma separada de marketing — conectada al Core de datos, sin simulaciones.
           </p>
