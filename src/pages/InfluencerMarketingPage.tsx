@@ -74,11 +74,11 @@ export default function InfluencerMarketingPage() {
     { id: "overview", label: "Resumen", icon: Store },
     { id: "influencers", label: "Influencers", icon: Users },
     { id: "canjes", label: "Canjes", icon: ArrowRightLeft },
-    { id: "analytics", label: "Analytics", icon: Activity },
+    { id: "analytics", label: "Analítica", icon: Activity },
     { id: "contratos", label: "Contratos", icon: FileText },
     { id: "entregables", label: "Entregables", icon: Calendar },
     { id: "pagos", label: "Pagos", icon: DollarSign },
-    { id: "brand", label: "Brand Portal", icon: Shield },
+    { id: "brand", label: "Portal de Marca", icon: Shield },
     { id: "liquidaciones", label: "Liq. Influencers", icon: Shield },
   ];
 
@@ -243,7 +243,7 @@ export default function InfluencerMarketingPage() {
       {/* Tab: Brand Portal */}
       {activeTab === "brand" && (
         <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Brand Portal</h2>
+          <h2 className="text-xl font-display font-semibold">Portal de Marca</h2>
           <InfluencerBrandPortalPage />
         </div>
       )}

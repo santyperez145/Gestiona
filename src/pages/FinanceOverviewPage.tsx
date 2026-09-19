@@ -170,7 +170,7 @@ export default function FinanceOverviewPage() {
                 <Target className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Budget Pulse</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Pulso del presupuesto</p>
                 <h2 id="finance-budget-pulse-title" className="mt-0.5 text-sm font-semibold capitalize">{currentBudgetPeriod.label}</h2>
               </div>
             </div>

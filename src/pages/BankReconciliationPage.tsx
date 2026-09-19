@@ -138,6 +138,36 @@ function statusBadge(status: string): string {
   }
 }
 
+/** Estados y métodos técnicos del banco en lenguaje del comercio. */
+function statusLabel(status: string): string {
+  return {
+    pending: "Pendiente",
+    processed: "Procesado",
+    imported: "Importado",
+    confirmed: "Confirmado",
+    rejected: "Rechazado",
+    error: "Error",
+    active: "Activa",
+    inactive: "Inactiva",
+  }[status] ?? status;
+}
+
+function matchTypeLabel(type: string): string {
+  return {
+    exact: "Exacto",
+    partial: "Parcial",
+    approximate: "Aproximado",
+  }[type] ?? type;
+}
+
+function connectionTypeLabel(type: string): string {
+  return {
+    direct: "Directa",
+    oauth: "OAuth",
+    csv: "CSV",
+  }[type] ?? type;
+}
+
 function confidenceColor(score: number): string {
   if (score >= 90) return "text-green-600";
   if (score >= 70) return "text-yellow-600";

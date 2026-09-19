@@ -206,7 +206,7 @@ export default function FinanceSolicitudesPage() {
           <Input placeholder="Buscar solicitudes..." value={inboxQuery} onChange={(e) => setInboxQuery(e.target.value)} className="pl-9" />
         </div>
         <div className="flex gap-1">
-          {["todos", "pendiente", "under_review", "approved", "rejected"].map((v) => (
+          {["todos", "pendiente", "en revisión", "aprobado", "rechazado"].map((v) => (
             <Button key={v} variant={inboxView === v ? "default" : "outline"} size="sm" onClick={() => setInboxView(v)}>{v}</Button>
           ))}
         </div>

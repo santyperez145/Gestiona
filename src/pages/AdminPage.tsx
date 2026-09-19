@@ -277,12 +277,15 @@ export default function AdminPage() {
                   <div className="flex items-center justify-center h-[140px] text-muted-foreground text-xs">Sin datos</div>
                 )}
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {roleDistribution.map((r, i) => (
-                    <div key={r.name} className="flex items-center gap-1.5 text-xs">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                      <span className="text-muted-foreground capitalize">{r.name}: <strong className="text-foreground">{r.value}</strong></span>
-                    </div>
-                  ))}
+                  {roleDistribution.map((r, i) => {
+                    const roleLabel = r.name === "admin" ? "Administrador" : r.name === "vendedor" ? "Vendedor" : r.name === "viewer" ? "Solo lectura" : r.name;
+                    return (
+                      <div key={r.name} className="flex items-center gap-1.5 text-xs">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                        <span className="text-muted-foreground">{roleLabel}: <strong className="text-foreground">{r.value}</strong></span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -878,7 +881,7 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
               <SelectContent>
                 <SelectItem value="admin">🔑 Administrador</SelectItem>
                 <SelectItem value="vendedor">💼 Vendedor</SelectItem>
-                <SelectItem value="viewer">👁 Viewer (solo lectura)</SelectItem>
+                <SelectItem value="viewer">👁 Solo lectura</SelectItem>
               </SelectContent>
             </Select>
           </div>
