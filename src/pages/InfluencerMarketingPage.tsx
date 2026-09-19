@@ -10,7 +10,7 @@ import InfluencerContractsPage from "./InfluencerContractsPage";
 import InfluencerPaymentsPage from "./InfluencerPaymentsPage";
 import InfluencerDeliverablesPage from "./InfluencerDeliverablesPage";
 import InfluencerBrandPortalPage from "./InfluencerBrandPortalPage";
-import { listInfluencerSales, listInfluencerPayouts } from "@/lib/influencersDB";
+import { listInfluencerSales, listPayouts as listInfluencerPayouts } from "@/lib/influencersDB";
 import { calcInfluencerROI, calcCPM, calcFulfillmentRate } from "@/lib/businessCalc";
 
 /**
@@ -40,7 +40,7 @@ export default function InfluencerMarketingPage() {
       try {
         const [sales, payouts] = await Promise.all([
           listInfluencerSales(),
-          listInfluencerPayouts(),
+          listPayouts(),
         ]);
         const totalInversion = sales.reduce((s, r) => s + Number(r.commission_ars || 0), 0);
         const totalSalesGenerated = sales.reduce((s, r) => s + Number(r.sale_total_ars || 0), 0);
