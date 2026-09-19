@@ -403,8 +403,8 @@ export default function FinanceBankReconciliationPage() {
                     <TableCell className="font-mono text-xs">{account.bank_cbu}</TableCell>
                     <TableCell>{account.bank_alias || "—"}</TableCell>
                     <TableCell>{account.bank_holder}</TableCell>
-                    <TableCell><Badge variant="outline">{account.connection_type}</Badge></TableCell>
-                    <TableCell><Badge variant={account.status === "active" ? "default" : "secondary"}>{account.status}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{connectionTypeLabel(account.connection_type)}</Badge></TableCell>
+                    <TableCell><Badge variant={account.status === "active" ? "default" : "secondary"}>{statusLabel(account.status)}</Badge></TableCell>
                     <TableCell>{formatDate(account.last_connection)}</TableCell>
                   </TableRow>
                 ))
@@ -436,7 +436,7 @@ export default function FinanceBankReconciliationPage() {
                     <TableCell>{formatDate(statement.statement_date)}</TableCell>
                     <TableCell>{statement.file_size ? `${(statement.file_size / 1024).toFixed(1)} KB` : "—"}</TableCell>
                     <TableCell className="font-mono text-xs">{statement.sha256_hash.slice(0, 16)}...</TableCell>
-                    <TableCell><Badge variant={statusBadge(statement.status) as any}>{statement.status}</Badge></TableCell>
+                    <TableCell><Badge variant={statusBadge(statement.status) as any}>{statusLabel(statement.status)}</Badge></TableCell>
                   </TableRow>
                 ))
               )}
@@ -456,8 +456,8 @@ export default function FinanceBankReconciliationPage() {
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{match.match_type}</Badge>
-                        <Badge variant={statusBadge(match.match_status) as any}>{match.match_status}</Badge>
+                        <Badge variant="outline">{matchTypeLabel(match.match_type)}</Badge>
+                        <Badge variant={statusBadge(match.match_status) as any}>{statusLabel(match.match_status)}</Badge>
                         <span className={cn("text-sm font-medium", confidenceColor(match.confidence_score))}>{match.confidence_score}% confianza</span>
                       </div>
                       <div className="text-sm text-muted-foreground">Banco: {formatCurrency(match.bank_amount)} · {formatDate(match.bank_date)}</div>
@@ -492,7 +492,7 @@ export default function FinanceBankReconciliationPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{formatDate(recon.statement_date)}</Badge>
-                        <Badge variant={statusBadge(recon.status) as any}>{recon.status}</Badge>
+                        <Button size="sm" variant="outline" onClick={() => handleConfirmReconciliation(recon.id)}><CheckCircle2 className="mr-1 h-4 w-4" />Confirmar</Button>
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div><span className="text-muted-foreground">Banco:</span> <span className="font-medium">{formatCurrency(recon.total_bank_amount)}</span></div>
