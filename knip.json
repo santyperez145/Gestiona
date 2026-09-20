@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.tsx", "src/sw.ts", "src/**/*.{test,spec}.{ts,tsx}",
+    "api/**/*.ts", "middleware.ts", "supabase/functions/*/index.ts",
+    "scripts/*.{mjs,ts}", "examples/*.mjs", "e2e/**/*.ts", "playwright.config.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "api/**/*.ts", "middleware.ts"],
+  "playwright": false,
+  "ignoreDependencies": ["supabase"]
+}

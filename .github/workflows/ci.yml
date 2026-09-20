@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Unused dependencies
+        run: npx knip --include dependencies --no-progress
+
       # Las Edge Functions manejan cobros, webhooks y facturación, pero quedan
       # fuera de tsconfig.app.json porque corren en Deno. Su lista se descubre
       # desde el filesystem: una función nueva no puede escapar del gate.

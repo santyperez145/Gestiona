@@ -1,10 +1,30 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-10. **Estado:** documento rector de producto y ejecución.
+**Corte:** 2026-09-20. **Estado:** documento rector de producto y ejecución.
 La historia de entregas vive en Git; este archivo conserva únicamente el estado
 actual, las decisiones vigentes y el trabajo siguiente.
 
 ## Objetivo
+
+### Prioridad inmediata: recuperar la puerta de calidad
+
+La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
+2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza
+cualquier afirmación anterior de suite completamente verde.
+
+- [x] Retirar utilidades/primitives sin consumidores, residuos de plantilla,
+  volcados de compilación, bundle SQL obsoleto y documentación de sesión duplicada.
+- [x] Eliminar dependencias directas sin uso y añadir análisis reproducible
+  `npm run check:unused`; conservar las migraciones canónicas.
+- [ ] Resolver controles de identidad/plan/consumo de IA y verificar el contrato
+  de liquidación, suscripciones y reversas de Mercado Pago antes de publicar.
+- [ ] Reparar Marketing desconectado, rutas duplicadas y páginas huérfanas;
+  decidir cada capacidad por su propósito, no borrarla por un reporte automático.
+- [ ] Reemplazar comprobaciones de texto frágiles por comportamiento cuando
+  exista cobertura equivalente y recuperar la puerta completa, incluido E2E.
+
+Evidencia, archivos pendientes y criterio de retiro:
+[calidad del repositorio](docs/CALIDAD_REPOSITORIO.md).
 
 Llevar Nerqia a un Commerce Operating System de primer nivel: Commerce y las
 tiendas online son el núcleo visible; Business mantiene la fuente de verdad;
@@ -357,7 +377,8 @@ Auditorías completas y correcciones aplicadas:
 | Influencer Marketing | "Influencer Marketing", "Analytics", "Brand Portal", "Dashboard", "Payout", "Ventas atr." | ✅ Corregido: "Marketing de Influencers", "Analítica", "Portal de Marca", "Panel de Control", "Liquidación", "Ventas atribuidas" |
 | Influencer Payments | payment_method sin traducir | ✅ Corregido: "Transferencia", "Tarjeta" |
 
-Typecheck, lint, tests y build verificados: ✅ PASSED (build 15.7s, exit code 0)
+La auditoría del 2026-09-20 encontró regresiones posteriores: ver la prioridad
+de calidad al inicio. No considerar este cierre como evidencia de suite verde.
 
 ## 7. Definition of Done
 

@@ -187,6 +187,20 @@ seguir con el roadmap.
 
 ## Puerta técnica
 
+### Valor de las pruebas y limpieza
+
+La cantidad de tests no es una métrica de negocio ni certifica producción.
+Mantener pruebas de cálculos, permisos, aislamiento, concurrencia, reintentos y
+recuperación. Evitar tests de plantilla, cantidades fijas de archivos, frases
+del roadmap o detalles de JSX/CSS cuando el comportamiento ya tiene cobertura.
+Una guarda estática de seguridad es útil, pero no reemplaza ejecutar el contrato.
+Un fallo existente se registra y se corrige; nunca se elimina para pintar verde.
+
+Antes de retirar código ejecutar `npm run check:unused`, verificar importaciones,
+entradas Vercel/Deno, referencias de tests y propósito de producto. Una función
+desconectada por regresión requiere reparación, no borrado automático.
+Los pendientes actuales viven en [calidad](docs/CALIDAD_REPOSITORIO.md).
+
 Antes de cada commit:
 
 ```bash

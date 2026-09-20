@@ -59,6 +59,7 @@ los reemplaza con otro ADR.
 
 ## Calidad, soporte y recuperación
 
+- [Calidad del repositorio](CALIDAD_REPOSITORIO.md): limpieza, pruebas y bloqueos de publicación.
 - [E2E](E2E.md): ejecución de Playwright.
 - [Permisos](permisos.md): roles, tenants y superficies.
 - [Seguridad](SEGURIDAD.md): amenazas, RLS, RPC, fraude e incidentes.

@@ -66,7 +66,7 @@ confirma el mail y cae en un error de redirect — no es un bug de la app.
 | `Provider Google is not enabled` | Paso 2 no hecho | Habilitar Google en Supabase |
 | `redirect_uri_mismatch` (Google) | Callback URL no coincide | Verificar que el URL en Google y en Supabase sean idénticos |
 | Llega al dashboard pero `org` viene null | Trigger no ejecutó | Verificar logs en Supabase → Database → Logs |
-| `Database error saving new user` | Trigger falla | Aplicar la última versión de `handle_new_user_create_org` desde `migration_bundle.sql` |
+| `Database error saving new user` | Trigger falla | Revisar logs y la versión vigente de `handle_new_user_create_org` en `supabase/migrations`; aplicar sólo migraciones pendientes mediante el procedimiento de CONTRIBUTING.md. |
 
 ## Notas técnicas
 

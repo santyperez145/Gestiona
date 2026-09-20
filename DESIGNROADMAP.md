@@ -1,5 +1,12 @@
 # Nerqia — roadmap de diseño
 
+Revisión de mantenimiento 2026-09-20: retirados primitives sin consumidores,
+wrappers alternativos de diseño y el CSS de plantilla. Se conservan los
+componentes activos. Prioridad: recuperar pestañas de Marketing desconectadas,
+eliminar rutas duplicadas y verificar interacción/responsive en navegador.
+La presencia de una clase CSS en un archivo no certifica diseño ni accesibilidad;
+la puerta visual usa interacción y Axe. Ver [calidad](docs/CALIDAD_REPOSITORIO.md).
+
 **Corte:** 2026-09-07. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
