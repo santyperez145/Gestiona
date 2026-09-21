@@ -43,6 +43,10 @@ lock de producto `FOR UPDATE`, recálculo de disponible e inserción de reserva.
 Resta ejecutar dos conexiones reales contra PostgreSQL para certificar el
 interleaving; el contrato estático no reemplaza esa evidencia.
 
+La guarda de Budget Pulse dejó de exigir el literal inglés retirado por el
+rediseño. Verifica un `data-testid` semántico, el copy localizado y la ruta al
+presupuesto; evita que una mejora de idioma se lea como rotura financiera.
+
 Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
 Se resolvieron tres guardas de autorización, beneficio y consumo. Typecheck,

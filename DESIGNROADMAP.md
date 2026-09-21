@@ -45,6 +45,8 @@ queda en logs operativos; compradores y comercios deben ver estados de su
 operación desde Checkout, Pedidos, Caja o Finanzas, nunca copy de Platform.
 No se muestra una gestión de “tarjetas guardadas” hasta contar con consentimiento,
 revocación y ownership verificable provistos por el flujo canónico del PSP.
+Budget Pulse conserva copy rioplatense y un hook semántico de prueba; las
+guardas visuales no dependen de volver a introducir etiquetas inglesas.
 
 ## 2. Lenguaje visual
 

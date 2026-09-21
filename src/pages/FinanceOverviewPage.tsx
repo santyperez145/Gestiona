@@ -163,7 +163,7 @@ export default function FinanceOverviewPage() {
       )}
 
       {snapshot && (
-        <section className="border border-border bg-card" aria-labelledby="finance-budget-pulse-title">
+        <section data-testid="finance-budget-pulse" className="border border-border bg-card" aria-labelledby="finance-budget-pulse-title">
           <div className="flex flex-col justify-between gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:px-5">
             <div className="flex items-start gap-3">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-teal-700 text-white">
