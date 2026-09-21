@@ -39,6 +39,11 @@ Afiliados y Referidos reaparecen en Marketing como tareas diferenciadas, no
 dentro de Influencers. Su lenguaje separa “preparar liquidación” de “pago
 ejecutado” para evitar estados visuales que prometan movimiento de dinero.
 
+El webhook de Mercado Pago ya devuelve motivos públicos estables y no expone
+excepciones, secretos ni detalles de infraestructura. El diagnóstico técnico
+queda en logs operativos; compradores y comercios deben ver estados de su
+operación desde Checkout, Pedidos, Caja o Finanzas, nunca copy de Platform.
+
 ## 2. Lenguaje visual
 
 - canvas claro (piedra fría, no crema genérica) y superficies blancas;

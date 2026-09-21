@@ -11,8 +11,18 @@ actual, las decisiones vigentes y el trabajo siguiente.
 - [x] 2026-09-21: controles de autorización/plan y consumo en briefs IA;
   clasificación financiera con JWT/RLS, permiso de edición y aislamiento por
   organización. Pruebas locales de ejecución; despliegue no certificado.
-- [ ] Bloqueo de publicación: reparar verificación obligatoria de firma y
-  liquidación compartida del webhook Mercado Pago; validar reintentos e idempotencia.
+- [x] 2026-09-21: restaurar el webhook canónico de Mercado Pago con firma HMAC
+  obligatoria, coincidencia del recurso firmado, reconsulta autoritativa,
+  conciliación QR, suscripciones, liquidación, reversas y reintento idempotente
+  ante fallos internos. Implementación y 36 pruebas dirigidas locales aprobadas
+  el 2026-09-21 con `npm test -- --run src/test/webhookMercadoPagoFirmado.test.ts
+  src/test/legacyIntegrationSecretsRetired.test.ts src/test/posQrOrdersAuthority.test.ts
+  src/test/saasSubscriptionAuthority.test.ts src/test/storePayBrickAuthority.test.ts
+  src/test/losSecretosQueSeChequeanSeUsan.test.ts`.
+- [ ] Certificar el webhook contra una aplicación sandbox/productiva de Mercado
+  Pago y la base enlazada: secreto, eventos reales, reintentos, duplicados,
+  aprobación, rechazo, devolución y contracargo. El código versionado no equivale
+  a homologación ni despliegue.
 
 La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
 2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza
@@ -22,8 +32,8 @@ cualquier afirmación anterior de suite completamente verde.
   volcados de compilación, bundle SQL obsoleto y documentación de sesión duplicada.
 - [x] Eliminar dependencias directas sin uso y añadir análisis reproducible
   `npm run check:unused`; conservar las migraciones canónicas.
-- [ ] Resolver controles de identidad/plan/consumo de IA y verificar el contrato
-  de liquidación, suscripciones y reversas de Mercado Pago antes de publicar.
+- [x] Resolver controles de identidad/plan/consumo de IA y recuperar el contrato
+  local de liquidación, suscripciones y reversas de Mercado Pago.
 - [ ] Reparar las vistas de Marketing aún desconectadas y comprobar sus flujos.
 - [x] Resolver rutas duplicadas y páginas huérfanas por propósito: Afiliados
   (socios por conversión) y Referidos (clientes que recomiendan) regresan a

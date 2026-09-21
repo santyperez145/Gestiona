@@ -49,6 +49,7 @@ export async function recordPaymentTransaction(
     status: string;
     gross: number;
     externalRef: string;
+    strict?: boolean;
   },
 ) {
   const { orgId, paymentId, payment, status, gross, externalRef } = args;
@@ -78,8 +79,10 @@ export async function recordPaymentTransaction(
     });
     if (error) throw error;
   } catch (e) {
-    // El cobro ya está confirmado. Dejar evidencia en logs es mejor que hacer
-    // que MercadoPago reintente el pago o que el comprador vea un falso error.
     console.error(`record_payment_settlement falló para ${paymentId}:`, e);
+    // El webhook debe pedir reintento hasta que el asiento durable exista. La
+    // respuesta sincrónica del checkout puede conservar el modo best-effort
+    // porque el webhook firmado es su autoridad eventual.
+    if (args.strict) throw e;
   }
 }

@@ -16,9 +16,16 @@ presenta una escritura fallida como exitosa. No se exponen errores del proveedor
 
 Once pruebas ejecutan los handlers transpilados con fronteras externas simuladas;
 la guarda anónima falló al retirar deliberadamente la autorización y se restauró.
-Esto no equivale a un despliegue ni a una prueba real de proveedor. El webhook de
-Mercado Pago sigue siendo un bloqueo prioritario independiente: verificar firma
-obligatoria y recuperar liquidación/reconciliación canónica antes de publicar.
+Esto no equivale a un despliegue ni a una prueba real de proveedor.
+
+Seguimiento Mercado Pago, 2026-09-21: se retiró el handler regresado que confiaba
+en el body y podía continuar sin firma. El webhook vuelve a exigir el HMAC
+oficial `ts=/v1=`, rechaza diferencias URL/body, reconsulta el recurso con el
+OAuth del tenant y comparte conciliación QR, suscripciones, liquidación y
+reversas. Los fallos de persistencia responden no-2xx para permitir reintentos
+idempotentes. Pasaron 36 pruebas dirigidas, typecheck y lint. La suite completa
+ejecutó 2.969 casos: 2.955 aprobados y 14 fallidos, seis bloqueos críticos menos;
+no se desplegó ni se certificó contra eventos reales de Mercado Pago.
 
 Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
@@ -85,7 +92,7 @@ para resolver en el orden del roadmap, sin convertirlos en falsos verdes.
 | Prioridad | Evidencia | Cierre exigido |
 |---|---|---|
 | P0 | `ai-brief-generator` invoca proveedor sin los controles compartidos de usuario y plan; `finance-auto-categorize` no registra consumo según la guarda. | Autorización, tenant, cupo y consumo verificados; rechazo antes del gasto. |
-| P0 | Fallan contratos de webhook MP, liquidación compartida, suscripción, reversas y QR. | Revisar código y comportamiento de pagos; no actualizar strings para silenciar la alarma. |
+| P0 | ~~Fallaban firma, liquidación compartida, suscripción, reversas y QR del webhook MP.~~ | Contratos locales cerrados; resta certificar eventos, reintentos y estados con proveedor/base reales antes de publicar. |
 | P1 | Marketing acepta vistas de automatizaciones/ofertas/marca/combos/imágenes, pero muestra placeholders mientras sus componentes no tienen importadores. | Restablecer los flujos con permisos y pruebas de interacción. |
 | P1 | ~~Dos rutas montaban conciliación bancaria y Afiliados/Referidos estaban huérfanas.~~ | Cerrado: Banco canónico con redirect; los dos canales recuperados en Marketing con RLS por acción y liquidación sin falsa ejecución. |
 | P1 | Falla el cálculo esperado de importación; el caso de concurrencia de checkout sólo busca palabras en SQL. | Validar aritmética contra el contrato y concurrencia en base reversible. |
@@ -116,6 +123,12 @@ Seguimiento 2026-09-21 (`npm test -- --reporter=json`), canales de growth:
 verdes las guardas de URL canónica y páginas huérfanas. Typecheck, lint dirigido,
 build, enlaces, conteos y diff check aprobaron. La migración de RLS/liquidación
 está versionada pero no aplicada ni certificada en producción.
+
+Seguimiento 2026-09-21 (`npm test -- --reporter=json`), autoridad Mercado Pago:
+2.969 casos, 2.955 aprobados y 14 fallidos. Quedaron verdes los seis contratos
+que cubren firma, secretos retirados, QR, suscripciones, Checkout Brick,
+liquidación y reversas. Las pruebas verifican código y fronteras locales; falta
+el ejercicio E2E firmado contra sandbox/proveedor y base enlazada.
 
 No se habilita publicación a producción mientras la puerta esté roja. Una rama
 de revisión puede conservar y compartir el trabajo sin afirmar cierre operativo.

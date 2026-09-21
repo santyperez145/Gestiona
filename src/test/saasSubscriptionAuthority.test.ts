@@ -19,8 +19,8 @@ describe('autoridad de suscripciones SaaS', () => {
 
   it('sólo el webhook firmado activa o registra pagos', () => {
     const branch = webhook.slice(webhook.indexOf('if (type === "subscription_preapproval"'));
-    expect(branch).toContain('verifyMpSignature');
-    expect(branch).toContain('MP_WEBHOOK_SECRET');
+    expect(branch).toContain('requireValidSignature(req, suscId)');
+    expect(webhook).toContain('Deno.env.get("MP_WEBHOOK_SECRET")');
     expect(branch).toContain('suscripcion_registrar_pago');
     expect(subscribe).toContain('status: "past_due"');
     expect(subscribe).not.toContain('status: "active"');
