@@ -38,6 +38,9 @@ actual, las decisiones vigentes y el trabajo siguiente.
 - [x] 2026-09-21: estabilizar la guarda de Budget Pulse con un identificador
   semántico y copy localizado, manteniendo presupuesto y gasto como agregados
   del snapshot server-side sin crear una segunda fuente contable.
+- [x] 2026-09-21: alinear la evidencia de preview de importación con el RPC
+  vigente: costo importado tratado como landed cost, cotización y margen sobre
+  costo sin reintroducir un porcentaje aduanero duplicado.
 
 La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
 2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza

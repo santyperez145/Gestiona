@@ -47,6 +47,11 @@ La guarda de Budget Pulse dejó de exigir el literal inglés retirado por el
 rediseño. Verifica un `data-testid` semántico, el copy localizado y la ruta al
 presupuesto; evita que una mejora de idioma se lea como rotura financiera.
 
+La prueba del preview de importación esperaba un markup del 100% mientras
+configuraba 50% y además conservaba un parámetro aduanero ya retirado. Ahora
+contrasta la misma fórmula que recibe staging: landed cost × cotización ×
+`(1 + margen/100)`, con ganancia y margen resultantes verificables.
+
 Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
 Se resolvieron tres guardas de autorización, beneficio y consumo. Typecheck,
