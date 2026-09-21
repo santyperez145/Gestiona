@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 interface ProductRow {
-  product_key: 'business' | 'finance';
+  product_key: 'business' | 'finance' | 'influencers';
   status: 'available' | 'requested' | 'enabled';
   requested_at: string | null;
   decided_at: string | null;
@@ -20,12 +20,12 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-export default function ProductAccessPanel({ orgId, canManage }: { orgId: string; canManage: boolean }) {
+export default function ProductAccessPanel({ orgId, canManage, canManageInfluencers = false }: { orgId: string; canManage: boolean; canManageInfluencers?: boolean }) {
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [decision, setDecision] = useState<{ enabled: boolean } | null>(null);
+  const [decision, setDecision] = useState<{ productKey: 'finance' | 'influencers'; title: string; enabled: boolean } | null>(null);
   const [reason, setReason] = useState('');
 
   const load = useCallback(async () => {
@@ -46,6 +46,7 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
   useEffect(() => { void load(); }, [load]);
 
   const finance = rows.find(row => row.product_key === 'finance');
+  const influencers = rows.find(row => row.product_key === 'influencers');
   const applyDecision = async () => {
     if (!decision || reason.trim().length < 10) return;
     setSaving(true);
@@ -53,7 +54,7 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
       body: {
         action: 'setProductAccess',
         orgId,
-        productKey: 'finance',
+        productKey: decision.productKey,
         enabled: decision.enabled,
         reason: reason.trim(),
       },
@@ -63,7 +64,7 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
       toast.error(await mensajeDeEdgeFunction(invokeError, data) || 'No se pudo cambiar el producto.');
       return;
     }
-    toast.success(decision.enabled ? 'Finance habilitado' : 'Finance deshabilitado');
+    toast.success(`${decision.title} ${decision.enabled ? 'habilitado' : 'deshabilitado'}`);
     setDecision(null);
     setReason('');
     await load();
@@ -100,27 +101,31 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
                 ? `Habilitado · decisión ${formatDate(finance.decided_at)}`
                 : 'Disponible para solicitar; todavía sin acceso al producto.'}
           />
+          <ProductCard
+            title="Nerqia Influencers"
+            status={influencers?.status || 'available'}
+            detail={influencers?.status === 'requested'
+              ? `Solicitado ${formatDate(influencers.requested_at)}`
+              : influencers?.status === 'enabled'
+                ? `Habilitado · decisión ${formatDate(influencers.decided_at)}`
+                : 'Plataforma de campañas con creadores todavía sin acceso.'}
+          />
         </div>
       )}
 
-      {!loading && !error && canManage && finance && (
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            variant={finance.status === 'enabled' ? 'outline' : 'default'}
-            onClick={() => { setDecision({ enabled: finance.status !== 'enabled' }); setReason(''); }}
-          >
-            {finance.status === 'enabled' ? 'Deshabilitar Finance' : finance.status === 'requested' ? 'Aprobar Finance' : 'Habilitar piloto'}
-          </Button>
+      {!loading && !error && canManage && (
+        <div className="flex flex-wrap justify-end gap-2">
+          {finance && <ProductDecisionButton row={finance} title="Finance" onDecide={next => { setDecision(next); setReason(''); }} />}
+          {influencers && canManageInfluencers && <ProductDecisionButton row={influencers} title="Influencers" onDecide={next => { setDecision(next); setReason(''); }} />}
         </div>
       )}
 
-      {!canManage && <p className="text-[10px] text-muted-foreground">Sólo staff de plataforma `finance` o `superadmin` puede cambiar entitlements.</p>}
+      {!canManage && <p className="text-[10px] text-muted-foreground">Sólo staff autorizado puede cambiar productos. Influencers requiere superadmin.</p>}
 
       <Dialog open={Boolean(decision)} onOpenChange={open => { if (!open && !saving) setDecision(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{decision?.enabled ? 'Habilitar Nerqia Finance' : 'Deshabilitar Nerqia Finance'}</DialogTitle>
+            <DialogTitle>{decision?.enabled ? `Habilitar Nerqia ${decision.title}` : `Deshabilitar Nerqia ${decision?.title}`}</DialogTitle>
             <DialogDescription>El cambio afecta el acceso de toda la organización y queda auditado. No modifica datos del Business Core.</DialogDescription>
           </DialogHeader>
           <Textarea value={reason} onChange={event => setReason(event.target.value)} maxLength={500} placeholder="Motivo de la decisión (mínimo 10 caracteres)" />
@@ -134,6 +139,20 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+function ProductDecisionButton({ row, title, onDecide }: {
+  row: ProductRow;
+  title: string;
+  onDecide: (decision: { productKey: 'finance' | 'influencers'; title: string; enabled: boolean }) => void;
+}) {
+  if (row.product_key === 'business') return null;
+  const enabled = row.status === 'enabled';
+  return (
+    <Button size="sm" variant={enabled ? 'outline' : 'default'} onClick={() => onDecide({ productKey: row.product_key, title, enabled: !enabled })}>
+      {enabled ? `Deshabilitar ${title}` : row.status === 'requested' ? `Aprobar ${title}` : `Habilitar ${title}`}
+    </Button>
   );
 }
 

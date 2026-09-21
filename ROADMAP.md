@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-20. **Estado:** documento rector de producto y ejecución.
+**Corte:** 2026-09-21. **Estado:** documento rector de producto y ejecución.
 La historia de entregas vive en Git; este archivo conserva únicamente el estado
 actual, las decisiones vigentes y el trabajo siguiente.
 
@@ -28,6 +28,35 @@ cualquier afirmación anterior de suite completamente verde.
   decidir cada capacidad por su propósito, no borrarla por un reporte automático.
 - [ ] Reemplazar comprobaciones de texto frágiles por comportamiento cuando
   exista cobertura equivalente y recuperar la puerta completa, incluido E2E.
+
+### Nerqia Influencers — plataforma propia
+
+Referencia competitiva verificada el 2026-09-21: [Marz](https://www.go-marz.com/)
+presenta un ciclo desde matching y brief hasta producción, publicación y pago;
+sus [planes](https://www.go-marz.com/precios) agregan workspace chat, revisión
+de video, invitaciones, métricas y pagos automáticos. Nerqia adopta esas
+capacidades como patrón funcional, sin copiar interfaz, marca ni promesas.
+
+- [x] Superficie independiente `/influencer-marketing/*`, visible junto a
+  Finance, con resumen, creadores, matching, briefs, colaboraciones, contratos,
+  entregables, pagos y portal de marca. Las URLs anteriores quedan como aliases.
+- [x] Entitlement real por organización: solicitud del owner/admin, aprobación
+  auditada en Platform y permiso `influencers.view`; se retiró el gate simulado.
+- [ ] Unificar campañas y discovery actualmente huérfanos dentro de la superficie;
+  crear campaña debe persistir estado, presupuesto, brief e invitaciones.
+- [ ] Pipeline por colaboración: invitada → aceptada → producción → revisión →
+  aprobada → publicada → liquidable → pagada, con eventos, responsables y SLA.
+- [ ] Workspace marca–creador con mensajes, archivos, comentarios y notificaciones;
+  no afirmar chat o revisión automática hasta tener almacenamiento y trazabilidad.
+- [ ] Reviewer de foto/video con versiones, anotaciones por timestamp, aprobación,
+  rechazo y disputa; validar publicación mediante evidencia del canal disponible.
+- [ ] Pago seguro basado en entregable aprobado, idempotencia, conciliación,
+  comprobante y reversa. No custodiar ni prometer liberación automática sin
+  contrato/proveedor/homologación aplicable.
+- [ ] Analytics por campaña y creador: inversión, alcance, vistas, CPM, CPV,
+  conversiones, ventas atribuidas y ROAS, siempre con fuente y ventana visibles.
+- [ ] Portal del creador: propuestas, aceptación, brief, entregables, estado de
+  aprobación, saldo y retiro; onboarding/KYC y términos antes de mover dinero.
 
 Evidencia, archivos pendientes y criterio de retiro:
 [calidad del repositorio](docs/CALIDAD_REPOSITORIO.md).

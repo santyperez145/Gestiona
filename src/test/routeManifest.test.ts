@@ -171,10 +171,12 @@ describe("el sidebar sigue siendo el sidebar", () => {
     expect(finance).toEqual([
       "/finance",
       "/finance/documentos",
+      "/finance/solicitudes",
       "/finance/gastos",
       "/finance/flujo",
       "/finance/resultados",
       "/finance/banco",
+      "/finance/banco/reconciliacion",
       "/finance/libro",
     ]);
     for (const path of finance) expect(business).not.toContain(path);

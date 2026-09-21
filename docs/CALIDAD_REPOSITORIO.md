@@ -20,7 +20,7 @@ Esto no equivale a un despliegue ni a una prueba real de proveedor. El webhook d
 Mercado Pago sigue siendo un bloqueo prioritario independiente: verificar firma
 obligatoria y recuperar liquidación/reconciliación canónica antes de publicar.
 
-Verificación del seguimiento: 34 pruebas dirigidas aprobadas; suite completa
+Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
 Se resolvieron tres guardas de autorización, beneficio y consumo. Typecheck,
 lint completo sin errores, Deno check de ambas funciones, build, enlaces,
@@ -93,8 +93,17 @@ para resolver en el orden del roadmap, sin convertirlos en falsos verdes.
 
 Otros candidatos que requieren una decisión funcional antes de eliminarlos:
 `SettlementsTab`, `PlatformDashboard`, `ProductsPriceImport`,
-`MarketingTemplatesTab`, `useInfluencerProductAccess`, `creatorProfileDB` e
-`influencerProductDB`. Que un archivo compile no demuestra que esté accesible.
+`MarketingTemplatesTab`, `creatorProfileDB` y páginas de campañas/discovery aún
+sin integrar. `useInfluencerProductAccess` e `influencerProductDB` dejaron de ser
+candidatos: ahora gobiernan el gate real de la superficie. Que un archivo
+compile no demuestra que esté accesible.
+
+Seguimiento 2026-09-21 (`npm test -- --reporter=json`), superficie Influencers:
+2.965 casos, 2.943 aprobados y 22 fallidos. No aparecieron fallos nuevos frente
+al corte posterior de IA; se resolvieron cuatro fallos de navegación/manifest.
+Typecheck, lint, build, Deno check de `platform-admin-action`, enlaces, conteos
+y diff check aprobaron. La migración quedó versionada, aún no aplicada ni
+certificada contra la base productiva.
 
 No se habilita publicación a producción mientras la puerta esté roja. Una rama
 de revisión puede conservar y compartir el trabajo sin afirmar cierre operativo.

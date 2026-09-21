@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Bell, Tag, Calendar, Layers, ArrowRightLeft, UserPlus, Trophy, Share2, ScanBarcode, Users2, Scale, Globe, Warehouse, LineChart, Shield, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Bell, Tag, Calendar, Layers, ArrowRightLeft, UserPlus, Trophy, Share2, ScanBarcode, Users2, Scale, Globe, Warehouse, LineChart, Shield, ChevronRight, Target } from "lucide-react";
 import { lazy, Suspense, useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -367,6 +367,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <Receipt className="w-3.5 h-3.5 shrink-0" />
               {!effectiveCollapsed && <span>Nerqia Finance</span>}
+            </Link>
+          )}
+          {role === 'admin' && forModule('influencers').canView && (
+            <Link
+              to="/influencer-marketing"
+              title={effectiveCollapsed ? 'Nerqia Influencers' : undefined}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
+                effectiveCollapsed ? 'justify-center' : ''
+              } text-amber-700/85 hover:bg-amber-500/10 hover:text-amber-800 hover:border-amber-500/25 dark:text-amber-300/75 dark:hover:text-amber-200`}
+            >
+              <Target className="w-3.5 h-3.5 shrink-0" />
+              {!effectiveCollapsed && <span>Nerqia Influencers</span>}
             </Link>
           )}
           {isPlatformAdmin && (

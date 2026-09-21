@@ -228,8 +228,8 @@ Deno.serve(async (req) => {
 
     // ── ACCESO POR PRODUCTO ────────────────────────────────────
     // Entitlements no son feature flags ni permisos de usuario. Platform decide
-    // si una organización tiene Finance; el tenant decide después quién lo usa
-    // mediante finance.view. La función SQL repite el control del actor y audita
+    // si una organización tiene Finance o Influencers; el tenant decide después quién lo usa
+    // mediante permisos de módulo. La función SQL repite el control del actor y audita
     // la transición en la misma transacción.
     if (action === "getProductAccess") {
       const orgId = typeof body.orgId === "string" && UUID_RE.test(body.orgId) ? body.orgId : "";
@@ -249,7 +249,10 @@ Deno.serve(async (req) => {
       const productKey = typeof body.productKey === "string" ? body.productKey : "";
       const reason = typeof body.reason === "string" ? body.reason.trim() : "";
       if (!orgId) return json({ error: "El comercio seleccionado no es válido" }, 400);
-      if (productKey !== "finance") return json({ error: "Producto no reconocido" }, 400);
+      if (!(["finance", "influencers"] as string[]).includes(productKey)) return json({ error: "Producto no reconocido" }, 400);
+      if (productKey === "influencers" && platformRole !== "superadmin") {
+        return json({ error: "Sólo superadmin puede administrar Nerqia Influencers" }, 403);
+      }
       if (typeof body.enabled !== "boolean") return json({ error: "El estado del producto es requerido" }, 400);
       if (reason.length < 10 || reason.length > 500) return json({ error: "La decisión requiere un motivo de 10 a 500 caracteres" }, 400);
 

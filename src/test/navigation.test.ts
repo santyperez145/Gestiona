@@ -142,14 +142,30 @@ describe("estructura de la navegación", () => {
   });
 
   it("Finance tiene navegación propia y buscable", () => {
-    expect(PRODUCT_NAV_ITEMS.map(i => i.to)).toEqual([
+    expect(PRODUCT_NAV_ITEMS.filter(i => i.group === "finance").map(i => i.to)).toEqual([
       "/finance",
       "/finance/documentos",
+      "/finance/solicitudes",
       "/finance/gastos",
       "/finance/flujo",
       "/finance/resultados",
       "/finance/banco",
+      "/finance/banco/reconciliacion",
       "/finance/libro",
+    ]);
+  });
+
+  it("Influencers tiene navegación propia y buscable", () => {
+    expect(PRODUCT_NAV_ITEMS.filter(i => i.group === "influencer-marketing").map(i => i.to)).toEqual([
+      "/influencer-marketing",
+      "/influencer-marketing/creadores",
+      "/influencer-marketing/matching",
+      "/influencer-marketing/briefs",
+      "/influencer-marketing/colaboraciones",
+      "/influencer-marketing/contratos",
+      "/influencer-marketing/entregables",
+      "/influencer-marketing/pagos",
+      "/influencer-marketing/portal-marca",
     ]);
   });
 
@@ -159,11 +175,6 @@ describe("estructura de la navegación", () => {
       "/email-campaigns",
       "/whatsapp-campaigns",
       "/fidelidad",
-      "/catalogo",
-      "/influencers",
-      "/canjes",
-      "/afiliados",
-      "/referidos",
     ]);
   });
 

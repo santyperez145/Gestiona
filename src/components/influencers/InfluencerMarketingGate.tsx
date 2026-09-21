@@ -1,51 +1,17 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
-import { AlertTriangle, CheckCircle2, Clock, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Clock, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { moduleForPath } from "@/app/routeManifest";
+import { useInfluencerProductAccess } from "@/hooks/useInfluencerProductAccess";
 
 /**
  * Gate de acceso al producto Influencer Marketing.
  *
- * Igual que FinanceProductGate pero para la superficie de influencers.
- * Verifica que el usuario tiene el módulo `influencers` asignado.
- * El enforcement real está en RLS — esto sólo decide qué se dibuja.
+ * El RPC decide entitlement, membresía y permiso del módulo. Esta barrera
+ * mejora la UX; RLS sigue siendo la autoridad de cada tabla.
  */
-export function useInfluencerProductAccess() {
-  const { user } = useAuth();
-  const { activeOrg, activeRole } = useOrg();
-  const [access, setAccess] = useState<{ allowed: boolean } | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user || !activeOrg) {
-      setAccess({ allowed: false });
-      setLoading(false);
-      return;
-    }
-    // El módulo se verifica contra routeManifest y permisos del usuario.
-    // Para la superficie, el acceso lo gobierna que la ruta exista y el rol sea admin.
-    const module = moduleForPath("/influencers");
-    const hasModule = module === "influencers" && (activeRole === "admin" || activeRole === "owner");
-
-    // Simular verificación asíncrona
-    const timer = setTimeout(() => {
-      setAccess({ allowed: hasModule });
-      setLoading(false);
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [user, activeOrg, activeRole]);
-
-  return { access, loading };
-}
-
 export default function InfluencerMarketingGate({ children }: { children: React.ReactNode }) {
   const { activeOrg } = useOrg();
-  const { access, loading } = useInfluencerProductAccess();
-  const [requesting, setRequesting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { access, loading, requesting, error, refresh, requestAccess } = useInfluencerProductAccess();
 
   if (loading) {
     return (
@@ -63,7 +29,7 @@ export default function InfluencerMarketingGate({ children }: { children: React.
           <div className="flex-1">
             <h1 className="text-base font-semibold">No se pudo verificar el acceso</h1>
             <p className="mt-1 text-sm text-muted-foreground">{error || "El producto no devolvió un estado válido."}</p>
-            <Button variant="outline" size="sm" className="mt-4">Reintentar</Button>
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => void refresh()}>Reintentar</Button>
           </div>
         </div>
       </div>
@@ -74,14 +40,25 @@ export default function InfluencerMarketingGate({ children }: { children: React.
 
   return (
     <div className="mx-auto max-w-xl rounded-[12px] border border-border bg-card p-6 text-center">
-      <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
-        <ShieldCheck className="h-5 w-5" />
+      <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
+        {access.status === "requested" ? <Clock className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
       </div>
-      <h1 className="text-base font-semibold">Acceso a Influencer Marketing</h1>
+      <h1 className="text-base font-semibold">
+        {access.status === "requested" ? "Solicitud en revisión" : "Activá Nerqia Influencers"}
+      </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Tu organización aún no tiene acceso al producto Influencer Marketing.
-        {activeOrg?.name ? ` Contactá al administrador de ${activeOrg.name} para solicitar acceso.` : " Contactá al administrador para solicitar acceso."}
+        {access.status === "requested"
+          ? "La plataforma recibió la solicitud. Te avisaremos cuando el producto esté habilitado."
+          : access.blocker === "module_permission_denied"
+            ? `Tu cuenta no tiene permiso para gestionar creadores en ${activeOrg?.name || "esta organización"}.`
+            : "Centralizá matching, briefs, colaboraciones, aprobaciones, contratos, pagos y resultados."}
       </p>
+      {access.canRequest && (
+        <Button className="mt-4" size="sm" onClick={() => void requestAccess()} disabled={requesting}>
+          {requesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Solicitar acceso
+        </Button>
+      )}
     </div>
   );
 }

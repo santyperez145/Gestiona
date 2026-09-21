@@ -11,7 +11,7 @@ const NAV = influencerMarketingProductRoutes().flatMap(route => route.nav ? [{
   to: route.path,
   label: route.nav.label,
   icon: route.nav.icon,
-  end: route.path === '/influencers',
+  end: route.path === '/influencer-marketing',
 }] : []);
 
 const CORE_BRIDGES = [
@@ -33,7 +33,7 @@ export default function InfluencerMarketingLayout({ children }: { children: Reac
     <div className="influencer-shell min-h-screen bg-card text-foreground lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="influencer-sidebar border-b border-border lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
-          <Link to="/influencers" className="flex min-w-0 items-center gap-2.5">
+          <Link to="/influencer-marketing" className="flex min-w-0 items-center gap-2.5">
             <BrandLogo compact decorative eager markClassName="h-8 w-8" />
             <span className="min-w-0">
               <span className="block text-[14px] font-display font-bold tracking-tight">Nerqia Influencers</span>

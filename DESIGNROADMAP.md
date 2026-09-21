@@ -18,13 +18,19 @@ los patrones completos viven en
 
 ## 1. Resultado buscado
 
-Nerqia debe sentirse como un único sistema profesional aunque tenga cuatro
-superficies: Commerce, Business, Finance y Platform. La tienda pública adapta
+Nerqia debe sentirse como un único sistema profesional aunque tenga cinco
+superficies: Commerce, Business, Finance, Influencers y Platform. La tienda pública adapta
 la marca del comercio; las superficies de trabajo mantienen la identidad de
 Nerqia y la misma gramática de interacción.
 
 La interfaz prioriza velocidad, lectura y acción. No es una landing disfrazada
 de software ni una colección de cards decorativas.
+
+Actualización 2026-09-21: Influencers usa shell propio, entrada persistente en
+el sidebar Business y navegación orientada al ciclo real: resumen, creadores,
+matching, briefs, colaboraciones, contratos, entregables, pagos y portal de
+marca. Pendiente: separar el resumen de las vistas operativas duplicadas y
+diseñar campaña/reviewer/chat con estados observables y responsive verificado.
 
 ## 2. Lenguaje visual
 

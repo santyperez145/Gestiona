@@ -94,7 +94,7 @@ function queryError(label: string, error: { message?: string } | null) {
 export default function PlatformMerchantPage() {
   usePageTitle('Merchant 360');
   const { orgId } = useParams<{ orgId: string }>();
-  const { isPlatformStaff, canPlatform, loading: accessLoading } = usePlatformAccess();
+  const { isPlatformStaff, isSuperadmin, canPlatform, loading: accessLoading } = usePlatformAccess();
   const [snapshot, setSnapshot] = useState<MerchantSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -569,6 +569,7 @@ export default function PlatformMerchantPage() {
           <ProductAccessPanel
             orgId={snapshot.organization.id}
             canManage={canPlatform('finance')}
+            canManageInfluencers={isSuperadmin}
           />
           <p className="px-1 text-[11px] text-muted-foreground/70">Habilitar un producto no otorga permisos personales: la organización sigue controlando `finance.view` desde su matriz de roles.</p>
         </TabsContent>

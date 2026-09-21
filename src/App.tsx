@@ -251,7 +251,7 @@ function InfluencerMarketingRoutes() {
                 {childRoutes.map(route => (
                   <Route
                     key={route.id}
-                    path={route.path.slice("/influencer-marketing".length)}
+                    path={route.path.slice("/influencer-marketing/".length)}
                     element={route.component ? <route.component /> : <Navigate to="/influencer-marketing" replace />}
                   />
                 ))}
