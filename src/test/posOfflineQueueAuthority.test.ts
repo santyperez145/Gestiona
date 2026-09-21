@@ -27,7 +27,8 @@ describe("contrato operativo de la cola offline del POS", () => {
     expect(pos).not.toContain("const untouchedLegacy = legacy.filter");
     expect(pos).not.toContain("const migrating = legacy.filter");
     expect(pos).not.toContain("localStorage.setItem(legacyKey");
-    expect(pos).toContain("Se mantiene la clave de la organización activa; la migración de legacy se retiró porque el POS opera exclusivamente con `offlineKey` actual.");
+    expect(pos.match(/localStorage\.getItem\(offlineKey\)/g)).toHaveLength(1);
+    expect(pos).not.toContain("offline_sales.default");
   });
 
   it("persiste una venta offline antes de limpiar o emitir el recibo", () => {

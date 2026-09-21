@@ -65,6 +65,10 @@ Marketing → Ofertas ya monta `OfferRecommenderPanel`; se retiró el placeholde
 que recibía enlaces válidos desde Dashboard, Foco del día y `/ofertas-ia` sin
 permitir operar las recomendaciones persistidas.
 
+La cola offline del POS conserva una sola autoridad por organización. Su guarda
+comprueba la lectura efectiva de `offlineKey` y que no reaparezca
+`offline_sales.default`; ya no falla por el salto de línea de un comentario.
+
 Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
 Se resolvieron tres guardas de autorización, beneficio y consumo. Typecheck,
