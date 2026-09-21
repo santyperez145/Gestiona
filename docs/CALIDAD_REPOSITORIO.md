@@ -52,6 +52,11 @@ configuraba 50% y además conservaba un parámetro aduanero ya retirado. Ahora
 contrasta la misma fórmula que recibe staging: landed cost × cotización ×
 `(1 + margen/100)`, con ganancia y margen resultantes verificables.
 
+Influencers ya no llama `window.confirm`: Contratos y Entregables comparten el
+AlertDialog canónico y muestran fallos de borrado sin exponer infraestructura.
+Matching dejó de usar opciones vacías incompatibles con Radix y de recargar sus
+fuentes en un ciclo provocado por una dependencia derivada.
+
 Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
 Se resolvieron tres guardas de autorización, beneficio y consumo. Typecheck,

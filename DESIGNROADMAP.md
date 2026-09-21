@@ -47,6 +47,9 @@ No se muestra una gestión de “tarjetas guardadas” hasta contar con consenti
 revocación y ownership verificable provistos por el flujo canónico del PSP.
 Budget Pulse conserva copy rioplatense y un hook semántico de prueba; las
 guardas visuales no dependen de volver a introducir etiquetas inglesas.
+Contratos y Entregables de Influencers usan el diálogo canónico, foco accesible
+y feedback de éxito/error; Matching conserva “Todos” mediante un sentinel
+válido sin romper el Select compartido.
 
 ## 2. Lenguaje visual
 

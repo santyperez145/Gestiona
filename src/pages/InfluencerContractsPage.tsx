@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { listInfluencerContracts, createContract, signContract, deleteContract, type InfluencerContract } from "@/lib/influencersDB";
 import { listInfluencers } from "@/lib/influencersDB";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { toast } from "sonner";
 
 /**
  * Contratos con Influencers — Gestión completa, sin mocks.
@@ -15,6 +17,7 @@ export default function InfluencerContractsPage() {
   const [influencers, setInfluencers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const { ask, dialog } = useConfirmDialog();
 
   const reload = async () => {
     setLoading(true);
@@ -43,9 +46,19 @@ export default function InfluencerContractsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("¿Eliminar contrato?")) return;
-    await deleteContract(id);
-    await reload();
+    if (!await ask({
+      title: "¿Eliminar este contrato?",
+      description: "Se quitará del workspace de Influencers. Esta acción no se puede deshacer.",
+      confirmText: "Eliminar contrato",
+    })) return;
+    try {
+      await deleteContract(id);
+      await reload();
+      toast.success("Contrato eliminado");
+    } catch (error) {
+      console.error("InfluencerContracts / eliminar:", error);
+      toast.error("No pudimos eliminar el contrato");
+    }
   };
 
   const activeContracts = contracts.filter((c) => c.status === "active");
@@ -54,6 +67,7 @@ export default function InfluencerContractsPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-display font-semibold">Contratos</h2>

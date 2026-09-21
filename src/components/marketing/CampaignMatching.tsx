@@ -16,6 +16,7 @@ import { toast } from "sonner";
 export default function CampaignMatching() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const orgId = activeOrg?.id;
   const [products, setProducts] = useState<any[]>([]);
   const [influencers, setInfluencers] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -76,7 +77,7 @@ export default function CampaignMatching() {
 
   useEffect(() => {
     const loadData = async () => {
-      if (!user || !activeOrg) return;
+      if (!user || !orgId) return;
       try {
         setLoading(true);
         const [productsData, influencersData, campaignsData] = await Promise.all([
@@ -87,7 +88,6 @@ export default function CampaignMatching() {
         setProducts(productsData);
         setInfluencers(influencersData);
         setCampaigns(campaignsData);
-        calculateMatches();
       } catch (error) {
         console.error("Error loading data:", error);
         toast.error("Error cargando datos");
@@ -97,7 +97,7 @@ export default function CampaignMatching() {
     };
 
     loadData();
-  }, [user, activeOrg?.id, calculateMatches]);
+  }, [user, orgId]);
 
   useEffect(() => {
     calculateMatches();
@@ -191,10 +191,10 @@ export default function CampaignMatching() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-3">
           <Label>Tier de Influencer</Label>
-          <Select value={filters.influencerTier} onValueChange={(v) => setFilters({...filters, influencerTier: v})}>
+          <Select value={filters.influencerTier || "all"} onValueChange={(v) => setFilters({...filters, influencerTier: v === "all" ? "" : v})}>
             <SelectTrigger><SelectValue placeholder="Todos los tiers" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="nano">Nano (10k-50k)</SelectItem>
               <SelectItem value="micro">Micro (50k-100k)</SelectItem>
               <SelectItem value="medio">Medio (100k-500k)</SelectItem>
@@ -205,10 +205,10 @@ export default function CampaignMatching() {
         
         <div className="space-y-3">
           <Label>Tipo de Campaña</Label>
-          <Select value={filters.campaignType} onValueChange={(v) => setFilters({...filters, campaignType: v})}>
+          <Select value={filters.campaignType || "all"} onValueChange={(v) => setFilters({...filters, campaignType: v === "all" ? "" : v})}>
             <SelectTrigger><SelectValue placeholder="Todos los tipos" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="post">Publicación estándar</SelectItem>
               <SelectItem value="story">Historia</SelectItem>
               <SelectItem value="reel">Reel</SelectItem>

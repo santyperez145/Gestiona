@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { listInfluencerDeliverables, createDeliverable, updateDeliverable, completeDeliverable, deleteDeliverable, listInfluencers } from "@/lib/influencersDB";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 /**
  * Entregables con Fechas — Tracking real desde el Core.
@@ -15,6 +16,7 @@ export default function InfluencerDeliverablesPage() {
   const [influencers, setInfluencers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const { ask, dialog } = useConfirmDialog();
 
   const reload = async () => {
     setLoading(true);
@@ -48,13 +50,24 @@ export default function InfluencerDeliverablesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("¿Eliminar entregable?")) return;
-    await deleteDeliverable(id);
-    await reload();
+    if (!await ask({
+      title: "¿Eliminar este entregable?",
+      description: "Se quitará del seguimiento de la colaboración. Esta acción no se puede deshacer.",
+      confirmText: "Eliminar entregable",
+    })) return;
+    try {
+      await deleteDeliverable(id);
+      await reload();
+      toast.success("Entregable eliminado");
+    } catch (error) {
+      console.error("InfluencerDeliverables / eliminar:", error);
+      toast.error("No pudimos eliminar el entregable");
+    }
   };
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-display font-semibold">Entregables</h2>
