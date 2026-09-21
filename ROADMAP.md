@@ -28,6 +28,13 @@ actual, las decisiones vigentes y el trabajo siguiente.
   durable del customer. Checkout Brick sigue siendo la vía canónica; no ofrecer
   tarjetas guardadas hasta definir consentimiento, vault del proveedor,
   revocación, aislamiento tenant y alcance PCI.
+- [x] 2026-09-21: corregir la guarda de concurrencia del checkout para verificar
+  el mecanismo real: la idempotencia protege una misma intención y el trigger
+  de reserva bloquea el producto `FOR UPDATE`, recalcula disponible y recién
+  después inserta la reserva para compras simultáneas con claves distintas.
+- [ ] Ejecutar el escenario de checkout concurrente con dos conexiones reales
+  sobre una base efímera/enlazada; la prueba de contrato SQL no certifica por
+  sí sola el comportamiento del motor desplegado.
 
 La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
 2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza

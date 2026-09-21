@@ -7,6 +7,7 @@ const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
 const migracion = leer("supabase/migrations/20260816000001_idempotencia.sql");
 const envoltorio = leer("supabase/migrations/20260816000002_checkout_idempotente.sql");
+const reservaConcurrente = leer("supabase/migrations/20260815000005_store_fulfillment_location.sql");
 const checkout = leer("src/storefront/StoreCheckout.tsx");
 const fuente = leer("src/lib/publicDataSource.ts");
 
@@ -26,11 +27,22 @@ describe("idempotencia del checkout", () => {
     expect(migracion).toMatch(/RAISE EXCEPTION[\s\S]{0,120}ya se us/);
   });
 
-  it("dos claves distintas corren en paralelo sin duplicar stock ni orden", () => {
-    // C20 pendiente: certificar concurrencia con claves distintas.
-    expect(envoltorio).toContain("p_clave");
+  it("dos claves distintas serializan la reserva antes de confirmar disponible", () => {
+    // La clave sólo evita repetir la misma intención. Dos compras legítimas
+    // usan claves diferentes y la protección contra sobreventa vive en el
+    // trigger: bloquea el producto y recién entonces recalcula disponible.
+    expect(envoltorio).toContain("p_idempotency_key");
     expect(envoltorio).toContain("idempotencia_reservar");
     expect(migracion).toContain("PRIMARY KEY (org_id, operacion, clave)");
+    const trigger = reservaConcurrente.slice(
+      reservaConcurrente.indexOf("CREATE OR REPLACE FUNCTION public.trg_reservar_stock_de_orden"),
+      reservaConcurrente.indexOf("COMMENT ON FUNCTION public.trg_reservar_stock_de_orden"),
+    );
+    expect(trigger).toContain("FOR UPDATE");
+    expect(trigger.indexOf("FOR UPDATE")).toBeLessThan(trigger.indexOf("stock_disponible"));
+    expect(trigger.indexOf("stock_disponible")).toBeLessThan(
+      trigger.indexOf("INSERT INTO public.stock_reservations"),
+    );
   });
 
   it("existe el estado en_curso, que es lo que frena la carrera", () => {

@@ -37,6 +37,12 @@ IDs externos sin una relación local de propiedad. Reparar tipos habría
 conservado una capacidad de tarjetas guardadas no sustentada por producto,
 datos ni alcance PCI. Checkout Brick permanece como integración canónica.
 
+La guarda de checkout dejó de atribuir a la clave idempotente la concurrencia
+entre dos compras distintas. Ahora comprueba la cadena vigente del trigger:
+lock de producto `FOR UPDATE`, recálculo de disponible e inserción de reserva.
+Resta ejecutar dos conexiones reales contra PostgreSQL para certificar el
+interleaving; el contrato estático no reemplaza esa evidencia.
+
 Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
 Se resolvieron tres guardas de autorización, beneficio y consumo. Typecheck,
