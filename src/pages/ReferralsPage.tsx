@@ -8,9 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Users, Plus, Copy, Check, TrendingUp, Gift, Settings2, ToggleLeft, ToggleRight, FileSpreadsheet } from "lucide-react";
-import CommercePageHeader from "@/components/commerce/CommercePageHeader";
-import CommerceKPICard from "@/components/commerce/CommerceKPICard";
-import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -75,8 +72,9 @@ export default function ReferralsPage() {
   const saveSettings = async (updates: Partial<ReferralSettings>) => {
     if (!activeOrg) return;
     const newSettings = { ...settings, ...updates };
+    const { error } = await supabase.from("settings").update(updates).eq("org_id", activeOrg.id);
+    if (error) { toast.error(error.message); return; }
     setSettings(newSettings);
-    await supabase.from("settings").update(updates).eq("org_id", activeOrg.id);
     toast.success("Configuración guardada");
   };
 
@@ -109,7 +107,9 @@ export default function ReferralsPage() {
   };
 
   const updateStatus = async (id: string, status: Referral["status"]) => {
-    await supabase.from("customer_referrals").update({ status }).eq("id", id);
+    if (!activeOrg) return;
+    const { error } = await supabase.from("customer_referrals").update({ status }).eq("org_id", activeOrg.id).eq("id", id);
+    if (error) { toast.error(error.message); return; }
     await load();
     toast.success(status === "credited" ? "Bono acreditado" : "Cancelado");
   };

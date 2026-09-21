@@ -35,6 +35,10 @@ operativas y ahora prioriza KPIs, campañas recientes y próximos pasos.
 Pendiente: diseñar reviewer/chat, detalle de campaña y
 transiciones con estados observables y responsive verificado.
 
+Afiliados y Referidos reaparecen en Marketing como tareas diferenciadas, no
+dentro de Influencers. Su lenguaje separa “preparar liquidación” de “pago
+ejecutado” para evitar estados visuales que prometan movimiento de dinero.
+
 ## 2. Lenguaje visual
 
 - canvas claro (piedra fría, no crema genérica) y superficies blancas;

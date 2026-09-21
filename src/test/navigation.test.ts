@@ -176,6 +176,8 @@ describe("estructura de la navegación", () => {
       "/email-campaigns",
       "/whatsapp-campaigns",
       "/fidelidad",
+      "/afiliados",
+      "/referidos",
     ]);
   });
 

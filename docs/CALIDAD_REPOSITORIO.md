@@ -87,7 +87,7 @@ para resolver en el orden del roadmap, sin convertirlos en falsos verdes.
 | P0 | `ai-brief-generator` invoca proveedor sin los controles compartidos de usuario y plan; `finance-auto-categorize` no registra consumo según la guarda. | Autorización, tenant, cupo y consumo verificados; rechazo antes del gasto. |
 | P0 | Fallan contratos de webhook MP, liquidación compartida, suscripción, reversas y QR. | Revisar código y comportamiento de pagos; no actualizar strings para silenciar la alarma. |
 | P1 | Marketing acepta vistas de automatizaciones/ofertas/marca/combos/imágenes, pero muestra placeholders mientras sus componentes no tienen importadores. | Restablecer los flujos con permisos y pruebas de interacción. |
-| P1 | ~~Dos rutas montaban conciliación bancaria~~; quedan páginas antiguas sin entrada. | Banco consolidado en una ruta con redirect; decidir afiliados/referidos por propósito y seguridad antes de exponerlos o retirarlos. |
+| P1 | ~~Dos rutas montaban conciliación bancaria y Afiliados/Referidos estaban huérfanas.~~ | Cerrado: Banco canónico con redirect; los dos canales recuperados en Marketing con RLS por acción y liquidación sin falsa ejecución. |
 | P1 | Falla el cálculo esperado de importación; el caso de concurrencia de checkout sólo busca palabras en SQL. | Validar aritmética contra el contrato y concurrencia en base reversible. |
 | P2 | Guardas de copy/clases, conteo fijo de funciones, configuración de cuotas y selector de tienda no acompañan refactors. | Distinguir cambio legítimo de regresión, preferir resultados observables. |
 
@@ -110,6 +110,12 @@ Seguimiento 2026-09-21 (`npm test -- --reporter=json`), campañas: 2.970 casos,
 lint dirigido, build, enlaces y conteos aprobaron. La autoridad de campañas e
 invitaciones tiene pruebas de adaptador y contrato, pero la migración aún no fue
 aplicada ni probada contra la base productiva.
+
+Seguimiento 2026-09-21 (`npm test -- --reporter=json`), canales de growth:
+2.975 casos, 2.955 aprobados y 20 fallidos; sin regresiones nuevas. Quedaron
+verdes las guardas de URL canónica y páginas huérfanas. Typecheck, lint dirigido,
+build, enlaces, conteos y diff check aprobaron. La migración de RLS/liquidación
+está versionada pero no aplicada ni certificada en producción.
 
 No se habilita publicación a producción mientras la puerta esté roja. Una rama
 de revisión puede conservar y compartir el trabajo sin afirmar cierre operativo.

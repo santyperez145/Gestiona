@@ -7,9 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import CommercePageHeader from "@/components/commerce/CommercePageHeader";
-import CommerceKPICard from "@/components/commerce/CommerceKPICard";
-import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import {
   Dialog,
   DialogContent,
@@ -159,7 +156,7 @@ function PartnerForm({ open, partner, orgId, onClose, onSaved }: PartnerFormProp
       payout_threshold: parseFloat(payoutThreshold) || 1000, notes: notes.trim() || null,
     };
     const { error } = partner
-      ? await supabase.from("affiliate_partners").update(payload).eq("id", partner.id)
+      ? await supabase.from("affiliate_partners").update(payload).eq("org_id", orgId).eq("id", partner.id)
       : await supabase.from("affiliate_partners").insert(payload);
     setLoading(false);
     if (error) { toast.error("Error: " + error.message); return; }
@@ -333,7 +330,7 @@ function PartnerCard({ partner, onEdit, onDelete, onApprove, onPayout }: Partner
             )}
             {canPayout && (
               <Button size="sm" variant="outline" onClick={onPayout} className="text-amber-400 border-amber-500/30">
-                <Banknote className="w-3.5 h-3.5 mr-1" /> Pagar {fmtCurrency(partner.pending_payout)}
+                <Banknote className="w-3.5 h-3.5 mr-1" /> Preparar {fmtCurrency(partner.pending_payout)}
               </Button>
             )}
             <Button size="sm" variant="ghost" onClick={onEdit}>
@@ -397,34 +394,30 @@ export default function AffiliateProgramPage() {
   }, [partners, search, filterStatus]);
 
   const handleApprove = async (partner: AffiliatePartner) => {
-    await supabase.from("affiliate_partners").update({ status: "active" }).eq("id", partner.id);
+    const { error } = await supabase.from("affiliate_partners").update({ status: "active" }).eq("org_id", orgId).eq("id", partner.id);
+    if (error) { toast.error(error.message); return; }
     setPartners(prev => prev.map(p => p.id === partner.id ? { ...p, status: "active" as const } : p));
     toast.success(`${partner.name} aprobado como afiliado`);
   };
 
   const handlePayout = async (partner: AffiliatePartner) => {
-    const { error } = await supabase.from("affiliate_payouts").insert({
-      partner_id: partner.id, org_id: orgId,
-      amount: partner.pending_payout, currency: "ARS", status: "pending",
-    });
-    if (error) { toast.error("Error"); return; }
-    // Mark approved conversions as paid
-    await supabase.from("affiliate_conversions")
-      .update({ status: "paid", paid_at: new Date().toISOString() })
-      .eq("partner_id", partner.id).eq("status", "approved");
-    toast.success(`Pago de ${fmtCurrency(partner.pending_payout)} registrado`);
+    const { error } = await (supabase.rpc as any)("affiliate_payout_prepare", { p_org_id: orgId, p_partner_id: partner.id });
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Liquidación por ${fmtCurrency(partner.pending_payout)} preparada`, { description: "El pago externo continúa pendiente." });
     loadAll();
   };
 
   const handleDelete = async (partner: AffiliatePartner) => {
     if (!(await ask({ title: `¿Eliminar a ${partner.name}?`, confirmText: "Eliminar", variant: "destructive" }))) return;
-    await supabase.from("affiliate_partners").delete().eq("id", partner.id);
+    const { error } = await supabase.from("affiliate_partners").delete().eq("org_id", orgId).eq("id", partner.id);
+    if (error) { toast.error(error.message); return; }
     setPartners(prev => prev.filter(p => p.id !== partner.id));
     toast.success("Afiliado eliminado");
   };
 
   const approveConversion = async (conv: AffiliateConversion) => {
-    await supabase.from("affiliate_conversions").update({ status: "approved", approved_at: new Date().toISOString() }).eq("id", conv.id);
+    const { error } = await supabase.from("affiliate_conversions").update({ status: "approved", approved_at: new Date().toISOString() }).eq("org_id", orgId).eq("id", conv.id);
+    if (error) { toast.error(error.message); return; }
     setConversions(prev => prev.map(c => c.id === conv.id ? { ...c, status: "approved" as const } : c));
     toast.success("Conversión aprobada");
     loadAll();
@@ -443,7 +436,7 @@ export default function AffiliateProgramPage() {
       <PageHeader
         icon={UserPlus}
         title="Programa de Afiliados"
-        description="Gestioná socios y comisiones por referidos"
+        description="Gestioná socios, conversiones y liquidaciones; preparar una liquidación no mueve dinero"
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={exportCSV}>

@@ -24,10 +24,15 @@ cualquier afirmación anterior de suite completamente verde.
   `npm run check:unused`; conservar las migraciones canónicas.
 - [ ] Resolver controles de identidad/plan/consumo de IA y verificar el contrato
   de liquidación, suscripciones y reversas de Mercado Pago antes de publicar.
-- [ ] Reparar Marketing desconectado, rutas duplicadas y páginas huérfanas;
-  decidir cada capacidad por su propósito, no borrarla por un reporte automático.
+- [ ] Reparar las vistas de Marketing aún desconectadas y comprobar sus flujos.
+- [x] Resolver rutas duplicadas y páginas huérfanas por propósito: Afiliados
+  (socios por conversión) y Referidos (clientes que recomiendan) regresan a
+  Marketing; Influencers conserva campañas de contenido sin clonar esos canales.
 - [x] Consolidar Banco y Conciliación en `/finance/banco`; la URL profunda
   anterior redirige a la canónica, sin duplicar página, telemetría ni bookmarks.
+- [x] Endurecer RLS de Afiliados/Referidos por acción y organización; preparar
+  una liquidación de afiliado es atómico, evita duplicados y no se presenta como
+  dinero transferido hasta integrar y homologar el proveedor de pagos.
 - [ ] Reemplazar comprobaciones de texto frágiles por comportamiento cuando
   exista cobertura equivalente y recuperar la puerta completa, incluido E2E.
 
