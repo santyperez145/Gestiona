@@ -87,7 +87,7 @@ para resolver en el orden del roadmap, sin convertirlos en falsos verdes.
 | P0 | `ai-brief-generator` invoca proveedor sin los controles compartidos de usuario y plan; `finance-auto-categorize` no registra consumo según la guarda. | Autorización, tenant, cupo y consumo verificados; rechazo antes del gasto. |
 | P0 | Fallan contratos de webhook MP, liquidación compartida, suscripción, reversas y QR. | Revisar código y comportamiento de pagos; no actualizar strings para silenciar la alarma. |
 | P1 | Marketing acepta vistas de automatizaciones/ofertas/marca/combos/imágenes, pero muestra placeholders mientras sus componentes no tienen importadores. | Restablecer los flujos con permisos y pruebas de interacción. |
-| P1 | Dos rutas montan conciliación bancaria; hay grupos vacíos y páginas sin entrada. | Una autoridad/ruta por capacidad, redirects para enlaces viejos y navegación validada. |
+| P1 | ~~Dos rutas montaban conciliación bancaria~~; quedan páginas antiguas sin entrada. | Banco consolidado en una ruta con redirect; decidir afiliados/referidos por propósito y seguridad antes de exponerlos o retirarlos. |
 | P1 | Falla el cálculo esperado de importación; el caso de concurrencia de checkout sólo busca palabras en SQL. | Validar aritmética contra el contrato y concurrencia en base reversible. |
 | P2 | Guardas de copy/clases, conteo fijo de funciones, configuración de cuotas y selector de tienda no acompañan refactors. | Distinguir cambio legítimo de regresión, preferir resultados observables. |
 

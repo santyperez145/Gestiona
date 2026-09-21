@@ -150,7 +150,6 @@ describe("estructura de la navegación", () => {
       "/finance/flujo",
       "/finance/resultados",
       "/finance/banco",
-      "/finance/banco/reconciliacion",
       "/finance/libro",
     ]);
   });

@@ -26,6 +26,8 @@ cualquier afirmación anterior de suite completamente verde.
   de liquidación, suscripciones y reversas de Mercado Pago antes de publicar.
 - [ ] Reparar Marketing desconectado, rutas duplicadas y páginas huérfanas;
   decidir cada capacidad por su propósito, no borrarla por un reporte automático.
+- [x] Consolidar Banco y Conciliación en `/finance/banco`; la URL profunda
+  anterior redirige a la canónica, sin duplicar página, telemetría ni bookmarks.
 - [ ] Reemplazar comprobaciones de texto frágiles por comportamiento cuando
   exista cobertura equivalente y recuperar la puerta completa, incluido E2E.
 
