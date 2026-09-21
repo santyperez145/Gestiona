@@ -23,6 +23,11 @@ actual, las decisiones vigentes y el trabajo siguiente.
   Pago y la base enlazada: secreto, eventos reales, reintentos, duplicados,
   aprobación, rechazo, devolución y contracargo. El código versionado no equivale
   a homologación ni despliegue.
+- [x] 2026-09-21: retirar `mercadopago-payment-methods`, endpoint huérfano sin
+  consumidor ni tabla/migración, incompatible con Auth actual y sin ownership
+  durable del customer. Checkout Brick sigue siendo la vía canónica; no ofrecer
+  tarjetas guardadas hasta definir consentimiento, vault del proveedor,
+  revocación, aislamiento tenant y alcance PCI.
 
 La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
 2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza

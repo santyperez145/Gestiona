@@ -23,9 +23,19 @@ en el body y podía continuar sin firma. El webhook vuelve a exigir el HMAC
 oficial `ts=/v1=`, rechaza diferencias URL/body, reconsulta el recurso con el
 OAuth del tenant y comparte conciliación QR, suscripciones, liquidación y
 reversas. Los fallos de persistencia responden no-2xx para permitir reintentos
-idempotentes. Pasaron 36 pruebas dirigidas, typecheck y lint. La suite completa
+idempotentes. El 2026-09-21 pasaron 36 pruebas dirigidas con `npm test -- --run
+src/test/webhookMercadoPagoFirmado.test.ts src/test/legacyIntegrationSecretsRetired.test.ts
+src/test/posQrOrdersAuthority.test.ts src/test/saasSubscriptionAuthority.test.ts
+src/test/storePayBrickAuthority.test.ts src/test/losSecretosQueSeChequeanSeUsan.test.ts`,
+además de typecheck y lint. La suite completa
 ejecutó 2.969 casos: 2.955 aprobados y 14 fallidos, seis bloqueos críticos menos;
 no se desplegó ni se certificó contra eventos reales de Mercado Pago.
+
+También se retiró `mercadopago-payment-methods`: era una Edge Function sin
+consumidores ni migración de su tabla, no compilaba con Auth vigente y aceptaba
+IDs externos sin una relación local de propiedad. Reparar tipos habría
+conservado una capacidad de tarjetas guardadas no sustentada por producto,
+datos ni alcance PCI. Checkout Brick permanece como integración canónica.
 
 Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
