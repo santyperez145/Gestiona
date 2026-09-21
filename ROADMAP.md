@@ -42,8 +42,11 @@ capacidades como patrón funcional, sin copiar interfaz, marca ni promesas.
   entregables, pagos y portal de marca. Las URLs anteriores quedan como aliases.
 - [x] Entitlement real por organización: solicitud del owner/admin, aprobación
   auditada en Platform y permiso `influencers.view`; se retiró el gate simulado.
-- [ ] Unificar campañas y discovery actualmente huérfanos dentro de la superficie;
-  crear campaña debe persistir estado, presupuesto, brief e invitaciones.
+- [x] Integrar Campañas y Descubrir dentro de la superficie: alta persistente
+  con objetivo/canal/presupuesto/calendario e invitación real campaña–creador,
+  única por par, con respuesta esperada en 72 horas.
+- [ ] Completar edición/cancelación de campaña, brief versionado, aceptación o
+  rechazo del creador y transición de estados con historial inmutable.
 - [ ] Pipeline por colaboración: invitada → aceptada → producción → revisión →
   aprobada → publicada → liquidable → pagada, con eventos, responsables y SLA.
 - [ ] Workspace marca–creador con mensajes, archivos, comentarios y notificaciones;

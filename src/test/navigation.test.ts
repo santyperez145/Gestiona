@@ -158,7 +158,9 @@ describe("estructura de la navegación", () => {
   it("Influencers tiene navegación propia y buscable", () => {
     expect(PRODUCT_NAV_ITEMS.filter(i => i.group === "influencer-marketing").map(i => i.to)).toEqual([
       "/influencer-marketing",
+      "/influencer-marketing/campanas",
       "/influencer-marketing/creadores",
+      "/influencer-marketing/descubrir",
       "/influencer-marketing/matching",
       "/influencer-marketing/briefs",
       "/influencer-marketing/colaboraciones",

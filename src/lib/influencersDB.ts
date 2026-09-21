@@ -17,6 +17,27 @@ export type Influencer = {
   notes?: string; avatar_url?: string;
 };
 
+export type InfluencerCampaign = {
+  id: string;
+  org_id: string;
+  name: string;
+  objective: string;
+  channel: 'instagram' | 'tiktok' | 'youtube' | 'multicanal';
+  budget_ars: number;
+  status: 'draft' | 'recruiting' | 'active' | 'review' | 'completed' | 'cancelled';
+  starts_on?: string | null;
+  ends_on?: string | null;
+  brief: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  creator_count?: number;
+};
+
+export type CreateInfluencerCampaign = Pick<InfluencerCampaign, 'name' | 'objective' | 'channel' | 'budget_ars'> & {
+  starts_on?: string | null;
+  ends_on?: string | null;
+};
+
 export type InfluencerContract = {
   id: string;
   org_id: string;
@@ -230,6 +251,50 @@ export async function updateInfluencer(id: string, updates: Partial<Influencer>)
 export async function deleteInfluencer(id: string): Promise<void> {
   const { error } = await sb.from('influencers').delete().eq('id', id);
   if (error) throw error;
+}
+
+/** ─── Campañas e invitaciones ─── */
+export async function listInfluencerCampaigns(): Promise<InfluencerCampaign[]> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb
+    .from('influencer_campaigns')
+    .select('*, influencer_campaign_creators(count)')
+    .eq('org_id', orgId)
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({
+    ...row,
+    creator_count: Number(row.influencer_campaign_creators?.[0]?.count || 0),
+  })) as InfluencerCampaign[];
+}
+
+export async function createInfluencerCampaign(payload: CreateInfluencerCampaign): Promise<string> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb.rpc('influencer_campaign_create', {
+    p_org_id: orgId,
+    p_name: payload.name.trim(),
+    p_objective: payload.objective.trim(),
+    p_channel: payload.channel,
+    p_budget_ars: payload.budget_ars,
+    p_starts_on: payload.starts_on || null,
+    p_ends_on: payload.ends_on || null,
+  });
+  if (error) throw error;
+  if (typeof data !== 'string') throw new Error('La campaña no devolvió un identificador válido.');
+  return data;
+}
+
+export async function inviteCreatorToCampaign(campaignId: string, influencerId: string, agreedFeeARS?: number): Promise<string> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb.rpc('influencer_campaign_invite', {
+    p_org_id: orgId,
+    p_campaign_id: campaignId,
+    p_influencer_id: influencerId,
+    p_agreed_fee_ars: agreedFeeARS ?? null,
+  });
+  if (error) throw error;
+  if (typeof data !== 'string') throw new Error('La invitación no devolvió un identificador válido.');
+  return data;
 }
 
 export async function findInfluencerByCode(referralCode: string): Promise<Influencer | null> {

@@ -20,7 +20,9 @@ describe("Nerqia Influencers es una superficie de producto alcanzable", () => {
     const paths = influencerMarketingProductRoutes().map(route => route.path);
     expect(paths).toEqual([
       "/influencer-marketing",
+      "/influencer-marketing/campanas",
       "/influencer-marketing/creadores",
+      "/influencer-marketing/descubrir",
       "/influencer-marketing/matching",
       "/influencer-marketing/briefs",
       "/influencer-marketing/colaboraciones",

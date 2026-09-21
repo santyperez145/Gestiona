@@ -29,8 +29,10 @@ de software ni una colección de cards decorativas.
 Actualización 2026-09-21: Influencers usa shell propio, entrada persistente en
 el sidebar Business y navegación orientada al ciclo real: resumen, creadores,
 matching, briefs, colaboraciones, contratos, entregables, pagos y portal de
-marca. Pendiente: separar el resumen de las vistas operativas duplicadas y
-diseñar campaña/reviewer/chat con estados observables y responsive verificado.
+marca. Campañas y Descubrir ya tienen alta/invitación reales, estados vacíos,
+errores recuperables y acciones móviles. Pendiente: separar el resumen de las
+vistas operativas duplicadas y diseñar reviewer/chat, detalle de campaña y
+transiciones con estados observables y responsive verificado.
 
 ## 2. Lenguaje visual
 

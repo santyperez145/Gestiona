@@ -1,22 +1,55 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, Sparkles, TrendingUp, BarChart3, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Search, Filter, Sparkles, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { listInfluencers, type Influencer } from "@/lib/influencersDB";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { inviteCreatorToCampaign, listInfluencerCampaigns, listInfluencers, type Influencer, type InfluencerCampaign } from "@/lib/influencersDB";
 
 export default function CreatorDiscoveryPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [platform, setPlatform] = useState("Todas");
   const [minEngagement, setMinEngagement] = useState(0);
   const [sortBy, setSortBy] = useState<"tier" | "followers_ig" | "engagement_rate">("tier");
   const [creators, setCreators] = useState<Influencer[]>([]);
+  const [campaigns, setCampaigns] = useState<InfluencerCampaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<Influencer | null>(null);
+  const [campaignId, setCampaignId] = useState("");
+  const [agreedFee, setAgreedFee] = useState("");
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
-    listInfluencers().then(setCreators).catch(() => setCreators([])).finally(() => setLoading(false));
+    Promise.all([listInfluencers(), listInfluencerCampaigns()])
+      .then(([creatorRows, campaignRows]) => {
+        setCreators(creatorRows);
+        setCampaigns(campaignRows.filter(campaign => ["draft", "recruiting"].includes(campaign.status)));
+      })
+      .catch(cause => {
+        setCreators([]); setCampaigns([]);
+        setLoadError(cause instanceof Error ? cause.message : "No pudimos cargar creadores y campañas.");
+      })
+      .finally(() => setLoading(false));
   }, []);
+
+  const invite = async () => {
+    if (!selectedCreator || !campaignId) { toast.error("Seleccioná una campaña."); return; }
+    const fee = agreedFee.trim() === "" ? undefined : Number(agreedFee);
+    if (fee !== undefined && (!Number.isFinite(fee) || fee < 0)) { toast.error("El honorario debe ser un número válido."); return; }
+    setInviting(true);
+    try {
+      await inviteCreatorToCampaign(campaignId, selectedCreator.id, fee);
+      toast.success(`Invitación enviada a ${selectedCreator.name}`);
+      setSelectedCreator(null); setCampaignId(""); setAgreedFee("");
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "No pudimos enviar la invitación.");
+    } finally { setInviting(false); }
+  };
 
   const filtered = useMemo(() => {
     let list = creators.filter((c) => {
@@ -38,10 +71,12 @@ export default function CreatorDiscoveryPage() {
           <h1 className="text-2xl font-display font-bold">Descubrimiento de Creadores</h1>
           <p className="text-sm text-muted-foreground">Catálogo conectado al Core (tabla <code>influencers</code>, RLS por org_id).</p>
         </div>
-        <Button variant="outline" size="sm" className="self-start sm:self-auto" onClick={() => window.alert("Generar Brief con IA — integrada con ai-brief-generator (edge function Anthropic)")}>
+        <Button variant="outline" size="sm" className="self-start sm:self-auto" onClick={() => navigate("/influencer-marketing/briefs")}>
           <Sparkles className="mr-2 h-3.5 w-3.5" /> Generar Brief con IA
         </Button>
       </div>
+
+      {loadError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{loadError}</div>}
 
       <div className="flex flex-wrap gap-3 items-center bg-muted/40 rounded-xl p-3">
         <div className="relative">
@@ -90,13 +125,25 @@ export default function CreatorDiscoveryPage() {
                 <span className="text-muted-foreground">Ventas: <strong className="text-foreground">{c.total_sales_count || 0}</strong></span>
               </div>
               <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="default" className="flex-1 text-xs h-8" onClick={() => alert("Invitar — conectado a influencersDB (creación de campaña)")}>Invitar</Button>
-                <Button size="sm" variant="outline" className="flex-1 text-xs h-8">Perfil</Button>
+                <Button size="sm" variant="default" className="flex-1 text-xs h-8" onClick={() => setSelectedCreator(c)} disabled={campaigns.length === 0}>Invitar</Button>
+                <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={() => navigate("/influencer-marketing/creadores")}>Ver lista</Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+      {!loading && !loadError && campaigns.length === 0 && <p className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 text-sm text-muted-foreground">Creá una campaña en borrador antes de invitar creadores.</p>}
+
+      <Dialog open={Boolean(selectedCreator)} onOpenChange={open => { if (!open && !inviting) setSelectedCreator(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Invitar a {selectedCreator?.name}</DialogTitle><DialogDescription>La invitación queda vinculada a la campaña y vence en 72 horas.</DialogDescription></DialogHeader>
+          <div className="grid gap-4 py-2">
+            <label className="grid gap-1.5 text-sm font-medium">Campaña<select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={campaignId} onChange={event => setCampaignId(event.target.value)}><option value="">Seleccionar…</option>{campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}</select></label>
+            <label className="grid gap-1.5 text-sm font-medium">Honorario acordado ARS (opcional)<Input type="number" min={0} step="0.01" value={agreedFee} onChange={event => setAgreedFee(event.target.value)} placeholder="0" /></label>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setSelectedCreator(null)} disabled={inviting}>Cancelar</Button><Button onClick={() => void invite()} disabled={inviting || !campaignId}>{inviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Enviar invitación</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

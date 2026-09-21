@@ -93,10 +93,10 @@ para resolver en el orden del roadmap, sin convertirlos en falsos verdes.
 
 Otros candidatos que requieren una decisión funcional antes de eliminarlos:
 `SettlementsTab`, `PlatformDashboard`, `ProductsPriceImport`,
-`MarketingTemplatesTab`, `creatorProfileDB` y páginas de campañas/discovery aún
-sin integrar. `useInfluencerProductAccess` e `influencerProductDB` dejaron de ser
-candidatos: ahora gobiernan el gate real de la superficie. Que un archivo
-compile no demuestra que esté accesible.
+`MarketingTemplatesTab` y `creatorProfileDB`. Campañas y discovery dejaron de
+ser huérfanas; `useInfluencerProductAccess` e `influencerProductDB` ahora
+gobiernan el gate real de la superficie. Que un archivo compile no demuestra
+que esté accesible.
 
 Seguimiento 2026-09-21 (`npm test -- --reporter=json`), superficie Influencers:
 2.965 casos, 2.943 aprobados y 22 fallidos. No aparecieron fallos nuevos frente
@@ -104,6 +104,12 @@ al corte posterior de IA; se resolvieron cuatro fallos de navegación/manifest.
 Typecheck, lint, build, Deno check de `platform-admin-action`, enlaces, conteos
 y diff check aprobaron. La migración quedó versionada, aún no aplicada ni
 certificada contra la base productiva.
+
+Seguimiento 2026-09-21 (`npm test -- --reporter=json`), campañas: 2.970 casos,
+2.948 aprobados y los mismos 22 fallidos; sin regresiones nuevas. Typecheck,
+lint dirigido, build, enlaces y conteos aprobaron. La autoridad de campañas e
+invitaciones tiene pruebas de adaptador y contrato, pero la migración aún no fue
+aplicada ni probada contra la base productiva.
 
 No se habilita publicación a producción mientras la puerta esté roja. Una rama
 de revisión puede conservar y compartir el trabajo sin afirmar cierre operativo.
