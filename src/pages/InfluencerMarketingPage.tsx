@@ -1,262 +1,101 @@
-import { useState, useEffect } from "react";
-import { Activity, ArrowRightLeft, Store, TrendingUp, Users, Sparkles, BarChart3, CheckCircle2, ShieldCheck, FileText, Calendar, DollarSign, Shield, Target, TrendingDown } from "lucide-react";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, CalendarCheck2, FileSignature, Loader2, Megaphone, RefreshCw, Search, Users2, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import InfluencerExchangesPage from "./InfluencerExchangesPage";
-import CreatorDiscoveryPage from "./CreatorDiscoveryPage";
-import { listInfluencers, listPayouts, listInfluencerContracts, listBrandPortals } from "@/lib/influencersDB";
-import InfluencerContractsPage from "./InfluencerContractsPage";
-import InfluencerPaymentsPage from "./InfluencerPaymentsPage";
-import InfluencerDeliverablesPage from "./InfluencerDeliverablesPage";
-import InfluencerBrandPortalPage from "./InfluencerBrandPortalPage";
-import { listInfluencerSales, listPayouts as listInfluencerPayouts } from "@/lib/influencersDB";
-import { calcInfluencerROI, calcCPM, calcFulfillmentRate } from "@/lib/businessCalc";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import {
+  listDeliverables, listInfluencerCampaigns, listInfluencerContracts,
+  listInfluencers, listPayments, type InfluencerCampaign,
+} from "@/lib/influencersDB";
 
-/**
- * Plataforma de Influencer Marketing — independiente como Go-Marz.
- * Sin mocks ni simulaciones: cada métrica se obtiene desde el Core de Supabase.
- */
+type Snapshot = {
+  campaigns: InfluencerCampaign[];
+  creators: Awaited<ReturnType<typeof listInfluencers>>;
+  contracts: Awaited<ReturnType<typeof listInfluencerContracts>>;
+  deliverables: Awaited<ReturnType<typeof listDeliverables>>;
+  payments: Awaited<ReturnType<typeof listPayments>>;
+};
+
+const initial: Snapshot = { campaigns: [], creators: [], contracts: [], deliverables: [], payments: [] };
+const campaignStatus: Record<InfluencerCampaign["status"], string> = {
+  draft: "Borrador", recruiting: "Buscando creadores", active: "Activa",
+  review: "En revisión", completed: "Completada", cancelled: "Cancelada",
+};
+
 export default function InfluencerMarketingPage() {
-  const [activeTab, setActiveTab] = useState<string>("overview");
-  const [overviewData, setOverviewData] = useState<any>(null);
-  const [metricsData, setMetricsData] = useState<any>(null);
+  usePageTitle("Influencers");
+  const [snapshot, setSnapshot] = useState<Snapshot>(initial);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadOverview = async () => {
-      try {
-        const [influencers, payouts, contracts, brandPortals] = await Promise.all([
-          listInfluencers(),
-          listPayouts(),
-          listInfluencerContracts(),
-          listBrandPortals(),
-        ]);
-        setOverviewData({ influencers, payouts, contracts, brandPortals });
-      } catch (e) {
-        console.error("Error loading influencer overview:", e);
-      }
-    };
-    const loadMetrics = async () => {
-      try {
-        const [sales, payouts] = await Promise.all([
-          listInfluencerSales(),
-          listPayouts(),
-        ]);
-        const totalInversion = sales.reduce((s, r) => s + Number(r.commission_ars || 0), 0);
-        const totalSalesGenerated = sales.reduce((s, r) => s + Number(r.sale_total_ars || 0), 0);
-        const totalPaid = payouts.reduce((s, r) => s + Number(r.amount_ars || 0), 0);
-        const fulfilled = sales.filter((r: any) => r.paid).length;
-        const total = sales.length;
-        const roi = total > 0 ? calcInfluencerROI(totalSalesGenerated, totalInversion) : null;
-        const cpm = calcCPM(totalInversion, sales.reduce((s, r) => s + (r.impressions || 0), 0));
-        const fulfillmentRate = total > 0 ? calcFulfillmentRate(fulfilled, total) : 0;
-        setMetricsData({ totalInversion, totalSalesGenerated, totalPaid, roi, cpm, fulfillmentRate, total, fulfilled });
-      } catch (e) {
-        console.error("Error loading influencer metrics:", e);
-      }
-    };
-    loadOverview();
-    loadMetrics();
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [campaigns, creators, contracts, deliverables, payments] = await Promise.all([
+        listInfluencerCampaigns(), listInfluencers(), listInfluencerContracts(), listDeliverables(), listPayments(),
+      ]);
+      setSnapshot({ campaigns, creators, contracts, deliverables, payments });
+    } catch (cause) {
+      setSnapshot(initial);
+      setError(cause instanceof Error ? cause.message : "No pudimos cargar el resumen de Influencers.");
+    } finally { setLoading(false); }
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
-  const totalInfluencers = overviewData?.influencers?.length || 0;
-  const totalActiveCampaigns = overviewData?.contracts?.filter((c: any) => c.status === "active").length || 0;
-  const totalSignedContracts = overviewData?.contracts?.filter((c: any) => c.is_signed).length || 0;
-  const totalPayouts = overviewData?.payouts?.length || 0;
-  const totalContractValue = overviewData?.contracts?.reduce((s: number, c: any) => s + Number(c.contract_amount || 0), 0) || 0;
-  const totalSalesGenerated = metricsData?.totalSalesGenerated || 0;
-  const totalPaid = metricsData?.totalPaid || 0;
-  const fulfillmentRate = metricsData?.fulfillmentRate || 0;
-  const roi = metricsData?.roi;
-  const cpm = metricsData?.cpm;
+  const metrics = useMemo(() => ({
+    activeCampaigns: snapshot.campaigns.filter(campaign => ["recruiting", "active", "review"].includes(campaign.status)).length,
+    activeCreators: snapshot.creators.filter(creator => ["active", "activo"].includes(creator.status)).length,
+    pendingDeliverables: snapshot.deliverables.filter(item => ["pendiente", "en_progreso", "entregado"].includes(item.status)).length,
+    unsignedContracts: snapshot.contracts.filter(contract => contract.status === "active" && !contract.is_signed).length,
+    pendingPayments: snapshot.payments.filter(payment => ["pending", "processing"].includes(payment.status)).reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
+  }), [snapshot]);
 
-  const tabs = [
-    { id: "overview", label: "Resumen", icon: Store },
-    { id: "influencers", label: "Influencers", icon: Users },
-    { id: "canjes", label: "Canjes", icon: ArrowRightLeft },
-    { id: "analytics", label: "Analítica", icon: Activity },
-    { id: "contratos", label: "Contratos", icon: FileText },
-    { id: "entregables", label: "Entregables", icon: Calendar },
-    { id: "pagos", label: "Pagos", icon: DollarSign },
-    { id: "brand", label: "Portal de Marca", icon: Shield },
-    { id: "liquidaciones", label: "Liq. Influencers", icon: Shield },
-  ];
+  if (loading) return <div className="flex min-h-[55vh] items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Preparando el centro de campañas…</div>;
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header con branding Nerqia */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold">Marketing de Influencers</h1>
-          <p className="text-sm text-muted-foreground">
-            Plataforma separada de marketing — conectada al Core de datos, sin simulaciones.
-          </p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">Nerqia Influencers</p>
+          <h1 className="mt-1 text-2xl font-display font-bold">Centro de campañas</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Del objetivo a la publicación: creadores, acuerdos, entregables y pagos conectados con la operación.</p>
         </div>
-        <Button variant="default" size="sm" onClick={() => window.alert("Crear campaña con AI Brief — conectado a ai-brief-generator")}>
-          <Sparkles className="mr-2 h-3.5 w-3.5" /> Nueva Campaña con IA
-        </Button>
+        <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => void load()}><RefreshCw className="mr-2 h-4 w-4" />Actualizar</Button><Button size="sm" asChild><Link to="/influencer-marketing/campanas"><Megaphone className="mr-2 h-4 w-4" />Crear campaña</Link></Button></div>
       </div>
 
-      {/* Navegación interna de la plataforma */}
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {tabs.map((t) => (
-          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2 ${activeTab === t.id ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-            <t.icon className="h-4 w-4" />
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"><p>{error}</p><Button variant="outline" size="sm" className="mt-3" onClick={() => void load()}>Reintentar</Button></div>}
 
-      {/* Tab: Overview con datos reales */}
-      {activeTab === "overview" && (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardTitle className="text-sm font-medium">{totalInfluencers}</CardTitle>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Influencers Activos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardTitle className="text-sm font-medium">{totalActiveCampaigns}</CardTitle>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Campañas En Vivo</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardTitle className="text-sm font-medium">{totalSignedContracts}</CardTitle>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Contratos Firmados</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardTitle className="text-sm font-medium">ARS {totalContractValue.toLocaleString("es-AR")}</CardTitle>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Valor Total Contratos</p>
-            </CardContent>
-          </Card>
+      {!error && <>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <Kpi icon={Megaphone} label="Campañas en curso" value={String(metrics.activeCampaigns)} to="/influencer-marketing/campanas" />
+          <Kpi icon={Users2} label="Creadores activos" value={String(metrics.activeCreators)} to="/influencer-marketing/creadores" />
+          <Kpi icon={CalendarCheck2} label="Entregables abiertos" value={String(metrics.pendingDeliverables)} to="/influencer-marketing/entregables" attention={metrics.pendingDeliverables > 0} />
+          <Kpi icon={FileSignature} label="Contratos sin firma" value={String(metrics.unsignedContracts)} to="/influencer-marketing/contratos" attention={metrics.unsignedContracts > 0} />
+          <Kpi icon={WalletCards} label="Pagos pendientes" value={formatARS(metrics.pendingPayments)} to="/influencer-marketing/pagos" attention={metrics.pendingPayments > 0} />
         </div>
-      )}
 
-      {/* Tab: Influencers - Catálogo conectado al Core */}
-      {activeTab === "influencers" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Catálogo de Creadores</h2>
-          <CreatorDiscoveryPage />
-        </div>
-      )}
+        <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+          <Card><CardContent className="p-0"><div className="flex items-center justify-between border-b border-border/70 px-5 py-4"><div><h2 className="font-semibold">Campañas recientes</h2><p className="text-xs text-muted-foreground">Estado, presupuesto y creadores invitados.</p></div><Button variant="ghost" size="sm" asChild><Link to="/influencer-marketing/campanas">Ver todas <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link></Button></div>{snapshot.campaigns.length === 0 ? <Empty text="Todavía no hay campañas. Creá una y luego invitá creadores." action="Crear campaña" to="/influencer-marketing/campanas" /> : <div className="divide-y divide-border/70">{snapshot.campaigns.slice(0, 5).map(campaign => <Link key={campaign.id} to="/influencer-marketing/campanas" className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-muted/40"><div className="min-w-0"><p className="truncate text-sm font-medium">{campaign.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{campaign.creator_count || 0} creadores · {formatARS(campaign.budget_ars)}</p></div><Badge variant="outline" className="shrink-0">{campaignStatus[campaign.status]}</Badge></Link>)}</div>}</CardContent></Card>
 
-      {/* Tab: Canjes - Integración con Core */}
-      {activeTab === "canjes" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Canjes con Influencers</h2>
-          <InfluencerExchangesPage />
+          <Card><CardContent className="p-5"><h2 className="font-semibold">Próximas acciones</h2><p className="mt-1 text-xs text-muted-foreground">Priorizadas por el estado operativo actual.</p><div className="mt-4 space-y-2">
+            {metrics.unsignedContracts > 0 && <Action to="/influencer-marketing/contratos" icon={FileSignature} title="Revisar contratos" detail={`${metrics.unsignedContracts} sin firma`} />}
+            {metrics.pendingDeliverables > 0 && <Action to="/influencer-marketing/entregables" icon={CalendarCheck2} title="Revisar entregables" detail={`${metrics.pendingDeliverables} abiertos`} />}
+            {metrics.pendingPayments > 0 && <Action to="/influencer-marketing/pagos" icon={WalletCards} title="Preparar pagos" detail={formatARS(metrics.pendingPayments)} />}
+            <Action to="/influencer-marketing/descubrir" icon={Search} title="Descubrir creadores" detail="Filtrar e invitar a una campaña" />
+          </div></CardContent></Card>
         </div>
-      )}
-
-      {/* Tab: Analytics - Métricas reales conectadas a Supabase */}
-      {activeTab === "analytics" && (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardTitle className="text-sm font-medium">ARS {totalSalesGenerated.toLocaleString("es-AR")}</CardTitle>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Ventas Atribuidas</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardTitle className="text-sm font-medium">ARS {totalPaid.toLocaleString("es-AR")}</CardTitle>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Pagos Realizados</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardTitle className="text-sm font-medium">{fulfillmentRate.toFixed(0)}%</CardTitle>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Tasa de Cumplimiento</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardTitle className="text-sm font-medium">{roi !== null ? `${roi > 0 ? '+' : ''}${roi.toFixed(1)}%` : '—'}</CardTitle>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">ROI</p>
-              </CardContent>
-            </Card>
-          </div>
-          {cpm !== null && cpm > 0 && (
-            <Card>
-              <CardTitle className="text-lg font-display font-semibold">CPM</CardTitle>
-              <CardContent>
-                <p className="text-2xl font-display font-bold">ARS {cpm.toLocaleString("es-AR")}</p>
-                <p className="text-xs text-muted-foreground">Costo por mil impresiones</p>
-              </CardContent>
-            </Card>
-          )}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardTitle className="text-lg font-display font-semibold">Distribución por Plataforma</CardTitle>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Datos reales conectados a influencersDB. Sin simulaciones.</p>
-                <div className="mt-4 flex gap-2">
-                  <Badge variant="outline">Instagram</Badge>
-                  <Badge variant="outline">TikTok</Badge>
-                  <Badge variant="outline">YouTube</Badge>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardTitle className="text-lg font-display font-semibold">Rendimiento General</CardTitle>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">ROI calculado sobre `influencer_sales`. Atribución por código de referencia.</p>
-                <div className="mt-4 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-teal-500" /> <span className="text-xs text-muted-foreground">Conectado a Supabase</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {/* Tab: Contratos */}
-      {activeTab === "contratos" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Contratos</h2>
-          <InfluencerContractsPage />
-        </div>
-      )}
-
-      {/* Tab: Entregables */}
-      {activeTab === "entregables" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Entregables</h2>
-          <InfluencerDeliverablesPage />
-        </div>
-      )}
-
-      {/* Tab: Pagos */}
-      {activeTab === "pagos" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Pagos a Influencers</h2>
-          <InfluencerPaymentsPage />
-        </div>
-      )}
-
-      {/* Tab: Brand Portal */}
-      {activeTab === "brand" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Portal de Marca</h2>
-          <InfluencerBrandPortalPage />
-        </div>
-      )}
-
-      {/* Tab: Liquidaciones */}
-      {activeTab === "liquidaciones" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Liquidaciones de Influencers</h2>
-          <div className="rounded-xl border border-border/40 bg-card p-6">
-            <p className="text-muted-foreground">Módulo de liquidaciones integrado con `InfluencerPaymentsPage`.</p>
-          </div>
-        </div>
-      )}
+      </>}
     </div>
   );
 }
+
+function Kpi({ icon: Icon, label, value, to, attention = false }: { icon: typeof Megaphone; label: string; value: string; to: string; attention?: boolean }) {
+  return <Link to={to}><Card className="h-full transition-colors hover:border-amber-500/30"><CardContent className="p-4"><span className={`flex h-8 w-8 items-center justify-center rounded-lg ${attention ? "bg-amber-500/12 text-amber-700 dark:text-amber-300" : "bg-muted text-muted-foreground"}`}><Icon className="h-4 w-4" /></span><p className="mt-3 text-xl font-semibold tabular-nums">{value}</p><p className="mt-0.5 text-xs text-muted-foreground">{label}</p></CardContent></Card></Link>;
+}
+function Action({ to, icon: Icon, title, detail }: { to: string; icon: typeof Megaphone; title: string; detail: string }) {
+  return <Link to={to} className="flex items-center gap-3 rounded-lg border border-border/70 p-3 hover:bg-muted/40"><Icon className="h-4 w-4 text-amber-700 dark:text-amber-300" /><span className="min-w-0 flex-1"><b className="block text-sm font-medium">{title}</b><span className="block truncate text-xs text-muted-foreground">{detail}</span></span><ArrowRight className="h-3.5 w-3.5 text-muted-foreground" /></Link>;
+}
+function Empty({ text, action, to }: { text: string; action: string; to: string }) { return <div className="px-5 py-10 text-center"><p className="text-sm text-muted-foreground">{text}</p><Button variant="outline" size="sm" className="mt-3" asChild><Link to={to}>{action}</Link></Button></div>; }
+function formatARS(value: number) { return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value || 0); }

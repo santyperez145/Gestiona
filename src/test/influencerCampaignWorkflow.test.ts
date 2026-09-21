@@ -20,6 +20,7 @@ const ROOT = resolve(__dirname, "../..");
 const MIGRATION = readFileSync(resolve(ROOT, "supabase/migrations/20260921000200_influencer_campaign_workflow.sql"), "utf8");
 const CAMPAIGNS_PAGE = readFileSync(resolve(ROOT, "src/pages/CampaignsPage.tsx"), "utf8");
 const DISCOVERY_PAGE = readFileSync(resolve(ROOT, "src/pages/CreatorDiscoveryPage.tsx"), "utf8");
+const OVERVIEW_PAGE = readFileSync(resolve(ROOT, "src/pages/InfluencerMarketingPage.tsx"), "utf8");
 
 describe("adaptador de campañas de influencers", () => {
   beforeEach(() => {
@@ -68,5 +69,12 @@ describe("autoridad y UI del workflow", () => {
     expect(DISCOVERY_PAGE).toContain("inviteCreatorToCampaign(");
     expect(CAMPAIGNS_PAGE).not.toContain("window.alert");
     expect(DISCOVERY_PAGE).not.toMatch(/\balert\s*\(/);
+  });
+
+  it("el resumen enlaza las operaciones sin volver a montar sus páginas", () => {
+    for (const path of ["campanas", "creadores", "descubrir", "contratos", "entregables", "pagos"]) {
+      expect(OVERVIEW_PAGE).toContain(`/influencer-marketing/${path}`);
+    }
+    expect(OVERVIEW_PAGE).not.toMatch(/import\s+Influencer(?:Contracts|Deliverables|Payments|Exchanges)Page/);
   });
 });

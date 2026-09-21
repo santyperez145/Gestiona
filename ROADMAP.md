@@ -45,6 +45,9 @@ capacidades como patrón funcional, sin copiar interfaz, marca ni promesas.
 - [x] Integrar Campañas y Descubrir dentro de la superficie: alta persistente
   con objetivo/canal/presupuesto/calendario e invitación real campaña–creador,
   única por par, con respuesta esperada en 72 horas.
+- [x] Reemplazar el dashboard que re-renderizaba páginas completas por un centro
+  operativo: campañas recientes, próximos pasos y métricas de contratos,
+  entregables y pagos, cada una enlazada a su única pantalla canónica.
 - [ ] Completar edición/cancelación de campaña, brief versionado, aceptación o
   rechazo del creador y transición de estados con historial inmutable.
 - [ ] Pipeline por colaboración: invitada → aceptada → producción → revisión →

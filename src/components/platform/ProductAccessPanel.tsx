@@ -148,9 +148,10 @@ function ProductDecisionButton({ row, title, onDecide }: {
   onDecide: (decision: { productKey: 'finance' | 'influencers'; title: string; enabled: boolean }) => void;
 }) {
   if (row.product_key === 'business') return null;
+  const productKey = row.product_key;
   const enabled = row.status === 'enabled';
   return (
-    <Button size="sm" variant={enabled ? 'outline' : 'default'} onClick={() => onDecide({ productKey: row.product_key, title, enabled: !enabled })}>
+    <Button size="sm" variant={enabled ? 'outline' : 'default'} onClick={() => onDecide({ productKey, title, enabled: !enabled })}>
       {enabled ? `Deshabilitar ${title}` : row.status === 'requested' ? `Aprobar ${title}` : `Habilitar ${title}`}
     </Button>
   );
