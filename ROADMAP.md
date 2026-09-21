@@ -53,6 +53,10 @@ actual, las decisiones vigentes y el trabajo siguiente.
 - [x] 2026-09-21: estabilizar la guarda de la cola POS sobre comportamiento:
   una única lectura de `offlineKey` por organización y ausencia de la clave
   `default`, sin depender del texto de un comentario partido por formato.
+- [x] 2026-09-21: verificar que Configuración, Pedidos y Recuperación comparten
+  el contexto de tienda seleccionado: Pedidos deriva un único `storeId`, lo
+  aplica a consultas y recuperación y lo expone en el selector persistente.
+  La guarda dejó de depender del nombre interno anterior de la expresión.
 
 La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
 2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza
