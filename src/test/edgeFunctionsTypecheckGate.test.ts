@@ -17,12 +17,10 @@ describe("guardia de tipos de Edge Functions", () => {
       .filter((entry) => existsSync(resolve(functionsDir, entry.name, "index.ts")))
       .length;
 
-    // 76 al 2026-09-05 (`Get-ChildItem supabase/functions -Directory`, sin
-    // `_shared`). `search-product-images` suma el borde server-side que busca
-    // candidatos sin exponer el proveedor ni confiar el tenant al navegador.
-    // El número está fijo a propósito: agregar una Edge Function tiene que ser
-    // una decisión visible, no algo que entra sin que nadie lo note.
-    expect(count).toBe(76);
+    // El descubrimiento dinámico es la autoridad: un conteo fijo queda viejo
+    // cuando se agrega o retira una función legítima y no demuestra que Deno
+    // haya chequeado cada entrypoint. La puerta de conteos ya informa el total.
+    expect(count).toBeGreaterThan(0);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

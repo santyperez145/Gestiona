@@ -44,6 +44,9 @@ actual, las decisiones vigentes y el trabajo siguiente.
 - [x] 2026-09-21: reemplazar confirmaciones nativas restantes de Contratos y
   Entregables por diálogos accesibles con error recuperable; corregir filtros
   vacíos de Matching y eliminar su recarga circular de datos.
+- [x] 2026-09-21: hacer que la puerta Deno descubra funciones por entrypoint sin
+  un total fijo contradictorio; altas y retiros legítimos ya no rompen una
+  allowlist mientras `check:functions` sigue chequeando cada función.
 
 La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
 2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza
