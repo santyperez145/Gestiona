@@ -11,6 +11,7 @@ export interface ProductRow {
   name: string;
   brand?: string;
   category?: string;
+  categoryColor?: string;
   image_url?: string | null;
   sale_price_ars: number;
   discount_price_ars?: number | null;
@@ -87,7 +88,11 @@ export default function ProductTableOwn({ rows, selectedIds, onToggleRow, onTogg
                     <div className="min-w-0"><p className="break-words font-medium">{product.name}</p><p className="text-xs text-muted-foreground">{product.brand || "Sin marca"}</p></div>
                   </div>
                 </td>
-                <td className="max-w-[180px] break-words px-3 py-3 text-muted-foreground">{product.category || "Sin categoría"}</td>
+                <td className="max-w-[180px] break-words px-3 py-3">
+                  <span className={cn("inline-flex max-w-full rounded-full px-2 py-1 text-xs font-medium", product.categoryColor ?? "bg-muted text-muted-foreground")}>
+                    <span className="truncate">{product.category || "Sin categoría"}</span>
+                  </span>
+                </td>
                 <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums"><span className="font-medium">{money.format(price)}</span>{discounted && <del className="block text-xs text-muted-foreground">{money.format(product.sale_price_ars)}</del>}</td>
                 <td className={cn("px-3 py-3 text-right font-medium tabular-nums", tone)}>{product.stock.toLocaleString("es-AR")}</td>
                 <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{product.profit_per_unit_ars == null ? <span className="text-xs text-muted-foreground">Sin costo</span> : <span className={product.profit_per_unit_ars < 0 ? "text-destructive" : undefined}>{money.format(product.profit_per_unit_ars)}</span>}</td>

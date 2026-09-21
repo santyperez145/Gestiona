@@ -109,6 +109,10 @@ storefront, acceso y checkout (70 casos públicos verdes) y reemplazó el vacío
 visual de Proveedores/Pagos por una superficie operativa con KPIs, filtros,
 tabla, carga, vacío y error recuperable.
 
+El corte 2026-09-21 eliminó la paleta cerrada de categorías en Productos: el
+badge toma un color estable a partir del slug y mantiene nombre legible, por lo
+que el sistema visual funciona también en rubros creados por cada comercio.
+
 El mismo flujo ahora conserva el intento durante un retry y traduce las
 validaciones transaccionales del servidor a mensajes accionables. Pago simple y
 masivo comparten el mismo lenguaje, progreso y recuperación sin exponer

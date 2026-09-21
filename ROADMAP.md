@@ -57,6 +57,9 @@ actual, las decisiones vigentes y el trabajo siguiente.
   el contexto de tienda seleccionado: Pedidos deriva un único `storeId`, lo
   aplica a consultas y recuperación y lo expone en el selector persistente.
   La guarda dejó de depender del nombre interno anterior de la expresión.
+- [x] 2026-09-21: convertir la categoría de cada producto en un badge legible
+  con color estable derivado de su slug; cualquier categoría creada por un
+  comercio recibe tratamiento visual sin ampliar una lista hardcodeada.
 
 La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
 2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza
