@@ -50,6 +50,9 @@ guardas visuales no dependen de volver a introducir etiquetas inglesas.
 Contratos y Entregables de Influencers usan el diálogo canónico, foco accesible
 y feedback de éxito/error; Matching conserva “Todos” mediante un sentinel
 válido sin romper el Select compartido.
+Marketing → Ofertas deja de ser un estado decorativo: Dashboard, Foco del día y
+la URL canónica aterrizan en el mismo panel operativo con confirmación propia,
+historial y resultados observables.
 
 ## 2. Lenguaje visual
 

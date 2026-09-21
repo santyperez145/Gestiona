@@ -23,6 +23,7 @@ import { Toaster } from "@/components/ui/toaster";
 import PlannerView from "@/components/marketing/PlannerView";
 import TemplatesPage from "@/pages/TemplatesPage";
 import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
+import OfferRecommenderPanel from "@/components/marketing/OfferRecommenderPanel";
 
 export default function MarketingPage() {
   usePageTitle("Marketing");
@@ -112,7 +113,7 @@ export default function MarketingPage() {
         {activeTab === "combos" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><RefreshCw className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Combinaciones</h3></div>}
         {activeTab === "automations" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><RefreshCw className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Automatizaciones</h3></div>}
         {activeTab === "brand" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Sparkles className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Identidad de marca</h3></div>}
-        {activeTab === "ofertas" && <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground"><Sparkles className="w-12 h-12 mx-auto mb-4" /><h3 className="text-lg font-medium">Ofertas</h3></div>}
+        {activeTab === "ofertas" && <OfferRecommenderPanel />}
       </div>
       <Dialog open={open} onOpenChange={setOpen}><DialogContent className="bg-card border-border/60 max-w-2xl"><DialogHeader><DialogTitle className="font-display">Nuevo Post</DialogTitle></DialogHeader><NewPostForm onSave={() => { setOpen(false); reload(); }} /></DialogContent></Dialog>
       <Toaster />

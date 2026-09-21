@@ -24,12 +24,12 @@ describe("ofertas IA medibles", () => {
     const foco = readFileSync(resolve(ROOT, "src/lib/dashboardFocus.ts"), "utf8");
     const focoUi = readFileSync(resolve(ROOT, "src/components/dashboard/FocoDelDia.tsx"), "utf8");
     expect(dash).toContain('/marketing?vista=ofertas');
-    expect(marketing).toContain("vista === 'ofertas'");
-    expect(marketing).toContain("id: 'ofertas'");
+    expect(marketing).toContain('marketingParams.get("vista")');
+    expect(marketing).toMatch(/vista === ['"]ofertas['"]/);
+    expect(marketing).toMatch(/\[[^\]]*['"]ofertas['"][^\]]*\]\.map/);
     expect(marketing).toMatch(/activeTab === ['"]ofertas['"][\s\S]{0,200}OfferRecommenderPanel/);
-    const postsParts = marketing.split("activeTab === 'posts' &&");
-    expect(postsParts.length, "falta el bloque de Publicaciones").toBeGreaterThan(1);
-    expect(postsParts[1].slice(0, 3000)).not.toContain("OfferRecommenderPanel");
+    expect(marketing).toMatch(/activeTab === ['"]posts['"][^\n]*<PostsTab/);
+    expect(marketing).not.toMatch(/activeTab === ['"]posts['"][^\n]*OfferRecommenderPanel/);
     expect(manifest).toContain('/ofertas-ia');
     expect(manifest).toContain("redirectTo: \"/marketing?vista=ofertas\"");
     expect(foco).toContain("ofertasIaPendientes");

@@ -61,6 +61,10 @@ La prueba de Edge Functions dejó de fijar 76 mientras el descubridor encontraba
 79 entrypoints vigentes. El control real sigue siendo bloqueante y dinámico:
 `npm run check:functions` ejecuta Deno sobre todos los `index.ts` descubiertos.
 
+Marketing → Ofertas ya monta `OfferRecommenderPanel`; se retiró el placeholder
+que recibía enlaces válidos desde Dashboard, Foco del día y `/ofertas-ia` sin
+permitir operar las recomendaciones persistidas.
+
 Verificación del seguimiento, 2026-09-21 (`npm test`): 34 pruebas dirigidas aprobadas; suite completa
 2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
 Se resolvieron tres guardas de autorización, beneficio y consumo. Typecheck,
