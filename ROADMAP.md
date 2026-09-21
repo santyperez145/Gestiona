@@ -8,6 +8,12 @@ actual, las decisiones vigentes y el trabajo siguiente.
 
 ### Prioridad inmediata: recuperar la puerta de calidad
 
+- [x] 2026-09-21: controles de autorización/plan y consumo en briefs IA;
+  clasificación financiera con JWT/RLS, permiso de edición y aislamiento por
+  organización. Pruebas locales de ejecución; despliegue no certificado.
+- [ ] Bloqueo de publicación: reparar verificación obligatoria de firma y
+  liquidación compartida del webhook Mercado Pago; validar reintentos e idempotencia.
+
 La auditoría de `900d3b43` del 2026-09-20 ejecutó `npm test`: 2.962 casos,
 2.931 aprobados y 31 fallidos antes de la limpieza. Ese resultado reemplaza
 cualquier afirmación anterior de suite completamente verde.

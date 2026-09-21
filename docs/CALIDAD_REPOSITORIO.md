@@ -6,6 +6,27 @@ La prioridad de producto vive en [ROADMAP](../ROADMAP.md).
 
 ## Qué significa el contador
 
+### Seguimiento de seguridad — 2026-09-21
+
+Corregidos controles de usuario y beneficio IA en `ai-brief-generator`, y
+contabilización de consumo en briefs y clasificación financiera. La clasificación
+mantiene el JWT del usuario/RLS, exige permiso de edición y busca el gasto por
+organización antes de consumir créditos. Rechaza categorías inválidas y no
+presenta una escritura fallida como exitosa. No se exponen errores del proveedor.
+
+Once pruebas ejecutan los handlers transpilados con fronteras externas simuladas;
+la guarda anónima falló al retirar deliberadamente la autorización y se restauró.
+Esto no equivale a un despliegue ni a una prueba real de proveedor. El webhook de
+Mercado Pago sigue siendo un bloqueo prioritario independiente: verificar firma
+obligatoria y recuperar liquidación/reconciliación canónica antes de publicar.
+
+Verificación del seguimiento: 34 pruebas dirigidas aprobadas; suite completa
+2.961 casos, 2.935 aprobados y 26 fallidos, sin fallos nuevos frente a la limpieza.
+Se resolvieron tres guardas de autorización, beneficio y consumo. Typecheck,
+lint completo sin errores, Deno check de ambas funciones, build, enlaces,
+conteos y diff check aprobaron. Las once pruebas añadidas comprueban ejecución
+de límites críticos: reducir el contador no es un objetivo de seguridad.
+
 Sobre `900d3b43`, `npm test -- --reporter=json --outputFile=test-results/baseline.json`
 ejecutó 2.962 casos: 2.931 aprobados y 31 fallidos. Había 311 archivos de test;
 217 leen fuentes mediante `readFileSync`/`readFile`. Estos archivos pueden mezclar

@@ -12,10 +12,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
+import { requireUser } from "../_shared/requireUser.ts";
+import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -63,12 +65,6 @@ interface AnthropicBriefOutput {
   suggestedCreators: SuggestedCreator[];
   estimatedCPM: number;
   estimatedReach: number;
-}
-
-interface ToolUseBlock {
-  type: "tool_use";
-  name: string;
-  input?: unknown;
 }
 
 const campaignBriefTool = {
@@ -262,10 +258,8 @@ serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!anthropicApiKey) {
-    return jsonResponse({ error: "Anthropic authentication is not configured" }, 403);
-  }
+  const auth = await requireUser(req, corsHeaders);
+  if (auth.response) return auth.response;
 
   let body: CampaignBriefRequest;
   try {
@@ -277,6 +271,9 @@ serve(async (req) => {
   if (!isRecord(body)) {
     return jsonResponse({ error: "Request body must be an object" }, 400);
   }
+  if (["prompt", "systemPrompt", "instructions"].some(key => key in body)) {
+    return jsonResponse({ error: "Enviá sólo los datos de la campaña" }, 400);
+  }
 
   const orgId = requiredString(body.orgId, "orgId");
   const productName = requiredString(body.productName, "productName");
@@ -287,13 +284,20 @@ serve(async (req) => {
 
   if (
     !orgId || !productName || !objective || !channel || !influencerTier ||
-    !Number.isFinite(budgetARS) || budgetARS <= 0
+    !Number.isFinite(budgetARS) || budgetARS <= 0 || productName.length > 300 ||
+    objective.length > 2000 || channel.length > 80 || influencerTier.length > 80
   ) {
     return jsonResponse({
       error: "orgId, productName, objective, budgetARS, channel and influencerTier are required",
     }, 400);
   }
 
+  const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
+  if (sinPlan) return sinPlan;
+  const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!anthropicApiKey) {
+    return jsonResponse({ error: "La generación de campañas no está disponible. Intentá más tarde." }, 503);
+  }
   const anthropic = new Anthropic({ apiKey: anthropicApiKey });
   const systemPrompt = `Sos un estratega de marketing senior para comercios en Argentina.
 Generá un brief accionable usando EXCLUSIVAMENTE los datos declarados en el request.
@@ -325,10 +329,14 @@ Incluí título, audiencia, hook, CTA, KPIs SMART, asignación presupuestaria qu
       system: systemPrompt,
     });
 
+    await registrarConsumoIA({
+      orgId, userId: auth.user.id, model: message.model,
+      input: message.usage?.input_tokens, output: message.usage?.output_tokens,
+    });
     const toolBlock = message.content.find(
-      (block): block is ToolUseBlock => block.type === "tool_use",
+      (block) => block.type === "tool_use",
     );
-    if (toolBlock?.name !== "emit_campaign_brief") {
+    if (toolBlock?.type !== "tool_use" || toolBlock.name !== "emit_campaign_brief") {
       throw new Error("Anthropic did not return the campaign brief tool");
     }
 
@@ -340,6 +348,6 @@ Incluí título, audiencia, hook, CTA, KPIs SMART, asignación presupuestaria qu
     return jsonResponse(output);
   } catch (error) {
     console.error("ai-brief-generator Anthropic error:", error);
-    return jsonResponse({ error: "Anthropic campaign generation failed" }, 500);
+    return jsonResponse({ error: "No pudimos generar la campaña. Intentá de nuevo." }, 502);
   }
 });

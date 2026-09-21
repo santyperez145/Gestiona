@@ -1,5 +1,9 @@
 # Nerqia — roadmap de diseño
 
+2026-09-21: briefs y clasificación de gastos devuelven errores controlados sin
+exponer respuestas técnicas del proveedor. Pendiente validar mensajes y estados
+de recuperación en las pantallas conectadas con sesión real.
+
 Revisión de mantenimiento 2026-09-20: retirados primitives sin consumidores,
 wrappers alternativos de diseño y el CSS de plantilla. Se conservan los
 componentes activos. Prioridad: recuperar pestañas de Marketing desconectadas,
