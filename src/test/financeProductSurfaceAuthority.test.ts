@@ -80,7 +80,7 @@ describe('autoridad de la superficie Nerqia Finance', () => {
     expect(budgetPulse).toContain('FROM public.budgets b');
     expect(budgetPulse).toContain("FROM public.product_surface_access(p_org_id, 'finance')");
     expect(budgetPulse).toContain('REVOKE ALL ON FUNCTION public.finance_core_snapshot(uuid) FROM PUBLIC, anon, authenticated');
-    expect(overview).toContain('Budget Pulse');
+    expect(overview).toContain('Pulso del presupuesto');
     expect(overview).toContain('/finance/gastos?vista=presupuesto&periodo=');
   });
 
