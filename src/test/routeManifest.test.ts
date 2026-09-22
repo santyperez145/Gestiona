@@ -171,6 +171,7 @@ describe("el sidebar sigue siendo el sidebar", () => {
     expect(finance).toEqual([
       "/finance",
       "/finance/documentos",
+      "/finance/solicitudes",
       "/finance/gastos",
       "/finance/flujo",
       "/finance/resultados",

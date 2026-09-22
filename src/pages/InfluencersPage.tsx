@@ -1,13 +1,13 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Edit, Plus, Search, Trash2, Users } from 'lucide-react';
+import { Copy, Edit, Mail, Plus, Search, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
 import { useModulePerms } from '@/lib/permissionsContext';
 import { supabase } from '@/integrations/supabase/client';
-import { createInfluencer, deleteInfluencer, isActiveInfluencer, listInfluencers, updateInfluencer, type Influencer } from '@/lib/influencersDB';
+import { createInfluencer, createInfluencerInvitation, deleteInfluencer, isActiveInfluencer, listInfluencers, updateInfluencer, type Influencer } from '@/lib/influencersDB';
 import { enlaceInfluencerConRef } from '@/lib/storeFirstPublish';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
@@ -42,6 +42,21 @@ export default function InfluencersPage() {
       toast.success('Enlace de referido copiado');
     } catch { toast.error('No pudimos copiar el enlace. Intentá nuevamente.'); }
   };
+  const invite = async (creator: Influencer) => {
+    if (!permissions.canCreate) return;
+    setBusy(true);
+    try {
+      const invitation = await createInfluencerInvitation(creator.id);
+      const url = `${window.location.origin}/invitacion-creador/${invitation.token}`;
+      await navigator.clipboard.writeText(url);
+      toast.success(`Invitación creada. Enlace copiado para ${creator.name}. Vence el ${new Date(invitation.expires_at).toLocaleDateString('es-AR')}.`);
+      await refresh();
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : '';
+      if (message.includes('influencer_permission_denied')) toast.error('No tenés permiso para invitar creadores.');
+      else toast.error('No pudimos crear la invitación. Intentá nuevamente.');
+    } finally { setBusy(false); }
+  };
   const remove = async () => {
     if (!deleting || !permissions.canDelete || deletingRef.current) return;
     deletingRef.current = true; setBusy(true);
@@ -56,6 +71,7 @@ export default function InfluencersPage() {
     {query.isPending ? <WorkspaceState kind="initial-loading" title="Cargando creadores" /> : query.isError ? <WorkspaceState kind="error-recoverable" title="No pudimos cargar los creadores" actionLabel="Reintentar" onAction={() => void query.refetch()} /> : !filtered.length ? <WorkspaceState kind={search ? 'empty-filtered' : 'empty-first-use'} title={search ? 'Sin coincidencias' : 'Todavía no hay creadores'} /> : <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-sm">
       <thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">Estado</th><th className="p-3 text-right">Seguidores</th><th className="p-3">Código de referido</th><th className="p-3">Comisión por venta</th><th className="p-3 text-right">Acciones</th></tr></thead>
       <tbody className="divide-y divide-border">{filtered.map(item => <tr key={item.id} className="hover:bg-muted/30"><td className="max-w-[260px] py-4"><p className="break-words font-medium">{item.name}</p><p className="break-words text-xs text-muted-foreground">{item.instagram || item.tiktok || 'Sin cuenta social'}</p></td><td className="p-3"><Badge variant="outline">{isActiveInfluencer(item.status) ? 'Activo' : 'Pausado'}</Badge></td><td className="p-3 text-right tabular-nums">{Math.max(item.followers_ig ?? 0, item.followers_tiktok ?? 0).toLocaleString('es-AR')}</td><td className="p-3 font-mono text-xs">{item.referral_code}</td><td className="p-3">{item.commission_type === 'porcentaje' ? `${item.commission_percent}%` : new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(item.commission_fixed_ars ?? 0)}</td><td className="p-3"><div className="flex justify-end gap-1">
+        {permissions.canCreate && <Button size="icon" variant="ghost" title="Invitar a colaborar" aria-label={`Invitar a ${item.name}`} disabled={busy} onClick={() => void invite(item)}><Mail className="h-4 w-4" /></Button>}
         <Button size="icon" variant="ghost" title="Copiar enlace de referido" aria-label={`Copiar enlace de ${item.name}`} onClick={() => void copyLink(item)}><Copy className="h-4 w-4" /></Button>
         {permissions.canEdit && <Button size="icon" variant="ghost" title="Editar creador" aria-label={`Editar ${item.name}`} onClick={() => setEditing(item)}><Edit className="h-4 w-4" /></Button>}
         {permissions.canDelete && <Button size="icon" variant="ghost" title="Eliminar creador" aria-label={`Eliminar ${item.name}`} onClick={() => setDeleting(item)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}

@@ -25,13 +25,15 @@ export type InfluencerPublicProfile = {
   created_at: string;
   total_campaigns: number;
   total_earnings_ars: number;
-  avg_delivery_days: number;
-  rating: number;
+  avg_delivery_days: number | null;
+  rating: number | null;
 };
 
 export default function InfluencerProfilePage() {
   const { token } = useParams<{ token: string }>();
   const [profile, setProfile] = useState<InfluencerPublicProfile | null>(null);
+  const [reviews, setReviews] = useState<Array<{ id: string; rating: number; comment: string | null; created_at: string; org_name: string | null }>>([]);
+  const [portfolio, setPortfolio] = useState<Array<{ id: string; description: string; campaign_name: string | null; content_url: string | null }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +42,18 @@ export default function InfluencerProfilePage() {
       try {
         const { data, error } = await (supabase as any).rpc("get_influencer_public_profile", { p_token: token });
         if (!error && data) {
-          setProfile(data as InfluencerPublicProfile);
+          const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+          setProfile(parsed as InfluencerPublicProfile);
+          try {
+            const { data: reviewRows } = await (supabase as any)
+              .rpc("get_influencer_public_reviews", { p_token: token });
+            setReviews(Array.isArray(reviewRows) ? reviewRows : []);
+          } catch { setReviews([]); }
+          try {
+            const { data: portfolioRows } = await (supabase as any)
+              .rpc("get_influencer_public_portfolio", { p_token: token });
+            setPortfolio(Array.isArray(portfolioRows) ? portfolioRows : []);
+          } catch { setPortfolio([]); }
           return;
         }
 
@@ -64,17 +77,25 @@ export default function InfluencerProfilePage() {
             bio: inf.notes || "Creador de contenido verificado.",
             followers_ig: inf.followers_ig || 0,
             followers_tiktok: inf.followers_tiktok || 0,
-            engagement_rate: inf.engagement_rate || 3.5,
+            engagement_rate: inf.engagement_rate || 0,
             tier: (inf.tier as any) || "micro",
             status: ["activo", "active"].includes(inf.status) ? "active" : "inactive",
             verified: true,
             avatar_url: inf.avatar_url,
             created_at: inf.created_at,
-            total_campaigns: inf.total_sales_count || 1,
+            total_campaigns: inf.total_sales_count || 0,
             total_earnings_ars: inf.total_commissions_ars || 0,
-            avg_delivery_days: 3,
-            rating: 4.9,
+            avg_delivery_days: null as unknown as number,
+            rating: null as unknown as number,
           });
+          try {
+            const { data: reviewRows } = await (supabase as any)
+              .from("influencer_reviews")
+              .select("id, rating, comment, created_at, organizations(name)")
+              .eq("influencer_id", inf.id)
+              .order("created_at", { ascending: false });
+            setReviews(Array.isArray(reviewRows) ? reviewRows : []);
+          } catch { setReviews([]); }
         }
       } catch {
         setProfile(null);
@@ -142,7 +163,7 @@ export default function InfluencerProfilePage() {
             { label: "Seguidores IG", value: profile.followers_ig.toLocaleString('es-AR'), icon: Users, color: "text-primary" },
             { label: "Tasa de engagement", value: `${profile.engagement_rate}%`, icon: TrendingUp, color: "text-emerald-600" },
             { label: "Campañas completadas", value: String(profile.total_campaigns), icon: Target, color: "text-amber-700" },
-            { label: "Rating", value: `${profile.rating}/5`, icon: Star, color: "text-yellow-600" },
+            { label: "Rating", value: profile.rating ? `${Number(profile.rating).toFixed(1)}/5` : "Sin reviews", icon: Star, color: "text-yellow-600" },
           ].map(kpi => (
             <Card key={kpi.label} className="bg-card border-border">
               <CardContent className="p-4">
@@ -162,33 +183,43 @@ export default function InfluencerProfilePage() {
             <Tabs defaultValue="portfolio" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="portfolio">Portafolio</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews ({profile.rating.toFixed(1)})</TabsTrigger>
+                <TabsTrigger value="reviews">Reviews {profile.rating ? `(${Number(profile.rating).toFixed(1)})` : '(0)'}</TabsTrigger>
               </TabsList>
               <TabsContent value="portfolio">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="aspect-video rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground text-sm">
-                      Contenido {i} — {profile.instagram}
-                    </div>
-                  ))}
-                </div>
+                {portfolio.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Este creador todavía no tiene contenido aprobado publicado.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {portfolio.map(item => (
+                      <a key={item.id} href={item.content_url ?? '#'} target="_blank" rel="noopener noreferrer"
+                        className="group aspect-video rounded-xl bg-muted border border-border flex flex-col items-center justify-center gap-2 p-4 text-center hover:border-primary/40 transition">
+                        <Instagram className="w-5 h-5 text-muted-foreground group-hover:text-primary transition" />
+                        <p className="line-clamp-2 text-xs font-medium">{item.description}</p>
+                        {item.campaign_name && <p className="text-[10px] text-muted-foreground">{item.campaign_name}</p>}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
               <TabsContent value="reviews">
                 <div className="space-y-4">
-                  {[
-                    { name: "Marca Zara", rating: 5, text: "Excelente entrega y puntualidad", date: "2026-08-15" },
-                    { name: "Marca Nike", rating: 4, text: "Muy buena calidad de contenido", date: "2026-07-22" },
-                  ].map((r, i) => (
-                    <div key={i} className="flex gap-3 p-4 rounded-xl bg-muted/30 border border-border/50">
+                  {reviews.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Todavía no hay reviews de marcas para este creador.
+                    </p>
+                  ) : reviews.map(r => (
+                    <div key={r.id} className="flex gap-3 p-4 rounded-xl bg-muted/30 border border-border/50">
                       <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map(s => (
                           <Star key={s} className={`w-4 h-4 ${s <= r.rating ? 'text-yellow-500 fill-yellow-500' : 'text-border'}`} />
                         ))}
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{r.name}</p>
-                        <p className="text-xs text-muted-foreground">{r.text}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{r.date}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{r.org_name ?? 'Marca verificada'}</p>
+                        {r.comment && <p className="text-xs text-muted-foreground break-words">{r.comment}</p>}
+                        <p className="text-xs text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString('es-AR')}</p>
                       </div>
                     </div>
                   ))}

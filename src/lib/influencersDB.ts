@@ -72,6 +72,33 @@ export type InfluencerPayment = {
   completed_at?: string;
 };
 
+export type InfluencerInvitation = {
+  id: string;
+  org_id: string;
+  campaign_id: string | null;
+  influencer_id: string;
+  email?: string | null;
+  phone?: string | null;
+  token: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  expires_at: string;
+  responded_at?: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+export type InfluencerReview = {
+  id: string;
+  org_id: string;
+  influencer_id: string;
+  campaign_id: string | null;
+  deliverable_id: string | null;
+  rating: number;
+  comment?: string | null;
+  created_by: string;
+  created_at: string;
+};
+
 export type BrandPortalProfile = {
   id: string;
   org_id: string;
@@ -288,4 +315,56 @@ export async function createPayout(payload: {
   const { data, error } = await sb.from('influencer_payouts').insert({ ...payload, org_id: orgId }).select().single();
   if (error) throw error;
   return data;
+}
+
+/** ─── Invitaciones a creadores (flujo Go-Marz: invitar → aceptar/rechazar → expira) ─── */
+export async function listInfluencerInvitations(): Promise<InfluencerInvitation[]> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb.from('influencer_invitations').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as InfluencerInvitation[];
+}
+
+export async function createInfluencerInvitation(influencerId: string, campaignId?: string | null, days = 14): Promise<InfluencerInvitation> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb.rpc('create_influencer_invitation', {
+    p_org_id: orgId, p_influencer_id: influencerId, p_campaign_id: campaignId ?? null, p_days: days,
+  });
+  if (error) throw error;
+  return data as InfluencerInvitation;
+}
+
+export async function getInfluencerInvitation(token: string): Promise<Record<string, unknown> | null> {
+  const { data, error } = await sb.rpc('get_influencer_invitation', { p_token: token });
+  if (error) throw error;
+  return data as Record<string, unknown> | null;
+}
+
+export async function respondInfluencerInvitation(token: string, action: 'accept' | 'decline'): Promise<string> {
+  const { data, error } = await sb.rpc('respond_influencer_invitation', { p_token: token, p_action: action });
+  if (error) throw error;
+  return String(data);
+}
+
+/** ─── Reviews y reputación (rating real, no valores fijos) ─── */
+export async function listInfluencerReviews(influencerId?: string): Promise<InfluencerReview[]> {
+  const orgId = requireActiveOrgId();
+  let q = sb.from('influencer_reviews').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  if (influencerId) q = q.eq('influencer_id', influencerId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data || []) as InfluencerReview[];
+}
+
+export async function createInfluencerReview(payload: {
+  influencer_id: string;
+  campaign_id?: string | null;
+  deliverable_id?: string | null;
+  rating: number;
+  comment?: string | null;
+}): Promise<InfluencerReview> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb.from('influencer_reviews').insert({ ...payload, org_id: orgId, created_by: (await sb.auth.getUser()).data?.user?.id ?? null }).select().single();
+  if (error) throw error;
+  return data as InfluencerReview;
 }

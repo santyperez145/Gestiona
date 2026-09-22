@@ -49,6 +49,7 @@ const CustomDomainStorefrontPage = lazy(() => import("@/pages/CustomDomainStoref
 const PublicPaymentPage      = lazy(() => import("@/pages/PublicPaymentPage"));
 const InfluencerPortalPage   = lazy(() => import("@/pages/InfluencerPortalPage"));
 const InfluencerProfilePage  = lazy(() => import("@/pages/InfluencerProfilePage"));
+const InfluencerInvitationPage = lazy(() => import("@/pages/InfluencerInvitationPage"));
 const InvitationAcceptPage   = lazy(() => import("@/pages/InvitationAcceptPage"));
 const PlatformAdminPage      = lazy(() => import("@/pages/PlatformAdminPage"));
 const PlatformMerchantPage  = lazy(() => import("@/pages/PlatformMerchantPage"));
@@ -393,6 +394,7 @@ function ApplicationRoutes() {
       <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
       <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />
       <Route path="/influencer/:token" element={<InfluencerProfilePage />} />
+      <Route path="/invitacion-creador/:token" element={<InfluencerInvitationPage />} />
       <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
       <Route path="/platform/*" element={<PlatformRoutes />} />
       <Route path="/finance/*" element={<FinanceRoutes />} />
