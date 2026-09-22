@@ -1,404 +1,96 @@
-﻿import { useState, useEffect } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Copy, Edit, Plus, Search, Trash2, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
-import { useOrganization } from '@/hooks/useOrganization';
+import { useOrg } from '@/lib/orgContext';
+import { useModulePerms } from '@/lib/permissionsContext';
 import { supabase } from '@/integrations/supabase/client';
-import { listInfluencers, createInfluencer, updateInfluencer, deleteInfluencer, listInfluencerSales, listPayouts, createPayout, type Influencer } from '@/lib/influencersDB';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { createInfluencer, deleteInfluencer, isActiveInfluencer, listInfluencers, updateInfluencer, type Influencer } from '@/lib/influencersDB';
+import { enlaceInfluencerConRef } from '@/lib/storeFirstPublish';
+import PageHeader from '@/components/shared/PageHeader';
+import WorkspaceState from '@/components/shared/WorkspaceState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Edit, Copy, DollarSign, TrendingUp, Users, Award, Instagram } from 'lucide-react';
-import CommercePageHeader from '@/components/commerce/CommercePageHeader';
-import CommerceKPICard from '@/components/commerce/CommerceKPICard';
-import CommerceEmptyState from '@/components/commerce/CommerceEmptyState';
-import { toast } from 'sonner';
-import { TableSkeleton } from '@/components/shared/PageSkeleton';
-import ConfirmDialog from '@/components/shared/ConfirmDialog';
-import InfluencerExchangesPage from './InfluencerExchangesPage';
-import { usePageTitle } from "@/hooks/usePageTitle";
-import { enlaceInfluencerConRef } from '@/lib/storeFirstPublish';
-import KPICard from "@/components/shared/KPICard";
-import EmptyState from "@/components/shared/EmptyState";
-import PageHeader from "@/components/shared/PageHeader";
-
-const TIER_COLORS: Record<string, string> = {
-  nano: 'bg-muted/20 text-muted-foreground',
-  micro: 'bg-blue-500/20 text-blue-300',
-  medio: 'bg-primary/20 text-primary',
-  macro: 'bg-amber-500/20 text-amber-300',
-};
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
-}
-
-function genCode(name: string) {
-  return (name || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) + Math.floor(Math.random() * 90 + 10);
-}
-
-function InfluencersTab() {
-  const { user } = useAuth();
-  const { orgId } = useOrganization();
-  const [items, setItems] = useState<Influencer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [edit, setEdit] = useState<Influencer | null>(null);
-  const [storeMeta, setStoreMeta] = useState<{ slug: string | null; active: boolean }>({
-    slug: null,
-    active: false,
-  });
-
-  const reload = async () => { setItems(await listInfluencers()); setLoading(false); };
-  useEffect(() => { reload(); }, []);
-
-  useEffect(() => {
-    if (!orgId) return;
-    supabase
-      .from('ecommerce_stores')
-      .select('slug, is_active')
-      .eq('org_id', orgId)
-      .order('is_active', { ascending: false })
-      .order('is_primary', { ascending: false })
-      .order('created_at')
-      .limit(1)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('InfluencersPage / tienda:', error);
-          return;
-        }
-        setStoreMeta({
-          slug: data?.slug ?? null,
-          active: Boolean(data?.is_active),
-        });
-      });
-  }, [orgId]);
-
-  const totalGen = items.reduce((s, i) => s + Number(i.total_generated_ars || 0), 0);
-  const totalCom = items.reduce((s, i) => s + Number(i.total_commissions_ars || 0), 0);
-  const totalSales = items.reduce((s, i) => s + (i.total_sales_count || 0), 0);
-
-  const copyLink = async (inf: Influencer) => {
-    const url = enlaceInfluencerConRef({
-      origin: window.location.origin,
-      userId: user?.id,
-      storeSlug: storeMeta.slug,
-      storeActive: storeMeta.active,
-      referralCode: inf.referral_code,
-    });
-    if (!url) {
-      toast.error('No hay enlace público todavía. Publicá la tienda o abrí el catálogo.');
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success(`Link de ${inf.name} copiado`);
-    } catch {
-      toast.error('No se pudo copiar el link');
-    }
-  };
-
-  if (loading) return <TableSkeleton rows={5} cols={6} />;
-
-  return (
-    <div className="space-y-6 pb-12">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard label="Influencers" value={items.length.toString()} icon={Users} />
-        <KPICard label="Generado" value={fmt(totalGen)} icon={TrendingUp} />
-        <KPICard label="Comisiones" value={fmt(totalCom)} icon={DollarSign} />
-        <KPICard label="Ventas" value={totalSales.toString()} icon={Award} />
-      </div>
-
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Lista de influencers</h3>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEdit(null); }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setEdit(null); setOpen(true); }} className="gradient-gold text-primary-foreground">
-              <Plus className="w-4 h-4 mr-1" /> Nuevo influencer
-            </Button>
-          </DialogTrigger>
-          <InfluencerForm initial={edit} onSaved={() => { setOpen(false); reload(); }} userId={user!.id} />
-        </Dialog>
-      </div>
-
-      {items.length === 0 ? (
-        <EmptyState icon={Users} title="Sin influencers" description="Agregá tu primer influencer para empezar a tracker comisiones." />
-      ) : (
-        <div className="overflow-x-auto rounded-[10px] border border-border/60 bg-card">
-          <table className="w-full text-sm table-compact-mobile">
-            <thead className="bg-muted text-xs uppercase">
-              <tr>
-                <th className="text-left p-3">Nombre</th>
-                <th className="text-left p-3">Tier</th>
-                <th className="text-right p-3">Seguidores</th>
-                <th className="text-left p-3">Código</th>
-                <th className="text-right p-3">Comisión</th>
-                <th className="text-right p-3">Generado</th>
-                <th className="text-right p-3">A pagar</th>
-                <th className="text-right p-3">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map(i => (
-                <tr key={i.id} className="border-t border-border hover:bg-muted/40">
-                  <td className="p-3 font-medium">
-                    {i.name}
-                    {i.instagram && <a href={`https://instagram.com/${i.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="ml-2 text-xs text-primary inline-flex items-center"><Instagram className="w-3 h-3 mr-1" />{i.instagram}</a>}
-                  </td>
-                  <td className="p-3"><Badge className={TIER_COLORS[i.tier]}>{i.tier}</Badge></td>
-                  <td className="p-3 text-right">{(i.followers_ig || 0).toLocaleString('es-AR')}</td>
-                  <td className="p-3 font-mono text-xs">
-                    <button onClick={() => copyLink(i)} className="hover:text-primary inline-flex items-center gap-1">
-                      {i.referral_code} <Copy className="w-3 h-3" />
-                    </button>
-                  </td>
-                  <td className="p-3 text-right">{i.commission_type === 'porcentaje' ? `${i.commission_percent}%` : fmt(i.commission_fixed_ars)}</td>
-                  <td className="p-3 text-right">{fmt(Number(i.total_generated_ars))}</td>
-                  <td className="p-3 text-right text-emerald-400">{fmt(Number(i.total_commissions_ars))}</td>
-                  <td className="p-3 text-right">
-                    <Button size="icon" variant="ghost" onClick={() => { setEdit(i); setOpen(true); }}><Edit className="w-4 h-4" /></Button>
-                    <ConfirmDialog
-                      trigger={<Button size="icon" variant="ghost"><Trash2 className="w-4 h-4 text-destructive" /></Button>}
-                      title="Eliminar influencer"
-                      description={`¿Eliminar a ${i.name}? Esto NO borra sus ventas históricas.`}
-                      onConfirm={async () => { await deleteInfluencer(i.id); toast.success('Eliminado'); reload(); }}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-    </div>
-  );
-}
-
-function InfluencerForm({ initial, onSaved, userId }: { initial: Influencer | null; onSaved: () => void; userId: string }) {
-  const [form, setForm] = useState<any>(initial || {
-    name: '', instagram: '', tiktok: '', phone: '', email: '',
-    followers_ig: 0, followers_tiktok: 0, engagement_rate: 0,
-    commission_percent: 10, commission_type: 'porcentaje', commission_fixed_ars: 0,
-    referral_code: '', status: 'activo', notes: '',
-  });
-
-  const submit = async () => {
-    if (!form.name) return toast.error('Nombre requerido');
-    if (!form.referral_code) form.referral_code = genCode(form.name);
-    try {
-      if (initial) await updateInfluencer(initial.id, form);
-      else await createInfluencer({ ...form, user_id: userId });
-      toast.success(initial ? 'Actualizado' : 'Creado');
-      onSaved();
-    } catch (e: any) {
-      toast.error(e.message || 'Error');
-    }
-  };
-
-  return (
-    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader><DialogTitle>{initial ? 'Editar' : 'Nuevo'} influencer</DialogTitle></DialogHeader>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2"><Label>Nombre *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-        <div><Label>Instagram</Label><Input placeholder="@handle" value={form.instagram} onChange={e => setForm({ ...form, instagram: e.target.value })} /></div>
-        <div><Label>TikTok</Label><Input placeholder="@handle" value={form.tiktok} onChange={e => setForm({ ...form, tiktok: e.target.value })} /></div>
-        <div><Label>Seguidores IG</Label><Input type="number" value={form.followers_ig} onChange={e => setForm({ ...form, followers_ig: +e.target.value })} /></div>
-        <div><Label>Seguidores TikTok</Label><Input type="number" value={form.followers_tiktok} onChange={e => setForm({ ...form, followers_tiktok: +e.target.value })} /></div>
-        <div><Label>Teléfono</Label><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-        <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-        <div className="col-span-2 grid grid-cols-3 gap-3 pt-2 border-t border-border">
-          <div>
-            <Label>Tipo comisión</Label>
-            <Select value={form.commission_type} onValueChange={v => setForm({ ...form, commission_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="porcentaje">% del total</SelectItem>
-                <SelectItem value="monto_fijo">Monto fijo por venta</SelectItem>
-                <SelectItem value="por_venta">Por venta concretada</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {form.commission_type === 'porcentaje' ? (
-            <div><Label>%</Label><Input type="number" step="0.1" value={form.commission_percent} onChange={e => setForm({ ...form, commission_percent: +e.target.value })} /></div>
-          ) : (
-            <div><Label>$ ARS</Label><Input type="number" value={form.commission_fixed_ars} onChange={e => setForm({ ...form, commission_fixed_ars: +e.target.value })} /></div>
-          )}
-          <div><Label>Estado</Label>
-            <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="activo">Activo</SelectItem>
-                <SelectItem value="pausado">Pausado</SelectItem>
-                <SelectItem value="baneado">Baneado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="col-span-2"><Label>Código de referido</Label><Input placeholder="auto si lo dejás vacío" value={form.referral_code} onChange={e => setForm({ ...form, referral_code: e.target.value })} /></div>
-        <div className="col-span-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
-      </div>
-      <Button onClick={submit} className="w-full gradient-gold text-primary-foreground">Guardar</Button>
-    </DialogContent>
-  );
-}
-
-function SalesTab() {
-  const [sales, setSales] = useState<any[]>([]);
-  const [influencers, setInfluencers] = useState<Influencer[]>([]);
-  useEffect(() => {
-    (async () => {
-      setSales(await listInfluencerSales());
-      setInfluencers(await listInfluencers());
-    })();
-  }, []);
-  const infMap = Object.fromEntries(influencers.map(i => [i.id, i.name]));
-  const pending = sales.filter(s => !s.paid);
-  const totalPending = pending.reduce((s, x) => s + Number(x.commission_ars), 0);
-
-  return (
-    <div className="space-y-4 pb-12">
-      <div className="grid grid-cols-2 gap-3">
-        <KPICard label="Ventas atribuidas" value={sales.length.toString()} icon={TrendingUp} />
-        <KPICard label="Comisiones a pagar" value={fmt(totalPending)} icon={DollarSign} />
-      </div>
-      {sales.length === 0 ? <EmptyState icon={TrendingUp} title="Sin ventas con código aún" description="Cuando una venta use código de referido, aparecerá acá." /> : (
-        <div className="overflow-x-auto rounded-[10px] border border-border/60 bg-card">
-          <table className="w-full text-sm table-compact-mobile">
-            <thead className="bg-muted text-xs uppercase"><tr>
-              <th className="text-left p-3">Fecha</th><th className="text-left p-3">Influencer</th><th className="text-left p-3">Código</th><th className="text-right p-3">Venta</th><th className="text-right p-3">Comisión</th><th className="text-center p-3">Estado</th>
-            </tr></thead>
-            <tbody>
-              {sales.map(s => (
-                <tr key={s.id} className="border-t border-border">
-                  <td className="p-3">{new Date(s.created_at).toLocaleDateString('es-AR')}</td>
-                  <td className="p-3 font-medium">{infMap[s.influencer_id] || '—'}</td>
-                  <td className="p-3 font-mono text-xs">{s.referral_code}</td>
-                  <td className="p-3 text-right">{fmt(Number(s.sale_total_ars))}</td>
-                  <td className="p-3 text-right text-emerald-400">{fmt(Number(s.commission_ars))}</td>
-                  <td className="p-3 text-center"><Badge className={s.paid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}>{s.paid ? 'Pagado' : 'Pendiente'}</Badge></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PayoutsTab() {
-  const { user } = useAuth();
-  const [influencers, setInfluencers] = useState<Influencer[]>([]);
-  const [payouts, setPayouts] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [selInf, setSelInf] = useState('');
-  const [pendingSales, setPendingSales] = useState<any[]>([]);
-
-  const reload = async () => {
-    setInfluencers(await listInfluencers());
-    setPayouts(await listPayouts());
-  };
-  useEffect(() => { reload(); }, []);
-
-  useEffect(() => {
-    if (!selInf) { setPendingSales([]); return; }
-    listInfluencerSales(selInf).then(s => setPendingSales(s.filter((x: any) => !x.paid)));
-  }, [selInf]);
-
-  const total = pendingSales.reduce((s, x) => s + Number(x.commission_ars), 0);
-
-  const submit = async () => {
-    if (!selInf || pendingSales.length === 0) return toast.error('Sin comisiones pendientes');
-    await createPayout({
-      org_id: '',
-      influencer_id: selInf,
-      total_amount: total,
-      status: 'completed',
-      period_start: new Date().toISOString().slice(0,10),
-      period_end: new Date().toISOString().slice(0,10),
-    });
-    toast.success('Liquidación registrada');
-    setOpen(false); setSelInf(''); reload();
-  };
-
-  return (
-    <div className="space-y-4 pb-12">
-      <div className="flex justify-between">
-        <h3 className="text-lg font-semibold">Liquidaciones</h3>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button className="gradient-gold text-primary-foreground"><DollarSign className="w-4 h-4 mr-1" /> Nueva liquidación</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Liquidar comisiones</DialogTitle></DialogHeader>
-            <div className="space-y-3 pb-12">
-              <div>
-                <Label>Influencer</Label>
-                <Select value={selInf} onValueChange={setSelInf}>
-                  <SelectTrigger><SelectValue placeholder="Elegir..." /></SelectTrigger>
-                  <SelectContent>{influencers.map(i => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="p-3 rounded bg-muted text-sm">
-                <div>Ventas pendientes: <strong>{pendingSales.length}</strong></div>
-                <div>Total a pagar: <strong className="text-emerald-400">{fmt(total)}</strong></div>
-              </div>
-              <Button onClick={submit} className="w-full" disabled={!selInf || total === 0}>Confirmar pago</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-      {payouts.length === 0 ? <EmptyState icon={DollarSign} title="Sin liquidaciones" description="Generá tu primera liquidación cuando tengas comisiones acumuladas." /> : (
-        <div className="rounded-[10px] border border-border/60 bg-card overflow-x-auto">
-          <table className="w-full text-sm table-compact-mobile">
-            <thead className="bg-muted text-xs uppercase"><tr>
-              <th className="text-left p-3">Fecha</th><th className="text-left p-3">Influencer</th><th className="text-right p-3">Ventas</th><th className="text-right p-3">Monto</th>
-            </tr></thead>
-            <tbody>
-              {payouts.map(p => {
-                const inf = influencers.find(i => i.id === p.influencer_id);
-                return (
-                  <tr key={p.id} className="border-t border-border">
-                    <td className="p-3">{new Date(p.paid_at).toLocaleDateString('es-AR')}</td>
-                    <td className="p-3">{inf?.name || '—'}</td>
-                    <td className="p-3 text-right">{p.sales_count}</td>
-                    <td className="p-3 text-right text-emerald-400 font-semibold">{fmt(Number(p.amount_ars))}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function InfluencersPage() {
-  usePageTitle("Influencers");
-  return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Users}
-        eyebrow="Commerce · Afiliados"
-        title="Influencers"
-        description="Códigos, comisiones y liquidaciones ligadas a pedidos reales de la tienda."
-      />
-      <Tabs defaultValue="influencers">
-        <TabsList className="mb-4 flex-wrap">
-          <TabsTrigger value="influencers">Influencers</TabsTrigger>
-          <TabsTrigger value="sales">Ventas con código</TabsTrigger>
-          <TabsTrigger value="payouts">Liquidaciones</TabsTrigger>
-          <TabsTrigger value="exchanges">Canjes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="influencers"><InfluencersTab /></TabsContent>
-        <TabsContent value="sales"><SalesTab /></TabsContent>
-        <TabsContent value="payouts"><PayoutsTab /></TabsContent>
-        <TabsContent value="exchanges"><InfluencerExchangesPage /></TabsContent>
-      </Tabs>
-    </div>
-  );
+  const { activeOrg } = useOrg();
+  const { user } = useAuth();
+  const permissions = useModulePerms('influencers');
+  const client = useQueryClient();
+  const orgId = activeOrg.id;
+  const query = useQuery({ queryKey: ['influencer-creators', orgId], queryFn: () => listInfluencers(orgId), refetchOnWindowFocus: false });
+  const [params, setParams] = useSearchParams();
+  const search = params.get('q') ?? '';
+  const [editing, setEditing] = useState<Influencer | 'new' | null>(null);
+  const [deleting, setDeleting] = useState<Influencer | null>(null);
+  const [busy, setBusy] = useState(false);
+  const deletingRef = useRef(false);
+  const refresh = () => client.invalidateQueries({ queryKey: ['influencer-creators', orgId] });
+  const copyLink = async (creator: Influencer) => {
+    try {
+      const { data, error } = await supabase.from('ecommerce_stores').select('slug, is_active').eq('org_id', orgId).order('is_active', { ascending: false }).order('is_primary', { ascending: false }).order('created_at').limit(1).maybeSingle();
+      if (error) throw error;
+      const url = enlaceInfluencerConRef({ origin: window.location.origin, userId: user?.id, storeSlug: data?.slug, storeActive: Boolean(data?.is_active), referralCode: creator.referral_code });
+      if (!url) { toast.error('Publicá la tienda antes de compartir el enlace.'); return; }
+      await navigator.clipboard.writeText(url);
+      toast.success('Enlace de referido copiado');
+    } catch { toast.error('No pudimos copiar el enlace. Intentá nuevamente.'); }
+  };
+  const remove = async () => {
+    if (!deleting || !permissions.canDelete || deletingRef.current) return;
+    deletingRef.current = true; setBusy(true);
+    try { await deleteInfluencer(deleting.id); setDeleting(null); await refresh(); toast.success('Creador eliminado'); }
+    catch { toast.error('No se pudo eliminar. Revisá los permisos y las campañas vinculadas. Podés pausar el creador para conservar su historial.'); }
+    finally { deletingRef.current = false; setBusy(false); }
+  };
+  const filtered = (query.data ?? []).filter(item => `${item.name} ${item.instagram ?? ''} ${item.tiktok ?? ''}`.toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')));
+  return <div className="space-y-5">
+    <PageHeader icon={Users} eyebrow="Nerqia · Influencers" title="Creadores" actions={permissions.canCreate && <Button onClick={() => setEditing('new')}><Plus className="mr-2 h-4 w-4" />Nuevo creador</Button>} />
+    <div className="relative sm:max-w-sm"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar creadores" value={search} placeholder="Nombre o cuenta social" className="pl-9" onChange={event => setParams(previous => { const next = new URLSearchParams(previous); if (event.target.value) next.set('q', event.target.value); else next.delete('q'); return next; }, { replace: true })} /></div>
+    {query.isPending ? <WorkspaceState kind="initial-loading" title="Cargando creadores" /> : query.isError ? <WorkspaceState kind="error-recoverable" title="No pudimos cargar los creadores" actionLabel="Reintentar" onAction={() => void query.refetch()} /> : !filtered.length ? <WorkspaceState kind={search ? 'empty-filtered' : 'empty-first-use'} title={search ? 'Sin coincidencias' : 'Todavía no hay creadores'} /> : <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-sm">
+      <thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">Estado</th><th className="p-3 text-right">Seguidores</th><th className="p-3">Código de referido</th><th className="p-3">Comisión por venta</th><th className="p-3 text-right">Acciones</th></tr></thead>
+      <tbody className="divide-y divide-border">{filtered.map(item => <tr key={item.id} className="hover:bg-muted/30"><td className="max-w-[260px] py-4"><p className="break-words font-medium">{item.name}</p><p className="break-words text-xs text-muted-foreground">{item.instagram || item.tiktok || 'Sin cuenta social'}</p></td><td className="p-3"><Badge variant="outline">{isActiveInfluencer(item.status) ? 'Activo' : 'Pausado'}</Badge></td><td className="p-3 text-right tabular-nums">{Math.max(item.followers_ig ?? 0, item.followers_tiktok ?? 0).toLocaleString('es-AR')}</td><td className="p-3 font-mono text-xs">{item.referral_code}</td><td className="p-3">{item.commission_type === 'porcentaje' ? `${item.commission_percent}%` : new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(item.commission_fixed_ars ?? 0)}</td><td className="p-3"><div className="flex justify-end gap-1">
+        <Button size="icon" variant="ghost" title="Copiar enlace de referido" aria-label={`Copiar enlace de ${item.name}`} onClick={() => void copyLink(item)}><Copy className="h-4 w-4" /></Button>
+        {permissions.canEdit && <Button size="icon" variant="ghost" title="Editar creador" aria-label={`Editar ${item.name}`} onClick={() => setEditing(item)}><Edit className="h-4 w-4" /></Button>}
+        {permissions.canDelete && <Button size="icon" variant="ghost" title="Eliminar creador" aria-label={`Eliminar ${item.name}`} onClick={() => setDeleting(item)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+      </div></td></tr>)}</tbody>
+    </table></div>}
+    <Dialog open={Boolean(editing)} onOpenChange={open => { if (!open) setEditing(null); }}>{editing && <CreatorForm key={editing === 'new' ? 'new' : editing.id} initial={editing === 'new' ? null : editing} orgId={orgId} userId={user.id} onSaved={() => { setEditing(null); void refresh(); }} />}</Dialog>
+    <Dialog open={Boolean(deleting)} onOpenChange={open => { if (!open && !busy) setDeleting(null); }}><DialogContent><DialogHeader><DialogTitle>Eliminar creador</DialogTitle><DialogDescription>Se eliminará a {deleting?.name}. Si tiene campañas vinculadas, la eliminación será rechazada para conservar el historial.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" disabled={busy} onClick={() => setDeleting(null)}>Volver</Button><Button variant="destructive" disabled={busy} onClick={() => void remove()}>Eliminar</Button></DialogFooter></DialogContent></Dialog>
+  </div>;
+}
+
+function CreatorForm({ initial, orgId, userId, onSaved }: { initial: Influencer | null; orgId: string; userId: string; onSaved: () => void }) {
+  const permissions = useModulePerms('influencers');
+  const [form, setForm] = useState(() => ({ name: initial?.name ?? '', instagram: initial?.instagram ?? '', tiktok: initial?.tiktok ?? '', email: initial?.email ?? '', phone: initial?.phone ?? '', followers_ig: initial?.followers_ig ?? 0, followers_tiktok: initial?.followers_tiktok ?? 0, commission_percent: initial?.commission_percent ?? 10, commission_type: initial?.commission_type ?? 'porcentaje', commission_fixed_ars: initial?.commission_fixed_ars ?? 0, referral_code: initial?.referral_code ?? '', status: initial?.status ?? 'activo' }));
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const lock = useRef(false);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (lock.current || !(initial ? permissions.canEdit : permissions.canCreate)) return;
+    lock.current = true; setBusy(true); setError('');
+    try {
+      const payload = { ...form, name: form.name.trim(), referral_code: form.referral_code.trim() || crypto.randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase() };
+      if (initial) await updateInfluencer(initial.id, payload); else await createInfluencer({ ...payload, org_id: orgId, user_id: userId });
+      toast.success(initial ? 'Creador actualizado' : 'Creador creado'); onSaved();
+    } catch { setError('No pudimos guardar el creador. Revisá los datos, los permisos y que el código no esté repetido.'); }
+    finally { lock.current = false; setBusy(false); }
+  };
+  return <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" onInteractOutside={event => { if (busy) event.preventDefault(); }} onEscapeKeyDown={event => { if (busy) event.preventDefault(); }}>
+    <DialogHeader><DialogTitle>{initial ? 'Editar creador' : 'Nuevo creador'}</DialogTitle><DialogDescription>Datos de contacto y condiciones de referido.</DialogDescription></DialogHeader>
+    <form onSubmit={submit} className="space-y-4"><fieldset disabled={busy} className="grid min-w-0 gap-3 sm:grid-cols-2">
+      {(['name', 'instagram', 'tiktok', 'email', 'phone', 'referral_code'] as const).map(key => <div key={key} className="space-y-1"><Label htmlFor={`creator-${key}`}>{{ name: 'Nombre', instagram: 'Instagram', tiktok: 'TikTok', email: 'Correo electrónico', phone: 'Teléfono', referral_code: 'Código de referido (opcional)' }[key]}</Label><Input id={`creator-${key}`} type={key === 'email' ? 'email' : 'text'} required={key === 'name'} maxLength={160} value={form[key]} onChange={event => setForm(previous => ({ ...previous, [key]: event.target.value }))} /></div>)}
+      {(['followers_ig', 'followers_tiktok'] as const).map(key => <div key={key} className="space-y-1"><Label htmlFor={`creator-${key}`}>{key === 'followers_ig' ? 'Seguidores de Instagram' : 'Seguidores de TikTok'}</Label><Input id={`creator-${key}`} type="number" min={0} max={2147483647} step={1} value={form[key]} onChange={event => setForm(previous => ({ ...previous, [key]: Number(event.target.value) }))} /></div>)}
+      <div className="space-y-1"><Label htmlFor="creator-status">Estado</Label><Select value={isActiveInfluencer(form.status) ? 'activo' : 'pausado'} disabled={busy} onValueChange={value => setForm(previous => ({ ...previous, status: value }))}><SelectTrigger id="creator-status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="activo">Activo</SelectItem><SelectItem value="pausado">Pausado</SelectItem></SelectContent></Select></div>
+      <div className="space-y-1"><Label htmlFor="creator-commission">Comisión</Label><Select value={form.commission_type} disabled={busy} onValueChange={value => setForm(previous => ({ ...previous, commission_type: value as Influencer['commission_type'] }))}><SelectTrigger id="creator-commission"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="porcentaje">Porcentaje de venta</SelectItem><SelectItem value="monto_fijo">Monto fijo por venta</SelectItem><SelectItem value="por_venta">Por venta concretada</SelectItem></SelectContent></Select></div>
+      {form.commission_type === 'porcentaje' ? <div className="space-y-1"><Label htmlFor="creator-percent">Porcentaje</Label><Input id="creator-percent" type="number" min={0} max={100} step="0.01" value={form.commission_percent} onChange={event => setForm(previous => ({ ...previous, commission_percent: Number(event.target.value) }))} /></div> : <div className="space-y-1"><Label htmlFor="creator-fixed">Monto (ARS)</Label><Input id="creator-fixed" type="number" min={0} step="0.01" value={form.commission_fixed_ars} onChange={event => setForm(previous => ({ ...previous, commission_fixed_ars: Number(event.target.value) }))} /></div>}
+    </fieldset>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button type="submit" disabled={busy}>{busy ? 'Guardando...' : 'Guardar creador'}</Button></form>
+  </DialogContent>;
 }

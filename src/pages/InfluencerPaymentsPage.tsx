@@ -1,146 +1,31 @@
-import { useState, useEffect } from "react";
-import { TrendingUp, DollarSign, Users, Award } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { listInfluencerSales, listPayouts, listInfluencers, listPayments, type InfluencerPayment, createPayment, processPayment } from "@/lib/influencersDB";
-import { toast } from "sonner";
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Wallet } from 'lucide-react';
+import { useOrg } from '@/lib/orgContext';
+import { listInfluencers, listInfluencerSales, listPayouts } from '@/lib/influencersDB';
+import PageHeader from '@/components/shared/PageHeader';
+import WorkspaceState from '@/components/shared/WorkspaceState';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
-/**
- * Pagos a Influencers — Gestión completa de liquidaciones y comisiones.
- * Sin mocks: datos reales desde Supabase.
- */
+const money = (value: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value);
 export default function InfluencerPaymentsPage() {
-  const [sales, setSales] = useState<any[]>([]);
-  const [payouts, setPayouts] = useState<any[]>([]);
-  const [influencers, setInfluencers] = useState<any[]>([]);
-  const [payments, setPayments] = useState<InfluencerPayment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-
-  const reload = async () => {
-    setLoading(true);
-    try {
-      const [s, p, inf, pmts] = await Promise.all([
-        listInfluencerSales(),
-        listPayouts(),
-        listInfluencers(),
-        listPayments()
-      ]);
-      setSales(s);
-      setPayouts(p);
-      setInfluencers(inf);
-      setPayments(pmts);
-    } catch {
-      setSales([]);
-      setPayouts([]);
-      setInfluencers([]);
-      setPayments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { reload(); }, []);
-
-  const filteredSales = sales.filter((r) => {
-    const q = search.toLowerCase();
-    return (r.influencer_name || "").toLowerCase().includes(q) || (r.sale_id || "").toLowerCase().includes(q);
+  const { activeOrg } = useOrg();
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('vista') === 'pagos' ? 'pagos' : 'comisiones';
+  const query = useQuery({ queryKey: ['influencer-settlements', activeOrg?.id], enabled: Boolean(activeOrg?.id), refetchOnWindowFocus: false,
+    queryFn: async () => { const [sales, payouts, creators] = await Promise.all([listInfluencerSales(), listPayouts(), listInfluencers(activeOrg!.id)]); return { sales, payouts, creators }; },
   });
-
-  const totalCommissions = sales.reduce((s, r) => s + Number(r.commission_ars || 0), 0);
-  const totalPaid = payouts.reduce((s, r) => s + Number(r.paid_amount || 0), 0);
-  const pendingSales = sales.filter((r) => !r.paid);
-  const pendingPayouts = payments.filter((p) => p.status === "pending" || p.status === "processing");
-  const completedPayouts = payments.filter((p) => p.status === "completed");
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-display font-semibold">Pagos a Influencers</h2>
-          <p className="text-sm text-muted-foreground">Liquidaciones y comisiones — datos reales del Core</p>
-        </div>
-        <Input placeholder="Buscar venta…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 w-64 text-sm" />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Comisiones Generadas</CardTitle></CardHeader><CardContent className="text-center"><p className="text-2xl font-display font-bold">${totalCommissions.toLocaleString("es-AR")}</p><p className="text-xs text-muted-foreground">{sales.length} ventas</p></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Pagos Realizados</CardTitle></CardHeader><CardContent className="text-center"><p className="text-2xl font-display font-bold">${totalPaid.toLocaleString("es-AR")}</p><p className="text-xs text-muted-foreground">{completedPayouts.length} pagos</p></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Pendientes</CardTitle></CardHeader><CardContent className="text-center"><p className="text-2xl font-display font-bold">{pendingSales.length}</p><p className="text-xs text-muted-foreground">ventas sin payout</p></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Tasa de Conversión</CardTitle></CardHeader><CardContent className="text-center"><p className="text-2xl font-display font-bold">{sales.length > 0 ? ((sales.filter((r) => r.paid).length / sales.length) * 100).toFixed(1) : 0}%</p><p className="text-xs text-muted-foreground">ventas pagadas</p></CardContent></Card>
-      </div>
-
-      {/* Historial de liquidaciones */}
-      <Card>
-        <CardHeader><CardTitle className="text-lg font-display font-semibold">Liquidaciones</CardTitle></CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Payout</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Influencer</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Monto</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Método</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Fecha</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {payouts.map((p) => (
-                  <tr key={p.id} className="hover:bg-muted">
-                    <td className="px-4 py-3 text-sm">{p.payout_id ? `LP-${p.payout_id.slice(0, 8)}` : "—"}</td>
-                    <td className="px-4 py-3 text-sm">{p.influencer_name || "—"}</td>
-                    <td className="px-4 py-3 text-sm">${Number(p.amount_ars || 0).toLocaleString("es-AR")}</td>
-                    <td className="px-4 py-3 text-sm">{p.payment_method === "transfer" ? "Transferencia" : p.payment_method === "card" ? "Tarjeta" : p.payment_method || "—"}</td>
-                    <td className="px-4 py-3 text-sm"><Badge variant={p.status === "paid" ? "secondary" : "outline"}>{p.status || "pendiente"}</Badge></td>
-                    <td className="px-4 py-3 text-sm">{p.paid_at || p.created_at || "—"}</td>
-                  </tr>
-                ))}
-                {payouts.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">Sin liquidaciones registradas.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Ventas con comisión */}
-      <Card>
-        <CardHeader><CardTitle className="text-lg font-display font-semibold">Ventas con Comisión</CardTitle></CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Venta</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Influencer</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Monto</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Comisión</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredSales.map((r) => (
-                  <tr key={r.id} className="hover:bg-muted">
-                    <td className="px-4 py-3 text-sm">{r.sale_id ? `V-${r.sale_id.slice(0, 8)}` : "—"}</td>
-                    <td className="px-4 py-3 text-sm">{r.influencer_name || "—"}</td>
-                    <td className="px-4 py-3 text-sm">${Number(r.sale_total_ars || 0).toLocaleString("es-AR")}</td>
-                    <td className="px-4 py-3 text-sm">${Number(r.commission_ars || 0).toLocaleString("es-AR")}</td>
-                    <td className="px-4 py-3 text-sm"><Badge variant={r.paid ? "secondary" : "default"}>{r.paid ? "Pagada" : "Pendiente"}</Badge></td>
-                  </tr>
-                ))}
-                {filteredSales.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-muted-foreground">Sin ventas atribuidas.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  if (query.isPending) return <WorkspaceState kind="initial-loading" title="Cargando comisiones y pagos" />;
+  if (query.isError) return <WorkspaceState kind="error-recoverable" title="No pudimos cargar las comisiones" actionLabel="Reintentar" onAction={() => void query.refetch()} />;
+  const { sales, payouts, creators } = query.data;
+  const names = new Map(creators.map(item => [item.id, item.name]));
+  const paid = payouts.reduce((sum, item) => sum + Number(item.amount_ars ?? 0), 0);
+  const pending = sales.filter(item => !item.paid).reduce((sum, item) => sum + Number(item.commission_ars ?? 0), 0);
+  return <div className="space-y-5"><PageHeader icon={Wallet} eyebrow="Nerqia · Influencers" title="Comisiones y pagos" />
+    <dl className="grid gap-4 border-y border-border py-5 sm:grid-cols-2"><div><dt className="text-sm text-muted-foreground">Comisiones pendientes</dt><dd className="mt-2 text-2xl font-semibold tabular-nums">{money(pending)}</dd></div><div><dt className="text-sm text-muted-foreground">Pagos registrados</dt><dd className="mt-2 text-2xl font-semibold tabular-nums">{money(paid)}</dd></div></dl>
+    <Tabs value={tab} onValueChange={value => setParams({ vista: value }, { replace: true })}><TabsList><TabsTrigger value="comisiones">Ventas con comisión</TabsTrigger><TabsTrigger value="pagos">Historial de pagos</TabsTrigger></TabsList></Tabs>
+    <div className="overflow-x-auto"><table className="w-full min-w-[540px] text-sm"><thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">Fecha</th><th className="p-3 text-right">{tab === 'pagos' ? 'Pago registrado' : 'Comisión'}</th><th className="p-3">{tab === 'pagos' ? 'Medio' : 'Estado'}</th></tr></thead><tbody className="divide-y divide-border">{(tab === 'pagos' ? payouts : sales).map(item => <tr key={item.id}><td className="py-4">{names.get(item.influencer_id) ?? 'Creador no disponible'}</td><td className="p-3">{new Date(item.paid_at || item.created_at).toLocaleDateString('es-AR')}</td><td className="p-3 text-right tabular-nums">{money(Number(tab === 'pagos' ? item.amount_ars : item.commission_ars))}</td><td className="p-3">{tab === 'pagos' ? ({ transferencia: 'Transferencia', transfer: 'Transferencia', efectivo: 'Efectivo', cash: 'Efectivo', mercadopago: 'Mercado Pago' }[item.payment_method] ?? 'Otro medio') : <Badge variant="outline">{item.paid ? 'Liquidada' : 'Pendiente'}</Badge>}</td></tr>)}</tbody></table></div>
+    {(tab === 'pagos' ? payouts : sales).length === 0 && <WorkspaceState kind="empty-first-use" title={tab === 'pagos' ? 'Sin pagos registrados' : 'Sin ventas atribuidas'} />}
+  </div>;
 }

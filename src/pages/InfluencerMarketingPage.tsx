@@ -1,262 +1,40 @@
-import { useState, useEffect } from "react";
-import { Activity, ArrowRightLeft, Store, TrendingUp, Users, Sparkles, BarChart3, CheckCircle2, ShieldCheck, FileText, Calendar, DollarSign, Shield, Target, TrendingDown } from "lucide-react";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import InfluencerExchangesPage from "./InfluencerExchangesPage";
-import CreatorDiscoveryPage from "./CreatorDiscoveryPage";
-import { listInfluencers, listPayouts, listInfluencerContracts, listBrandPortals } from "@/lib/influencersDB";
-import InfluencerContractsPage from "./InfluencerContractsPage";
-import InfluencerPaymentsPage from "./InfluencerPaymentsPage";
-import InfluencerDeliverablesPage from "./InfluencerDeliverablesPage";
-import InfluencerBrandPortalPage from "./InfluencerBrandPortalPage";
-import { listInfluencerSales, listPayouts as listInfluencerPayouts } from "@/lib/influencersDB";
-import { calcInfluencerROI, calcCPM, calcFulfillmentRate } from "@/lib/businessCalc";
+import { Link } from 'react-router-dom';
+import { ArrowRight, ClipboardList, Gift, Plus, Target, Users, Wallet } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useOrg } from '@/lib/orgContext';
+import { useModulePerms } from '@/lib/permissionsContext';
+import { isActiveInfluencer, listInfluencers } from '@/lib/influencersDB';
+import { useInfluencerCampaigns } from '@/hooks/useInfluencerCampaigns';
+import { CAMPAIGN_STATUSES } from '@/lib/influencerCampaignsDB';
+import PageHeader from '@/components/shared/PageHeader';
+import WorkspaceState from '@/components/shared/WorkspaceState';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
-/**
- * Plataforma de Influencer Marketing — independiente como Go-Marz.
- * Sin mocks ni simulaciones: cada métrica se obtiene desde el Core de Supabase.
- */
 export default function InfluencerMarketingPage() {
-  const [activeTab, setActiveTab] = useState<string>("overview");
-  const [overviewData, setOverviewData] = useState<any>(null);
-  const [metricsData, setMetricsData] = useState<any>(null);
-
-  useEffect(() => {
-    const loadOverview = async () => {
-      try {
-        const [influencers, payouts, contracts, brandPortals] = await Promise.all([
-          listInfluencers(),
-          listPayouts(),
-          listInfluencerContracts(),
-          listBrandPortals(),
-        ]);
-        setOverviewData({ influencers, payouts, contracts, brandPortals });
-      } catch (e) {
-        console.error("Error loading influencer overview:", e);
-      }
-    };
-    const loadMetrics = async () => {
-      try {
-        const [sales, payouts] = await Promise.all([
-          listInfluencerSales(),
-          listPayouts(),
-        ]);
-        const totalInversion = sales.reduce((s, r) => s + Number(r.commission_ars || 0), 0);
-        const totalSalesGenerated = sales.reduce((s, r) => s + Number(r.sale_total_ars || 0), 0);
-        const totalPaid = payouts.reduce((s, r) => s + Number(r.amount_ars || 0), 0);
-        const fulfilled = sales.filter((r: any) => r.paid).length;
-        const total = sales.length;
-        const roi = total > 0 ? calcInfluencerROI(totalSalesGenerated, totalInversion) : null;
-        const cpm = calcCPM(totalInversion, sales.reduce((s, r) => s + (r.impressions || 0), 0));
-        const fulfillmentRate = total > 0 ? calcFulfillmentRate(fulfilled, total) : 0;
-        setMetricsData({ totalInversion, totalSalesGenerated, totalPaid, roi, cpm, fulfillmentRate, total, fulfilled });
-      } catch (e) {
-        console.error("Error loading influencer metrics:", e);
-      }
-    };
-    loadOverview();
-    loadMetrics();
-  }, []);
-
-  const totalInfluencers = overviewData?.influencers?.length || 0;
-  const totalActiveCampaigns = overviewData?.contracts?.filter((c: any) => c.status === "active").length || 0;
-  const totalSignedContracts = overviewData?.contracts?.filter((c: any) => c.is_signed).length || 0;
-  const totalPayouts = overviewData?.payouts?.length || 0;
-  const totalContractValue = overviewData?.contracts?.reduce((s: number, c: any) => s + Number(c.contract_amount || 0), 0) || 0;
-  const totalSalesGenerated = metricsData?.totalSalesGenerated || 0;
-  const totalPaid = metricsData?.totalPaid || 0;
-  const fulfillmentRate = metricsData?.fulfillmentRate || 0;
-  const roi = metricsData?.roi;
-  const cpm = metricsData?.cpm;
-
-  const tabs = [
-    { id: "overview", label: "Resumen", icon: Store },
-    { id: "influencers", label: "Influencers", icon: Users },
-    { id: "canjes", label: "Canjes", icon: ArrowRightLeft },
-    { id: "analytics", label: "Analítica", icon: Activity },
-    { id: "contratos", label: "Contratos", icon: FileText },
-    { id: "entregables", label: "Entregables", icon: Calendar },
-    { id: "pagos", label: "Pagos", icon: DollarSign },
-    { id: "brand", label: "Portal de Marca", icon: Shield },
-    { id: "liquidaciones", label: "Liq. Influencers", icon: Shield },
+  const { activeOrg } = useOrg();
+  const { canCreate } = useModulePerms('influencers');
+  const campaigns = useInfluencerCampaigns();
+  const creators = useQuery({ queryKey: ['influencer-creators', activeOrg?.id], queryFn: () => listInfluencers(activeOrg!.id), enabled: Boolean(activeOrg?.id), refetchOnWindowFocus: false });
+  if (campaigns.isPending || creators.isPending) return <WorkspaceState kind="initial-loading" title="Cargando Influencers" />;
+  if (campaigns.isError || creators.isError) return <WorkspaceState kind="error-recoverable" title="No pudimos cargar el resumen" actionLabel="Reintentar" onAction={() => { void campaigns.refetch(); void creators.refetch(); }} />;
+  const rows = campaigns.data ?? [];
+  const active = rows.filter(item => item.status === 'active');
+  const budget = active.reduce((sum, item) => sum + Number(item.budget_ars), 0);
+  const metrics = [
+    { label: 'Campañas en curso', value: active.length.toLocaleString('es-AR'), icon: Target, color: 'text-primary' },
+    { label: 'Borradores', value: rows.filter(item => item.status === 'draft').length.toLocaleString('es-AR'), icon: ClipboardList, color: 'text-amber-700 dark:text-amber-300' },
+    { label: 'Creadores activos', value: (creators.data ?? []).filter(item => isActiveInfluencer(item.status)).length.toLocaleString('es-AR'), icon: Users, color: 'text-teal-700 dark:text-teal-300' },
+    { label: 'Presupuesto en curso', value: new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(budget), icon: Wallet, color: 'text-foreground' },
   ];
-
-  return (
-    <div className="space-y-6 pb-12">
-      {/* Header con branding Nerqia */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Marketing de Influencers</h1>
-          <p className="text-sm text-muted-foreground">
-            Plataforma separada de marketing — conectada al Core de datos, sin simulaciones.
-          </p>
-        </div>
-        <Button variant="default" size="sm" onClick={() => window.alert("Crear campaña con AI Brief — conectado a ai-brief-generator")}>
-          <Sparkles className="mr-2 h-3.5 w-3.5" /> Nueva Campaña con IA
-        </Button>
-      </div>
-
-      {/* Navegación interna de la plataforma */}
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {tabs.map((t) => (
-          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2 ${activeTab === t.id ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-            <t.icon className="h-4 w-4" />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab: Overview con datos reales */}
-      {activeTab === "overview" && (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardTitle className="text-sm font-medium">{totalInfluencers}</CardTitle>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Influencers Activos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardTitle className="text-sm font-medium">{totalActiveCampaigns}</CardTitle>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Campañas En Vivo</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardTitle className="text-sm font-medium">{totalSignedContracts}</CardTitle>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Contratos Firmados</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardTitle className="text-sm font-medium">ARS {totalContractValue.toLocaleString("es-AR")}</CardTitle>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Valor Total Contratos</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Tab: Influencers - Catálogo conectado al Core */}
-      {activeTab === "influencers" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Catálogo de Creadores</h2>
-          <CreatorDiscoveryPage />
-        </div>
-      )}
-
-      {/* Tab: Canjes - Integración con Core */}
-      {activeTab === "canjes" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Canjes con Influencers</h2>
-          <InfluencerExchangesPage />
-        </div>
-      )}
-
-      {/* Tab: Analytics - Métricas reales conectadas a Supabase */}
-      {activeTab === "analytics" && (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardTitle className="text-sm font-medium">ARS {totalSalesGenerated.toLocaleString("es-AR")}</CardTitle>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Ventas Atribuidas</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardTitle className="text-sm font-medium">ARS {totalPaid.toLocaleString("es-AR")}</CardTitle>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Pagos Realizados</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardTitle className="text-sm font-medium">{fulfillmentRate.toFixed(0)}%</CardTitle>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Tasa de Cumplimiento</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardTitle className="text-sm font-medium">{roi !== null ? `${roi > 0 ? '+' : ''}${roi.toFixed(1)}%` : '—'}</CardTitle>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">ROI</p>
-              </CardContent>
-            </Card>
-          </div>
-          {cpm !== null && cpm > 0 && (
-            <Card>
-              <CardTitle className="text-lg font-display font-semibold">CPM</CardTitle>
-              <CardContent>
-                <p className="text-2xl font-display font-bold">ARS {cpm.toLocaleString("es-AR")}</p>
-                <p className="text-xs text-muted-foreground">Costo por mil impresiones</p>
-              </CardContent>
-            </Card>
-          )}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardTitle className="text-lg font-display font-semibold">Distribución por Plataforma</CardTitle>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Datos reales conectados a influencersDB. Sin simulaciones.</p>
-                <div className="mt-4 flex gap-2">
-                  <Badge variant="outline">Instagram</Badge>
-                  <Badge variant="outline">TikTok</Badge>
-                  <Badge variant="outline">YouTube</Badge>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardTitle className="text-lg font-display font-semibold">Rendimiento General</CardTitle>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">ROI calculado sobre `influencer_sales`. Atribución por código de referencia.</p>
-                <div className="mt-4 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-teal-500" /> <span className="text-xs text-muted-foreground">Conectado a Supabase</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {/* Tab: Contratos */}
-      {activeTab === "contratos" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Contratos</h2>
-          <InfluencerContractsPage />
-        </div>
-      )}
-
-      {/* Tab: Entregables */}
-      {activeTab === "entregables" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Entregables</h2>
-          <InfluencerDeliverablesPage />
-        </div>
-      )}
-
-      {/* Tab: Pagos */}
-      {activeTab === "pagos" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Pagos a Influencers</h2>
-          <InfluencerPaymentsPage />
-        </div>
-      )}
-
-      {/* Tab: Brand Portal */}
-      {activeTab === "brand" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Portal de Marca</h2>
-          <InfluencerBrandPortalPage />
-        </div>
-      )}
-
-      {/* Tab: Liquidaciones */}
-      {activeTab === "liquidaciones" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-display font-semibold">Liquidaciones de Influencers</h2>
-          <div className="rounded-xl border border-border/40 bg-card p-6">
-            <p className="text-muted-foreground">Módulo de liquidaciones integrado con `InfluencerPaymentsPage`.</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return <div className="space-y-7">
+    <PageHeader icon={Target} eyebrow="Nerqia · Influencers" title="Resumen" actions={canCreate && <Button asChild><Link to="/influencer-marketing/campanas?nueva=1"><Plus className="mr-2 h-4 w-4" />Nueva campaña</Link></Button>} />
+    <dl className="grid grid-cols-1 gap-5 border-y border-border py-5 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(metric => <div key={metric.label} className="min-w-0"><dt className="flex items-center gap-2 text-xs text-muted-foreground"><metric.icon className={`h-4 w-4 ${metric.color}`} />{metric.label}</dt><dd className="mt-2 break-words text-2xl font-semibold tabular-nums">{metric.value}</dd></div>)}</dl>
+    <section aria-labelledby="recent-campaigns"><div className="mb-4 flex items-center justify-between gap-3"><h2 id="recent-campaigns" className="text-base font-semibold">Campañas recientes</h2><Button asChild variant="ghost" size="sm"><Link to="/influencer-marketing/campanas">Ver todas<ArrowRight className="ml-2 h-4 w-4" /></Link></Button></div>
+      {!rows.length ? <WorkspaceState kind="empty-first-use" title="Todavía no hay campañas" /> : <div className="divide-y divide-border">{rows.slice(0, 6).map(item => <Link key={item.id} to={`/influencer-marketing/campanas?campana=${item.id}`} className="flex items-center gap-3 py-4 hover:bg-muted/20"><Target className="h-5 w-5 shrink-0 text-primary" /><div className="min-w-0 flex-1"><p className="break-words text-sm font-medium">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.influencer_campaign_creators.length} creadores asignados</p></div><Badge variant="outline">{CAMPAIGN_STATUSES[item.status]}</Badge><ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" /></Link>)}</div>}
+    </section>
+    <nav aria-label="Operación de creadores" className="grid gap-3 border-t border-border pt-5 sm:grid-cols-3">{[
+      { to: 'creadores', label: 'Directorio de creadores', icon: Users }, { to: 'canjes', label: 'Canjes de productos', icon: Gift }, { to: 'pagos', label: 'Comisiones y pagos', icon: Wallet },
+    ].map(item => <Button key={item.to} variant="outline" asChild className="h-auto min-h-11 justify-start whitespace-normal text-left"><Link to={`/influencer-marketing/${item.to}`}><item.icon className="mr-2 h-4 w-4 shrink-0" />{item.label}</Link></Button>)}</nav>
+  </div>;
 }

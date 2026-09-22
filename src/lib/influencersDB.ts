@@ -35,12 +35,19 @@ export type InfluencerContract = {
   updated_at: string;
 };
 
+export function isActiveInfluencer(status: string) {
+  return status === 'active' || status === 'activo';
+}
+
 export type InfluencerDeliverable = {
   id: string;
   org_id: string;
   influencer_id: string;
   influencer_name: string;
   campaign_name: string;
+  campaign_id?: string | null;
+  content_url?: string | null;
+  review_notes?: string | null;
   description: string;
   due_date: string;
   status: 'pendiente' | 'en_progreso' | 'completado' | 'entregado';
@@ -106,17 +113,17 @@ export async function createContract(payload: Partial<InfluencerContract> & { or
 }
 
 export async function updateContract(id: string, updates: Partial<InfluencerContract>) {
-  const { error } = await sb.from('influencer_contracts').update(updates).eq('id', id);
+  const { error } = await sb.from('influencer_contracts').update(updates).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
 export async function signContract(id: string): Promise<void> {
-  const { error } = await sb.from('influencer_contracts').update({ is_signed: true, updated_at: new Date().toISOString() }).eq('id', id);
+  const { error } = await sb.from('influencer_contracts').update({ is_signed: true, updated_at: new Date().toISOString() }).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
 export async function deleteContract(id: string): Promise<void> {
-  const { error } = await sb.from('influencer_contracts').delete().eq('id', id);
+  const { error } = await sb.from('influencer_contracts').delete().eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
@@ -143,17 +150,17 @@ export async function createDeliverable(payload: Partial<InfluencerDeliverable> 
 }
 
 export async function updateDeliverable(id: string, updates: Partial<InfluencerDeliverable>) {
-  const { error } = await sb.from('influencer_deliverables').update(updates).eq('id', id);
+  const { error } = await sb.from('influencer_deliverables').update(updates).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
 export async function completeDeliverable(id: string): Promise<void> {
-  const { error } = await sb.from('influencer_deliverables').update({ status: 'completado', delivery_date: new Date().toISOString() }).eq('id', id);
+  const { error } = await sb.from('influencer_deliverables').update({ status: 'completado', delivery_date: new Date().toISOString() }).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
 export async function deleteDeliverable(id: string): Promise<void> {
-  const { error } = await sb.from('influencer_deliverables').delete().eq('id', id);
+  const { error } = await sb.from('influencer_deliverables').delete().eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
@@ -173,13 +180,12 @@ export async function createPayment(payload: Partial<InfluencerPayment> & { org_
 }
 
 export async function updatePayment(id: string, updates: Partial<InfluencerPayment>) {
-  const { error } = await sb.from('influencer_payments').update(updates).eq('id', id);
+  const { error } = await sb.from('influencer_payments').update(updates).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
 export async function processPayment(id: string): Promise<void> {
-  const { error } = await sb.from('influencer_payments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
-  if (error) throw error;
+  throw new Error('Los pagos requieren un proveedor conectado y confirmación del servidor.');
 }
 
 /** ─── Brand Portal ─── */
@@ -198,18 +204,17 @@ export async function createBrandPortal(payload: Partial<BrandPortalProfile> & {
 }
 
 export async function updateBrandPortal(id: string, updates: Partial<BrandPortalProfile>) {
-  const { error } = await sb.from('brand_portal_profiles').update(updates).eq('id', id);
+  const { error } = await sb.from('brand_portal_profiles').update(updates).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
 export async function deleteBrandPortal(id: string): Promise<void> {
-  const { error } = await sb.from('brand_portal_profiles').delete().eq('id', id);
+  const { error } = await sb.from('brand_portal_profiles').delete().eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
 /** ─── Influencers (CRUD básico) ─── */
-export async function listInfluencers(): Promise<Influencer[]> {
-  const orgId = requireActiveOrgId();
+export async function listInfluencers(orgId = requireActiveOrgId()): Promise<Influencer[]> {
   const { data, error } = await sb.from('influencers').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as Influencer[];
@@ -223,12 +228,12 @@ export async function createInfluencer(payload: Partial<Influencer> & { org_id: 
 }
 
 export async function updateInfluencer(id: string, updates: Partial<Influencer>) {
-  const { error } = await sb.from('influencers').update(updates).eq('id', id);
+  const { error } = await sb.from('influencers').update(updates).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 
 export async function deleteInfluencer(id: string): Promise<void> {
-  const { error } = await sb.from('influencers').delete().eq('id', id);
+  const { error } = await sb.from('influencers').delete().eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
 }
 

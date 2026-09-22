@@ -142,7 +142,7 @@ describe("estructura de la navegación", () => {
   });
 
   it("Finance tiene navegación propia y buscable", () => {
-    expect(PRODUCT_NAV_ITEMS.map(i => i.to)).toEqual([
+    expect(PRODUCT_NAV_ITEMS.filter(i => i.to.startsWith('/finance')).map(i => i.to)).toEqual([
       "/finance",
       "/finance/documentos",
       "/finance/gastos",
@@ -160,8 +160,6 @@ describe("estructura de la navegación", () => {
       "/whatsapp-campaigns",
       "/fidelidad",
       "/catalogo",
-      "/influencers",
-      "/canjes",
       "/afiliados",
       "/referidos",
     ]);

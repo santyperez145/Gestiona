@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-10. **Estado:** documento rector de producto y ejecución.
+**Corte:** 2026-09-21. **Estado:** documento rector de producto y ejecución.
 La historia de entregas vive en Git; este archivo conserva únicamente el estado
 actual, las decisiones vigentes y el trabajo siguiente.
 
@@ -289,15 +289,20 @@ Estos puntos no se cierran con más código:
 6. **Merchant analytics:** adquisición, embudo, margen y cohortes accionables.
 7. **Prueba real:** dos tiendas, segundo comercio y primera venta completa.
 
-### P2 — Localización Admin/Finance/Influencers/Marketing
+### P2 — Influencers y localización
 
-La plataforma de marketing e influencer marketing está desarrollada y se vuelve a lado del negocio con sidebar y colores propios, diseño propio acorde a lo que hace o como es go.marz, todo bien completo aparte debe salir en el sidebar normal de bussiness con el link de redireccion a esta otra plataforma tal como tienene finance o platform, abajo de todo.
+Prioridad actual: recuperar y completar la superficie Influencers con referencia
+verificada de [GoMarz](https://www.go-marz.com/), sin clonar identidades ni pagos.
+El relevamiento detectó rutas fuera del router, tablas no desplegadas, creadores
+de ejemplo, lanzamientos simulados y métricas incorrectas: no estaba completa.
 
-**Pendiente:**
-- **admin-localization-audit:** auditoría de textos en inglés e IDs visibles en Admin y superficies internas.
-- **admin-human-readable:** reemplazar IDs visibles por nombres humanos y traducir etiquetas/estados/acciones.
-- **platform-localization-audit:** auditar Finance, Influencers y Marketing para textos sin localizar.
-- **localization-guards:** agregar guardas y pruebas para impedir IDs visibles y cadenas inglesas críticas.
+- Base operativa: rutas propias, directorio único, campañas persistentes con
+  selección real, versiones, permisos y auditoría; contratos y entregables internos.
+- Siguiente: invitaciones/ofertas, aceptación, chat, revisión audiovisual y
+  publicación verificable; después liquidación integrada con Finance.
+- No certificar pagos, firmas, notificaciones ni resultados sociales sin evidencia.
+- Localización: mantener etiquetas humanas y ampliar pruebas de controles/roles.
+- Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
 
 ### P2 — Finance Mendel-class
 
@@ -354,10 +359,10 @@ Auditorías completas y correcciones aplicadas:
 | Finance | "Nerqia Finance", "Supplier Invoice Draft", "Budget Pulse" | ✅ Corregido: "Nerqia / Documentos", "Borrador de factura de proveedor", "Pulso del presupuesto" |
 | Finance | Estados técnicos en inglés en Solicitudes | ✅ Corregido: "en revisión", "aprobado", "rechazado" |
 | Bank Reconciliation | Estados/métodos técnicos: pending, exact, oauth, csv, etc. | ✅ Corregido: statusLabel(), matchTypeLabel(), connectionTypeLabel() |
-| Influencer Marketing | "Influencer Marketing", "Analytics", "Brand Portal", "Dashboard", "Payout", "Ventas atr." | ✅ Corregido: "Marketing de Influencers", "Analítica", "Portal de Marca", "Panel de Control", "Liquidación", "Ventas atribuidas" |
-| Influencer Payments | payment_method sin traducir | ✅ Corregido: "Transferencia", "Tarjeta" |
+| Influencers | Rutas, etiquetas, métricas y acciones aparentes | Relevamiento 21/09: reemplazo de asistentes simulados; detalle y pendientes en `docs/INFLUENCERS.md`. |
 
-Typecheck, lint, tests y build verificados: ✅ PASSED (build 15.7s, exit code 0)
+La verificación de cada corte debe referirse al commit y sus pruebas; una auditoría
+de textos no certifica el funcionamiento de toda la plataforma.
 
 ## 7. Definition of Done
 

@@ -369,6 +369,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {!effectiveCollapsed && <span>Nerqia Finance</span>}
             </Link>
           )}
+          {role === 'admin' && forModule('influencers').canView && (
+            <Link to="/influencer-marketing" title={effectiveCollapsed ? 'Nerqia Influencers' : undefined}
+              className={`flex w-full items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-500/10 dark:text-amber-300 ${effectiveCollapsed ? 'justify-center' : ''}`}>
+              <Users className="h-3.5 w-3.5 shrink-0" />
+              {!effectiveCollapsed && <span>Nerqia Influencers</span>}
+            </Link>
+          )}
           {isPlatformAdmin && (
             <Link
               to="/platform"

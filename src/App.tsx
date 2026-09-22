@@ -230,8 +230,19 @@ function FinanceRoutes() {
 function InfluencerMarketingRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { activeOrg, activeRole, platformRole, loading: orgLoading } = useOrg();
+  const [mfaPolicy, setMfaPolicy] = useState<{ orgId: string; required: boolean } | null>(null);
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    let cancelled = false;
+    const orgId = activeOrg.id;
+    supabase.from('settings').select('mfa_required').eq('org_id', orgId).maybeSingle().then(
+      ({ data, error }) => { if (!cancelled) setMfaPolicy({ orgId, required: error ? true : Boolean(data?.mfa_required) }); },
+      () => { if (!cancelled) setMfaPolicy({ orgId, required: true }); },
+    );
+    return () => { cancelled = true; };
+  }, [activeOrg?.id]);
 
-  if (authLoading || orgLoading) return <AppLoader label="Verificando acceso a Influencer Marketing..." />;
+  if (authLoading || orgLoading || (activeOrg && mfaPolicy?.orgId !== activeOrg.id)) return <AppLoader label="Verificando acceso a Influencers..." />;
   if (!user) return <AuthPage />;
   if (!activeOrg || !activeRole) {
     return platformRole ? <Navigate to="/platform" replace /> : <ViewerGate />;
@@ -241,9 +252,9 @@ function InfluencerMarketingRoutes() {
   const childRoutes = routes.filter(route => route.path !== "/influencer-marketing");
 
   return (
-    <MfaGate isAdmin={activeRole === 'owner' || activeRole === 'admin'} orgRequiresMfa={false}>
+    <MfaGate isAdmin={activeRole === 'owner' || activeRole === 'admin'} orgRequiresMfa={mfaPolicy?.required ?? true}>
       <PermissionsProvider>
-        <InfluencerMarketingLayout>
+        <InfluencerMarketingLayout key={activeOrg.id + ':' + activeRole}>
           <InfluencerMarketingGate>
             <Suspense fallback={<PageLoader />}>
               <Routes>
@@ -251,7 +262,7 @@ function InfluencerMarketingRoutes() {
                 {childRoutes.map(route => (
                   <Route
                     key={route.id}
-                    path={route.path.slice("/influencer-marketing".length)}
+                    path={route.path.slice("/influencer-marketing/".length)}
                     element={route.component ? <route.component /> : <Navigate to="/influencer-marketing" replace />}
                   />
                 ))}

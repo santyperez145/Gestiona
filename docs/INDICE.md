@@ -19,6 +19,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [Estrategia](ESTRATEGIA.md): categoría, benchmarks y secuencia.
 - [Arquitectura](ARQUITECTURA.md): autoridades, límites y seguridad.
 - [Capacidad Finance](FINANCE.md): contrato de producto y paridad Mendel-class.
+- [Influencers](INFLUENCERS.md): alcance real, referencia GoMarz y pendientes.
 - [Economics](ECONOMICS.md): monetización y métricas.
 - [Inversores](INVERSORES.md): tesis y narrativa.
 - [Activación y cohortes](ACTIVACION_COHORTES.md): adopción y medición.
