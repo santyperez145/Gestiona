@@ -21,8 +21,13 @@ serve(async (req) => {
     return json({ error: "Método no permitido" }, 405);
   }
 
-  const { user, supabase, error: authError } = await requireUser(req);
-  if (authError) return authError;
+  const auth = await requireUser(req, corsHeaders);
+  if (auth.response) return auth.response;
+  const user = auth.user;
+
+  const supabaseUrl = requireEnv("SUPABASE_URL");
+  const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const supabase = createClient(supabaseUrl, serviceKey);
 
   const orgId = req.headers.get("x-org-id") ?? "";
   if (!orgId) return json({ error: "Falta organización" }, 400);
@@ -40,7 +45,6 @@ serve(async (req) => {
   const credentials = await getMpCredentials(supabase, orgId);
   if (!credentials) return json({ error: "Mercado Pago no conectado" }, 400);
 
-  const supabaseUrl = requireEnv("SUPABASE_URL");
   const mpBase = "https://api.mercadopago.com/v1";
 
   if (req.method === "GET") {
@@ -190,4 +194,6 @@ serve(async (req) => {
 
     return json({ ok: true });
   }
+
+  return json({ error: "Método no permitido" }, 405);
 });

@@ -265,9 +265,10 @@ serve(async (req) => {
   }
 
   const auth = await requireUser(req, corsHeaders);
-  if (!auth.ok) {
+  if (auth.response) {
     return auth.response;
   }
+  const user = auth.user;
 
   const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!anthropicApiKey) {
@@ -335,10 +336,10 @@ Incluí título, audiencia, hook, CTA, KPIs SMART, asignación presupuestaria qu
       system: systemPrompt,
     });
 
-    const toolBlock = message.content.find(
-      (block): block is ToolUseBlock => block.type === "tool_use",
+    const toolBlock = (message.content as Array<{ type: string; name?: string; input?: unknown }>).find(
+      (block) => block.type === "tool_use",
     );
-    if (toolBlock?.name !== "emit_campaign_brief") {
+    if (!toolBlock || toolBlock.name !== "emit_campaign_brief") {
       throw new Error("Anthropic did not return the campaign brief tool");
     }
 
@@ -349,7 +350,7 @@ Incluí título, audiencia, hook, CTA, KPIs SMART, asignación presupuestaria qu
 
     await registrarConsumoIA({
       orgId,
-      userId: auth.user.id,
+      userId: user.id,
       model: message.model,
       input: message.usage?.input_tokens,
       output: message.usage?.output_tokens,
