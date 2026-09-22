@@ -126,7 +126,7 @@ export default function FinanceSolicitudesPage() {
         p_currency: newRequest.currency,
         p_category: newRequest.category,
         p_cost_center: newRequest.cost_center,
-        p_motivo: newRequest.motive,
+        p_motive: newRequest.motive,
       });
       if (error) throw error;
       setNotice(`Solicitud creada: ${data?.id ?? "ok"}`);
