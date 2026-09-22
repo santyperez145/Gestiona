@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Camera, Instagram, TikTok, MapPin, Mail, Calendar, Star, TrendingUp, Users, Target, Award } from "lucide-react";
+import { Camera, Instagram, MapPin, Mail, Calendar, Star, TrendingUp, Users, Target, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,7 +65,7 @@ export default function InfluencerProfilePage() {
   }
 
   const tierLabel = { nano: "Nano", micro: "Micro", medio: "Medio", macro: "Macro" }[profile.tier];
-  const isActive = profile.status === 'active' || profile.status === 'activo';
+  const isActive = profile.status === 'active';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50/40 to-card text-foreground">
@@ -88,7 +88,7 @@ export default function InfluencerProfilePage() {
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1"><Instagram className="w-4 h-4" />{profile.instagram}</span>
-                {profile.tiktok && <span className="flex items-center gap-1"><TikTok className="w-4 h-4" />{profile.tiktok}</span>}
+                {profile.tiktok && <span className="flex items-center gap-1"><Instagram className="w-4 h-4" />{profile.tiktok}</span>}
                 <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />Argentina</span>
                 <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />Registrado {new Date(profile.created_at).toLocaleDateString('es-AR')}</span>
               </div>
