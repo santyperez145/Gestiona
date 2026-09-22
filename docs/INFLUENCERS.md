@@ -51,8 +51,8 @@ La inspección productiva encontró ausentes las tablas propuestas el 17/09.
 duplicar pagos históricos. `influencer_payments` y `brand_portal_profiles` quedan
 como compatibilidad de esquema; no son nuevas autoridades de la UI.
 
-Las migraciones nuevas son `20260921000100`, `20260921000110` y
-`20260921000120`. La verificación reversible
+Las migraciones nuevas son `20260921000100`, `20260921000110`,
+`20260921000120` y `20260922000100_influencer_public_profile.sql`. La verificación reversible
 `supabase/verificaciones/20260921_influencer_campaigns.sql` cubre ciclo de campaña,
 idempotencia, conflicto de edición, aislamiento, roles, overrides y aprobación con
 evidencia; termina en rollback y comprueba cero organizaciones de prueba.

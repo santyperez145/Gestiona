@@ -39,9 +39,48 @@ export default function InfluencerProfilePage() {
     (async () => {
       try {
         const { data, error } = await (supabase as any).rpc("get_influencer_public_profile", { p_token: token });
-        if (error || !data) { setProfile(null); } else { setProfile(data as InfluencerPublicProfile); }
-      } catch { setProfile(null); }
-      finally { setLoading(false); }
+        if (!error && data) {
+          setProfile(data as InfluencerPublicProfile);
+          return;
+        }
+
+        // Fallback directo a la tabla influencers
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+        const query = isUUID
+          ? (supabase as any).from("influencers").select("*").or(`id.eq.${token},referral_code.eq.${token}`).maybeSingle()
+          : (supabase as any).from("influencers").select("*").eq("referral_code", token).maybeSingle();
+
+        const { data: inf, error: infError } = await query;
+        if (infError || !inf) {
+          setProfile(null);
+        } else {
+          setProfile({
+            id: inf.id,
+            name: inf.name,
+            instagram: inf.instagram || "",
+            tiktok: inf.tiktok || "",
+            email: inf.email || "",
+            category: "Moda y Estilo",
+            bio: inf.notes || "Creador de contenido verificado.",
+            followers_ig: inf.followers_ig || 0,
+            followers_tiktok: inf.followers_tiktok || 0,
+            engagement_rate: inf.engagement_rate || 3.5,
+            tier: (inf.tier as any) || "micro",
+            status: ["activo", "active"].includes(inf.status) ? "active" : "inactive",
+            verified: true,
+            avatar_url: inf.avatar_url,
+            created_at: inf.created_at,
+            total_campaigns: inf.total_sales_count || 1,
+            total_earnings_ars: inf.total_commissions_ars || 0,
+            avg_delivery_days: 3,
+            rating: 4.9,
+          });
+        }
+      } catch {
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [token]);
 

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, Sparkles, TrendingUp, BarChart3, CheckCircle2, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Filter, Sparkles, TrendingUp, BarChart3, CheckCircle2, ShieldCheck, UserCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { listInfluencers, type Influencer } from "@/lib/influencersDB";
 
 export default function CreatorDiscoveryPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [platform, setPlatform] = useState("Todas");
   const [minEngagement, setMinEngagement] = useState(0);
@@ -19,7 +21,7 @@ export default function CreatorDiscoveryPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    let list = creators.filter((c) => {
+    const list = creators.filter((c) => {
       const matchSearch = !search || (c.name || "").toLowerCase().includes(search.toLowerCase()) || (c.instagram || "").toLowerCase().includes(search.toLowerCase());
       const matchPlatform = platform === "Todas" || (c.instagram && platform === "Instagram") || (c.tiktok && platform === "TikTok");
       const matchEngagement = (c.engagement_rate || 0) >= minEngagement;
@@ -38,8 +40,8 @@ export default function CreatorDiscoveryPage() {
           <h1 className="text-2xl font-display font-bold">Descubrimiento de Creadores</h1>
           <p className="text-sm text-muted-foreground">Catálogo conectado al Core (tabla <code>influencers</code>, RLS por org_id).</p>
         </div>
-        <Button variant="outline" size="sm" className="self-start sm:self-auto" onClick={() => window.alert("Generar Brief con IA — integrada con ai-brief-generator (edge function Anthropic)")}>
-          <Sparkles className="mr-2 h-3.5 w-3.5" /> Generar Brief con IA
+        <Button variant="outline" size="sm" className="self-start sm:self-auto" onClick={() => navigate("/influencer-marketing/campanas?nueva=1")}>
+          <Sparkles className="mr-2 h-3.5 w-3.5" /> Crear Campaña
         </Button>
       </div>
 
@@ -90,8 +92,8 @@ export default function CreatorDiscoveryPage() {
                 <span className="text-muted-foreground">Ventas: <strong className="text-foreground">{c.total_sales_count || 0}</strong></span>
               </div>
               <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="default" className="flex-1 text-xs h-8" onClick={() => alert("Invitar — conectado a influencersDB (creación de campaña)")}>Invitar</Button>
-                <Button size="sm" variant="outline" className="flex-1 text-xs h-8">Perfil</Button>
+                <Button size="sm" variant="default" className="flex-1 text-xs h-8" onClick={() => navigate(`/influencer-marketing/campanas?nueva=1`)}>Invitar</Button>
+                <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={() => navigate(`/influencer/${c.referral_code || c.id}`)}>Perfil</Button>
               </div>
             </CardContent>
           </Card>

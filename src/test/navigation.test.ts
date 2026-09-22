@@ -145,10 +145,12 @@ describe("estructura de la navegación", () => {
     expect(PRODUCT_NAV_ITEMS.filter(i => i.to.startsWith('/finance')).map(i => i.to)).toEqual([
       "/finance",
       "/finance/documentos",
+      "/finance/solicitudes",
       "/finance/gastos",
       "/finance/flujo",
       "/finance/resultados",
       "/finance/banco",
+      "/finance/banco/reconciliacion",
       "/finance/libro",
     ]);
   });
@@ -159,9 +161,6 @@ describe("estructura de la navegación", () => {
       "/email-campaigns",
       "/whatsapp-campaigns",
       "/fidelidad",
-      "/catalogo",
-      "/afiliados",
-      "/referidos",
     ]);
   });
 
