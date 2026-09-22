@@ -244,6 +244,15 @@ export async function findInfluencerByCode(referralCode: string): Promise<Influe
   return data as Influencer;
 }
 
+export async function createInfluencerProfile(payload: Partial<Influencer> & { org_id?: string }) {
+  return await createInfluencer({ ...payload, user_id: 'system', org_id: payload.org_id || requireActiveOrgId() });
+}
+
+export async function verifyInfluencerDocument(influencerId: string, verified: boolean) {
+  const updates: Partial<Influencer> = { status: verified ? 'verified' : 'rejected' };
+  return await updateInfluencer(influencerId, updates);
+}
+
 /** ─── Influencer Sales (para campañas) ─── */
 export async function listInfluencerSales(influencerId?: string): Promise<any[]> {
   const orgId = requireActiveOrgId();
