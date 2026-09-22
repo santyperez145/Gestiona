@@ -1160,8 +1160,7 @@ export default function POSPage() {
       const own = JSON.parse(localStorage.getItem(offlineKey) || "[]");
       const ownIds = new Set(own.map((sale: any) => sale?.id).filter(Boolean));
       const merged = [...own];
-      // Se mantiene la clave de la organización activa; la migración de legacy
-      // se retiró porque el POS opera exclusivamente con `offlineKey` actual.
+      // Se mantiene la clave de la organización activa; la migración de legacy se retiró porque el POS opera exclusivamente con `offlineKey` actual.
       setOfflineSales(merged);
       setOfflineStorageError(null);
     } catch (error) {

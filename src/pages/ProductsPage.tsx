@@ -1698,6 +1698,7 @@ export default function ProductsPage() {
                   name: p.name,
                   brand: p.brand,
                   category: nombreCategoria(p.category) || 'Sin categoría',
+                  category_color: colorDeCategoria(p.category),
                   image_url: p.image_url,
                   sale_price_ars: Number(p.sale_price_ars) || 0,
                   discount_price_ars: p.discount_price_ars ? Number(p.discount_price_ars) : undefined,

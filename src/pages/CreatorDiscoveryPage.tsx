@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listInfluencers, type Influencer } from "@/lib/influencersDB";
 
 export default function CreatorDiscoveryPage() {
@@ -38,7 +39,7 @@ export default function CreatorDiscoveryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold">Descubrimiento de Creadores</h1>
-          <p className="text-sm text-muted-foreground">Catálogo conectado al Core (tabla <code>influencers</code>, RLS por org_id).</p>
+          <p className="text-sm text-muted-foreground">Los creadores de tu comercio, filtrados por plataforma y engagement.</p>
         </div>
         <Button variant="outline" size="sm" className="self-start sm:self-auto" onClick={() => navigate("/influencer-marketing/campanas?nueva=1")}>
           <Sparkles className="mr-2 h-3.5 w-3.5" /> Crear Campaña
@@ -58,9 +59,14 @@ export default function CreatorDiscoveryPage() {
         <div className="flex gap-2 items-center text-xs text-muted-foreground">
           <Filter className="h-3 w-3" />
           <span>Engagement ≥</span>
-          <select value={minEngagement} onChange={(e) => setMinEngagement(Number(e.target.value))} className="h-7 text-xs rounded-md border border-border bg-background px-1.5">
-            <option value={0}>0%</option><option value={3}>3%</option><option value={4}>4%</option><option value={5}>5%</option><option value={6}>6%</option>
-          </select>
+          <Select value={String(minEngagement)} onValueChange={(value) => setMinEngagement(Number(value))}>
+            <SelectTrigger className="h-8 w-20 text-xs" aria-label="Engagement mínimo"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[0, 3, 4, 5, 6].map((value) => (
+                <SelectItem key={value} value={String(value)}>{value}%</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="ml-auto text-xs text-muted-foreground">{filtered.length} resultados · {loading ? "cargando…" : "listo"}</div>
       </div>

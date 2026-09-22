@@ -82,9 +82,9 @@ describe("previewProductImportRow", () => {
     const row = buildProductImportRow({ Nombre: "Producto", Costo: 10, Stock: 3 });
     const preview = previewProductImportRow(row, params);
     expect(preview.totalCostUSD).toBeCloseTo(10);  // Ya incluye aduana en el costo, no se suma 15% aparte
-    expect(preview.salePriceARS).toBe(30_000);     // 10 * 1500 * 2
-    expect(preview.profitARS).toBe(20_000);
-    expect(preview.marginPercent).toBeCloseTo(66.67, 1);
+    expect(preview.salePriceARS).toBe(22_500);     // 10 USD * 1500 * (1 + 50%)
+    expect(preview.profitARS).toBe(7_500);         // 22.500 - 15.000 de costo
+    expect(preview.marginPercent).toBeCloseTo(33.33, 1);
   });
 
   it("señala stock fraccionario y costo ausente antes de enviar", () => {

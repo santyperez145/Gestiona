@@ -28,7 +28,7 @@ describe("idempotencia del checkout", () => {
 
   it("dos claves distintas corren en paralelo sin duplicar stock ni orden", () => {
     // C20 pendiente: certificar concurrencia con claves distintas.
-    expect(envoltorio).toContain("p_clave");
+    expect(envoltorio).toContain("p_idempotency_key");
     expect(envoltorio).toContain("idempotencia_reservar");
     expect(migracion).toContain("PRIMARY KEY (org_id, operacion, clave)");
   });

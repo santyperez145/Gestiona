@@ -1,276 +1,771 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+// Handles Mercado Pago IPN/webhook notifications (payment.created, payment.updated).
+// Verifies x-signature header, fetches payment details and updates payment_links + sales.
+// Register at: MP Developers → Tus aplicaciones → Webhooks → URL de notificación
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { requireEnv } from "../_shared/env.ts";
 import { getMpCredentials } from "../_shared/mpToken.ts";
+import {
+  fetchMercadoPagoOrder,
+  reconcileMercadoPagoPosQrOrder,
+} from "../_shared/mercadoPagoOrders.ts";
+import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
+import { providerAttemptState, recordPaymentAttempt } from "../_shared/paymentOrchestrator.ts";
+import { tokenDeLaPlataforma } from "../_shared/mpPlataforma.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-supabase-client-event-sig",
-};
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
-  // Verificar firma de webhook de Mercado Pago (formato oficial 2026)
-  // x-signature: id:DATA_ID;request-id:REQUEST_ID;ts:TIMESTAMP,v1:HMAC
-  const signature = req.headers.get("x-signature") ?? req.headers.get("x-signature-256");
-  const payload = await req.text();
-
-  const credentials = await getMpCredentials(
-    createClient(
-      requireEnv("SUPABASE_URL"),
-      requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-    ),
-    req.headers.get("x-org-id") ?? ""
-  );
-  if (!credentials) return json({ error: "Sin credenciales MP" }, 400);
-
-  const secret = credentials.webhook_secret ?? "";
-  if (secret && signature) {
-    try {
-      // Parsing del header según formato oficial: id:xxx;request-id:yyy;ts:zzz,v1:mmm
-      const parts = signature.split(",");
-      const tsPart = parts.find(p => p.startsWith("ts:"));
-      const v1Part = parts.find(p => p.startsWith("v1:"));
-
-      if (!tsPart || !v1Part) {
-        console.warn("Formato de firma de webhook MP no reconocido");
-      } else {
-        const ts = tsPart.split(":")[1];
-        const v1 = v1Part.split(":")[1];
-        // Construir el string a verificar: id:DATA_ID;request-id:REQUEST_ID;ts:TIMESTAMP;
-        const idPart = parts.find(p => p.startsWith("id:")) ?? "";
-        const requestIdPart = parts.find(p => p.startsWith("request-id:")) ?? "";
-        const stringToVerify = [idPart, requestIdPart, tsPart].filter(Boolean).join(";") + ";";
-
-        // HMAC-SHA256 con el secreto
-        const encoder = new TextEncoder();
-        const keyData = encoder.encode(secret);
-        const msgData = encoder.encode(stringToVerify);
-        const cryptoKey = await crypto.subtle.importKey(
-          "raw",
-          keyData,
-          { name: "HMAC", hash: "SHA-256" },
-          false,
-          ["sign"]
-        );
-        const signatureBytes = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
-        const computedV1 = Array.from(new Uint8Array(signatureBytes))
-          .map(b => b.toString(16).padStart(2, "0"))
-          .join("");
-
-        if (computedV1 !== v1) {
-          console.error("Firma webhook MP inválida", { computed: computedV1, received: v1 });
-          return json({ error: "Firma de webhook inválida" }, 401);
-        }
-      }
-    } catch (verifyError) {
-      console.error("Error verificando firma webhook:", verifyError);
-      return json({ error: "Error verificando firma" }, 401);
+/**
+ * Verifica la firma del webhook de MercadoPago.
+ *
+ * Header: `x-signature: ts=<epoch>,v1=<sha256hex>`
+ *
+ * El manifiesto que MP firma lleva **punto y coma final**:
+ *
+ *     id:<data.id>;request-id:<x-request-id>;ts:<epoch>;
+ *
+ * Acá se armaba sin ese último `;`. Un byte de diferencia da otro HMAC, así
+ * que **toda** notificación daba firma inválida y se respondía 401. Resultado:
+ * una compra real quedaba pagada y acreditada en MercadoPago y la orden se
+ * quedaba en "esperando el pago" para siempre, sin venta, sin descuento de
+ * stock y sin aparecer en los tableros.
+ *
+ * Se prueban las dos formas porque la documentación de MP cambió de redacción
+ * más de una vez y el costo de aceptar ambas es un HMAC más. Lo que no se
+ * afloja es la exigencia de firma: sin ella, cualquiera podría marcar pedidos
+ * como pagados.
+ */
+async function verifyMpSignature(
+  paymentId: string,
+  requestId: string,
+  signature: string,
+  secret: string,
+): Promise<boolean> {
+  try {
+    // `split("=")` parte de más si el valor trae "="; se corta en el primero.
+    // Y se recorta: MP a veces manda "ts=1, v1=abc" con espacio.
+    const parts: Record<string, string> = {};
+    for (const trozo of signature.split(",")) {
+      const i = trozo.indexOf("=");
+      if (i > 0) parts[trozo.slice(0, i).trim()] = trozo.slice(i + 1).trim();
     }
+    const ts = parts["ts"];
+    const v1 = parts["v1"];
+    if (!ts || !v1) return false;
+
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+    );
+
+    const base = `id:${paymentId};request-id:${requestId};ts:${ts}`;
+    for (const template of [`${base};`, base]) {
+      const buf = await crypto.subtle.sign("HMAC", key, enc.encode(template));
+      const computed = Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2, "0")).join("");
+      if (computed === v1) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+async function settleOrchestratedPayment(
+  admin: any,
+  orgId: string,
+  orderId: string,
+  status: string,
+  paymentId: string,
+  payment: Record<string, unknown>,
+) {
+  if (!orgId || !orderId || !paymentId) return;
+  const orchestrationState = providerAttemptState(status);
+
+  const { data: intents, error: intentError } = await admin
+    .from("payment_intents")
+    // `*` mantiene el webhook compatible durante el breve orden de deploy:
+    // antes de la migración la columna no existe, pero el cobro debe continuar.
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (intentError) {
+    console.error("payment_intents webhook lookup:", intentError);
+    return;
   }
 
-  if (req.method !== "POST") {
-    return json({ error: "Método no permitido" }, 405);
+  const intent = (intents ?? []).find((row: { estado?: string }) =>
+    ["pendiente", "procesando", "acreditado"].includes(String(row.estado))) ?? intents?.[0];
+  if (!intent?.id) return;
+
+  const providerMetadata = payment.metadata && typeof payment.metadata === "object"
+    ? payment.metadata as Record<string, unknown>
+    : null;
+  const providerCorrelation = typeof providerMetadata?.correlation_id === "string"
+    ? providerMetadata.correlation_id
+    : null;
+  // external_reference + tenant siguen siendo la autoridad. Una metadata
+  // ausente (preferencias antiguas) no bloquea el cobro; una distinta sí deja
+  // evidencia explícita para investigar una integración mal enroutada.
+  if (providerCorrelation && providerCorrelation !== intent.correlation_id) {
+    console.warn(
+      `MP correlation mismatch payment=${paymentId} expected=${intent.correlation_id} received=${providerCorrelation}`,
+    );
   }
 
-  const data = await JSON.parse(payload).catch(() => ({}));
-  const type = data?.type;
-  const dataObj = data?.data ?? {};
+  const { data: attempts, error: attemptError } = await admin
+    .from("payment_attempts")
+    .select("id, estado, external_id, nro")
+    .eq("intent_id", intent.id)
+    .eq("provider", "mercadopago")
+    .order("nro", { ascending: false })
+    .limit(1);
+  if (attemptError) {
+    console.error("payment_attempts webhook lookup:", attemptError);
+    return;
+  }
 
-  // Procesar tipos de webhook críticos
-  switch (type) {
-    case "payment": {
-      const paymentId = dataObj.id;
-      const paymentStatus = dataObj.payment_status;
-      const mpCustomerId = dataObj?.payer?.id ?? null;
-      const paymentMethod = dataObj.payment_method_id ?? null;
-      const amount = dataObj.transaction_amount;
-      const currency = dataObj.currency_id ?? "ARS";
-      const orderId = dataObj.order_id ?? null;
+  const attempt = attempts?.[0];
+  if (!attempt?.id) return;
 
-      // Actualizar estado de venta local
-      if (paymentId) {
-        await createClient(
-          requireEnv("SUPABASE_URL"),
-          requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-        ).from("sales").upsert({
-          mp_payment_id: String(paymentId),
-          org_id: req.headers.get("x-org-id") ?? "",
-          mp_customer_id: mpCustomerId,
-          payment_method: paymentMethod ?? "mercado_pago",
-          payment_status: paymentStatus,
-          total_ars: amount,
-          currency,
-          processed_at: new Date().toISOString(),
-        }, { onConflict: "mp_payment_id" });
-      }
-
-      // Manejar auto-confirmación para stock/checkout
-      if (paymentStatus === "approved" || paymentStatus === "collector_approval") {
-        if (orderId) {
-          await createClient(
-            requireEnv("SUPABASE_URL"),
-            requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-          ).from("orders").update({
-            payment_status: paymentStatus,
-            mp_payment_id: paymentId,
-            updated_at: new Date().toISOString(),
-          }).eq("mp_order_id", orderId);
-        }
-      }
-      break;
-    }
-
-    case "subscription_preapproval": {
-      const preapprovalId = dataObj.id;
-      const subStatus = dataObj.status;
-      const subscriptionId = dataObj?.subscription_id ?? null;
-
-      await createClient(
-        requireEnv("SUPABASE_URL"),
-        requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-      ).from("subscriptions").upsert({
-        mp_preapproval_id: preapprovalId,
-        org_id: req.headers.get("x-org-id") ?? "",
-        status: subStatus,
-        mp_subscription_id: subscriptionId,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "mp_preapproval_id" });
-
-      console.log(`Webhook MP: subscription_preapproval - ${preapprovalId}: ${subStatus}`);
-      break;
-    }
-
-    case "subscription_authorized_payment": {
-      const preapprovalId = dataObj.preapproval_id;
-      const paymentId = dataObj.id;
-      const amount = dataObj.transaction_amount;
-
-      console.log(`Webhook MP: authorized payment - ${paymentId} para ${preapprovalId}: $${amount}`);
-
-      if (preapprovalId && paymentId) {
-        await createClient(
-          requireEnv("SUPABASE_URL"),
-          requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-        ).from("subscriptions").upsert({
-          mp_preapproval_id: preapprovalId,
-          org_id: req.headers.get("x-org-id") ?? "",
-          last_authorized_payment: paymentId,
-          last_authorized_amount: amount,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "mp_preapproval_id" });
-      }
-      break;
-    }
-
-    case "order": {
-      const orderId = dataObj.id;
-      const orderStatus = dataObj.status;
-      const totalAmount = dataObj.total_amount;
-      const currency = dataObj.currency_id ?? "ARS";
-      const items = dataObj?.items ?? [];
-
-      await createClient(
-        requireEnv("SUPABASE_URL"),
-        requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-      ).from("orders").upsert({
-        mp_order_id: orderId,
-        org_id: req.headers.get("x-org-id") ?? "",
-        status: orderStatus,
-        total_ars: totalAmount,
-        currency,
-        items_json: JSON.stringify(items.map((it: any) => ({
-          id: it.id,
-          title: it.title,
-          quantity: it.quantity,
-          unit_price: it.unit_price,
-        }))),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "mp_order_id" });
-
-      console.log(`Webhook MP: order ${orderId} creado - ${orderStatus}: $${totalAmount}`);
-      break;
-    }
-
-    case "refund": {
-      const refundId = dataObj.id;
-      const paymentId = dataObj.payment_id;
-      const amount = dataObj.amount;
-      const reason = dataObj?.reason ?? null;
-      const currency = dataObj?.currency_id ?? "ARS";
-
-      await createClient(
-        requireEnv("SUPABASE_URL"),
-        requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-      ).from("refunds").upsert({
-        mp_refund_id: refundId,
-        org_id: req.headers.get("x-org-id") ?? "",
-        mp_payment_id: paymentId ?? null,
-        amount_ars: amount,
-        currency,
-        reason,
-        processed_at: new Date().toISOString(),
-      }, { onConflict: "mp_refund_id" });
-      break;
-    }
-
-    case "chargeback": {
-      const chargebackId = dataObj.id;
-      const paymentId = dataObj.payment_id;
-      const status = dataObj.status;
-
-      await createClient(
-        requireEnv("SUPABASE_URL"),
-        requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-      ).from("chargebacks").upsert({
-        mp_chargeback_id: chargebackId,
-        org_id: req.headers.get("x-org-id") ?? "",
-        mp_payment_id: paymentId ?? null,
+  try {
+    await recordPaymentAttempt(admin, {
+      attemptId: attempt.id,
+      status: orchestrationState,
+      externalId: paymentId,
+      net: Number.isFinite(Number(payment.net_received_amount))
+        ? Number(payment.net_received_amount)
+        : null,
+      reason: typeof payment.status_detail === "string" ? payment.status_detail : null,
+      raw: {
+        kind: "webhook",
         status,
-        recorded_at: new Date().toISOString(),
-      }, { onConflict: "mp_chargeback_id" });
+        status_detail: payment.status_detail,
+        payment_type_id: payment.payment_type_id,
+        installments: payment.installments,
+      },
+    });
+  } catch (error) {
+    // La liquidación de la orden continúa por sus RPC idempotentes, pero el
+    // fallo del contrato común queda visible para el panel de operación.
+    console.error("pago_attempt_resultado webhook:", error);
+  }
+}
 
-      if (paymentId) {
-        await createClient(
-          requireEnv("SUPABASE_URL"),
-          requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-        ).from("sales").update({
-          payment_status: "disputed",
-          updated_at: new Date().toISOString(),
-        }).eq("mp_payment_id", paymentId);
-      }
-      break;
-    }
+function refundSnapshot(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object") return {};
+  const row = value as Record<string, unknown>;
+  const asText = (item: unknown, max = 120) => {
+    if (typeof item !== "string" && typeof item !== "number") return null;
+    const clean = String(item).trim();
+    return clean ? clean.slice(0, max) : null;
+  };
+  return {
+    id: asText(row.id),
+    status: asText(row.status, 40),
+    amount: Number.isFinite(Number(row.amount)) ? Number(row.amount) : null,
+    payment_id: asText(row.payment_id),
+    date_created: asText(row.date_created, 80),
+    source: "mercadopago_webhook_refund_reconciliation",
+  };
+}
 
-    case "installment": {
-      const preapprovalId = dataObj.preapproval_id ?? null;
-      const paymentId = dataObj.payment_id ?? null;
-      const installmentId = dataObj.installment_id ?? null;
-      const amount = dataObj.amount ?? null;
+/**
+ * A payment.updated event is also the recovery path for a refund whose POST
+ * timed out. The provider is queried by payment id and the local refund is
+ * settled only when one approved provider row matches it unambiguously.
+ */
+async function reconcilePendingStoreRefunds(
+  admin: any,
+  orgId: string,
+  paymentId: string,
+  accessToken: string,
+) {
+  if (!orgId || !paymentId || !accessToken) return;
 
-      if (preapprovalId && paymentId) {
-        await createClient(
-          requireEnv("SUPABASE_URL"),
-          requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-        ).from("subscriptions").update({
-          mp_last_installment_payment: paymentId,
-          mp_last_installment_amount: amount,
-          updated_at: new Date().toISOString(),
-        }).eq("mp_preapproval_id", preapprovalId);
-      }
-      break;
-    }
+  const { data: pending, error: pendingError } = await admin
+    .from("payment_refunds")
+    .select("id, amount, status, external_refund_id")
+    .eq("org_id", orgId)
+    .eq("provider", "mercadopago")
+    .eq("provider_payment_id", paymentId)
+    .eq("status", "processing")
+    .limit(20);
+  if (pendingError) {
+    console.error("payment_refunds webhook lookup:", pendingError);
+    return;
+  }
+  if (!pending?.length) return;
 
-    default:
-      console.log(`Webhook MP ignorado: ${type}`);
+  let response: Response;
+  let payload: unknown;
+  try {
+    response = await fetch(
+      `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}/refunds`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    payload = await response.json().catch(() => ({}));
+  } catch (error) {
+    console.error("payment_refunds webhook provider network:", error);
+    return;
   }
 
-  return json({ received: true });
+  if (!response.ok) {
+    console.error("payment_refunds webhook provider:", response.status);
+    return;
+  }
+
+  const rows = Array.isArray(payload)
+    ? payload.filter((row): row is Record<string, unknown> => !!row && typeof row === "object")
+    : payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).refunds)
+      ? ((payload as Record<string, unknown>).refunds as unknown[]).filter(
+        (row): row is Record<string, unknown> => !!row && typeof row === "object",
+      )
+      : [];
+  const approved = rows.filter((row) => String(row.status ?? "").toLowerCase() === "approved");
+  const used = new Set<number>();
+
+  for (const refund of pending) {
+    const knownExternalId = refund.external_refund_id
+      ? String(refund.external_refund_id)
+      : "";
+    const exactMatches = approved
+      .map((row, index) => ({ row, index }))
+      .filter(({ row, index }) => !used.has(index) && knownExternalId && String(row.id ?? "") === knownExternalId);
+    const amountMatches = approved
+      .map((row, index) => ({ row, index }))
+      .filter(({ row, index }) =>
+        !used.has(index)
+        && Number(row.amount) === Number(refund.amount),
+      );
+    // El monto solo identifica un reintegro cuando no hay otro RMA pendiente
+    // con ese mismo importe. Si lo hay, esperar el ID del proveedor evita
+    // asignar dinero al RMA equivocado.
+    const localSameAmount = pending.filter((candidate: { amount?: unknown }) =>
+      Number(candidate.amount) === Number(refund.amount),
+    );
+    const matches = exactMatches.length > 0
+      ? exactMatches
+      : localSameAmount.length === 1
+        ? amountMatches
+        : [];
+
+    if (matches.length !== 1) {
+      await admin.rpc("pago_reintegro_observar", {
+        p_refund_id: refund.id,
+        p_raw: {
+          source: "mercadopago_webhook_refund_reconciliation",
+          approved_refunds: approved.slice(0, 25).map(refundSnapshot),
+          reason: matches.length === 0 ? "no_match" : "ambiguous_match",
+        },
+      });
+      continue;
+    }
+
+    const match = matches[0];
+    used.add(match.index);
+    const providerRow = refundSnapshot(match.row);
+    const { error: settledError } = await admin.rpc("pago_reintegro_resultado", {
+      p_refund_id: refund.id,
+      p_status: "refunded",
+      p_external_id: providerRow.id,
+      p_raw: providerRow,
+    });
+    if (settledError) {
+      console.error("pago_reintegro_resultado webhook refund:", settledError);
+    }
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "content-type, x-signature, x-request-id",
+      },
+    });
+  }
+
+  try {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const rawBody = await req.text();
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return new Response(JSON.stringify({ ok: false, reason: "invalid json" }), {
+        status: 400, headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // MP sends: { type: "payment", action: "payment.updated", data: { id: "..." } }
+    const type: string = body.type || body.topic || "";
+    const paymentId: string = String(body.data?.id || body.id || "");
+
+    // ── Suscripciones al SaaS ────────────────────────────────────────────
+    //
+    // MercadoPago manda dos temas distintos y confundirlos es el error caro:
+    //
+    //   subscription_preapproval          cambió el ESTADO de la suscripción
+    //   subscription_authorized_payment   se COBRÓ un período
+    //
+    // El primero no es plata. Extender el período con él daría acceso gratis.
+    //
+    // ⚠️ Estas notificaciones las cobra la cuenta de **la plataforma**, así que
+    // el token sale de `MP_PLATFORM_ACCESS_TOKEN` y no de `payment_connections`
+    // — el comercio no se cobra a sí mismo.
+    if (type === "subscription_preapproval" || type === "subscription_authorized_payment") {
+      const suscId = String(body.data?.id || body.id || "");
+      const signature = req.headers.get("x-signature") || "";
+      const requestId = req.headers.get("x-request-id") || "";
+      const signedId = new URL(req.url).searchParams.get("data.id") || suscId;
+      const webhookSecret = Deno.env.get("MP_WEBHOOK_SECRET") || "";
+      if (!webhookSecret) {
+        console.error("MP_WEBHOOK_SECRET no está configurado para suscripciones");
+        return new Response(JSON.stringify({ ok: false, reason: "webhook secret not configured" }), {
+          status: 503, headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (!signature || !requestId
+        || !await verifyMpSignature(signedId, requestId, signature, webhookSecret)) {
+        console.warn(`Firma inválida/ausente para suscripción MP ${suscId}`);
+        return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const platformToken = await tokenDeLaPlataforma();
+
+      if (!suscId || !platformToken) {
+        // Sin token no se puede consultar. Se responde 200 igual: un 500 hace
+        // que MercadoPago reintente para siempre algo que no va a mejorar solo.
+        console.error(`Webhook de suscripción sin ${!suscId ? "id" : "token de plataforma"}`);
+        return new Response(JSON.stringify({ ok: true, reason: "sin configurar" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const ruta = type === "subscription_preapproval"
+        ? `https://api.mercadopago.com/preapproval/${suscId}`
+        : `https://api.mercadopago.com/authorized_payments/${suscId}`;
+
+      const rsp = await fetch(ruta, {
+        headers: { Authorization: `Bearer ${platformToken}` },
+      });
+
+      if (!rsp.ok) {
+        console.error(`No se pudo leer ${type} ${suscId}: ${rsp.status}`);
+        // 200 a propósito: reintentar no arregla un 404 de MercadoPago.
+        return new Response(JSON.stringify({ ok: true, reason: `mp ${rsp.status}` }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const dato = await rsp.json();
+
+      if (type === "subscription_preapproval") {
+        const { data, error } = await admin.rpc("suscripcion_actualizar_estado", {
+          p_preapproval: String(dato.id),
+          p_estado_mp: String(dato.status ?? ""),
+        });
+        if (error) console.error("suscripcion_actualizar_estado", error);
+        return new Response(JSON.stringify({ ok: true, resultado: data }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Se cobró un período. `preapproval_id` ata este pago con la suscripción.
+      const { data, error } = await admin.rpc("suscripcion_registrar_pago", {
+        p_preapproval: String(dato.preapproval_id ?? ""),
+        p_payment_id: String(dato.payment?.id ?? dato.id ?? ""),
+        p_monto: Number(dato.transaction_amount ?? 0),
+        p_estado: String(dato.payment?.status ?? dato.status ?? "pending"),
+        p_moneda: String(dato.currency_id ?? "ARS"),
+      });
+      if (error) console.error("suscripcion_registrar_pago", error);
+
+      return new Response(JSON.stringify({ ok: true, resultado: data }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // ── POS QR / Orders API ──────────────────────────────────────────────
+    // La notificación sólo trae el id de la order. Nunca se confía en un
+    // status del body: se verifica HMAC, se busca el tenant por la order
+    // durable y se consulta el estado real con el OAuth de ese comercio.
+    if (["order", "orders"].includes(type) && paymentId) {
+      const signature = req.headers.get("x-signature") || "";
+      const requestId = req.headers.get("x-request-id") || "";
+      const signedId = new URL(req.url).searchParams.get("data.id") || paymentId;
+      const secret = Deno.env.get("MP_WEBHOOK_SECRET") || "";
+      if (!secret) {
+        console.error("MP_WEBHOOK_SECRET no está configurado para Orders API");
+        return new Response(JSON.stringify({ ok: false, reason: "webhook secret not configured" }), {
+          status: 503, headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (!signature || !requestId
+        || !await verifyMpSignature(signedId, requestId, signature, secret)) {
+        console.warn(`Firma inválida/ausente para MP order ${paymentId}`);
+        return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: session, error: sessionError } = await admin
+        .from("pos_qr_sessions")
+        .select("id, org_id")
+        .eq("provider_order_id", paymentId)
+        .maybeSingle();
+      if (sessionError) throw sessionError;
+      if (!session?.id || !session.org_id) {
+        return new Response(JSON.stringify({ ok: true, reason: "order not managed by POS" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const credentials = await getMpCredentials(admin, session.org_id);
+      if (!credentials) {
+        console.error(`Sin OAuth para reconciliar MP order ${paymentId}`);
+        return new Response(JSON.stringify({ ok: true, reason: "no mp token" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      const order = await fetchMercadoPagoOrder(credentials.accessToken, paymentId);
+      const reconciled = await reconcileMercadoPagoPosQrOrder(
+        admin,
+        credentials.accessToken,
+        session.id,
+        order,
+      );
+      console.log(`MP POS QR order ${paymentId}: ${String(reconciled.state ?? "unknown")}`);
+      return new Response(JSON.stringify({ ok: true, orderId: paymentId, state: reconciled.state }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (!paymentId || type !== "payment") {
+      // Acknowledge non-payment notifications
+      return new Response(JSON.stringify({ ok: true, reason: `skipped type: ${type}` }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const signature = req.headers.get("x-signature") || "";
+    const requestId = req.headers.get("x-request-id") || "";
+
+    // MP firma el `data.id` de la query string cuando la notificación llega
+    // por ahí. Suele coincidir con el del cuerpo, pero cuando no, la firma se
+    // valida contra el de la URL.
+    const signedId = new URL(req.url).searchParams.get("data.id") || paymentId;
+
+    // We need to find the right org's MP token to verify and fetch the payment.
+    // Strategy: use external_reference in URL query params or find by payment after fetch.
+    // MP also sends ?id=<payment_id>&topic=payment in query string (IPN mode).
+    const url = new URL(req.url);
+    const orgIdFromQuery = url.searchParams.get("org_id") || "";
+
+    // ── La firma es obligatoria, siempre ─────────────────────────────────
+    //
+    // ⚠️ Hasta el 2026-08-26 esta verificación estaba adentro de
+    // `if (globalWebhookSecret)`: **sin el secreto configurado, el webhook
+    // aceptaba cualquier request**. Alcanzaba con conocer la URL para marcar un
+    // pedido como pagado, descontar stock y generar el asiento.
+    //
+    // Era disponibilidad sobre seguridad —sin secreto, exigir firma dejaría
+    // todos los cobros sin acreditar— y para plata es el default equivocado: un
+    // cobro que no se acredita se nota y se arregla; un pedido marcado como
+    // pagado por un tercero no se nota nunca.
+    //
+    // Ahora **falla cerrado**. Verificado con el dueño que `MP_WEBHOOK_SECRET`
+    // está cargado en el proyecto antes de hacer el cambio; si algún día se
+    // borra, el motivo del 401 lo dice con todas las letras en vez de dejar los
+    // cobros colgados sin explicación — que es exactamente cómo se perdió una
+    // tarde la última vez.
+    const globalWebhookSecret = Deno.env.get("MP_WEBHOOK_SECRET") || "";
+    if (!globalWebhookSecret) {
+      console.error(
+        "MP_WEBHOOK_SECRET no está configurado: el webhook rechaza TODO. " +
+        "Cargarlo en Project Settings → Edge Functions → Secrets.",
+      );
+      return new Response(
+        JSON.stringify({ ok: false, reason: "webhook secret not configured" }),
+        { status: 503, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!signature || !requestId) {
+      console.warn(`Missing MP signature headers for payment ${paymentId}`);
+      return new Response(JSON.stringify({ ok: false, reason: "missing signature headers" }), {
+        status: 401, headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const valid = await verifyMpSignature(signedId, requestId, signature, globalWebhookSecret);
+    if (!valid) {
+      // Sin filtrar el secreto: alcanza con saber qué se firmó para
+      // diagnosticar, y este log es lo único que había cuando una compra
+      // real quedó colgada.
+      console.warn(
+        `Invalid MP signature. payment=${paymentId} signedId=${signedId} requestId=${requestId ? "presente" : "AUSENTE"}`,
+      );
+      return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
+        status: 401, headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Find the org — try query param first, then lookup by payment external_reference later
+    let orgId = orgIdFromQuery;
+    let mpAccessToken = "";
+
+    if (orgId) {
+      // La conexión OAuth privada es la única autoridad de cobro.
+      const creds = await getMpCredentials(admin, orgId);
+      if (creds) mpAccessToken = creds.accessToken;
+    }
+
+    // Webhooks históricos pueden llegar sin org_id. Se prueban únicamente las
+    // conexiones OAuth privadas; las preferencias nuevas incluyen org_id en
+    // notification_url y no dependen de este camino de compatibilidad.
+    if (!mpAccessToken && !orgId) {
+      const { data: conns, error: connectionsError } = await admin
+        .from("payment_connections")
+        .select("org_id, access_token")
+        .eq("provider", "mercadopago")
+        .not("access_token", "is", null)
+        .limit(50);
+      if (connectionsError) throw connectionsError;
+
+      const candidatos = (conns ?? [])
+        .map((c: any) => ({ org_id: c.org_id, token: c.access_token }));
+
+      for (const c of candidatos) {
+        try {
+          const testRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: { Authorization: `Bearer ${c.token}` },
+          });
+          if (testRes.ok) {
+            orgId = c.org_id;
+            mpAccessToken = c.token;
+            break;
+          }
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    if (!mpAccessToken) {
+      console.warn(`No MP token found for payment ${paymentId}`);
+      return new Response(JSON.stringify({ ok: true, reason: "no mp token" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Fetch payment details from MP
+    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${mpAccessToken}` },
+    });
+
+    if (!mpRes.ok) {
+      console.error(`MP payment fetch failed: ${mpRes.status}`);
+      return new Response(JSON.stringify({ ok: false, reason: `mp api: ${mpRes.status}` }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const payment = await mpRes.json();
+    const externalRef: string = payment.external_reference || "";
+    const status: string = payment.status || ""; // approved, pending, rejected, cancelled, refunded
+    const statusDetail: string = payment.status_detail || "";
+    const paidAmount: number = Number(payment.transaction_amount) || 0;
+    const payerEmail: string = payment.payer?.email || "";
+    const paymentMethod: string = payment.payment_type_id || "mercado_pago";
+
+    const isApproved = status === "approved";
+    const isRejected = status === "rejected" || status === "cancelled";
+    const isReversed = status === "refunded" || status === "charged_back";
+
+    // ── Orden de la tienda online ──────────────────────────────────────────
+    // `store-pay` marca sus preferencias con external_reference = "ecom:<uuid>".
+    // El RPC descuenta stock, registra la venta y avisa al dueño, todo de forma
+    // atómica e idempotente: MP reintenta sus webhooks.
+    if (externalRef.startsWith("ecom:")) {
+      const orderId = externalRef.slice(5);
+      if (isApproved) {
+        const { error: paidErr } = await admin.rpc("mark_store_order_paid", {
+          p_order_id: orderId,
+          p_payment_id: String(paymentId),
+          p_method: "mercado_pago",
+        });
+        if (paidErr) console.error("mark_store_order_paid:", paidErr.message);
+
+        // Confirmación por email, best-effort: el cobro ya se registró y un
+        // fallo de envío no debe hacer que MP reintente el webhook.
+        if (!paidErr) {
+          try {
+            const { data: ord } = await admin
+              .from("ecommerce_orders")
+              .select("order_number, public_access_token, ecommerce_stores(slug)")
+              .eq("id", orderId)
+              .maybeSingle();
+            const slug = (ord as any)?.ecommerce_stores?.slug;
+            if (slug && ord?.order_number) {
+              await admin.functions.invoke("store-order-email", {
+                body: {
+                  slug,
+                  orderNumber: ord.order_number,
+                  accessToken: ord.public_access_token,
+                },
+              });
+            }
+          } catch (e) {
+            console.error("store-order-email:", e);
+          }
+        }
+      } else if (isRejected) {
+        await admin
+          .from("ecommerce_orders")
+          .update({ payment_status: "failed", updated_at: new Date().toISOString() })
+          .eq("id", orderId)
+          .neq("payment_status", "paid");
+      } else if (isReversed) {
+        // Una devolución o contracargo llega después de que la orden ya fue
+        // acreditada. No basta con anotarlo en la liquidación: la operación no
+        // puede seguir mostrando un pedido despachable ni un botón de reintento.
+        const { error: reversalErr } = await admin.rpc("handle_store_order_payment_reversal", {
+          p_order_id: orderId,
+          p_payment_id: String(paymentId),
+          p_status: status,
+          p_detail: statusDetail,
+        });
+        if (reversalErr) console.error("handle_store_order_payment_reversal:", reversalErr.message);
+      }
+
+      // Si el POST de devolución expiró, Mercado Pago puede confirmar el
+      // reintegro en una notificación posterior aunque la orden no cambie de
+      // estado todavía. Se reconcilia antes de responder el webhook para que
+      // el RMA, el pago y la orden terminen en el mismo estado durable.
+      await reconcilePendingStoreRefunds(admin, orgId, String(paymentId), mpAccessToken);
+
+      // El webhook es la autoridad eventual del proveedor. El Brick registra
+      // el resultado inmediato, pero este camino reconcilia también la
+      // preferencia externa y los pagos que llegan después del redirect.
+      if (!isReversed) {
+        await settleOrchestratedPayment(
+          admin,
+          orgId,
+          orderId,
+          status,
+          String(paymentId),
+          payment,
+        );
+      }
+
+      // La liquidación va ANTES del return, no al final del handler.
+      //
+      // Esta rama salía temprano y se salteaba el registro del cobro, así que
+      // justo el canal que cobra comisión de plataforma era el único que no la
+      // anotaba: MercadoPago descontaba el `application_fee` y en la base no
+      // quedaba rastro. La primera compra real lo dejó a la vista —dos ventas
+      // acreditadas y `payment_transactions` vacía.
+      //
+      // El RPC es idempotente por (provider, external_id), así que los
+      // reintentos de MP no duplican nada.
+      await recordPaymentTransaction(admin, {
+        orgId,
+        paymentId: String(paymentId),
+        payment,
+        status,
+        gross: paidAmount,
+        externalRef,
+      });
+
+      console.log(`MP ecom order ${orderId}: ${status} (${statusDetail})`);
+      return new Response(JSON.stringify({ ok: true, status, paymentId, scope: "ecommerce" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Update payment_links table ─────────────────────────────────────────────
+    if (externalRef) {
+      const linkStatus = isApproved ? "paid" : isRejected ? "rejected" : "pending";
+      await admin
+        .from("payment_links")
+        .update({
+          status: linkStatus,
+          mp_payment_id: String(paymentId),
+          paid_at: isApproved ? new Date().toISOString() : null,
+        })
+        .eq("org_id", orgId)
+        .eq("external_ref", externalRef);
+
+      // ── Update related sale if external_ref is a sale id ─────────────────
+      if (isApproved) {
+        // external_ref may be "sale:<uuid>" or just a uuid
+        const saleId = externalRef.startsWith("sale:") ? externalRef.slice(5) : externalRef;
+        const { error: saleErr } = await admin
+          .from("sales")
+          .update({ paid: true, payment_method: "mercado_pago" })
+          .eq("org_id", orgId)
+          .eq("id", saleId)
+          .eq("paid", false);
+
+        if (!saleErr) {
+          // Notify the org owner
+          const { data: membership } = await admin
+            .from("memberships")
+            .select("user_id")
+            .eq("org_id", orgId)
+            .in("role", ["owner", "admin"])
+            .limit(1)
+            .maybeSingle();
+
+          if (membership?.user_id) {
+            try {
+              const { error: errNotificacion } = await admin
+                .from("notifications").insert({
+                user_id: membership.user_id,
+                org_id: orgId,
+                title: "Pago Mercado Pago confirmado",
+                message: `Pago de $${paidAmount.toLocaleString("es-AR")} confirmado${payerEmail ? ` de ${payerEmail}` : ""} (${statusDetail || status})`,
+                type: "mercado_pago",
+              });
+              // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+              // es lo que escondió durante meses que check-alerts no guardaba nada.
+              if (errNotificacion) console.error("mercadopago-webhook: no se pudo notificar", errNotificacion);
+            } catch { /* silent */ }
+          }
+        }
+      }
+    }
+
+    // ── Registrar el cobro con su desglose de comisiones ───────────────────
+    // Un cobro no es sólo "pagó / no pagó": hay que saber cuánto se lleva el
+    // procesador y cuánto la plataforma, si no la tienda no sabe qué le queda y
+    // la plataforma no sabe qué facturó.
+    await recordPaymentTransaction(admin, {
+      orgId,
+      paymentId: String(paymentId),
+      payment,
+      status,
+      gross: paidAmount,
+      externalRef,
+    });
+
+    console.log(`MP payment ${paymentId}: ${status} (${statusDetail}) ref=${externalRef} org=${orgId}`);
+
+    return new Response(JSON.stringify({ ok: true, status, paymentId }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("mercadopago-webhook error:", e);
+    // Always 200 to avoid MP flooding us with retries
+    return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "error" }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 });

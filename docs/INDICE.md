@@ -55,8 +55,15 @@ los reemplaza con otro ADR.
 - [Webhooks](WEBHOOKS.md): entrega, firma e idempotencia.
 - [Cron](CRON.md): jobs y health.
 - [Pagos](PAGOS.md): checkout, webhook, conciliación y refunds.
+- [Mercado Pago diferencial](MP_DIFERENCIAL.md): estrategia de fees, split y conciliación.
 - [Mercado Libre](MERCADOLIBRE.md): canal y sincronización.
 - [Google OAuth](GOOGLE_OAUTH_SETUP.md): configuración de acceso.
+- [Estados de checkout](C20_ESTADOS_CHECKOUT.md): matriz de estados y recuperación.
+- [Certificación de migración](C222_CERTIFICAR_MIGRACION.md): protocolo de corte.
+- [Primer documento Finance](F5_1_PRIMER_DOCUMENTO_FINANCE_REAL.md): inbox y extracción.
+- [Margen explicado](P3_MARGEN_EXPLICADO.md): desglose canónico por canal.
+- [Contratos de acción](A1_CONTRATOS_ACCION.md): transiciones server-side.
+- [Contratos de acción por estado](A1_CONTRATOS_ACCION_ESTADO.md): máquinas de estado.
 
 ## Calidad, soporte y recuperación
 

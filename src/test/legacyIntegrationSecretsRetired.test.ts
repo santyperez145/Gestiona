@@ -64,7 +64,7 @@ describe("credenciales heredadas retiradas de settings", () => {
 
   it("el cobro calcula revenue de plataforma y notifica con tenant explícito", () => {
     expect(mpLink).toContain('admin.rpc("platform_commission_amount"');
-    expect(mpLink).toContain("marketplace_fee: marketplaceFee");
+    expect(mpLink).toContain("application_fee: marketplaceFee");
     expect(mpLink).toContain("mercadopago-webhook?org_id=${orgId}");
     expect(mpLink).toContain("marketplaceFee > total");
     expect(mpLink).toContain('const channel = "online"');

@@ -12,6 +12,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
+import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
+import { requireUser } from "../_shared/requireUser.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -262,6 +264,11 @@ serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
+  const auth = await requireUser(req, corsHeaders);
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!anthropicApiKey) {
     return jsonResponse({ error: "Anthropic authentication is not configured" }, 403);
@@ -293,6 +300,9 @@ serve(async (req) => {
       error: "orgId, productName, objective, budgetARS, channel and influencerTier are required",
     }, 400);
   }
+
+  const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
+  if (sinPlan) return sinPlan;
 
   const anthropic = new Anthropic({ apiKey: anthropicApiKey });
   const systemPrompt = `Sos un estratega de marketing senior para comercios en Argentina.
@@ -336,6 +346,14 @@ Incluí título, audiencia, hook, CTA, KPIs SMART, asignación presupuestaria qu
     if (!output) {
       throw new Error("Anthropic returned an invalid campaign brief");
     }
+
+    await registrarConsumoIA({
+      orgId,
+      userId: auth.user.id,
+      model: message.model,
+      input: message.usage?.input_tokens,
+      output: message.usage?.output_tokens,
+    });
 
     return jsonResponse(output);
   } catch (error) {

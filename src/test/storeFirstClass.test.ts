@@ -101,7 +101,8 @@ describe("tiendas first-class sobre un único Business Core", () => {
     expect(STORE_PAGE).toContain('.eq("store_id", store.id)');
     expect(STORE_PAGE).not.toContain('upsert(row, { onConflict: "org_id" })');
     expect(ORDERS_PAGE).toContain("<StoreWorkspacePicker");
-    expect(ORDERS_PAGE).toContain('.eq("store_id", commerceStores.selectedStoreId)');
+    expect(ORDERS_PAGE).toContain("const storeId = commerceStores.selectedStoreId;");
+    expect(ORDERS_PAGE).toContain('.eq("store_id", storeId)');
     expect(RECOVERY).toContain('.eq("store_id", storeId)');
   });
 

@@ -8,7 +8,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { exigirBeneficio } from "../_shared/entitlements.ts";
+import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 
 const corsHeaders = {
@@ -95,6 +95,14 @@ serve(async (req) => {
     }
 
     parsed.confidence_score = Math.round(parsed.confidence_score * 100) / 100;
+
+    await registrarConsumoIA({
+      orgId,
+      userId: auth.user.id,
+      model: response.model,
+      input: response.usage?.input_tokens,
+      output: response.usage?.output_tokens,
+    });
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     if (expense_id) {

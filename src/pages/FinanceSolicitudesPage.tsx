@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -308,10 +309,13 @@ export default function FinanceSolicitudesPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Divisa</Label>
-                <select id="solicitud-currency" value={newRequest.currency} onChange={(e) => setNewRequest({ ...newRequest, currency: e.target.value as "ARS" | "USD" })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="ARS">ARS (Peso argentino)</option>
-                  <option value="USD">USD (Dólar)</option>
-                </select>
+                <Select value={newRequest.currency} onValueChange={(value) => setNewRequest({ ...newRequest, currency: value as "ARS" | "USD" })}>
+                  <SelectTrigger id="solicitud-currency"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ARS">ARS (Peso argentino)</SelectItem>
+                    <SelectItem value="USD">USD (Dólar)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">

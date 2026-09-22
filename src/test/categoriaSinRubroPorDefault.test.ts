@@ -225,7 +225,7 @@ describe("las listas de categorías salen del comercio, no del código", () => {
 
   it("el badge de categoría tiene color para todas, no para cuatro", () => {
     expect(soloCodigo(productsPage)).not.toContain("CATEGORY_COLORS");
-    expect(productsPage).toContain("colorDeCategoria(p.category)");
+    expect(productsPage).toContain("category_color: colorDeCategoria(p.category)");
   });
 
   it("el catálogo por WhatsApp deja de publicar slugs crudos", () => {

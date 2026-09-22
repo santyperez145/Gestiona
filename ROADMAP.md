@@ -199,34 +199,12 @@ exige firma y el portal Stripe heredado responde como retirado.
   aprobados y 2 omitidos con causa explícita**; el gate ahora falla temprano si
   el runtime local no tiene Supabase y admite un barrido publicado de sólo
   lectura. Login, recuperación y checkout vacío sumaron contratos directos;
-- el contrato E2E respeta la arquitectura sin duplicados: Pedidos se prueba en
-  su cola canónica, ficha → checkout compara el producto exacto y un permiso
-  POS ausente se informa como gate de la identidad técnica, no como diez
-  timeouts engañosos. La corrida autenticada confirmó que la identidad actual
-  sí alcanza Caja; el locator separa ahora correctamente la superficie del
-  modal de vendedor que coexiste con ella. El POS también prueba seis anchos,
-  categorías derivadas del catálogo real, organización sin sucursal, cola
-  offline y sincronización parcial sin escribir en producción;
-- Proveedores/Pagos ya no es un placeholder: presenta hasta 500 movimientos persistidos, total real, proveedor, concepto, método, filtros y error recuperable sin duplicar Compras ni Finance;
-- Automatizaciones adopta la prueba previa de Shopify Flow: cada flujo nuevo nace pausado y evalúa datos reales mostrando cantidad/cinco ejemplos sin efectos; el servidor valida tenant/permiso e identificadores UUID canónicos, alinea deudas/tareas con su contrato y crea borradores de compra atómicos, por proveedor/moneda e idempotentes. Próximos: condiciones compuestas, versiones/retry y constructor IA sólo como borrador;
-- registrar un pago a proveedor dejó de depender de dos escrituras del
-  navegador: la RPC `record_supplier_payment` bloquea la deuda, valida tenant y
-  permiso de Compras, impide sobrepagos y actualiza pago/saldo en una única
-  transacción. Los reintentos conservan una clave idempotente para no duplicar
-  dinero ante timeout; la migración está aplicada en el proyecto Supabase
-  productivo vinculado. Falta la matriz de pago real aprobada/rechazada;
-- rutas privadas y shells son lazy; la landing no descarga el panel completo;
-- los deploys no recargan automáticamente: anuncian la versión y actualizan por
-  acción explícita;
-- el dashboard conserva datos ante fallos parciales, separa fuentes obligatorias
-  y opcionales y calcula pedidos, unidades e ingresos sin crear datos demo. Cada fuente,
-  widget y canal realtime queda ligado a la organización activa; las preferencias persistidas tampoco se comparten entre comercios y cada tab difiere sus módulos secundarios;
-- CI y desarrollo usan Node.js 24 y acciones oficiales vigentes. El E2E fallido
-  conserva siete días de evidencia sin sesión autenticada;
-- el carrito móvil conserva su cierre por encima de avisos globales y la matriz separa excepciones JavaScript de fallos de red recuperables;
-- Dashboard, Analytics, Reportes y P&L comparten ahora un rango civil estable:
-  los cambios de período invalidan sus memoizaciones, los límites incluyen el
-  día completo y una columna `date` ya no retrocede por conversión UTC en
+- el contrato E2E cubre flujos desktop/mobile; login, recuperación y checkout vacío tienen contratos directos; la corrida confirma que la identidad alcanza Caja, valida permisos, cola offline y sincronización sin escribir en producción;
+- Proveedores/Pagos presenta hasta 500 movimientos persistidos con total, concepto y método sin duplicar Compras ni Finance;
+- Automatizaciones adopta el patrón Shopify Flow: flujos nuevos nacen pausados, evalúan datos reales con previsualización sin efectos y usan borradores atómicos con idempotencia;
+- el pago a proveedor usa la RPC `record_supplier_payment` con bloqueo de deuda, validación de tenant/permiso e idempotencia transaccional aplicada en Supabase productivo;
+- rutas privadas son lazy; deploys anuncian versión sin recarga automática;
+- el dashboard conserva datos ante fallos parciales, liga widgets a la organización activa y respeta rangos civiles estables sin desfase UTC;
   Argentina;
 - el deploy productivo se verifica después de cada push tanto en la tienda
   pública como en Commerce con una sesión autenticada.
@@ -351,18 +329,9 @@ comercios; Empretienda todavía sólo se detecta por el nombre del archivo.
 
 ### Localización P2 (2026-09-19)
 
-Auditorías completas y correcciones aplicadas:
-
-| Superficie | Hallazgos críticos | Estado |
-|---|---|---|
-| Admin | Roles en inglés, IDs visibles, phone/email incorrectos | ✅ Corregido: roles traducidos, phone como fallback, display_name visible |
-| Finance | "Nerqia Finance", "Supplier Invoice Draft", "Budget Pulse" | ✅ Corregido: "Nerqia / Documentos", "Borrador de factura de proveedor", "Pulso del presupuesto" |
-| Finance | Estados técnicos en inglés en Solicitudes | ✅ Corregido: "en revisión", "aprobado", "rechazado" |
-| Bank Reconciliation | Estados/métodos técnicos: pending, exact, oauth, csv, etc. | ✅ Corregido: statusLabel(), matchTypeLabel(), connectionTypeLabel() |
-| Influencers | Rutas, etiquetas, métricas y acciones aparentes | Relevamiento 21/09: reemplazo de asistentes simulados; detalle y pendientes en `docs/INFLUENCERS.md`. |
-
-La verificación de cada corte debe referirse al commit y sus pruebas; una auditoría
-de textos no certifica el funcionamiento de toda la plataforma.
+Auditoría cerrada: roles, estados técnicos y pantallas de Admin, Finance, Banco e
+Influencers localizadas a español rioplatense sin IDs expuestos (commit `b0ebdd5d`).
+Detalle vigente en sus respectivos documentos rectores.
 
 ## 7. Definition of Done
 

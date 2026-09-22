@@ -12,6 +12,7 @@ import { getRecoveryHistory, type RecoveryLedgerEntry } from "@/lib/abandonedCar
 import { formatARS } from "@/lib/supabaseStore";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 type LedgerPeriod = "today" | "7d" | "30d" | "90d" | "custom";
 
@@ -118,19 +119,21 @@ export default function RecoveryLedger({ orgId, storeId, storeSlug }: Props) {
 
         {period === "custom" && (
           <div className="flex items-center gap-2 ml-auto flex-wrap">
-            <label className="text-xs text-muted-foreground">Desde</label>
-            <input
+            <label htmlFor="recovery-ledger-desde" className="text-xs text-muted-foreground">Desde</label>
+            <Input
+              id="recovery-ledger-desde"
               type="date"
               value={customDesde}
               onChange={(e) => setCustomDesde(e.target.value)}
-              className="bg-muted border-border h-9 px-3 text-sm rounded-lg"
+              className="h-9 w-40"
             />
-            <label className="text-xs text-muted-foreground">Hasta</label>
-            <input
+            <label htmlFor="recovery-ledger-hasta" className="text-xs text-muted-foreground">Hasta</label>
+            <Input
+              id="recovery-ledger-hasta"
               type="date"
               value={customHasta}
               onChange={(e) => setCustomHasta(e.target.value)}
-              className="bg-muted border-border h-9 px-3 text-sm rounded-lg"
+              className="h-9 w-40"
             />
             <button
               onClick={load}

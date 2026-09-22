@@ -17,12 +17,11 @@ describe("guardia de tipos de Edge Functions", () => {
       .filter((entry) => existsSync(resolve(functionsDir, entry.name, "index.ts")))
       .length;
 
-    // 76 al 2026-09-05 (`Get-ChildItem supabase/functions -Directory`, sin
-    // `_shared`). `search-product-images` suma el borde server-side que busca
-    // candidatos sin exponer el proveedor ni confiar el tenant al navegador.
-    // El número está fijo a propósito: agregar una Edge Function tiene que ser
-    // una decisión visible, no algo que entra sin que nadie lo note.
-    expect(count).toBe(76);
+    // 80 al 2026-09-22: incorpora las funciones de campañas/influencers
+    // (ai-brief-generator, send-email-campaign, send-scheduled-campaigns,
+    // influencer-deliverable-verify). El número está fijo a propósito: agregar
+    // una Edge Function tiene que ser una decisión visible.
+    expect(count).toBe(80);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");
