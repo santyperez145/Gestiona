@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 import CommerceKPICard from "@/components/commerce/CommerceKPICard";
 import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
@@ -16,8 +17,12 @@ import {
   ExternalLink,
   Send,
   Sparkles,
+  Wallet,
+  Clock,
+  BadgeDollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getCreatorEarnings, listCreatorWithdrawals, requestCreatorWithdrawal } from "@/lib/influencersDB";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -37,6 +42,123 @@ type PortalExchange = {
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+const fmtMoney = (v: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(v);
+
+const WITHDRAWAL_LABELS: Record<string, string> = {
+  pending: "En revisión", approved: "Aprobado", paid: "Pagado", rejected: "Rechazado",
+};
+
+type CreatorEarnings = {
+  influencer_id: string;
+  influencer_name: string;
+  total_generated_ars: number;
+  total_commissions_ars: number;
+  total_sales_count: number;
+  paid_ars: number;
+  pending_withdrawals_ars: number;
+  available_ars: number;
+};
+
+function EarningsSection({ token, onRequested }: { token: string; onRequested: () => void }) {
+  const [earnings, setEarnings] = useState<CreatorEarnings | null>(null);
+  const [withdrawals, setWithdrawals] = useState<Array<{ id: string; amount_ars: number; status: string; created_at: string }>>([]);
+  type WithdrawalRow = { id: string; amount_ars: number; status: string; created_at: string };
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [e, w] = await Promise.all([getCreatorEarnings(token), listCreatorWithdrawals(token)]);
+      setEarnings(e as CreatorEarnings);
+      setWithdrawals((Array.isArray(w) ? w : []) as WithdrawalRow[]);
+    } catch { setEarnings(null); }
+  }, [token]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const request = async (event: FormEvent) => {
+    event.preventDefault();
+    if (busy) return;
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) { setError("Ingresá un monto válido mayor a cero."); return; }
+    setBusy(true);
+    setError("");
+    try {
+      await requestCreatorWithdrawal(token, value);
+      toast.success("Solicitud de retiro enviada. La marca la va a revisar.");
+      setAmount("");
+      setShowForm(false);
+      await load();
+      onRequested();
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "";
+      if (message.includes("insufficient_balance")) setError("El monto supera tu saldo disponible.");
+      else if (message.includes("invalid_amount")) setError("Ingresá un monto válido.");
+      else setError("No pudimos enviar la solicitud. Intentá nuevamente.");
+    } finally { setBusy(false); }
+  };
+
+  if (!earnings) return null;
+
+  return (
+    <section aria-label="Ingresos y retiros" className="rounded-2xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <Wallet className="h-4 w-4 text-primary" />
+        <h2 className="text-sm font-semibold">Tus ingresos</h2>
+      </div>
+      <dl className="grid grid-cols-3 gap-3">
+        <div>
+          <dt className="text-[10px] text-muted-foreground uppercase tracking-widest">Disponible</dt>
+          <dd className="mt-1 text-lg font-bold text-primary font-mono tabular-nums">{fmtMoney(Number(earnings.available_ars))}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] text-muted-foreground uppercase tracking-widest">Generado</dt>
+          <dd className="mt-1 text-lg font-bold font-mono tabular-nums">{fmtMoney(Number(earnings.total_commissions_ars))}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] text-muted-foreground uppercase tracking-widest">Retirado</dt>
+          <dd className="mt-1 text-lg font-bold text-emerald-400 font-mono tabular-nums">{fmtMoney(Number(earnings.paid_ars))}</dd>
+        </div>
+      </dl>
+
+      {!showForm ? (
+        <Button onClick={() => setShowForm(true)} disabled={Number(earnings.available_ars) <= 0} className="w-full">
+          <BadgeDollarSign className="mr-2 h-4 w-4" /> Solicitar retiro
+        </Button>
+      ) : (
+        <form onSubmit={request} className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+          <div className="space-y-1">
+            <Label htmlFor="withdrawal-amount">Monto a retirar (ARS)</Label>
+            <Input id="withdrawal-amount" type="number" min={1} step="0.01" max={Number(earnings.available_ars)}
+              value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" required />
+            <p className="text-[11px] text-muted-foreground">Saldo disponible: {fmtMoney(Number(earnings.available_ars))}</p>
+          </div>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" disabled={busy} onClick={() => { setShowForm(false); setError(""); }}>Cancelar</Button>
+            <Button type="submit" disabled={busy} className="flex-1">{busy ? "Enviando..." : "Enviar solicitud"}</Button>
+          </div>
+        </form>
+      )}
+
+      {withdrawals.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-border">
+          {withdrawals.slice(0, 5).map(w => (
+            <div key={w.id} className="flex items-center gap-3 py-2">
+              <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <p className="min-w-0 flex-1 text-sm font-medium tabular-nums">{fmtMoney(Number(w.amount_ars))}</p>
+              <Badge variant="outline">{WITHDRAWAL_LABELS[w.status] ?? w.status}</Badge>
+              <p className="text-[10px] text-muted-foreground">{fmtDate(w.created_at)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
 const TYPE_LABELS: Record<string, string> = {
   canje: "Canje",
@@ -317,6 +439,7 @@ export default function InfluencerPortalPage() {
 
       {/* Cards */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-4 pb-20">
+        <EarningsSection token={token!} onRequested={fetchData} />
         {exchanges.map((ex) => (
           <ExchangeCard key={ex.id} ex={ex} token={token!} onSubmitted={fetchData} />
         ))}
