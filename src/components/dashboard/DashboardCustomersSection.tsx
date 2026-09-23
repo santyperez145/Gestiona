@@ -56,13 +56,13 @@ export default function DashboardCustomersSection({ topCustomers, monthGrossProf
       <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-[#173aef]" />
+            <Users className="h-4 w-4 text-primary" />
             <div>
               <h3 className="text-sm font-semibold">Clientes principales</h3>
               <p className="text-[11px] text-muted-foreground">Margen bruto del mes: {formatARS(monthGrossProfit)}</p>
             </div>
           </div>
-          <Link to="/clientes" className="inline-flex items-center gap-1 text-xs font-medium text-[#173aef] hover:underline">
+          <Link to="/clientes" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
             Ver clientes <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -94,7 +94,7 @@ export default function DashboardCustomersSection({ topCustomers, monthGrossProf
         <div className="divide-y divide-border">
           {topCustomers.map((customer, index) => (
             <div key={`${customer.name}-${index}`} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#173aef]/10 text-xs font-bold text-[#173aef]">{index + 1}</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{index + 1}</span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{customer.name}</p>
                 <p className="text-xs text-muted-foreground">{customer.count} {customer.count === 1 ? "compra" : "compras"}</p>

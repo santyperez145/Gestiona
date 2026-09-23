@@ -425,7 +425,7 @@ export default function PLDashboardPage() {
                 <Legend formatter={(v) => v === "revenue" ? "Ingresos" : v === "expenses" ? "Gastos" : "Ganancia Neta"} />
                 <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="netProfit" stroke="#10b981" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
+                <Line type="monotone" dataKey="expenses" stroke="hsl(var(--destructive))" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -443,7 +443,7 @@ export default function PLDashboardPage() {
                   formatter={(v: number, n: string) => [fmt(v), { grossProfit: "Ganancia bruta", expenses: "Gastos", netProfit: "Neta" }[n] || n]}
                 />
                 <Bar dataKey="grossProfit" fill="#3b82f6" radius={[2, 2, 0, 0]} name="grossProfit" />
-                <Bar dataKey="expenses" fill="#ef4444" radius={[2, 2, 0, 0]} name="expenses" />
+                <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[2, 2, 0, 0]} name="expenses" />
               </BarChart>
             </ResponsiveContainer>
           </div>

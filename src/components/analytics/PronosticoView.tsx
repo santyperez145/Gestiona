@@ -314,7 +314,7 @@ export default function PronosticoView() {
             <Line type="monotone" dataKey="forecast" stroke="#60a5fa" strokeWidth={2} strokeDasharray="6 3" dot={{ r: 4 }} connectNulls />
             <Line type="monotone" dataKey="trend" stroke="#22d3ee" strokeWidth={1.5} dot={false} strokeOpacity={0.7} connectNulls />
             {monthlyGoals.size > 0 && (
-              <Line type="monotone" dataKey="goal" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 4" dot={false} connectNulls />
+              <Line type="monotone" dataKey="goal" stroke="hsl(var(--warning))" strokeWidth={1.5} strokeDasharray="4 4" dot={false} connectNulls />
             )}
           </LineChart>
         </ResponsiveContainer>

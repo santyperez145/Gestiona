@@ -1,6 +1,7 @@
 /**
  * StockHeatmapWidget — Visual stock grid showing inventory health at a glance.
- * Paleta Nerqia (cobalto, teal, naranja cálido, violeta).
+ * Semántica por tokens: primary = sin stock, warning = crítico/bajo,
+ * success = OK, primary/60 = sobrestock. Sin hex sueltos.
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -27,11 +28,13 @@ function getColor(stock: number, threshold: number): {
   border: string;
   level: "empty" | "critical" | "low" | "ok" | "high";
 } {
-  if (stock <= 0) return { bg: "bg-[#173aef]/80", border: "border-[#173aef]/50", level: "empty" };
-  if (stock <= threshold) return { bg: "bg-[#f59e0b]/70", border: "border-[#f59e0b]/50", level: "critical" };
-  if (stock <= threshold * 2) return { bg: "bg-[#f59e0b]/60", border: "border-[#f59e0b]/50", level: "low" };
-  if (stock <= threshold * 10) return { bg: "bg-[#14b8a6]/55", border: "border-[#14b8a6]/40", level: "ok" };
-  return { bg: "bg-[#8b5cf6]/50", border: "border-[#8b5cf6]/40", level: "high" };
+  // Sin stock = la acción más urgente (primary); crítico/bajo = warning;
+  // OK = success; sobrestock = violeta suave sobre primary.
+  if (stock <= 0) return { bg: "bg-primary/80", border: "border-primary/50", level: "empty" };
+  if (stock <= threshold) return { bg: "bg-warning/70", border: "border-warning/50", level: "critical" };
+  if (stock <= threshold * 2) return { bg: "bg-warning/60", border: "border-warning/50", level: "low" };
+  if (stock <= threshold * 10) return { bg: "bg-success/55", border: "border-success/40", level: "ok" };
+  return { bg: "bg-primary/50", border: "border-primary/40", level: "high" };
 }
 
 const LEVEL_LABELS = {
@@ -73,25 +76,25 @@ export default function StockHeatmapWidget({ products, maxTiles = 80, className 
     <div className={`space-y-3 ${className}`}>
       <div className="flex flex-wrap gap-2 text-xs">
         {stats.outOfStock > 0 && (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#173aef]/15 text-[#173aef] border border-[#173aef]/30">
-            <span className="w-2 h-2 rounded-full bg-[#173aef]" />
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+            <span className="w-2 h-2 rounded-full bg-primary" />
             {stats.outOfStock} sin stock
           </span>
         )}
         {stats.critical > 0 && (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
-            <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
+            <span className="w-2 h-2 rounded-full bg-warning" />
             {stats.critical} crítico
           </span>
         )}
         {stats.low > 0 && (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
-            <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
+            <span className="w-2 h-2 rounded-full bg-warning" />
             {stats.low} bajo
           </span>
         )}
-        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#14b8a6]/10 text-[#14b8a6] border border-[#14b8a6]/20">
-          <span className="w-2 h-2 rounded-full bg-[#14b8a6]" />
+        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">
+          <span className="w-2 h-2 rounded-full bg-success" />
           {stats.ok} OK
         </span>
       </div>
@@ -136,11 +139,11 @@ export default function StockHeatmapWidget({ products, maxTiles = 80, className 
       <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
         {(["empty", "critical", "low", "ok", "high"] as const).map(level => {
           const colors = {
-            empty: "bg-[#173aef]/70",
-            critical: "bg-[#f59e0b]/70",
-            low: "bg-[#f59e0b]/60",
-            ok: "bg-[#14b8a6]/55",
-            high: "bg-[#8b5cf6]/50",
+            empty: "bg-primary/70",
+            critical: "bg-warning/70",
+            low: "bg-warning/60",
+            ok: "bg-success/55",
+            high: "bg-primary/50",
           };
           return (
             <span key={level} className="flex items-center gap-1">

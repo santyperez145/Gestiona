@@ -71,16 +71,18 @@ interface SegmentDef {
 }
 
 const SEGMENTS: Record<Segment, SegmentDef> = {
-  champion:    { label: "Campeones",       color: "#f59e0b", bg: "bg-amber-500/10",  border: "border-amber-500/30",  icon: <Crown className="w-3.5 h-3.5" />,     description: "Compraron recientemente, con frecuencia, y alto gasto" },
-  loyal:       { label: "Leales",          color: "#8b5cf6", bg: "bg-primary/10", border: "border-primary/30", icon: <Flame className="w-3.5 h-3.5" />,     description: "Alta frecuencia y gasto, compran regularmente" },
-  potential:   { label: "Potenciales",     color: "#3b82f6", bg: "bg-blue-500/10",   border: "border-blue-500/30",   icon: <Zap className="w-3.5 h-3.5" />,       description: "Clientes recientes con potencial de fidelización" },
-  new:         { label: "Nuevos",          color: "#10b981", bg: "bg-emerald-500/10",border: "border-emerald-500/30",icon: <Leaf className="w-3.5 h-3.5" />,      description: "Primera compra reciente — aún no hay historial" },
-  promising:   { label: "Prometedores",    color: "#06b6d4", bg: "bg-cyan-500/10",   border: "border-cyan-500/30",   icon: <TrendingUp className="w-3.5 h-3.5" />, description: "Actividad reciente, aumentando frecuencia" },
-  attention:   { label: "Necesitan Atención", color: "#f97316", bg: "bg-orange-500/10", border: "border-orange-500/30", icon: <AlertTriangle className="w-3.5 h-3.5" />, description: "Han comprado bien pero hace tiempo que no vuelven" },
-  at_risk:     { label: "En Riesgo",       color: "#ef4444", bg: "bg-red-500/10",    border: "border-red-500/30",    icon: <AlertTriangle className="w-3.5 h-3.5" />, description: "Buenos clientes que parecen estar yéndose" },
-  cant_lose:   { label: "No Perder",       color: "#dc2626", bg: "bg-red-600/10",    border: "border-red-600/30",    icon: <Skull className="w-3.5 h-3.5" />,     description: "Compraban mucho pero desaparecieron — acción inmediata" },
-  lost:        { label: "Perdidos",        color: "#6b7280", bg: "bg-muted/10",   border: "border-border/30",   icon: <Moon className="w-3.5 h-3.5" />,      description: "Sin actividad reciente y bajo historial" },
-  hibernating: { label: "Hibernando",      color: "#64748b", bg: "bg-muted/10",  border: "border-border/30",  icon: <Moon className="w-3.5 h-3.5" />,      description: "Inactivos hace mucho — alguna actividad pasada" },
+  // Colores semánticos con CSS vars del tema: cada segmento reutiliza tokens
+  // (warning, primary, success, destructive, muted) en vez de hex sueltos.
+  champion:    { label: "Campeones",       color: "hsl(var(--warning))",          bg: "bg-warning/10",        border: "border-warning/30",    icon: <Crown className="w-3.5 h-3.5" />,     description: "Compraron recientemente, con frecuencia, y alto gasto" },
+  loyal:       { label: "Leales",          color: "hsl(var(--primary))",          bg: "bg-primary/10",        border: "border-primary/30",    icon: <Flame className="w-3.5 h-3.5" />,     description: "Alta frecuencia y gasto, compran regularmente" },
+  potential:   { label: "Potenciales",     color: "hsl(var(--chart-2, 214 82% 51%))", bg: "bg-primary/5",     border: "border-primary/20",    icon: <Zap className="w-3.5 h-3.5" />,       description: "Clientes recientes con potencial de fidelización" },
+  new:         { label: "Nuevos",          color: "hsl(var(--success))",          bg: "bg-success/10",        border: "border-success/30",    icon: <Leaf className="w-3.5 h-3.5" />,      description: "Primera compra reciente — aún no hay historial" },
+  promising:   { label: "Prometedores",    color: "hsl(var(--teal, 168 48% 32%))", bg: "bg-success/5",        border: "border-success/20",    icon: <TrendingUp className="w-3.5 h-3.5" />, description: "Actividad reciente, aumentando frecuencia" },
+  attention:   { label: "Necesitan Atención", color: "hsl(var(--warning))",       bg: "bg-warning/10",        border: "border-warning/30",    icon: <AlertTriangle className="w-3.5 h-3.5" />, description: "Han comprado bien pero hace tiempo que no vuelven" },
+  at_risk:     { label: "En Riesgo",       color: "hsl(var(--destructive))",      bg: "bg-destructive/10",    border: "border-destructive/30", icon: <AlertTriangle className="w-3.5 h-3.5" />, description: "Buenos clientes que parecen estar yéndose" },
+  cant_lose:   { label: "No Perder",       color: "hsl(var(--destructive))",      bg: "bg-destructive/15",    border: "border-destructive/40", icon: <Skull className="w-3.5 h-3.5" />,     description: "Compraban mucho pero desaparecieron — acción inmediata" },
+  lost:        { label: "Perdidos",        color: "hsl(var(--muted-foreground))", bg: "bg-muted/10",          border: "border-border/30",     icon: <Moon className="w-3.5 h-3.5" />,      description: "Sin actividad reciente y bajo historial" },
+  hibernating: { label: "Hibernando",      color: "hsl(var(--muted-foreground))", bg: "bg-muted/10",          border: "border-border/30",     icon: <Moon className="w-3.5 h-3.5" />,      description: "Inactivos hace mucho — alguna actividad pasada" },
 };
 
 // ── Scoring helpers ───────────────────────────────────────────────────────────
@@ -554,9 +556,9 @@ export default function SegmentosView() {
                     <td className="px-4 py-3 text-center">
                       <div className="inline-flex items-center gap-1">
                         {[
-                          { label: "R", score: c.rScore, color: "#3b82f6" },
-                          { label: "F", score: c.fScore, color: "#8b5cf6" },
-                          { label: "M", score: c.mScore, color: "#10b981" },
+                          { label: "R", score: c.rScore, color: "hsl(var(--chart-2, 214 82% 51%))" },
+                          { label: "F", score: c.fScore, color: "hsl(var(--primary))" },
+                          { label: "M", score: c.mScore, color: "hsl(var(--success))" },
                         ].map(({ label, score, color }) => (
                           <div key={label} className="flex flex-col items-center">
                             <span className="text-[8px] text-muted-foreground">{label}</span>

@@ -220,7 +220,7 @@ return (
 
   if (notFound || !link) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a1a] via-[#0e0e1e] to-[#0a0a1a] p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
         <div className="text-center max-w-sm">
           <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
             <XCircle className="w-8 h-8 text-red-400" />
@@ -239,7 +239,7 @@ return (
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a1a] via-[#0e0e1e] to-[#0a0a1a] py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-8 px-4">
       <div className="max-w-md mx-auto space-y-4">
 
         {/* Header */}

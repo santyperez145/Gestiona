@@ -1,14 +1,13 @@
 /**
  * CommerceInventoryAlerts — Alertas de inventario para el dashboard de Commerce
  *
- * Diseño moderno con alertas de stock bajo y productos agotados
- * Paleta Nerqia: cobalto (#173aef), teal (#14b8a6), naranja cálido (#f59e0b), violeta (#8b5cf6)
+ * Semántica por tokens: warning = agotado/bajo, destructive = sin stock,
+ * success = stock en orden. Sin hex sueltos ni sombras pesadas.
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Package, TrendingDown, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { chartColors } from "@/lib/chartTheme";
 
 interface Product {
   id: string;
@@ -37,14 +36,14 @@ export default function CommerceInventoryAlerts({
 
   if (allAlerts.length === 0) {
     return (
-      <Card className="border-border/50 shadow-lg">
+      <Card className="border-border/50 shadow-sm">
         <CardContent className="p-6 text-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="p-3 rounded-full bg-[#14b8a6]/10">
-              <Package className="h-6 w-6 text-[#14b8a6]" />
+            <div className="p-3 rounded-full bg-success/10">
+              <Package className="h-6 w-6 text-success" />
             </div>
             <div>
-              <p className="font-semibold text-[#14b8a6]">Stock en orden</p>
+              <p className="font-semibold text-success">Stock en orden</p>
               <p className="text-sm text-muted-foreground mt-1">No hay alertas de inventario</p>
             </div>
           </div>
@@ -64,16 +63,16 @@ export default function CommerceInventoryAlerts({
         };
       case "out":
         return {
-          card: "bg-[#f59e0b]/10 border-[#f59e0b]/30",
-          iconBg: "bg-[#f59e0b]/20",
-          iconColor: "text-[#f59e0b]",
+          card: "bg-warning/10 border-warning/30",
+          iconBg: "bg-warning/20",
+          iconColor: "text-warning",
           label: "Agotado",
         };
       case "low":
         return {
-          card: "bg-[#f59e0b]/10 border-[#f59e0b]/30",
-          iconBg: "bg-[#f59e0b]/20",
-          iconColor: "text-[#f59e0b]",
+          card: "bg-warning/10 border-warning/30",
+          iconBg: "bg-warning/20",
+          iconColor: "text-warning",
           label: "Stock bajo",
         };
       default:
@@ -87,11 +86,11 @@ export default function CommerceInventoryAlerts({
   };
 
   return (
-    <Card className="border-border/50 shadow-lg">
+    <Card className="border-border/50 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-[#f59e0b]" />
+            <AlertTriangle className="h-4 w-4 text-warning" />
             {title}
           </CardTitle>
           <Badge variant="destructive" className="text-xs">

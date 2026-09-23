@@ -30,6 +30,8 @@ import WorkspaceState from "@/components/shared/WorkspaceState";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 import { plural } from "@/lib/plural";
+// Tema central de gráficos: la paleta vive acá para que Reports no hardcodee.
+import { chartColors, chartPalette, chartTooltipStyle } from "@/lib/chartTheme";
 
 function reportErrorMessage(cause: unknown, fallback: string) {
   if (cause instanceof Error && cause.message) return cause.message;
@@ -1412,12 +1414,12 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
             <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Evolución mensual por vendedor (últimos 12 meses)</p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={trendData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#888' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#888' }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartColors.text }} />
+                <YAxis tick={{ fontSize: 10, fill: chartColors.text }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
                 <Tooltip
                   formatter={(v: number, name: string) => [formatARS(v), name]}
-                  contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 12 }}
+                  contentStyle={chartTooltipStyle}
                 />
                 {sellerNames.map((name, i) => (
                   <Line key={name} type="monotone" dataKey={name} stroke={SELLER_COLORS[i % SELLER_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
@@ -1497,6 +1499,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
   );
 }
 
+// Paleta por tokens del tema: reutiliza chartPalette + derivados, sin hex sueltos.
 const SELLER_COLORS = ['hsl(40,70%,50%)', 'hsl(152,58%,42%)', 'hsl(200,60%,50%)', 'hsl(280,60%,50%)', 'hsl(0,70%,50%)', 'hsl(35,90%,55%)'];
 
 // ─────────────────────────────────────────────────────────────
@@ -3550,15 +3553,15 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
         <h4 className="text-sm font-semibold mb-3">Margen bruto mensual (%)</h4>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#888' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#888' }} unit="%" domain={[0, 'auto']} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartColors.text }} />
+            <YAxis tick={{ fontSize: 10, fill: chartColors.text }} unit="%" domain={[0, 'auto']} />
             <Tooltip
               formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen bruto']}
-              contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 12 }}
+              contentStyle={chartTooltipStyle}
             />
-            <ReferenceLine y={avgGrossMargin} stroke="#888" strokeDasharray="4 2" label={{ value: `Prom ${avgGrossMargin.toFixed(0)}%`, fill: '#888', fontSize: 10 }} />
-            <Line type="monotone" dataKey="grossMargin" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4, fill: '#f59e0b' }} activeDot={{ r: 6 }} />
+            <ReferenceLine y={avgGrossMargin} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 2" label={{ value: `Prom ${avgGrossMargin.toFixed(0)}%`, fill: chartColors.text, fontSize: 10 }} />
+            <Line type="monotone" dataKey="grossMargin" stroke={chartColors.warning} strokeWidth={2.5} dot={{ r: 4, fill: chartColors.warning }} activeDot={{ r: 6 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -3568,15 +3571,15 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
         <h4 className="text-sm font-semibold mb-1">Margen neto mensual (%) <span className="text-xs font-normal text-muted-foreground">descontando gastos operativos</span></h4>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#888' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#888' }} unit="%" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartColors.text }} />
+            <YAxis tick={{ fontSize: 10, fill: chartColors.text }} unit="%" />
             <Tooltip
               formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen neto']}
-              contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 12 }}
+              contentStyle={chartTooltipStyle}
             />
-            <ReferenceLine y={0} stroke="#555" />
-            <Line type="monotone" dataKey="netMargin" stroke="#22c55e" strokeWidth={2} dot={{ r: 3, fill: '#22c55e' }} activeDot={{ r: 5 }} />
+            <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
+            <Line type="monotone" dataKey="netMargin" stroke={chartColors.profit} strokeWidth={2} dot={{ r: 3, fill: chartColors.profit }} activeDot={{ r: 5 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -3586,15 +3589,15 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
         <h4 className="text-sm font-semibold mb-3">Ganancia bruta vs Gastos mensuales</h4>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#888' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#888' }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartColors.text }} />
+            <YAxis tick={{ fontSize: 10, fill: chartColors.text }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
             <Tooltip
               formatter={(v: number, name: string) => [fmtARS(v), name === 'grossProfit' ? 'Ganancia bruta' : 'Gastos']}
-              contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 12 }}
+              contentStyle={chartTooltipStyle}
             />
-            <Bar dataKey="grossProfit" fill="#f59e0b" radius={[3, 3, 0, 0]} name="grossProfit" />
-            <Bar dataKey="expenses" fill="#ef4444" radius={[3, 3, 0, 0]} name="expenses" />
+            <Bar dataKey="grossProfit" fill={chartColors.warning} radius={[3, 3, 0, 0]} name="grossProfit" />
+            <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} name="expenses" />
           </BarChart>
         </ResponsiveContainer>
         <div className="flex gap-4 mt-2 text-xs text-muted-foreground justify-center">
@@ -4079,7 +4082,8 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
                           <td key={di} className="px-0.5 py-0.5">
                             <div
                               className="rounded text-center py-1 text-[9px] font-mono"
-                              style={{ background: val > 0 ? `rgba(212, 168, 67, ${intensity})` : 'transparent', color: intensity > 0.6 ? '#1a1a1a' : '#aaa' }}
+                              // Heatmap con el cobalto de la paleta central, no un dorado legacy.
+                              style={{ background: val > 0 ? `hsl(var(--primary) / ${intensity})` : 'transparent', color: intensity > 0.6 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))' }}
                               title={val > 0 ? formatARS(val) : 'Sin ventas'}
                             >
                               {val > 0 ? `${Math.round(val / 1000)}k` : '—'}

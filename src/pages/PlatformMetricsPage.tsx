@@ -592,12 +592,12 @@ export default function PlatformMetricsPage() {
                 {loading ? <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">Cargando serie de riesgo...</div> : riskSeriesMetrics.observations < 2 ? <div className="flex h-[240px] items-center justify-center text-center text-sm text-muted-foreground">La primera observación real se registró hoy. La tendencia estará disponible después de la próxima captura diaria.</div> : (
                   <ResponsiveContainer width="100%" height={240}>
                     <AreaChart data={riskSeriesMetrics.rows} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
-                      <defs><linearGradient id="platformRiskGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f97316" stopOpacity={0.3} /><stop offset="95%" stopColor="#f97316" stopOpacity={0} /></linearGradient></defs>
+                      <defs><linearGradient id="platformRiskGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.3} /><stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} /></linearGradient></defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                       <XAxis dataKey="snapshot_date" tickFormatter={formatSnapshotDate} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                       <Tooltip labelFormatter={formatSnapshotDate} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Area type="monotone" dataKey="comercios_en_riesgo" name="Comercios en riesgo" stroke="#f97316" fill="url(#platformRiskGradient)" strokeWidth={2} dot={{ r: 3, fill: "#f97316" }} />
+                      <Area type="monotone" dataKey="comercios_en_riesgo" name="Comercios en riesgo" stroke="hsl(var(--warning))" fill="url(#platformRiskGradient)" strokeWidth={2} dot={{ r: 3, fill: "hsl(var(--warning))" }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}

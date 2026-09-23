@@ -162,7 +162,7 @@ function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; or
         {sellers.map(([name, total]) => {
           const goal = sellerGoals[name] || 0;
           const pct = goal > 0 ? Math.min(100, Math.round(total / goal * 100)) : 0;
-          const barColor = pct >= 100 ? "bg-[#14b8a6]" : pct >= 60 ? "bg-[#173aef]" : pct >= 30 ? "bg-[#f59e0b]" : "bg-[#173aef]/60";
+          const barColor = pct >= 100 ? "bg-success" : pct >= 60 ? "bg-primary" : pct >= 30 ? "bg-warning" : "bg-primary/60";
           return (
             <div key={name}>
               <div className="flex items-center justify-between mb-1">
@@ -2443,7 +2443,7 @@ export default function Dashboard() {
                 </div>
                 <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? "bg-[#14b8a6]" : pct >= 75 ? "bg-[#173aef]" : pct >= 50 ? "bg-[#f59e0b]" : "bg-[#173aef]/60"}`}
+                    className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? "bg-success" : pct >= 75 ? "bg-primary" : pct >= 50 ? "bg-warning" : "bg-primary/60"}`}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -2591,7 +2591,7 @@ export default function Dashboard() {
                 </div>
                 <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ${weekPct >= 100 ? "bg-[#14b8a6]" : weekPct >= 75 ? "bg-[#173aef]" : weekPct >= 50 ? "bg-[#f59e0b]" : "bg-[#173aef]/60"}`}
+                    className={`h-full rounded-full transition-all duration-700 ${weekPct >= 100 ? "bg-success" : weekPct >= 75 ? "bg-primary" : weekPct >= 50 ? "bg-warning" : "bg-primary/60"}`}
                     style={{ width: `${weekPct}%` }}
                   />
                 </div>
