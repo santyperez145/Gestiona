@@ -97,6 +97,22 @@ describe("rol creador: el influencer no es un comercio", () => {
     expect(portal).toContain("Feedback de");
   });
 
+  it("la bandeja foco del creador deriva ≤5 acciones de datos reales", () => {
+    // Patrón Sidekick Pulse: señal → acción, no feed infinito. El foco se
+    // deriva de las campañas del RPC, no consulta tablas nuevas.
+    const foco = readFileSync(resolve(ROOT, "src/components/creator/CreatorFoco.tsx"), "utf8");
+    expect(foco).toContain("deriveCreatorFoco");
+    expect(foco).toContain("slice(0, 5)");
+    expect(foco).toContain("invitation_status");
+    expect(foco).toContain("deliverable_url");
+    expect(foco).toContain("review_notes");
+    // Cada oportunidad navega a la campaña: señal → acción con destino.
+    expect(foco).toContain("onNavigate");
+    expect(portal).toContain("CreatorFoco");
+    expect(portal).toContain("navigateToFoco");
+    expect(foco).toContain("Tu foco de hoy");
+  });
+
   it("los RPCs de creador son SECURITY DEFINER con grants explícitos", () => {
     const funciones = ["creator_linked_profiles", "creator_campaigns", "creator_deliverables", "creator_earnings", "creator_upsert_own_profile"];
     for (const fn of funciones) {

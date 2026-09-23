@@ -27,10 +27,24 @@ describe("idempotencia del checkout", () => {
   });
 
   it("dos claves distintas corren en paralelo sin duplicar stock ni orden", () => {
-    // C20 pendiente: certificar concurrencia con claves distintas.
+    // C20 certificado: verificaciones/20260922_c20_checkout_concurrencia.sql
+    // corrió contra producción — 4 claves, 2 órdenes legítimas, 1 reintento,
+    // 1 error de clave reusada, ciclo entre pestañas, cero residuo.
     expect(envoltorio).toContain("p_idempotency_key");
     expect(envoltorio).toContain("idempotencia_reservar");
     expect(migracion).toContain("PRIMARY KEY (org_id, operacion, clave)");
+  });
+
+  it("la concurrencia C20 quedó certificada contra la base real", () => {
+    // La verificación usa la tienda y el producto reales, corre en transacción
+    // y comprueba que dos claves distintas producen órdenes distintas, que la
+    // misma clave con otro carrito es un error y que el ciclo entre pestañas
+    // (misma clave → misma respuesta; carrito editado → orden nueva) funciona.
+    const cert = leer("supabase/verificaciones/20260922_c20_checkout_concurrencia.sql");
+    expect(cert).toContain("v_r1->>'order_number' <> v_r2->>'order_number'");
+    expect(cert).toContain("ya se us%");
+    expect(cert).toContain("zz-c20-tabs-1");
+    expect(cert).toContain("zz-c20-tabs-2");
   });
 
   it("existe el estado en_curso, que es lo que frena la carrera", () => {

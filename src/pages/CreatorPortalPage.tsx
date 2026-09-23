@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCreator, type CreatorCampaign } from "@/lib/creatorContext";
 import { supabase } from "@/integrations/supabase/client";
+import { CreatorFoco } from "@/components/creator/CreatorFoco";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -166,13 +167,18 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function CampaignCard({ campaign }: { campaign: CreatorCampaign }) {
+function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; registerRef?: (id: string, node: HTMLDivElement | null) => void }) {
   const { respondCampaign, submitDeliverable } = useCreator();
   const [busy, setBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!registerRef) return;
+    return () => registerRef(campaign.id, null);
+  }, [registerRef, campaign.id]);
 
   const invitation = campaign.invitation_status?.toLowerCase();
   const deliverado = Boolean(campaign.deliverable_url);
@@ -206,7 +212,10 @@ function CampaignCard({ campaign }: { campaign: CreatorCampaign }) {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
+    <div
+      ref={node => { if (registerRef) registerRef(campaign.id, node); }}
+      className="rounded-xl border border-border bg-muted/20 p-4 space-y-2"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-semibold">{campaign.title}</p>
@@ -289,8 +298,17 @@ function CampaignCard({ campaign }: { campaign: CreatorCampaign }) {
 export default function CreatorPortalPage() {
   usePageTitle("Portal de creador");
   const { loading, isCreator, profile, campaigns, deliverables, earnings, refresh } = useCreator();
+  const focoScrollRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  /** El foco scrollea hasta la campaña y la resalta dos segundos. */
+  const navigateToFoco = (campaignId: string) => {
+    const node = focoScrollRef.current[campaignId];
+    node?.scrollIntoView({ behavior: "smooth", block: "center" });
+    node?.classList.add("ring-2", "ring-primary/40");
+    setTimeout(() => node?.classList.remove("ring-2", "ring-primary/40"), 2000);
+  };
 
   const signOut = async () => { await supabase.auth.signOut(); };
 
@@ -347,6 +365,8 @@ export default function CreatorPortalPage() {
 
       <main className="mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-6">
         <OnboardingGate>
+          <CreatorFoco campaigns={campaigns} onNavigate={navigateToFoco} />
+
           {/* Ingresos */}
           {earnings && (
             <section aria-label="Ingresos" className="grid gap-4 sm:grid-cols-3">
@@ -389,7 +409,7 @@ export default function CreatorPortalPage() {
                   <p className="text-sm text-muted-foreground">Todavía no te contrataron campañas.</p>
                   <p className="text-xs text-muted-foreground">Cuando una marca te invite, la vas a ver acá.</p>
                 </div>
-              ) : campaigns.map(c => <CampaignCard key={c.id} campaign={c} />)}
+              ) : campaigns.map(c => <CampaignCard key={c.id} campaign={c} registerRef={(id, node) => { focoScrollRef.current[id] = node; }} />)}
             </CardContent>
           </Card>
 
