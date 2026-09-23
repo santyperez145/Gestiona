@@ -65,6 +65,25 @@ describe("rol creador: el influencer no es un comercio", () => {
     expect(migration).toContain("lower(i.email) = lower(ca.email)");
   });
 
+  it("el portal acepta y entrega campañas con la sesión, sin token público", () => {
+    const actions = readFileSync(
+      resolve(ROOT, "supabase/migrations/20260922000500_creator_campaign_actions.sql"),
+      "utf8",
+    );
+    // La decisión y la entrega viven en RPCs server-side que resuelven la
+    // identidad por sesión; el cliente nunca declara org ni influencer_id.
+    expect(actions).toContain("creator_respond_campaign(p_campaign_id uuid, p_action text)");
+    expect(actions).toContain("SELECT email INTO v_email FROM public.creator_accounts WHERE user_id = v_user");
+    expect(actions).toContain("creator_submit_deliverable(");
+    expect(actions).toContain("p_content_url !~ '^https://.+'");
+    // El cliente no envía org_id: el servidor lo deduce del match de email.
+    expect(actions).not.toContain("p_org_id");
+    expect(context).toContain('rpc("creator_respond_campaign"');
+    expect(context).toContain('rpc("creator_submit_deliverable"');
+    expect(portal).toContain("Entregar contenido");
+    expect(portal).toContain("Aceptar campaña");
+  });
+
   it("los RPCs de creador son SECURITY DEFINER con grants explícitos", () => {
     const funciones = ["creator_linked_profiles", "creator_campaigns", "creator_deliverables", "creator_earnings", "creator_upsert_own_profile"];
     for (const fn of funciones) {

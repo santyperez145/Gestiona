@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useCreator } from "@/lib/creatorContext";
+import { useCreator, type CreatorCampaign } from "@/lib/creatorContext";
 import { supabase } from "@/integrations/supabase/client";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
-  Clock, Loader2, ExternalLink, User, LogOut, Save,
+  Clock, Loader2, ExternalLink, User, LogOut, Save, Upload,
 } from "lucide-react";
 
 /**
@@ -166,6 +166,118 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function CampaignCard({ campaign }: { campaign: CreatorCampaign }) {
+  const { respondCampaign, submitDeliverable } = useCreator();
+  const [busy, setBusy] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [url, setUrl] = useState("");
+  const [desc, setDesc] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const invitation = campaign.invitation_status?.toLowerCase();
+  const deliverado = Boolean(campaign.deliverable_url);
+  const decidida = invitation === "accepted" || invitation === "declined" || invitation === "expired";
+
+  const respond = async (action: "accept" | "decline") => {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      await respondCampaign(campaign.id, action);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "";
+      if (message.includes("invitation_expired")) setError("La invitación expiró: pedile una nueva a la marca.");
+      else if (message.includes("invitation_not_found")) setError("No hay invitación pendiente para esta campaña.");
+      else setError("No pudimos registrar tu respuesta. Intentá de nuevo.");
+    } finally { setBusy(false); }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    if (!/^https:\/\/.+/.test(url.trim())) { setError("El enlace tiene que ser una URL https:// pública."); return; }
+    if (!desc.trim()) { setError("Contá brevemente qué entregaste."); return; }
+    setBusy(true); setError(null);
+    try {
+      await submitDeliverable(campaign.id, campaign.title, desc.trim(), url.trim());
+      setShowForm(false); setUrl(""); setDesc("");
+    } catch {
+      setError("No pudimos registrar la entrega. Revisá el enlace e intentá de nuevo.");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold">{campaign.title}</p>
+          <p className="text-xs text-muted-foreground">{campaign.org_name}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={campaign.status} />
+          {invitation && <StatusBadge status={invitation} />}
+        </div>
+      </div>
+      {campaign.brief && <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{campaign.brief}</p>}
+      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+        {campaign.channel && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> {CHANNEL_LABELS[campaign.channel] ?? campaign.channel}</span>}
+        {campaign.due_date && <span className="inline-flex items-center gap-1"><CalendarClock className="h-3 w-3" /> Hasta {fmtDate(campaign.due_date)}</span>}
+        {campaign.budget_ars != null && Number(campaign.budget_ars) > 0 && (
+          <span className="inline-flex items-center gap-1"><Wallet className="h-3 w-3" /> {fmtMoney(Number(campaign.budget_ars))}</span>
+        )}
+      </div>
+
+      {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+
+      {/* Decisión de la invitación, en el portal y sin token público */}
+      {!decidida && invitation && invitation !== "pending" && (
+        <div className="flex gap-2 pt-1">
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => void respond("decline")} className="h-8">No puedo</Button>
+          <Button size="sm" disabled={busy} onClick={() => void respond("accept")} className="h-8">Aceptar campaña</Button>
+        </div>
+      )}
+
+      {/* Entrega de contenido: solo con campaña aceptada y sin entregable previo */}
+      {invitation === "accepted" && !deliverado && !showForm && (
+        <Button size="sm" variant="outline" onClick={() => setShowForm(true)} className="h-8 gap-1.5">
+          <Upload className="h-3.5 w-3.5" /> Entregar contenido
+        </Button>
+      )}
+      {showForm && (
+        <form onSubmit={submit} className="space-y-2 rounded-lg border border-border bg-card p-3">
+          <Input
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            placeholder="https://enlace del contenido (post, reel, video)"
+            inputMode="url"
+            aria-label="Enlace del contenido"
+          />
+          <Input
+            value={desc}
+            onChange={e => setDesc(e.target.value)}
+            placeholder="Descripción breve de la entrega"
+            aria-label="Descripción de la entrega"
+          />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={busy} className="h-8">{busy ? "Enviando..." : "Enviar entrega"}</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setShowForm(false)} className="h-8">Cancelar</Button>
+          </div>
+        </form>
+      )}
+
+      {deliverado && (
+        <a
+          href={campaign.deliverable_url ?? "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 hover:underline"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" /> Contenido entregado <ExternalLink className="h-3 w-3" />
+        </a>
+      )}
+    </div>
+  );
+}
+
 export default function CreatorPortalPage() {
   usePageTitle("Portal de creador");
   const { loading, isCreator, profile, campaigns, deliverables, earnings, refresh } = useCreator();
@@ -269,28 +381,7 @@ export default function CreatorPortalPage() {
                   <p className="text-sm text-muted-foreground">Todavía no te contrataron campañas.</p>
                   <p className="text-xs text-muted-foreground">Cuando una marca te invite, la vas a ver acá.</p>
                 </div>
-              ) : campaigns.map(c => (
-                <div key={c.id} className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold">{c.title}</p>
-                      <p className="text-xs text-muted-foreground">{c.org_name}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={c.status} />
-                      {c.invitation_status && <StatusBadge status={c.invitation_status} />}
-                    </div>
-                  </div>
-                  {c.brief && <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{c.brief}</p>}
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                    {c.channel && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> {CHANNEL_LABELS[c.channel] ?? c.channel}</span>}
-                    {c.due_date && <span className="inline-flex items-center gap-1"><CalendarClock className="h-3 w-3" /> Hasta {fmtDate(c.due_date)}</span>}
-                    {c.budget_ars != null && Number(c.budget_ars) > 0 && (
-                      <span className="inline-flex items-center gap-1"><Wallet className="h-3 w-3" /> {fmtMoney(Number(c.budget_ars))}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+              ) : campaigns.map(c => <CampaignCard key={c.id} campaign={c} />)}
             </CardContent>
           </Card>
 

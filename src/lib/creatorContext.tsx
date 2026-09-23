@@ -33,6 +33,8 @@ export interface CreatorCampaign {
   status: string;
   budget_ars: number | null;
   invitation_status: string | null;
+  deliverable_url: string | null;
+  deliverable_status: string | null;
 }
 
 export interface CreatorDeliverable {
@@ -62,6 +64,10 @@ interface CreatorCtx {
   earnings: CreatorEarnings | null;
   refresh: () => Promise<void>;
   saveProfile: (fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>) => Promise<void>;
+  /** Responde la invitación de una campaña (accept/decline) con la sesión. */
+  respondCampaign: (campaignId: string, action: "accept" | "decline") => Promise<void>;
+  /** Entrega el contenido de una campaña: URL pública obligatoria. */
+  submitDeliverable: (campaignId: string, campaignName: string, description: string, contentUrl: string) => Promise<void>;
 }
 
 const CreatorContext = createContext<CreatorCtx | null>(null);
@@ -157,8 +163,27 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const respondCampaign = useCallback(async (campaignId: string, action: "accept" | "decline") => {
+    const { error } = await rpc("creator_respond_campaign", { p_campaign_id: campaignId, p_action: action });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
+  const submitDeliverable = useCallback(async (
+    campaignId: string, campaignName: string, description: string, contentUrl: string,
+  ) => {
+    const { error } = await rpc("creator_submit_deliverable", {
+      p_campaign_id: campaignId,
+      p_campaign_name: campaignName,
+      p_description: description,
+      p_content_url: contentUrl,
+    });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, refresh, saveProfile }}>
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, refresh, saveProfile, respondCampaign, submitDeliverable }}>
       {children}
     </CreatorContext.Provider>
   );
