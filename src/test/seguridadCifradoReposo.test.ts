@@ -95,3 +95,27 @@ describe("cifrado en reposo de secretos por tenant", () => {
     expect(encrypt).toContain("'signing_secret', v_secret");
   });
 });
+
+describe("search_path fijado en funciones privilegiadas", () => {
+  const searchPath = leer("supabase/migrations/20260922001000_search_path_definer_hardening.sql");
+
+  it("fija search_path en las SECURITY DEFINER que lo tenían suelto", () => {
+    // Sin search_path fijo, una función SECURITY DEFINER resuelve con el path
+    // del llamador: un esquema anterior puede hacer que memberships resuelva a
+    // una tabla del atacante y saltarse la guarda.
+    expect(searchPath).toContain("SET search_path = public, pg_temp");
+    expect(searchPath).toContain("has_permission");
+    expect(searchPath).toContain("is_email_suppressed");
+  });
+
+  it("la certificación exige cero funciones sin path", () => {
+    expect(searchPath).toContain("p.prosecdef");
+    expect(searchPath).toMatch(/ASSERT v_sin_path = 0/);
+  });
+
+  it("refresca el hash del contrato que el ALTER invalida", () => {
+    // Cambiar la definición cambia el hash: sin refresco, la auditoría vuelve a
+    // marcar una función que sólo ganó un search_path seguro.
+    expect(searchPath).toContain("SET definition_hash = md5(pg_get_functiondef(p.oid))");
+  });
+});
