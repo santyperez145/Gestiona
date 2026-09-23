@@ -7,7 +7,10 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   passwordRecovery: boolean;
-  signUp: (email: string, password: string, name?: string) => Promise<void>;
+  /** `accountType` viaja en el metadata y decide qué provisiona el trigger:
+   * undefined → negocio (org + trial); 'creator' → sin org (portal de creador);
+   * 'store_customer' → comprador de tienda. */
+  signUp: (email: string, password: string, name?: string, accountType?: 'creator' | 'store_customer') => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   /** Magic link o código por email. No crea cuenta nueva (login). */
   signInWithEmailOtp: (email: string) => Promise<void>;
@@ -61,11 +64,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = async (email: string, password: string, name?: string, accountType?: 'creator' | 'store_customer') => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name }, emailRedirectTo: authEmailRedirectTo() },
+      options: {
+        // `account_type` decide el provisionamiento server-side: un creador no
+        // recibe organización ni trial (paridad Go-Marz), un comprador de
+        // tienda tampoco. Sin el campo, el flujo de negocio queda intacto.
+        data: { full_name: name, ...(accountType ? { account_type: accountType } : {}) },
+        emailRedirectTo: authEmailRedirectTo(),
+      },
     });
     if (error) throw error;
   };

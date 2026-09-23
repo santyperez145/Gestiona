@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Check, CircleDollarSign, Mail, PackageCheck, ShieldCheck, Store } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CircleDollarSign, Mail, PackageCheck, ShieldCheck, Sparkles, Store, User } from 'lucide-react';
 import BrandLogo from '@/components/shared/BrandLogo';
 import { authErrorForCustomer, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -16,6 +16,8 @@ const SHOWCASE_ITEMS = [
 ];
 
 type AuthMode = 'login' | 'register' | 'forgot' | 'otp';
+/** El registro declara el rol desde el primer paso: negocio o creador. */
+type AccountRole = 'business' | 'creator';
 
 function AuthBrand() {
   return <Link to="/" className="auth-brand"><BrandLogo eager markClassName="h-8 w-8" nameClassName="text-[1.05rem]" /></Link>;
@@ -35,6 +37,8 @@ export default function AuthPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<AccountRole>(() =>
+    searchParams.get('role') === 'creator' ? 'creator' : 'business');
   usePageTitle(mode === 'register'
     ? 'Crear cuenta'
     : mode === 'forgot'
@@ -79,8 +83,14 @@ export default function AuthPage() {
         if (!name.trim()) { toast.error('Ingresá tu nombre'); setLoading(false); return; }
         const passwordError = passwordValidationMessage(password);
         if (passwordError) { toast.error(passwordError); setLoading(false); return; }
-        await signUp(email, password, name);
-        toast.success('Cuenta creada. Revisá tu email para confirmar.');
+        // El rol vive desde el signup: 'creator' no provisiona organización
+        // (paridad Go-Marz) y manda al portal de creador; undefined = negocio.
+        await signUp(email, password, name, role === 'creator' ? 'creator' : undefined);
+        if (role === 'creator') {
+          toast.success('¡Cuenta de creador creada! Completá tu perfil para recibir campañas.');
+        } else {
+          toast.success('Cuenta creada. Revisá tu email para confirmar.');
+        }
       }
     } catch (err: any) {
       const msg = err?.message || '';
@@ -147,6 +157,14 @@ export default function AuthPage() {
         lead: otpSent
           ? 'Abrí el enlace del correo o ingresá el código de un solo uso. El enlace vuelve a Nerqia.'
           : 'Te mandamos un enlace mágico y un código. No crea cuentas nuevas: sólo entra si ya existís.',
+      };
+    }
+    if (mode === 'register' && role === 'creator') {
+      return {
+        icon: false,
+        eyebrow: 'Cuenta de creador',
+        title: 'Empezá como creador',
+        lead: 'Gestioná tus campañas, entregables e ingresos de todas tus marcas en un solo portal.',
       };
     }
     return {
@@ -234,7 +252,37 @@ export default function AuthPage() {
                 <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'is-active' : ''} onClick={() => changeMode('register')}>Crear cuenta</button>
               </div>
               <form onSubmit={handleSubmit} className="auth-form">
-                {mode === 'register' && <label>Nombre<input value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre" required /></label>}
+                {mode === 'register' && (
+                  <>
+                    {/* El rol se elige antes del email: un creador no pasa por
+                        onboarding de negocio ni recibe trial de 14 días. */}
+                    <div className="auth-role-picker" role="radiogroup" aria-label="Tipo de cuenta">
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={role === 'business'}
+                        className={`auth-role-option ${role === 'business' ? 'is-active' : ''}`}
+                        onClick={() => setRole('business')}
+                      >
+                        <Store />
+                        <strong>Soy negocio</strong>
+                        <span>Tienda online, gestión y finance</span>
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={role === 'creator'}
+                        className={`auth-role-option ${role === 'creator' ? 'is-active' : ''}`}
+                        onClick={() => setRole('creator')}
+                      >
+                        <Sparkles />
+                        <strong>Soy creador</strong>
+                        <span>Campañas e ingresos de tus marcas</span>
+                      </button>
+                    </div>
+                    <label>Nombre<input value={name} onChange={e => setName(e.target.value)} placeholder={role === 'creator' ? 'Tu nombre público' : 'Tu nombre'} required /></label>
+                  </>
+                )}
                 <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required autoComplete="email" /></label>
                 <label>Contraseña<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'register' ? `Mínimo ${MIN_PASSWORD_LENGTH} caracteres` : 'Tu contraseña'} required minLength={mode === 'register' ? MIN_PASSWORD_LENGTH : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
                 {mode === 'register' && <p className="auth-provider-hint">Usá mayúsculas, minúsculas y al menos un número.</p>}
@@ -244,7 +292,7 @@ export default function AuthPage() {
                     <button type="button" onClick={() => changeMode('forgot')}>¿Olvidaste tu contraseña?</button>
                   </div>
                 )}
-                <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Nerqia' : 'Crear mi workspace'} <ArrowRight /></Button>
+                <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Nerqia' : role === 'creator' ? 'Crear mi cuenta de creador' : 'Crear mi workspace'} <ArrowRight /></Button>
               </form>
               <p className="auth-channel-note" role="note">
                 El acceso por WhatsApp todavía no está disponible: Meta Cloud Messaging tiene que estar probado (`whatsapp_listo`) antes de ofrecer códigos por ese canal.

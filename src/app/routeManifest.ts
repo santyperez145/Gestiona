@@ -331,6 +331,10 @@ export const PUBLIC_ROUTES: RouteDefinition[] = [
     component: lazy(() => import("@/pages/ServiceStatusPage")),
     openReason: "Estado del servicio: si hay una caida tiene que verse sin sesion.",
     status: "canonical" },
+  { id: "portal_creador", path: "/portal-creador", roles: PUBLICO, module: null,
+    component: lazy(() => import("@/pages/CreatorPortalPage")),
+    openReason: "Portal del creador autenticado: el influencer no es un comercio y no comparte el panel del tenant.",
+    status: "canonical" },
 ];
 
 /**

@@ -1,0 +1,171 @@
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+
+/**
+ * Contexto del CREADOR (influencer).
+ *
+ * Es una superficie distinta del negocio: un creador no tiene organización,
+ * ni membresías, ni stock. Ve sus campañas, entregables e ingresos de TODAS
+ * sus marcas desde una sola bandeja, ligadas por el email de su cuenta.
+ */
+export interface CreatorProfile {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  phone: string | null;
+  instagram: string | null;
+  tiktok: string | null;
+  youtube: string | null;
+  onboarding_completed: boolean;
+}
+
+export interface CreatorCampaign {
+  id: string;
+  org_id: string;
+  org_name: string | null;
+  title: string;
+  brief: string | null;
+  channel: string | null;
+  due_date: string | null;
+  status: string;
+  budget_ars: number | null;
+  invitation_status: string | null;
+}
+
+export interface CreatorDeliverable {
+  id: string;
+  org_name: string | null;
+  campaign_name: string | null;
+  description: string | null;
+  content_url: string | null;
+  due_date: string | null;
+  status: string;
+}
+
+export interface CreatorEarnings {
+  total_commissions_ars: number;
+  total_sales_count: number;
+  paid_ars: number;
+  pending_withdrawals_ars: number;
+  available_ars: number;
+}
+
+interface CreatorCtx {
+  loading: boolean;
+  isCreator: boolean;
+  profile: CreatorProfile | null;
+  campaigns: CreatorCampaign[];
+  deliverables: CreatorDeliverable[];
+  earnings: CreatorEarnings | null;
+  refresh: () => Promise<void>;
+  saveProfile: (fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>) => Promise<void>;
+}
+
+const CreatorContext = createContext<CreatorCtx | null>(null);
+
+// deno-lint-ignore no-explicit-any
+const rpc = (fn: string, args?: Record<string, unknown>) => (supabase as any).rpc(fn, args);
+
+export function CreatorProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [isCreator, setIsCreator] = useState(false);
+  const [profile, setProfile] = useState<CreatorProfile | null>(null);
+  const [campaigns, setCampaigns] = useState<CreatorCampaign[]>([]);
+  const [deliverables, setDeliverables] = useState<CreatorDeliverable[]>([]);
+  const [earnings, setEarnings] = useState<CreatorEarnings | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setIsCreator(false);
+      setProfile(null);
+      setCampaigns([]);
+      setDeliverables([]);
+      setEarnings(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      // La cuenta es creadora si tiene fila en creator_accounts.
+      const { data: ownRow } = await rpc("creator_linked_profiles", { p_user_id: user.id });
+      const linked = Array.isArray(ownRow) ? ownRow : [];
+
+      let own: CreatorProfile | null = null;
+      // deno-lint-ignore no-explicit-any
+      const accounts = (supabase as any).from("creator_accounts");
+      const { data: accountRow } = await accounts.select("*").eq("user_id", user.id).maybeSingle();
+      own = (accountRow as CreatorProfile | null) ?? null;
+
+      // Si no tiene fila pero SÍ perfiles ligados por email, la cuenta existe:
+      // se siembra su fila para que el resto de RPCs funcionen.
+      if (!own && linked.length > 0) {
+        const email = user.email ?? "";
+        await accounts.insert({ user_id: user.id, email });
+        own = { user_id: user.id, email, display_name: null, avatar_url: null, bio: null, phone: null, instagram: null, tiktok: null, youtube: null, onboarding_completed: false };
+      }
+
+      setIsCreator(Boolean(own) || linked.length > 0);
+      setProfile(own);
+
+      if (own) {
+        const [camp, deliv, earn] = await Promise.all([
+          rpc("creator_campaigns"),
+          rpc("creator_deliverables"),
+          rpc("creator_earnings"),
+        ]);
+        setCampaigns(Array.isArray(camp.data) ? camp.data : []);
+        setDeliverables(Array.isArray(deliv.data) ? deliv.data : []);
+        const earnData = earn.data;
+        const parsed = typeof earnData === "string" ? JSON.parse(earnData) : earnData;
+        setEarnings((parsed as CreatorEarnings) ?? null);
+      } else {
+        setCampaigns([]);
+        setDeliverables([]);
+        setEarnings(null);
+      }
+    } catch (error) {
+      console.error("[creator] no se pudo cargar la superficie de creador", error);
+      setIsCreator(false);
+      setProfile(null);
+      setCampaigns([]);
+      setDeliverables([]);
+      setEarnings(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => { if (!authLoading) void refresh(); }, [authLoading, refresh]);
+
+  const saveProfile = useCallback(async (
+    fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>,
+  ) => {
+    // La firma del RPC es un solo objeto con las 6 claves.
+    const { error } = await rpc("creator_upsert_own_profile", {
+      p_display_name: fields.display_name ?? null,
+      p_bio: fields.bio ?? null,
+      p_phone: fields.phone ?? null,
+      p_instagram: fields.instagram ?? null,
+      p_tiktok: fields.tiktok ?? null,
+      p_youtube: fields.youtube ?? null,
+    });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
+  return (
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, refresh, saveProfile }}>
+      {children}
+    </CreatorContext.Provider>
+  );
+}
+
+export function useCreator(): CreatorCtx {
+  const ctx = useContext(CreatorContext);
+  if (!ctx) throw new Error("useCreator debe usarse dentro de CreatorProvider");
+  return ctx;
+}

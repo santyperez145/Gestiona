@@ -83,6 +83,27 @@ const SURFACES = [
 
 const CHECKS = ['14 días sin tarjeta', 'Importación asistida', 'Soporte en español'];
 
+/** Dos audiencias, dos entradas: la marca opera el comercio; el creador
+ * gestiona campañas e ingresos. No son lo mismo y no comparten panel. */
+const AUDIENCES = [
+  {
+    id: 'negocio' as const,
+    icon: Store,
+    title: 'Soy negocio',
+    description: 'Tienda online, gestión y finance en una sola operación.',
+    href: '/login?mode=register&role=business',
+    cta: 'Crear mi tienda gratis',
+  },
+  {
+    id: 'creador' as const,
+    icon: Sparkles,
+    title: 'Soy creador',
+    description: 'Campañas, entregables e ingresos de todas tus marcas en un portal.',
+    href: '/login?mode=register&role=creator',
+    cta: 'Crear mi cuenta de creador',
+  },
+];
+
 function BrandMark({ small = false }: { small?: boolean }) {
   return (
     <BrandLogo
@@ -153,6 +174,7 @@ function StorefrontPreview() {
 export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [surfaceId, setSurfaceId] = useState<(typeof SURFACES)[number]['id']>('tienda');
+  const [audienceOpen, setAudienceOpen] = useState(false);
   const activeSurface = SURFACES.find(surface => surface.id === surfaceId) ?? SURFACES[0];
   const SurfaceIcon = activeSurface.icon;
 
@@ -226,6 +248,19 @@ export default function LandingPage() {
                 <a href="#tienda" className="landing-button landing-button--outline">
                   Ver cómo funciona
                 </a>
+              </div>
+              {/* Dos puertas visibles: la marca y el creador eligen destino
+                  antes de crear la cuenta. Sin esto, un influencer termina con
+                  un panel de negocio que no le sirve. */}
+              <div className="landing-audience-split">
+                {AUDIENCES.map(({ id, icon: AudienceIcon, title, description, href, cta }) => (
+                  <Link key={id} to={href} className={`landing-audience-card landing-audience-card--${id}`}>
+                    <span className="landing-audience-card__icon"><AudienceIcon /></span>
+                    <strong>{title}</strong>
+                    <span>{description}</span>
+                    <small>{cta} <ArrowRight /></small>
+                  </Link>
+                ))}
               </div>
               <div className="landing-checks">{CHECKS.map(check => <span key={check}><Check /> {check}</span>)}</div>
             </div>

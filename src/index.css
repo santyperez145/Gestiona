@@ -1228,6 +1228,15 @@
   .auth-tabs button::after { position: absolute; right: 0.65rem; bottom: -1px; left: 0.65rem; height: 2px; background: hsl(var(--auth-gold)); content: ""; transform: scaleX(0); transition: transform 140ms ease; }
   .auth-tabs button.is-active { color: hsl(var(--auth-ink)); }
   .auth-tabs button.is-active::after { transform: scaleX(1); }
+  /* Selector de rol del registro: negocio vs creador. */
+  .auth-role-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+  .auth-role-option { display: grid; gap: 0.15rem; padding: 0.7rem 0.75rem; border: 1px solid hsl(var(--auth-line)); border-radius: 9px; background: hsl(0 0% 100%); text-align: left; cursor: pointer; transition: border-color 140ms ease, box-shadow 140ms ease; }
+  .auth-role-option svg { width: 1rem; height: 1rem; color: hsl(var(--auth-muted)); margin-bottom: 0.2rem; transition: color 140ms ease; }
+  .auth-role-option strong { color: hsl(var(--auth-ink)); font-size: 0.72rem; font-weight: 750; }
+  .auth-role-option span { color: hsl(var(--auth-muted) / 0.8); font-size: 0.6rem; line-height: 1.4; }
+  .auth-role-option:hover { border-color: hsl(var(--auth-gold) / 0.5); }
+  .auth-role-option.is-active { border-color: hsl(var(--auth-gold)); box-shadow: 0 0 0 3px hsl(var(--auth-gold) / 0.12); }
+  .auth-role-option.is-active svg { color: hsl(var(--auth-gold)); }
   .auth-form { display: grid; gap: 1rem; }
   .auth-form label { display: grid; gap: 0.45rem; color: hsl(var(--auth-ink)); font-size: 0.68rem; font-weight: 750; }
   .auth-form input { width: 100%; min-height: 2.8rem; padding: 0.7rem 0.8rem; border: 1px solid hsl(var(--auth-line)); border-radius: 7px; outline: none; background: hsl(0 0% 100%); color: hsl(var(--auth-ink)); font-family: inherit; font-size: 0.78rem; transition: border-color 140ms ease, box-shadow 140ms ease; }
@@ -1533,6 +1542,64 @@
     gap: 0.8rem 1.15rem;
     margin-top: 1.3rem;
   }
+
+  /* Dos puertas de entrada: la marca opera, el creador colabora. */
+  .landing-audience-split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-top: 1.35rem;
+  }
+
+  .landing-audience-card {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid hsl(var(--landing-line));
+    border-radius: 12px;
+    background: hsl(0 0% 100%);
+    text-decoration: none;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .landing-audience-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 8px;
+    margin-bottom: 0.25rem;
+  }
+
+  .landing-audience-card__icon svg { width: 0.95rem; height: 0.95rem; }
+
+  .landing-audience-card--negocio .landing-audience-card__icon { background: hsl(222 87% 55% / 0.1); color: hsl(222 87% 51%); }
+  .landing-audience-card--creador .landing-audience-card__icon { background: hsl(45 93% 47% / 0.14); color: hsl(38 92% 50%); }
+
+  .landing-audience-card strong {
+    color: hsl(var(--landing-ink));
+    font-size: 0.76rem;
+    font-weight: 750;
+  }
+
+  .landing-audience-card > span {
+    color: hsl(var(--landing-muted));
+    font-size: 0.63rem;
+    line-height: 1.45;
+  }
+
+  .landing-audience-card small {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    color: hsl(var(--landing-muted));
+    font-size: 0.6rem;
+    font-weight: 700;
+  }
+
+  .landing-audience-card:hover { border-color: hsl(var(--landing-gold)); box-shadow: 0 4px 16px hsl(var(--landing-ink) / 0.06); }
 
   .landing-checks span {
     display: inline-flex;
