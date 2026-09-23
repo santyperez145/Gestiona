@@ -12,6 +12,7 @@
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { remitenteDe } from "./remitente.ts";
+import { descifrarSecreto } from "./secretos.ts";
 
 export interface SmtpConfig {
   host: string;
@@ -324,7 +325,7 @@ export async function smtpDeOrganizacion(orgId: string): Promise<SmtpConfig | nu
     host: data.host,
     port: data.port || 587,
     user: data.username,
-    pass: data.password,
+    pass: await descifrarSecreto(admin, data.password),
     secure: data.secure === true,
     fromName: data.from_name || "",
     fromEmail: data.from_email || data.username,

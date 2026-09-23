@@ -8,6 +8,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { cifrarSecreto, descifrarSecreto } from "../_shared/secretos.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 import { emailFailure } from "../_shared/emailErrors.ts";
 
@@ -149,7 +150,7 @@ Deno.serve(async (req) => {
       .eq("org_id", orgId)
       .maybeSingle();
     if (existingError) return response({ error: "No se pudo leer la conexión existente" }, 500);
-    pass = existing?.password || "";
+    pass = await descifrarSecreto(admin, existing?.password || "");
   }
   if (!user || pass.length < 8 || pass.length > 2048 || !EMAIL.test(fromEmail)) {
     return response({ error: "Completá usuario, credencial y email de origen válidos" }, 400);
@@ -168,7 +169,7 @@ Deno.serve(async (req) => {
     host,
     port,
     username: user,
-    password: pass,
+    password: await cifrarSecreto(admin, pass),
     secure,
     from_name: fromName || null,
     from_email: fromEmail,

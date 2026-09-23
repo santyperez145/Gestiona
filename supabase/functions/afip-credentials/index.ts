@@ -25,6 +25,7 @@ import { requireEnv } from "../_shared/env.ts";
 // Compartida con `afip-platform-cert`: una sola regla de PEM para los dos
 // caminos que reciben certificados.
 import { esPem, ERROR_CERT, ERROR_CLAVE } from "../_shared/pem.ts";
+import { cifrarSecreto } from "../_shared/secretos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,8 +96,8 @@ Deno.serve(async (req) => {
       .from("afip_credentials")
       .upsert({
         org_id: orgId,
-        certificate: certificate.trim(),
-        private_key: privateKey.trim(),
+        certificate: await cifrarSecreto(admin, certificate.trim()),
+        private_key: await cifrarSecreto(admin, privateKey.trim()),
         // C14: subir un certificado propio ES elegir el modo propio. Sin esta
         // línea el comercio seguiría facturando con el de la plataforma,
         // teniendo el suyo cargado y sin ninguna señal de que no se usa.

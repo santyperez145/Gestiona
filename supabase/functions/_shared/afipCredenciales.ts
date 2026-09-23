@@ -26,6 +26,8 @@
  * problema del comercio.
  */
 
+import { descifrarSecreto } from "./secretos.ts";
+
 export type ModoAfip = "delegado" | "propio";
 
 export type CredencialesAfip = {
@@ -62,11 +64,17 @@ export async function resolverCredencialesAfip(supabase: any, orgId: string): Pr
   if (modo === "propio") {
     if (!org.certificate) return { error: "AFIP no configurado: falta el certificado PEM" };
     if (!org.private_key) return { error: "AFIP no configurado: falta la clave privada PEM" };
+    // El certificado y la clave viven cifrados en reposo (envelope nerqia:v1):
+    // se descifran acá, en la Edge, nunca en el navegador.
+    const [certPem, keyPem] = await Promise.all([
+      descifrarSecreto(supabase, org.certificate),
+      descifrarSecreto(supabase, org.private_key),
+    ]);
     return {
       cred: {
         cuit: String(org.cuit),
-        certificate: org.certificate,
-        private_key: org.private_key,
+        certificate: certPem,
+        private_key: keyPem,
         environment: org.environment,
         punto_venta: org.punto_venta || 1,
         tipo_emisor: org.tipo_emisor ?? null,
@@ -93,8 +101,8 @@ export async function resolverCredencialesAfip(supabase: any, orgId: string): Pr
   return {
     cred: {
       cuit: String(org.cuit),
-      certificate: plat.certificate,
-      private_key: plat.private_key,
+      certificate: await descifrarSecreto(supabase, plat.certificate),
+      private_key: await descifrarSecreto(supabase, plat.private_key),
       environment: plat.environment,
       punto_venta: org.punto_venta || 1,
       tipo_emisor: org.tipo_emisor ?? null,

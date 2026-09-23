@@ -11,6 +11,8 @@
  * (HMAC-SHA256 del cuerpo), con nombres propios de Nerqia.
  */
 
+import { descifrarSecreto } from "./secretos.ts";
+
 export const SUPPORTED_OUTBOUND_EVENTS = [
   "sale.created",
   "automation.triggered",
@@ -321,7 +323,7 @@ export async function deliverOutboundEvent(
     try {
       delivery = await deliver(
         config,
-        secretRow.secret,
+        await descifrarSecreto(admin, secretRow.secret),
         input.event,
         input.orgId,
         input.data,

@@ -53,7 +53,9 @@ describe("SMTP privado por organización", () => {
   it("prueba antes de persistir, conserva una clave existente sólo en backend y no la devuelve", () => {
     expect(endpoint.indexOf("await sendConnectionTest")).toBeLessThan(endpoint.indexOf(".upsert({"));
     expect(endpoint).toContain('.select("password")');
-    expect(endpoint).toContain('pass = existing?.password || ""');
+    // La clave existente vive cifrada en reposo: se descifra en el backend y
+    // nunca vuelve al navegador.
+    expect(endpoint).toContain('pass = await descifrarSecreto(admin, existing?.password || "")');
     const successfulResponse = endpoint.split("return response({").at(-1) ?? "";
     expect(successfulResponse).not.toMatch(/pass|password/);
     expect(endpoint).not.toContain("El servidor rechazó la prueba: ${detail}");
