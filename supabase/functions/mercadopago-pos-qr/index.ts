@@ -206,7 +206,7 @@ async function createOrder(
     description: "Venta presencial Nerqia",
     external_reference: `posqr_${sessionId.replaceAll("-", "")}`,
     expiration_time: "PT15M",
-    ...(platformFee > 0 ? { marketplace_fee: amountText(platformFee) } : {}),
+    ...(platformFee > 0 ? { application_fee: amountText(platformFee) } : {}),
     config: { qr: { external_pos_id: externalPosId, mode: "dynamic" } },
     transactions: { payments: [{ amount: total }] },
     ...(items.length ? { items } : {}),

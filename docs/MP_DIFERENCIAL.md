@@ -5,7 +5,7 @@ Confirmado por [Audita MP functions](ee7313b7-e7fc-422c-9792-e09d8fa826b7): el f
 Con las nuevas APIs de MP (2026):
 
 - **Checkout API Orders** (recomendado): unifica POS + tienda online; permite ítems reales, impuestos por línea, deferred capture, auto_return, deep links.
-- **Marketplace split**: `marketplace_fee` en Orders para desglose de comisión Nerqia vs merchant en tiempo real.
+- **Marketplace split**: `application_fee` en Orders para desglose de comisión Nerqia vs merchant en tiempo real.
 - **Saved Cards**: `payment_methods` con token del comprador para checkout "una toca".
 - **Subscriptions**: `preapproval` con `auto_recurring`, `card_token_id` para cuotas fijas / mantenimiento.
 

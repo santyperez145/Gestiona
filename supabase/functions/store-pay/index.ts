@@ -179,54 +179,76 @@ async function createRedirectPreference(
   }
 
   const marketplaceFee = await marketplaceCommission(admin, store.org_id, order.total, "preference");
+  if (marketplaceFee > order.total) {
+    console.error("store-pay: comisión de plataforma supera el total", { orgId: store.org_id, total: order.total, marketplaceFee });
+    return json({ error: "La comisión calculada no es válida" }, 500);
+  }
   const base = safeReturnBase(returnUrl) ?? safeReturnBase(Deno.env.get("PUBLIC_BASE_URL"));
   const backUrl = base
     ? `${base}/tienda/${encodeURIComponent(store.slug)}/orden/${encodeURIComponent(order.order_number)}`
     : null;
 
-  const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
+  // ── Checkout API Orders (2026) ──────────────────────────────────────────
+  // Reemplaza a `checkout/preferences` (legacy). Usa `application_fee`
+  // en lugar de `marketplace_fee`, soporta `auto_return`, deep links y
+  // ítems reales del carrito con impuestos por línea.
+  const orderPayload: Record<string, unknown> = {
+    type: "online",
+    total_amount: String(order.total),
+    external_reference: `ecom:${order.id}`,
+    transactions: {
+      payments: [
+        {
+          amount: String(order.total),
+          payment_method: { id: "mercadopago", type: "credit_card" },
+        },
+      ],
+    },
+    payer: { email: order.customer_email || "comprador@nerqia.app" },
+    items: preferenceItems(order.items, order.order_number, order.total).map((item) => ({
+      title: item.title,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      currency_id: "ARS",
+    })),
+    ...(marketplaceFee > 0 ? { application_fee: marketplaceFee } : {}),
+    metadata: { correlation_id: attempt.correlationId },
+    ...(backUrl ? { back_urls: { success: backUrl, pending: backUrl, failure: backUrl } } : {}),
+    ...(backUrl ? { auto_return: "approved" } : {}),
+    notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?org_id=${store.org_id}`,
+    statement_descriptor: String(store.name).slice(0, 22),
+  };
+
+  const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${creds.accessToken}`,
       "Content-Type": "application/json",
+      "X-Idempotency-Key": attempt.clientKey ?? attempt.attemptId,
     },
-    body: JSON.stringify({
-      items: preferenceItems(order.items, order.order_number, order.total),
-      ...(marketplaceFee > 0 ? { marketplace_fee: marketplaceFee } : {}),
-      payer: { name: order.customer_name, email: order.customer_email },
-      external_reference: `ecom:${order.id}`,
-      // Identificador opaco: permite seguir la operación en Nerqia y en el
-      // proveedor sin enviar nombre, email ni datos internos del negocio.
-      metadata: { correlation_id: attempt.correlationId },
-      ...(backUrl ? {
-        back_urls: { success: backUrl, pending: backUrl, failure: backUrl },
-        auto_return: "approved",
-      } : {}),
-      notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?org_id=${store.org_id}`,
-      statement_descriptor: String(store.name).slice(0, 22),
-    }),
+    body: JSON.stringify(orderPayload),
   });
 
   const mp = await mpRes.json().catch(() => null) as Record<string, unknown> | null;
   const initPoint = text(mp?.init_point, 2_000);
   if (!mpRes.ok || !initPoint) {
-    console.error("MP preference error:", mpRes.status, mp);
+    console.error("MP Orders error:", mpRes.status, mp);
     await recordPaymentAttempt(admin, {
       attemptId: attempt.attemptId,
       status: "error",
       reason: text(mp?.message) ?? `MercadoPago respondió ${mpRes.status}`,
-      raw: { kind: "preference", status: mpRes.status },
+      raw: { kind: "order", status: mpRes.status },
     });
     return json({ error: text(mp?.message) ?? "No se pudo generar el link de pago" }, 502);
   }
 
-  // La preferencia todavía no es un cobro. Se registra como pendiente sin
-  // usar su id como external_id: si el comprador cambia al Brick, el mismo
-  // intento puede recibir la clave de idempotencia del pago real.
+  // La orden creada todavía no es un cobro acreditado. Se registra como
+  // pendiente sin usar su id como external_id: si el comprador cambia al
+  // Brick, el mismo intento puede recibir la clave de idempotencia del pago real.
   await recordPaymentAttempt(admin, {
     attemptId: attempt.attemptId,
     status: "pendiente",
-    raw: { kind: "preference", preference_id: text(mp?.id, 250) },
+    raw: { kind: "order", order_id: text(mp?.id, 250), init_point: initPoint },
   });
 
   return json({
