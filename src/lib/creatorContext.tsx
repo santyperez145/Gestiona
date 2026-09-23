@@ -35,6 +35,8 @@ export interface CreatorCampaign {
   invitation_status: string | null;
   deliverable_url: string | null;
   deliverable_status: string | null;
+  /** Feedback de la marca tras revisar la entrega (aprobado o corrección). */
+  review_notes: string | null;
 }
 
 export interface CreatorDeliverable {

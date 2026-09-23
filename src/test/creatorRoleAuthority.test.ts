@@ -84,6 +84,19 @@ describe("rol creador: el influencer no es un comercio", () => {
     expect(portal).toContain("Aceptar campaña");
   });
 
+  it("el feedback de revisión de la marca llega a la bandeja del creador", () => {
+    const feedback = readFileSync(
+      resolve(ROOT, "supabase/migrations/20260922000600_creator_campaign_review_feedback.sql"),
+      "utf8",
+    );
+    // El RPC expone review_notes del último entregable revisado; el portal lo
+    // muestra asociado a la marca.
+    expect(feedback).toContain("review_notes text");
+    expect(feedback).toContain("d.review_notes IS NOT NULL");
+    expect(context).toContain("review_notes");
+    expect(portal).toContain("Feedback de");
+  });
+
   it("los RPCs de creador son SECURITY DEFINER con grants explícitos", () => {
     const funciones = ["creator_linked_profiles", "creator_campaigns", "creator_deliverables", "creator_earnings", "creator_upsert_own_profile"];
     for (const fn of funciones) {

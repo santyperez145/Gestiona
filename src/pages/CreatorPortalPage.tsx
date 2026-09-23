@@ -264,6 +264,14 @@ function CampaignCard({ campaign }: { campaign: CreatorCampaign }) {
         </form>
       )}
 
+      {/* Feedback de la marca: aprobación o corrección pedida */}
+      {campaign.review_notes && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5" role="status">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Feedback de {campaign.org_name}</p>
+          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{campaign.review_notes}</p>
+        </div>
+      )}
+
       {deliverado && (
         <a
           href={campaign.deliverable_url ?? "#"}
