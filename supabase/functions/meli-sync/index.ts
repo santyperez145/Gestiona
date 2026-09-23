@@ -15,6 +15,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
+import { cifrarSecreto, descifrarSecreto } from "../_shared/secretos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,8 +55,12 @@ async function getToken(admin: any, orgId: string): Promise<Connection> {
 
   if (!conn?.access_token) throw new Error("La organización no está conectada a MercadoLibre");
 
+  // Los tokens viven cifrados en reposo: se descifran acá, en la Edge.
+  const accessToken = await descifrarSecreto(admin, conn.access_token);
+  const refreshToken = conn.refresh_token ? await descifrarSecreto(admin, conn.refresh_token) : "";
+
   const msLeft = new Date(conn.expires_at).getTime() - Date.now();
-  if (msLeft > 10 * 60 * 1000) return conn;
+  if (msLeft > 10 * 60 * 1000) return { ...conn, access_token: accessToken, refresh_token: refreshToken };
 
   const res = await fetch(`${API}/oauth/token`, {
     method: "POST",
@@ -64,7 +69,7 @@ async function getToken(admin: any, orgId: string): Promise<Connection> {
       grant_type: "refresh_token",
       client_id: requireEnv("MELI_CLIENT_ID"),
       client_secret: requireEnv("MELI_CLIENT_SECRET"),
-      refresh_token: conn.refresh_token,
+      refresh_token: refreshToken,
     }),
   });
   const tok = await res.json().catch(() => null);
@@ -73,14 +78,16 @@ async function getToken(admin: any, orgId: string): Promise<Connection> {
   }
 
   const updated = {
-    access_token: tok.access_token,
-    refresh_token: tok.refresh_token ?? conn.refresh_token,
+    access_token: await cifrarSecreto(admin, tok.access_token),
+    refresh_token: await cifrarSecreto(admin, tok.refresh_token ?? refreshToken),
     expires_at: new Date(Date.now() + (tok.expires_in ?? 21600) * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   };
   const { error: updateError } = await admin.from("meli_connections").update(updated).eq("org_id", orgId);
   if (updateError) throw new Error(updateError.message);
-  return { ...conn, ...updated };
+  // Se devuelve el token en claro del proveedor, no el cifrado que acabamos de
+  // guardar: los callers lo usan directamente en la API de MercadoLibre.
+  return { ...conn, access_token: tok.access_token, refresh_token: tok.refresh_token ?? refreshToken, expires_at: updated.expires_at };
 }
 
 const meli = (token: string, path: string, init: RequestInit = {}) =>

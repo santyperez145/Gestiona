@@ -17,6 +17,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
+import { cifrarSecreto, descifrarSecreto } from "../_shared/secretos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -156,8 +157,8 @@ Deno.serve(async (req) => {
         provider: "mercadopago",
         external_id: String(tok.user_id),
         nickname, email,
-        access_token: tok.access_token,
-        refresh_token: tok.refresh_token,
+        access_token: await cifrarSecreto(admin, tok.access_token),
+        refresh_token: await cifrarSecreto(admin, tok.refresh_token),
         public_key: tok.public_key ?? null,
         expires_at: new Date(Date.now() + (tok.expires_in ?? 15552000) * 1000).toISOString(),
         scopes: tok.scope ?? null,
@@ -194,6 +195,7 @@ Deno.serve(async (req) => {
         .eq("org_id", orgId).eq("provider", "mercadopago").maybeSingle();
       if (!conn?.refresh_token) return json({ error: "No hay conexión para renovar" }, 400);
 
+      const refreshToken = await descifrarSecreto(admin, conn.refresh_token);
       const res = await fetch(TOKEN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -201,7 +203,7 @@ Deno.serve(async (req) => {
           grant_type: "refresh_token",
           client_id: appId,
           client_secret: appSecret,
-          refresh_token: conn.refresh_token,
+          refresh_token: refreshToken,
         }),
       });
       const tok = await res.json().catch(() => null) as MpToken | null;
@@ -214,8 +216,8 @@ Deno.serve(async (req) => {
       }
 
       await admin.from("payment_connections").update({
-        access_token: tok.access_token,
-        refresh_token: tok.refresh_token ?? conn.refresh_token,
+        access_token: await cifrarSecreto(admin, tok.access_token),
+        refresh_token: await cifrarSecreto(admin, tok.refresh_token ?? refreshToken),
         expires_at: new Date(Date.now() + (tok.expires_in ?? 15552000) * 1000).toISOString(),
         last_error: null,
         updated_at: new Date().toISOString(),

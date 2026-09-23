@@ -15,6 +15,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
+import { cifrarSecreto, descifrarSecreto } from "../_shared/secretos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
         grant_type: "refresh_token",
         client_id: clientId,
         client_secret: clientSecret,
-        refresh_token: conn.refresh_token,
+        refresh_token: await descifrarSecreto(admin, conn.refresh_token),
       };
     } else {
       if (!code) return json({ error: "code es requerido" }, 400);
@@ -145,8 +146,8 @@ Deno.serve(async (req) => {
         meli_user_id: tok.user_id,
         nickname,
         site_id: siteId,
-        access_token: tok.access_token,
-        refresh_token: tok.refresh_token,
+        access_token: await cifrarSecreto(admin, tok.access_token),
+        refresh_token: await cifrarSecreto(admin, tok.refresh_token),
         expires_at: new Date(Date.now() + (tok.expires_in ?? 21600) * 1000).toISOString(),
         scopes: tok.scope ?? null,
         last_error: null,

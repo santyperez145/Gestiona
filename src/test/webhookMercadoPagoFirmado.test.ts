@@ -136,7 +136,8 @@ describe("la firma del webhook de MercadoPago", () => {
 describe("la renovación del token de MercadoPago", () => {
   it("renueva antes de vencer, no después", () => {
     expect(mpToken).toContain("const RENEW_BEFORE_MS = 7 * 24 * 60 * 60 * 1000;");
-    expect(mpToken).toContain("if (venceEn > RENEW_BEFORE_MS || !conn.refresh_token)");
+    // El refresh_token se descifra antes de decidir: el crudo viene del envelope.
+    expect(mpToken).toContain("if (venceEn > RENEW_BEFORE_MS || !refreshToken)");
   });
 
   it("usa grant_type refresh_token con las credenciales de la app", () => {
@@ -149,7 +150,7 @@ describe("la renovación del token de MercadoPago", () => {
     // ⚠️ Sin este `??`, una renovación que no devuelve refresh_token dejaría
     // la conexión sin forma de renovarse la próxima vez: el comercio se
     // desconecta solo dentro de seis meses.
-    expect(mpToken).toContain("refresh_token: tok.refresh_token ?? conn.refresh_token");
+    expect(mpToken).toContain("refresh_token: await cifrarSecreto(admin, tok.refresh_token ?? refreshToken)");
   });
 
   it("si la renovación falla, deja el motivo y sigue con el token vigente", () => {

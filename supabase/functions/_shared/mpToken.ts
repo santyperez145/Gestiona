@@ -6,9 +6,14 @@
  * la comisión de Nerqia. El token pegado a mano se retiró después de medir
  * cero valores reales en `settings`.
  *
+ * Los tokens viven cifrados en reposo (envelope `nerqia:v1`); se descifran sólo
+ * dentro de la Edge con service_role.
+ *
  * Si el token OAuth está por vencer se renueva solo: MercadoPago los vence a
  * los 180 días y, sin esto, un día los cobros dejarían de funcionar sin aviso.
  */
+import { cifrarSecreto, descifrarSecreto } from "./secretos.ts";
+
 export interface MpCredentials {
   accessToken: string;
   liveMode: boolean;
@@ -29,11 +34,16 @@ export async function getMpCredentials(admin: any, orgId: string): Promise<MpCre
 
   if (connectionError) throw connectionError;
 
-  if (conn?.access_token) {
+  // Los tokens viven cifrados en reposo (envelope nerqia:v1): se descifran acá,
+  // dentro de la Edge con service_role, y nunca en el navegador.
+  const accessToken = conn?.access_token ? await descifrarSecreto(admin, conn.access_token) : null;
+  const refreshToken = conn?.refresh_token ? await descifrarSecreto(admin, conn.refresh_token) : null;
+
+  if (accessToken) {
     const venceEn = conn.expires_at ? new Date(conn.expires_at).getTime() - Date.now() : Infinity;
 
-    if (venceEn > RENEW_BEFORE_MS || !conn.refresh_token) {
-      return { accessToken: conn.access_token, liveMode: conn.live_mode ?? true };
+    if (venceEn > RENEW_BEFORE_MS || !refreshToken) {
+      return { accessToken, liveMode: conn.live_mode ?? true };
     }
 
     // Renovación silenciosa.
@@ -48,14 +58,14 @@ export async function getMpCredentials(admin: any, orgId: string): Promise<MpCre
             grant_type: "refresh_token",
             client_id: appId,
             client_secret: appSecret,
-            refresh_token: conn.refresh_token,
+            refresh_token: refreshToken,
           }),
         });
         const tok = await res.json().catch(() => null);
         if (res.ok && tok?.access_token) {
           await admin.from("payment_connections").update({
-            access_token: tok.access_token,
-            refresh_token: tok.refresh_token ?? conn.refresh_token,
+            access_token: await cifrarSecreto(admin, tok.access_token),
+            refresh_token: await cifrarSecreto(admin, tok.refresh_token ?? refreshToken),
             expires_at: new Date(Date.now() + (tok.expires_in ?? 15552000) * 1000).toISOString(),
             last_error: null,
             updated_at: new Date().toISOString(),
@@ -69,7 +79,7 @@ export async function getMpCredentials(admin: any, orgId: string): Promise<MpCre
     }
 
     // Aunque falle la renovación, el token viejo puede seguir sirviendo.
-    return { accessToken: conn.access_token, liveMode: conn.live_mode ?? true };
+    return { accessToken, liveMode: conn.live_mode ?? true };
   }
 
   return null;

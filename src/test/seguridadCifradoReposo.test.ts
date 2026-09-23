@@ -96,6 +96,49 @@ describe("cifrado en reposo de secretos por tenant", () => {
   });
 });
 
+describe("cifrado en reposo de tokens OAuth", () => {
+  const oauth = leer("supabase/migrations/20260922001100_encryption_at_rest_oauth_tokens.sql");
+  const mpToken = leer("supabase/functions/_shared/mpToken.ts");
+  const mpConnect = leer("supabase/functions/mp-connect/index.ts");
+  const meliOauth = leer("supabase/functions/meli-oauth/index.ts");
+  const meliSync = leer("supabase/functions/meli-sync/index.ts");
+  const meliWebhook = leer("supabase/functions/meli-webhook/index.ts");
+  const mpWebhook = leer("supabase/functions/mercadopago-webhook/index.ts");
+
+  it("cifra access_token y refresh_token de ambas conexiones", () => {
+    expect(oauth).toMatch(/payment_connections[\s\S]{0,400}secret_encrypt\(access_token\)/);
+    expect(oauth).toMatch(/meli_connections[\s\S]{0,400}secret_encrypt\(access_token\)/);
+    expect(oauth).toMatch(/meli_connections[\s\S]{0,400}secret_encrypt\(refresh_token\)/);
+  });
+
+  it("todos los lectores descifran antes de usar el token", () => {
+    // Mercado Pago centraliza en mpToken (todas las Edge pasan por ahí).
+    expect(mpToken).toContain("descifrarSecreto(admin, conn.access_token)");
+    expect(mpToken).toContain("descifrarSecreto(admin, conn.refresh_token)");
+    // Mercado Libre tiene tres lectores propios.
+    expect(meliOauth).toContain("descifrarSecreto(admin, conn.refresh_token)");
+    expect(meliSync).toContain("descifrarSecreto(admin, conn.access_token)");
+    expect(meliWebhook).toContain("descifrarSecreto(admin, conn.access_token)");
+    // El webhook de MP lee tokens crudos para identificar la org del pago.
+    expect(mpWebhook).toContain("descifrarSecreto(admin, c.access_token)");
+  });
+
+  it("todos los escritores cifran antes de persistir", () => {
+    expect(mpConnect).toContain("access_token: await cifrarSecreto(admin, tok.access_token)");
+    expect(mpConnect).toContain("refresh_token: await cifrarSecreto(admin, tok.refresh_token)");
+    expect(meliOauth).toContain("access_token: await cifrarSecreto(admin, tok.access_token)");
+    expect(meliSync).toContain("access_token: await cifrarSecreto(admin, tok.access_token)");
+    expect(meliWebhook).toContain("access_token: await cifrarSecreto(admin, refreshed.access_token)");
+  });
+
+  it("la renovación guarda cifrado pero devuelve el token en claro al caller", () => {
+    // El caller usa el token contra la API del proveedor: debe recibir el
+    // claro, no el ciphertext que acabamos de guardar.
+    expect(meliSync).toContain("return { ...conn, access_token: tok.access_token");
+    expect(meliWebhook).toContain("return { ...conn, access_token: refreshed.access_token");
+  });
+});
+
 describe("search_path fijado en funciones privilegiadas", () => {
   const searchPath = leer("supabase/migrations/20260922001000_search_path_definer_hardening.sql");
 

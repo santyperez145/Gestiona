@@ -3,6 +3,7 @@
 // Register at: MP Developers → Tus aplicaciones → Webhooks → URL de notificación
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getMpCredentials } from "../_shared/mpToken.ts";
+import { descifrarSecreto } from "../_shared/secretos.ts";
 import {
   fetchMercadoPagoOrder,
   reconcileMercadoPagoPosQrOrder,
@@ -539,8 +540,8 @@ Deno.serve(async (req) => {
         .limit(50);
       if (connectionsError) throw connectionsError;
 
-      const candidatos = (conns ?? [])
-        .map((c: any) => ({ org_id: c.org_id, token: c.access_token }));
+      const candidatos = await Promise.all((conns ?? [])
+        .map(async (c: any) => ({ org_id: c.org_id, token: await descifrarSecreto(admin, c.access_token) })));
 
       for (const c of candidatos) {
         try {

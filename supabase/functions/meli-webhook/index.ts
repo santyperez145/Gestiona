@@ -13,6 +13,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
+import { cifrarSecreto, descifrarSecreto } from "../_shared/secretos.ts";
 
 // Disponible en Supabase Edge Runtime; Deno local no lo declara por defecto.
 declare const EdgeRuntime: {
@@ -93,8 +94,12 @@ async function getToken(admin: any, orgId: string): Promise<Connection> {
     throw new Error("La organización ya no tiene una conexión MercadoLibre válida");
   }
 
+  // Los tokens viven cifrados en reposo: se descifran acá, en la Edge.
+  const accessToken = await descifrarSecreto(admin, conn.access_token);
+  const refreshToken = await descifrarSecreto(admin, conn.refresh_token);
+
   const msLeft = new Date(conn.expires_at).getTime() - Date.now();
-  if (msLeft > 10 * 60 * 1000) return conn as Connection;
+  if (msLeft > 10 * 60 * 1000) return { ...conn, access_token: accessToken, refresh_token: refreshToken } as Connection;
 
   const refresh = await fetch(`${API}/oauth/token`, {
     method: "POST",
@@ -103,7 +108,7 @@ async function getToken(admin: any, orgId: string): Promise<Connection> {
       grant_type: "refresh_token",
       client_id: requireEnv("MELI_CLIENT_ID"),
       client_secret: requireEnv("MELI_CLIENT_SECRET"),
-      refresh_token: conn.refresh_token,
+      refresh_token: refreshToken,
     }),
   });
   const refreshed = await refresh.json().catch(() => null);
@@ -112,14 +117,14 @@ async function getToken(admin: any, orgId: string): Promise<Connection> {
   }
 
   const updated = {
-    access_token: refreshed.access_token,
-    refresh_token: refreshed.refresh_token ?? conn.refresh_token,
+    access_token: await cifrarSecreto(admin, refreshed.access_token),
+    refresh_token: await cifrarSecreto(admin, refreshed.refresh_token ?? refreshToken),
     expires_at: new Date(Date.now() + (refreshed.expires_in ?? 21600) * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   };
   const { error: updateError } = await admin.from("meli_connections").update(updated).eq("org_id", orgId);
   if (updateError) throw new Error(updateError.message);
-  return { ...conn, ...updated } as Connection;
+  return { ...conn, access_token: refreshed.access_token, refresh_token: refreshed.refresh_token ?? refreshToken, expires_at: updated.expires_at } as Connection;
 }
 
 function sellerShippingCost(costs: any, sellerId: number): number {
