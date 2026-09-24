@@ -741,7 +741,7 @@ export default function ExpensesPage() {
                           <td className="px-4 py-3 text-right font-bold text-destructive">-{formatARS(Number(e.amount_ars))}</td>
                           {(canEdit || canDelete) && (
                             <td className="px-4 py-3">
-                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                 {canEdit && (
                                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Duplicar para hoy" onClick={() => handleDuplicate(e)}>
                                     <Copy className="w-3.5 h-3.5 text-muted-foreground" />

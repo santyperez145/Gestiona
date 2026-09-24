@@ -2923,11 +2923,43 @@ export default function POSPage() {
                   {!isOnline && <p className="mt-1 font-semibold text-destructive">Necesitás conexión para usar QR.</p>}
                 </div>
               )}
-              {/* Cash calculator */}
+              {/* Cash calculator con atajos de billetes */}
               {payMethod === "efectivo" && (
-                <div className="space-y-1 pb-12">
+                <div className="space-y-2 pb-12">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setCashGiven(String(cartTotal))}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-md border border-border bg-muted/50 hover:bg-muted active:scale-95 transition-all text-foreground"
+                    >
+                      Exacto ({formatARS(cartTotal)})
+                    </button>
+                    {(() => {
+                      const sugeridos: number[] = [];
+                      const denominaciones = [1000, 2000, 5000, 10000, 20000];
+                      for (const d of denominaciones) {
+                        if (d > cartTotal) sugeridos.push(d);
+                      }
+                      if (cartTotal > 20000) {
+                        sugeridos.push(Math.ceil(cartTotal / 10000) * 10000);
+                        sugeridos.push(Math.ceil(cartTotal / 20000) * 20000);
+                      }
+                      const unicos = Array.from(new Set(sugeridos)).filter(n => n > cartTotal).sort((a, b) => a - b).slice(0, 3);
+                      return unicos.map(billete => (
+                        <button
+                          key={billete}
+                          type="button"
+                          onClick={() => setCashGiven(String(billete))}
+                          className="px-2.5 py-1 text-xs font-mono font-medium rounded-md border border-border bg-background hover:bg-muted active:scale-95 transition-all"
+                        >
+                          {formatARS(billete)}
+                        </button>
+                      ));
+                    })()}
+                  </div>
                   <Input
-                    type="number" placeholder="Monto recibido ($)"
+                    type="number"
+                    placeholder="Monto recibido ($)"
                     value={cashGiven}
                     onChange={(e) => setCashGiven(e.target.value)}
                     className="h-8 text-sm bg-muted"

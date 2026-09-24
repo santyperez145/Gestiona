@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listInfluencers, type Influencer } from "@/lib/influencersDB";
+import WorkspaceState from "@/components/shared/WorkspaceState";
 
 export default function CreatorDiscoveryPage() {
   const navigate = useNavigate();
@@ -71,40 +72,52 @@ export default function CreatorDiscoveryPage() {
         <div className="ml-auto text-xs text-muted-foreground">{filtered.length} resultados · {loading ? "cargando…" : "listo"}</div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((c) => (
-          <Card key={c.id} className="h-full hover:shadow-md transition">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <CardTitle className="text-sm font-display font-bold leading-snug">{c.name || "Sin nombre"}</CardTitle>
-                  <CardDescription className="text-xs font-medium text-muted-foreground">@{c.instagram || c.tiktok || "—"}</CardDescription>
+      {loading ? (
+        <WorkspaceState kind="initial-loading" title="Buscando creadores disponibles…" />
+      ) : filtered.length === 0 ? (
+        <WorkspaceState
+          kind={search || platform !== "Todas" || minEngagement > 0 ? "empty-filtered" : "empty-first-use"}
+          title={search || platform !== "Todas" || minEngagement > 0 ? "Sin creadores para los filtros aplicados" : "Todavía no registraste creadores"}
+          description="Sumá creadores e influencers para acordar canjes, medir ventas con cupones y liquidar comisiones."
+          actionLabel="Crear campaña"
+          onAction={() => navigate("/influencer-marketing/campanas?nueva=1")}
+        />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((c) => (
+            <Card key={c.id} className="h-full hover:shadow-md transition">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-sm font-display font-bold leading-snug">{c.name || "Sin nombre"}</CardTitle>
+                    <CardDescription className="text-xs font-medium text-muted-foreground">@{c.instagram || c.tiktok || "—"}</CardDescription>
+                  </div>
+                  <Badge variant="outline" className="text-xs">{c.tier || "—"}</Badge>
                 </div>
-                <Badge variant="outline" className="text-xs">{c.tier || "—"}</Badge>
-              </div>
-              <div className="flex gap-1 mt-2 flex-wrap">
-                <Badge variant="secondary" className="text-[10px]">{c.status || "activo"}</Badge>
-                <Badge variant="secondary" className="text-[10px]">{c.followers_ig ? `${(c.followers_ig/1000).toFixed(0)}K` : "—"} seg.</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-md bg-muted/40 py-2"><p className="text-xs text-muted-foreground">Seguidores</p><p className="text-sm font-semibold">{(c.followers_ig || 0).toLocaleString("es-AR")}</p></div>
-                <div className="rounded-md bg-muted/40 py-2"><p className="text-xs text-muted-foreground">Engagement</p><p className="text-sm font-semibold">{(c.engagement_rate || 0).toFixed(1)}%</p></div>
-                <div className="rounded-md bg-muted/40 py-2"><p className="text-xs text-muted-foreground">Tier</p><p className="text-sm font-semibold">{c.tier || "—"}</p></div>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Comisión: <strong className="text-foreground">{c.commission_percent || 0}%</strong></span>
-                <span className="text-muted-foreground">Ventas: <strong className="text-foreground">{c.total_sales_count || 0}</strong></span>
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="default" className="flex-1 text-xs h-8" onClick={() => navigate(`/influencer-marketing/campanas?nueva=1`)}>Invitar</Button>
-                <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={() => navigate(`/influencer/${c.referral_code || c.id}`)}>Perfil</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <div className="flex gap-1 mt-2 flex-wrap">
+                  <Badge variant="secondary" className="text-[10px]">{c.status || "activo"}</Badge>
+                  <Badge variant="secondary" className="text-[10px]">{c.followers_ig ? `${(c.followers_ig/1000).toFixed(0)}K` : "—"} seg.</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-md bg-muted/40 py-2"><p className="text-xs text-muted-foreground">Seguidores</p><p className="text-sm font-semibold">{(c.followers_ig || 0).toLocaleString("es-AR")}</p></div>
+                  <div className="rounded-md bg-muted/40 py-2"><p className="text-xs text-muted-foreground">Engagement</p><p className="text-sm font-semibold">{(c.engagement_rate || 0).toFixed(1)}%</p></div>
+                  <div className="rounded-md bg-muted/40 py-2"><p className="text-xs text-muted-foreground">Tier</p><p className="text-sm font-semibold">{c.tier || "—"}</p></div>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Comisión: <strong className="text-foreground">{c.commission_percent || 0}%</strong></span>
+                  <span className="text-muted-foreground">Ventas: <strong className="text-foreground">{c.total_sales_count || 0}</strong></span>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" variant="default" className="flex-1 text-xs h-8" onClick={() => navigate(`/influencer-marketing/campanas?nueva=1`)}>Invitar</Button>
+                  <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={() => navigate(`/influencer/${c.referral_code || c.id}`)}>Perfil</Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
