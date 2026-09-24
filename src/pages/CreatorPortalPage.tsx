@@ -12,8 +12,12 @@ import { Label } from "@/components/ui/label";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
-  Clock, Loader2, ExternalLink, User, LogOut, Save, Upload,
+  Clock, Loader2, ExternalLink, User, LogOut, Save, Upload, ArrowDownToLine,
 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 /**
  * Portal del CREADOR autenticado — paridad Go-Marz.
@@ -300,7 +304,40 @@ export default function CreatorPortalPage() {
   const { loading, isCreator, profile, campaigns, deliverables, earnings, refresh } = useCreator();
   const focoScrollRef = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // Solicitud de retiro de comisiones
+  const [retirarOpen, setRetirarOpen] = useState(false);
+  const [montoRetiro, setMontoRetiro] = useState("");
+  const [cbuAlias, setCbuAlias] = useState("");
+  const [retirando, setRetirando] = useState(false);
+
   useEffect(() => { void refresh(); }, [refresh]);
+
+  const handleSolicitarRetiro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const monto = Number(montoRetiro);
+    const disponible = Number(earnings?.available_ars ?? 0);
+    if (isNaN(monto) || monto <= 0) { toast.error("Ingresá un monto válido mayor a cero"); return; }
+    if (monto > disponible) { toast.error(`El monto supera tu saldo disponible (${fmtMoney(disponible)})`); return; }
+    if (!cbuAlias.trim()) { toast.error("Ingresá tu CBU, CVU o alias para transferirte"); return; }
+
+    setRetirando(true);
+    try {
+      const { data, error } = await (supabase.rpc as any)("creator_request_withdrawal", {
+        p_amount_ars: monto,
+        p_notes: `Datos de cobro: ${cbuAlias.trim()}`,
+      });
+      if (error) throw error;
+      toast.success("Solicitud de retiro enviada. La marca la revisará para transferirte.");
+      setRetirarOpen(false);
+      setMontoRetiro("");
+      setCbuAlias("");
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.message || "No se pudo solicitar el retiro");
+    } finally {
+      setRetirando(false);
+    }
+  };
 
   /** El foco scrollea hasta la campaña y la resalta dos segundos. */
   const navigateToFoco = (campaignId: string) => {
@@ -371,9 +408,24 @@ export default function CreatorPortalPage() {
           {earnings && (
             <section aria-label="Ingresos" className="grid gap-4 sm:grid-cols-3">
               <Card>
-                <CardContent className="pt-5">
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Disponible</p>
-                  <p className="mt-1 text-2xl font-bold text-primary tabular-nums">{fmtMoney(Number(earnings.available_ars))}</p>
+                <CardContent className="pt-5 flex items-start justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Disponible</p>
+                    <p className="mt-1 text-2xl font-bold text-primary tabular-nums">{fmtMoney(Number(earnings.available_ars))}</p>
+                  </div>
+                  {Number(earnings.available_ars) > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 text-xs h-8"
+                      onClick={() => {
+                        setMontoRetiro(String(Number(earnings.available_ars)));
+                        setRetirarOpen(true);
+                      }}
+                    >
+                      <ArrowDownToLine className="h-3.5 w-3.5" /> Retirar
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
               <Card>
@@ -456,6 +508,56 @@ export default function CreatorPortalPage() {
           <ProfileSection />
         </OnboardingGate>
       </main>
+
+      {/* Modal para solicitar retiro de comisiones */}
+      <Dialog open={retirarOpen} onOpenChange={setRetirarOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitar retiro de comisiones</DialogTitle>
+            <DialogDescription>
+              La marca revisará tu solicitud y te transferirá al CBU/CVU o alias que indiques.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSolicitarRetiro} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="monto-retiro">Monto a retirar (ARS)</Label>
+              <Input
+                id="monto-retiro"
+                type="number"
+                min="1"
+                max={Number(earnings?.available_ars ?? 0)}
+                step="any"
+                value={montoRetiro}
+                onChange={e => setMontoRetiro(e.target.value)}
+                placeholder="Ej: 50000"
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Disponible: {fmtMoney(Number(earnings?.available_ars ?? 0))}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cbu-alias">CBU / CVU / Alias de cobro</Label>
+              <Input
+                id="cbu-alias"
+                value={cbuAlias}
+                onChange={e => setCbuAlias(e.target.value)}
+                placeholder="Ej: santiago.mp o 00000031000..."
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setRetirarOpen(false)} disabled={retirando}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={retirando}>
+                {retirando ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <ArrowDownToLine className="h-4 w-4 mr-1.5" />}
+                Confirmar solicitud
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
