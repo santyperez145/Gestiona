@@ -18,7 +18,7 @@ import {
 import { etiquetaProvinciaCheckout, textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 import { urlMediaSegura } from "@/lib/secureMedia";
-import { ArrowLeft, CheckCircle2, CloudOff, Loader2, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CloudOff, Loader2, Minus, Plus, ShoppingBag, Trash2, Truck } from "lucide-react";
 
 export default function StoreCart() {
   const {
@@ -96,6 +96,11 @@ export default function StoreCart() {
     ? `${fmt(totalPagina)} + envío`
     : fmt(totalPagina);
 
+  const freeShippingThreshold = Number(store?.free_shipping_above ?? 0);
+  const freeShippingPct = freeShippingThreshold > 0
+    ? Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100))
+    : 0;
+
   const sugerencias = useMemo(
     () => sugerenciasParaElCarrito({
       cart: cart.map(l => ({ productId: l.productId, price: l.price, qty: l.qty })),
@@ -147,6 +152,33 @@ export default function StoreCart() {
               {cartSyncNotice}
             </p>
           )}
+        </div>
+      )}
+
+      {cart.length > 0 && freeShippingThreshold > 0 && (
+        <div className="mb-6 rounded-lg border p-3.5 space-y-2 bg-muted/20" style={{ borderColor: "hsl(var(--st-border))" }}>
+          <div className="flex items-center justify-between text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5">
+              <Truck className="h-4 w-4 text-primary shrink-0" />
+              {freeShippingGap && freeShippingGap > 0 ? (
+                <>¡Sumá <strong>{fmt(freeShippingGap)}</strong> más para tener <strong>Envío Gratis</strong>!</>
+              ) : (
+                <span className="text-emerald-600 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> ¡Genial! Tu pedido tiene Envío Gratis
+                </span>
+              )}
+            </span>
+            <span className="tabular-nums text-muted-foreground">{freeShippingPct}%</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full transition-all duration-500 rounded-full"
+              style={{
+                width: `${freeShippingPct}%`,
+                background: freeShippingPct >= 100 ? "#10b981" : "hsl(var(--st-accent))",
+              }}
+            />
+          </div>
         </div>
       )}
 

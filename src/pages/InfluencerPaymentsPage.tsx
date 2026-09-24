@@ -44,15 +44,16 @@ export default function InfluencerPaymentsPage() {
       withdrawals.isPending ? <WorkspaceState kind="initial-loading" title="Cargando solicitudes de retiro" />
         : withdrawals.isError ? <WorkspaceState kind="error-recoverable" title="No pudimos cargar las solicitudes" actionLabel="Reintentar" onAction={() => void withdrawals.refetch()} />
         : !(withdrawals.data ?? []).length ? <WorkspaceState kind="empty-first-use" title="Sin solicitudes de retiro" description="Cuando un creador pida retirar su saldo, la solicitud aparece acá." />
-        : <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-sm"><thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">Fecha de solicitud</th><th className="p-3 text-right">Monto</th><th className="p-3">Estado</th><th className="p-3 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-border">
+        : <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">Datos de cobro</th><th className="p-3">Fecha</th><th className="p-3 text-right">Monto</th><th className="p-3">Estado</th><th className="p-3 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-border">
           {(withdrawals.data ?? []).map(w => <tr key={w.id}>
             <td className="py-4 font-medium">{names.get(w.influencer_id) ?? 'Creador'}</td>
-            <td className="p-3">{new Date(w.created_at).toLocaleDateString('es-AR')}</td>
-            <td className="p-3 text-right tabular-nums">{money(Number(w.amount_ars))}</td>
+            <td className="p-3 text-xs text-muted-foreground max-w-[220px] break-words">{w.notes || 'Sin datos cargados'}</td>
+            <td className="p-3 text-xs">{new Date(w.created_at).toLocaleDateString('es-AR')}</td>
+            <td className="p-3 text-right tabular-nums font-semibold">{money(Number(w.amount_ars))}</td>
             <td className="p-3"><Badge variant="outline">{WITHDRAWAL_STATES[w.status] ?? w.status}</Badge></td>
             <td className="p-3"><div className="flex justify-end gap-1">{w.status === 'pending' && <>
               <Button size="icon" variant="ghost" title="Rechazar solicitud" aria-label={`Rechazar solicitud de ${names.get(w.influencer_id) ?? 'creador'}`} onClick={() => void resolve(w.id, 'rejected')}><X className="h-4 w-4 text-destructive" /></Button>
-              <Button size="icon" variant="ghost" title="Marcar como pagada" aria-label={`Marcar pagada la solicitud de ${names.get(w.influencer_id)}`} onClick={() => void resolve(w.id, 'paid')}><Check className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost" title="Marcar como pagada" aria-label={`Marcar pagada la solicitud de ${names.get(w.influencer_id)}`} onClick={() => void resolve(w.id, 'paid')}><Check className="h-4 w-4 text-emerald-600" /></Button>
             </>}</div></td>
           </tr>)}
         </tbody></table></div>
