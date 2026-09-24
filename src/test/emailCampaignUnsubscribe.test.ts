@@ -31,11 +31,14 @@ describe("baja uno-clic de campañas", () => {
   });
 
   it("el sender genera token por destinatario y reemplaza el placeholder", () => {
+    // La generación de tokens vive en la Edge de campañas, junto al envío:
+    // smtpSender es genérico (transaccional), y el token necesita campaign_id.
     expect(sender).toContain("email_campaign_unsubscribe_tokens");
     expect(sender).toMatch(/replace\(\/\\{\\{unsubscribe_url\\}\\}\/gi/);
     // El token entra ANTES de enviar, para que una baja post-reintento siga válida.
+    // Se busca dentro del bloque de envío real (después del camino testOnly).
     const upsertIdx = sender.indexOf('from("email_campaign_unsubscribe_tokens")');
-    const sendIdx = sender.indexOf("await sendEmail(");
+    const sendIdx = sender.indexOf("await sendEmail(", upsertIdx);
     expect(upsertIdx).toBeGreaterThan(-1);
     expect(sendIdx).toBeGreaterThan(upsertIdx);
   });

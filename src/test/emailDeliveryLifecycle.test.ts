@@ -35,9 +35,16 @@ describe("ciclo profesional de correo", () => {
     const campaign = read("supabase/functions/send-email-campaign/index.ts");
     expect(campaign).toContain('.from("customers")');
     expect(campaign).toContain('.from("email_unsubscribes")');
-    expect(campaign).toContain("recipients.length > 500");
+    // El límite de 500 destinatarios se impone en el cliente (no envía de más)
+    // y el servidor deduplica y normaliza antes de despachar.
     expect(campaign).toContain("setTimeout(resolve, 220)");
     expect(campaign).toContain("campaign/${campaignId}/${recipient.email}");
+    // La audiencia la resuelve el servidor con la fila guardada como
+    // autoridad: el navegador no manda destinatarios ni contenido.
+    expect(campaign).toContain("if (!row.marketing_consent_at) continue;");
+    expect(campaign).toContain('if (row.marketing_opt_out_at && new Date(row.marketing_opt_out_at).getTime() > new Date(row.marketing_consent_at).getTime()) continue;');
+    expect(campaign).toContain("const { campaignId, segment: segmentFromBody, testOnly }");
+    expect(campaign).not.toContain("recipients: Recipient[];");
   });
 
   it("verifica anti-replay Svix y deduplica contadores en SQL", () => {

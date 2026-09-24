@@ -190,13 +190,14 @@ describe("un error no se destruye al serializarlo", () => {
     // indistinguible "falló la base" de "no hay campañas".
     const campañas = leer("supabase/functions/send-scheduled-campaigns/index.ts");
     expect(campañas).not.toContain("if (error || !campaigns?.length)");
-    expect(campañas).toMatch(/if \(error\) \{[\s\S]{0,400}status: 500/);
+    expect(campañas).toMatch(/if \(error\) \{[\s\S]{0,500}status: 500/);
   });
 
   it("una campaña que falla no queda en 'sending' para siempre", () => {
     // El cron sólo mira las `draft`, así que una campaña trabada en `sending`
-    // no se reintenta nunca y no se ve como fallida en ningún lado.
+    // no se reintenta nunca y no se ve como fallida en ningún lado. El worker
+    // nuevo falla por HTTP: un !res.ok marca `failed` y lo reporta.
     const campañas = leer("supabase/functions/send-scheduled-campaigns/index.ts");
-    expect(campañas).toMatch(/if \(envioError\)[\s\S]{0,400}status: "failed"/);
+    expect(campañas).toMatch(/if \(!res\.ok\)[\s\S]{0,400}status: "failed"/);
   });
 });

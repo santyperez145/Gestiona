@@ -327,34 +327,13 @@ producto Shopify con variante, imagen, stock, publicación, identidad y redirect
 reconcilió todo y terminó en rollback. Falta certificación con exports de
 comercios; Empretienda todavía sólo se detecta por el nombre del archivo.
 
-### Localización P2 (2026-09-19)
+### Localización P2 (2026-09-19) y lote C28.1 + correo + vitrina (2026-09-24)
 
-Auditoría cerrada: roles, estados técnicos y pantallas de Admin, Finance, Banco e
-Influencers localizadas a español rioplatense sin IDs expuestos (commit `b0ebdd5d`).
-Detalle vigente en sus respectivos documentos rectores.
-
-### Lote C28.1 + Correo + Seguridad de vitrina (2026-09-24)
-
-Tres cierres del mismo día, verificados con typecheck, 3 066 tests, lint y build:
-
-- **C28.1 Pasero fuera del pricing (cierre del ciclo).** El costo cargado
-  (`cost_usd`/`cost_ars`) ya incluye pasero/impuestos/aduana desde el importador;
-  el form de producto, el ajuste masivo «Recalcular por TC» y la vista previa
-  volvían a sumarlo, duplicando el impuesto en el precio y en la ganancia.
-  `calcAutoSalePriceSinPasero` es la fórmula nueva; `customs_fee` persiste en 0.
-- **Baja uno-clic de campañas (CAN-SPAM / RFC 8058).** El footer traía el
-  placeholder `{{unsubscribe_url}}` sin reemplazar: el contacto no podía darse de
-  baja. Nueva Edge Function pública `email-campaign-unsubscribe`, tokens de un
-  solo uso (`email_campaign_unsubscribe_tokens`), RPC idempotente que escribe en
-  `email_unsubscribes`, y página de confirmación sin exponer datos.
-- **Redactor propio de campañas (sin Anthropic).** `campaignCopy.ts` escribe
-  asunto + cuerpo determinístico desde productos reales con stock, cupón y
-  vencimiento; cinco ángulos (liquidación, flash, carrito, novedad, reengagement)
-  con la razón visible. Anthropic queda gated para `ai-analysis` y briefs.
-- **Contenido mixto en la vitrina.** La alerta «No segura» de Chrome/Google viene
-  de imágenes `http://` cargadas por el comercio. `urlMediaSegura` normaliza a
-  HTTPS en todas las superficies (cards, banners, categorías, galería, carrito,
-  logo) y `vercel.json` envía HSTS con `includeSubDomains`.
+Localización: Admin, Finance, Banco e Influencers en español rioplatense sin IDs
+expuestos (`b0ebdd5d`). C28.1: pasero fuera del pricing
+(`calcAutoSalePriceSinPasero`), baja uno-clic de campañas (CAN-SPAM/RFC 8058 con
+Edge pública y tokens de un uso), redactor propio determinístico
+(`campaignCopy.ts`) y `urlMediaSegura` contra contenido mixto con HSTS.
 
 ## 7. Definition of Done
 

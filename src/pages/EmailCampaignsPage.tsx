@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import {
   Mail, Plus, Send, Users, CheckCircle2, XCircle,
   Clock, Loader2, Eye, Trash2, AlertCircle, MousePointerClick, MailOpen,
-  Copy, FlaskConical, Trophy, Zap, Sparkles,
+  Copy, FlaskConical, Trophy, Zap, Sparkles, ShieldCheck,
 } from "lucide-react";
 import { getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import CommercePageHeader from "@/components/commerce/CommercePageHeader";
@@ -33,6 +33,10 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { redactarCampana, type CopyCampaignInput } from "@/lib/campaignCopy";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // ─── Email Templates ──────────────────────────────────────────────────────────
 
@@ -113,6 +117,8 @@ interface Customer {
   name: string;
   email?: string;
   birthday?: string | null;
+  marketing_consent_at?: string | null;
+  marketing_opt_out_at?: string | null;
 }
 
 /** Producto real para el redactor propio de campañas. */
@@ -256,6 +262,10 @@ export default function EmailCampaignsPage() {
   const [tipoRedaccion, setTipoRedaccion] = useState<CopyCampaignInput["tipo"]>("liquidacion");
   const [razonRedaccion, setRazonRedaccion] = useState("");
   const [redactando, setRedactando] = useState(false);
+  // Gestión de consentimiento de marketing (opt-in/opt-out por cliente).
+  const [consentOpen, setConsentOpen] = useState(false);
+  const [consentSearch, setConsentSearch] = useState("");
+  const [consentSaving, setConsentSaving] = useState<string | null>(null);
 
   useEffect(() => {
     if (!testEmail && user?.email) setTestEmail(user.email);
@@ -283,7 +293,9 @@ export default function EmailCampaignsPage() {
     try {
       const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }, { data: coups }, { data: couponSales }, sett, prods] = await Promise.all([
         supabase.from("email_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("customers").select("id,name,email,birthday").eq("org_id", activeOrg.id).not("email", "is", null).not("marketing_consent_at", "is", null),
+        // Trae también el estado de consentimiento: es lo que distingue un
+        // cliente alcanzable de uno al que no se le puede escribir.
+        supabase.from("customers").select("id,name,email,birthday,marketing_consent_at,marketing_opt_out_at").eq("org_id", activeOrg.id).not("email", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         supabase.from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
         supabase.from("coupons").select("id, code").eq("user_id", user.id),
@@ -294,7 +306,7 @@ export default function EmailCampaignsPage() {
         supabase.from("products").select("id,name,sale_price_ars,discount_price_ars,stock").eq("org_id", activeOrg.id).gt("stock", 0).order("created_at", { ascending: false }).limit(30),
       ]);
       setCampaigns((camps || []) as Campaign[]);
-      setCustomers((custs || []) as Customer[]);
+      setCustomers((custs || []) as unknown as Customer[]);
       setSalesData(sales || []);
       setUnsubscribed(new Set((unsubs || []).map((u: any) => u.email.toLowerCase())));
       setCoupons((coups || []) as { id: string; code: string }[]);
@@ -348,8 +360,16 @@ export default function EmailCampaignsPage() {
       }
     });
 
-    // Exclude unsubscribed customers
-    const withEmail = customers.filter(c => c.email && !unsubscribed.has(c.email.toLowerCase()));
+    // Un cliente es alcanzable si: tiene email, no se dió de baja, dio opt-in
+    // y no lo revocó después. Es la misma regla que aplica el servidor al
+    // enviar — lo que ves acá es lo que va a pasar.
+    const withEmail = customers.filter(c => {
+      const email = c.email?.toLowerCase();
+      if (!email || unsubscribed.has(email)) return false;
+      if (!c.marketing_consent_at) return false;
+      if (c.marketing_opt_out_at && new Date(c.marketing_opt_out_at) > new Date(c.marketing_consent_at)) return false;
+      return true;
+    });
     return (seg: string): Customer[] => {
       if (seg === "all") return withEmail;
       return withEmail.filter(c => {
@@ -451,9 +471,10 @@ export default function EmailCampaignsPage() {
 
   const handleSend = async (camp: Campaign) => {
     const audience = audienceFor(camp.segment);
-    if (audience.length === 0) { toast.error("No hay destinatarios para este segmento"); return; }
+    if (audience.length === 0) { toast.error("No hay destinatarios con consentimiento para este segmento"); return; }
     if (!(await ask({
       title: `¿Enviar a ${audience.length} contacto(s) con email?`,
+      description: "El servidor recalcula la audiencia real y respeta bajas y consentimientos vigentes.",
       confirmText: "Enviar",
       variant: "default",
     }))) return;
@@ -463,16 +484,13 @@ export default function EmailCampaignsPage() {
       await supabase.from("email_campaigns").update({ status: "sending" }).eq("id", camp.id);
       setCampaigns(prev => prev.map(c => c.id === camp.id ? { ...c, status: "sending" } : c));
 
+      // El navegador ya no manda destinatarios ni contenido: sólo el id y el
+      // segmento. Asunto, cuerpo, audiencia, consentimiento y baja los
+      // resuelve el servidor con la fila guardada como autoridad.
       const { data, error } = await supabase.functions.invoke("send-email-campaign", {
         body: {
           campaignId: camp.id,
-          subject: camp.subject,
-          bodyHtml: camp.body_html,
-          recipients: audience.map(c => ({ email: c.email!, name: c.name })),
-          orgName: activeOrg?.name || "Nerqia",
-          orgId: activeOrg?.id,
-          // metadata passed to Resend so webhook can update metrics
-          metadata: { campaign_id: camp.id, org_id: activeOrg?.id },
+          segment: camp.segment,
         },
       });
 
@@ -511,6 +529,60 @@ export default function EmailCampaignsPage() {
     }
   };
 
+  // ── Consentimiento de marketing ──────────────────────────────────────────────
+
+  /** Opt-in manual: el comercio registra el consentimiento que obtuvo por otro canal. */
+  const handleConsentGrant = async (customerId: string, name: string) => {
+    if (!activeOrg) return;
+    setConsentSaving(customerId);
+    try {
+      const { error } = await supabase.from("customers").update({
+        marketing_consent_at: new Date().toISOString(),
+        marketing_consent_source: "manual",
+      }).eq("id", customerId).eq("org_id", activeOrg.id);
+      if (error) throw error;
+      setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, marketing_consent_at: new Date().toISOString(), marketing_opt_out_at: null } : c));
+      toast.success(`${name} podrá recibir campañas`);
+    } catch {
+      toast.error("No se pudo registrar el consentimiento");
+    } finally {
+      setConsentSaving(null);
+    }
+  };
+
+  /** Opt-out: deja de recibir. Se registra cuándo y por qué. */
+  const handleConsentRevoke = async (customerId: string, name: string) => {
+    if (!activeOrg) return;
+    setConsentSaving(customerId);
+    try {
+      const { error } = await supabase.from("customers").update({
+        marketing_opt_out_at: new Date().toISOString(),
+        marketing_opt_out_source: "manual",
+      }).eq("id", customerId).eq("org_id", activeOrg.id);
+      if (error) throw error;
+      setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, marketing_opt_out_at: new Date().toISOString() } : c));
+      toast.success(`${name} no recibirá más campañas`);
+    } catch {
+      toast.error("No se pudo registrar la baja");
+    } finally {
+      setConsentSaving(null);
+    }
+  };
+
+  const consentCustomers = useMemo(() => {
+    const q = consentSearch.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter(c =>
+      (c.name ?? "").toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q)
+    );
+  }, [customers, consentSearch]);
+
+  const consentsCount = useMemo(() => customers.filter(c => {
+    if (!c.marketing_consent_at) return false;
+    if (c.marketing_opt_out_at && new Date(c.marketing_opt_out_at) > new Date(c.marketing_consent_at)) return false;
+    return true;
+  }).length, [customers]);
+
   // ─── Render ───────────────────────────────────────────────────────────────────
 
   const totalSentEmails = campaigns.reduce((s, c) => s + (c.sent_count || 0), 0);
@@ -531,9 +603,14 @@ export default function EmailCampaignsPage() {
         }
         actions={
           activeTab === 'campaigns' ? (
-            <Button onClick={() => setOpen(true)} className="gradient-gold text-primary-foreground gap-1.5">
-              <Plus className="w-4 h-4" /> Nueva campaña
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setConsentOpen(true)} className="gap-1.5">
+                <ShieldCheck className="w-4 h-4" /> Consentimientos ({consentsCount})
+              </Button>
+              <Button onClick={() => setOpen(true)} className="gradient-gold text-primary-foreground gap-1.5">
+                <Plus className="w-4 h-4" /> Nueva campaña
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -649,6 +726,19 @@ export default function EmailCampaignsPage() {
         </div>
       ) : (
         <div className="space-y-3 pb-12">
+          {customers.filter(c => c.email && !c.marketing_consent_at).length > 0 && (
+            <button
+              type="button"
+              onClick={() => setConsentOpen(true)}
+              className="flex w-full items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-left text-sm transition-colors hover:bg-warning/10"
+            >
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <span>
+                <strong className="text-foreground">{customers.filter(c => c.email && !c.marketing_consent_at).length} cliente(s) con email sin consentimiento</strong>
+                <span className="text-muted-foreground"> — no se les puede escribir por ley hasta que acepten. Registrá el consentimiento o revisá desde CRM → Clientes.</span>
+              </span>
+            </button>
+          )}
           {campaigns.map(camp => {
             const aud = audienceFor(camp.segment);
             return (
@@ -762,6 +852,7 @@ export default function EmailCampaignsPage() {
                       <Button
                         size="sm"
                         disabled={!!sending || aud.length === 0}
+                        title={aud.length === 0 ? "Sin destinatarios con consentimiento vigente en este segmento" : `Enviar a ${aud.length} contacto(s)`}
                         onClick={() => handleSend(camp)}
                       >
                         {sending === camp.id
@@ -1029,40 +1120,40 @@ export default function EmailCampaignsPage() {
           </div>
           {/* Test send */}
           <div className="border-t border-border pt-4 mt-2 space-y-2">
-            <Label className="text-xs text-muted-foreground">Envío de prueba (solo a vos)</Label>
+            <Label className="text-xs text-muted-foreground">Envío de prueba (llega a tu email de cuenta)</Label>
             <div className="flex gap-2">
               <Input
                 type="email"
                 value={testEmail}
-                onChange={e => setTestEmail(e.target.value)}
+                readOnly
                 placeholder="tu@email.com"
-                className="text-sm"
+                className="text-sm bg-muted/30"
               />
               <Button
                 variant="outline"
                 size="sm"
-                disabled={sendingTest || !testEmail || !subject || !bodyHtml}
+                disabled={saving || sendingTest || !testEmail || !subject || !bodyHtml || !activeOrg}
                 onClick={async () => {
                   if (!activeOrg || !subject || !bodyHtml) return;
                   setSendingTest(true);
                   setEmailOperationError("");
                   let draftId: string | null = null;
                   try {
-                    // Insert a temp draft and send to test email
+                    // La prueba necesita una fila guardada: el servidor ya no
+                    // acepta contenido por body. Se crea un borrador efímero,
+                    // se envía y se borra en el finally.
                     const brandedHtml = buildBrandedEmail(bodyHtml.trim(), orgSettings.logo_url, orgSettings.business_name);
-                    const { data: draft } = await supabase.from("email_campaigns").insert({
-                      org_id: activeOrg.id, subject: `[PRUEBA] ${subject.trim()}`,
+                    const { data: draft, error: draftError } = await supabase.from("email_campaigns").insert({
+                      org_id: activeOrg.id, subject: subject.trim(),
                       body_html: brandedHtml, segment: "all", status: "draft",
                       sent_count: 0, failed_count: 0,
-                    }).select().single();
-                    if (draft) {
-                      draftId = draft.id;
-                      const { data, error } = await supabase.functions.invoke("send-email-campaign", {
-                        body: { campaignId: draft.id, subject: `[PRUEBA] ${subject.trim()}`, bodyHtml: brandedHtml,
-                          recipients: [{ email: testEmail, name: "Prueba" }], testOnly: true },
-                      });
-                      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
-                    }
+                    }).select("id").single();
+                    if (draftError) throw draftError;
+                    draftId = (draft as any).id;
+                    const { data, error } = await supabase.functions.invoke("send-email-campaign", {
+                      body: { campaignId: draftId, testOnly: true },
+                    });
+                    if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
                     toast.success(`Email de prueba enviado a ${testEmail}`);
                   } catch (error) {
                     const message = error instanceof Error ? error.message : "No se pudo enviar la prueba";
@@ -1102,6 +1193,70 @@ export default function EmailCampaignsPage() {
             style={{ minHeight: 400 }}
             title="Vista previa de la campaña"
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Consent management dialog */}
+      <Dialog open={consentOpen} onOpenChange={setConsentOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" /> Consentimientos de marketing
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">
+            Sólo se envía a quien dio consentimiento y no lo revocó. La tienda
+            pública lo registra solo al comprar; acá podés registrar el que
+            obtuviste por otro canal (WhatsApp, en persona) y dar de baja a quien lo pida.
+          </p>
+          <Input
+            value={consentSearch}
+            onChange={e => setConsentSearch(e.target.value)}
+            placeholder="Buscar por nombre o email…"
+            className="text-sm"
+          />
+          <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 space-y-1.5">
+            {consentCustomers.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No hay clientes con email.</p>
+            ) : consentCustomers.map(c => {
+              const optedOut = Boolean(c.marketing_opt_out_at && new Date(c.marketing_opt_out_at) > new Date(c.marketing_consent_at ?? 0));
+              const granted = Boolean(c.marketing_consent_at) && !optedOut;
+              return (
+                <div key={c.id} className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{c.name || "Sin nombre"}</p>
+                    <p className="truncate text-xs text-muted-foreground">{c.email}</p>
+                  </div>
+                  {optedOut ? (
+                    <Badge className="bg-red-500/15 text-red-400 text-[10px]">Dado de baja</Badge>
+                  ) : granted ? (
+                    <Badge className="bg-emerald-500/15 text-emerald-400 text-[10px]">Con consentimiento</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px]">Sin consentimiento</Badge>
+                  )}
+                  {optedOut || granted ? (
+                    <Button
+                      variant="ghost" size="sm"
+                      disabled={consentSaving === c.id}
+                      title={granted ? "Dar de baja" : "Volver a dar consentimiento"}
+                      onClick={() => granted ? handleConsentRevoke(c.id, c.name) : handleConsentGrant(c.id, c.name || "Cliente")}
+                    >
+                      {consentSaving === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : granted ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm" variant="outline"
+                      disabled={consentSaving === c.id}
+                      onClick={() => handleConsentGrant(c.id, c.name || "Cliente")}
+                    >
+                      {consentSaving === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      <span className="ml-1">Dar consentimiento</span>
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </DialogContent>
       </Dialog>
       {dialog}
