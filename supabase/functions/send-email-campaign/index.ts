@@ -47,6 +47,10 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
+  // Los links de baja son públicos y estables: el dominio canónico es la URL
+  // del proyecto, no el dominio del comercio, para que ningún proxy de tienda
+  // la rompa.
+  const SUPABASE_URL_BASE = Deno.env.get("SUPABASE_URL")!.replace(/\/+$/, "");
 
   try {
     const { campaignId, subject, bodyHtml, recipients, testOnly } = await req.json() as {
@@ -133,12 +137,32 @@ Deno.serve(async (req) => {
     let failed = 0;
     let firstFailure: Awaited<ReturnType<typeof sendEmail>> | null = null;
 
+    // ── Baja uno-clic (CAN-SPAM / RFC 8058) ────────────────────────────────
+    //
+    // El footer del comercio trae `{{unsubscribe_url}}`; antes salía el
+    // placeholder literal y el contacto no tenía cómo darse de baja. Ahora cada
+    // destinatario recibe un token de un solo uso; el link procesa la baja y
+    // agrega el email a `email_unsubscribes` para las campañas siguientes.
+    const baseBaja = `${SUPABASE_URL_BASE}/functions/v1/email-campaign-unsubscribe`;
+
     // Resend admite 5 solicitudes por segundo por defecto. El ritmo deliberado
     // evita 429 y la clave idempotente hace seguro reintentar la campaña.
     for (let i = 0; i < allowed.length; i++) {
       const recipient = allowed[i];
       const firstName = recipient.name.split(" ")[0].replace(/[&<>"']/g, "");
-      const personalizedHtml = bodyHtml.replace(/\{\{nombre\}\}/gi, firstName);
+      const tokenBaja = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+      const urlBaja = `${baseBaja}?token=${encodeURIComponent(tokenBaja)}`;
+      // Guardar el token antes de enviar: si el envío falla igual queda válida
+      // la baja para el próximo intento (idempotente por campaña+email).
+      await supabase.from("email_campaign_unsubscribe_tokens").upsert({
+        token: tokenBaja,
+        campaign_id: campaignId,
+        org_id: orgId,
+        email: recipient.email,
+      }, { onConflict: "campaign_id,email" });
+      const personalizedHtml = bodyHtml
+        .replace(/\{\{nombre\}\}/gi, firstName)
+        .replace(/\{\{unsubscribe_url\}\}/gi, urlBaja);
       const result = await sendEmail(
         smtpCfg,
         resendKey,

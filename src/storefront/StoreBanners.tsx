@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { StoreBanner } from "./storeContext";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { urlMediaSegura } from "@/lib/secureMedia";
 
 const INTERVALO_MS = 6000;
 
@@ -45,9 +46,9 @@ export default function StoreBanners({ banners, base, storeName }: { banners: St
         style={{ background: "hsl(var(--st-header))" }}
       />
       <picture key={b.id} className="absolute inset-0 block">
-        {b.image_url_mobile && <source media="(max-width: 640px)" srcSet={b.image_url_mobile} />}
+        {b.image_url_mobile && <source media="(max-width: 640px)" srcSet={urlMediaSegura(b.image_url_mobile) ?? undefined} />}
         <img
-          src={b.image_url}
+          src={urlMediaSegura(b.image_url) ?? undefined}
           alt={b.alt_text ?? b.title ?? ""}
           className="absolute inset-0 w-full h-full object-cover"
           onLoad={mostrarImagenValida}

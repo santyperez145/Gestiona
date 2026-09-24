@@ -7,6 +7,7 @@ import { menuDeCategorias } from "@/lib/storeCategories";
 import { ArrowRight, Truck, ShieldCheck, Package, Wallet } from "lucide-react";
 import { mejorDescuento, nombreMedio } from "@/lib/paymentDiscount";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { urlMediaSegura } from "@/lib/secureMedia";
 import { productsFromRecentlyViewed } from "@/lib/recentlyViewed";
 import { productIdsFromStoreOrders, suggestionsFromOrderSeeds } from "@/lib/relatedProducts";
 import { useStoreAuth } from "./storeAuth";
@@ -151,7 +152,7 @@ export default function StoreHome() {
         <div className="max-w-xl mx-auto px-4 py-24 text-center space-y-5">
           {store?.logo_url ? (
             <img
-              src={store.logo_url}
+              src={urlMediaSegura(store.logo_url) ?? undefined}
               alt=""
               {...atributosDeImagenVitrina("logo")}
               onLoad={mostrarImagenValida}
@@ -334,7 +335,7 @@ function Categorias({
             >
               {cover?.image_url && (
                 <img
-                  src={cover.image_url}
+                  src={urlMediaSegura(cover.image_url) ?? undefined}
                   alt=""
                   {...atributosDeImagenVitrina("categoria")}
                   onLoad={mostrarImagenValida}

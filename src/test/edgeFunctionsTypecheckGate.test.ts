@@ -17,11 +17,10 @@ describe("guardia de tipos de Edge Functions", () => {
       .filter((entry) => existsSync(resolve(functionsDir, entry.name, "index.ts")))
       .length;
 
-    // 80 al 2026-09-22: incorpora las funciones de campañas/influencers
-    // (ai-brief-generator, send-email-campaign, send-scheduled-campaigns,
-    // influencer-deliverable-verify). El número está fijo a propósito: agregar
-    // una Edge Function tiene que ser una decisión visible.
-    expect(count).toBe(80);
+    // 81 al 2026-09-24: incorpora `email-campaign-unsubscribe` (baja uno-clic de
+    // campañas masivas, CAN-SPAM / RFC 8058). El número está fijo a propósito:
+    // agregar una Edge Function tiene que ser una decisión visible.
+    expect(count).toBe(81);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

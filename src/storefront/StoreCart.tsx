@@ -17,6 +17,7 @@ import {
 } from "@/lib/storeCartProvince";
 import { etiquetaProvinciaCheckout, textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { urlMediaSegura } from "@/lib/secureMedia";
 import { ArrowLeft, CheckCircle2, CloudOff, Loader2, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 
 export default function StoreCart() {
@@ -176,7 +177,7 @@ export default function StoreCart() {
                   <ShoppingBag aria-hidden className="h-5 w-5 opacity-20" />
                   {l.image && (
                     <img
-                      src={l.image}
+                      src={urlMediaSegura(l.image) ?? undefined}
                       alt=""
                       {...atributosDeImagenVitrina("miniatura")}
                       onLoad={mostrarImagenValida}

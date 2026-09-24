@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import {
   Mail, Plus, Send, Users, CheckCircle2, XCircle,
   Clock, Loader2, Eye, Trash2, AlertCircle, MousePointerClick, MailOpen,
-  Copy, FlaskConical, Trophy, Zap,
+  Copy, FlaskConical, Trophy, Zap, Sparkles,
 } from "lucide-react";
 import { getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import CommercePageHeader from "@/components/commerce/CommercePageHeader";
@@ -32,6 +32,7 @@ import DripSequencesTab from "@/components/marketing/DripSequencesTab";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { redactarCampana, type CopyCampaignInput } from "@/lib/campaignCopy";
 
 // ─── Email Templates ──────────────────────────────────────────────────────────
 
@@ -112,6 +113,15 @@ interface Customer {
   name: string;
   email?: string;
   birthday?: string | null;
+}
+
+/** Producto real para el redactor propio de campañas. */
+interface ProductoRedaccion {
+  id: string;
+  name: string;
+  sale_price_ars: number;
+  discount_price_ars: number | null;
+  stock: number;
 }
 
 const SEGMENTS = [
@@ -211,6 +221,7 @@ export default function EmailCampaignsPage() {
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [productosRedaccion, setProductosRedaccion] = useState<ProductoRedaccion[]>([]);
   const [coupons, setCoupons] = useState<{ id: string; code: string }[]>([]);
   // coupon_code (uppercased) -> { count, revenue } of attributed sales
   const [attributionByCode, setAttributionByCode] = useState<Record<string, { count: number; revenue: number }>>({});
@@ -241,6 +252,10 @@ export default function EmailCampaignsPage() {
   // A/B test state
   const [abMode, setAbMode] = useState(false);
   const [subjectB, setSubjectB] = useState("");
+  // Redactor propio (sin Anthropic): tipo de campaña y razonamiento visible.
+  const [tipoRedaccion, setTipoRedaccion] = useState<CopyCampaignInput["tipo"]>("liquidacion");
+  const [razonRedaccion, setRazonRedaccion] = useState("");
+  const [redactando, setRedactando] = useState(false);
 
   useEffect(() => {
     if (!testEmail && user?.email) setTestEmail(user.email);
@@ -266,7 +281,7 @@ export default function EmailCampaignsPage() {
     if (!activeOrg || !user) return;
     setLoading(true);
     try {
-      const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }, { data: coups }, { data: couponSales }, sett] = await Promise.all([
+      const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }, { data: coups }, { data: couponSales }, sett, prods] = await Promise.all([
         supabase.from("email_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         supabase.from("customers").select("id,name,email,birthday").eq("org_id", activeOrg.id).not("email", "is", null).not("marketing_consent_at", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
@@ -275,12 +290,15 @@ export default function EmailCampaignsPage() {
         // One aggregate query for attribution: all sales made with any coupon
         supabase.from("sales").select("coupon_code, total_ars").eq("org_id", activeOrg.id).not("coupon_code", "is", null),
         getSettingsDB(user.id),
+        // Productos reales para el redactor propio: nombre, precio y URL.
+        supabase.from("products").select("id,name,sale_price_ars,discount_price_ars,stock").eq("org_id", activeOrg.id).gt("stock", 0).order("created_at", { ascending: false }).limit(30),
       ]);
       setCampaigns((camps || []) as Campaign[]);
       setCustomers((custs || []) as Customer[]);
       setSalesData(sales || []);
       setUnsubscribed(new Set((unsubs || []).map((u: any) => u.email.toLowerCase())));
       setCoupons((coups || []) as { id: string; code: string }[]);
+      setProductosRedaccion((prods || []) as ProductoRedaccion[]);
 
       // Aggregate attributed sales by coupon_code (uppercased), mirroring CouponsPage
       const attrMap: Record<string, { count: number; revenue: number }> = {};
@@ -803,6 +821,81 @@ export default function EmailCampaignsPage() {
                   </button>
                 ))}
               </div>
+            </div>
+            {/*
+              Redactor propio (sin Anthropic). Toma productos reales con stock,
+              el cupón y el vencimiento cargados acá, y escribe asunto + cuerpo
+              determinísticos. La razón queda visible: el comercio ve por qué la
+              máquina eligió ese ángulo y puede editar el resultado.
+            */}
+            <div className="space-y-2 p-3 rounded-lg border border-primary/25 bg-primary/5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                <p className="text-xs font-semibold">Redactar con motor propio</p>
+                <span className="text-[10px] text-muted-foreground">— usa tus productos reales, sin costo de IA externa</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { value: "liquidacion", label: "Liquidación" },
+                  { value: "flash", label: "Oferta flash" },
+                  { value: "recuperacion_carrito", label: "Recuperar carrito" },
+                  { value: "novedad", label: "Novedades" },
+                  { value: "reengagement", label: "Reengagement" },
+                ] as const).map(t => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTipoRedaccion(t.value)}
+                    className={`px-2.5 py-1 text-xs rounded-[6px] border transition-colors ${
+                      tipoRedaccion === t.value
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={redactando || productosRedaccion.length === 0}
+                  onClick={() => {
+                    setRedactando(true);
+                    try {
+                      const resultado = redactarCampana({
+                        negocio: orgSettings.business_name,
+                        tipo: tipoRedaccion,
+                        productos: productosRedaccion.slice(0, 3).map(p => ({
+                          nombre: p.name,
+                          precio_ars: Number(p.sale_price_ars) || 0,
+                          precio_oferta_ars: p.discount_price_ars ? Number(p.discount_price_ars) : null,
+                          url_producto: `${window.location.origin}/tienda/${activeOrg?.slug ?? ""}/producto/${p.id}`,
+                        })),
+                        cupon: couponCode || null,
+                        vence_el: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+                      });
+                      setSubject(resultado.subject);
+                      setSubjectB("");
+                      setBodyHtml(resultado.body_html);
+                      setRazonRedaccion(resultado.razon);
+                    } finally {
+                      setRedactando(false);
+                    }
+                  }}
+                >
+                  {redactando ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                  Redactar campaña
+                </Button>
+                {productosRedaccion.length === 0 && (
+                  <span className="text-[10px] text-muted-foreground">Cargá productos con stock para que la IA pueda nombrarlos.</span>
+                )}
+              </div>
+              {razonRedaccion && (
+                <p className="text-[10px] text-muted-foreground italic">{razonRedaccion}</p>
+              )}
             </div>
             {bulkCampaign && (
               <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-primary/10 border border-primary/20 text-xs">

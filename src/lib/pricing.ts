@@ -39,11 +39,30 @@ export function getCategoryDiscount(settings: any, category?: string | null): nu
   return Number.isFinite(global) && global >= 0 && global < 100 ? global : DEFAULT_DISCOUNT_PERCENT;
 }
 
-/** Costo landeado en USD (costo + pasero). */
+/** Costo landeado en USD (costo + pasero). ⚠️ Deprecado: ver nota C28.1. */
 export function calcLandedCostUSD(costUSD: number, customsPercent: number): number {
   const c = Number(costUSD) || 0;
   const pct = Number(customsPercent) || 0;
   return c + c * (pct / 100);
+}
+
+/**
+ * C28.1 — Precio de venta sugerido en ARS desde el costo tal cual.
+ *
+ * El costo cargado (USD o ARS) ya incluye pasero/impuestos/aduana; sumar el
+ * pasero acá lo duplicaba. Mismo contrato de resultados que `calcAutoSalePrice`
+ * para no romper tests ni pantallas que comparten la fórmula.
+ */
+export function calcAutoSalePriceSinPasero(
+  cost: number,
+  exchangeRate: number,
+  markup: number,
+): number {
+  const c = Number(cost) || 0;
+  if (c <= 0) return 0;
+  const rate = Number(exchangeRate) || 0;
+  const mk = Number(markup) > 0 ? Number(markup) : DEFAULT_MARKUP;
+  return Math.round(c * rate * mk);
 }
 
 /** Precio de venta sugerido en ARS a partir del costo, pasero, TC y markup. */

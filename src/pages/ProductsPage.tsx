@@ -33,7 +33,7 @@ import {
   validateProductDraft,
 } from "@/lib/productDraft";
 import { normalizeText, literalFilter } from "@/lib/searchText";
-import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
+import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePriceSinPasero, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import PageHeader from "@/components/shared/PageHeader";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
@@ -2143,21 +2143,28 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
   const categoryMarkup = getCategoryMarkup(settings, category);
   const defaultDiscount = getCategoryDiscount(settings, category);
 
-  const autoSalePrice = calcAutoSalePrice(cost, customsPercent, exchangeRate, categoryMarkup);
+  // C28.1: el pasero/impuestos/aduana ya viene dentro del costo que carga el
+  // comercio (cost_usd o cost_ars). Dejar de sumarlo acá cierra el ciclo
+  // completo del flujo de importación, form de producto y ajuste masivo.
+  const autoSalePrice = calcAutoSalePriceSinPasero(cost, exchangeRate, categoryMarkup);
   const currentSaleForDiscount = parseFloat(salePriceARS) || autoSalePrice;
   const autoDiscountPrice = calcAutoDiscountPrice(currentSaleForDiscount, defaultDiscount);
 
   useEffect(() => {
     if (cost <= 0) return;
     if (!manualSalePrice) setSalePriceARS(autoSalePrice.toString());
-  }, [cost, customsPercent, exchangeRate, manualSalePrice, autoSalePrice]);
+  }, [cost, exchangeRate, manualSalePrice, autoSalePrice]);
 
   useEffect(() => {
     if (currentSaleForDiscount <= 0) return;
     if (!manualDiscountPrice) setDiscountPriceARS(autoDiscountPrice.toString());
   }, [currentSaleForDiscount, defaultDiscount, manualDiscountPrice, autoDiscountPrice]);
 
-  const { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
+  // La ganancia se calcula con el costo cargado tal cual — sin pasero aparte.
+  const totalCostUSD = enPesos ? costoPesos / (exchangeRate || 1) : cost;
+  const totalCostARS = enPesos ? costoPesos : cost * exchangeRate;
+  const profitPerUnitARS = salePrice - totalCostARS;
+  const profitPerUnitUSD = exchangeRate > 0 ? profitPerUnitARS / exchangeRate : 0;
 
   const addFiles = (files: File[]) => {
     const valid: Array<{ url: string; file: File }> = [];
@@ -2315,8 +2322,10 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
         cost_usd: enPesos ? 0 : cost,
         cost_ars: enPesos ? costoPesos : null,
         cost_currency: costCurrency,
-        customs_fee: enPesos ? 0 : customsFee,
-        total_cost_usd: enPesos ? 0 : totalCostUSD,
+        // C28.1: el pasero ya viaja dentro del costo cargado — la columna
+        // histórica queda en 0 para no duplicar el impuesto en reportes.
+        customs_fee: 0,
+        total_cost_usd: totalCostUSD,
         sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
         // Se distingue el vacio del cero a proposito: `parseFloat('') || null`
         // convertiria un 0 legitimo en null y el exento pasaria a gravado.
@@ -3079,7 +3088,10 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
             <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" />
             {cost > 0 && (
               <p className="text-[10px] text-muted-foreground mt-1">
-                Fórmula: [(${cost}+{customsPercent}%) × ${exchangeRate}] × {categoryMarkup} = {formatARS(autoSalePrice)} · -{defaultDiscount}% = {formatARS(autoDiscountPrice)}
+                {/* C28.1: el pasero/impuestos/aduana ya viaja dentro del costo
+                    que carga el comercio. Acá ya no se vuelve a sumar: la
+                    fórmula es costo × TC × markup, punto. */}
+                Fórmula: ${cost} × ${exchangeRate} × {categoryMarkup} = {formatARS(autoSalePrice)} · -{defaultDiscount}% = {formatARS(autoDiscountPrice)}
               </p>
             )}
           </>
@@ -3516,9 +3528,9 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
       </div>
       {cost > 0 && salePrice > 0 && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Costo base:</span><span>{formatUSD(cost)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+{customsPercent}% Pasero:</span><span className="text-yellow-400">{formatUSD(customsFee)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Costo total:</span><span>{formatUSD(totalCostUSD)} = {formatARS(totalCostARS)}</span></div>
+          {/* C28.1: el pasero ya viene dentro del costo cargado; ya no se
+              desglosa aparte para no sugerir que se vuelve a sumar. */}
+          <div className="flex justify-between"><span className="text-muted-foreground">Costo (con pasero e impuestos):</span><span>{formatUSD(totalCostUSD)} = {formatARS(totalCostARS)}</span></div>
           <div className="flex justify-between font-bold border-t border-border pt-1"><span>Ganancia/u:</span>
             <span className={profitPerUnitARS > 0 ? 'text-emerald-400' : 'text-destructive'}>{formatARS(profitPerUnitARS)} ({formatUSD(profitPerUnitUSD)})</span>
           </div>
@@ -3861,14 +3873,16 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
     try {
       const allProducts = await getProductsDB(userId);
       const toUpdate = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
-      const customsPct = Number(settings?.customs_percent || 15);
       let count = 0;
       for (const p of toUpdate) {
         const costUSD = Number(p.cost_usd) || 0;
         if (!costUSD) continue;
-        const costImported = costUSD * (1 + customsPct / 100) * xRate;
-        const newSalePrice = Math.round(costImported * (1 + markup / 100));
-        const { profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(costUSD, customsPct, newSalePrice, xRate);
+        // C28.1: el costo ya incluye pasero/aduana. El nuevo precio de venta
+        // es simplemente costo × TC × (1 + markup/100).
+        const costARS = costUSD * xRate;
+        const newSalePrice = Math.round(costARS * (1 + markup / 100));
+        const profitPerUnitARS = newSalePrice - costARS;
+        const profitPerUnitUSD = profitPerUnitARS / xRate;
         await updateProductDB(p.id, {
           sale_price_ars: newSalePrice,
           profit_per_unit_ars: profitPerUnitARS,
@@ -3911,9 +3925,10 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
           const cotizacionInline = cotizacionDe(settings);
           if (cotizacionInline === null && Number(p.cost_usd) > 0) return;
           const exchangeRate = cotizacionInline ?? 0;
-          const { profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(
-            Number(p.cost_usd), Number(settings?.customs_percent || 15), updates.sale_price_ars, exchangeRate
-          );
+          // C28.1: sin pasero aparte — el costo cargado ya lo lleva incluido.
+          const costARS = Number(p.cost_usd) * exchangeRate;
+          const profitPerUnitARS = updates.sale_price_ars - costARS;
+          const profitPerUnitUSD = exchangeRate > 0 ? profitPerUnitARS / exchangeRate : 0;
           updates.profit_per_unit_ars = profitPerUnitARS;
           updates.profit_per_unit_usd = profitPerUnitUSD;
         }
@@ -4033,13 +4048,13 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
               {(() => {
                 const xR = parseFloat(newExchangeRate);
                 const mk = parseFloat(recalcMarkup);
-                const customs = Number(settings?.customs_percent || 15);
-                const costImported = 10 * (1 + customs / 100) * xR;
-                const salePrice = Math.round(costImported * (1 + mk / 100));
-                const margin = salePrice > 0 ? ((salePrice - costImported) / salePrice * 100).toFixed(1) : '0';
+                // C28.1: el costo ya viene con pasero incluido.
+                const costARS = 10 * xR;
+                const salePrice = Math.round(costARS * (1 + mk / 100));
+                const margin = salePrice > 0 ? ((salePrice - costARS) / salePrice * 100).toFixed(1) : '0';
                 return (
                   <p className="text-muted-foreground">
-                    U$S 10 → <span className="text-foreground font-mono">${costImported.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span> importado → venta <span className="text-primary font-mono font-bold">${salePrice.toLocaleString('es-AR')}</span> · margen <span className="text-green-400">{margin}%</span>
+                    U$S 10 → <span className="text-foreground font-mono">${costARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span> → venta <span className="text-primary font-mono font-bold">${salePrice.toLocaleString('es-AR')}</span> · margen <span className="text-green-400">{margin}%</span>
                   </p>
                 );
               })()}

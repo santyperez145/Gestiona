@@ -6,6 +6,8 @@
  * son reglas puras para que la UI no invente un slide que no existe.
  */
 
+import { urlMediaSegura } from "@/lib/secureMedia";
+
 export function galeriaDeProducto(input: {
   image_url?: string | null;
   image_urls?: string[] | null;
@@ -17,8 +19,13 @@ export function galeriaDeProducto(input: {
   for (const src of raw) {
     const url = typeof src === "string" ? src.trim() : "";
     if (!url || seen.has(url)) continue;
-    seen.add(url);
-    out.push(url);
+    // Contenido mixto: una foto `http://` marca la ficha como «No segura».
+    // Se normaliza a HTTPS antes de deduplicar (si sube a HTTPS cambia la URL,
+    // y deduplicar después duplicaría miniaturas).
+    const segura = urlMediaSegura(url);
+    if (!segura || seen.has(segura)) continue;
+    seen.add(segura);
+    out.push(segura);
   }
   return out;
 }

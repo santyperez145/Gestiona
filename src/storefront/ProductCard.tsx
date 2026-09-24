@@ -4,6 +4,7 @@ import { Stars } from "./ProductReviews";
 import { useWishlist } from "./wishlist";
 import { ShoppingBag, Heart } from "lucide-react";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { urlMediaSegura } from "@/lib/secureMedia";
 import {
   resumenVariantesParaCard,
   textoCtaVariante,
@@ -25,7 +26,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
   const sinStock = stockVisible <= 0;
   const tipoVariante = variantes[0]?.variant_type;
   const productUrl = `${base}/producto/${p.id}`;
-  const imagen = p.image_url;
+  const imagen = urlMediaSegura(p.image_url);
 
   return (
     <article

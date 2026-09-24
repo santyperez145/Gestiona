@@ -19,6 +19,7 @@ import { resolveTheme, resolveFont, googleFontHref } from "./theme";
 import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown, MessageCircle } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { urlMediaSegura } from "@/lib/secureMedia";
 import { parseStorefrontLayout, textoDeAnuncio } from "@/lib/storeHomeLayout";
 import { textoCoberturaDomicilio, etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
 import { hrefWhatsAppConsultar, parseStoreSocial } from "@/lib/storeSocial";
@@ -303,7 +304,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               {(store?.name ?? "T").charAt(0).toUpperCase()}
               {store?.logo_url && (
                 <img
-                  src={store.logo_url}
+                  src={urlMediaSegura(store.logo_url) ?? undefined}
                   alt=""
                   {...atributosDeImagenVitrina("logo")}
                   onLoad={mostrarImagenValida}
@@ -620,7 +621,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                         <ShoppingBag aria-hidden="true" className="w-5 h-5 opacity-20" />
                         {l.image && (
                           <img
-                            src={l.image}
+                            src={urlMediaSegura(l.image) ?? undefined}
                             alt=""
                             {...atributosDeImagenVitrina("miniatura")}
                             onLoad={mostrarImagenValida}
@@ -678,7 +679,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                           >
                             {sg.producto.image_url && (
                               <img
-                                src={sg.producto.image_url}
+                                src={urlMediaSegura(sg.producto.image_url) ?? undefined}
                                 alt=""
                                 {...atributosDeImagenVitrina("miniatura")}
                                 onLoad={mostrarImagenValida}
