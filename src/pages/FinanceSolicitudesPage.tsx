@@ -137,6 +137,10 @@ export default function FinanceSolicitudesPage() {
     }
   };
 
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectBusy, setRejectBusy] = useState(false);
+
   const handleApprove = async (requestId: string) => {
     try {
       const { error } = await (supabase as any).rpc("finance_approve_expense_request", { p_request_id: requestId });
@@ -149,25 +153,45 @@ export default function FinanceSolicitudesPage() {
     }
   };
 
-  const handleReject = async (requestId: string) => {
+  const handleConfirmReject = async () => {
+    if (!rejectingId) return;
+    setRejectBusy(true);
     try {
-      const { error } = await (supabase as any).rpc("finance_reject_expense_request", { p_request_id: requestId });
+      const { error } = await (supabase as any).rpc("finance_reject_expense_request", {
+        p_request_id: rejectingId,
+        p_reason: rejectReason.trim() || null,
+      });
       if (error) throw error;
       setNotice("Solicitud rechazada");
+      setRejectingId(null);
+      setRejectReason("");
       void loadRequests();
     } catch (cause) {
       const msg = cause instanceof Error ? cause.message : String(cause);
       setLoadError(`No se pudo rechazar la solicitud: ${msg}`);
+    } finally {
+      setRejectBusy(false);
     }
   };
 
   const counts = useMemo<ExpenseRequestCounts>(() => {
     const c: ExpenseRequestCounts = { todos: requests.length, pendiente: 0, bajo_revision: 0, aprobado: 0, rechazado: 0 };
     for (const r of requests) {
-      if (r.status in c) (c as any)[r.status] += 1;
+      if (r.status === "pending") c.pendiente += 1;
+      else if (r.status === "under_review") c.bajo_revision += 1;
+      else if (r.status === "approved") c.aprobado += 1;
+      else if (r.status === "rejected") c.rechazado += 1;
     }
     return c;
   }, [requests]);
+
+  const VIEW_MAP: Record<string, string | null> = {
+    todos: null,
+    pendiente: "pending",
+    "en revisión": "under_review",
+    aprobado: "approved",
+    rechazado: "rejected",
+  };
 
   const filtered = useMemo(() => {
     let result = requests;
@@ -175,8 +199,9 @@ export default function FinanceSolicitudesPage() {
       const q = inboxQuery.toLowerCase();
       result = result.filter((r) => r.title.toLowerCase().includes(q) || r.category?.toLowerCase().includes(q));
     }
-    if (inboxView !== "todos") {
-      result = result.filter((r) => r.status === inboxView);
+    const targetStatus = VIEW_MAP[inboxView];
+    if (targetStatus) {
+      result = result.filter((r) => r.status === targetStatus);
     }
     return result;
   }, [requests, inboxQuery, inboxView]);
@@ -280,7 +305,7 @@ export default function FinanceSolicitudesPage() {
                   <TableCell className="p-4">
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleApprove(s.id)} disabled={s.status !== "pending"}><CheckCircle2 className="mr-1 h-4 w-4" />Aprobar</Button>
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleReject(s.id)} disabled={s.status !== "pending"}><XCircle className="mr-1 h-4 w-4" />Rechazar</Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setRejectingId(s.id); setRejectReason(""); }} disabled={s.status !== "pending"}><XCircle className="mr-1 h-4 w-4" />Rechazar</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -337,6 +362,37 @@ export default function FinanceSolicitudesPage() {
             <Button variant="outline" onClick={() => setOpenCreate(false)}>Cancelar</Button>
             <Button onClick={handleCreate} disabled={!newRequest.title.trim() || newRequest.amount <= 0 || loading}>
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Crear solicitud
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal confirmar rechazo con motivo */}
+      <Dialog open={Boolean(rejectingId)} onOpenChange={(open) => { if (!open) setRejectingId(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rechazar solicitud de gasto</DialogTitle>
+            <DialogDescription>
+              Indicá el motivo del rechazo. El solicitante recibirá una notificación con esta explicación.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label htmlFor="reject-reason">Motivo del rechazo (opcional)</Label>
+            <Textarea
+              id="reject-reason"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Ej: Presupuesto agotado para este trimestre / falta factura proforma"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectingId(null)} disabled={rejectBusy}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmReject} disabled={rejectBusy}>
+              {rejectBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+              Confirmar rechazo
             </Button>
           </DialogFooter>
         </DialogContent>
