@@ -13,6 +13,7 @@ import {
   type CatalogMigrationParseResult,
   type CatalogMigrationProduct,
 } from "@/lib/catalogMigration";
+import { useEntitlements } from "@/lib/useEntitlements";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   onImported: () => void;
 }) {
   const { activeOrg, activeRole } = useOrg();
+  const { productLimit, plan } = useEntitlements();
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState<CatalogMigrationProduct[]>([]);
@@ -214,6 +216,19 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   async function apply() {
     if (!stage?.batch_id || !canImport) return;
     if (stage.invalid && !skipInvalid) return void toast.error("Confirmá si querés omitir las filas inválidas");
+    // Anticipar límite del plan antes de pedirle a la base que aplique:
+    // si el lote excede el cupo de productos, se avisa de entrada en vez de
+    // que la transacción aborte a la mitad de las inserciones.
+    if (productLimit !== null && stage.creates > 0) {
+      const { count: currentCount, error: countErr } = await supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", activeOrg?.id ?? "");
+      if (!countErr && typeof currentCount === "number" && currentCount + stage.creates > productLimit) {
+        toast.error(`El lote crearía ${stage.creates} productos y tu plan ${plan?.name ?? ""} permite hasta ${productLimit} (${currentCount} actuales). Actualizá tu plan para continuar.`);
+        return;
+      }
+    }
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc("apply_catalog_migration", {

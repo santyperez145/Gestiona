@@ -428,8 +428,8 @@ export default function ProductsPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
-  const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
-  const [editingThreshold, setEditingThreshold] = useState<{ id: string; value: string } | null>(null);
+  // La edición inline de stock vive en la tabla (ProductTableOwn → onStockChange).
+  // El estado `editingStock` era código muerto: nunca había un input conectado.
   const [showAging, setShowAging] = useState(false);
   const [productSort, setProductSort] = useState<{ col: ProductSortColumn; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
   const [productView, setProductView] = usePersistedState<'list' | 'grid'>(orgViewKey("products.view", activeOrg?.id), 'list');
@@ -643,27 +643,18 @@ export default function ProductsPage() {
     setOpen(true);
   }, [activeOrg?.id, canCreate, fromWizard, hasLoadedData, identityParams, loading, productLimit, products.length]);
 
-  const saveInlineStock = async (productId: string, newStock: string) => {
-    const parsed = parseInt(newStock, 10);
-    if (isNaN(parsed) || parsed < 0 || !user) { setEditingStock(null); return; }
+  // La tabla pasa el número ya parseado; el motor de Kardex (setStockAbsoluteDB)
+  // es la única autoridad: la base calcula el delta y asienta el movimiento.
+  const handleInlineStockChange = async (productId: string, newStock: number) => {
+    if (!user) return;
     await setStockAbsoluteDB({
       productId,
-      newStock: parsed,
+      newStock,
       userId: user.id,
       notes: "Ajuste de stock desde Productos",
     });
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: parsed } : p));
-    setEditingStock(null);
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock } : p));
     toast.success("Stock actualizado");
-  };
-
-  const saveInlineThreshold = async (productId: string, val: string) => {
-    const parsed = parseInt(val, 10);
-    if (isNaN(parsed) || parsed < 0) { setEditingThreshold(null); return; }
-    await updateProductDB(productId, { low_stock_threshold: parsed } as any);
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, low_stock_threshold: parsed } : p));
-    setEditingThreshold(null);
-    toast.success("Alerta de stock actualizada");
   };
 
   const today = new Date();
@@ -1717,6 +1708,8 @@ export default function ProductsPage() {
                 sortDir={productSort.dir}
                 onSort={(col) => setProductSort(s => ({ col, dir: s.col === col && s.dir === "asc" ? "desc" : "asc" }))}
                 onEdit={canEdit ? (id) => { const product = items.find(p => p.id === id); if (product) { setEditing(product); setOpen(true); } } : undefined}
+                onPriceHistory={(id) => { const product = items.find(p => p.id === id); if (product) setPriceHistoryProduct({ id: product.id, name: product.name }); }}
+                onStockChange={canEdit ? handleInlineStockChange : undefined}
                 onDuplicate={canCreate && (productLimit === null || products.length < productLimit) ? (id) => {
                   const source = items.find(p => p.id === id);
                   if (source) { setEditing({ ...source, id: undefined, name: `Copia de ${source.name}`, stock: 0, sku: '', barcode: '', lot_number: '', expiry_date: null }); setOpen(true); }
@@ -3904,6 +3897,14 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
   const handleApply = async () => {
     const pct = parseFloat(percent);
     if (!pct || pct === 0) { toast.error("Ingresá un porcentaje válido"); return; }
+    // El chequeo de cotización va ANTES del loop: un `return` adentro del
+    // `for` con `await` por fila abortaba el ajuste dejando la mitad del
+    // catálogo con el precio nuevo y la otra mitad con el viejo.
+    const cotizacionInline = cotizacionDe(settings);
+    if (cotizacionInline === null) {
+      toast.error("No hay cotización USD configurada. Cargala en Configuración antes de ajustar precios en bloque.");
+      return;
+    }
     setLoading(true);
     try {
       const products = await getProductsDB(userId);
@@ -3919,16 +3920,10 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
         }
         // Recalculate profits
         if (updates.sale_price_ars !== undefined) {
-          // ⚠️ Sin cotización no se recalcula la ganancia de un producto en
-          // dólares: escribir un número derivado de un dólar inventado deja el
-          // dato mal en la base, que es peor que dejarlo como estaba.
-          const cotizacionInline = cotizacionDe(settings);
-          if (cotizacionInline === null && Number(p.cost_usd) > 0) return;
-          const exchangeRate = cotizacionInline ?? 0;
           // C28.1: sin pasero aparte — el costo cargado ya lo lleva incluido.
-          const costARS = Number(p.cost_usd) * exchangeRate;
+          const costARS = Number(p.cost_usd) * cotizacionInline;
           const profitPerUnitARS = updates.sale_price_ars - costARS;
-          const profitPerUnitUSD = exchangeRate > 0 ? profitPerUnitARS / exchangeRate : 0;
+          const profitPerUnitUSD = cotizacionInline > 0 ? profitPerUnitARS / cotizacionInline : 0;
           updates.profit_per_unit_ars = profitPerUnitARS;
           updates.profit_per_unit_usd = profitPerUnitUSD;
         }
