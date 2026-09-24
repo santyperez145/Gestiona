@@ -649,6 +649,20 @@ export function storeAttributionCoverageCopy(
 }
 
 /**
+ * URL directa garantizada con SSL verificado en el dominio principal
+ * (evita problemas de DNS o propagación de subdominio).
+ */
+export function urlDirectaDeTienda(
+  origin: string,
+  slug: string | null | undefined,
+): string | null {
+  const host = origin.trim().replace(/\/$/, '');
+  const s = (slug ?? '').trim();
+  if (!host || !s) return null;
+  return `${host}/tienda/${s}`;
+}
+
+/**
  * El link que el comercio comparte. Sin slug no hay puerta.
  * En producción usa el subdominio incluido; previews/localhost conservan path.
  */

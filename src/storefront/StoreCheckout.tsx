@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
-import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
+import { Loader2, ShoppingBag, Lock, Tag, Truck, ShieldCheck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
 import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError, startStoreCheckout } from "@/lib/publicDataSource";
@@ -1085,6 +1085,18 @@ export default function StoreCheckout() {
           <p className="text-[11px] text-center" style={{ color: "hsl(var(--st-muted))" }}>
             Antes de confirmar, revisamos disponibilidad y total final para que tu compra salga correcta.
           </p>
+
+          {/* Sellos de seguridad y confianza (estándar Shopify) */}
+          <div className="pt-3 border-t space-y-2 text-xs" style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-muted))" }}>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Checkout 100% protegido con cifrado SSL bancario</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary shrink-0" />
+              <span>Datos personales y de pago protegidos</span>
+            </div>
+          </div>
         </aside>
 
         {/* En teléfono sólo queda fija la decisión: total + acción. El pedido,

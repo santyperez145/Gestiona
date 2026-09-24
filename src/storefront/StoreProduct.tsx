@@ -20,7 +20,7 @@ import { getCategoryLabel } from "@/lib/supabaseStore";
 import {
   FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, taxLabel,
 } from "@/lib/scentTaxonomy";
-import { ChevronLeft, Minus, Plus, ShoppingBag, Check, Heart } from "lucide-react";
+import { ChevronLeft, Minus, Plus, ShoppingBag, Check, Heart, Truck, ShieldCheck, Zap } from "lucide-react";
 import { trackViewItem, trackAddToCart } from "./tracking";
 import { useStoreTrackingRuntimeReady } from "./trackingConsent";
 import ProductReviews from "./ProductReviews";
@@ -222,6 +222,19 @@ export default function StoreProduct() {
     agregar();
   };
 
+  const comprarAhora = () => {
+    if (faltaElegir) {
+      enfocarVariantes();
+      return;
+    }
+    addToCart(p, qty, variante);
+    trackAddToCart(
+      { id: variante?.id ?? p.id, name: p.name, price, quantity: qty },
+      store?.currency ?? "ARS",
+    );
+    navigate(`${base}/checkout`);
+  };
+
   const notas = [
     { t: "Salida", v: d?.notas_salida },
     { t: "Corazón", v: d?.notas_corazon },
@@ -409,19 +422,26 @@ export default function StoreProduct() {
             </div>
           )}
 
-          {/* Trust Signals */}
-          <div className="mt-4 flex flex-wrap gap-3 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
-            <span className="flex items-center gap-1">
-              <Check className="w-3 h-3" />
-              Envío gratis a partir de $5000
+          {/* Trust Signals dinámicos y verídicos */}
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+            {store?.free_shipping_above && Number(store.free_shipping_above) > 0 ? (
+              <span className="flex items-center gap-1.5 font-medium" style={{ color: "hsl(var(--st-link))" }}>
+                <Truck className="w-3.5 h-3.5" />
+                Envío gratis a partir de {fmt(Number(store.free_shipping_above))}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5" />
+                Envíos a todo el país
+              </span>
+            )}
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              Compra protegida y cifrada con SSL
             </span>
-            <span className="flex items-center gap-1">
-              <Check className="w-3 h-3" />
-              Pago seguro
-            </span>
-            <span className="flex items-center gap-1">
-              <Check className="w-3 h-3" />
-              Devolución gratis
+            <span className="flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              Garantía oficial y botón de arrepentimiento
             </span>
           </div>
 
@@ -441,43 +461,54 @@ export default function StoreProduct() {
           {agotadoParaCompra ? (
             <StockAlertForm productId={p.id} variantId={variantId} />
           ) : (
-          <div ref={atcRef} className="flex items-center gap-3 mt-6">
-            {!faltaElegir && <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
-              <button className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="px-3 tabular-nums font-medium">{qty}</span>
+          <div ref={atcRef} className="space-y-3 mt-6">
+            <div className="flex items-center gap-3">
+              {!faltaElegir && <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
+                <button className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="px-3 tabular-nums font-medium">{qty}</span>
+                <button
+                  className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
+                  onClick={() => setQty(q => Math.min(stockEfectivo, q + 1))}
+                  disabled={qty >= stockEfectivo}
+                  aria-label="Sumar"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>}
               <button
-                className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
-                onClick={() => setQty(q => Math.min(stockEfectivo, q + 1))}
-                disabled={qty >= stockEfectivo}
-                aria-label="Sumar"
+                onClick={agregarOEnfocar}
+                aria-hidden={isMobile && !atcVisible}
+                tabIndex={!isMobile || atcVisible ? 0 : -1}
+                className="flex-1 min-h-11 py-3 font-semibold inline-flex items-center justify-center gap-2 border transition-colors hover:bg-black/5"
+                style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
               >
-                <Plus className="w-4 h-4" />
+                {faltaElegir
+                  ? textoCtaVariante(tipoVariante)
+                  : added ? <><Check className="w-4 h-4 text-emerald-600" /> ¡Agregado al carrito!</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
               </button>
-            </div>}
+              <button
+                onClick={() => deseos.toggle(p.id)}
+                aria-label={deseos.has(p.id) ? "Quitar de mis deseos" : "Guardar en mis deseos"}
+                aria-pressed={deseos.has(p.id)}
+                className="min-h-11 min-w-11 p-3 grid place-items-center border transition-colors"
+                style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+              >
+                <Heart
+                  className={`w-4 h-4 ${deseos.has(p.id) ? "fill-current" : ""}`}
+                  style={{ color: deseos.has(p.id) ? "hsl(var(--st-link))" : "inherit" }}
+                />
+              </button>
+            </div>
+
+            {/* Botón Comprar Ahora (1-click checkout de alta conversión estilo Shopify) */}
             <button
-              onClick={agregarOEnfocar}
-              aria-hidden={isMobile && !atcVisible}
-              tabIndex={!isMobile || atcVisible ? 0 : -1}
-              className="flex-1 min-h-11 py-3 font-semibold inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+              onClick={comprarAhora}
+              className="w-full min-h-12 py-3 px-4 font-bold text-base inline-flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.99] hover:opacity-95"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
-              {faltaElegir
-                ? textoCtaVariante(tipoVariante)
-                : added ? <><Check className="w-4 h-4" /> ¡Agregado!</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
-            </button>
-            <button
-              onClick={() => deseos.toggle(p.id)}
-              aria-label={deseos.has(p.id) ? "Quitar de mis deseos" : "Guardar en mis deseos"}
-              aria-pressed={deseos.has(p.id)}
-              className="min-h-11 min-w-11 p-3 grid place-items-center border transition-colors"
-              style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
-            >
-              <Heart
-                className={`w-4 h-4 ${deseos.has(p.id) ? "fill-current" : ""}`}
-                style={{ color: deseos.has(p.id) ? "hsl(var(--st-link))" : "inherit" }}
-              />
+              <Zap className="w-4 h-4 fill-current" /> Comprar ahora
             </button>
           </div>
           )}

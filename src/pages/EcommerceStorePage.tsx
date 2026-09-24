@@ -14,7 +14,7 @@ import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
   Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin,
-  Image as ImageIcon, Type, ChevronUp, ChevronDown, Copy,
+  Image as ImageIcon, Type, ChevronUp, ChevronDown, Copy, ShieldCheck,
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -65,6 +65,7 @@ import {
   storeHoursLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
+  urlDirectaDeTienda,
   storeShareIntentActive,
   storeShareIntentCopy,
 } from "@/lib/storeFirstPublish";
@@ -941,6 +942,10 @@ export default function EcommerceStorePage() {
     typeof window === "undefined" ? "" : window.location.origin,
     store?.slug,
   );
+  const urlDirectaSegura = urlDirectaDeTienda(
+    typeof window === "undefined" ? "" : window.location.origin,
+    store?.slug,
+  );
   const urlPublica = store?.custom_domain && store?.custom_domain_status === "active"
     ? `https://${store.custom_domain}`
     : urlIncluida;
@@ -1039,6 +1044,17 @@ export default function EcommerceStorePage() {
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(urlPublica, "_blank")}>
                   <ExternalLink className="w-3 h-3" />Ver tienda
                 </Button>
+                {urlDirectaSegura && urlDirectaSegura !== urlPublica && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    title="Enlace directo seguro por ruta principal"
+                    onClick={() => window.open(urlDirectaSegura, "_blank")}
+                  >
+                    <ShieldCheck className="w-3 h-3 text-emerald-500" />Enlace seguro
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
