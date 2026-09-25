@@ -336,12 +336,12 @@ cita la evidencia que falta, no la que existe.
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 
-**Cierres recientes (2026-09-25):** payouts MP a creadores con webhook firmado
-(`947cdbfb`), loop de revisión de entregables (`ebdfbe3b`), POS offline con
-cola de sincronización (`c0a06c66`), deduplicación CRM con fusión asistida
-(`8dcb19d1`), estudio de faltantes por pilar + landing actualizada
-(`34c10e5b`), exportación contable auditada F5.3 y publicación verificable de
-entregables con licencias versionadas. El histórico vive en `git log`.
+**Cierres recientes (2026-09-25):** chat por colaboración marca↔creador con
+RPCs server-side (`60a74a85`), editor de bloques de portada con título y límite
+por bloque (`64961a59`), conciliación bancaria F5.4 (`5da9f074`), payouts MP a
+creadores con webhook firmado (`947cdbfb`), loop de revisión de entregables
+(`ebdfbe3b`) y POS offline con cola de sincronización (`c0a06c66`).
+El histórico vive en `git log`.
 
 ## 7. Definition of Done
 
