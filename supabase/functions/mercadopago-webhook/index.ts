@@ -11,6 +11,7 @@ import {
 import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
 import { providerAttemptState, recordPaymentAttempt } from "../_shared/paymentOrchestrator.ts";
 import { tokenDeLaPlataforma } from "../_shared/mpPlataforma.ts";
+import { sincronizarLotePayouts } from "../_shared/mpPayoutsSync.ts";
 
 /**
  * Verifica la firma del webhook de MercadoPago.
@@ -444,6 +445,56 @@ Deno.serve(async (req) => {
       );
       console.log(`MP POS QR order ${paymentId}: ${String(reconciled.state ?? "unknown")}`);
       return new Response(JSON.stringify({ ok: true, orderId: paymentId, state: reconciled.state }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Payouts (pagos automáticos a creadores) ─────────────────────────
+    // MP notifica cambios de estado de transferencias enviadas con
+    // POST /v1/payouts. Igual que Orders: firma obligatoria, el body nunca
+    // decide plata — se consulta el estado real con el token de la org.
+    if (type === "payout" && paymentId) {
+      const signature = req.headers.get("x-signature") || "";
+      const requestId = req.headers.get("x-request-id") || "";
+      const signedId = new URL(req.url).searchParams.get("data.id") || paymentId;
+      const secret = Deno.env.get("MP_WEBHOOK_SECRET") || "";
+      if (!secret) {
+        console.error("MP_WEBHOOK_SECRET no está configurado para payouts");
+        return new Response(JSON.stringify({ ok: false, reason: "webhook secret not configured" }), {
+          status: 503, headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (!signature || !requestId
+        || !await verifyMpSignature(signedId, requestId, signature, secret)) {
+        console.warn(`Firma inválida/ausente para MP payout ${paymentId}`);
+        return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // El lote se encuentra por mp_payout_id (id de MP en el body).
+      const { data: batch } = await admin
+        .from("influencer_payout_batches")
+        .select("id")
+        .eq("mp_payout_id", paymentId)
+        .maybeSingle();
+      if (!batch?.id) {
+        return new Response(JSON.stringify({ ok: true, reason: "payout not managed here" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const resultado = await sincronizarLotePayouts(admin, batch.id);
+      if (resultado instanceof Response) {
+        // 404/400 del sync: se acusa recibo igual para que MP no rebote.
+        const detalle = await resultado.json();
+        console.warn(`Sync de payout ${paymentId} no concluyó: ${JSON.stringify(detalle)}`);
+        return new Response(JSON.stringify({ ok: true, reason: "sync pending", detalle }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      console.log(`MP payout ${paymentId}: ${resultado.status} (${resultado.aprobados} aprobados)`);
+      return new Response(JSON.stringify({ payoutId: paymentId, ...resultado }), {
         headers: { "Content-Type": "application/json" },
       });
     }

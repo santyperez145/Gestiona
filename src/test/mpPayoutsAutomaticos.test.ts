@@ -44,14 +44,41 @@ describe("MP Payouts: Edge Function mp-payouts", () => {
   });
 
   it("sincroniza: MP aprobado → retiro pagado via resolve_creator_withdrawal", () => {
-    expect(edge).toContain('rpc("resolve_creator_withdrawal"');
-    expect(edge).toContain("/v1/payouts/${encodeURIComponent(batch.mp_payout_id)}/transactions");
-    expect(edge).toContain('"partially_completed"');
+    // La lógica de sync vive en el módulo compartido con el webhook.
+    expect(edge).toContain("sincronizarLotePayouts(admin, batchId)");
+    const syncModule = read("supabase/functions/_shared/mpPayoutsSync.ts");
+    expect(syncModule).toContain('rpc("resolve_creator_withdrawal"');
+    expect(syncModule).toContain("MP_PAYOUTS_URL = \"https://api.mercadopago.com/v1/payouts\"");
+    expect(syncModule).toContain(")}/transactions`");
+    expect(syncModule).toContain('"partially_completed"');
   });
 
   it("nunca inventa destino: sin email se excluye y se informa", () => {
     expect(edge).toContain("sinDestino");
     expect(edge).toContain("excluidos_sin_email");
+  });
+});
+
+describe("MP Payouts: webhook asíncrono", () => {
+  const webhook = read("supabase/functions/mercadopago-webhook/index.ts");
+  const sync = read("supabase/functions/_shared/mpPayoutsSync.ts");
+
+  it("la notificación payout exige firma HMAC (igual que payments/orders)", () => {
+    expect(webhook).toContain('type === "payout"');
+    expect(webhook).toContain("verifyMpSignature(signedId, requestId, signature, secret)");
+    expect(webhook).toContain("invalid signature");
+  });
+
+  it("el body de MP nunca decide plata: se sincroniza consultando la API", () => {
+    expect(webhook).toContain(".eq(\"mp_payout_id\", paymentId)");
+    expect(webhook).toContain("sincronizarLotePayouts(admin, batch.id)");
+  });
+
+  it("la sincronización es compartida y settlea idempotente vía RPC", () => {
+    expect(sync).toContain('rpc("resolve_creator_withdrawal"');
+    expect(sync).toContain("influencer_payout_batch_items");
+    // mp-payouts usa el mismo módulo: una sola verdad de estados.
+    expect(read("supabase/functions/mp-payouts/index.ts")).toContain("sincronizarLotePayouts(admin, batchId)");
   });
 });
 
