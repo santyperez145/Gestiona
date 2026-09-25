@@ -128,7 +128,8 @@ proveedores, órdenes, gastos, obligaciones, ledger y documentos del Core.
 banco, flujo, resultados y libro mayor; Budget Pulse y presupuesto mensual por
 organización con permisos y auditoría; Document Inbox privado, extracción
 estructurada, revisión, matching, aprobación e idempotencia; exportación
-contable auditada desde el ledger (F5.3, 2026-09-25).
+contable auditada desde el ledger (F5.3) y conciliación bancaria con
+confirmación con traza (F5.4, 2026-09-25).
 
 #### Contrato de paridad Mendel-class
 
@@ -306,8 +307,8 @@ cita la evidencia que falta, no la que existe.
 | Primer documento real (F5.1) | La Edge Function `extract-finance-document` está lista pero falla cerrado sin `FINANCE_DOCUMENT_EXTRACTION_ENABLED` + `ANTHROPIC_API_KEY` + modelo aprobado. Falta habilitar proveedor y procesar 1 factura real E2E. |
 | Políticas versionadas de aprobación | Las solicitudes tienen estados y pago real, pero no hay motor de política versionada con escalamiento por monto/categoría/centro. |
 | Presupuesto comprometido/disponible | Budget Pulse existe; falta comprometer/liberar como movimientos con alertas de excedente. |
-| Conciliación bancaria | `PaymentSettlementsPanel` explica neto por cobro digital; falta importar extracto bancario y proponer/confirmar matches contra ledger. |
-| Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Sigue pendiente la conciliación con extracto bancario (fila 12). |
+| Conciliación bancaria | **Cerrado (2026-09-25):** extracto CSV importado idempotentemente, matches propuestos contra asientos de banco y confirmación con traza (F5.4). El movimiento sin match queda visible para revisión. |
+| Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Conciliación con extracto bancario cerrada en fila 12 (F5.4). |
 | Tarjetas externas | Sin feed de transacciones externas ni controles preventivos; emisión exige partner (gate externo). |
 
 **CRM/ERP (usabilidad cualquier comercio):**
@@ -330,7 +331,7 @@ cita la evidencia que falta, no la que existe.
 | 9 | P0 Segundo comercio | **Completado:** alta, migración y gestión de productos sin intervención SQL. |
 | 10 | Economics | Pricing y comisión aprobados con costos reales. |
 | 11 | Influencers chat + publicación verificable | **Publicación verificable cerrada (2026-09-25):** `influencer_publication_proofs` registra URL + captura + licencia versionada por verificación; el creador ve la verificación en su portal. Pendiente: chat por colaboración. |
-| 12 | Finance conciliación bancaria | Extracto importado, matches propuestos y confirmados contra ledger. |
+| 12 | Finance conciliación bancaria | **Cerrado (2026-09-25):** `finance_bank_statements`/`finance_bank_lines` importan el extracto (idempotente por hash), `bank_lines_match` propone matches contra asientos de banco (1.1.02, ±3 días, un asiento por movimiento) y `bank_line_confirm` confirma/rechaza con traza; verificación reversible en producción. Panel en Movimientos. |
 | 13 | Finance export contable | **Cerrado (2026-09-25):** lotes desde el libro real con verificación de descuadre, CSV para el contador e historia de exportación. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.

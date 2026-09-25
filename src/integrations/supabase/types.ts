@@ -15127,6 +15127,122 @@ export type Database = {
           },
         ]
       }
+      finance_bank_statements: {
+        Row: {
+          banco: string
+          content_hash: string
+          created_at: string
+          created_by: string | null
+          fecha_desde: string
+          fecha_hasta: string
+          id: string
+          matched_count: number
+          org_id: string
+          row_count: number
+          status: string
+          total_egresos: number
+          total_ingresos: number
+        }
+        Insert: {
+          banco: string
+          content_hash: string
+          created_at?: string
+          created_by?: string | null
+          fecha_desde: string
+          fecha_hasta: string
+          id?: string
+          matched_count?: number
+          org_id: string
+          row_count?: number
+          status?: string
+          total_egresos?: number
+          total_ingresos?: number
+        }
+        Update: {
+          banco?: string
+          content_hash?: string
+          created_at?: string
+          created_by?: string | null
+          fecha_desde?: string
+          fecha_hasta?: string
+          id?: string
+          matched_count?: number
+          org_id?: string
+          row_count?: number
+          status?: string
+          total_egresos?: number
+          total_ingresos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_bank_statements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_bank_lines: {
+        Row: {
+          concepto: string
+          created_at: string
+          fecha: string
+          id: string
+          match_entry_id: string | null
+          match_status: string
+          matched_at: string | null
+          matched_by: string | null
+          monto: number
+          org_id: string
+          referencia: string | null
+          statement_id: string
+        }
+        Insert: {
+          concepto: string
+          created_at?: string
+          fecha: string
+          id?: string
+          match_entry_id?: string | null
+          match_status?: string
+          matched_at?: string | null
+          matched_by?: string | null
+          monto: number
+          org_id: string
+          referencia?: string | null
+          statement_id: string
+        }
+        Update: {
+          concepto?: string
+          created_at?: string
+          fecha?: string
+          id?: string
+          match_entry_id?: string | null
+          match_status?: string
+          matched_at?: string | null
+          matched_by?: string | null
+          monto?: number
+          org_id?: string
+          referencia?: string | null
+          statement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_bank_lines_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "finance_bank_statements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_bank_lines_match_entry_id_fkey"
+            columns: ["match_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_payable_drafts: {
         Row: {
           amount_ars: number | null
@@ -56270,6 +56386,24 @@ export type Database = {
       }
       finance_export_batch_csv: {
         Args: { p_batch_id: string }
+        Returns: string
+      }
+      bank_line_confirm: {
+        Args: { p_accept: boolean; p_line_id: string }
+        Returns: Json
+      }
+      bank_lines_match: {
+        Args: { p_statement_id: string }
+        Returns: number
+      }
+      bank_statement_upload: {
+        Args: {
+          p_banco: string
+          p_fecha_desde: string
+          p_fecha_hasta: string
+          p_lines: Json
+          p_org: string
+        }
         Returns: string
       }
       finance_export_create: {

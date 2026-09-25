@@ -53,7 +53,7 @@ describe("Publicación verificable — proofs con licencia versionada", () => {
     // último estado.
     expect(migracion).toContain("CREATE INDEX IF NOT EXISTS idx_pub_proofs_deliverable");
     expect(panel).toContain("registerPublicationProof");
-    expect(panel).not.toContain("UPDATE", "los proofs no se editan");
+    expect(panel).not.toContain("UPDATE");
   });
 
   it("RPC del servidor con contrato de seguridad registrado", () => {

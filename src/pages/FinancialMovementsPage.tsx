@@ -20,6 +20,7 @@ import FinancePageHeader from "@/components/finance/FinancePageHeader";
 import FinanceKPICard from "@/components/finance/FinanceKPICard";
 import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import PaymentSettlementsPanel from "@/components/finance/PaymentSettlementsPanel";
+import BankReconciliationPanel from "@/components/finance/BankReconciliationPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -219,6 +220,9 @@ export default function FinancialMovementsPage() {
 
       {/* Qué te queda realmente de cada cobro digital */}
       <PaymentSettlementsPanel />
+
+      {/* F5.4 — El banco contra el libro */}
+      <BankReconciliationPanel />
 
       {/* Filters */}
       <div className="bg-card border border-border/60 rounded-xl p-4 shadow-card">
