@@ -16,6 +16,8 @@ const vacio: FinanceCoreSnapshot = {
   monthlyExpenseArs: 0,
   monthlyBudgetAvailableArs: 0,
   overBudgetCategories: 0,
+  monthlyCommittedArs: 0,
+  overCommittedCategories: 0,
 };
 
 describe("financeFocoFromSnapshot", () => {
@@ -86,6 +88,20 @@ describe("financeFocoFromSnapshot", () => {
     expect(foco[0]).toMatchObject({
       to: "/finance/gastos?vista=presupuesto",
       label: "Revisar categorías excedidas",
+    });
+  });
+
+  it("alerta cuando los compromisos exceden el presupuesto sin gasto real", () => {
+    const foco = financeFocoFromSnapshot({
+      ...vacio,
+      suppliersCount: 2,
+      monthlyBudgetArs: 50_000,
+      monthlyCommittedArs: 60_000,
+      overCommittedCategories: 1,
+    });
+    expect(foco[0]).toMatchObject({
+      to: "/finance/gastos?vista=presupuesto",
+      label: "Compromisos que exceden el presupuesto",
     });
   });
 

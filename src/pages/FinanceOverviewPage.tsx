@@ -180,18 +180,21 @@ export default function FinanceOverviewPage() {
               </Link>
             </Button>
           </div>
-          <div className="grid divide-y divide-border sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+          <div className="grid divide-y divide-border sm:grid-cols-6 sm:divide-x sm:divide-y-0">
             {[
               ['Asignado', formatArs(snapshot.monthlyBudgetArs)],
               ['Ejecutado', formatArs(snapshot.monthlyExpenseArs)],
+              ['Comprometido', formatArs(snapshot.monthlyCommittedArs)],
               ['Disponible', formatArs(snapshot.monthlyBudgetAvailableArs)],
               ['Categorías excedidas', snapshot.overBudgetCategories.toLocaleString('es-AR')],
+              ['Exceden con compromisos', snapshot.overCommittedCategories.toLocaleString('es-AR')],
             ].map(([label, value], index) => (
               <div key={label} className="p-4 sm:px-5">
                 <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
                 <p className={`mt-1 truncate font-mono text-base font-semibold ${
-                  (index === 2 && snapshot.monthlyBudgetAvailableArs < 0)
-                    || (index === 3 && snapshot.overBudgetCategories > 0)
+                  (index === 3 && snapshot.monthlyBudgetAvailableArs < 0)
+                    || (index === 4 && snapshot.overBudgetCategories > 0)
+                    || (index === 5 && snapshot.overCommittedCategories > 0)
                     ? 'text-destructive'
                     : ''
                 }`}>{value}</p>

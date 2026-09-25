@@ -24,6 +24,10 @@ export interface FinanceCoreSnapshot {
   monthlyExpenseArs: number;
   monthlyBudgetAvailableArs: number;
   overBudgetCategories: number;
+  /** Comprometido F5.2: solicitudes aprobadas no pagadas del mes. */
+  monthlyCommittedArs: number;
+  /** Categorías donde ejecutado + comprometido supera lo asignado. */
+  overCommittedCategories: number;
 }
 
 export async function getFinanceProductAccess(orgId: string): Promise<ProductSurfaceAccess> {
@@ -73,6 +77,8 @@ export async function getFinanceCoreSnapshot(orgId: string): Promise<FinanceCore
     monthlyExpenseArs: Number(row.monthly_expense_ars || 0),
     monthlyBudgetAvailableArs: Number(row.monthly_budget_available_ars || 0),
     overBudgetCategories: Number(row.over_budget_categories || 0),
+    monthlyCommittedArs: Number(row.monthly_committed_ars || 0),
+    overCommittedCategories: Number(row.over_committed_categories || 0),
   };
 }
 
@@ -131,6 +137,13 @@ export function financeFocoFromSnapshot(
   opts?: FinanceFocoOptions,
 ): FinanceFocoItem[] {
   const items: FinanceFocoItem[] = [];
+  if (s.overCommittedCategories > 0) {
+    items.push({
+      to: '/finance/gastos?vista=presupuesto',
+      label: 'Compromisos que exceden el presupuesto',
+      detail: `${s.overCommittedCategories} categoría${s.overCommittedCategories === 1 ? '' : 's'} superan lo asignado al sumar aprobadas no pagadas`,
+    });
+  }
   if (s.overBudgetCategories > 0) {
     items.push({
       to: '/finance/gastos?vista=presupuesto',

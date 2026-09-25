@@ -309,7 +309,7 @@ cita la evidencia que falta, no la que existe.
 |---|---|
 | Primer documento real (F5.1) | **Cerrado (2026-09-25):** extracción en producción (claude-haiku-4-5, zero data retention); inspector `structural-policy`; verificación E2E reversible de 13 aserciones. |
 | Políticas versionadas de aprobación | **Cerrado (2026-09-25):** motor F5.2 — `finance_approval_policies` versiona reglas por categoría/centro con tope ARS y rol mínimo; la aprobación aplica la más específica, escala a owner (siempre en USD) y verifica presupuesto disponible del mes; verificación reversible E2E en producción. |
-| Presupuesto comprometido/disponible | Budget Pulse existe; falta comprometer/liberar como movimientos con alertas de excedente. |
+| Presupuesto comprometido/disponible | **Cerrado (2026-09-25):** comprometido F5.2 visible en Budget Pulse (`monthly_committed_ars`), categorías que exceden al sumar aprobadas no pagadas, cancelación con traza que libera saldo al instante y foco automático de excedente. |
 | Conciliación bancaria | **Cerrado (2026-09-25):** extracto CSV idempotente por hash, matches contra asientos de banco y confirmación con traza (F5.4); sin match queda visible para revisión. |
 | Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Conciliación cerrada en fila 12 (F5.4). |
 | Tarjetas externas | Sin feed de transacciones externas ni controles preventivos; emisión exige partner (gate externo). |
@@ -327,7 +327,7 @@ por id/nombre/email; verificación reversible en producción).
 | 4 | C23 Operación de pedidos | Historial paginado server-side, SLA y cierre integral de fulfillment/devolución con RMA legal Ley 24.240. |
 | 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
 | 6 | F5.1 Primer documento Finance | **Cerrado (2026-09-25):** extracción habilitada (claude-haiku-4-5, zero retention), inspector con fallback `structural-policy` y verificación E2E reversible de 13 aserciones. |
-| 7 | F5.2 Políticas y presupuesto | **Cerrado (2026-09-25):** política versionada con escalamiento por monto/categoría/centro y saldo comprometido verificado. Presupuesto como movimientos con alertas: abierto. |
+| 7 | F5.2 Políticas y presupuesto | **Cerrado (2026-09-25):** política versionada con escalamiento por monto/categoría/centro, saldo comprometido del mes y Budget Pulse con comprometido/liberación (fix de pago idempotente incluido). |
 | 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
 | 9 | P0 Segundo comercio | **Completado:** alta, migración y gestión de productos sin intervención SQL. |
 | 10 | Economics | Pricing y comisión aprobados con costos reales. |

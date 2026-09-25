@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   AlertTriangle,
+  Ban,
   CheckCircle2,
   Loader2,
   RefreshCw,
@@ -50,7 +51,7 @@ interface ExpenseRequest {
   category: string | null;
   cost_center: string | null;
   motive: string | null;
-  status: "pending" | "under_review" | "approved" | "rejected" | "paid";
+  status: "pending" | "under_review" | "approved" | "rejected" | "paid" | "cancelled";
   attachments: string[];
   created_at: string;
   updated_at: string;
@@ -159,6 +160,33 @@ export default function FinanceSolicitudesPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectBusy, setRejectBusy] = useState(false);
+
+  // Cancelar: libera el compromiso de presupuesto al instante (F5.2b). A
+  // diferencia del rechazo, aplica a pendientes y ya aprobadas con traza.
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelBusy, setCancelBusy] = useState(false);
+
+  const handleConfirmCancel = async () => {
+    if (!cancellingId) return;
+    setCancelBusy(true);
+    try {
+      const { error } = await (supabase as any).rpc("finance_cancel_expense_request", {
+        p_request_id: cancellingId,
+        p_reason: cancelReason.trim() || null,
+      });
+      if (error) throw error;
+      setNotice("Solicitud cancelada: el compromiso de presupuesto quedó liberado");
+      setCancellingId(null);
+      setCancelReason("");
+      void loadRequests();
+    } catch (cause) {
+      const msg = cause instanceof Error ? cause.message : String(cause);
+      setLoadError(`No se pudo cancelar la solicitud: ${msg}`);
+    } finally {
+      setCancelBusy(false);
+    }
+  };
 
   const handleApprove = async (requestId: string) => {
     try {
@@ -344,12 +372,13 @@ export default function FinanceSolicitudesPage() {
                   <TableCell className="p-4 text-[10px] text-muted-foreground">{s.currency || "ARS"}</TableCell>
                   <TableCell className="p-4">{s.category || "—"}</TableCell>
                   <TableCell className="p-4">{s.cost_center || "—"}</TableCell>
-                  <TableCell className="p-4"><Badge variant={s.status === "approved" ? "default" : s.status === "rejected" ? "destructive" : s.status === "pending" ? "secondary" : s.status === "paid" ? "success" : "warning"}>{s.status === "approved" ? "Aprobado" : s.status === "rejected" ? "Rechazado" : s.status === "pending" ? "Pendiente" : s.status === "paid" ? "Pagado" : "En revisión"}</Badge></TableCell>
+                  <TableCell className="p-4"><Badge variant={s.status === "approved" ? "default" : s.status === "rejected" ? "destructive" : s.status === "pending" ? "secondary" : s.status === "paid" ? "success" : s.status === "cancelled" ? "outline" : "warning"}>{s.status === "approved" ? "Aprobado" : s.status === "rejected" ? "Rechazado" : s.status === "pending" ? "Pendiente" : s.status === "paid" ? "Pagado" : s.status === "cancelled" ? "Cancelado" : "En revisión"}</Badge></TableCell>
                   <TableCell className="p-4">
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleApprove(s.id)} disabled={s.status !== "pending"}><CheckCircle2 className="mr-1 h-4 w-4" />Aprobar</Button>
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setRejectingId(s.id); setRejectReason(""); }} disabled={s.status !== "pending"}><XCircle className="mr-1 h-4 w-4" />Rechazar</Button>
                       <Button variant="ghost" size="sm" className="text-emerald-600" onClick={() => void handleMarkPaid(s.id)} disabled={s.status !== "approved"}><Wallet className="mr-1 h-4 w-4" />Registrar pago</Button>
+                      <Button variant="ghost" size="sm" onClick={() => { setCancellingId(s.id); setCancelReason(""); }} disabled={s.status !== "pending" && s.status !== "approved"}><Ban className="mr-1 h-4 w-4" />Cancelar</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -437,6 +466,37 @@ export default function FinanceSolicitudesPage() {
             <Button variant="destructive" onClick={handleConfirmReject} disabled={rejectBusy}>
               {rejectBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
               Confirmar rechazo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal confirmar cancelación (F5.2b): libera compromiso con traza */}
+      <Dialog open={Boolean(cancellingId)} onOpenChange={(open) => { if (!open) setCancellingId(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancelar solicitud de gasto</DialogTitle>
+            <DialogDescription>
+              La solicitud queda cancelada con traza. Si estaba aprobada, el saldo comprometido se libera en el presupuesto al instante.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label htmlFor="cancel-reason">Motivo de la cancelación (opcional)</Label>
+            <Textarea
+              id="cancel-reason"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Ej: El proveedor bajó el precio / se canceló el proyecto"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancellingId(null)} disabled={cancelBusy}>
+              Volver
+            </Button>
+            <Button onClick={handleConfirmCancel} disabled={cancelBusy}>
+              {cancelBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Ban className="mr-2 h-4 w-4" />}
+              Confirmar cancelación
             </Button>
           </DialogFooter>
         </DialogContent>
