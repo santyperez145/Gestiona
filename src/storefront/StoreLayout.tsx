@@ -5,8 +5,7 @@
  * Las páginas nunca hardcodean un color, así que cambiar de tema en el panel
  * cambia la tienda entera sin tocar componentes.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react"; import { Link, useLocation } from "react-router-dom";
 import { captureStoreReferral } from "@/lib/storeReferral";
 import { useStore } from "./storeContext";
 import {
@@ -54,7 +53,7 @@ function LinkDeMenu({
 }
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf, cartRevealTick, basePath: base } = useStore();
+  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf, cartRevealTick, setCartRevealTick, basePath: base } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname, search } = useLocation();
@@ -111,8 +110,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     if (cartRevealTick === 0) return;
     if (pathname.includes("/checkout")) return;
     if (/\/carrito$/.test(pathname)) return;
-    setCartOpen(true);
-    setMenuOpen(false);
+    if (!cartOpen) setCartOpen(true);
+    if (!menuOpen) setMenuOpen(false);
   }, [cartRevealTick, pathname]);
 
   const social = parseStoreSocial(store?.social_links);
