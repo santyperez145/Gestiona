@@ -26,7 +26,7 @@ export default function StoreNewsletter() {
     setEstado("idle");
     setMensaje("");
 
-    const { data, error } = await supabase.rpc("subscribe_store_newsletter", {
+    const { data, error } = await (supabase.rpc as any)("subscribe_store_newsletter", {
       p_store_slug: store.slug,
       p_email: email,
       p_name: name || null,

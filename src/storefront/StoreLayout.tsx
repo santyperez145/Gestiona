@@ -54,7 +54,7 @@ function LinkDeMenu({
 }
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf, cartRevealTick, setCartRevealTick, basePath: base } = useStore();
+  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf, cartRevealTick, setCartRevealTick, basePath: base } = useStore() as any;
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname, search } = useLocation();

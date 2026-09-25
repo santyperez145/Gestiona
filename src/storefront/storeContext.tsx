@@ -192,6 +192,8 @@ interface Ctx {
    * 0 = todavía no hubo un alta en esta sesión de página.
    */
   cartRevealTick: number;
+  /** Setters de estado expuesto. `setCartRevealTick` permite resetear al navegar. */
+  setCartRevealTick: React.Dispatch<React.SetStateAction<number>>;
   setQty: (lineKey: string, qty: number) => void;
   removeFromCart: (lineKey: string) => void;
   /** Clave única de una línea: producto, o producto+variante. */
@@ -713,6 +715,7 @@ export function StoreProvider({
       addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf,
       cartSyncStatus, cartSyncNotice, cartToken, visitToken,
       cartRevealTick,
+      setCartRevealTick,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
       promo2x,
@@ -725,7 +728,7 @@ export function StoreProvider({
         : null,
       priceOf, fmt,
     };
-  }, [basePath, loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
+  }, [basePath, loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, setCartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
