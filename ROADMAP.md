@@ -254,7 +254,8 @@ de [GoMarz](https://www.go-marz.com/), sin clonar identidades ni pagos.
   retiros vía Edge Function `mp-payouts` con idempotencia, cifrado de token y
   webhook firmado HMAC; chat por colaboración campaña+creador server-side y
   notificaciones consentidas (preferencia + cola + despacho service_role).
-- Siguiente: perfiles públicos, descubrimiento y panel de superadmin con vista global.
+- Siguiente: contratos con doble aceptación, liquidación enlazada a Finance,
+  perfiles públicos y descubrimiento con vista superadmin.
 - No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
 
@@ -296,9 +297,9 @@ cita la evidencia que falta, no la que existe.
 
 | Falta | Detalle verificable |
 |---|---|
-| Certificar migrador (C22.2) | El RPC de migración existe; falta correrlo con 1 export real Shopify y 1 Tiendanube con variantes/imágenes/stock y documentar el resultado. |
+| Certificar migrador (C22.2) | El RPC está verificado con segundo commerce; falta correrlo con 1 export real Shopify y 1 Tiendanube y documentar el resultado. |
 | Copia de imágenes a storage propio | **Cerrado (2026-09-25):** Edge `copy-product-images` descarga las URLs https externas del lote aplicado (productos y variantes), valida tipo/tamaño y las reemplaza por la URL pública de `product-images`; idempotente y con tandas de 40. |
-| Clientes en migración | **Cerrado (2026-09-25):** `customer_import_batches`/`rows` con staging auditado, gate owner/admin, matcheo por email/teléfono argentino canónico y aplicación atómica idempotente que no pisa datos manuales ni revive el opt-out; el CSV de Clientes usa el RPC. |
+| Clientes en migración | **Cerrado (2026-09-25):** staging auditado con gate owner/admin, matcheo por email/teléfono argentino canónico y aplicación atómica idempotente que no pisa datos manuales ni revive el opt-out; el CSV de Clientes usa el RPC. |
 | Editor de bloques con config por bloque | **Cerrado (2026-09-25):** título propio, límite de ítems (3-12) y **colección** (slug de categoría) por bloque persistido en `storefront_layout`; la vitrina filtra Destacados/Novedades por colección y el Theme Studio lo publica versionado. |
 | Certificación live de pagos/envíos | Webhook y refund modelados; falta ciclo aprobación/rechazo/timeout/refund observado, etiqueta con transportista y métricas de campo (LCP/INP/CLS). |
 
@@ -331,7 +332,7 @@ por id/nombre/email; verificación reversible en producción).
 | 9 | P0 Segundo comercio | **Completado:** alta, migración y gestión de productos sin intervención SQL. |
 | 10 | Economics | Pricing y comisión aprobados con costos reales. |
 | 11 | Influencers chat + publicación verificable | **Cerrado (2026-09-25):** publicación verificable (`influencer_publication_proofs` con licencia versionada), chat por colaboración (`influencer_campaign_messages` con RPCs server-side, anti-spam y hilo visible en ambos portales) y notificaciones consentidas del chat (`influencer_chat_notify_prefs` + cola con despacho service_role, verificación reversible E2E). |
-| 12 | Finance conciliación bancaria | **Cerrado (2026-09-25):** `finance_bank_statements`/`finance_bank_lines` importan el extracto (idempotente por hash), `bank_lines_match` propone matches contra asientos de banco (1.1.02, ±3 días, un asiento por movimiento) y `bank_line_confirm` confirma/rechaza con traza; verificación reversible en producción. Panel en Movimientos. |
+| 12 | Finance conciliación bancaria | **Cerrado (2026-09-25):** extracto importado idempotente por hash, `bank_lines_match` contra asientos de banco (±3 días, uno por movimiento) y `bank_line_confirm` con traza; verificación reversible en producción. Panel en Movimientos. |
 | 13 | Finance export contable | **Cerrado (2026-09-25):** lotes desde el libro real con verificación de descuadre, CSV para el contador e historia de exportación. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
@@ -339,8 +340,9 @@ No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 **Cierres recientes (2026-09-25):** F5.1 E2E, chat marca↔creador con
 notificaciones consentidas (`60a74a85`), editor de bloques (`64961a59`),
 conciliación F5.4 (`5da9f074`), payouts MP (`947cdbfb`), POS offline (`c0a06c66`),
-timeline 360 del cliente, copia de imágenes del migrador (`copy-product-images`)
-e importación de clientes C22.2 con staging y RPC.
+timeline 360 del cliente, copia de imágenes del migrador (`copy-product-images`),
+clientes C22.2 con staging (`1d9bc0a3`), colección por bloque de vitrina
+(`a2788198`) y concurrencia de checkout C20 (`e72162f6`).
 
 ## 7. Definition of Done
 
