@@ -3210,8 +3210,78 @@ export type Database = {
             foreignKeyName: "automation_action_executions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_action_executions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
           },
         ]
       }
@@ -4159,6 +4229,157 @@ export type Database = {
           org_id?: string | null
         }
         Relationships: []
+      }
+      brand_portal_profiles: {
+        Row: {
+          bio: string | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          engagement_rate: number | null
+          followers_ig: number | null
+          followers_tiktok: number | null
+          id: string
+          influencer_id: string | null
+          influencer_name: string
+          instagram_handle: string | null
+          org_id: string
+          portal_name: string | null
+          status: string
+          tier: string | null
+          tiktok_handle: string | null
+          updated_at: string | null
+          website_url: string | null
+          youtube_handle: string | null
+        }
+        Insert: {
+          bio?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          engagement_rate?: number | null
+          followers_ig?: number | null
+          followers_tiktok?: number | null
+          id?: string
+          influencer_id?: string | null
+          influencer_name: string
+          instagram_handle?: string | null
+          org_id: string
+          portal_name?: string | null
+          status?: string
+          tier?: string | null
+          tiktok_handle?: string | null
+          updated_at?: string | null
+          website_url?: string | null
+          youtube_handle?: string | null
+        }
+        Update: {
+          bio?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          engagement_rate?: number | null
+          followers_ig?: number | null
+          followers_tiktok?: number | null
+          id?: string
+          influencer_id?: string | null
+          influencer_name?: string
+          instagram_handle?: string | null
+          org_id?: string
+          portal_name?: string | null
+          status?: string
+          tier?: string | null
+          tiktok_handle?: string | null
+          updated_at?: string | null
+          website_url?: string | null
+          youtube_handle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_portal_profiles_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "brand_portal_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       breakeven_analysis: {
         Row: {
@@ -6665,6 +6886,51 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      creator_accounts: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          email: string
+          instagram: string | null
+          onboarding_completed: boolean
+          phone: string | null
+          tiktok: string | null
+          updated_at: string
+          user_id: string
+          youtube: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          email: string
+          instagram?: string | null
+          onboarding_completed?: boolean
+          phone?: string | null
+          tiktok?: string | null
+          updated_at?: string
+          user_id: string
+          youtube?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          instagram?: string | null
+          onboarding_completed?: boolean
+          phone?: string | null
+          tiktok?: string | null
+          updated_at?: string
+          user_id?: string
+          youtube?: string | null
+        }
+        Relationships: []
       }
       crm_activities: {
         Row: {
@@ -12015,8 +12281,8 @@ export type Database = {
           default_item_weight_kg: number
           description: string | null
           domain: string | null
-          first_party_analytics_enabled: boolean
           favicon_url: string | null
+          first_party_analytics_enabled: boolean
           font: string | null
           free_shipping_above: number | null
           fulfillment_location_id: string | null
@@ -12067,8 +12333,8 @@ export type Database = {
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
-          first_party_analytics_enabled?: boolean
           favicon_url?: string | null
+          first_party_analytics_enabled?: boolean
           font?: string | null
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
@@ -12119,8 +12385,8 @@ export type Database = {
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
-          first_party_analytics_enabled?: boolean
           favicon_url?: string | null
+          first_party_analytics_enabled?: boolean
           font?: string | null
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
@@ -12277,6 +12543,53 @@ export type Database = {
           timed_out?: boolean | null
         }
         Relationships: []
+      }
+      email_campaign_unsubscribe_tokens: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          ip_address: unknown
+          org_id: string
+          token: string
+          used_at: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          org_id: string
+          token: string
+          used_at?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          org_id?: string
+          token?: string
+          used_at?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaign_unsubscribe_tokens_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_campaigns: {
         Row: {
@@ -13219,6 +13532,133 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      finance_budget_alerts: {
+        Row: {
+          budget: number
+          category_key: string
+          created_at: string
+          id: string
+          month: number
+          org_id: string
+          pct: number
+          spent: number
+          threshold_pct: number
+          user_id: string | null
+          year: number
+        }
+        Insert: {
+          budget?: number
+          category_key: string
+          created_at?: string
+          id?: string
+          month: number
+          org_id: string
+          pct?: number
+          spent?: number
+          threshold_pct?: number
+          user_id?: string | null
+          year: number
+        }
+        Update: {
+          budget?: number
+          category_key?: string
+          created_at?: string
+          id?: string
+          month?: number
+          org_id?: string
+          pct?: number
+          spent?: number
+          threshold_pct?: number
+          user_id?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_budget_alerts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -14349,6 +14789,341 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      finance_expense_requests: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          category: string | null
+          cost_center: string | null
+          created_at: string
+          currency: string
+          id: string
+          motive: string | null
+          org_id: string
+          rejection_reason: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          cost_center?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          motive?: string | null
+          org_id: string
+          rejection_reason?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          cost_center?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          motive?: string | null
+          org_id?: string
+          rejection_reason?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_expense_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      finance_export_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          exported_at: string | null
+          fecha_desde: string
+          fecha_hasta: string
+          id: string
+          org_id: string
+          row_count: number
+          status: string
+          total_debe: number
+          total_haber: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          exported_at?: string | null
+          fecha_desde: string
+          fecha_hasta: string
+          id?: string
+          org_id: string
+          row_count?: number
+          status?: string
+          total_debe?: number
+          total_haber?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          exported_at?: string | null
+          fecha_desde?: string
+          fecha_hasta?: string
+          id?: string
+          org_id?: string
+          row_count?: number
+          status?: string
+          total_debe?: number
+          total_haber?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_export_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      finance_export_rows: {
+        Row: {
+          batch_id: string
+          centro_costo: string | null
+          cuenta_codigo: string
+          cuenta_nombre: string
+          debe: number
+          entry_descripcion: string
+          entry_fecha: string
+          entry_id: string
+          entry_numero: number
+          haber: number
+          id: number
+          line_id: string
+          org_id: string
+          referencia_id: string | null
+          referencia_tipo: string | null
+        }
+        Insert: {
+          batch_id: string
+          centro_costo?: string | null
+          cuenta_codigo: string
+          cuenta_nombre: string
+          debe?: number
+          entry_descripcion: string
+          entry_fecha: string
+          entry_id: string
+          entry_numero: number
+          haber?: number
+          id?: number
+          line_id: string
+          org_id: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+        }
+        Update: {
+          batch_id?: string
+          centro_costo?: string | null
+          cuenta_codigo?: string
+          cuenta_nombre?: string
+          debe?: number
+          entry_descripcion?: string
+          entry_fecha?: string
+          entry_id?: string
+          entry_numero?: number
+          haber?: number
+          id?: number
+          line_id?: string
+          org_id?: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_export_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "finance_export_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_export_rows_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_export_rows_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_export_rows_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_movimientos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -16768,6 +17543,485 @@ export type Database = {
         }
         Relationships: []
       }
+      influencer_campaign_creators: {
+        Row: {
+          campaign_id: string
+          influencer_id: string
+          org_id: string
+        }
+        Insert: {
+          campaign_id: string
+          influencer_id: string
+          org_id: string
+        }
+        Update: {
+          campaign_id?: string
+          influencer_id?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_campaign_creators_org_id_campaign_id_fkey"
+            columns: ["org_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_campaigns"
+            referencedColumns: ["org_id", "id"]
+          },
+          {
+            foreignKeyName: "influencer_campaign_creators_org_id_influencer_id_fkey"
+            columns: ["org_id", "influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["org_id", "id"]
+          },
+        ]
+      }
+      influencer_campaign_events: {
+        Row: {
+          action: string
+          actor_id: string
+          campaign_id: string
+          created_at: string
+          id: number
+          org_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          campaign_id: string
+          created_at?: string
+          id?: never
+          org_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          campaign_id?: string
+          created_at?: string
+          id?: never
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_campaign_events_org_id_campaign_id_fkey"
+            columns: ["org_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_campaigns"
+            referencedColumns: ["org_id", "id"]
+          },
+        ]
+      }
+      influencer_campaigns: {
+        Row: {
+          brief: string
+          budget_ars: number
+          channel: string
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          objective: string
+          org_id: string
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          brief?: string
+          budget_ars?: number
+          channel: string
+          created_at?: string
+          created_by: string
+          due_date?: string | null
+          id?: string
+          objective: string
+          org_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          brief?: string
+          budget_ars?: number
+          channel?: string
+          created_at?: string
+          created_by?: string
+          due_date?: string | null
+          id?: string
+          objective?: string
+          org_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      influencer_contracts: {
+        Row: {
+          commission_fixed: number | null
+          commission_percent: number | null
+          contract_amount: number | null
+          contract_type: string
+          created_at: string | null
+          id: string
+          influencer_id: string | null
+          influencer_name: string
+          is_signed: boolean | null
+          notes: string | null
+          org_id: string
+          status: string
+          updated_at: string | null
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          commission_fixed?: number | null
+          commission_percent?: number | null
+          contract_amount?: number | null
+          contract_type?: string
+          created_at?: string | null
+          id?: string
+          influencer_id?: string | null
+          influencer_name: string
+          is_signed?: boolean | null
+          notes?: string | null
+          org_id: string
+          status?: string
+          updated_at?: string | null
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          commission_fixed?: number | null
+          commission_percent?: number | null
+          contract_amount?: number | null
+          contract_type?: string
+          created_at?: string | null
+          id?: string
+          influencer_id?: string | null
+          influencer_name?: string
+          is_signed?: boolean | null
+          notes?: string | null
+          org_id?: string
+          status?: string
+          updated_at?: string | null
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_contracts_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      influencer_deliverables: {
+        Row: {
+          campaign_id: string | null
+          campaign_name: string | null
+          content_url: string | null
+          created_at: string | null
+          delivery_date: string | null
+          description: string
+          due_date: string
+          id: string
+          influencer_id: string | null
+          influencer_name: string
+          notes: string | null
+          org_id: string
+          review_notes: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          campaign_name?: string | null
+          content_url?: string | null
+          created_at?: string | null
+          delivery_date?: string | null
+          description: string
+          due_date: string
+          id?: string
+          influencer_id?: string | null
+          influencer_name: string
+          notes?: string | null
+          org_id: string
+          review_notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          campaign_name?: string | null
+          content_url?: string | null
+          created_at?: string | null
+          delivery_date?: string | null
+          description?: string
+          due_date?: string
+          id?: string
+          influencer_id?: string | null
+          influencer_name?: string
+          notes?: string | null
+          org_id?: string
+          review_notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverable_campaign_org_fk"
+            columns: ["org_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_campaigns"
+            referencedColumns: ["org_id", "id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_deliverables_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       influencer_exchanges: {
         Row: {
           actual_posts: number | null
@@ -16930,6 +18184,466 @@ export type Database = {
           },
         ]
       }
+      influencer_invitations: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          expires_at: string
+          id: string
+          influencer_id: string | null
+          org_id: string
+          phone: string | null
+          responded_at: string | null
+          status: string
+          token: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          influencer_id?: string | null
+          org_id: string
+          phone?: string | null
+          responded_at?: string | null
+          status?: string
+          token: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          influencer_id?: string | null
+          org_id?: string
+          phone?: string | null
+          responded_at?: string | null
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_invitations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      influencer_payments: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string
+          id: string
+          influencer_id: string | null
+          influencer_name: string
+          notes: string | null
+          org_id: string
+          payment_method: string
+          period_end: string | null
+          period_start: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string
+          id?: string
+          influencer_id?: string | null
+          influencer_name: string
+          notes?: string | null
+          org_id: string
+          payment_method?: string
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string
+          id?: string
+          influencer_id?: string | null
+          influencer_name?: string
+          notes?: string | null
+          org_id?: string
+          payment_method?: string
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_payments_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      influencer_payout_batch_items: {
+        Row: {
+          amount_ars: number
+          batch_id: string
+          created_at: string
+          failure_reason: string | null
+          id: string
+          influencer_id: string
+          mp_transaction_id: string | null
+          status: string
+          updated_at: string
+          withdrawal_id: string
+        }
+        Insert: {
+          amount_ars: number
+          batch_id: string
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          influencer_id: string
+          mp_transaction_id?: string | null
+          status?: string
+          updated_at?: string
+          withdrawal_id: string
+        }
+        Update: {
+          amount_ars?: number
+          batch_id?: string
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          influencer_id?: string
+          mp_transaction_id?: string | null
+          status?: string
+          updated_at?: string
+          withdrawal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_payout_batch_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_payout_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batch_items_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batch_items_withdrawal_id_fkey"
+            columns: ["withdrawal_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_withdrawal_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      influencer_payout_batches: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          external_reference: string
+          id: string
+          items_count: number
+          last_error: string | null
+          mp_payout_id: string | null
+          org_id: string
+          status: string
+          total_ars: number
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          external_reference: string
+          id?: string
+          items_count?: number
+          last_error?: string | null
+          mp_payout_id?: string | null
+          org_id: string
+          status?: string
+          total_ars?: number
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          external_reference?: string
+          id?: string
+          items_count?: number
+          last_error?: string | null
+          mp_payout_id?: string | null
+          org_id?: string
+          status?: string
+          total_ars?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_payout_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       influencer_payouts: {
         Row: {
           amount_ars: number
@@ -16975,6 +18689,141 @@ export type Database = {
         }
         Relationships: []
       }
+      influencer_reviews: {
+        Row: {
+          campaign_id: string | null
+          comment: string | null
+          created_at: string
+          created_by: string
+          deliverable_id: string | null
+          id: string
+          influencer_id: string
+          org_id: string
+          rating: number
+        }
+        Insert: {
+          campaign_id?: string | null
+          comment?: string | null
+          created_at?: string
+          created_by: string
+          deliverable_id?: string | null
+          id?: string
+          influencer_id: string
+          org_id: string
+          rating: number
+        }
+        Update: {
+          campaign_id?: string | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string
+          deliverable_id?: string | null
+          id?: string
+          influencer_id?: string
+          org_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_reviews_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       influencer_sales: {
         Row: {
           commission_ars: number
@@ -17016,6 +18865,130 @@ export type Database = {
           sale_total_ars?: number
         }
         Relationships: []
+      }
+      influencer_withdrawal_requests: {
+        Row: {
+          amount_ars: number
+          created_at: string
+          id: string
+          influencer_id: string
+          notes: string | null
+          org_id: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          token: string
+        }
+        Insert: {
+          amount_ars: number
+          created_at?: string
+          id?: string
+          influencer_id: string
+          notes?: string | null
+          org_id: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          token: string
+        }
+        Update: {
+          amount_ars?: number
+          created_at?: string
+          id?: string
+          influencer_id?: string
+          notes?: string | null
+          org_id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_withdrawal_requests_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       influencers: {
         Row: {
@@ -25539,103 +27512,6 @@ export type Database = {
         }
         Relationships: []
       }
-      platform_support_messages: {
-        Row: {
-          body: string
-          created_at: string
-          id: string
-          sender_kind: string
-          sender_name: string
-          sender_user_id: string | null
-          thread_id: string
-        }
-        Insert: {
-          body: string
-          created_at?: string
-          id?: string
-          sender_kind: string
-          sender_name: string
-          sender_user_id?: string | null
-          thread_id: string
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          id?: string
-          sender_kind?: string
-          sender_name?: string
-          sender_user_id?: string | null
-          thread_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "platform_support_messages_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "platform_support_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      platform_support_threads: {
-        Row: {
-          assigned_to: string | null
-          category: string
-          created_at: string
-          created_by: string
-          id: string
-          last_message_at: string
-          last_read_by_org_at: string | null
-          last_read_by_support_at: string | null
-          org_id: string
-          priority: string
-          resolved_at: string | null
-          status: string
-          subject: string
-          updated_at: string
-        }
-        Insert: {
-          assigned_to?: string | null
-          category?: string
-          created_at?: string
-          created_by: string
-          id?: string
-          last_message_at?: string
-          last_read_by_org_at?: string | null
-          last_read_by_support_at?: string | null
-          org_id: string
-          priority?: string
-          resolved_at?: string | null
-          status?: string
-          subject: string
-          updated_at?: string
-        }
-        Update: {
-          assigned_to?: string | null
-          category?: string
-          created_at?: string
-          created_by?: string
-          id?: string
-          last_message_at?: string
-          last_read_by_org_at?: string | null
-          last_read_by_support_at?: string | null
-          org_id?: string
-          priority?: string
-          resolved_at?: string | null
-          status?: string
-          subject?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "platform_support_threads_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       platform_admins: {
         Row: {
           granted_at: string
@@ -25966,6 +27842,7 @@ export type Database = {
           email_nombre: string
           email_proveedor: string
           email_verificado_at: string | null
+          email_verificado_proveedor: string | null
           id: boolean
           smtp_from_email: string | null
           smtp_host: string | null
@@ -25987,6 +27864,7 @@ export type Database = {
           email_nombre?: string
           email_proveedor?: string
           email_verificado_at?: string | null
+          email_verificado_proveedor?: string | null
           id?: boolean
           smtp_from_email?: string | null
           smtp_host?: string | null
@@ -26008,6 +27886,7 @@ export type Database = {
           email_nombre?: string
           email_proveedor?: string
           email_verificado_at?: string | null
+          email_verificado_proveedor?: string | null
           id?: boolean
           smtp_from_email?: string | null
           smtp_host?: string | null
@@ -26281,6 +28160,173 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plans"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_kind: string
+          sender_name: string
+          sender_user_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_kind: string
+          sender_name: string
+          sender_user_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_kind?: string
+          sender_name?: string
+          sender_user_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "platform_support_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_support_threads: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string
+          last_read_by_org_at: string | null
+          last_read_by_support_at: string | null
+          org_id: string
+          priority: string
+          resolved_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          last_message_at?: string
+          last_read_by_org_at?: string | null
+          last_read_by_support_at?: string | null
+          org_id: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_message_at?: string
+          last_read_by_org_at?: string | null
+          last_read_by_support_at?: string | null
+          org_id?: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
           },
         ]
       }
@@ -53303,19 +55349,6 @@ export type Database = {
         Args: { p_order_ids: string[]; p_org_id: string; p_status: string }
         Returns: Json
       }
-      store_order_queue: {
-        Args: {
-          p_org_id: string
-          p_store_id: string
-          p_query?: string
-          p_view?: string
-          p_sort?: string
-          p_medio?: string
-          p_page?: number
-          p_amount?: number
-        }
-        Returns: Json
-      }
       business_blueprint_intent_uuid: {
         Args: { p_intent: string }
         Returns: string
@@ -53340,6 +55373,10 @@ export type Database = {
           subscription_id: string
           target_id: string
         }[]
+      }
+      can_manage_influencers: {
+        Args: { p_action?: string; p_org_id: string }
+        Returns: boolean
       }
       can_review_product: {
         Args: { p_product_id: string; p_slug: string }
@@ -53510,6 +55547,68 @@ export type Database = {
         }
         Returns: Json
       }
+      create_influencer_invitation: {
+        Args: {
+          p_campaign_id: string
+          p_days?: number
+          p_influencer_id: string
+          p_org_id: string
+        }
+        Returns: {
+          campaign_id: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          expires_at: string
+          id: string
+          influencer_id: string | null
+          org_id: string
+          phone: string | null
+          responded_at: string | null
+          status: string
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "influencer_invitations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_payout_batch: {
+        Args: { p_withdrawal_ids: string[] }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          external_reference: string
+          id: string
+          items_count: number
+          last_error: string | null
+          mp_payout_id: string | null
+          org_id: string
+          status: string
+          total_ars: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "influencer_payout_batches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_platform_support_thread: {
+        Args: {
+          p_category?: string
+          p_message?: string
+          p_org_id: string
+          p_priority?: string
+          p_subject: string
+        }
+        Returns: string
+      }
       create_sales_return_v1: {
         Args: {
           p_client_return_id?: string
@@ -53616,6 +55715,109 @@ export type Database = {
         }
         Returns: Json
       }
+      creator_campaigns: {
+        Args: never
+        Returns: {
+          brief: string
+          budget_ars: number
+          channel: string
+          deliverable_status: string
+          deliverable_url: string
+          due_date: string
+          id: string
+          invitation_status: string
+          org_id: string
+          org_name: string
+          review_notes: string
+          status: string
+          title: string
+        }[]
+      }
+      creator_deliverables: {
+        Args: never
+        Returns: {
+          campaign_name: string
+          content_url: string
+          description: string
+          due_date: string
+          id: string
+          org_name: string
+          status: string
+        }[]
+      }
+      creator_earnings: { Args: never; Returns: Json }
+      creator_linked_profiles: {
+        Args: { p_user_id: string }
+        Returns: {
+          commission_percent: number
+          id: string
+          instagram: string
+          name: string
+          org_id: string
+          org_name: string
+          status: string
+        }[]
+      }
+      creator_my_withdrawals: {
+        Args: never
+        Returns: {
+          amount_ars: number
+          created_at: string
+          id: string
+          processed_at: string
+          status: string
+        }[]
+      }
+      creator_request_withdrawal: {
+        Args: { p_amount_ars: number; p_notes?: string }
+        Returns: Json
+      }
+      creator_respond_campaign: {
+        Args: { p_action: string; p_campaign_id: string }
+        Returns: string
+      }
+      creator_submit_deliverable: {
+        Args: {
+          p_campaign_id: string
+          p_campaign_name: string
+          p_content_url: string
+          p_description: string
+        }
+        Returns: {
+          campaign_id: string | null
+          campaign_name: string | null
+          content_url: string | null
+          created_at: string | null
+          delivery_date: string | null
+          description: string
+          due_date: string
+          id: string
+          influencer_id: string | null
+          influencer_name: string
+          notes: string | null
+          org_id: string
+          review_notes: string | null
+          status: string
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "influencer_deliverables"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      creator_upsert_own_profile: {
+        Args: {
+          p_bio: string
+          p_display_name: string
+          p_instagram: string
+          p_phone: string
+          p_tiktok: string
+          p_youtube: string
+        }
+        Returns: undefined
+      }
       cuenta_de_cobro:
         | { Args: { p_metodo: string }; Returns: string }
         | { Args: { p_metodo: string; p_paid: boolean }; Returns: string }
@@ -53703,6 +55905,7 @@ export type Database = {
       }
       expense_receipt_org_id: { Args: { p_path: string }; Returns: string }
       expire_batches: { Args: { p_org_id: string }; Returns: number }
+      expire_influencer_invitations: { Args: never; Returns: undefined }
       expire_overdue_contracts: { Args: never; Returns: number }
       expire_overdue_trials: { Args: never; Returns: undefined }
       expire_stock_reservations: { Args: { p_org_id: string }; Returns: number }
@@ -53719,6 +55922,10 @@ export type Database = {
         Args: { p_default?: boolean; p_flag_key: string; p_org_id?: string }
         Returns: boolean
       }
+      finance_approve_expense_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
       finance_core_snapshot: {
         Args: { p_org_id: string }
         Returns: {
@@ -53733,6 +55940,18 @@ export type Database = {
           precursor_ocr_documents: number
           suppliers_count: number
         }[]
+      }
+      finance_create_expense_request: {
+        Args: {
+          p_amount: number
+          p_category?: string
+          p_cost_center?: string
+          p_currency: string
+          p_motive?: string
+          p_org_id: string
+          p_title: string
+        }
+        Returns: string
       }
       finance_document_approve_drafts: {
         Args: {
@@ -53900,6 +56119,48 @@ export type Database = {
           validation_errors: string[]
         }[]
       }
+      finance_export_batch_csv: {
+        Args: { p_batch_id: string }
+        Returns: string
+      }
+      finance_export_create: {
+        Args: { p_fecha_desde: string; p_fecha_hasta: string; p_org: string }
+        Returns: string
+      }
+      finance_export_mark_exported: {
+        Args: { p_batch_id: string }
+        Returns: undefined
+      }
+      finance_mark_expense_paid: {
+        Args: { p_payment_method?: string; p_request_id: string }
+        Returns: string
+      }
+      finance_notify_approvers: {
+        Args: {
+          p_exclude_user: string
+          p_message: string
+          p_org_id: string
+          p_request_id: string
+          p_title: string
+        }
+        Returns: undefined
+      }
+      finance_reject_expense_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: undefined
+      }
+      finance_submit_expense_request: {
+        Args: {
+          p_amount: number
+          p_category?: string
+          p_cost_center?: string
+          p_currency: string
+          p_motive?: string
+          p_org_id: string
+          p_title: string
+        }
+        Returns: string
+      }
       finish_store_order_email: {
         Args: {
           p_claim_token: string
@@ -53985,6 +56246,7 @@ export type Database = {
           running_total: number
         }[]
       }
+      get_creator_earnings: { Args: { p_token: string }; Returns: Json }
       get_customer_journey: {
         Args: { p_customer_id: string; p_org_id: string }
         Returns: {
@@ -54016,10 +56278,11 @@ export type Database = {
           budget_id: string
           category_key: string
           category_name: string
-          notes: string | null
+          notes: string
           updated_at: string
         }[]
       }
+      get_influencer_invitation: { Args: { p_token: string }; Returns: Json }
       get_influencer_portal: {
         Args: { p_token: string }
         Returns: {
@@ -54035,6 +56298,29 @@ export type Database = {
           product_name: string
           quantity: number
           status: string
+        }[]
+      }
+      get_influencer_public_portfolio: {
+        Args: { p_token: string }
+        Returns: {
+          campaign_name: string
+          content_url: string
+          description: string
+          id: string
+        }[]
+      }
+      get_influencer_public_profile: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      get_influencer_public_reviews: {
+        Args: { p_token: string }
+        Returns: {
+          comment: string
+          created_at: string
+          id: string
+          org_name: string
+          rating: number
         }[]
       }
       get_my_platform_announcements: {
@@ -54672,6 +56958,15 @@ export type Database = {
         Args: { p_account_id: string; p_hasta?: string }
         Returns: number
       }
+      list_creator_withdrawals: {
+        Args: { p_token: string }
+        Returns: {
+          amount_ars: number
+          created_at: string
+          id: string
+          status: string
+        }[]
+      }
       list_platform_announcements: {
         Args: never
         Returns: {
@@ -54697,6 +56992,38 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      list_platform_support_messages: {
+        Args: { p_thread_id: string }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          sender_kind: string
+          sender_name: string
+        }[]
+      }
+      list_platform_support_threads: {
+        Args: { p_org_id?: string }
+        Returns: {
+          assigned_name: string
+          assigned_to: string
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string
+          latest_message: string
+          org_id: string
+          org_name: string
+          org_slug: string
+          priority: string
+          requester_name: string
+          status: string
+          subject: string
+          unread_count: number
+          updated_at: string
+        }[]
+      }
       list_published_store_slugs: {
         Args: never
         Returns: {
@@ -54704,6 +57031,10 @@ export type Database = {
         }[]
       }
       mark_cart_email_sent: { Args: { p_id: string }; Returns: undefined }
+      mark_platform_support_thread_read: {
+        Args: { p_thread_id: string }
+        Returns: undefined
+      }
       mark_store_order_paid: {
         Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
         Returns: Json
@@ -55128,6 +57459,10 @@ export type Database = {
         Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }
         Returns: Json
       }
+      process_email_campaign_unsubscribe: {
+        Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }
+        Returns: Json
+      }
       process_whatsapp_unsubscribe: { Args: { p_token: string }; Returns: Json }
       product_import_number: { Args: { p_value: Json }; Returns: number }
       product_surface_access: {
@@ -55246,14 +57581,6 @@ export type Database = {
         Args: { p_return_request_id: string }
         Returns: Json
       }
-      recovery_channel_health: {
-        Args: { p_org_id: string }
-        Returns: Json
-      }
-      recovery_email_channel_ready: {
-        Args: { p_org_id: string }
-        Returns: Json
-      }
       reconcile_sale_transaction_effects: {
         Args: { p_transaction_id: string }
         Returns: Json
@@ -55281,6 +57608,19 @@ export type Database = {
           p_payment_method: string
         }
         Returns: string
+      }
+      record_email_provider_event: {
+        Args: {
+          p_campaign_id: string
+          p_event_type: string
+          p_link_url: string
+          p_occurred_at: string
+          p_org_id: string
+          p_provider_event_id: string
+          p_provider_message_id: string
+          p_recipient_email: string
+        }
+        Returns: boolean
       }
       record_manual_stock_movement: {
         Args: {
@@ -55325,16 +57665,6 @@ export type Database = {
         }
         Returns: string
       }
-      record_supplier_payment: {
-        Args: {
-          p_amount: number
-          p_debt_id: string
-          p_idempotency_key: string
-          p_method: string
-          p_note?: string
-        }
-        Returns: Json
-      }
       record_rule_fire: { Args: { p_rule_id: string }; Returns: undefined }
       record_stock_movement: {
         Args: {
@@ -55361,6 +57691,21 @@ export type Database = {
       }
       record_store_visit_unchecked: {
         Args: { p_attribution?: Json; p_slug: string; p_visit_token: string }
+        Returns: Json
+      }
+      record_supplier_payment: {
+        Args: {
+          p_amount: number
+          p_debt_id: string
+          p_idempotency_key: string
+          p_method: string
+          p_note?: string
+        }
+        Returns: Json
+      }
+      recovery_channel_health: { Args: { p_org_id: string }; Returns: Json }
+      recovery_email_channel_ready: {
+        Args: { p_org_id: string }
         Returns: Json
       }
       redondear_moneda: {
@@ -55397,6 +57742,10 @@ export type Database = {
         Args: { p_subscription_id: string }
         Returns: string
       }
+      request_creator_withdrawal: {
+        Args: { p_amount_ars: number; p_token: string }
+        Returns: Json
+      }
       request_product_access: {
         Args: { p_org_id: string; p_product_key: string }
         Returns: string
@@ -55427,6 +57776,27 @@ export type Database = {
         Args: { p_org_id: string; p_reason_code: string }
         Returns: Json
       }
+      resolve_creator_withdrawal: {
+        Args: { p_request_id: string; p_status: string }
+        Returns: {
+          amount_ars: number
+          created_at: string
+          id: string
+          influencer_id: string
+          notes: string | null
+          org_id: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "influencer_withdrawal_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       resolve_stock_reservation: {
         Args: { p_reservation_id: string; p_status: string }
         Returns: undefined
@@ -55443,6 +57813,10 @@ export type Database = {
       }
       resolve_store_url_redirect: {
         Args: { p_path: string; p_slug: string }
+        Returns: string
+      }
+      respond_influencer_invitation: {
+        Args: { p_action: string; p_token: string }
         Returns: string
       }
       restore_store_theme_version: {
@@ -55513,6 +57887,41 @@ export type Database = {
           p_tipo_emisor?: string
         }
         Returns: Json
+      }
+      save_influencer_campaign: {
+        Args: {
+          p_brief: string
+          p_budget_ars: number
+          p_channel: string
+          p_creator_ids: string[]
+          p_due_date: string
+          p_id: string
+          p_objective: string
+          p_org_id: string
+          p_title: string
+          p_version: number
+        }
+        Returns: {
+          brief: string
+          budget_ars: number
+          channel: string
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          objective: string
+          org_id: string
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "influencer_campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_platform_announcement: {
         Args: {
@@ -55614,6 +58023,8 @@ export type Database = {
         }
         Returns: Json
       }
+      secret_decrypt: { Args: { p_value: string }; Returns: string }
+      secret_encrypt: { Args: { p_value: string }; Returns: string }
       seed_budget_categories: { Args: { p_org_id: string }; Returns: undefined }
       seed_crm_pipeline: { Args: { p_org_id: string }; Returns: string }
       seed_default_alert_rules: {
@@ -55648,6 +58059,10 @@ export type Database = {
       seed_store_categories: { Args: { p_org_id: string }; Returns: Json }
       seed_store_pages: { Args: { p_store_id: string }; Returns: Json }
       seed_tax_rates: { Args: { p_org_id: string }; Returns: undefined }
+      send_platform_support_message: {
+        Args: { p_message: string; p_thread_id: string }
+        Returns: string
+      }
       set_expense_budget: {
         Args: {
           p_amount: number
@@ -55746,6 +58161,19 @@ export type Database = {
         Returns: number
       }
       store_iva_config: { Args: { p_slug: string }; Returns: Json }
+      store_order_queue: {
+        Args: {
+          p_amount?: number
+          p_medio?: string
+          p_org_id: string
+          p_page?: number
+          p_query?: string
+          p_sort?: string
+          p_store_id: string
+          p_view?: string
+        }
+        Returns: Json
+      }
       store_payment_discount_pct: {
         Args: { p_descuentos: Json; p_metodo: string }
         Returns: number
@@ -55821,7 +58249,44 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: boolean
       }
+      transition_influencer_campaign: {
+        Args: {
+          p_id: string
+          p_org_id: string
+          p_status: string
+          p_version: number
+        }
+        Returns: {
+          brief: string
+          budget_ars: number
+          channel: string
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          objective: string
+          org_id: string
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "influencer_campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       unaccent: { Args: { "": string }; Returns: string }
+      update_platform_support_thread: {
+        Args: {
+          p_assign_to_me?: boolean
+          p_status: string
+          p_thread_id: string
+        }
+        Returns: undefined
+      }
       update_store_order_fulfillment: {
         Args: { p_order_id: string; p_status: string }
         Returns: Json
@@ -55898,63 +58363,6 @@ export type Database = {
       webhook_secret_rotar: {
         Args: { p_org_id: string; p_webhook_id: string }
         Returns: string
-      }
-      create_platform_support_thread: {
-        Args: {
-          p_category?: string
-          p_message?: string
-          p_org_id: string
-          p_priority?: string
-          p_subject: string
-        }
-        Returns: string
-      }
-      list_platform_support_messages: {
-        Args: { p_thread_id: string }
-        Returns: {
-          body: string
-          created_at: string
-          id: string
-          sender_kind: string
-          sender_name: string
-        }[]
-      }
-      list_platform_support_threads: {
-        Args: { p_org_id?: string }
-        Returns: {
-          assigned_name: string
-          assigned_to: string
-          category: string
-          created_at: string
-          created_by: string
-          id: string
-          last_message_at: string
-          latest_message: string
-          org_id: string
-          org_name: string
-          org_slug: string
-          priority: string
-          requester_name: string
-          status: string
-          unread_count: number
-          updated_at: string
-        }[]
-      }
-      mark_platform_support_thread_read: {
-        Args: { p_thread_id: string }
-        Returns: undefined
-      }
-      send_platform_support_message: {
-        Args: { p_message: string; p_thread_id: string }
-        Returns: string
-      }
-      update_platform_support_thread: {
-        Args: {
-          p_assign_to_me?: boolean
-          p_status: string
-          p_thread_id: string
-        }
-        Returns: undefined
       }
       z_nivel_servicio: { Args: { p_nivel: number }; Returns: number }
     }

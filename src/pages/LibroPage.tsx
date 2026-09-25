@@ -42,6 +42,7 @@ import {
 } from "@/lib/estadoResultados";
 import { formatARS } from "@/lib/supabaseStore";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import FinanceExportPanel from "@/components/finance/FinanceExportPanel";
 
 type Preset = "mes" | "mes_anterior" | "30dias" | "anio";
 
@@ -300,6 +301,10 @@ export default function LibroPage() {
               </div>
             </Card>
           </div>
+
+          {/* F5.3 — la salida del contador vive junto al libro, no en otra
+              pantalla: mismo período, mismos asientos, una sola autoridad. */}
+          <FinanceExportPanel />
         </>
       )}
     </div>

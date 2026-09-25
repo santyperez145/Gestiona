@@ -1700,23 +1700,7 @@ export default function CustomersPage() {
   };
 
   // ── Detección proactiva de duplicados ──────────────────────────────
-  // Analiza la lista de clientes y encuentra perfiles que comparten email,
-  // teléfono o nombre idéntico. Sugiere cuál es el principal y permite
-  // fusionar con un clic usando el mismo flujo que handleMergeCustomers.
-  const duplicateClusters = useMemo<DuplicateCluster[]>(() => {
-    if (!canEdit || customers.length < 2) return [];
-    return findCustomerDuplicates(
-      customers.map(c => ({
-        id: c.profileId ?? c.customerId ?? null,
-        name: c.name,
-        email: c.email ?? null,
-        phone: c.phone ?? null,
-        whatsapp_number: null,
-        totalSpent: c.totalSpent,
-        purchaseCount: c.purchaseCount,
-      })),
-    );
-  }, [customers, canEdit]);
+  // Se define tras el useMemo `customers` (más abajo) porque lo consume.
 
   // Fusiona un duplicado sugiriendo el principal como destino y el resto como origen.
   const handleQuickMerge = async (cluster: DuplicateCluster) => {
@@ -1966,6 +1950,25 @@ export default function CustomersPage() {
     });
     return list;
   }, [sales, debts, profiles, profileIdByName]);
+
+  // ── Detección proactiva de duplicados ──────────────────────────────
+  // Analiza la lista de clientes y encuentra perfiles que comparten email,
+  // teléfono o nombre idéntico. Sugiere cuál es el principal y permite
+  // fusionar con un clic usando el mismo flujo que handleMergeCustomers.
+  const duplicateClusters = useMemo<DuplicateCluster[]>(() => {
+    if (!canEdit || customers.length < 2) return [];
+    return findCustomerDuplicates(
+      customers.map(c => ({
+        id: c.profileId ?? c.customerId ?? null,
+        name: c.name,
+        email: c.email ?? null,
+        phone: c.phone ?? null,
+        whatsapp_number: null,
+        totalSpent: c.totalSpent,
+        purchaseCount: c.purchaseCount,
+      })),
+    );
+  }, [customers, canEdit]);
 
   // Helper: check if a birthday falls within a range relative to today (comparing month+day only)
   const bdayInRange = (birthday: string | undefined, range: string): boolean => {

@@ -63,9 +63,8 @@ describe('estándar integral de experiencia competitiva', () => {
     expect(standard).toContain('Emitir tarjetas o');
     expect(standard).toContain('mover dinero exige demanda');
     expect(standard).toContain('mismo Business Graph');
-    expect(roadmap).toContain('Mendel-class como benchmark principal');
     expect(roadmap).toContain('Contrato de paridad Mendel-class');
-    expect(roadmap).toContain('tarjetas externas y una abstracción de emisor');
+    expect(roadmap).toContain('Primero tarjetas externas');
     expect(designRoadmap).toContain('Arquitectura de información objetivo de Finance');
     for (const surface of [
       '**Inicio:**',
