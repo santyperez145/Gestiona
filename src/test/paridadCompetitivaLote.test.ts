@@ -93,6 +93,16 @@ describe("paridad competitiva: Tiendas Theme Studio", () => {
     expect(studio).toContain("PRIMARY_PRESETS");
     expect(studio).toContain("type=\"color\"");
   });
+
+  it("el catálogo se exporta en CSV espejo de la importación", () => {
+    const page = read("src/pages/ProductsPage.tsx");
+    // Par Shopify: importar y exportar son las dos puertas del mismo formato.
+    expect(page).toContain("Exportar catálogo CSV");
+    expect(page).toContain("exportarCatalogoCSV");
+    expect(page).toContain("toCSV");
+    // BOM UTF-8 para que Excel no rompa los acentos del catálogo en español.
+    expect(page).toContain("\\uFEFF");
+  });
 });
 
 describe("contrato de la baja uno-clic (auditoría en cero)", () => {

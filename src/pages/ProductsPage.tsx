@@ -11,6 +11,7 @@ import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB, getVariantsByUserDB } from "@/lib/supabaseStore";
 import ProductPriceListsSection from "@/components/products/ProductPriceListsSection";
 import ProductTableOwn, { type ProductSortColumn } from "@/components/products/ProductTableOwn";
+import { toCSV } from "@/lib/orgDataExport";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCountdown } from "@/hooks/useCountdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -355,6 +356,39 @@ export default function ProductsPage() {
   // (falls back to role defaults if no DB rows exist)
   const { canCreate, canEdit, canDelete } = useModulePermissions("products");
   const [products, setProducts] = useState<any[]>([]);
+
+  // Exportar catálogo CSV (paridad Shopify/Tiendanube): la salida espejo de la
+  // importación. Mismas columnas que lee `stage_catalog_migration`, así el
+  // archivo que baja puede volver a subir sin traducir nada.
+  const exportarCatalogoCSV = async () => {
+    try {
+      const rows = products.map(p => ({
+        sku: p.sku ?? "",
+        name: p.name ?? "",
+        category: p.category ?? "",
+        stock: p.stock ?? 0,
+        price_ars: p.price_ars ?? "",
+        sale_price_ars: p.sale_price_ars ?? "",
+        cost_ars: p.cost_ars ?? "",
+        cost_usd: p.cost_usd ?? "",
+        brand: p.brand ?? "",
+        barcode: p.barcode ?? "",
+        description: p.description ?? "",
+      }));
+      if (!rows.length) { toast.error("No hay productos para exportar"); return; }
+      const csv = toCSV(rows);
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `catalogo-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Catálogo exportado (${rows.length} productos)`);
+    } catch (err: any) {
+      toast.error("No se pudo exportar: " + err.message);
+    }
+  };
   const [settings, setSettings] = useState<any>(null);
   const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product
   const [lastSaleDate, setLastSaleDate] = useState<Record<string, string>>({}); // last sale date per product id
@@ -1044,6 +1078,11 @@ export default function ProductsPage() {
                 {(activeRole === 'owner' || activeRole === 'admin') && (
                   <DropdownMenuItem onSelect={() => setImportOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />Importar Excel/CSV
+                  </DropdownMenuItem>
+                )}
+                {(activeRole === 'owner' || activeRole === 'admin') && (
+                  <DropdownMenuItem onSelect={() => void exportarCatalogoCSV()}>
+                    <FileDown className="mr-2 h-4 w-4" />Exportar catálogo CSV
                   </DropdownMenuItem>
                 )}
                 {canEdit && activeOrg?.id && (
