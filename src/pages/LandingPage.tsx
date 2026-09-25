@@ -100,6 +100,59 @@ const SURFACES = [
 
 const CHECKS = ['14 días sin tarjeta', 'Importación asistida', 'Soporte en español'];
 
+/** Preguntas frecuentes reales del producto Nerqia. Las respuestas
+ *  describen lo que la plataforma hace HOY, no lo que promete hacer. */
+const FAQ = [
+  {
+    q: '¿Es Nerqia una tienda online como Shopify o Tiendanube?',
+    a: 'Sí, pero conectada al resto del negocio. Vendés por tu dominio, con bloques de vitrina (secciones con título, cantidad y colección propias), checkout, pagos y envíos. La diferencia es que cada pedido mueve stock, conserva al cliente y explica el margen desde el mismo núcleo: no tenés que conciliar nada manualmente.',
+  },
+  {
+    q: '¿Puedo migrar desde Shopify o Tiendanube?',
+    a: 'Sí. Importás productos, variantes, stock, imágenes y clientes. Las imágenes externas se copian a storage propio (idempotente, tandas de 40) y los clientes entran en staging auditado con RPCs de owner/admin, respetando tus datos manuales y el opt-out de marketing. No se inventa stock ni precio: todo viene de tu catálogo.',
+  },
+  {
+    q: '¿Cómo se manejan los pagos y las devoluciones?',
+    a: 'Todo el dinero pasa por Mercado Pago. Los pagos se cobran en el checkout y los retiros de creadores se pagan automáticamente vía MP con webhook firmado e idempotencia. Las devoluciones y reembolsos se procesan por MP y actualizan el estado del pedido y del lote de payout, sin caja paralela.',
+  },
+  {
+    q: '¿Necesito tener cuenta en Mercado Pago o ARCA?',
+    a: 'Mercado Pago: conectás tu cuenta y cobrás ahí. ARCA: la facturación automática es opcional; si la activás, Nerqia emite facturas con autorización automática (AFIP) cuando el proveedor está habilitado. Si no, facturás manualmente desde el panel.',
+  },
+  {
+    q: '¿Cómo funciona el chat con los creadores?',
+    a: 'Chat por colaboración con avisos consentidos (email o push cuando los autorizás). Los mensajes se guardan con traza y no se envían sin permiso. La baja de notificaciones es un clic y se respeta el opt-out global.',
+  },
+  {
+    q: '¿Qué pasa si no hay conexión en el punto de venta (POS)?',
+    a: 'El POS funciona offline: toma física local que sobrevive recarga y corte, y sincroniza cuando vuelve la conexión. No se pierde venta ni stock.',
+  },
+  {
+    q: '¿Los clientes pueden dejar reseñas?',
+    a: 'Sólo quien compró. El RPC lo revalida al guardar. Las reseñas se muestran en la ficha del producto con promedio, cantidad y badge de "Compra verificada". No hay testimonios hardcodeados: todo viene de la base.',
+  },
+  {
+    q: '¿Hay newsletter en la tienda?',
+    a: 'Sí. El footer de cada tienda tiene un formulario conectado a `store_newsletter_subscribers` con RPC pública por slug. Se respeta el opt-out global: un email dado de baja no vuelve a entrar. La suscripción viaja al CRM cuando la persona compra.',
+  },
+  {
+    q: '¿Cómo se maneja el presupuesto y las aprobaciones de gastos (Finance)?',
+    a: 'Política de aprobación versionada con escalamiento por monto, categoría y centro de costo. USD siempre a owner. El presupuesto comprometido del mes se calcula al instante y las categorías excedentes se focan automáticamente. La cancelación libera el saldo con traza.',
+  },
+  {
+    q: '¿Puedo dar de baja un cliente o una suscripción de un clic?',
+    a: 'La baja de cliente y de suscripción es server-side, con envío por email y traza. El unsubscribe de campañas de email es un clic (token de un solo uso, 90 días de expiración) y se registra en `email_unsubscribes` para que no vuelva a recibir.',
+  },
+  {
+    q: '¿Es seguro? ¿Qué datos ve el comprador?',
+    a: 'Los datos sensibles (costos, márgenes, comisiones) nunca llegan al comprador. La vista pública saneada only incluye lo que el visitante necesita. Los pagos se procesan en el servidor con idempotencia y webhook firmado. Los webhooks de MP se validan con firma y no se marcan como pagados sin confirmación.',
+  },
+  {
+    q: '¿Qué incluye el plan de los creadores (Go-Marz)?',
+    a: 'Portal de creador con invitaciones privadas, aceptación/rechazo con expiración, campañas, entregables con revisión, publicación verificada con licencia de uso, chat por colaboración y retiros pagados automáticamente vía Mercado Pago. El superadmin ve todas las marcas y descubre creadores globalmente.',
+  },
+];
+
 /** Dos audiencias, dos entradas: la marca opera el comercio; el creador
  * gestiona campañas e ingresos. No son lo mismo y no comparten panel. */
 const AUDIENCES = [
@@ -393,6 +446,23 @@ export default function LandingPage() {
               <span>Distribuidores</span>
               <span>Importadores</span>
               <span>Marcas</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-faq" id="faq">
+          <div className="landing-container">
+            <div className="landing-section-heading">
+              <p className="landing-eyebrow">Preguntas frecuentes</p>
+              <h2>Lo que tenés que saber antes de empezar.</h2>
+            </div>
+            <div className="landing-faq__list">
+              {FAQ.map(({ q, a }, index) => (
+                <details key={q} className="landing-faq__item" open={index === 0}>
+                  <summary className="landing-faq__question">{q}</summary>
+                  <p className="landing-faq__answer">{a}</p>
+                </details>
+              ))}
             </div>
           </div>
         </section>
