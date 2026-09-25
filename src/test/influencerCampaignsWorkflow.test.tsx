@@ -52,7 +52,9 @@ describe('campañas con API simulada y componentes reales', () => {
     fireEvent.change(await screen.findByLabelText('Nombre de la campaña'), { target: { value: 'Conservar cambios' } });
     await screen.findByRole('checkbox', { name: /Creadora real/ });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar campaña' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar');
+    // El editor también monta el chat por creador (otro role="alert"): se busca
+    // el mensaje del guardado por texto, no por rol genérico.
+    expect(await screen.findByText(/No pudimos guardar/)).toBeVisible();
     expect(screen.getByDisplayValue('Conservar cambios')).toBeVisible();
     expect(screen.queryByText(/private_table/)).not.toBeInTheDocument();
   });

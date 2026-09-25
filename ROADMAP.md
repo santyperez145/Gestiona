@@ -113,8 +113,8 @@ conectividad sin duplicar ni perder operaciones.
 
 **CRM/ERP usable por cualquier comercio (2026-09-25):** detección proactiva de
 duplicados con fusión asistida de un clic, panel de salud de identidad, RFM, CLV
-proyectado y riesgo de churn en `CustomersPage`. La toma física retoma su
-borrador local tras recarga o corte (`stockCountDraft`).
+proyectado y riesgo de churn en `CustomersPage`; toma física con borrador local
+(`stockCountDraft`); notificaciones consentidas del chat marca↔creador cerradas.
 
 **Pendiente:** primera operación externa sin corrección SQL,
 catálogo polimórfico completo y evidencia de margen usado para decidir.
@@ -253,8 +253,9 @@ de [GoMarz](https://www.go-marz.com/), sin clonar identidades ni pagos.
 - **Cerrado (2026-09-25):** aceptación/entrega desde el portal creador con sesión,
   loop de revisión (marca pide corrección → creador reentrega), liquidación de
   retiros vía Edge Function `mp-payouts` con idempotencia, cifrado de token y
-  webhook firmado HMAC; chat por colaboración campaña+creador server-side.
-- Siguiente: perfiles públicos, descubrimiento, notificaciones consentidas y
+  webhook firmado HMAC; chat por colaboración campaña+creador server-side y
+  notificaciones consentidas (preferencia + cola + despacho service_role).
+- Siguiente: perfiles públicos, descubrimiento, job cron del despachador y
   panel de superadmin con vista global.
 - No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
@@ -286,8 +287,9 @@ cita la evidencia que falta, no la que existe.
 
 | Falta | Detalle verificable |
 |---|---|
-| Chat por colaboración | **Cerrado (2026-09-25):** `influencer_campaign_messages` crea un hilo por campaña+creador con RLS propia; RPCs `campaign_chat_list`/`campaign_chat_send` con autoridad en servidor, anti-spam y hilo visible en ambos portales. Quedan notificaciones push consentidas. |
-| Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada (orgánico/campaña/paid/cesión) y vencimiento obligatorio para usos pagados; RPC `register_publication_proof` y portal del creador muestran la verificación. |
+| Chat por colaboración | **Cerrado (2026-09-25):** `influencer_campaign_messages` crea un hilo por campaña+creador con RLS propia; RPCs `campaign_chat_list`/`campaign_chat_send` con autoridad en servidor, anti-spam y hilo visible en ambos portales. |
+| Notificaciones consentidas del chat | **Cerrado (2026-09-25):** `influencer_chat_notify_prefs` (consentimiento por persona) + cola `influencer_chat_notifications` por trigger según preferencia del destinatario; despacho email/push service_role, toggle en ambos portales, verificación reversible E2E (7 aserciones). Pendiente: job cron del despachador. |
+| Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada y vencimiento obligatorio para usos pagados; RPC y portal del creador muestran la verificación. |
 | Contratos con aceptación de ambas partes | `InfluencerContractsPage` registra condiciones internas; falta aceptación explícita del creador con timestamp y versionado. |
 | Liquidación enlazada a Finance | Los payouts MP asientan en `influencer_payouts` pero no generan obligación/gasto en Finance ni conciliación bancaria. |
 | Métricas sociales verificadas | `influencers` guarda engagement declarado; falta verificación OAuth de IG/TikTok o evidencia exportada por el creador. |
@@ -299,24 +301,23 @@ cita la evidencia que falta, no la que existe.
 | Certificar migrador (C22.2) | El RPC de migración existe; falta correrlo con 1 export real Shopify y 1 Tiendanube con variantes/imágenes/stock y documentar el resultado. |
 | Copia de imágenes a storage propio | El importador conserva URLs externas; falta copia a Storage propio con procedencia. |
 | Clientes en migración | El importador no incorpora clientes del marketplace de origen. |
-| Editor de bloques con config por bloque | **Cerrado (2026-09-25):** cada bloque de la home admite título propio y límite de ítems (3-12) persistido en `storefront_layout`; la vitrina lo honra y el Theme Studio lo publica versionado. Queda filtro por colección en la vitrina de un bloque. |
-| Certificación live de pagos/envíos | Webhook y refund modelados; falta ciclo aprobación/rechazo/timeout/refund observado y etiqueta con transportista contratado. |
-| Medición de conversión y CWV de campo | No hay panel de métricas de campo (LCP/INP/CLS) ni embudo de conversión medido. |
+| Editor de bloques con config por bloque | **Cerrado (2026-09-25):** título propio y límite de ítems (3-12) por bloque persistido en `storefront_layout`; la vitrina lo honra y el Theme Studio lo publica versionado. |
+| Certificación live de pagos/envíos | Webhook y refund modelados; falta ciclo aprobación/rechazo/timeout/refund observado, etiqueta con transportista y métricas de campo (LCP/INP/CLS). |
 
 **Pilar 3 — Finance/Mendel:**
 
 | Falta | Detalle verificable |
 |---|---|
-| Primer documento real (F5.1) | **Cerrado (2026-09-25):** extracción habilitada en producción (claude-haiku-4-5, zero data retention); inspector con fallback `structural-policy`; verificación E2E reversible de 13 aserciones (upload → inspección → extracción → revisión → matching). |
+| Primer documento real (F5.1) | **Cerrado (2026-09-25):** extracción en producción (claude-haiku-4-5, zero data retention); inspector `structural-policy`; verificación E2E reversible de 13 aserciones. |
 | Políticas versionadas de aprobación | Las solicitudes tienen estados y pago real, pero no hay motor de política versionada con escalamiento por monto/categoría/centro. |
 | Presupuesto comprometido/disponible | Budget Pulse existe; falta comprometer/liberar como movimientos con alertas de excedente. |
 | Conciliación bancaria | **Cerrado (2026-09-25):** extracto CSV idempotente por hash, matches contra asientos de banco y confirmación con traza (F5.4); sin match queda visible para revisión. |
-| Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Conciliación con extracto bancario cerrada en fila 12 (F5.4). |
+| Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Conciliación cerrada en fila 12 (F5.4). |
 | Tarjetas externas | Sin feed de transacciones externas ni controles preventivos; emisión exige partner (gate externo). |
 
-**CRM/ERP (usabilidad cualquier comercio):** conteo físico cerrado con borrador
-local (`stockCountDraft`) que se limpia al cerrar la toma. Falta timeline único
-por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360.
+**CRM/ERP (usabilidad cualquier comercio):** conteo físico con borrador local
+(`stockCountDraft`) y notificaciones consentidas del chat cerradas. Falta
+timeline único por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360.
 
 | Orden | Slice | Resultado verificable |
 |---|---|---|
@@ -330,18 +331,17 @@ por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360.
 | 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
 | 9 | P0 Segundo comercio | **Completado:** alta, migración y gestión de productos sin intervención SQL. |
 | 10 | Economics | Pricing y comisión aprobados con costos reales. |
-| 11 | Influencers chat + publicación verificable | **Cerrado (2026-09-25):** publicación verificable (`influencer_publication_proofs` con licencia versionada) y chat por colaboración (`influencer_campaign_messages` con RPCs server-side, anti-spam y hilo visible en ambos portales). |
+| 11 | Influencers chat + publicación verificable | **Cerrado (2026-09-25):** publicación verificable (`influencer_publication_proofs` con licencia versionada), chat por colaboración (`influencer_campaign_messages` con RPCs server-side, anti-spam y hilo visible en ambos portales) y notificaciones consentidas del chat (`influencer_chat_notify_prefs` + cola con despacho service_role, verificación reversible E2E). |
 | 12 | Finance conciliación bancaria | **Cerrado (2026-09-25):** `finance_bank_statements`/`finance_bank_lines` importan el extracto (idempotente por hash), `bank_lines_match` propone matches contra asientos de banco (1.1.02, ±3 días, un asiento por movimiento) y `bank_line_confirm` confirma/rechaza con traza; verificación reversible en producción. Panel en Movimientos. |
 | 13 | Finance export contable | **Cerrado (2026-09-25):** lotes desde el libro real con verificación de descuadre, CSV para el contador e historia de exportación. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 
 **Cierres recientes (2026-09-25):** F5.1 extracción de documentos verificada E2E
-con proveedor aprobado (13 aserciones reversibles), chat marca↔creador
-(`60a74a85`), editor de bloques con título y límite por bloque (`64961a59`),
-conciliación bancaria F5.4 (`5da9f074`), payouts MP (`947cdbfb`), loop de
-revisión de entregables (`ebdfbe3b`) y POS offline (`c0a06c66`).
-El histórico vive en `git log`.
+con proveedor aprobado (13 aserciones reversibles), chat marca↔creador con
+notificaciones consentidas (`60a74a85`), editor de bloques por bloque
+(`64961a59`), conciliación bancaria F5.4 (`5da9f074`), payouts MP (`947cdbfb`),
+loop de revisión de entregables (`ebdfbe3b`) y POS offline (`c0a06c66`).
 
 ## 7. Definition of Done
 

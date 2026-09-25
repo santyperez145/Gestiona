@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCreator, type CreatorCampaign, type CreatorChatMessage } from "@/lib/creatorContext";
 import { supabase } from "@/integrations/supabase/client";
+import ChatNotifyCard from "@/components/influencers/ChatNotifyCard";
 import { CreatorFoco } from "@/components/creator/CreatorFoco";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { Button } from "@/components/ui/button";
@@ -656,6 +657,7 @@ export default function CreatorPortalPage() {
           </Card>
 
           <ProfileSection />
+          <ChatNotifyCard />
         </OnboardingGate>
       </main>
 

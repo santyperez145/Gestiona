@@ -67,4 +67,32 @@ describe("chat por colaboración", () => {
     expect(ctx).toContain("campaign_chat_send");
     expect(ctx).toContain("chat_last_body");
   });
+
+  it("las notificaciones del chat son consentidas y con autoridad en servidor", () => {
+    const mig = src("supabase/migrations/20260925000500_influencer_chat_notifications.sql");
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.influencer_chat_notify_prefs");
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.influencer_chat_notifications");
+    expect(mig).toContain("trg_campaign_chat_enqueue");
+    // Sin consentimiento no hay fila: la preferencia la decide el destinatario.
+    expect(mig).toContain("campaign_chat_notify_get");
+    expect(mig).toContain("campaign_chat_notify_set");
+    // El despacho es de service_role: el cliente no marca resultados.
+    expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.campaign_chat_notifications_pending() TO service_role");
+    expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.campaign_chat_notification_result(uuid, boolean, text) TO service_role");
+    expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.campaign_chat_notifications_retry() TO service_role");
+    const verify = src("supabase/verificaciones/20260925_influencer_chat_notifications.sql");
+    expect(verify).toContain("ROLLBACK");
+    expect(verify).toContain("campaign_chat_notify_set");
+    expect(verify).toContain("campaign_chat_notifications_pending");
+    // La cola no expone filas sin destino real (sin correo / sin suscripción).
+    expect(verify).toContain("sin suscripción push registrada la cola debe exponer sólo el email");
+    // UI: el consentimiento es editable en ambos portales.
+    const panel = src("src/components/influencers/CampaignChatPanel.tsx");
+    expect(panel).toContain("setChatNotifyPrefs");
+    const portal = src("src/pages/CreatorPortalPage.tsx");
+    expect(portal).toContain("ChatNotifyCard");
+    const db = src("src/lib/campaignChatDB.ts");
+    expect(db).toContain("campaign_chat_notify_get");
+    expect(db).toContain("campaign_chat_notify_set");
+  });
 });

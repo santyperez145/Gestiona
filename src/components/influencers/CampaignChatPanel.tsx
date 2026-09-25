@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, Send } from 'lucide-react';
-import { campaignChatErrorMessage, listCampaignChat, sendCampaignChatMessage, type CampaignChatMessage } from '@/lib/campaignChatDB';
+import { Bell, MessageSquare, Send } from 'lucide-react';
+import { campaignChatErrorMessage, getChatNotifyPrefs, listCampaignChat, sendCampaignChatMessage, setChatNotifyPrefs, type CampaignChatMessage, type ChatNotifyPrefs } from '@/lib/campaignChatDB';
 import WorkspaceState from '@/components/shared/WorkspaceState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 const MAX_BODY = 2000;
@@ -26,8 +28,27 @@ export default function CampaignChatPanel({ campaignId, influencerId, creatorNam
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [prefs, setPrefs] = useState<ChatNotifyPrefs | null>(null);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const lock = useRef(false);
+
+  useEffect(() => {
+    let alive = true;
+    getChatNotifyPrefs()
+      .then(p => { if (alive) setPrefs(p); })
+      .catch(() => { if (alive) setPrefs({ email_enabled: false, push_enabled: false }); });
+    return () => { alive = false; };
+  }, []);
+
+  const updatePrefs = async (next: ChatNotifyPrefs) => {
+    try {
+      const saved = await setChatNotifyPrefs(next.email_enabled, next.push_enabled);
+      setPrefs(saved);
+    } catch {
+      setError('No pudimos guardar tu preferencia de avisos.');
+    }
+  };
 
   const query = useQuery({
     queryKey: ['campaign-chat', campaignId, influencerId],
@@ -66,7 +87,46 @@ export default function CampaignChatPanel({ campaignId, influencerId, creatorNam
         <MessageSquare className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Chat con {creatorName}</h3>
         <span className="text-xs text-muted-foreground">coordinación de la colaboración</span>
+        <button
+          type="button"
+          onClick={() => setPrefsOpen(o => !o)}
+          aria-expanded={prefsOpen}
+          aria-label="Preferencias de avisos de mensajes"
+          className={cn(
+            'ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
+            prefsOpen && 'bg-muted/60 text-foreground',
+          )}
+        >
+          <Bell className="h-3 w-3" />
+          {prefs && (prefs.email_enabled || prefs.push_enabled)
+            ? `Avisos: ${[prefs.email_enabled && 'correo', prefs.push_enabled && 'push'].filter(Boolean).join(', ')}`
+            : 'Sin avisos'}
+        </button>
       </div>
+
+      {prefsOpen && (
+        <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 space-y-2" role="group" aria-label="Consentimiento de avisos">
+          <p className="text-[11px] text-muted-foreground">
+            Recibí un aviso cuando {creatorName} te responda. Sin consentimiento no se envía nada.
+          </p>
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="chat-notify-email" className="text-xs font-normal">Correo electrónico</Label>
+            <Switch
+              id="chat-notify-email"
+              checked={prefs?.email_enabled ?? false}
+              onCheckedChange={v => updatePrefs({ email_enabled: v, push_enabled: prefs?.push_enabled ?? false })}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="chat-notify-push" className="text-xs font-normal">Notificación push</Label>
+            <Switch
+              id="chat-notify-push"
+              checked={prefs?.push_enabled ?? false}
+              onCheckedChange={v => updatePrefs({ email_enabled: prefs?.email_enabled ?? false, push_enabled: v })}
+            />
+          </div>
+        </div>
+      )}
 
       {query.isPending ? (
         <WorkspaceState kind="initial-loading" title="Cargando conversación" />

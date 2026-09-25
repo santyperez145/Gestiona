@@ -48,3 +48,34 @@ export function campaignChatErrorMessage(error: unknown): string {
   if (message.includes('campaign_not_found')) return 'La colaboración ya no existe. Actualizá el listado.';
   return 'No pudimos enviar el mensaje. Revisá tu conexión e intentá de nuevo.';
 }
+
+/** Preferencia consentida de notificaciones del chat, por persona. */
+export type ChatNotifyPrefs = {
+  email_enabled: boolean;
+  push_enabled: boolean;
+};
+
+/**
+ * Lee la preferencia de notificación del propio usuario.
+ * Sin fila = sin consentimiento = ambos canales en false.
+ */
+export async function getChatNotifyPrefs(): Promise<ChatNotifyPrefs> {
+  const { data, error } = await sb.rpc('campaign_chat_notify_get');
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    email_enabled: Boolean(row?.email_enabled ?? false),
+    push_enabled: Boolean(row?.push_enabled ?? false),
+  };
+}
+
+/** Guarda la preferencia consentida del propio usuario. */
+export async function setChatNotifyPrefs(email: boolean, push: boolean): Promise<ChatNotifyPrefs> {
+  const { data, error } = await sb.rpc('campaign_chat_notify_set', { p_email: email, p_push: push });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    email_enabled: Boolean(row?.email_enabled ?? false),
+    push_enabled: Boolean(row?.push_enabled ?? false),
+  };
+}
