@@ -283,7 +283,7 @@ cita la evidencia que falta, no la que existe.
 | Falta | Detalle verificable |
 |---|---|
 | Chat por colaboración | No existe mensajería marca↔creador; GoMarz la publica como parte del flujo de campaña. Requiere hilos por campaña/creador con RLS propia y notificaciones consentidas. |
-| Publicación verificable | La revisión cierra el loop pero no registra URL publicada ni derechos de uso versionados (link + captura + estado). |
+| Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma por verificación, con licencia de uso tipada (orgánico/uso campaña/paid/cesión) y vencimiento obligatorio para usos pagados; RPC `register_publication_proof` con permiso de marca y el portal del creador muestra la verificación. |
 | Contratos con aceptación de ambas partes | `InfluencerContractsPage` registra condiciones internas; falta aceptación explícita del creador con timestamp y versionado. |
 | Liquidación enlazada a Finance | Los payouts MP asientan en `influencer_payouts` pero no generan obligación/gasto en Finance ni conciliación bancaria. |
 | Métricas sociales verificadas | `influencers` guarda engagement declarado; falta verificación OAuth de IG/TikTok o evidencia exportada por el creador. |
@@ -329,7 +329,7 @@ cita la evidencia que falta, no la que existe.
 | 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
 | 9 | P0 Segundo comercio | **Completado:** alta, migración y gestión de productos sin intervención SQL. |
 | 10 | Economics | Pricing y comisión aprobados con costos reales. |
-| 11 | Influencers chat + publicación verificable | Hilo por colaboración con notificaciones consentidas; link de publicación y derechos versionados. |
+| 11 | Influencers chat + publicación verificable | **Publicación verificable cerrada (2026-09-25):** `influencer_publication_proofs` registra URL + captura + licencia versionada por verificación; el creador ve la verificación en su portal. Pendiente: chat por colaboración. |
 | 12 | Finance conciliación bancaria | Extracto importado, matches propuestos y confirmados contra ledger. |
 | 13 | Finance export contable | **Cerrado (2026-09-25):** lotes desde el libro real con verificación de descuadre, CSV para el contador e historia de exportación. |
 
@@ -339,7 +339,8 @@ No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 (`947cdbfb`), loop de revisión de entregables (`ebdfbe3b`), POS offline con
 cola de sincronización (`c0a06c66`), deduplicación CRM con fusión asistida
 (`8dcb19d1`), estudio de faltantes por pilar + landing actualizada
-(`34c10e5b`) y exportación contable auditada F5.3. El histórico vive en `git log`.
+(`34c10e5b`), exportación contable auditada F5.3 y publicación verificable de
+entregables con licencias versionadas. El histórico vive en `git log`.
 
 ## 7. Definition of Done
 

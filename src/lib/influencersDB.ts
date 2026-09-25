@@ -191,6 +191,45 @@ export async function deleteDeliverable(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export type PublicationProof = {
+  id: string;
+  org_id: string;
+  deliverable_id: string;
+  influencer_id: string;
+  campaign_id: string | null;
+  platform: 'instagram' | 'tiktok' | 'youtube' | 'otro';
+  publication_url: string;
+  screenshot_url: string | null;
+  license_type: 'organico' | 'uso_campaña' | 'paid_ampliado' | 'cesion_total';
+  license_expires_at: string | null;
+  license_notes: string | null;
+  verified_by: string | null;
+  created_at: string;
+};
+
+/** Registra la verificación de publicación vía RPC server-side (permiso influencer edit). */
+export async function registerPublicationProof(input: {
+  deliverable_id: string;
+  platform: PublicationProof['platform'];
+  publication_url: string;
+  screenshot_url?: string | null;
+  license_type: PublicationProof['license_type'];
+  license_expires_at?: string | null;
+  license_notes?: string | null;
+}): Promise<PublicationProof> {
+  const { data, error } = await sb.rpc('register_publication_proof', {
+    p_deliverable_id: input.deliverable_id,
+    p_platform: input.platform,
+    p_publication_url: input.publication_url,
+    p_license_type: input.license_type,
+    p_license_expires_at: input.license_expires_at ?? null,
+    p_license_notes: input.license_notes ?? null,
+    p_screenshot_url: input.screenshot_url ?? null,
+  });
+  if (error) throw error;
+  return data as PublicationProof;
+}
+
 /** ─── Pagos / Liquidaciones ─── */
 export async function listPayments(): Promise<InfluencerPayment[]> {
   const orgId = requireActiveOrgId();

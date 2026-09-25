@@ -1,12 +1,12 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Edit, ExternalLink, FileText, Plus, Star, Trash2 } from 'lucide-react';
+import { BadgeCheck, Calendar, Edit, ExternalLink, FileText, Plus, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrg } from '@/lib/orgContext';
 import { useModulePerms } from '@/lib/permissionsContext';
 import { useInfluencerCampaigns } from '@/hooks/useInfluencerCampaigns';
-import { createContract, createDeliverable, createInfluencerReview, deleteContract, deleteDeliverable, listInfluencerContracts, listInfluencerDeliverables, listInfluencers, updateContract, updateDeliverable, type InfluencerContract, type InfluencerDeliverable } from '@/lib/influencersDB';
+import { createContract, createDeliverable, createInfluencerReview, deleteContract, deleteDeliverable, listInfluencerContracts, listInfluencerDeliverables, listInfluencers, registerPublicationProof, updateContract, updateDeliverable, type InfluencerContract, type InfluencerDeliverable } from '@/lib/influencersDB';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ export default function InfluencerRecords({ kind }: { kind: Kind }) {
   const [editing, setEditing] = useState<RecordRow | 'new' | null>(null);
   const [deleting, setDeleting] = useState<RecordRow | null>(null);
   const [reviewing, setReviewing] = useState<InfluencerDeliverable | null>(null);
+  const [verifying, setVerifying] = useState<InfluencerDeliverable | null>(null);
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const isContract = kind === 'contracts';
@@ -52,11 +53,12 @@ export default function InfluencerRecords({ kind }: { kind: Kind }) {
     {query.isPending ? <WorkspaceState kind="initial-loading" title={`Cargando ${title.toLowerCase()}`} /> : query.isError ? <WorkspaceState kind="error-recoverable" title="No pudimos cargar los registros" actionLabel="Reintentar" onAction={() => void query.refetch()} /> : !rows.length ? <WorkspaceState kind={search ? 'empty-filtered' : 'empty-first-use'} title="Sin registros" /> : <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">{isContract ? 'Condiciones' : 'Contenido'}</th><th className="p-3">Fecha</th><th className="p-3">Estado</th><th className="p-3 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-border">{rows.map(item => {
       const contract = item as InfluencerContract; const delivery = item as InfluencerDeliverable;
       const date = isContract ? contract.valid_until : delivery.due_date;
-      return <tr key={item.id}><td className="max-w-[180px] break-words py-4 font-medium">{item.influencer_name}</td><td className="max-w-[300px] break-words p-3">{isContract ? <><p>{CONTRACT_TYPES[contract.contract_type]}</p><p className="text-xs text-muted-foreground">{contract.contract_type !== 'percentage' && new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(contract.contract_amount)}{contract.contract_type !== 'fixed' && ` ${contract.commission_percent}%`}</p></> : <><p>{delivery.description}</p><p className="mt-1 text-xs text-muted-foreground">{delivery.campaign_name || 'Sin campaña'}</p>{delivery.content_url?.startsWith('https://') && <a href={delivery.content_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary">Abrir contenido<ExternalLink className="h-3 w-3" /></a>}</>}</td><td className="p-3">{date ? new Date(`${date}T12:00:00`).toLocaleDateString('es-AR') : 'Sin vencimiento'}</td><td className="p-3"><Badge variant="outline">{isContract ? CONTRACT_STATES[contract.status] : DELIVERY_STATES[delivery.status]}</Badge>{isContract && <p className="mt-1 text-xs text-muted-foreground">{contract.is_signed ? 'Firma declarada' : 'Sin firma registrada'}</p>}</td><td className="p-3"><div className="flex justify-end gap-1">{!isContract && delivery.status === 'completado' && permissions.canCreate && <Button variant="ghost" size="icon" title="Calificar colaboración" aria-label={`Calificar trabajo de ${item.influencer_name}`} onClick={() => setReviewing(delivery)}><Star className="h-4 w-4" /></Button>}{permissions.canEdit && <Button variant="ghost" size="icon" title="Editar registro" aria-label={`Editar registro de ${item.influencer_name}`} onClick={() => setEditing(item)}><Edit className="h-4 w-4" /></Button>}{permissions.canDelete && <Button variant="ghost" size="icon" title="Eliminar registro" aria-label={`Eliminar registro de ${item.influencer_name}`} onClick={() => setDeleting(item)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</div></td></tr>;
+      return <tr key={item.id}><td className="max-w-[180px] break-words py-4 font-medium">{item.influencer_name}</td><td className="max-w-[300px] break-words p-3">{isContract ? <><p>{CONTRACT_TYPES[contract.contract_type]}</p><p className="text-xs text-muted-foreground">{contract.contract_type !== 'percentage' && new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(contract.contract_amount)}{contract.contract_type !== 'fixed' && ` ${contract.commission_percent}%`}</p></> : <><p>{delivery.description}</p><p className="mt-1 text-xs text-muted-foreground">{delivery.campaign_name || 'Sin campaña'}</p>{delivery.content_url?.startsWith('https://') && <a href={delivery.content_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary">Abrir contenido<ExternalLink className="h-3 w-3" /></a>}</>}</td><td className="p-3">{date ? new Date(`${date}T12:00:00`).toLocaleDateString('es-AR') : 'Sin vencimiento'}</td><td className="p-3"><Badge variant="outline">{isContract ? CONTRACT_STATES[contract.status] : DELIVERY_STATES[delivery.status]}</Badge>{isContract && <p className="mt-1 text-xs text-muted-foreground">{contract.is_signed ? 'Firma declarada' : 'Sin firma registrada'}</p>}</td><td className="p-3"><div className="flex justify-end gap-1">{!isContract && ['entregado', 'completado'].includes(delivery.status) && permissions.canCreate && <Button variant="ghost" size="icon" title="Verificar publicación" aria-label={`Verificar publicación de ${item.influencer_name}`} onClick={() => setVerifying(delivery)}><BadgeCheck className="h-4 w-4" /></Button>}{!isContract && delivery.status === 'completado' && permissions.canCreate && <Button variant="ghost" size="icon" title="Calificar colaboración" aria-label={`Calificar trabajo de ${item.influencer_name}`} onClick={() => setReviewing(delivery)}><Star className="h-4 w-4" /></Button>}{permissions.canEdit && <Button variant="ghost" size="icon" title="Editar registro" aria-label={`Editar registro de ${item.influencer_name}`} onClick={() => setEditing(item)}><Edit className="h-4 w-4" /></Button>}{permissions.canDelete && <Button variant="ghost" size="icon" title="Eliminar registro" aria-label={`Eliminar registro de ${item.influencer_name}`} onClick={() => setDeleting(item)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</div></td></tr>;
     })}</tbody></table></div>}
     <Dialog open={Boolean(editing)} onOpenChange={open => { if (!open) setEditing(null); }}>{editing && <RecordForm key={editing === 'new' ? 'new' : editing.id} kind={kind} initial={editing === 'new' ? null : editing} orgId={orgId} onSaved={() => { setEditing(null); void client.invalidateQueries({ queryKey }); }} />}</Dialog>
     <Dialog open={Boolean(deleting)} onOpenChange={open => { if (!open && !busy) setDeleting(null); }}><DialogContent><DialogHeader><DialogTitle>Eliminar registro</DialogTitle><DialogDescription>Se eliminará el registro de {deleting?.influencer_name}. Esta acción no puede deshacerse.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" disabled={busy} onClick={() => setDeleting(null)}>Volver</Button><Button variant="destructive" disabled={busy} onClick={() => void remove()}>Eliminar</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={Boolean(reviewing)} onOpenChange={open => { if (!open && !busy) setReviewing(null); }}>{reviewing && <ReviewForm deliverable={reviewing} onSaved={() => { setReviewing(null); }} />}</Dialog>
+    <Dialog open={Boolean(verifying)} onOpenChange={open => { if (!open && !busy) setVerifying(null); }}>{verifying && <PublicationProofForm deliverable={verifying} onSaved={() => { setVerifying(null); void client.invalidateQueries({ queryKey }); }} />}</Dialog>
   </div>;
 }
 
@@ -146,5 +148,56 @@ function RecordForm({ kind, initial, orgId, onSaved }: { kind: Kind; initial: Re
       <div className="space-y-1"><Label htmlFor="record-state">Estado</Label><Select value={form.status} onValueChange={value => update('status', value)}><SelectTrigger id="record-state"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(isContract ? CONTRACT_STATES : DELIVERY_STATES).filter(([value]) => value !== 'completado' || (initial && ['entregado', 'completado'].includes(initial.status))).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
       <div className="space-y-1 sm:col-span-2"><Label htmlFor="record-notes">Notas</Label><Textarea id="record-notes" value={form.notes} maxLength={4000} onChange={event => update('notes', event.target.value)} /></div>
     </fieldset>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button type="submit" disabled={busy || creators.isPending || (!isContract && campaigns.isPending)}>{busy ? 'Guardando...' : 'Guardar registro'}</Button></form>}
+  </DialogContent>;
+}
+
+const PUBLICATION_PLATFORMS = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', otro: 'Otro' } as const;
+const LICENSE_TYPES = { organico: 'Orgánico (sólo la publicación)', 'uso_campaña': 'Uso en campaña', paid_ampliado: 'Paid ampliado', cesion_total: 'Cesión total' } as const;
+type PublicationPlatform = keyof typeof PUBLICATION_PLATFORMS;
+type LicenseType = keyof typeof LICENSE_TYPES;
+
+/** Verifica la publicación real del entregable con derechos de uso versionados. */
+function PublicationProofForm({ deliverable, onSaved }: { deliverable: InfluencerDeliverable; onSaved: () => void }) {
+  const [form, setForm] = useState<{ platform: PublicationPlatform; url: string; screenshot: string; license: LicenseType; expires: string; notes: string }>({ platform: 'instagram', url: '', screenshot: '', license: 'uso_campaña', expires: '', notes: '' });
+  const [busy, setBusy] = useState(false);
+  const lock = useRef(false);
+  const [error, setError] = useState('');
+  const licenciaConVencimiento = form.license === 'paid_ampliado' || form.license === 'cesion_total';
+  const update = (key: keyof typeof form, value: string) => setForm(previous => ({ ...previous, [key]: value }));
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (lock.current) return;
+    if (!form.url.startsWith('https://')) { setError('La URL de la publicación tiene que ser https://.'); return; }
+    if (licenciaConVencimiento && !form.expires) { setError('La licencia pagada o cedida necesita fecha de vencimiento.'); return; }
+    lock.current = true; setBusy(true); setError('');
+    try {
+      await registerPublicationProof({
+        deliverable_id: deliverable.id,
+        platform: form.platform,
+        publication_url: form.url.trim(),
+        screenshot_url: form.screenshot.trim() || null,
+        license_type: form.license,
+        license_expires_at: form.expires || null,
+        license_notes: form.notes.trim() || null,
+      });
+      toast.success('Publicación verificada: queda registrada con su licencia');
+      onSaved();
+    } catch {
+      setError('No pudimos verificar la publicación. Revisá el enlace, la licencia y los permisos.');
+    } finally { lock.current = false; setBusy(false); }
+  };
+  return <DialogContent><DialogHeader><DialogTitle>Verificar publicación</DialogTitle><DialogDescription>Registrá la publicación real de {deliverable.influencer_name} con su captura y el tipo de licencia acordada. Cada verificación se guarda como un registro nuevo.</DialogDescription></DialogHeader>
+    <form onSubmit={submit} className="space-y-4">
+      <fieldset disabled={busy} className="space-y-3">
+        <div className="space-y-1"><Label htmlFor="proof-platform">Plataforma</Label><Select value={form.platform} onValueChange={value => update('platform', value)}><SelectTrigger id="proof-platform"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(PUBLICATION_PLATFORMS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-1"><Label htmlFor="proof-url">URL de la publicación</Label><Input id="proof-url" type="url" pattern="https://.*" required value={form.url} onChange={event => update('url', event.target.value)} placeholder="https://instagram.com/reel/..." /></div>
+        <div className="space-y-1"><Label htmlFor="proof-screenshot">Captura (URL, opcional)</Label><Input id="proof-screenshot" type="url" pattern="https://.*" value={form.screenshot} onChange={event => update('screenshot', event.target.value)} placeholder="https://..." /></div>
+        <div className="space-y-1"><Label htmlFor="proof-license" aria-label="tipo de licencia">Tipo de licencia</Label><Select value={form.license} onValueChange={value => update('license', value)}><SelectTrigger id="proof-license"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(LICENSE_TYPES).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+        {licenciaConVencimiento && <div className="space-y-1"><Label htmlFor="proof-expires">Licencia vigente hasta</Label><Input id="proof-expires" type="date" required min={new Date().toISOString().slice(0, 10)} value={form.expires} onChange={event => update('expires', event.target.value)} /></div>}
+        <div className="space-y-1"><Label htmlFor="proof-notes">Notas de la licencia (opcional)</Label><Textarea id="proof-notes" maxLength={2000} value={form.notes} onChange={event => update('notes', event.target.value)} /></div>
+      </fieldset>
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      <DialogFooter><Button type="button" variant="outline" disabled={busy} onClick={onSaved}>Volver</Button><Button type="submit" disabled={busy}>{busy ? 'Verificando...' : 'Registrar verificación'}</Button></DialogFooter>
+    </form>
   </DialogContent>;
 }

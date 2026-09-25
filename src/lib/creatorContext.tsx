@@ -37,6 +37,10 @@ export interface CreatorCampaign {
   deliverable_status: string | null;
   /** Feedback de la marca tras revisar la entrega (aprobado o corrección). */
   review_notes: string | null;
+  /** Publicación verificada por la marca: URL, plataforma y fecha. */
+  publication_url: string | null;
+  publication_platform: string | null;
+  publication_verified_at: string | null;
 }
 
 export interface CreatorDeliverable {

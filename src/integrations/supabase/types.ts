@@ -18689,6 +18689,153 @@ export type Database = {
         }
         Relationships: []
       }
+      influencer_publication_proofs: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          deliverable_id: string
+          id: string
+          influencer_id: string
+          license_expires_at: string | null
+          license_notes: string | null
+          license_type: string
+          org_id: string
+          platform: string
+          publication_url: string
+          screenshot_url: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          deliverable_id: string
+          id?: string
+          influencer_id: string
+          license_expires_at?: string | null
+          license_notes?: string | null
+          license_type?: string
+          org_id: string
+          platform: string
+          publication_url: string
+          screenshot_url?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          deliverable_id?: string
+          id?: string
+          influencer_id?: string
+          license_expires_at?: string | null
+          license_notes?: string | null
+          license_type?: string
+          org_id?: string
+          platform?: string
+          publication_url?: string
+          screenshot_url?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_publication_proofs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_publication_proofs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       influencer_reviews: {
         Row: {
           campaign_id: string | null
@@ -55728,7 +55875,9 @@ export type Database = {
           invitation_status: string
           org_id: string
           org_name: string
-          review_notes: string
+          publication_platform: string
+          publication_url: string
+          publication_verified_at: string
           status: string
           title: string
         }[]
@@ -57711,6 +57860,38 @@ export type Database = {
       redondear_moneda: {
         Args: { p_importe: number; p_moneda?: string }
         Returns: number
+      }
+      register_publication_proof: {
+        Args: {
+          p_deliverable_id: string
+          p_license_expires_at?: string
+          p_license_notes?: string
+          p_license_type?: string
+          p_platform: string
+          p_publication_url: string
+          p_screenshot_url?: string
+        }
+        Returns: {
+          campaign_id: string | null
+          created_at: string
+          deliverable_id: string
+          id: string
+          influencer_id: string
+          license_expires_at: string | null
+          license_notes: string | null
+          license_type: string
+          org_id: string
+          platform: string
+          publication_url: string
+          screenshot_url: string | null
+          verified_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "influencer_publication_proofs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       register_store_marketing_consent: {
         Args: {

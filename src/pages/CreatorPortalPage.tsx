@@ -13,6 +13,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
   Clock, Loader2, ExternalLink, User, LogOut, Save, Upload, ArrowDownToLine,
+  BadgeCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -297,6 +298,20 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
         >
           <CheckCircle2 className="h-3.5 w-3.5" /> Contenido entregado <ExternalLink className="h-3 w-3" />
         </a>
+      )}
+
+      {/* La marca verificó la publicación real de este entregable. */}
+      {campaign.publication_url && campaign.publication_verified_at && (
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={campaign.publication_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 hover:underline"
+          >
+            <BadgeCheck className="h-3.5 w-3.5" /> Publicación verificada por {campaign.org_name} <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
       )}
 
       {/* Estado honesto del entregable en el loop marca→creador */}
