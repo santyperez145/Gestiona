@@ -30,6 +30,7 @@ import {
   resumenEnvioCarrito,
 } from "@/lib/storeCartProvince";
 import StoreTrackingConsent from "./StoreTrackingConsent";
+import StoreNewsletter from "./StoreNewsletter";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -543,6 +544,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </div>
           )}
         </div>
+        {/* ── Newsletter footer ─────────────────────────────── */}
+        {store?.slug && (
+          <div className="storefront-newsletter">
+            <StoreNewsletter />
+          </div>
+        )}
         {/* Defensa del Consumidor exige que el comprador sepa dónde reclamar
             si el comercio no le responde. Va acá abajo, junto al copyright,
             porque es información de cierre y no una acción — a diferencia del
