@@ -9,6 +9,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { csvCell } from "@/lib/csv";
 import { supabase } from "@/integrations/supabase/client";
+import { clearStockCountDraft, loadStockCountDraft, saveStockCountDraft } from "@/lib/stockCountDraft";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import KPICard from "@/components/shared/KPICard";
@@ -95,6 +96,8 @@ export default function StockCountTab() {
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [scanCount, setScanCount] = useState(0);
+  /** Borrador recuperado tras recarga/corte: muestra banner para retomar. */
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
 
   // Barcode scan handler: find product by barcode/sku/name, increment its count
   const handleBarcodeScan = useCallback((code: string) => {
@@ -151,7 +154,25 @@ export default function StockCountTab() {
         .eq("org_id", activeOrg.id)
         .order("name");
       if (error) throw error;
-      setRows(((data || []) as Product[]).map(p => ({ product: p, counted: "" })));
+      const fresh: CountRow[] = ((data || []) as Product[]).map(p => ({ product: p, counted: "" }));
+      // Retomar el borrador local si hay uno: lo contado sobrevive a
+      // recargas y cortes. Sólo aplica a productos que siguen existiendo.
+      const draft = loadStockCountDraft(activeOrg.id);
+      if (draft && draft.rows.length > 0) {
+        const byId = new Map(draft.rows.map(row => [row.product_id, row.counted]));
+        const restablecido = fresh.filter(row => byId.has(row.product.id)).length;
+        if (restablecido > 0) {
+          setRows(fresh.map(row => {
+            const counted = byId.get(row.product.id);
+            return counted !== undefined ? { ...row, counted } : row;
+          }));
+          const cuando = new Date(draft.saved_at).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+          setDraftNotice(`Retomamos tu conteo de ${cuando}: ${restablecido} producto(s) con lo que ya habías contado.`);
+          return;
+        }
+      }
+      setRows(fresh);
+      setDraftNotice(null);
       setConfirmedAt(null);
     } catch {
       toast.error("Error al cargar productos");
@@ -161,6 +182,12 @@ export default function StockCountTab() {
   };
 
   useEffect(() => { load(); }, [activeOrg]);
+
+  // Persistir el progreso local: cada cambio de campo guarda el borrador.
+  useEffect(() => {
+    if (loading || !activeOrg) return;
+    saveStockCountDraft(activeOrg.id, rows);
+  }, [rows, loading, activeOrg]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
@@ -254,6 +281,8 @@ export default function StockCountTab() {
       const closePayload = closed as { productos_ajustados?: unknown; sin_contar?: unknown } | null;
       const adjusted = typeof closePayload?.productos_ajustados === "number" ? closePayload.productos_ajustados : changed.length;
       const uncounted = typeof closePayload?.sin_contar === "number" ? closePayload.sin_contar : rows.length - countedRows.length;
+      clearStockCountDraft(activeOrg!.id);
+      setDraftNotice(null);
       await load();
       setConfirmedAt(new Date().toLocaleString("es-AR"));
       toast.success(`Toma cerrada: ${adjusted} ajustes auditados${uncounted ? `, ${uncounted} sin contar` : ""}`);
@@ -389,6 +418,28 @@ export default function StockCountTab() {
         <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-950/30 border border-emerald-800/40 rounded-lg px-4 py-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           Toma confirmada el {confirmedAt}
+        </div>
+      )}
+
+      {/* Borrador recuperado: horas de conteo no se pierden por recarga. */}
+      {draftNotice && !loading && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm" role="status">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-primary" />
+          <span className="flex-1 min-w-[16rem] text-foreground/90">{draftNotice}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => {
+              clearStockCountDraft(activeOrg?.id);
+              setRows(prev => prev.map(r => ({ ...r, counted: "" })));
+              setScanCount(0);
+              setDraftNotice(null);
+              toast.info("Borrador descartado: la toma arranca desde cero.");
+            }}
+          >
+            Descartar y empezar de nuevo
+          </Button>
         </div>
       )}
 
