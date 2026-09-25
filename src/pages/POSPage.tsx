@@ -1084,11 +1084,33 @@ export default function POSPage() {
       .maybeSingle();
     if (error) {
       console.error("[POS] No se pudo leer la sesión de caja:", error);
+      // Snapshot offline: sin señal el cajero tiene que poder seguir vendiendo
+      // con el turno que abrió. La última sesión abierta conocida se guarda
+      // por org+location al leerla con éxito.
+      try {
+        const cacheKey = `gestiona.pos.cashsession.${activeOrg.id}.${selectedLocationId}`;
+        const snap = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+        if (snap?.status) {
+          setCashSessionError(null);
+          setCashSessionStatus(snap.status as PosCashSessionStatus);
+          setCashSessionLoading(false);
+          return;
+        }
+      } catch { /* sin snapshot */ }
       setCashSessionError("No se pudo comprobar el turno");
       setCashSessionStatus(null);
     } else {
       setCashSessionError(null);
       setCashSessionStatus(data as PosCashSessionStatus | null);
+      // Persistir el último estado conocido del turno para operar sin señal.
+      if (data && activeOrg?.id && selectedLocationId) {
+        try {
+          localStorage.setItem(
+            `gestiona.pos.cashsession.${activeOrg.id}.${selectedLocationId}`,
+            JSON.stringify({ at: Date.now(), status: data }),
+          );
+        } catch { /* cuota llena */ }
+      }
     }
     setCashSessionLoading(false);
   }, [activeOrg?.id, selectedLocationId]);
@@ -1541,6 +1563,21 @@ export default function POSPage() {
       }
 
       setProducts(prods);
+      // Snapshot de settings: si sin señal la consulta de settings rechaza,
+      // la caja pierde umbrales (stock bajo, venta grande) y el descuento de
+      // medios de cobro. Misma mecánica que el snapshot de catálogo.
+      const settingsKey = `gestiona.pos.settings.${activeOrg?.id || 'default'}`;
+      if (sett) {
+        try { localStorage.setItem(settingsKey, JSON.stringify({ at: Date.now(), settings: sett })); } catch { /* cuota llena */ }
+      } else {
+        try {
+          const snap = JSON.parse(localStorage.getItem(settingsKey) || 'null');
+          if (snap?.settings) {
+            setSettings(snap.settings);
+            toast.info('Sin conexión — usando la última configuración guardada');
+          }
+        } catch { /* sin snapshot */ }
+      }
       if (sett) setSettings(sett);
       // Group variants by product_id
       const varMap: Record<string, any[]> = {};
