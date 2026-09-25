@@ -57,6 +57,15 @@ export interface CreatorEarnings {
   available_ars: number;
 }
 
+/** Historial de retiros solicitados por el creador (todas sus marcas). */
+export interface CreatorWithdrawal {
+  id: string;
+  amount_ars: number;
+  status: "pending" | "approved" | "paid" | "rejected";
+  created_at: string;
+  processed_at: string | null;
+}
+
 interface CreatorCtx {
   loading: boolean;
   isCreator: boolean;
@@ -64,6 +73,7 @@ interface CreatorCtx {
   campaigns: CreatorCampaign[];
   deliverables: CreatorDeliverable[];
   earnings: CreatorEarnings | null;
+  withdrawals: CreatorWithdrawal[];
   refresh: () => Promise<void>;
   saveProfile: (fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>) => Promise<void>;
   /** Responde la invitación de una campaña (accept/decline) con la sesión. */
@@ -85,6 +95,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   const [campaigns, setCampaigns] = useState<CreatorCampaign[]>([]);
   const [deliverables, setDeliverables] = useState<CreatorDeliverable[]>([]);
   const [earnings, setEarnings] = useState<CreatorEarnings | null>(null);
+  const [withdrawals, setWithdrawals] = useState<CreatorWithdrawal[]>([]);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -93,6 +104,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setCampaigns([]);
       setDeliverables([]);
       setEarnings(null);
+      setWithdrawals([]);
       setLoading(false);
       return;
     }
@@ -120,20 +132,23 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setProfile(own);
 
       if (own) {
-        const [camp, deliv, earn] = await Promise.all([
+        const [camp, deliv, earn, wd] = await Promise.all([
           rpc("creator_campaigns"),
           rpc("creator_deliverables"),
           rpc("creator_earnings"),
+          rpc("creator_my_withdrawals"),
         ]);
         setCampaigns(Array.isArray(camp.data) ? camp.data : []);
         setDeliverables(Array.isArray(deliv.data) ? deliv.data : []);
         const earnData = earn.data;
         const parsed = typeof earnData === "string" ? JSON.parse(earnData) : earnData;
         setEarnings((parsed as CreatorEarnings) ?? null);
+        setWithdrawals(Array.isArray(wd.data) ? wd.data : []);
       } else {
         setCampaigns([]);
         setDeliverables([]);
         setEarnings(null);
+        setWithdrawals([]);
       }
     } catch (error) {
       console.error("[creator] no se pudo cargar la superficie de creador", error);
@@ -142,6 +157,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setCampaigns([]);
       setDeliverables([]);
       setEarnings(null);
+      setWithdrawals([]);
     } finally {
       setLoading(false);
     }
@@ -185,7 +201,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, refresh, saveProfile, respondCampaign, submitDeliverable }}>
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, refresh, saveProfile, respondCampaign, submitDeliverable }}>
       {children}
     </CreatorContext.Provider>
   );

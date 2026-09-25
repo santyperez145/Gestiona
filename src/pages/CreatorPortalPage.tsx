@@ -301,7 +301,7 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
 
 export default function CreatorPortalPage() {
   usePageTitle("Portal de creador");
-  const { loading, isCreator, profile, campaigns, deliverables, earnings, refresh } = useCreator();
+  const { loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, refresh } = useCreator();
   const focoScrollRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Solicitud de retiro de comisiones
@@ -443,6 +443,31 @@ export default function CreatorPortalPage() {
                     <p className="text-[11px] text-muted-foreground mt-1">{fmtMoney(Number(earnings.pending_withdrawals_ars))} en revisión</p>
                   )}
                 </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* Historial de retiros */}
+          {withdrawals.length > 0 && (
+            <section aria-label="Mis retiros">
+              <h2 className="text-sm font-semibold mb-2">Mis retiros</h2>
+              <Card>
+                <div className="divide-y divide-border">
+                  {withdrawals.map(w => (
+                    <div key={w.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold tabular-nums">{fmtMoney(Number(w.amount_ars))}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(w.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                          {w.processed_at && " · procesado"}
+                        </p>
+                      </div>
+                      <Badge variant={w.status === "paid" ? "default" : w.status === "rejected" ? "destructive" : "outline"}>
+                        {w.status === "pending" ? "En revisión" : w.status === "approved" ? "Aprobado" : w.status === "paid" ? "Pagado" : "Rechazado"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               </Card>
             </section>
           )}

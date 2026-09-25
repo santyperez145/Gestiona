@@ -140,3 +140,29 @@ describe("paridad competitiva: Mendel — circuito completo del gasto", () => {
     expect(pub).toContain("ALTER PUBLICATION supabase_realtime ADD TABLE public.finance_expense_requests");
   });
 });
+
+describe("paridad competitiva: Marz — el creador ve el ciclo de SU dinero", () => {
+  const migracion = read("supabase/migrations/20260924000700_creator_my_withdrawals.sql");
+
+  it("existe creator_my_withdrawals ligado por email, autenticado", () => {
+    expect(migracion).toContain("CREATE OR REPLACE FUNCTION public.creator_my_withdrawals");
+    expect(migracion).toContain("auth.uid()");
+    expect(migracion).toContain("lower(i.email) = lower(ca.email)");
+    expect(migracion).toContain("REVOKE ALL ON FUNCTION public.creator_my_withdrawals() FROM PUBLIC, anon");
+  });
+
+  it("el portal del creador muestra el historial con estados claros", () => {
+    const portal = read("src/pages/CreatorPortalPage.tsx");
+    expect(portal).toContain("withdrawals");
+    expect(portal).toContain("Mis retiros");
+    expect(portal).toContain("En revisión");
+    expect(portal).toContain("Pagado");
+    expect(portal).toContain("Rechazado");
+  });
+
+  it("el contexto del creador carga los retiros junto al resto de su superficie", () => {
+    const ctx = read("src/lib/creatorContext.tsx");
+    expect(ctx).toContain("creator_my_withdrawals");
+    expect(ctx).toContain("CreatorWithdrawal");
+  });
+});
