@@ -49,6 +49,7 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   'fetch-usd-rate': 'cron',
   'precio-suscripcion': 'cron: avisa y aplica cambios de precio de suscripción',
   'avisos-por-correo': 'cron: manda por mail los avisos ya marcados',
+  'campaign-chat-dispatcher': 'cron: despacha la cola consentida del chat marca↔creador',
   // Webhooks: los llama un tercero que firma el request
   'stripe-webhook': 'webhook firmado',
   'mercadopago-webhook': 'webhook firmado',

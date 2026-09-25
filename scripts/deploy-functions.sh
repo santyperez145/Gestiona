@@ -108,6 +108,8 @@ NO_JWT=(
   "precio-suscripcion" "avisos-por-correo"
   "recover-abandoned-carts" "notify-back-in-stock" "send-drip-emails" "send-birthday-whatsapp"
   "daily-whatsapp-digest" "send-push"
+  # Despacha la cola de notificaciones consentidas del chat marca↔creador.
+  "campaign-chat-dispatcher"
 )
 
 is_public() {

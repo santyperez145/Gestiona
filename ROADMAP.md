@@ -255,8 +255,7 @@ de [GoMarz](https://www.go-marz.com/), sin clonar identidades ni pagos.
   retiros vía Edge Function `mp-payouts` con idempotencia, cifrado de token y
   webhook firmado HMAC; chat por colaboración campaña+creador server-side y
   notificaciones consentidas (preferencia + cola + despacho service_role).
-- Siguiente: perfiles públicos, descubrimiento, job cron del despachador y
-  panel de superadmin con vista global.
+- Siguiente: perfiles públicos, descubrimiento y panel de superadmin con vista global.
 - No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
 
@@ -288,7 +287,7 @@ cita la evidencia que falta, no la que existe.
 | Falta | Detalle verificable |
 |---|---|
 | Chat por colaboración | **Cerrado (2026-09-25):** `influencer_campaign_messages` crea un hilo por campaña+creador con RLS propia; RPCs `campaign_chat_list`/`campaign_chat_send` con autoridad en servidor, anti-spam y hilo visible en ambos portales. |
-| Notificaciones consentidas del chat | **Cerrado (2026-09-25):** `influencer_chat_notify_prefs` (consentimiento por persona) + cola `influencer_chat_notifications` por trigger según preferencia del destinatario; despacho email/push service_role, toggle en ambos portales, verificación reversible E2E (7 aserciones). Pendiente: job cron del despachador. |
+| Notificaciones consentidas del chat | **Cerrado (2026-09-25):** `influencer_chat_notify_prefs` (consentimiento por persona) + cola `influencer_chat_notifications` por trigger según preferencia del destinatario; despacho email/push service_role, toggle en ambos portales, verificación reversible E2E (7 aserciones) y job `campaign-chat-dispatcher` en pg_cron (c/5 min) con reintentos. |
 | Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada y vencimiento obligatorio para usos pagados; RPC y portal del creador muestran la verificación. |
 | Contratos con aceptación de ambas partes | `InfluencerContractsPage` registra condiciones internas; falta aceptación explícita del creador con timestamp y versionado. |
 | Liquidación enlazada a Finance | Los payouts MP asientan en `influencer_payouts` pero no generan obligación/gasto en Finance ni conciliación bancaria. |

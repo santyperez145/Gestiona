@@ -58,7 +58,10 @@ $noJwt = @(
     "send-drip-emails",
     "send-birthday-whatsapp",
     "daily-whatsapp-digest",
-    "send-push"
+    "send-push",
+    # Despacha la cola de notificaciones consentidas del chat marca↔creador;
+    # exige el secreto de cron como el resto de los jobs.
+    "campaign-chat-dispatcher"
 )
 
 Write-Host ""
