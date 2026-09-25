@@ -36,6 +36,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ApprovalPolicyPanel from "@/components/finance/ApprovalPolicyPanel";
 
 const DOCUMENT_TYPES = ["supplier_invoice", "receipt", "purchase_order", "other"] as const;
 type DocumentType = (typeof DOCUMENT_TYPES)[number];
@@ -300,6 +301,9 @@ export default function FinanceSolicitudesPage() {
           <Button variant="ghost" size="sm" className="ml-auto mt-2" onClick={() => setNotice(null)}><XCircle className="h-4 w-4" /></Button>
         </div>
       )}
+
+      {/* Política de aprobación (F5.2): quién aprueba según monto/categoría */}
+      {activeOrg?.id && <ApprovalPolicyPanel />}
 
       {/* Summary KPIs */}
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">

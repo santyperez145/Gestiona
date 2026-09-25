@@ -379,6 +379,7 @@ BEGIN
 END;
 $guard$;
 
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260903000100', 'factura_creada_autorizacion_automatica')
-ON CONFLICT DO NOTHING;
+-- Nota: este archivo NO se auto-registra en supabase_migrations.schema_migrations.
+-- La CLI (`supabase db push`) registra la migración con sus statements; un INSERT
+-- propio duplicaría la clave (version) y rompería el push. Fue aplicado a
+-- producción con db query --file y registrado manualmente el 2026-09-25.
