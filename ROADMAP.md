@@ -116,7 +116,7 @@ duplicados por email/teléfono/nombre normalizado con fusión asistida de un cli
 (`src/lib/customerDuplicates.ts`), panel de salud de identidad
 (`IdentityHealthPanel`), RFM, CLV proyectado y riesgo de churn en `CustomersPage`.
 
-**Pendiente:** conteo físico, primera operación externa sin corrección SQL,
+**Pendiente:** primera operación externa sin corrección SQL,
 catálogo polimórfico completo y evidencia de margen usado para decidir.
 
 ### Finance
@@ -315,7 +315,7 @@ cita la evidencia que falta, no la que existe.
 
 | Falta | Detalle verificable |
 |---|---|
-| Conteo físico de inventario | Pendiente en Business Core; sin él, el stock confiable depende de ajustes manuales. |
+| Conteo físico de inventario | **Cerrado (2026-09-25):** toma física con escáner de códigos y ajustes auditados vía `abrir/registrar/cerrar_conteo` ya existía; el progreso ahora sobrevive a recargas y cortes con borrador local por dispositivo (`stockCountDraft`) que se limpia al cerrar la toma. |
 | Interacciones de cliente unificadas | Existen notas y seguimientos; falta timeline único por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360. |
 
 | Orden | Slice | Resultado verificable |
