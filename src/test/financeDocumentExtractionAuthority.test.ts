@@ -30,9 +30,13 @@ describe('autoridad de extracción documental Finance', () => {
     expect(migration).toContain('actual_sha256 IS DISTINCT FROM lower(v_version.sha256)');
   });
 
-  it('falla cerrado hasta aprobar privacidad, proveedor y modelo', () => {
+  it('falla cerrado sin habilitación explícita; modelo fijo y retención cero cuando corre', () => {
     expect(edge).toContain('Deno.env.get("FINANCE_DOCUMENT_EXTRACTION_ENABLED") === "true"');
     expect(edge).toContain('FINANCE_DOCUMENT_MODEL');
+    // Modelo por defecto fijo: un proveedor de plataforma pagado con
+    // exclusión de entrenamiento y revisión humana obligatoria después.
+    expect(edge).toContain('claude-haiku');
+    expect(edge).toContain('zero-data-retention');
     expect(edge.indexOf('if (!enabled || !apiKey || !model)')).toBeLessThan(edge.indexOf('https://api.anthropic.com/v1/messages'));
     expect(edge).toContain('tool_choice: { type: "tool", name: extractionTool.name }');
   });

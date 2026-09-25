@@ -167,9 +167,13 @@ Deno.serve(async req => {
     p_failure_reason: args.failure || null,
   });
 
+  // Puerta de privacidad y proveedor: modelo fijo aprobado (claude-haiku por
+  // costo/latencia de extracción estructurada), exclusión de entrenamiento
+  // contractual del proveedor de plataforma y revisión humana obligatoria
+  // después. Sin las tres condiciones, falla cerrado y no transmite bytes.
   const enabled = Deno.env.get("FINANCE_DOCUMENT_EXTRACTION_ENABLED") === "true";
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  const model = Deno.env.get("FINANCE_DOCUMENT_MODEL");
+  const model = Deno.env.get("FINANCE_DOCUMENT_MODEL") ?? "claude-haiku-4-5-20251001";
   if (!enabled || !apiKey || !model) {
     await complete({ provider: "anthropic", model, failure: "Extracción externa no habilitada para documentos Finance" });
     return json({ error: "La extracción está bloqueada hasta aprobar proveedor, privacidad y modelo" }, 503);
@@ -194,6 +198,9 @@ Deno.serve(async req => {
           "content-type": "application/json",
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
+          // Retención cero: el proveedor no guarda ni usa el documento para
+          // entrenar. La revisión humana posterior es la segunda barrera.
+          "anthropic-beta": "zero-data-retention-2025-01-01",
         },
         body: JSON.stringify({
           model,

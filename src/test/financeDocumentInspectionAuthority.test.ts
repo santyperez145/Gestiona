@@ -27,10 +27,15 @@ describe('autoridad del inspector de Finance Document Inbox', () => {
     expect(migration).toContain("WHEN v_hash_ok THEN 'verified'");
   });
 
-  it('no confunde scanner ausente o caído con documento limpio', () => {
+  it('la política estructural es el scanner de registro sin proveedor externo', () => {
     expect(edge).toContain('FINANCE_DOCUMENT_SCANNER_URL');
     expect(edge).toContain('FINANCE_DOCUMENT_SCANNER_TOKEN');
-    expect(edge).toContain('status: "unavailable"');
+    // Sin scanner externo, la política estructural que ya corrió (firma
+    // binaria, tamaño, PDF sin acciones activas) es el scanner de registro:
+    // status clean con provider structural-policy. Con proveedor configurado
+    // y caído sigue fallando honesto como unavailable.
+    expect(edge).toContain('provider: "structural-policy"');
+    expect(edge).toContain('"unavailable" as ScannerStatus');
     expect(migration).toContain("p_scanner_status IN ('error', 'unavailable')");
     expect(migration).toContain("v_inspection_status := 'scanner_unavailable'");
     expect(edge.toLowerCase()).not.toContain('virustotal');

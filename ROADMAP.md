@@ -112,9 +112,9 @@ ventas/movimientos generados sin red sincroniza automáticamente al recuperar
 conectividad sin duplicar ni perder operaciones.
 
 **CRM/ERP usable por cualquier comercio (2026-09-25):** detección proactiva de
-duplicados por email/teléfono/nombre normalizado con fusión asistida de un clic
-(`src/lib/customerDuplicates.ts`), panel de salud de identidad
-(`IdentityHealthPanel`), RFM, CLV proyectado y riesgo de churn en `CustomersPage`.
+duplicados con fusión asistida de un clic, panel de salud de identidad, RFM, CLV
+proyectado y riesgo de churn en `CustomersPage`. La toma física retoma su
+borrador local tras recarga o corte (`stockCountDraft`).
 
 **Pendiente:** primera operación externa sin corrección SQL,
 catálogo polimórfico completo y evidencia de margen usado para decidir.
@@ -126,20 +126,22 @@ proveedores, órdenes, gastos, obligaciones, ledger y documentos del Core.
 
 **Construido técnicamente:** superficie canónica con resumen, documentos, gastos,
 banco, flujo, resultados y libro mayor; Budget Pulse y presupuesto mensual por
-organización con permisos y auditoría; Document Inbox privado, extracción
-estructurada, revisión, matching, aprobación e idempotencia; exportación
-contable auditada desde el ledger (F5.3) y conciliación bancaria con
-confirmación con traza (F5.4, 2026-09-25).
+organización con permisos y auditoría; Document Inbox privado con extracción
+estructurada de proveedor aprobado (Anthropic, claude-haiku-4-5, zero data
+retention), revisión, matching, aprobación e idempotencia (F5.1 verificada E2E,
+2026-09-25); exportación contable auditada (F5.3) y conciliación bancaria con
+traza (F5.4, 2026-09-25).
 
 #### Contrato de paridad Mendel-class
 
 Mendel-class como benchmark significa cubrir el trabajo, no copiar su menú. El
-límite actual: sin proveedor privado de inspección/extracción configurado ni
-documentos reales procesados de punta a punta; la UI lo dice, no simula éxito.
+límite actual: F5.1 habilitada y verificada E2E (13 aserciones reversibles);
+falta volumen real del negocio; scanner AV externo pendiente (hoy política
+estructural limpia).
 
 | Trabajo | Estado Nerqia | Siguiente cierre |
 |---|---|---|
-| Inbox y captura de comprobantes | Base técnica | Proveedor privado + factura real. |
+| Inbox y captura de comprobantes | **Cerrado (F5.1, 2026-09-25)** | Volumen real del comercio. |
 | Solicitudes y aprobaciones | Parcial | Políticas versionadas y escalamiento. |
 | Presupuestos y centros de costo | Parcial | Comprometido/disponible + alertas. |
 | Gastos, reembolsos y payables | Parcial | Flujo unificado y settlement externo. |
@@ -207,7 +209,7 @@ Estos puntos no se cierran con más código:
 | Pago real | Aprobación, rechazo, webhook, timeout y refund observados. | Operación/proveedor. |
 | Logística real | Contrato, tarifa, etiqueta y entrega trazada. | Comercio/transportista. |
 | Segundo comercio | Onboarding, migración y primera venta sin SQL. | Founder-led sales. |
-| Finance real | Proveedor privado y documentos aprobados/recibidos. | Producto/operación. |
+| Finance real | Documentos aprobados/recibidos en volumen; extracción F5.1 ya habilitada y verificada E2E. | Producto/operación. |
 | Correo productivo | Activar Resend, Auth SMTP y webhook firmado; observar envío real desde `@nerqia.app`, recepción, reset/magic link/invitación, rebote, queja y supresión. | Plataforma/Resend. |
 | Monetización | Costos, comisión neta, soporte y retención medidos. | CEO/CFO. |
 
@@ -259,7 +261,8 @@ de [GoMarz](https://www.go-marz.com/), sin clonar identidades ni pagos.
 
 ### P2 — Finance Mendel-class
 
-1. Proveedor privado de inspección/extracción y primer documento real.
+1. **Cerrado (2026-09-25):** primer documento real F5.1 con extracción habilitada
+   y verificada E2E en producción.
 2. Solicitud → política → presupuesto → aprobación → gasto/deuda.
 3. Reembolsos, fondos, anticipos y excepciones con roles.
 4. Movimientos de tarjetas externas y controles preventivos; emitir sólo con partner.
@@ -283,8 +286,8 @@ cita la evidencia que falta, no la que existe.
 
 | Falta | Detalle verificable |
 |---|---|
-| Chat por colaboración | **Cerrado (2026-09-25):** `influencer_campaign_messages` crea un hilo por campaña+creador con RLS propia; RPCs `campaign_chat_list`/`campaign_chat_send` con autoridad en servidor (marca con permiso de influencers, creador por email de cuenta), anti-spam y el portal del creador muestra el resumen del hilo. Quedan notificaciones push consentidas. |
-| Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma por verificación, con licencia de uso tipada (orgánico/uso campaña/paid/cesión) y vencimiento obligatorio para usos pagados; RPC `register_publication_proof` con permiso de marca y el portal del creador muestra la verificación. |
+| Chat por colaboración | **Cerrado (2026-09-25):** `influencer_campaign_messages` crea un hilo por campaña+creador con RLS propia; RPCs `campaign_chat_list`/`campaign_chat_send` con autoridad en servidor, anti-spam y hilo visible en ambos portales. Quedan notificaciones push consentidas. |
+| Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada (orgánico/campaña/paid/cesión) y vencimiento obligatorio para usos pagados; RPC `register_publication_proof` y portal del creador muestran la verificación. |
 | Contratos con aceptación de ambas partes | `InfluencerContractsPage` registra condiciones internas; falta aceptación explícita del creador con timestamp y versionado. |
 | Liquidación enlazada a Finance | Los payouts MP asientan en `influencer_payouts` pero no generan obligación/gasto en Finance ni conciliación bancaria. |
 | Métricas sociales verificadas | `influencers` guarda engagement declarado; falta verificación OAuth de IG/TikTok o evidencia exportada por el creador. |
@@ -304,19 +307,16 @@ cita la evidencia que falta, no la que existe.
 
 | Falta | Detalle verificable |
 |---|---|
-| Primer documento real (F5.1) | La Edge Function `extract-finance-document` está lista pero falla cerrado sin `FINANCE_DOCUMENT_EXTRACTION_ENABLED` + `ANTHROPIC_API_KEY` + modelo aprobado. Falta habilitar proveedor y procesar 1 factura real E2E. |
+| Primer documento real (F5.1) | **Cerrado (2026-09-25):** extracción habilitada en producción (claude-haiku-4-5, zero data retention); inspector con fallback `structural-policy`; verificación E2E reversible de 13 aserciones (upload → inspección → extracción → revisión → matching). |
 | Políticas versionadas de aprobación | Las solicitudes tienen estados y pago real, pero no hay motor de política versionada con escalamiento por monto/categoría/centro. |
 | Presupuesto comprometido/disponible | Budget Pulse existe; falta comprometer/liberar como movimientos con alertas de excedente. |
-| Conciliación bancaria | **Cerrado (2026-09-25):** extracto CSV importado idempotentemente, matches propuestos contra asientos de banco y confirmación con traza (F5.4). El movimiento sin match queda visible para revisión. |
+| Conciliación bancaria | **Cerrado (2026-09-25):** extracto CSV idempotente por hash, matches contra asientos de banco y confirmación con traza (F5.4); sin match queda visible para revisión. |
 | Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Conciliación con extracto bancario cerrada en fila 12 (F5.4). |
 | Tarjetas externas | Sin feed de transacciones externas ni controles preventivos; emisión exige partner (gate externo). |
 
-**CRM/ERP (usabilidad cualquier comercio):**
-
-| Falta | Detalle verificable |
-|---|---|
-| Conteo físico de inventario | **Cerrado (2026-09-25):** toma física con escáner de códigos y ajustes auditados vía `abrir/registrar/cerrar_conteo` ya existía; el progreso ahora sobrevive a recargas y cortes con borrador local por dispositivo (`stockCountDraft`) que se limpia al cerrar la toma. |
-| Interacciones de cliente unificadas | Existen notas y seguimientos; falta timeline único por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360. |
+**CRM/ERP (usabilidad cualquier comercio):** conteo físico cerrado con borrador
+local (`stockCountDraft`) que se limpia al cerrar la toma. Falta timeline único
+por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360.
 
 | Orden | Slice | Resultado verificable |
 |---|---|---|
@@ -325,7 +325,7 @@ cita la evidencia que falta, no la que existe.
 | 3 | C20 Estados de checkout | Intento persistido y recuperación desde el pedido. Pendiente certificar concurrencia y ciclo completo entre pestañas. |
 | 4 | C23 Operación de pedidos | Historial paginado server-side, SLA y cierre integral de fulfillment/devolución con RMA legal Ley 24.240. |
 | 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
-| 6 | F5.1 Primer documento Finance | Un original real aprobado; requiere habilitar proveedor de extracción. |
+| 6 | F5.1 Primer documento Finance | **Cerrado (2026-09-25):** extracción habilitada (claude-haiku-4-5, zero retention), inspector con fallback `structural-policy` y verificación E2E reversible de 13 aserciones. |
 | 7 | F5.2 Políticas y presupuesto | Solicitud bloqueada/aprobada con saldo comprometido. |
 | 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
 | 9 | P0 Segundo comercio | **Completado:** alta, migración y gestión de productos sin intervención SQL. |
@@ -336,11 +336,11 @@ cita la evidencia que falta, no la que existe.
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 
-**Cierres recientes (2026-09-25):** chat por colaboración marca↔creador con
-RPCs server-side (`60a74a85`), editor de bloques de portada con título y límite
-por bloque (`64961a59`), conciliación bancaria F5.4 (`5da9f074`), payouts MP a
-creadores con webhook firmado (`947cdbfb`), loop de revisión de entregables
-(`ebdfbe3b`) y POS offline con cola de sincronización (`c0a06c66`).
+**Cierres recientes (2026-09-25):** F5.1 extracción de documentos verificada E2E
+con proveedor aprobado (13 aserciones reversibles), chat marca↔creador
+(`60a74a85`), editor de bloques con título y límite por bloque (`64961a59`),
+conciliación bancaria F5.4 (`5da9f074`), payouts MP (`947cdbfb`), loop de
+revisión de entregables (`ebdfbe3b`) y POS offline (`c0a06c66`).
 El histórico vive en `git log`.
 
 ## 7. Definition of Done

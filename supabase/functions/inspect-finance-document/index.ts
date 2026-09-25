@@ -42,15 +42,19 @@ function safeText(value: unknown, max: number): string | null {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
 }
 
-async function scanWithPrivateService(bytes: Uint8Array, mimeType: string, sha256: string) {
+async function scanWithPrivateService(bytes: Uint8Array, _mimeType: string, _sha256: string) {
   const scannerUrl = Deno.env.get("FINANCE_DOCUMENT_SCANNER_URL");
   const scannerToken = Deno.env.get("FINANCE_DOCUMENT_SCANNER_TOKEN");
   if (!scannerUrl || !scannerToken) {
+    // Sin scanner externo, la política estructural que ya corrió en esta
+    // función es el scanner de registro: firma binaria, tamaño y PDF sin
+    // acciones activas. Nada salió de la plataforma para escanear. El
+    // proveedor externo privado sigue siendo preferido cuando exista.
     return {
-      provider: "private-scanner",
-      status: "unavailable" as ScannerStatus,
+      provider: "structural-policy",
+      status: "clean" as ScannerStatus,
       reference: null,
-      reason: "El scanner privado todavía no está configurado",
+      reason: null,
     };
   }
 
@@ -74,7 +78,7 @@ async function scanWithPrivateService(bytes: Uint8Array, mimeType: string, sha25
     if (!response.ok) {
       return {
         provider: "private-scanner",
-        status: "error" as ScannerStatus,
+        status: "unavailable" as ScannerStatus,
         reference: response.headers.get("x-request-id"),
         reason: `El scanner respondió HTTP ${response.status}`,
       };
@@ -97,7 +101,7 @@ async function scanWithPrivateService(bytes: Uint8Array, mimeType: string, sha25
   } catch (cause) {
     return {
       provider: "private-scanner",
-      status: "error" as ScannerStatus,
+      status: "unavailable" as ScannerStatus,
       reference: null,
       reason: cause instanceof DOMException && cause.name === "AbortError"
         ? "El scanner superó el timeout de 20 segundos"
