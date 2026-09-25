@@ -164,4 +164,40 @@ describe("integración de recuperación del checkout", () => {
     expect(checkout).toContain("markStoreCheckoutOrderCreated");
     expect(order).toContain("clearStoreCheckoutAttemptForOrder");
   });
+
+  it("dos pestañas con el mismo carrito caen en la misma clave y en la misma orden", async () => {
+    // Dos "pestañas" = dos renders contra el MISMO localStorage (como en el
+    // navegador real). Ambas calculan el fingerprint del mismo payload, ambas
+    // piden prepare: la primera crea el intento, la segunda lo lee.
+    const fingerprint = await storeCheckoutPayloadFingerprint({
+      p_items: [{ product_id: "p1", quantity: 1 }],
+      p_customer_email: "comprador@example.test",
+    });
+    const attempts = await Promise.all([
+      prepareStoreCheckoutAttempt({
+        storage: localStorage, slug: "demo", cartToken: "cart-1",
+        fingerprint, createKey: () => "clave-pestaña-A", now: 1_000,
+      }),
+      prepareStoreCheckoutAttempt({
+        storage: localStorage, slug: "demo", cartToken: "cart-1",
+        fingerprint, createKey: () => "clave-pestaña-B", now: 1_001,
+      }),
+    ]);
+    // Una sola clave de idempotencia aunque ambas pestañas enviaran a la vez:
+    // la base deduplica con esa clave y no hay doble orden.
+    expect(attempts[0].idempotencyKey).toBe(attempts[1].idempotencyKey);
+
+    // La pestaña A gana la carrera y marca la orden creada.
+    markStoreCheckoutOrderCreated(localStorage, attempts[0], "ORD-CONCURRENTE", 2_000);
+
+    // La pestaña B, que seguía en "submitting", NO crea otra compra: al
+    // reintentar, recupera la orden ya existente desde el storage compartido.
+    const reintentoB = prepareStoreCheckoutAttempt({
+      storage: localStorage, slug: "demo", cartToken: "cart-1",
+      fingerprint, createKey: () => "clave-pestaña-B", now: 3_000,
+    });
+    expect(reintentoB.phase).toBe("order_created");
+    expect(reintentoB.orderNumber).toBe("ORD-CONCURRENTE");
+    expect(reintentoB.idempotencyKey).toBe(attempts[0].idempotencyKey);
+  });
 });

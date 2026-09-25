@@ -322,7 +322,7 @@ por id/nombre/email; verificación reversible en producción).
 |---|---|---|
 | 1 | A1 Contratos de acción | Cada CTA crítica tiene test reversible/sandbox y resultado observable. |
 | 2 | C22.2 Certificar migración | Exports reales de comercios, clientes, imágenes propias y rollback condicionado. La migración unificada ya está verificada con segundo commerce. |
-| 3 | C20 Estados de checkout | Intento persistido y recuperación desde el pedido. Pendiente certificar concurrencia y ciclo completo entre pestañas. |
+| 3 | C20 Estados de checkout | **Cerrado (2026-09-25):** intento persistido con idempotencia server-side y client-side; concurrencia demostrada entre pestañas con el mismo storage (una sola clave y una sola orden); recuperación desde el pedido y tolerancia a storage bloqueado. |
 | 4 | C23 Operación de pedidos | Historial paginado server-side, SLA y cierre integral de fulfillment/devolución con RMA legal Ley 24.240. |
 | 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
 | 6 | F5.1 Primer documento Finance | **Cerrado (2026-09-25):** extracción habilitada (claude-haiku-4-5, zero retention), inspector con fallback `structural-policy` y verificación E2E reversible de 13 aserciones. |
