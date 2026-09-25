@@ -314,9 +314,10 @@ cita la evidencia que falta, no la que existe.
 | Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Conciliación cerrada en fila 12 (F5.4). |
 | Tarjetas externas | Sin feed de transacciones externas ni controles preventivos; emisión exige partner (gate externo). |
 
-**CRM/ERP (usabilidad cualquier comercio):** conteo físico con borrador local
-(`stockCountDraft`) y notificaciones consentidas del chat cerradas. Falta
-timeline único por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360.
+**CRM/ERP (usabilidad cualquier comercio):** conteo físico con borrador local,
+notificaciones consentidas del chat y timeline 360 cerrado (RPC
+`customer_timeline_360` unifica ventas, pedidos online, notas, WhatsApp y deudas
+por id/nombre/email; verificación reversible en producción).
 
 | Orden | Slice | Resultado verificable |
 |---|---|---|
@@ -336,11 +337,10 @@ timeline único por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 
-**Cierres recientes (2026-09-25):** F5.1 extracción de documentos verificada E2E
-con proveedor aprobado (13 aserciones reversibles), chat marca↔creador con
-notificaciones consentidas (`60a74a85`), editor de bloques por bloque
-(`64961a59`), conciliación bancaria F5.4 (`5da9f074`), payouts MP (`947cdbfb`),
-loop de revisión de entregables (`ebdfbe3b`) y POS offline (`c0a06c66`).
+**Cierres recientes (2026-09-25):** F5.1 verificada E2E, chat marca↔creador con
+notificaciones consentidas (`60a74a85`), editor de bloques (`64961a59`),
+conciliación F5.4 (`5da9f074`), payouts MP (`947cdbfb`), loop de revisión
+(`ebdfbe3b`), POS offline (`c0a06c66`) y timeline 360 del cliente (RPC + ficha).
 
 ## 7. Definition of Done
 

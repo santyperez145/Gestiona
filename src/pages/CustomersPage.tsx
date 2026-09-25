@@ -30,6 +30,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import UnlinkedSalesPanel from "@/components/customers/UnlinkedSalesPanel";
+import CustomerTimeline360 from "@/components/customers/CustomerTimeline360";
 import IdentityHealthPanel from "@/components/shared/IdentityHealthPanel";
 import FilePicker from "@/components/shared/FilePicker";
 import { useModulePermissions } from "@/lib/usePermissions";
@@ -4059,6 +4060,11 @@ export default function CustomersPage() {
                           />
                         )}
 
+                        {/* Timeline 360 — ventas, pedidos online, notas, WhatsApp y deudas */}
+                        {activeOrg && (
+                          <CustomerTimeline360 orgId={activeOrg.id} customerId={c.customerId} />
+                        )}
+
                         {/* Follow-up Scheduler */}
                         <div className="border-t border-border/30 pt-3">
                           {!followUpOpen ? (
@@ -4296,6 +4302,11 @@ export default function CustomersPage() {
                         userId={user.id}
                         customer={refDe(c)}
                       />
+                    )}
+
+                    {/* Timeline 360 — ventas, pedidos online, notas, WhatsApp y deudas */}
+                    {activeOrg && (
+                      <CustomerTimeline360 orgId={activeOrg.id} customerId={c.customerId} />
                     )}
 
                     {/* WhatsApp Remarketing */}
