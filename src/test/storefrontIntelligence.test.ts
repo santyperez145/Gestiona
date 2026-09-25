@@ -25,7 +25,9 @@ describe("storefront intelligence surface", () => {
 
   it("home y cuenta alimentan sugerencias desde pedidos", () => {
     expect(src("src/storefront/StoreHome.tsx")).toContain("suggestionsFromOrderSeeds");
-    expect(src("src/storefront/StoreHome.tsx")).toContain("Porque compraste");
+    // El título es configurable por bloque; el default vive en el layout.
+    expect(src("src/lib/storeHomeLayout.ts")).toContain('porque: "Porque compraste"');
+    expect(src("src/storefront/StoreHome.tsx")).toContain('tituloDeSeccion(layout, "porque")');
     expect(src("src/storefront/StoreAccount.tsx")).toContain("suggestionsFromOrderSeeds");
     expect(src("src/storefront/StoreAccount.tsx")).toContain("signInWithEmailOtp");
     expect(src("src/storefront/storeAuth.tsx")).toContain('account_type: "store_customer"');

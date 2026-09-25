@@ -93,8 +93,8 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
 
 **Falta:** lo detallado por fila en el estudio de faltantes (sección 6): certificar
 el migrador con archivos reales, copiar imágenes a Storage, clientes en migración,
-editor de bloques con config por bloque, certificación live de pagos/envíos y
-métricas de campo.
+filtro por colección en la vitrina de un bloque, certificación live de
+pagos/envíos y métricas de campo.
 
 ### Business Core
 
@@ -296,7 +296,7 @@ cita la evidencia que falta, no la que existe.
 | Certificar migrador (C22.2) | El RPC de migración existe; falta correrlo con 1 export real Shopify y 1 Tiendanube con variantes/imágenes/stock y documentar el resultado. |
 | Copia de imágenes a storage propio | El importador conserva URLs externas; falta copia a Storage propio con procedencia. |
 | Clientes en migración | El importador no incorpora clientes del marketplace de origen. |
-| Editor de bloques con config por bloque | El layout de home ordena/habilita 9 secciones fijas; falta configuración por bloque (título custom, límite de ítems, filtro por colección) como Shopify sections. |
+| Editor de bloques con config por bloque | **Cerrado (2026-09-25):** cada bloque de la home admite título propio y límite de ítems (3-12) persistido en `storefront_layout`; la vitrina lo honra y el Theme Studio lo publica versionado. Queda filtro por colección en la vitrina de un bloque. |
 | Certificación live de pagos/envíos | Webhook y refund modelados; falta ciclo aprobación/rechazo/timeout/refund observado y etiqueta con transportista contratado. |
 | Medición de conversión y CWV de campo | No hay panel de métricas de campo (LCP/INP/CLS) ni embudo de conversión medido. |
 

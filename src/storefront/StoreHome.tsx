@@ -16,8 +16,10 @@ import { retryPublicRead } from "@/lib/publicDataSource";
 import {
   heroVisible,
   layoutEsPersonalizado,
+  limiteDeItems,
   parseStorefrontLayout,
   seccionHabilitada,
+  tituloDeSeccion,
   type HomeSectionId,
 } from "@/lib/storeHomeLayout";
 import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
@@ -37,24 +39,6 @@ export default function StoreHome() {
   // es prometer algo que no se puede cumplir. En el listado completo sí
   // aparecen, con el aviso de reposición.
   const disponibles = products.filter(p => Number(p.stock) > 0);
-
-  const destacados = disponibles.filter(p => p.featured).slice(0, 8);
-  const ofertas = disponibles
-    .filter(p => priceOf(p) < Number(p.sale_price_ars))
-    .sort((a, b) => (1 - priceOf(b) / Number(b.sale_price_ars)) - (1 - priceOf(a) / Number(a.sale_price_ars)))
-    .slice(0, 8);
-  const nuevos = [...disponibles]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 8);
-
-  const categorias = menuDeCategorias(
-    cats2, products.map(p => p.category).filter(Boolean) as string[],
-  );
-
-  const vistos = useMemo(
-    () => (store?.slug ? productsFromRecentlyViewed(store.slug, products, { limit: 8 }) : []),
-    [store?.slug, products],
-  );
 
   const [orderSeeds, setOrderSeeds] = useState<string[]>([]);
   useEffect(() => {
@@ -81,15 +65,40 @@ export default function StoreHome() {
   const personalizado = layoutEsPersonalizado(store?.storefront_layout);
   const mostrarHero = heroVisible(layout, banners.length, personalizado);
 
+  // Config por bloque (Shopify sections): título propio y cuántos ítems.
+  const nDestacados = limiteDeItems(layout, "destacados");
+  const nOfertas = limiteDeItems(layout, "ofertas");
+  const nNovedades = limiteDeItems(layout, "novedades");
+  const nVistos = limiteDeItems(layout, "vistos");
+  const nPorque = limiteDeItems(layout, "porque");
+
+  const destacados = disponibles.filter(p => p.featured).slice(0, nDestacados);
+  const ofertas = disponibles
+    .filter(p => priceOf(p) < Number(p.sale_price_ars))
+    .sort((a, b) => (1 - priceOf(b) / Number(b.sale_price_ars)) - (1 - priceOf(a) / Number(a.sale_price_ars)))
+    .slice(0, nOfertas);
+  const nuevos = [...disponibles]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, nNovedades);
+
+  const categorias = menuDeCategorias(
+    cats2, products.map(p => p.category).filter(Boolean) as string[],
+  );
+
+  const vistos = useMemo(
+    () => (store?.slug ? productsFromRecentlyViewed(store.slug, products, { limit: nVistos }) : []),
+    [store?.slug, products, nVistos],
+  );
+
   const porqueCompraste = useMemo(() => {
     if (orderSeeds.length === 0) return [];
     const enCarrito = new Set(cart.map(l => l.productId));
     return suggestionsFromOrderSeeds(orderSeeds, products, {
       excludeIds: enCarrito,
-      limit: 8,
+      limit: nPorque,
       preferInStock: true,
     }).map(r => r.product).filter(p => Number(p.stock) > 0);
-  }, [orderSeeds, products, cart]);
+  }, [orderSeeds, products, cart, nPorque]);
 
   const bloque = (id: HomeSectionId) => {
     if (!seccionHabilitada(layout, id)) return null;
@@ -125,22 +134,22 @@ export default function StoreHome() {
         );
       case "porque":
         return porqueCompraste.length > 0
-          ? <Row key="porque" title="Porque compraste" items={porqueCompraste} href={`${base}/cuenta`} />
+          ? <Row key="porque" title={tituloDeSeccion(layout, "porque")} items={porqueCompraste} href={`${base}/cuenta`} />
           : null;
       case "vistos":
         return vistos.length > 0
-          ? <Row key="vistos" title="Vistos recientemente" items={vistos} href={`${base}/productos`} />
+          ? <Row key="vistos" title={tituloDeSeccion(layout, "vistos")} items={vistos} href={`${base}/productos`} />
           : null;
       case "categories":
         return categorias.length > 1
-          ? <Categorias key="categories" categorias={categorias} cats2={cats2} products={products} base={base} />
+          ? <Categorias key="categories" titulo={tituloDeSeccion(layout, "categories")} categorias={categorias} cats2={cats2} products={products} base={base} />
           : null;
       case "ofertas":
-        return <Row key="ofertas" title="Ofertas" items={ofertas} href={`${base}/productos?oferta=1`} />;
+        return <Row key="ofertas" title={tituloDeSeccion(layout, "ofertas")} items={ofertas} href={`${base}/productos?oferta=1`} />;
       case "destacados":
-        return <Row key="destacados" title="Destacados" items={destacados} href={`${base}/productos`} />;
+        return <Row key="destacados" title={tituloDeSeccion(layout, "destacados")} items={destacados} href={`${base}/productos`} />;
       case "novedades":
-        return <Row key="novedades" title="Novedades" items={nuevos} href={`${base}/productos?orden=nuevo`} />;
+        return <Row key="novedades" title={tituloDeSeccion(layout, "novedades")} items={nuevos} href={`${base}/productos?orden=nuevo`} />;
     }
   };
 
@@ -305,8 +314,9 @@ function TrustBar({
 }
 
 function Categorias({
-  categorias, cats2, products, base,
+  titulo, categorias, cats2, products, base,
 }: {
+  titulo: string;
   categorias: ReturnType<typeof menuDeCategorias>;
   cats2: ReturnType<typeof useStore>["categorias"];
   products: ReturnType<typeof useStore>["products"];
@@ -317,7 +327,7 @@ function Categorias({
       <div className="storefront-section__heading flex items-end justify-between gap-3 mb-5">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: "hsl(var(--st-muted))" }}>Explorar</p>
-          <h2 className="storefront-section__title text-xl sm:text-2xl font-bold tracking-tight">Categorías</h2>
+          <h2 className="storefront-section__title text-xl sm:text-2xl font-bold tracking-tight">{titulo}</h2>
         </div>
       </div>
       <div className="storefront-category-grid grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">

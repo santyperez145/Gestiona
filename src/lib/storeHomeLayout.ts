@@ -1,10 +1,10 @@
 /**
- * Portada de la tienda como bloques ordenables.
+ * Portada de la tienda como bloques ordenables y configurables.
  *
- * Tiendanube deja elegir y ordenar los bloques de Inicio (carruseles, banners,
- * confianza). No copiamos su editor en vivo ni un theme engine: el comercio
- * arma la misma composición desde Diseño, y vacío significa "armalo solo",
- * igual que `nav_links`.
+ * Tiendanube/Shopify dejan elegir, ordenar y configurar los bloques de Inicio
+ * (título propio, cuántos productos mostrar). No copiamos su editor en vivo ni
+ * un theme engine: el comercio arma la misma composición desde Diseño, y vacío
+ * significa "armalo solo", igual que `nav_links`.
  */
 
 import { textoAnuncioEnvioAutomatico } from "@/lib/storeShippingCoverage";
@@ -23,7 +23,14 @@ export const HOME_SECTION_IDS = [
 
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 
-export type HomeSection = { id: HomeSectionId; enabled: boolean };
+export type HomeSection = {
+  id: HomeSectionId;
+  enabled: boolean;
+  /** Título custom del bloque (Shopify sections). undefined = genérico. */
+  title?: string;
+  /** Cuántos ítems muestra la vitrina. undefined/default = 8. */
+  limit?: number;
+};
 
 export type StorefrontLayout = {
   announcement: { enabled: boolean; text: string };
@@ -49,6 +56,21 @@ export const DEFAULT_STOREFRONT_LAYOUT: StorefrontLayout = {
 
 const IDS = new Set<string>(HOME_SECTION_IDS);
 
+/** Bloques con vitrina de productos: los únicos que aceptan límite. */
+export const HOME_SECTIONS_WITH_LIMIT: ReadonlySet<HomeSectionId> = new Set([
+  "porque", "vistos", "ofertas", "destacados", "novedades",
+]);
+
+/** Bloques cuyo título se muestra al comprador y por eso se puede cambiar. */
+export const HOME_SECTIONS_WITH_TITLE: ReadonlySet<HomeSectionId> = new Set([
+  "porque", "vistos", "categories", "ofertas", "destacados", "novedades",
+]);
+
+/** Límites razonables: 3 para que la fila no se vuelva un feed infinito. */
+export const HOME_SECTION_LIMIT_MIN = 3;
+export const HOME_SECTION_LIMIT_MAX = 12;
+export const HOME_SECTION_LIMIT_DEFAULT = 8;
+
 function textoLimpio(raw: unknown, max = 140): string {
   return String(raw ?? "")
     .replace(/<[^>]*>/g, "")
@@ -64,6 +86,14 @@ function esLayoutCrudo(raw: unknown): raw is Record<string, unknown> {
 /** ¿El comercio guardó una composición, o hay que armarla sola? */
 export function layoutEsPersonalizado(raw: unknown): boolean {
   return esLayoutCrudo(raw);
+}
+
+/** Límite guardado, acotado. Fuera de rango o basura = default. */
+export function limiteDeSeccion(s: Pick<HomeSection, "id"> & Partial<HomeSection>, raw?: unknown): number {
+  void s;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return HOME_SECTION_LIMIT_DEFAULT;
+  return Math.min(HOME_SECTION_LIMIT_MAX, Math.max(HOME_SECTION_LIMIT_MIN, Math.round(n)));
 }
 
 export function parseStorefrontLayout(raw: unknown): StorefrontLayout {
@@ -85,6 +115,9 @@ export function parseStorefrontLayout(raw: unknown): StorefrontLayout {
     sections.push({
       id: sid,
       enabled: (item as { enabled?: unknown }).enabled !== false,
+      // Config por bloque: título propio y límite de ítems (Shopify sections).
+      title: textoLimpio((item as { title?: unknown }).title, 60) || undefined,
+      limit: limiteDeSeccion({ id: sid }, (item as { limit?: unknown }).limit),
     });
   }
   for (const id of HOME_SECTION_IDS) {
@@ -113,11 +146,25 @@ export function moverSeccion(sections: HomeSection[], id: HomeSectionId, dir: -1
   return next;
 }
 
+/** Defaults de comparación: un bloque sin título custom usa el genérico. */
+function seccionDefault(id: HomeSectionId): HomeSection {
+  return { id, enabled: true, title: undefined, limit: HOME_SECTION_LIMIT_DEFAULT };
+}
+
 export function layoutsIguales(a: StorefrontLayout, b: StorefrontLayout): boolean {
   if (a.announcement.enabled !== b.announcement.enabled) return false;
   if (a.announcement.text !== b.announcement.text) return false;
   if (a.sections.length !== b.sections.length) return false;
-  return a.sections.every((s, i) => s.id === b.sections[i].id && s.enabled === b.sections[i].enabled);
+  return a.sections.every((s, i) => {
+    const o = b.sections[i];
+    if (!o || s.id !== o.id || s.enabled !== o.enabled) return false;
+    const ta = s.title ?? undefined;
+    const tb = o.title ?? undefined;
+    if (ta !== tb) return false;
+    const la = limiteDeSeccion(s, s.limit);
+    const lb = limiteDeSeccion(o, o.limit);
+    return la === lb;
+  });
 }
 
 /** null = default, para que un bloque nuevo no quede escondido para siempre. */
@@ -127,6 +174,17 @@ export function layoutParaGuardar(layout: StorefrontLayout): StorefrontLayout | 
 
 export function seccionHabilitada(layout: StorefrontLayout, id: HomeSectionId): boolean {
   return layout.sections.find((s) => s.id === id)?.enabled !== false;
+}
+
+/** Título mostrable: el custom del comercio o el genérico. */
+export function tituloDeSeccion(layout: StorefrontLayout, id: HomeSectionId): string {
+  const custom = layout.sections.find((s) => s.id === id)?.title;
+  return custom && custom.trim() ? custom.trim() : HOME_SECTION_LABELS[id];
+}
+
+/** Cuántos ítems muestra la vitrina de un bloque. */
+export function limiteDeItems(layout: StorefrontLayout, id: HomeSectionId): number {
+  return limiteDeSeccion({ id }, layout.sections.find((s) => s.id === id)?.limit);
 }
 
 /**
@@ -157,3 +215,5 @@ export function textoDeAnuncio(
   if (custom) return custom;
   return textoAnuncioEnvioAutomatico(opts);
 }
+
+export { seccionDefault };

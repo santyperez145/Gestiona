@@ -4,11 +4,16 @@ import { resolve } from "node:path";
 import {
   DEFAULT_STOREFRONT_LAYOUT,
   heroVisible,
+  HOME_SECTION_LIMIT_DEFAULT,
+  HOME_SECTIONS_WITH_LIMIT,
+  HOME_SECTIONS_WITH_TITLE,
   layoutEsPersonalizado,
   layoutParaGuardar,
+  limiteDeItems,
   moverSeccion,
   parseStorefrontLayout,
   textoDeAnuncio,
+  tituloDeSeccion,
 } from "@/lib/storeHomeLayout";
 
 describe("portada modular de la tienda", () => {
@@ -79,6 +84,52 @@ describe("portada modular de la tienda", () => {
     expect(card).toContain("data-variant-count");
     expect(card).toContain('replace(/^Elegí/, "Elegir")');
     expect(card).not.toContain("addToCart(p, 1");
+  });
+
+  it("config por bloque: título custom y límite acotado, con defaults honestos", () => {
+    // Título custom: se limpia; vacío cae al genérico.
+    const conTitulo = parseStorefrontLayout({
+      sections: [{ id: "ofertas", enabled: true, title: "  Hot <b>Sale</b>  " }],
+    });
+    expect(tituloDeSeccion(conTitulo, "ofertas")).toBe("Hot Sale");
+    expect(tituloDeSeccion(parseStorefrontLayout({ sections: [] }), "ofertas")).toBe("Ofertas");
+
+    // Límite: basura = default; fuera de rango = acotado.
+    expect(limiteDeItems(parseStorefrontLayout({ sections: [] }), "destacados")).toBe(HOME_SECTION_LIMIT_DEFAULT);
+    const acotado = parseStorefrontLayout({
+      sections: [{ id: "novedades", enabled: true, limit: 999 }],
+    });
+    expect(limiteDeItems(acotado, "novedades")).toBe(12);
+
+    // Un layout con config distinta al default ya no se guarda como null.
+    expect(layoutParaGuardar(conTitulo)).not.toBeNull();
+    // El default sigue guardándose como null: un bloque nuevo no queda escondido.
+    expect(layoutParaGuardar(parseStorefrontLayout(null))).toBeNull();
+  });
+
+  it("el home honra el límite y el título de cada vitrina", () => {
+    const home = readFileSync(resolve(process.cwd(), "src/storefront/StoreHome.tsx"), "utf8");
+    expect(home).toContain("limiteDeItems");
+    expect(home).toContain("tituloDeSeccion");
+    // Ninguna vitrina hardcodea más su propio límite.
+    expect(home).not.toContain(".slice(0, 8)");
+  });
+
+  it("el editor expone título y límite sólo en los bloques que los aceptan", () => {
+    const page = readFileSync(resolve(process.cwd(), "src/pages/EcommerceStorePage.tsx"), "utf8");
+    expect(page).toContain("HOME_SECTIONS_WITH_TITLE");
+    expect(page).toContain("HOME_SECTIONS_WITH_LIMIT");
+    expect(page).toContain("Título del bloque");
+  });
+
+  it("los bloques sin título muestran su label genérico", () => {
+    const layout = parseStorefrontLayout(null);
+    // Sin config, el título mostrable es el label genérico de cada bloque.
+    expect(tituloDeSeccion(layout, "ofertas")).toBe("Ofertas");
+    expect(tituloDeSeccion(layout, "destacados")).toBe("Destacados");
+    expect(HOME_SECTIONS_WITH_TITLE.has("hero")).toBe(false);
+    expect(HOME_SECTIONS_WITH_LIMIT.has("trust")).toBe(false);
+    expect(HOME_SECTIONS_WITH_LIMIT.has("destacados")).toBe(true);
   });
 
   it("permite saltar el chrome y muestra un foco independiente del tema", () => {

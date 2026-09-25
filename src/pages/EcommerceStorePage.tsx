@@ -84,6 +84,10 @@ import {
 import { socialLinksParaGuardar } from "@/lib/storeSocial";
 import {
   HOME_SECTION_LABELS,
+  HOME_SECTIONS_WITH_LIMIT,
+  HOME_SECTIONS_WITH_TITLE,
+  HOME_SECTION_LIMIT_MAX,
+  HOME_SECTION_LIMIT_MIN,
   layoutParaGuardar,
   moverSeccion,
 } from "@/lib/storeHomeLayout";
@@ -1653,9 +1657,10 @@ export default function EcommerceStorePage() {
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
             <h3 className="font-semibold">Portada</h3>
             <p className="text-xs text-muted-foreground">
-              Los bloques se muestran en este orden. Vacío o todo como viene
+              Los bloques se muestran en este orden. Cada vitrina admite título
+              propio y cuántos productos mostrar. Vacío o todo como viene
               de fábrica se guarda como automático: un bloque nuevo no queda
-              escondido. No es un editor en vivo — es la composición de la home.
+              escondido.
             </p>
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm">
@@ -1689,52 +1694,103 @@ export default function EcommerceStorePage() {
               {storeForm.storefront_layout.sections.map((s, i) => (
                 <li
                   key={s.id}
-                  className="flex items-center gap-2 rounded-lg border border-border/40 px-3 py-2"
+                  className="rounded-lg border border-border/40 px-3 py-2 space-y-2"
                 >
-                  <input
-                    type="checkbox"
-                    checked={s.enabled}
-                    onChange={e => setStoreForm(p => ({
-                      ...p,
-                      storefront_layout: {
-                        ...p.storefront_layout,
-                        sections: p.storefront_layout.sections.map(x =>
-                          x.id === s.id ? { ...x, enabled: e.target.checked } : x,
-                        ),
-                      },
-                    }))}
-                  />
-                  <span className="flex-1 text-sm">{HOME_SECTION_LABELS[s.id]}</span>
-                  <button
-                    type="button"
-                    className="min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
-                    disabled={i === 0}
-                    aria-label={`Subir ${HOME_SECTION_LABELS[s.id]}`}
-                    onClick={() => setStoreForm(p => ({
-                      ...p,
-                      storefront_layout: {
-                        ...p.storefront_layout,
-                        sections: moverSeccion(p.storefront_layout.sections, s.id, -1),
-                      },
-                    }))}
-                  >
-                    <ChevronUp className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
-                    disabled={i === storeForm.storefront_layout.sections.length - 1}
-                    aria-label={`Bajar ${HOME_SECTION_LABELS[s.id]}`}
-                    onClick={() => setStoreForm(p => ({
-                      ...p,
-                      storefront_layout: {
-                        ...p.storefront_layout,
-                        sections: moverSeccion(p.storefront_layout.sections, s.id, 1),
-                      },
-                    }))}
-                  >
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={s.enabled}
+                      aria-label={`Mostrar ${HOME_SECTION_LABELS[s.id]}`}
+                      onChange={e => setStoreForm(p => ({
+                        ...p,
+                        storefront_layout: {
+                          ...p.storefront_layout,
+                          sections: p.storefront_layout.sections.map(x =>
+                            x.id === s.id ? { ...x, enabled: e.target.checked } : x,
+                          ),
+                        },
+                      }))}
+                    />
+                    <span className="flex-1 text-sm">{HOME_SECTION_LABELS[s.id]}</span>
+                    <button
+                      type="button"
+                      className="min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
+                      disabled={i === 0}
+                      aria-label={`Subir ${HOME_SECTION_LABELS[s.id]}`}
+                      onClick={() => setStoreForm(p => ({
+                        ...p,
+                        storefront_layout: {
+                          ...p.storefront_layout,
+                          sections: moverSeccion(p.storefront_layout.sections, s.id, -1),
+                        },
+                      }))}
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
+                      disabled={i === storeForm.storefront_layout.sections.length - 1}
+                      aria-label={`Bajar ${HOME_SECTION_LABELS[s.id]}`}
+                      onClick={() => setStoreForm(p => ({
+                        ...p,
+                        storefront_layout: {
+                          ...p.storefront_layout,
+                          sections: moverSeccion(p.storefront_layout.sections, s.id, 1),
+                        },
+                      }))}
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {s.enabled && HOME_SECTIONS_WITH_TITLE.has(s.id) && (
+                    <div className="flex flex-wrap items-center gap-2 pl-6">
+                      <Input
+                        value={s.title ?? ""}
+                        maxLength={60}
+                        className="h-8 flex-1 min-w-[10rem] text-sm"
+                        placeholder={`Título del bloque (vacío = ${HOME_SECTION_LABELS[s.id]})`}
+                        aria-label={`Título de ${HOME_SECTION_LABELS[s.id]}`}
+                        onChange={e => setStoreForm(p => ({
+                          ...p,
+                          storefront_layout: {
+                            ...p.storefront_layout,
+                            sections: p.storefront_layout.sections.map(x =>
+                              x.id === s.id ? { ...x, title: e.target.value } : x,
+                            ),
+                          },
+                        }))}
+                      />
+                    </div>
+                  )}
+                  {s.enabled && HOME_SECTIONS_WITH_LIMIT.has(s.id) && (
+                    <div className="flex items-center gap-2 pl-6">
+                      <label className="text-xs text-muted-foreground shrink-0">Productos a mostrar</label>
+                      <Input
+                        type="number"
+                        min={HOME_SECTION_LIMIT_MIN}
+                        max={HOME_SECTION_LIMIT_MAX}
+                        value={s.limit ?? 8}
+                        className="h-8 w-20 text-sm"
+                        aria-label={`Cantidad de ${HOME_SECTION_LABELS[s.id]}`}
+                        onChange={e => {
+                          const n = Number(e.target.value);
+                          const acotado = Number.isFinite(n)
+                            ? Math.min(HOME_SECTION_LIMIT_MAX, Math.max(HOME_SECTION_LIMIT_MIN, Math.round(n)))
+                            : 8;
+                          setStoreForm(p => ({
+                            ...p,
+                            storefront_layout: {
+                              ...p.storefront_layout,
+                              sections: p.storefront_layout.sections.map(x =>
+                                x.id === s.id ? { ...x, limit: acotado } : x,
+                              ),
+                            },
+                          }));
+                        }}
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
