@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useCreator, type CreatorCampaign } from "@/lib/creatorContext";
+import { useCreator, type CreatorCampaign, type CreatorChatMessage } from "@/lib/creatorContext";
 import { supabase } from "@/integrations/supabase/client";
 import { CreatorFoco } from "@/components/creator/CreatorFoco";
 import BrandLogo from "@/components/shared/BrandLogo";
@@ -13,7 +13,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
   Clock, Loader2, ExternalLink, User, LogOut, Save, Upload, ArrowDownToLine,
-  BadgeCheck,
+  BadgeCheck, MessageSquare, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -173,12 +173,18 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 }
 
 function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; registerRef?: (id: string, node: HTMLDivElement | null) => void }) {
-  const { respondCampaign, submitDeliverable } = useCreator();
+  const { respondCampaign, submitDeliverable, listChat, sendChat } = useCreator();
   const [busy, setBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<CreatorChatMessage[] | null>(null);
+  const [chatBody, setChatBody] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const chatListRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!registerRef) return;
@@ -243,6 +249,94 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
       </div>
 
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+
+      {/* Acceso al chat: con mensajes previos muestra el badge; sin ellos,
+          un botón abierto. Al abrir se cargan los mensajes una sola vez. */}
+      {!chatOpen && (
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            setChatOpen(true);
+            if (chatMessages === null) {
+              setChatBusy(true);
+              listChat(campaign.id)
+                .then(rows => setChatMessages(rows))
+                .catch(() => setChatError("No pudimos cargar la conversación."))
+                .finally(() => setChatBusy(false));
+            }
+          }}
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+          {(campaign.chat_total ?? 0) > 0
+            ? `Ver chat (${campaign.chat_total})`
+            : "Escribir a la marca"}
+        </button>
+      )}
+
+      {/* Chat de la colaboración: disponible desde que la campaña aparece. */}
+      {chatOpen && (
+        <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+          {chatBusy && chatMessages === null ? (
+            <p className="text-xs text-muted-foreground">Cargando conversación...</p>
+          ) : chatError ? (
+            <p role="alert" className="text-xs text-destructive">{chatError}</p>
+          ) : (chatMessages ?? []).length === 0 ? (
+            <p className="text-xs text-muted-foreground">Sin mensajes todavía: escribile a la marca.</p>
+          ) : (
+            <div ref={chatListRef} className="max-h-56 space-y-2 overflow-y-auto pr-1">
+              {(chatMessages ?? []).map(m => (
+                <div
+                  key={m.id}
+                  className={
+                    m.author_role === "creator"
+                      ? "ml-auto max-w-[85%] rounded-xl bg-primary/10 px-3 py-2 text-sm"
+                      : "mr-auto max-w-[85%] rounded-xl bg-muted/60 px-3 py-2 text-sm"
+                  }
+                >
+                  <p className="whitespace-pre-wrap break-words leading-relaxed">{m.body}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {m.author_role === "creator" ? "Vos" : campaign.org_name} ·{" "}
+                    {new Date(m.created_at).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          <form
+            className="flex items-center gap-2"
+            onSubmit={async e => {
+              e.preventDefault();
+              const text = chatBody.trim();
+              if (!text || chatBusy) return;
+              setChatBusy(true); setChatError(null);
+              try {
+                const msg = await sendChat(campaign.id, text);
+                setChatBody("");
+                setChatMessages(prev => [...(prev ?? []), msg]);
+                setChatError(null);
+              } catch (cause) {
+                const message = cause instanceof Error ? cause.message : "";
+                if (message.includes("chat_rate_limited")) setChatError("Esperá unos segundos antes de mandar otro mensaje.");
+                else if (message.includes("invalid_body")) setChatError("El mensaje está vacío o supera los 2000 caracteres.");
+                else setChatError("No pudimos enviar el mensaje. Intentá de nuevo.");
+              } finally { setChatBusy(false); }
+            }}
+          >
+            <Input
+              value={chatBody}
+              maxLength={2000}
+              placeholder={`Mensaje para ${campaign.org_name}`}
+              aria-label={`Mensaje para ${campaign.org_name}`}
+              onChange={e => setChatBody(e.target.value)}
+              className="h-8 text-sm"
+            />
+            <Button type="submit" size="icon" className="h-8 w-8 shrink-0" disabled={chatBusy || !chatBody.trim()} aria-label="Enviar mensaje">
+              <Send className="h-3.5 w-3.5" />
+            </Button>
+          </form>
+        </div>
+      )}
 
       {/* Decisión de la invitación, en el portal y sin token público */}
       {!decidida && invitation && invitation !== "pending" && (

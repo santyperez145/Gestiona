@@ -41,6 +41,10 @@ export interface CreatorCampaign {
   publication_url: string | null;
   publication_platform: string | null;
   publication_verified_at: string | null;
+  /** Resumen del chat de la colaboración (último mensaje y total). */
+  chat_last_body: string | null;
+  chat_last_at: string | null;
+  chat_total: number | null;
 }
 
 export interface CreatorDeliverable {
@@ -84,6 +88,18 @@ interface CreatorCtx {
   respondCampaign: (campaignId: string, action: "accept" | "decline") => Promise<void>;
   /** Entrega el contenido de una campaña: URL pública obligatoria. */
   submitDeliverable: (campaignId: string, campaignName: string, description: string, contentUrl: string) => Promise<void>;
+  /** Lee el hilo de chat de una colaboración del creador. */
+  listChat: (campaignId: string) => Promise<CreatorChatMessage[]>;
+  /** Escribe en el hilo de chat de una colaboración del creador. */
+  sendChat: (campaignId: string, body: string) => Promise<CreatorChatMessage>;
+}
+
+/** Mensaje del hilo de una colaboración, tal como lo devuelve el RPC. */
+export interface CreatorChatMessage {
+  id: string;
+  author_role: 'brand' | 'creator';
+  body: string;
+  created_at: string;
 }
 
 const CreatorContext = createContext<CreatorCtx | null>(null);
@@ -204,8 +220,20 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const listChat = useCallback(async (campaignId: string): Promise<CreatorChatMessage[]> => {
+    const { data, error } = await rpc("campaign_chat_list", { p_campaign_id: campaignId });
+    if (error) throw error;
+    return (Array.isArray(data) ? data : []) as CreatorChatMessage[];
+  }, []);
+
+  const sendChat = useCallback(async (campaignId: string, body: string): Promise<CreatorChatMessage> => {
+    const { data, error } = await rpc("campaign_chat_send", { p_campaign_id: campaignId, p_body: body });
+    if (error) throw error;
+    return data as CreatorChatMessage;
+  }, []);
+
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, refresh, saveProfile, respondCampaign, submitDeliverable }}>
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, refresh, saveProfile, respondCampaign, submitDeliverable, listChat, sendChat }}>
       {children}
     </CreatorContext.Provider>
   );

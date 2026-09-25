@@ -8,6 +8,7 @@ import { useModulePerms } from '@/lib/permissionsContext';
 import { isActiveInfluencer, listInfluencers } from '@/lib/influencersDB';
 import { useInfluencerCampaigns } from '@/hooks/useInfluencerCampaigns';
 import { CAMPAIGN_CHANNELS, CAMPAIGN_OBJECTIVES, CAMPAIGN_STATUSES, CAMPAIGN_TRANSITIONS, campaignErrorMessage, saveInfluencerCampaign, transitionInfluencerCampaign, type CampaignDraft, type CampaignStatus, type InfluencerCampaign } from '@/lib/influencerCampaignsDB';
+import CampaignChatPanel from '@/components/influencers/CampaignChatPanel';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
 import { Button } from '@/components/ui/button';
@@ -143,6 +144,13 @@ function CampaignEditor({ campaign, onClose, onSaved }: { campaign?: InfluencerC
           {visibleCreators.map(item => <label key={item.id} className="flex min-h-14 cursor-pointer items-center gap-3 py-3 pr-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.creator_ids.includes(item.id)} disabled={!editable || busy || (!isActiveInfluencer(item.status) && !draft.creator_ids.includes(item.id))} onChange={event => change('creator_ids', event.target.checked ? [...draft.creator_ids, item.id] : draft.creator_ids.filter(id => id !== item.id))} /><span className="min-w-0 flex-1 break-words font-medium">{item.name}{!isActiveInfluencer(item.status) && <span className="ml-2 text-xs text-muted-foreground">Inactivo</span>}</span><span className="text-xs text-muted-foreground">{Math.max(item.followers_ig ?? 0, item.followers_tiktok ?? 0).toLocaleString('es-AR')} seguidores</span></label>)}
           {!visibleCreators.length && <p className="py-6 text-sm text-muted-foreground">No hay creadores disponibles con esta búsqueda.</p>}
         </div>}
+        {campaign && draft.creator_ids.length > 0 && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {(creators.data ?? []).filter(item => draft.creator_ids.includes(item.id)).map(item => (
+              <CampaignChatPanel key={item.id} campaignId={campaign.id} influencerId={item.id} creatorName={item.name} />
+            ))}
+          </div>
+        )}
       </section>
       <div className="flex flex-wrap gap-2 border-t border-border pt-4">
         {editable && <Button type="submit" disabled={busy || creators.isPending || creators.isError}><Save className="mr-2 h-4 w-4" />{busy ? 'Guardando...' : 'Guardar campaña'}</Button>}

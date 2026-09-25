@@ -250,10 +250,10 @@ de [GoMarz](https://www.go-marz.com/), sin clonar identidades ni pagos.
   selección real, versiones, permisos y auditoría; contratos y entregables internos.
 - **Cerrado (2026-09-25):** aceptación/entrega desde el portal creador con sesión,
   loop de revisión (marca pide corrección → creador reentrega), liquidación de
-  retiros vía Edge Function `mp-payouts` (transferencia/email MP) con idempotencia,
-  cifrado de token y webhook firmado HMAC que confirma el estado del lote.
-- Siguiente: perfiles públicos de creador, descubrimiento por nicho/métricas,
-  chat integrado y panel de superadmin con vista global de campañas/pagos.
+  retiros vía Edge Function `mp-payouts` con idempotencia, cifrado de token y
+  webhook firmado HMAC; chat por colaboración campaña+creador server-side.
+- Siguiente: perfiles públicos, descubrimiento, notificaciones consentidas y
+  panel de superadmin con vista global.
 - No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
 
@@ -283,7 +283,7 @@ cita la evidencia que falta, no la que existe.
 
 | Falta | Detalle verificable |
 |---|---|
-| Chat por colaboración | No existe mensajería marca↔creador; GoMarz la publica como parte del flujo de campaña. Requiere hilos por campaña/creador con RLS propia y notificaciones consentidas. |
+| Chat por colaboración | **Cerrado (2026-09-25):** `influencer_campaign_messages` crea un hilo por campaña+creador con RLS propia; RPCs `campaign_chat_list`/`campaign_chat_send` con autoridad en servidor (marca con permiso de influencers, creador por email de cuenta), anti-spam y el portal del creador muestra el resumen del hilo. Quedan notificaciones push consentidas. |
 | Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma por verificación, con licencia de uso tipada (orgánico/uso campaña/paid/cesión) y vencimiento obligatorio para usos pagados; RPC `register_publication_proof` con permiso de marca y el portal del creador muestra la verificación. |
 | Contratos con aceptación de ambas partes | `InfluencerContractsPage` registra condiciones internas; falta aceptación explícita del creador con timestamp y versionado. |
 | Liquidación enlazada a Finance | Los payouts MP asientan en `influencer_payouts` pero no generan obligación/gasto en Finance ni conciliación bancaria. |
@@ -330,7 +330,7 @@ cita la evidencia que falta, no la que existe.
 | 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
 | 9 | P0 Segundo comercio | **Completado:** alta, migración y gestión de productos sin intervención SQL. |
 | 10 | Economics | Pricing y comisión aprobados con costos reales. |
-| 11 | Influencers chat + publicación verificable | **Publicación verificable cerrada (2026-09-25):** `influencer_publication_proofs` registra URL + captura + licencia versionada por verificación; el creador ve la verificación en su portal. Pendiente: chat por colaboración. |
+| 11 | Influencers chat + publicación verificable | **Cerrado (2026-09-25):** publicación verificable (`influencer_publication_proofs` con licencia versionada) y chat por colaboración (`influencer_campaign_messages` con RPCs server-side, anti-spam y hilo visible en ambos portales). |
 | 12 | Finance conciliación bancaria | **Cerrado (2026-09-25):** `finance_bank_statements`/`finance_bank_lines` importan el extracto (idempotente por hash), `bank_lines_match` propone matches contra asientos de banco (1.1.02, ±3 días, un asiento por movimiento) y `bank_line_confirm` confirma/rechaza con traza; verificación reversible en producción. Panel en Movimientos. |
 | 13 | Finance export contable | **Cerrado (2026-09-25):** lotes desde el libro real con verificación de descuadre, CSV para el contador e historia de exportación. |
 
