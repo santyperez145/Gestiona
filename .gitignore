@@ -56,3 +56,4 @@ e2e/.auth/
 
 .vercel
 .env*
+tsbuildinfo
