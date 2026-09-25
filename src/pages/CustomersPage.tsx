@@ -46,7 +46,6 @@ import { useUserRole } from "@/lib/useUserRole";
 import PipelineKanbanTab from "@/components/crm/PipelineKanbanTab";
 import SeguimientosView from "@/components/crm/SeguimientosView";
 import SegmentosView from "@/components/crm/SegmentosView";
-import { normalizeIdentityEmail, normalizeIdentityPhone, normalizeIdentityText } from "@/lib/recordIdentity";
 import { findCustomerDuplicates, type DuplicateCluster } from "@/lib/customerDuplicates";
 
 import { plural } from "@/lib/plural";
@@ -2210,7 +2209,9 @@ export default function CustomersPage() {
       const headers = parseCSVLine(lines[0]);
       const dataRows = lines.slice(1).map(l => parseCSVLine(l)).filter(r => r.some(c => c));
       const mapping = autoDetectMapping(headers);
-      setCsvPreview({ headers, rows: dataRows.slice(0, 200), mapping });
+      // Se conservan todas las filas: el servidor valida, matchea y aplica en
+      // una transacción. Antes se cortaba en 200 y se escribía una por una.
+      setCsvPreview({ headers, rows: dataRows.slice(0, 20000), mapping });
       setCsvPreviewOpen(true);
     } catch {
       toast.error("Error al leer el archivo CSV");
@@ -2218,68 +2219,67 @@ export default function CustomersPage() {
   };
 
   const handleCsvConfirmImport = async () => {
-    if (!csvPreview || !user) return;
+    if (!csvPreview || !user || !activeOrg) return;
     setImporting(true);
     const { headers, rows, mapping } = csvPreview;
-    const existingEmails = new Set<string>();
-    const existingPhones = new Set<string>();
-    const existingNamesWithoutContact = new Set<string>();
-    profiles.forEach(profile => {
-      const emailKey = normalizeIdentityEmail(profile.email);
-      const phoneKey = normalizeIdentityPhone(profile.phone || profile.whatsapp_number);
-      const nameKey = normalizeIdentityText(profile.name);
-      if (emailKey) existingEmails.add(emailKey);
-      if (phoneKey) existingPhones.add(phoneKey);
-      if (nameKey && !emailKey && !phoneKey) existingNamesWithoutContact.add(nameKey);
-    });
-    customers.forEach(customer => {
-      const emailKey = normalizeIdentityEmail(customer.email);
-      const phoneKey = normalizeIdentityPhone(customer.phone);
-      const nameKey = normalizeIdentityText(customer.name);
-      if (emailKey) existingEmails.add(emailKey);
-      if (phoneKey) existingPhones.add(phoneKey);
-      if (nameKey && !emailKey && !phoneKey) existingNamesWithoutContact.add(nameKey);
-    });
-    let ok = 0, skipped = 0, failed = 0;
-    for (const row of rows) {
-      const get = (field: string) => {
-        const col = Object.entries(mapping).find(([, v]) => v === field)?.[0];
-        return col !== undefined ? (row[Number(col)] || '').trim() : '';
-      };
-      const name = get('name');
-      if (!name) continue;
-      const emailKey = normalizeIdentityEmail(get('email'));
-      const phoneKey = normalizeIdentityPhone(get('phone'));
-      const nameKey = normalizeIdentityText(name);
-      // Contact keys are strong. A name alone only skips when both records
-      // lack contact data; homonyms with different contacts remain importable.
-      if (
-        (emailKey && existingEmails.has(emailKey))
-        || (phoneKey && existingPhones.has(phoneKey))
-        || (!emailKey && !phoneKey && nameKey && existingNamesWithoutContact.has(nameKey))
-      ) { skipped++; continue; }
-      try {
-        await createCustomerDB(user.id, {
-          name,
-          email: get('email') || undefined,
-          phone: get('phone') || undefined,
+    try {
+      // Normalización y mapeo en el navegador; la autoridad es el servidor:
+      // staging auditado → aprobación → aplicación atómica e idempotente. El
+      // matching por email/teléfono y el respeto al opt-out viven en la base.
+      const payload = rows.flatMap(row => {
+        const get = (field: string) => {
+          const col = Object.entries(mapping).find(([, v]) => v === field)?.[0];
+          return col !== undefined ? (row[Number(col)] || '').trim() : '';
+        };
+        const name = get('name');
+        const email = get('email');
+        const phone = get('phone');
+        if (!name && !email && !phone) return [];
+        return [{
+          name: name || undefined,
+          email: email || undefined,
+          phone: phone || undefined,
           address: get('address') || undefined,
           birthday: get('birthday') || undefined,
-        });
-        if (emailKey) existingEmails.add(emailKey);
-        if (phoneKey) existingPhones.add(phoneKey);
-        if (nameKey && !emailKey && !phoneKey) existingNamesWithoutContact.add(nameKey);
-        ok++;
-      } catch { failed++; }
+          notes: get('notes') || undefined,
+        }];
+      });
+      if (payload.length === 0) {
+        toast.error("No hay filas con nombre, email o teléfono para importar");
+        return;
+      }
+
+      const { data: staged, error: stageError } = await supabase.rpc("stage_customer_import", {
+        p_org_id: activeOrg.id,
+        p_filename: `${headers.length} columnas · ${payload.length} filas`,
+        p_source_format: "csv",
+        p_rows: payload as never,
+        p_source_system: "generic",
+      });
+      if (stageError) throw stageError;
+      const batchId = (staged as { batch_id?: string } | null)?.batch_id;
+      if (!batchId) throw new Error("El servidor no pudo preparar el lote");
+
+      const { data: applied, error: applyError } = await supabase.rpc("apply_customer_import", {
+        p_batch_id: batchId,
+        p_skip_invalid: true,
+      });
+      if (applyError) throw applyError;
+      const summary = applied as { created?: number; updated?: number; skipped?: number } | null;
+
+      const msgs = [`${summary?.created ?? 0} nuevo${(summary?.created ?? 0) !== 1 ? 's' : ''}`];
+      if ((summary?.updated ?? 0) > 0) msgs.push(`${summary!.updated} actualizado${summary!.updated !== 1 ? 's' : ''}`);
+      if ((summary?.skipped ?? 0) > 0) msgs.push(`${summary!.skipped} omitido${summary!.skipped !== 1 ? 's' : ''}`);
+      toast.success(msgs.join(' · '));
+      setCsvPreviewOpen(false);
+      setCsvPreview(null);
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "No pudimos importar los contactos");
+    } finally {
+      setImporting(false);
     }
-    const msgs = [`${ok} importado${ok !== 1 ? 's' : ''}`];
-    if (skipped > 0) msgs.push(`${skipped} duplicado${skipped !== 1 ? 's' : ''} omitido${skipped !== 1 ? 's' : ''}`);
-    if (failed > 0) msgs.push(`${failed} fallido${failed !== 1 ? 's' : ''}`);
-    toast.success(msgs.join(' · '));
-    setCsvPreviewOpen(false);
-    setCsvPreview(null);
-    await loadData();
-    setImporting(false);
   };
 
   const saveQuickNote = async (customer: CustomerData) => {
@@ -3359,7 +3359,7 @@ export default function CustomersPage() {
                   </table>
                 </div>
                 {csvPreview.rows.length > 5 && (
-                  <p className="text-[10px] text-muted-foreground mt-1">+{csvPreview.rows.length - 5} filas más · Duplicados por nombre serán omitidos automáticamente.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">+{csvPreview.rows.length - 5} filas más · El servidor matchea por email/teléfono y no pisa lo cargado a mano.</p>
                 )}
               </div>
 

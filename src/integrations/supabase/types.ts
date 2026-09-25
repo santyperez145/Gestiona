@@ -8158,6 +8158,314 @@ export type Database = {
           },
         ]
       }
+      customer_import_batches: {
+        Row: {
+          applied_at: string | null
+          cancelled_at: string | null
+          create_rows: number
+          created_at: string
+          created_by: string
+          created_count: number
+          error_message: string | null
+          filename: string
+          id: string
+          invalid_rows: number
+          org_id: string
+          payload_hash: string
+          skipped_count: number
+          source_format: string
+          source_system: string
+          status: string
+          total_rows: number
+          update_rows: number
+          updated_count: number
+          valid_rows: number
+        }
+        Insert: {
+          applied_at?: string | null
+          cancelled_at?: string | null
+          create_rows?: number
+          created_at?: string
+          created_by: string
+          created_count?: number
+          error_message?: string | null
+          filename: string
+          id?: string
+          invalid_rows?: number
+          org_id: string
+          payload_hash: string
+          skipped_count?: number
+          source_format: string
+          source_system?: string
+          status?: string
+          total_rows?: number
+          update_rows?: number
+          updated_count?: number
+          valid_rows?: number
+        }
+        Update: {
+          applied_at?: string | null
+          cancelled_at?: string | null
+          create_rows?: number
+          created_at?: string
+          created_by?: string
+          created_count?: number
+          error_message?: string | null
+          filename?: string
+          id?: string
+          invalid_rows?: number
+          org_id?: string
+          payload_hash?: string
+          skipped_count?: number
+          source_format?: string
+          source_system?: string
+          status?: string
+          total_rows?: number
+          update_rows?: number
+          updated_count?: number
+          valid_rows?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      customer_import_rows: {
+        Row: {
+          action: string
+          applied_at: string | null
+          batch_id: string
+          id: string
+          match_key: string
+          normalized: Json
+          org_id: string
+          result_customer_id: string | null
+          row_number: number
+          status: string
+          target_customer_id: string | null
+          validation_errors: string[]
+          validation_warnings: string[]
+        }
+        Insert: {
+          action: string
+          applied_at?: string | null
+          batch_id: string
+          id?: string
+          match_key: string
+          normalized: Json
+          org_id: string
+          result_customer_id?: string | null
+          row_number: number
+          status?: string
+          target_customer_id?: string | null
+          validation_errors?: string[]
+          validation_warnings?: string[]
+        }
+        Update: {
+          action?: string
+          applied_at?: string | null
+          batch_id?: string
+          id?: string
+          match_key?: string
+          normalized?: Json
+          org_id?: string
+          result_customer_id?: string | null
+          row_number?: number
+          status?: string
+          target_customer_id?: string | null
+          validation_errors?: string[]
+          validation_warnings?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_import_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "customer_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_result_customer_id_fkey"
+            columns: ["result_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_result_customer_id_fkey"
+            columns: ["result_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_target_customer_id_fkey"
+            columns: ["target_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_import_rows_target_customer_id_fkey"
+            columns: ["target_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_notes: {
         Row: {
           created_at: string
@@ -55888,6 +56196,10 @@ export type Database = {
         Args: { p_batch_id: string; p_skip_invalid?: boolean }
         Returns: Json
       }
+      apply_customer_import: {
+        Args: { p_batch_id: string; p_skip_invalid?: boolean }
+        Returns: Json
+      }
       apply_meli_shipping_cost: {
         Args: {
           p_meli_order_id: string
@@ -56588,6 +56900,11 @@ export type Database = {
           monto_minimo: number
           sin_interes: boolean
         }[]
+      }
+      customer_import_phone: { Args: { p_value: Json }; Returns: string }
+      customer_import_text: {
+        Args: { p_max?: number; p_value: Json }
+        Returns: string
       }
       customer_timeline_360: {
         Args: {
@@ -58922,6 +59239,16 @@ export type Database = {
           p_source_row_count?: number
           p_source_system: string
           p_stock_mode?: string
+        }
+        Returns: Json
+      }
+      stage_customer_import: {
+        Args: {
+          p_filename: string
+          p_org_id: string
+          p_rows: Json
+          p_source_format: string
+          p_source_system?: string
         }
         Returns: Json
       }
