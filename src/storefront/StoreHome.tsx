@@ -14,6 +14,7 @@ import { useStoreAuth } from "./storeAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { retryPublicRead } from "@/lib/publicDataSource";
 import {
+  coleccionDeBloque,
   heroVisible,
   layoutEsPersonalizado,
   limiteDeItems,
@@ -24,6 +25,18 @@ import {
 } from "@/lib/storeHomeLayout";
 import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 import { storeHomeShowsCommerceChrome, textoMediosHero } from "@/lib/storeHomeHero";
+
+/**
+ * ¿El producto pertenece a la colección (slug de categoría) del bloque?
+ * Sin colección, todo pasa: el bloque muestra su regla de siempre.
+ */
+function coincideColeccion(
+  product: { category?: string | null },
+  coleccion: string | undefined,
+): boolean {
+  if (!coleccion) return true;
+  return String(product.category ?? "").trim().toLowerCase() === coleccion;
+}
 
 export default function StoreHome() {
   const { store, products, banners, categorias: cats2, priceOf, fmt, cart, basePath: base } = useStore();
@@ -72,12 +85,15 @@ export default function StoreHome() {
   const nVistos = limiteDeItems(layout, "vistos");
   const nPorque = limiteDeItems(layout, "porque");
 
-  const destacados = disponibles.filter(p => p.featured).slice(0, nDestacados);
+  const destacados = disponibles
+    .filter(p => p.featured && coincideColeccion(p, coleccionDeBloque(layout, "destacados")))
+    .slice(0, nDestacados);
   const ofertas = disponibles
     .filter(p => priceOf(p) < Number(p.sale_price_ars))
     .sort((a, b) => (1 - priceOf(b) / Number(b.sale_price_ars)) - (1 - priceOf(a) / Number(a.sale_price_ars)))
     .slice(0, nOfertas);
   const nuevos = [...disponibles]
+    .filter(p => coincideColeccion(p, coleccionDeBloque(layout, "novedades")))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, nNovedades);
 

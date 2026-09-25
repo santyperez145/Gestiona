@@ -30,6 +30,8 @@ export type HomeSection = {
   title?: string;
   /** Cuántos ítems muestra la vitrina. undefined/default = 8. */
   limit?: number;
+  /** Colección (slug de categoría) que filtra la vitrina del bloque. */
+  collection?: string;
 };
 
 export type StorefrontLayout = {
@@ -59,6 +61,11 @@ const IDS = new Set<string>(HOME_SECTION_IDS);
 /** Bloques con vitrina de productos: los únicos que aceptan límite. */
 export const HOME_SECTIONS_WITH_LIMIT: ReadonlySet<HomeSectionId> = new Set([
   "porque", "vistos", "ofertas", "destacados", "novedades",
+]);
+
+/** Bloques que pueden filtrarse por una colección concreta (Shopify collection). */
+export const HOME_SECTIONS_WITH_COLLECTION: ReadonlySet<HomeSectionId> = new Set([
+  "destacados", "novedades",
 ]);
 
 /** Bloques cuyo título se muestra al comprador y por eso se puede cambiar. */
@@ -96,6 +103,14 @@ export function limiteDeSeccion(s: Pick<HomeSection, "id"> & Partial<HomeSection
   return Math.min(HOME_SECTION_LIMIT_MAX, Math.max(HOME_SECTION_LIMIT_MIN, Math.round(n)));
 }
 
+/** Slug de colección guardado, saneado. Vacío, no-string o basura = sin filtro. */
+export function coleccionDeSeccion(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const slug = raw.trim().toLowerCase();
+  if (!slug || !/^[a-z0-9][a-z0-9_-]{0,80}$/.test(slug)) return undefined;
+  return slug;
+}
+
 export function parseStorefrontLayout(raw: unknown): StorefrontLayout {
   if (!esLayoutCrudo(raw)) return { ...DEFAULT_STOREFRONT_LAYOUT, sections: [...DEFAULT_STOREFRONT_LAYOUT.sections] };
 
@@ -115,9 +130,12 @@ export function parseStorefrontLayout(raw: unknown): StorefrontLayout {
     sections.push({
       id: sid,
       enabled: (item as { enabled?: unknown }).enabled !== false,
-      // Config por bloque: título propio y límite de ítems (Shopify sections).
+      // Config por bloque: título propio, límite de ítems y colección (Shopify sections).
       title: textoLimpio((item as { title?: unknown }).title, 60) || undefined,
       limit: limiteDeSeccion({ id: sid }, (item as { limit?: unknown }).limit),
+      collection: HOME_SECTIONS_WITH_COLLECTION.has(sid)
+        ? coleccionDeSeccion((item as { collection?: unknown }).collection)
+        : undefined,
     });
   }
   for (const id of HOME_SECTION_IDS) {
@@ -148,7 +166,7 @@ export function moverSeccion(sections: HomeSection[], id: HomeSectionId, dir: -1
 
 /** Defaults de comparación: un bloque sin título custom usa el genérico. */
 function seccionDefault(id: HomeSectionId): HomeSection {
-  return { id, enabled: true, title: undefined, limit: HOME_SECTION_LIMIT_DEFAULT };
+  return { id, enabled: true, title: undefined, limit: HOME_SECTION_LIMIT_DEFAULT, collection: undefined };
 }
 
 export function layoutsIguales(a: StorefrontLayout, b: StorefrontLayout): boolean {
@@ -163,7 +181,13 @@ export function layoutsIguales(a: StorefrontLayout, b: StorefrontLayout): boolea
     if (ta !== tb) return false;
     const la = limiteDeSeccion(s, s.limit);
     const lb = limiteDeSeccion(o, o.limit);
-    return la === lb;
+    if (la !== lb) return false;
+    // La colección sólo cuenta en bloques que la soportan; en el resto no es
+    // una diferencia real y no debe forzar a guardar el layout.
+    const soporta = HOME_SECTIONS_WITH_COLLECTION.has(s.id);
+    const ca = soporta ? coleccionDeSeccion(s.collection) : undefined;
+    const cb = soporta ? coleccionDeSeccion(o.collection) : undefined;
+    return ca === cb;
   });
 }
 
@@ -185,6 +209,12 @@ export function tituloDeSeccion(layout: StorefrontLayout, id: HomeSectionId): st
 /** Cuántos ítems muestra la vitrina de un bloque. */
 export function limiteDeItems(layout: StorefrontLayout, id: HomeSectionId): number {
   return limiteDeSeccion({ id }, layout.sections.find((s) => s.id === id)?.limit);
+}
+
+/** Colección que filtra la vitrina del bloque, o undefined si no filtra. */
+export function coleccionDeBloque(layout: StorefrontLayout, id: HomeSectionId): string | undefined {
+  if (!HOME_SECTIONS_WITH_COLLECTION.has(id)) return undefined;
+  return coleccionDeSeccion(layout.sections.find((s) => s.id === id)?.collection);
 }
 
 /**

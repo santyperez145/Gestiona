@@ -92,8 +92,7 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
   abuso, fuente/licencia visible y selección humana obligatoria.
 
 **Falta:** lo detallado por fila en el estudio de faltantes (sección 6): certificar
-el migrador con archivos reales,
-filtro por colección en la vitrina de un bloque, certificación live de
+el migrador con archivos reales, certificación live de
 pagos/envíos y métricas de campo.
 
 ### Business Core
@@ -300,7 +299,7 @@ cita la evidencia que falta, no la que existe.
 | Certificar migrador (C22.2) | El RPC de migración existe; falta correrlo con 1 export real Shopify y 1 Tiendanube con variantes/imágenes/stock y documentar el resultado. |
 | Copia de imágenes a storage propio | **Cerrado (2026-09-25):** Edge `copy-product-images` descarga las URLs https externas del lote aplicado (productos y variantes), valida tipo/tamaño y las reemplaza por la URL pública de `product-images`; idempotente y con tandas de 40. |
 | Clientes en migración | **Cerrado (2026-09-25):** `customer_import_batches`/`rows` con staging auditado, gate owner/admin, matcheo por email/teléfono argentino canónico y aplicación atómica idempotente que no pisa datos manuales ni revive el opt-out; el CSV de Clientes usa el RPC. |
-| Editor de bloques con config por bloque | **Cerrado (2026-09-25):** título propio y límite de ítems (3-12) por bloque persistido en `storefront_layout`; la vitrina lo honra y el Theme Studio lo publica versionado. |
+| Editor de bloques con config por bloque | **Cerrado (2026-09-25):** título propio, límite de ítems (3-12) y **colección** (slug de categoría) por bloque persistido en `storefront_layout`; la vitrina filtra Destacados/Novedades por colección y el Theme Studio lo publica versionado. |
 | Certificación live de pagos/envíos | Webhook y refund modelados; falta ciclo aprobación/rechazo/timeout/refund observado, etiqueta con transportista y métricas de campo (LCP/INP/CLS). |
 
 **Pilar 3 — Finance/Mendel:**

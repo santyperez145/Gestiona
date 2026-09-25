@@ -86,6 +86,7 @@ import {
   HOME_SECTION_LABELS,
   HOME_SECTIONS_WITH_LIMIT,
   HOME_SECTIONS_WITH_TITLE,
+  HOME_SECTIONS_WITH_COLLECTION,
   HOME_SECTION_LIMIT_MAX,
   HOME_SECTION_LIMIT_MIN,
   layoutParaGuardar,
@@ -388,7 +389,7 @@ export default function EcommerceStorePage() {
   }, [askConfirmation, commerceStores, store, storeFormDirty]);
 
   useEffect(() => {
-    if (!orgId || !store?.id || tab !== "categorias") return;
+    if (!orgId || !store?.id || (tab !== "categorias" && tab !== "design")) return;
     Promise.all([
       supabase.from("ecommerce_categories").select("slug, name")
         .eq("org_id", orgId).eq("is_active", true).order("sort_order"),
@@ -1789,6 +1790,35 @@ export default function EcommerceStorePage() {
                           }));
                         }}
                       />
+                    </div>
+                  )}
+                  {s.enabled && HOME_SECTIONS_WITH_COLLECTION.has(s.id) && menuCategorias.length > 0 && (
+                    <div className="flex items-center gap-2 pl-6">
+                      <label className="text-xs text-muted-foreground shrink-0">Colección</label>
+                      <Select
+                        value={s.collection ?? "__todas__"}
+                        onValueChange={value => setStoreForm(p => ({
+                          ...p,
+                          storefront_layout: {
+                            ...p.storefront_layout,
+                            sections: p.storefront_layout.sections.map(x =>
+                              x.id === s.id
+                                ? { ...x, collection: value === "__todas__" ? undefined : value }
+                                : x,
+                            ),
+                          },
+                        }))}
+                      >
+                        <SelectTrigger className="h-8 flex-1 min-w-[10rem] text-sm" aria-label={`Colección de ${HOME_SECTION_LABELS[s.id]}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__todas__">Todas</SelectItem>
+                          {menuCategorias.map(c => (
+                            <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                 </li>
