@@ -27,7 +27,7 @@ const PLATFORM_ROUTES = new Set([
   "/platform", "/platform/orgs", "/platform/usuarios", "/platform/metricas",
   "/platform/integraciones", "/platform/operaciones", "/platform/sistema",
   "/platform/mensajeria", "/platform/planes", "/platform/negocio",
-  "/platform/comisiones", "/platform/afip", "/platform/soporte", "/platform/anuncios",
+  "/platform/comisiones", "/platform/creadores", "/platform/afip", "/platform/soporte", "/platform/anuncios",
 ]);
 
 export default function PlatformHeader() {

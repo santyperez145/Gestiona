@@ -32,6 +32,7 @@ import {
   Loader2,
   RefreshCw,
   Search,
+  Wallet,
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,7 +49,7 @@ interface ExpenseRequest {
   category: string | null;
   cost_center: string | null;
   motive: string | null;
-  status: "pending" | "under_review" | "approved" | "rejected";
+  status: "pending" | "under_review" | "approved" | "rejected" | "paid";
   attachments: string[];
   created_at: string;
   updated_at: string;
@@ -60,6 +61,7 @@ interface ExpenseRequestCounts {
   bajo_revision: number;
   aprobado: number;
   rechazado: number;
+  pagado: number;
 }
 
 export default function FinanceSolicitudesPage() {
@@ -113,6 +115,22 @@ export default function FinanceSolicitudesPage() {
 
   useEffect(() => {
     void loadRequests();
+  }, [activeOrg?.id]);
+
+  // Realtime: la bandeja se refresca sola cuando alguien aprueba/revisa desde
+  // otra pestaña o dispositivo (paridad Mendel: bandeja viva, no stale).
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    const channel = supabase
+      .channel(`finance-solicitudes-${activeOrg.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "finance_expense_requests", filter: `org_id=eq.${activeOrg.id}` },
+        () => { void loadRequests(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrg?.id]);
 
   const handleCreate = async () => {
@@ -174,13 +192,32 @@ export default function FinanceSolicitudesPage() {
     }
   };
 
+  // Registrar pago: la solicitud aprobada se vuelve un gasto real en `expenses`
+  // (P&L honesto). La autoridad es la RPC; el reintento es seguro (idempotente).
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const handleMarkPaid = async (requestId: string) => {
+    setMarkingPaidId(requestId);
+    try {
+      const { error } = await (supabase as any).rpc("finance_mark_expense_paid", { p_request_id: requestId });
+      if (error) throw error;
+      setNotice("Pago registrado: el gasto entró al registro contable");
+      void loadRequests();
+    } catch (cause) {
+      const msg = cause instanceof Error ? cause.message : String(cause);
+      setLoadError(`No se pudo registrar el pago: ${msg}`);
+    } finally {
+      setMarkingPaidId(null);
+    }
+  };
+
   const counts = useMemo<ExpenseRequestCounts>(() => {
-    const c: ExpenseRequestCounts = { todos: requests.length, pendiente: 0, bajo_revision: 0, aprobado: 0, rechazado: 0 };
+    const c: ExpenseRequestCounts = { todos: requests.length, pendiente: 0, bajo_revision: 0, aprobado: 0, rechazado: 0, pagado: 0 };
     for (const r of requests) {
       if (r.status === "pending") c.pendiente += 1;
       else if (r.status === "under_review") c.bajo_revision += 1;
       else if (r.status === "approved") c.aprobado += 1;
       else if (r.status === "rejected") c.rechazado += 1;
+      else if (r.status === "paid") c.pagado += 1;
     }
     return c;
   }, [requests]);
@@ -191,6 +228,7 @@ export default function FinanceSolicitudesPage() {
     "en revisión": "under_review",
     aprobado: "approved",
     rechazado: "rejected",
+    pagado: "paid",
   };
 
   const filtered = useMemo(() => {
@@ -232,8 +270,8 @@ export default function FinanceSolicitudesPage() {
           <Input placeholder="Buscar solicitudes..." value={inboxQuery} onChange={(e) => setInboxQuery(e.target.value)} className="pl-9" />
         </div>
         <div className="flex gap-1">
-          {["todos", "pendiente", "en revisión", "aprobado", "rechazado"].map((v) => (
-            <Button key={v} variant={inboxView === v ? "default" : "outline"} size="sm" onClick={() => setInboxView(v)}>{v}</Button>
+          {["todos", "pendiente", "en revisión", "aprobado", "pagado", "rechazado"].map((v) => (
+            <Button key={v} variant={inboxView === v ? "default" : "outline"} size="sm" onClick={() => setInboxView(v)} className="capitalize">{v}</Button>
           ))}
         </div>
       </div>
@@ -264,11 +302,12 @@ export default function FinanceSolicitudesPage() {
       )}
 
       {/* Summary KPIs */}
-      <div className="grid gap-4 sm:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Total</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{counts.todos}</div></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Pendientes</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{counts.pendiente}</div></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">En revisión</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{counts.bajo_revision}</div></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Aprobadas</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{counts.aprobado}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Pagadas</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{counts.pagado}</div></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Rechazadas</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{counts.rechazado}</div></CardContent></Card>
       </div>
 
@@ -301,11 +340,12 @@ export default function FinanceSolicitudesPage() {
                   <TableCell className="p-4 text-[10px] text-muted-foreground">{s.currency || "ARS"}</TableCell>
                   <TableCell className="p-4">{s.category || "—"}</TableCell>
                   <TableCell className="p-4">{s.cost_center || "—"}</TableCell>
-                  <TableCell className="p-4"><Badge variant={s.status === "approved" ? "default" : s.status === "rejected" ? "destructive" : s.status === "pending" ? "secondary" : "warning"}>{s.status === "approved" ? "Aprobado" : s.status === "rejected" ? "Rechazado" : s.status === "pending" ? "Pendiente" : "En revisión"}</Badge></TableCell>
+                  <TableCell className="p-4"><Badge variant={s.status === "approved" ? "default" : s.status === "rejected" ? "destructive" : s.status === "pending" ? "secondary" : s.status === "paid" ? "success" : "warning"}>{s.status === "approved" ? "Aprobado" : s.status === "rejected" ? "Rechazado" : s.status === "pending" ? "Pendiente" : s.status === "paid" ? "Pagado" : "En revisión"}</Badge></TableCell>
                   <TableCell className="p-4">
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleApprove(s.id)} disabled={s.status !== "pending"}><CheckCircle2 className="mr-1 h-4 w-4" />Aprobar</Button>
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setRejectingId(s.id); setRejectReason(""); }} disabled={s.status !== "pending"}><XCircle className="mr-1 h-4 w-4" />Rechazar</Button>
+                      <Button variant="ghost" size="sm" className="text-emerald-600" onClick={() => void handleMarkPaid(s.id)} disabled={s.status !== "approved"}><Wallet className="mr-1 h-4 w-4" />Registrar pago</Button>
                     </div>
                   </TableCell>
                 </TableRow>

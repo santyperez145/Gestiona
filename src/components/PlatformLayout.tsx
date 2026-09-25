@@ -4,7 +4,7 @@ import {
   Crown, Building2, Users, DollarSign, Headphones, Server, Megaphone,
   Percent, ArrowLeft, LogOut, TrendingUp, BarChart3, FileText, Cable,
   ShieldCheck,
-  Mail,
+  Mail, Sparkles,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -39,6 +39,7 @@ const NAV: NavItem[] = [
   { to: '/platform/planes', label: 'Planes', icon: DollarSign, group: 'monetization', roles: ['finance'] },
   { to: '/platform/negocio', label: 'Negocio', icon: TrendingUp, group: 'monetization', roles: ['finance'] },
   { to: '/platform/comisiones', label: 'Comisiones', icon: Percent, group: 'monetization', roles: ['finance'] },
+  { to: '/platform/creadores', label: 'Creadores & Retiros', icon: Sparkles, group: 'monetization' },
   { to: '/platform/afip', label: 'AFIP', icon: FileText, group: 'governance', roles: ['superadmin'] },
   { to: '/platform/soporte', label: 'Soporte', icon: Headphones, group: 'governance', roles: ['support'] },
   { to: '/platform/anuncios', label: 'Anuncios', icon: Megaphone, group: 'governance', roles: ['superadmin'] },

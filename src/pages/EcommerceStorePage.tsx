@@ -111,6 +111,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import StoreDomainsPanel from "@/components/ecommerce/StoreDomainsPanel";
 import StoreThemePublishingPanel from "@/components/ecommerce/StoreThemePublishingPanel";
+import StoreThemeStudio from "@/components/ecommerce/StoreThemeStudio";
 import StoreWorkspacePicker from "@/components/ecommerce/StoreWorkspacePicker";
 import StoreAssortmentEditor from "@/components/ecommerce/StoreAssortmentEditor";
 import { useCommerceStores } from "@/hooks/useCommerceStores";
@@ -1530,6 +1531,16 @@ export default function EcommerceStorePage() {
             config={themeEditorConfig}
             onLoadDraft={loadThemeConfig}
             onPublished={acceptPublishedTheme}
+          />
+          <StoreThemeStudio
+            selectedTheme={selectedTheme}
+            primaryColor={storeForm.primary_color}
+            fontId={storeForm.font || "sistema"}
+            storeName={storeForm.name || store?.name || ""}
+            productCount={signals.publishedProducts}
+            onSelectTheme={setSelectedTheme}
+            onSelectFont={(fontId) => setStoreForm(current => ({ ...current, font: fontId }))}
+            onPrimaryColor={(hex) => setStoreForm(current => ({ ...current, primary_color: hex.toUpperCase() }))}
           />
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-1"><Palette className="w-4 h-4 text-primary" />Tema de la Tienda</h3>
