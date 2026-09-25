@@ -18,6 +18,21 @@ describe("autoridad de la importación de productos", () => {
     expect(importer).not.toMatch(/\.from\(["']products["']\)\s*\.(insert|update|upsert)/);
   });
 
+  it("ofrece copiar las imágenes externas al storage propio tras aplicar el lote", () => {
+    const edge = readFileSync(resolve(root, "supabase/functions/copy-product-images/index.ts"), "utf8");
+    // La función existe y usa usuario real + service_role del lado servidor.
+    expect(edge).toContain('requireUser(req, corsHeaders)');
+    expect(edge).toContain('admin.storage.from(BUCKET).upload(');
+    expect(edge).toContain('getPublicUrl(path)');
+    expect(edge).not.toContain('image_url = raw');
+    // El navegador invoca la función con el batch ya aplicado.
+    expect(importer).toContain('functions.invoke("copy-product-images"');
+    expect(importer).toContain("batch_id: stage.batch_id");
+    // Idempotente: una URL del storage propio no se vuelve a descargar.
+    expect(edge).toContain('isOwnUrl');
+    expect(edge).toContain('/storage/v1/object/public/product-images/');
+  });
+
   it("consolida Excel y CSV en una sola experiencia", () => {
     expect(productsPage).toContain("Importar Excel/CSV");
     expect(productsPage).not.toContain("CSVImportWizard");

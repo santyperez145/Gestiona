@@ -90,6 +90,11 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   const [locationId, setLocationId] = useState("");
   const [stores, setStores] = useState<DestinationStore[]>([]);
   const [destinationStoreId, setDestinationStoreId] = useState("");
+  // Copia de imágenes externas al storage propio (post-aplicación).
+  const [mirrorState, setMirrorState] = useState<{
+    status: "idle" | "running" | "done" | "error";
+    mirrored: number; remaining: number; failed: number;
+  }>({ status: "idle", mirrored: 0, remaining: 0, failed: 0 });
   // ⚠️ Arranca en 0 = "sin cargar", no en un dólar inventado. El importador
   // convierte costos en dólares a pesos: si arranca con un número puesto, el
   // comercio importa cientos de productos con el costo de otro dólar sin haber
@@ -249,6 +254,37 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   function reset() {
     setRows([]); setMigration(null); setFileName(""); setStage(null); setStagedRows([]); setResult(null);
     setSkipInvalid(false); setStep("upload");
+    setMirrorState({ status: "idle", mirrored: 0, remaining: 0, failed: 0 });
+  }
+
+  // Copia URLs de imágenes externas (Shopify/Tiendanube) al bucket propio, en
+  // tandas de 40. Si el origen borra sus archivos, la vitrina no se rompe.
+  async function mirrorImages() {
+    if (!stage?.batch_id || mirrorState.status === "running") return;
+    setMirrorState(s => ({ ...s, status: "running" }));
+    try {
+      let mirroredTotal = 0; let failedTotal = 0; let remaining = 0;
+      // Máximo 5 tandas por click para no colgar la UI; el usuario re-invoca.
+      for (let round = 0; round < 5; round += 1) {
+        const { data, error } = await supabase.functions.invoke("copy-product-images", {
+          body: { batch_id: stage.batch_id },
+        });
+        if (error) throw error;
+        const next = data as { done?: boolean; mirrored?: number; failed_count?: number; remaining?: number };
+        mirroredTotal += next.mirrored ?? 0;
+        failedTotal = next.failed_count ?? failedTotal;
+        remaining = next.remaining ?? 0;
+        if (next.done) break;
+      }
+      setMirrorState({ status: "done", mirrored: mirroredTotal, remaining, failed: failedTotal });
+      if (mirroredTotal > 0) toast.success(`${mirroredTotal} imagen(es) copiada(s) al storage propio`);
+      else if (failedTotal === 0) toast.info("No había imágenes externas por copiar");
+      else toast.error("No se pudo copiar ninguna imagen; revisá tu conexión y reintentá");
+    } catch (error) {
+      console.error(error);
+      setMirrorState(s => ({ ...s, status: "error" }));
+      toast.error(error instanceof Error ? error.message : "No pudimos copiar las imágenes");
+    }
   }
 
   async function downloadTemplate() {
@@ -380,6 +416,20 @@ export default function ProductsExcelImport({ onClose, onImported }: {
         <div><h4 className="text-xl font-semibold">Catálogo reconciliado</h4><p className="mt-1 text-sm text-muted-foreground">Productos, variantes, stock y URLs terminaron en una única transacción.</p></div>
         <div className="mx-auto grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7"><SummaryCard label="Creados" value={result.created || 0} tone="text-emerald-500" /><SummaryCard label="Actualizados" value={result.updated || 0} /><SummaryCard label="Variantes nuevas" value={result.variants_created || 0} /><SummaryCard label="Variantes act." value={result.variants_updated || 0} /><SummaryCard label="Kardex" value={result.stock_movements || 0} /><SummaryCard label="Redirects" value={result.redirects || 0} /><SummaryCard label="Omitidos" value={result.skipped || 0} tone={result.skipped ? "text-amber-500" : "text-foreground"} /></div>
         <Alert variant="success" className="text-left"><ShieldCheck className="h-4 w-4 shrink-0" /><div><AlertTitle>Aplicación atómica e idempotente</AlertTitle><AlertDescription>Reintentar el mismo lote no duplica productos ni movimientos de stock.</AlertDescription></div></Alert>
+        {(migration?.imageCount ?? 0) > 0 && mirrorState.status !== "done" && <Alert variant="info" className="text-left">
+          <ShieldCheck className="h-4 w-4 shrink-0" /><div><AlertTitle>Imágenes del origen</AlertTitle>
+          <AlertDescription>El catálogo usa las URLs de {catalogMigrationSourceLabel(migration!.source)}: si las borran, tu vitrina se rompe. Copialas al storage propio ahora.</AlertDescription></div>
+          <div className="mt-3 flex items-center gap-2">
+            <Button size="sm" onClick={() => void mirrorImages()} disabled={mirrorState.status === "running"}>
+              {mirrorState.status === "running" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              {mirrorState.status === "running" ? "Copiando…" : "Copiar imágenes"}
+            </Button>
+          </div>
+        </Alert>}
+        {mirrorState.status === "done" && <Alert variant="success" className="text-left">
+          <CheckCircle2 className="h-4 w-4 shrink-0" /><div><AlertTitle>Imágenes en storage propio</AlertTitle>
+          <AlertDescription>{mirrorState.mirrored} copiada(s){mirrorState.failed ? `, ${mirrorState.failed} con error (reintentá)` : ""}. Tu catálogo ya no depende del CDN del origen.</AlertDescription></div>
+        </Alert>}
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center"><Button variant="outline" className="w-full sm:w-auto" onClick={reset}><Upload className="mr-2 h-4 w-4" />Importar otro</Button><Button className="w-full sm:w-auto" onClick={onClose}>Volver a Productos</Button></div>
       </div>}
       </div>

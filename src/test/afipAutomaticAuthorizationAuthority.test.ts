@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../..");
 const read = (path: string) => readFileSync(resolve(ROOT, path), "utf8");
-const migration = read("supabase/migrations/20260903000100_factura_creada_autorizacion_automatica.sql");
+const migration = read("supabase/migrations/20260925000900_factura_creada_autorizacion_automatica.sql");
 const handler = read("supabase/functions/afip-authorize/index.ts");
 
 describe("autorización ARCA automática", () => {
