@@ -84,6 +84,17 @@ describe("rol creador: el influencer no es un comercio", () => {
     expect(portal).toContain("Aceptar campaña");
   });
 
+  it("el loop marca→creador permite re-entrega cuando la marca pide corrección", () => {
+    // El feedback vuelve con estado 'pendiente' + notas; la UI tiene que
+    // reabrir la entrega (una entrega no termina el ciclo: la revisión sí).
+    expect(portal).toContain('correccionPedida');
+    expect(portal).toContain('deliverable_status === "pendiente"');
+    expect(portal).toContain("Re-entregar contenido corregido");
+    // El estado del entregable es visible y honesto en el portal.
+    expect(portal).toContain("Tu contenido está en revisión de la marca.");
+    expect(portal).toContain("La marca aprobó esta entrega.");
+  });
+
   it("el feedback de revisión de la marca llega a la bandeja del creador", () => {
     const feedback = readFileSync(
       resolve(ROOT, "supabase/migrations/20260922000600_creator_campaign_review_feedback.sql"),

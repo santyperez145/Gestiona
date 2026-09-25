@@ -187,6 +187,8 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
   const invitation = campaign.invitation_status?.toLowerCase();
   const deliverado = Boolean(campaign.deliverable_url);
   const decidida = invitation === "accepted" || invitation === "declined" || invitation === "expired";
+  // La marca devolvió el contenido pidiendo corrección: 'pendiente' con notas.
+  const correccionPedida = deliverado && campaign.deliverable_status === "pendiente" && Boolean(campaign.review_notes?.trim());
 
   const respond = async (action: "accept" | "decline") => {
     if (busy) return;
@@ -249,10 +251,11 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
         </div>
       )}
 
-      {/* Entrega de contenido: solo con campaña aceptada y sin entregable previo */}
-      {invitation === "accepted" && !deliverado && !showForm && (
+      {/* Entrega de contenido: con campaña aceptada, sin entregable previo o
+          con corrección pedida por la marca (re-entrega en el mismo loop). */}
+      {invitation === "accepted" && (!deliverado || correccionPedida) && !showForm && (
         <Button size="sm" variant="outline" onClick={() => setShowForm(true)} className="h-8 gap-1.5">
-          <Upload className="h-3.5 w-3.5" /> Entregar contenido
+          <Upload className="h-3.5 w-3.5" /> {correccionPedida ? "Re-entregar contenido corregido" : "Entregar contenido"}
         </Button>
       )}
       {showForm && (
@@ -294,6 +297,19 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
         >
           <CheckCircle2 className="h-3.5 w-3.5" /> Contenido entregado <ExternalLink className="h-3 w-3" />
         </a>
+      )}
+
+      {/* Estado honesto del entregable en el loop marca→creador */}
+      {deliverado && (
+        <p className="text-[11px] text-muted-foreground">
+          {campaign.deliverable_status === "completado"
+            ? "La marca aprobó esta entrega."
+            : campaign.deliverable_status === "entregado"
+              ? "Tu contenido está en revisión de la marca."
+              : correccionPedida
+                ? "La marca pidió una corrección: re-entregá cuando la tengas."
+                : ""}
+        </p>
       )}
     </div>
   );
