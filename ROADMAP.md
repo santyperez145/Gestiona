@@ -321,6 +321,50 @@ partner.
 
 ## 6. Próximos slices
 
+### Estudio de faltantes por pilar (2026-09-25)
+
+Auditoría de código y docs vigentes contra el estándar competitivo. Cada fila
+cita la evidencia que falta, no la que existe.
+
+**Pilar 1 — Influencers/Marz:**
+
+| Falta | Detalle verificable |
+|---|---|
+| Chat por colaboración | No existe superficie de mensajería marca↔creador; GoMarz la publica como parte del flujo de campaña. Requiere tabla de hilos por campaña/creador con RLS propia y notificaciones consentidas. |
+| Publicación verificable | La revisión de entregables cierra el loop, pero no hay evidencia de URL publicada ni derechos de uso versionados. Falta registro de link de publicación + captura + estado. |
+| Contratos con aceptación de ambas partes | `InfluencerContractsPage` registra condiciones internas; falta aceptación explícita del creador con timestamp y versionado. |
+| Liquidación enlazada a Finance | Los payouts MP asientan en `influencer_payouts`, pero no generan obligación/gasto en Finance ni conciliación con extracto bancario. |
+| Métricas sociales verificadas | `influencers` guarda engagement declarado; falta verificación OAuth de IG/TikTok o al menos evidencia exportada por el creador. |
+
+**Pilar 2 — Tiendas/Commerce:**
+
+| Falta | Detalle verificable |
+|---|---|
+| Certificar migrador (C22.2) | El RPC `stage_catalog_migration`/`apply_catalog_migration` existe; falta correrlo con 1 export real Shopify y 1 Tiendanube con variantes/imágenes/stock y documentar el resultado real. |
+| Copia de imágenes a storage propio | El importador conserva URLs externas; falta copia a Storage propio con procedencia. |
+| Clientes en migración | El importador no incorpora clientes del marketplace de origen. |
+| Editor de bloques con config por bloque | El layout de home ordena/habilita 9 secciones fijas; falta configuración por bloque (título custom, límite de ítems, filtro por colección) como Shopify sections. |
+| Certificación live de pagos/envíos | Webhook y refund modelados; falta ciclo aprobación/rechazo/timeout/refund observado y etiqueta con transportista contratado. |
+| Medición de conversión y CWV de campo | No hay panel de métricas de campo (LCP/INP/CLS) ni embudo de conversión medido. |
+
+**Pilar 3 — Finance/Mendel:**
+
+| Falta | Detalle verificable |
+|---|---|
+| Primer documento real (F5.1) | La Edge Function `extract-finance-document` está lista pero falla cerrado sin `FINANCE_DOCUMENT_EXTRACTION_ENABLED` + `ANTHROPIC_API_KEY` + modelo aprobado. Falta habilitar proveedor y procesar 1 factura real E2E. |
+| Políticas versionadas de aprobación | Las solicitudes tienen estados y pago real, pero no hay motor de política versionada con escalamiento por monto/categoría/centro. |
+| Presupuesto comprometido/disponible | Budget Pulse existe; falta comprometer/liberar como movimientos con alertas de excedente. |
+| Conciliación bancaria | `PaymentSettlementsPanel` explica neto por cobro digital; falta importar extracto bancario y proponer/confirmar matches contra ledger. |
+| Exportación contable | Sin lote exportable auditado (mapeo de cuenta/centro/impuesto con preview y reintento sin duplicar). |
+| Tarjetas externas | Sin feed de transacciones externas ni controles preventivos; emisión exige partner (gate externo). |
+
+**CRM/ERP (usabilidad cualquier comercio):**
+
+| Falta | Detalle verificable |
+|---|---|
+| Conteo físico de inventario | Pendiente en Business Core; sin él, el stock confiable depende de ajustes manuales. |
+| Interacciones de cliente unificadas | Existen notas y seguimientos; falta timeline único por cliente (ventas, notas, campañas, WhatsApp) en la ficha 360. |
+
 | Orden | Slice | Resultado verificable |
 |---|---|---|
 | 1 | A1 Contratos de acción | Cada CTA crítica tiene test reversible/sandbox y resultado observable. |
@@ -328,11 +372,14 @@ partner.
 | 3 | C20 Estados de checkout | Intento persistido, recuperación de lectura/pago desde el pedido, aislamiento al navegar y refresco digital secuencial acotado. Pendiente: certificar concurrencia con claves distintas y ciclo completo de carrito entre pestañas. |
 | 4 | C23 Operación de pedidos | Historial paginado server-side, SLA configurable por tienda y cierre integral de fulfillment/devolución con RMA y arrepentimiento legal Ley 24.240. |
 | 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
-| 6 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. |
+| 6 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. **Requiere habilitar proveedor de extracción (env vars + modelo aprobado).** |
 | 7 | F5.2 Políticas y presupuesto | Solicitud bloqueada/aprobada con saldo comprometido. |
 | 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
 | 9 | P0 Segundo comercio | Alta, migración y venta sin intervención SQL. **Completado: segundo commerce operativo con creación/edición/eliminación de productos (canal POS y online), tabla de productos con nombres legibles, colores con contraste y flujo fullstack validado.** |
 | 10 | Economics | Pricing y comisión aprobados con costos reales. |
+| 11 | Influencers chat + publicación verificable | Hilo por colaboración con notificaciones consentidas; link de publicación y derechos versionados en entregables. |
+| 12 | Finance conciliación bancaria | Extracto importado, matches propuestos y confirmados contra ledger. |
+| 13 | Finance export contable | Lote exportable con mapeo, preview, error por fila y reintento sin duplicar. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 
