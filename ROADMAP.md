@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-24. **Estado:** documento rector de producto y ejecución.
+**Corte:** 2026-09-25. **Estado:** documento rector de producto y ejecución.
 La historia de entregas vive en Git; este archivo conserva únicamente el estado
 actual, las decisiones vigentes y el trabajo siguiente.
 
@@ -121,6 +121,17 @@ deudas, presupuestos, facturación, devoluciones, reportes y ledger.
 **Invariantes cerrados:** sólo la base mueve stock; cada movimiento de dinero
 tiene autoridad server-side; rutas/permisos salen de `routeManifest`; secretos
 no vuelven al navegador; fallas no se convierten en listas vacías.
+
+**POS offline-first (2026-09-25):** el punto de venta opera sin conexión con
+snapshot local de catálogo, `settings` y turno de caja abierto; la cola de
+ventas/movimientos generados sin red sincroniza automáticamente al recuperar
+conectividad sin duplicar ni perder operaciones.
+
+**CRM/ERP usable por cualquier comercio (2026-09-25):** detección proactiva de
+duplicados de clientes por email/teléfono/nombre normalizado con fusión
+asistida de un clic (`src/lib/customerDuplicates.ts`), panel de salud de
+identidad (`IdentityHealthPanel`), análisis RFM, proyección de CLV y riesgo de
+churn ya activos en `CustomersPage`.
 
 **Pendiente:** conteo físico, primera operación externa sin corrección SQL,
 catálogo polimórfico completo y evidencia de margen usado para decidir.
@@ -276,9 +287,13 @@ de ejemplo, lanzamientos simulados y métricas incorrectas: no estaba completa.
 
 - Base operativa: rutas propias, directorio único, campañas persistentes con
   selección real, versiones, permisos y auditoría; contratos y entregables internos.
-- Siguiente: invitaciones/ofertas, aceptación, chat, revisión audiovisual y
-  publicación verificable; después liquidación integrada con Finance.
-- No certificar pagos, firmas, notificaciones ni resultados sociales sin evidencia.
+- **Cerrado (2026-09-25):** aceptación/entrega desde el portal creador con sesión,
+  loop de revisión (marca pide corrección → creador reentrega), liquidación de
+  retiros vía Edge Function `mp-payouts` (transferencia/email MP) con idempotencia,
+  cifrado de token y webhook firmado HMAC que confirma el estado del lote.
+- Siguiente: perfiles públicos de creador, descubrimiento por nicho/métricas,
+  chat integrado y panel de superadmin con vista global de campañas/pagos.
+- No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Localización: mantener etiquetas humanas y ampliar pruebas de controles/roles.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
 
@@ -334,6 +349,31 @@ expuestos (`b0ebdd5d`). C28.1: pasero fuera del pricing
 (`calcAutoSalePriceSinPasero`), baja uno-clic de campañas (CAN-SPAM/RFC 8058 con
 Edge pública y tokens de un uso), redactor propio determinístico
 (`campaignCopy.ts`) y `urlMediaSegura` contra contenido mixto con HSTS.
+
+### Payouts MP, POS offline y CRM duplicados (2026-09-25)
+
+**Influencers/Marz:** Edge Function `mp-payouts` con idempotencia, cifrado de
+token y guardas de permiso paga retiros aprobados vía Mercado Pago (transferencia
+o email MP); webhook asíncrono valida firma HMAC y actualiza el lote; la marca
+ve el botón "Pagar con Mercado Pago" y el estado del lote en tiempo real; el
+creador ve el ciclo completo de su dinero (`947cdbfb`); el loop de revisión
+permite a la marca pedir corrección y al creador reentregar sin perder historial
+(`ebdfbe3b`).
+
+**POS:** operable sin conexión — snapshot local de catálogo, `settings` y turno
+de caja abierto; la cola de ventas/movimientos offline sincroniza al recuperar
+conectividad sin duplicar ni perder operaciones (`c0a06c66`).
+
+**CRM/ERP:** detección proactiva de duplicados (`src/lib/customerDuplicates.ts`)
+agrupa clientes por email, teléfono (últimos 10 dígitos) o nombre normalizado
+idéntico, sugiere el registro principal por mayor facturación/historial y ofrece
+fusión asistida de un clic desde `CustomersPage` reasignando `sales`, `debts` y
+`loyalty_points` al destino elegido. Tests guardia en
+`src/test/customerDuplicates.test.ts`.
+
+**Pendiente siguiente corte:** editor visual de temas storefront (bloques +
+CSS vars en vivo), inbox F3 de documentos Finance con extracción real, y
+paridad completa Influencers (perfiles, descubrimiento, campañas end-to-end).
 
 ## 7. Definition of Done
 

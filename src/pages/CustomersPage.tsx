@@ -46,6 +46,7 @@ import PipelineKanbanTab from "@/components/crm/PipelineKanbanTab";
 import SeguimientosView from "@/components/crm/SeguimientosView";
 import SegmentosView from "@/components/crm/SegmentosView";
 import { normalizeIdentityEmail, normalizeIdentityPhone, normalizeIdentityText } from "@/lib/recordIdentity";
+import { findCustomerDuplicates, type DuplicateCluster } from "@/lib/customerDuplicates";
 
 import { plural } from "@/lib/plural";
 // ─────────────────────────────────────────────────────────────
@@ -1698,6 +1699,69 @@ export default function CustomersPage() {
     }
   };
 
+  // ── Detección proactiva de duplicados ──────────────────────────────
+  // Analiza la lista de clientes y encuentra perfiles que comparten email,
+  // teléfono o nombre idéntico. Sugiere cuál es el principal y permite
+  // fusionar con un clic usando el mismo flujo que handleMergeCustomers.
+  const duplicateClusters = useMemo<DuplicateCluster[]>(() => {
+    if (!canEdit || customers.length < 2) return [];
+    return findCustomerDuplicates(
+      customers.map(c => ({
+        id: c.profileId ?? c.customerId ?? null,
+        name: c.name,
+        email: c.email ?? null,
+        phone: c.phone ?? null,
+        whatsapp_number: null,
+        totalSpent: c.totalSpent,
+        purchaseCount: c.purchaseCount,
+      })),
+    );
+  }, [customers, canEdit]);
+
+  // Fusiona un duplicado sugiriendo el principal como destino y el resto como origen.
+  const handleQuickMerge = async (cluster: DuplicateCluster) => {
+    if (!activeOrg || !cluster.suggestedPrimaryId) return;
+    const srcProfile = cluster.customers.find(c => c.id && c.id !== cluster.suggestedPrimaryId);
+    if (!srcProfile?.id) {
+      toast.error("No se pudo determinar el cliente a fusionar");
+      return;
+    }
+    const dstProfile = cluster.customers.find(c => c.id === cluster.suggestedPrimaryId);
+    if (!dstProfile) return;
+    const reasonLabel = cluster.reason === "email" ? "mismo email" : cluster.reason === "phone" ? "mismo teléfono" : "mismo nombre";
+    if (!(await ask({
+      title: "¿Combinar clientes duplicados?",
+      description: `Se moverán las ventas, deudas y puntos de "${srcProfile.name}" a "${dstProfile.name}" (detectado por ${reasonLabel}). Esta acción no se puede deshacer.`,
+      confirmText: "Combinar",
+      variant: "destructive",
+    }))) return;
+    setMerging(true);
+    try {
+      const orgId = activeOrg.id;
+      const srcId = srcProfile.id;
+      const dstId = cluster.suggestedPrimaryId;
+      const dstName = dstProfile.name;
+      const reasignar = async (tabla: "sales" | "debts" | "loyalty_points") => {
+        const { error } = await supabase.from(tabla)
+          .update({ customer_name: dstName, customer_id: dstId })
+          .eq("org_id", orgId)
+          .eq("customer_id", srcId);
+        if (error) throw error;
+      };
+      await reasignar("sales");
+      await reasignar("debts");
+      await reasignar("loyalty_points");
+      const { error: deleteError } = await supabase.from("customers").delete().eq("id", srcId);
+      if (deleteError) throw deleteError;
+      toast.success(`"${srcProfile.name}" fusionado con "${dstName}"`);
+      loadData();
+    } catch (e: any) {
+      toast.error(e.message || "Error al fusionar");
+    } finally {
+      setMerging(false);
+    }
+  };
+
   // Load loyalty points balances and settings
   useEffect(() => {
     if (!activeOrg) return;
@@ -2763,6 +2827,48 @@ export default function CustomersPage() {
             setFormModal({ open: true, profile });
           } : undefined}
         />
+      )}
+
+      {/* Detección proactiva de duplicados — merge asistido con un clic */}
+      {canEdit && duplicateClusters.length > 0 && (
+        <div className="rounded-xl border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/40 p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              {plural(duplicateClusters.length, "Duplicado detectado", "Duplicados detectados")} ({duplicateClusters.length})
+            </h3>
+          </div>
+          <p className="text-xs text-amber-800/80 dark:text-amber-300/70 mb-3">
+            Estos perfiles comparten contacto o nombre. Revisá y fusioná para mantener el historial unificado.
+          </p>
+          <div className="space-y-2">
+            {duplicateClusters.slice(0, 5).map(cluster => {
+              const primary = cluster.customers.find(c => c.id === cluster.suggestedPrimaryId);
+              const others = cluster.customers.filter(c => c.id !== cluster.suggestedPrimaryId);
+              return (
+                <div key={cluster.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-800/40 px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                      {primary?.name ?? "—"} <span className="text-amber-600 dark:text-amber-400">←</span>{" "}
+                      {others.map(c => c.name).join(", ")}
+                    </p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      {cluster.reason === "email" ? `Email: ${cluster.matchValue}` : cluster.reason === "phone" ? `Tel: ${cluster.matchValue}` : `Nombre: ${cluster.matchValue}`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-xs px-2.5 py-1.5 disabled:opacity-50"
+                    onClick={() => handleQuickMerge(cluster)}
+                    disabled={merging || !cluster.suggestedPrimaryId}
+                  >
+                    <Merge className="w-3 h-3" /> Fusionar
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       <div className="crm-customer-board">
