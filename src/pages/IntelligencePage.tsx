@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import NerqiaAI from "@/components/ai-chat/NerqiaAI";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useOrg } from "@/lib/orgContext";
@@ -16,7 +17,7 @@ import { Sparkles, Brain, Loader2 } from "lucide-react";
 const HallazgosView = lazy(() => import("@/components/intelligence/HallazgosView"));
 const AsistenteView = lazy(() => import("@/components/intelligence/AsistenteView"));
 
-type Vista = "hallazgos" | "asistente";
+type Vista = "hallazgos" | "asistente" | "nerqia-ai";
 
 function CargandoVista() {
   return (
@@ -52,12 +53,14 @@ export default function IntelligencePage() {
         tabs={[
           { id: "hallazgos", label: "Hallazgos", icon: Sparkles },
           { id: "asistente", label: "Asistente", icon: Brain },
+          { id: "nerqia-ai", label: "Nerqia AI", icon: Sparkles },
         ]}
       />
 
       <Suspense fallback={<CargandoVista />}>
         {vista === "hallazgos" && <HallazgosView />}
         {vista === "asistente" && <AsistenteView />}
+        {vista === "nerqia-ai" && <NerqiaAI />}
       </Suspense>
     </div>
   );
