@@ -19,6 +19,7 @@ export const HOME_SECTION_IDS = [
   "ofertas",
   "destacados",
   "novedades",
+  "codigo",
 ] as const;
 
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
@@ -49,6 +50,7 @@ export const HOME_SECTION_LABELS: Record<HomeSectionId, string> = {
   ofertas: "Ofertas",
   destacados: "Destacados",
   novedades: "Novedades",
+  codigo: "Código personalizado",
 };
 
 export const DEFAULT_STOREFRONT_LAYOUT: StorefrontLayout = {
@@ -71,6 +73,7 @@ export const HOME_SECTIONS_WITH_COLLECTION: ReadonlySet<HomeSectionId> = new Set
 /** Bloques cuyo título se muestra al comprador y por eso se puede cambiar. */
 export const HOME_SECTIONS_WITH_TITLE: ReadonlySet<HomeSectionId> = new Set([
   "porque", "vistos", "categories", "ofertas", "destacados", "novedades",
+  "codigo",
 ]);
 
 /** Límites razonables: 3 para que la fila no se vuelva un feed infinito. */

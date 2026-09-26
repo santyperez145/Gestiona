@@ -37,7 +37,7 @@ describe("portada modular de la tienda", () => {
     expect(layout.sections.map((s) => s.id).filter((id) => id === "ofertas")).toHaveLength(1);
     expect(layout.sections.map((s) => s.id as string)).not.toContain("tema-motor");
     expect(layout.sections.find((s) => s.id === "trust")?.enabled).toBe(false);
-    expect(layout.sections.at(-1)?.id).toBe("novedades");
+    expect(layout.sections.at(-1)?.id).toBe("codigo");
   });
 
   it("limpia HTML del anuncio y no inventa envío gratis", () => {
@@ -68,7 +68,7 @@ describe("portada modular de la tienda", () => {
   it("mover no se sale de la lista", () => {
     const a = DEFAULT_STOREFRONT_LAYOUT.sections;
     expect(moverSeccion(a, "banners", -1)).toEqual(a);
-    expect(moverSeccion(a, "novedades", 1)).toEqual(a);
+    expect(moverSeccion(a, "codigo", 1)).toEqual(a);
     expect(moverSeccion(a, "hero", -1)[0].id).toBe("hero");
   });
 

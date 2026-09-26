@@ -23,6 +23,7 @@ import {
   tituloDeSeccion,
   type HomeSectionId,
 } from "@/lib/storeHomeLayout";
+import CodigoPersonalizado from "./CodigoPersonalizado";
 import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 import { storeHomeShowsCommerceChrome, textoMediosHero } from "@/lib/storeHomeHero";
 
@@ -166,6 +167,8 @@ export default function StoreHome() {
         return <Row key="destacados" title={tituloDeSeccion(layout, "destacados")} items={destacados} href={`${base}/productos`} />;
       case "novedades":
         return <Row key="novedades" title={tituloDeSeccion(layout, "novedades")} items={nuevos} href={`${base}/productos?orden=nuevo`} />;
+      case "codigo":
+        return <CodigoPersonalizado key="codigo" layout={layout} />;
     }
   };
 
@@ -210,6 +213,7 @@ export default function StoreHome() {
         <h1 className="sr-only">{store?.name ?? "Tienda online"}</h1>
       )}
       {layout.sections.map((s) => bloque(s.id))}
+    <CodigoPersonalizado layout={layout} />
     </div>
   );
 }

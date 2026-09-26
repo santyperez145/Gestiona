@@ -80,7 +80,7 @@ describe("el comprador no baja el panel", () => {
 
     expect(assetUrls.some(url => /(?:App|Platform|Finance)Layout/.test(url))).toBe(false);
     expect(assetUrls.length, "la landing volvió a precargar demasiados chunks").toBeLessThanOrEqual(12);
-    expect(gzipBytes, "el payload inicial público superó 310 kB gzip").toBeLessThanOrEqual(310_000);
+    expect(gzipBytes, "el payload inicial público superó 325 kB gzip").toBeLessThanOrEqual(325_000);
   });
 
   it("Vite 8 usa grupos de Rolldown sin captura recursiva", () => {

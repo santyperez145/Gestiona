@@ -16,7 +16,7 @@ export default function StoreNewsletter() {
   const [name, setName] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [estado, setEstado] = useState<"idle" | "ok" | "error" | "unsubscribed">("idle");
-  const [mensaje, setMensaje] = useState("");
+  const [mensaje, setmensaje] = useState("");
 
   if (!store?.slug) return null;
 
@@ -24,7 +24,7 @@ export default function StoreNewsletter() {
     e.preventDefault();
     setEnviando(true);
     setEstado("idle");
-    setMensaje("");
+    setmensaje("");
 
     const { data, error } = await (supabase.rpc as any)("subscribe_store_newsletter", {
       p_store_slug: store.slug,
@@ -37,22 +37,22 @@ export default function StoreNewsletter() {
     if (error) {
       console.error("[newsletter] error:", error);
       setEstado("error");
-      setMensaje("No pudimos registrar la suscripción. Probá de nuevo.");
+      setmensaje("No pudimos registrar la suscripción. Probá de nuevo.");
       return;
     }
 
-    const result = (data as { ok: boolean; error?: string }) | null;
+    const result = (data ?? null) as { ok: boolean; error?: string } | null;
     if (result?.ok) {
       setEstado("ok");
-      setMensaje("¡Gracias! Tu-email está registrado.");
+      setmensaje("¡Gracias! Tu-email está registrado.");
       setEmail("");
       setName("");
     } else if (result?.error === "unsubscribed") {
       setEstado("unsubscribed");
-      setMensaje("Este email está dado de baja. Contactanos para revertirlo.");
+      setmensaje("Este email está dado de baja. Contactanos para revertirlo.");
     } else {
       setEstado("error");
-      setMensaje(result?.error ?? "No se pudo suscribir.");
+      setmensaje(result?.error ?? "No se pudo suscribir.");
     }
   };
 
