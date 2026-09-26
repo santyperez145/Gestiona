@@ -188,7 +188,7 @@ interface Ctx {
   categorias: CategoriaTienda[];
   addToCart: (p: StoreProduct, qty?: number, variant?: StoreVariant | null) => void;
   /**
-   * Sube al agregar: el layout abre el drawer (mini-cart Shopify/Tiendanube).
+   * Sube al agregar: el layout abre el drawer (mini-cart).
    * 0 = todavía no hubo un alta en esta sesión de página.
    */
   cartRevealTick: number;
@@ -458,7 +458,7 @@ export function StoreProvider({
     return () => { cancelled = true; };
   }, [loading, location.pathname, location.search, previewMode, slug, store]);
 
-  // Sincronización multi-pestaña (Shopify/Tiendanube parity): si el comprador
+  // Sincronización multi-pestaña: si el comprador
   // agrega un ítem o finaliza el checkout en otra pestaña, esta pestaña refleja
   // el cambio en tiempo real y no sobreescribe con un snapshot obsoleto.
   useEffect(() => {
