@@ -126,7 +126,7 @@ export function storeAfterCreateCopy() {
 /**
  * Con tienda ya creada y transferencia habilitada sin CBU/alias, el panel no
  * puede abrir con OAuth de Pay: es el mismo error que identity-first, un paso
- * después. Tiendanube/Shopify: el medio offline usable antes del gateway.
+ * después. Plataformas de comercio: el medio offline usable antes del gateway.
  */
 export function storeShouldLeadSettingsWithBank(input: {
   storeId: string | null | undefined;
@@ -149,7 +149,7 @@ export function storeBankLeadCopy() {
 
 /**
  * El draft activa retiro. Sin dirección el checklist bloquea publicar y el
- * comprador ve «te contactamos». Square/Shopify: lugar del pickup antes del
+ * comprador ve «te contactamos». Plataformas de comercio: lugar del pickup antes del
  * gateway. Va después de identidad y CBU.
  */
 export function storeShouldLeadSettingsWithPickup(input: {
@@ -174,7 +174,7 @@ export function storePickupLeadCopy() {
 /**
  * Al crear la tienda hay que sembrar borradores legales.
  * Si espera a que abran Páginas, el checklist dice «faltan» y el 2º comercio
- * no publica. Tiendanube/Shopify: plantillas al nacer la tienda. Siempre
+ * no publica. Plataformas de comercio: plantillas al nacer la tienda. Siempre
  * draft — publicar sin CUIT/razón sería firmar por el dueño.
  */
 export function storeShouldSeedPagesOnCreate(creatingStore: boolean): boolean {
@@ -183,8 +183,8 @@ export function storeShouldSeedPagesOnCreate(creatingStore: boolean): boolean {
 
 /**
  * Sin legales publicados el checklist bloquea. Después de CBU y retiro, el
- * panel no puede abrir con OAuth: el próximo clic es Páginas (Tiendanube /
- * Shopify: políticas antes de ir live). No publica por el dueño.
+ * panel no puede abrir con OAuth: el próximo clic es Páginas (plataformas de
+ * comercio: políticas antes de ir live). No publica por el dueño.
  */
 export function storeShouldLeadSettingsWithLegal(input: {
   storeId: string | null | undefined;
@@ -206,7 +206,7 @@ export function storeLegalLeadCopy() {
 
 /**
  * Tras legales, el correo de avisos va antes de OAuth. Sin casilla de la tienda
- * la primera venta cae al inbox del dueño o nadie la ve. Shopify/Tiendanube:
+ * la primera venta cae al inbox del dueño o nadie la ve. Plataformas de comercio:
  * contacto de la tienda en el setup, no Pay primero.
  */
 export function storeShouldLeadSettingsWithEmail(input: {
@@ -228,7 +228,7 @@ export function storeEmailLeadCopy() {
 
 /**
  * Retiro con dirección pero sin horario: el pedido pagado no dice cuándo pasar.
- * Square/Shopify confirman lugar y horario. Va después de email (aviso de
+ * Plataformas de comercio confirman lugar y horario. Va después de email (aviso de
  * venta) y antes de OAuth. No inventa el texto — el comercio lo carga.
  */
 export function storeShouldLeadSettingsWithHours(input: {

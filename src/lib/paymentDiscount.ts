@@ -4,8 +4,8 @@
  * En Argentina casi toda tienda cobra distinto según cómo se pague, y no es un
  * capricho: una transferencia le cuesta 0% al comercio y MercadoPago se lleva
  * alrededor del 6%. Trasladar parte de esa diferencia al comprador mueve las
- * ventas al carril barato, que es plata directa al margen. Tiendanube y
- * Empretienda lo traen de fábrica; acá los tres medios costaban lo mismo.
+ * ventas al carril barato, que es plata directa al margen. Las plataformas de
+ * comercio lo traen de fábrica; acá los tres medios costaban lo mismo.
  *
  * ⚠️ **Esto es sólo para MOSTRAR.** El número que se cobra lo recalcula
  * `create_store_order` en la base, que es la autoridad. Estas funciones son el

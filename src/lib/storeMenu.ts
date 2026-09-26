@@ -5,7 +5,7 @@
  * categorías y Ofertas— y no había forma de sacar un link, renombrarlo, ni
  * subir una página de contenido como "Cómo comprar" o "Envíos", que hoy vive
  * escondida en el pie. Es de las primeras cosas que un comercio quiere tocar y
- * Tiendanube la da desde el principio.
+ * las plataformas de comercio la dan desde el principio.
  *
  * **Una lista vacía significa "armalo solo", no "menú vacío".** Es lo que hace
  * que la migración no cambie ninguna tienda el día que se aplica y que una
@@ -137,7 +137,7 @@ export interface ItemMenuConHijos extends ItemMenu {
 }
 
 /**
- * El menú con un nivel de despliegue, que es lo que hacen Tiendanube y
+ * El menú con un nivel de despliegue, que es lo que hacen las plataformas de comercio y
  * MercadoLibre: "Perfumes ▾" abre "Árabes / Diseñador".
  *
  * Un ítem del menú configurado por el comercio se despliega si apunta a una

@@ -2,8 +2,8 @@
  * Listas de precios — qué precio le corresponde a cada cliente.
  *
  * Es la herramienta con la que un comercio vende mayorista, a distribuidores o
- * a clientes VIP sin duplicar el catálogo. La tienen Tiendanube (por "grupo de
- * clientes") y todos los ERP del rubro.
+ * a clientes VIP sin duplicar el catálogo. La tienen las plataformas de comercio
+ * (por "grupo de clientes") y todos los ERP del rubro.
  *
  * ── Por qué existe este archivo ───────────────────────────────────────────
  *

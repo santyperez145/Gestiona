@@ -273,7 +273,7 @@ export function resolveTheme(themeId?: string | null, primaryColor?: string | nu
       "--st-accent-fg": foreground,
       // Bold y Natural ya tienen header de color: ahí la marca pinta el cromo.
       // Luxury / Minimal / Noche conservan su header — pintar todo el topbar
-      // con el acento se ve de plantilla, no de boutique (Shopify: acento ≠ chrome).
+      // con el acento se ve de plantilla, no de boutique (acento ≠ chrome).
       ...(themePaintsHeader(base.id)
         ? {
             "--st-header": custom,

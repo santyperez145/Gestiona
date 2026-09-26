@@ -61,8 +61,8 @@ const SURFACES = [
     label: 'Tienda online',
     eyebrow: 'La puerta de entrada',
     title: 'Tu marca, tu dominio y una tienda preparada para vender.',
-    description: 'Diseño por bloques con título, cantidad y colección propios — como las secciones de Shopify —, catálogo, variantes, promociones, checkout, pagos, envíos y medición conectados con la operación real.',
-    facts: ['Bloques con colección por vitrina', 'Migración desde Shopify/Tiendanube con imágenes propias y clientes', 'Checkout, pagos y envíos'],
+    description: 'Diseño por bloques con título, cantidad y colección propios, catálogo, variantes, promociones, checkout, pagos, envíos y medición conectados con la operación real.',
+    facts: ['Bloques con colección por vitrina', 'Migración asistida de tu catálogo con imágenes propias y clientes', 'Checkout, pagos y envíos'],
     icon: Store,
     tone: 'coral',
   },
@@ -103,8 +103,7 @@ const CHECKS = ['14 días sin tarjeta', 'Importación asistida', 'Soporte en esp
 /** Preguntas frecuentes reales del producto Nerqia. Las respuestas
  *  describen lo que la plataforma hace HOY, no lo que promete hacer. */
 const FAQ = [
-  {
-    q: '¿Es Nerqia una tienda online como Shopify o Tiendanube?',
+  { q: '¿Es Nerqia una tienda online?',
     a: 'Sí, pero conectada al resto del negocio. Vendés por tu dominio, con bloques de vitrina (secciones con título, cantidad y colección propias), checkout, pagos y envíos. La diferencia es que cada pedido mueve stock, conserva al cliente y explica el margen desde el mismo núcleo: no tenés que conciliar nada manualmente.',
   },
   {

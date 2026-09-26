@@ -25,7 +25,7 @@ export type DecisionEntregaCheckout = {
 };
 
 /**
- * Shopify / Tiendanube cotizan después de la ubicación: si no hay domicilio
+ * Las plataformas de comercio cotizan después de la ubicación: si no hay domicilio
  * y sí hay retiro, informan y dejan cerrar. Medido 2026-09-02: Exentry con
  * Córdoba ponía el aviso en el mismo flag que deshabilita el botón, así que
  * el comprador no podía ni retirar.

@@ -1,5 +1,5 @@
 /**
- * Tarifario por provincia (patrón Tiendanube, no copia).
+ * Tarifario por provincia (patrón plataforma de comercio, no copia).
  *
  * El schema sigue siendo zona + tarifas: la cotización ya mira
  * `shipping_zones.provinces`. Lo que faltaba era la superficie: el comercio

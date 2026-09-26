@@ -3,7 +3,7 @@
  *
  * Medido 2026-09-02: Exentry tiene 6 zonas y tarifa en una (CABA). Con retiro
  * activo el checkout parece nacional: 23 provincias sólo pueden ir a buscarlo.
- * Shopify y Tiendanube muestran el método después de la ubicación; acá el
+ * Las plataformas de comercio muestran el método después de la ubicación; acá el
  * selector tiene que decir qué provincia no tiene domicilio.
  */
 

@@ -1,5 +1,5 @@
 /**
- * Avisos de reposición — demanda OOS al estilo Shopify / Klaviyo Back in stock.
+ * Avisos de reposición — demanda OOS con notificación automática.
  *
  * El comprador pide aviso en el storefront; el cron `notify-back-in-stock`
  * manda UNA vez con link al producto. Acá el comercio ve la cola: sin UI era

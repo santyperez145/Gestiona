@@ -41,7 +41,11 @@ export default function StoreNewsletter() {
       return;
     }
 
+<<<<<<< HEAD
     const result = (data ?? null) as { ok: boolean; error?: string } | null;
+=======
+    const result: { ok: boolean; error?: string } | null = data as any;
+>>>>>>> 05a93e25d911375be5347d385efb0cb4818ca81d
     if (result?.ok) {
       setEstado("ok");
       setmensaje("¡Gracias! Tu-email está registrado.");

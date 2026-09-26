@@ -2,8 +2,8 @@
  * Sugerencias del buscador de la tienda.
  *
  * El buscador ya andaba, pero había que escribir, apretar Enter y esperar a que
- * cargue el catálogo para saber si existía lo que se buscaba. Tiendanube y
- * MercadoLibre muestran sugerencias mientras se tipea, y eso cambia dos cosas:
+ * cargue el catálogo para saber si existía lo que se buscaba. Las
+ * plataformas de comercio muestran sugerencias mientras se tipea, y eso cambia dos cosas:
  * el que no sabe cómo se escribe "Khamrah" lo encuentra igual, y el que buscó
  * algo que no está se entera en el acto en vez de llegar a una página vacía.
  *

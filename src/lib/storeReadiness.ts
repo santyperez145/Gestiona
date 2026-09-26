@@ -181,7 +181,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
       actionLabel: 'Cargar dirección',
       actionHref: '/tienda-online?tab=settings',
     });
-    // Square/Shopify confirman pickup con lugar y horario. Sin horario no
+    // Las plataformas de comercio confirman pickup con lugar y horario. Sin horario no
     // se inventa uno: aviso, no bloqueo — todavía se puede vender.
     if (address) {
       checks.push({

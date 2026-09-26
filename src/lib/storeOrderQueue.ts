@@ -1,7 +1,7 @@
 /**
  * Cola de pedidos de la tienda: lo que el comercio opera después de la venta.
  *
- * La paridad regional (Tiendanube, 2026-08-11) es búsqueda por número / cliente
+ * La paridad regional (plataforma de comercio, 2026-08-11) es búsqueda por número / cliente
  * / email / monto, filtros de entrega y pago, y exportar lo filtrado. Las
  * Las acciones masivas llaman a una única RPC server-side que reutiliza la
  * transición individual. Este módulo sólo decide qué acción ofrecer: la base
@@ -108,7 +108,7 @@ export interface StoreOrderQueueRow {
 
 const FULFILLMENT_PENDING = new Set(["pending", "unfulfilled", "processing"]);
 
-/** Pagado y sin salir hace más de esto: entra a Atrasados (Shopify: unfulfilled aging). */
+/** Pagado y sin salir hace más de esto: entra a Atrasados (envejecimiento de pendientes). */
 export const STORE_ORDER_STALE_HOURS = 24;
 
 export interface StoreOrderSlaOption {
@@ -117,7 +117,7 @@ export interface StoreOrderSlaOption {
   description: string;
 }
 
-/** Tiempos estándar de preparación y despacho (Shopify: Processing time). */
+/** Tiempos estándar de preparación y despacho (tiempo de procesamiento). */
 export const STORE_ORDER_SLA_OPTIONS: readonly StoreOrderSlaOption[] = [
   { hours: 12, label: "12 horas", description: "Mismo día para pedidos matutinos" },
   { hours: 24, label: "24 horas (recomendado)", description: "1 día hábil de preparación" },
@@ -169,7 +169,7 @@ export function parseStoreOrderMedio(raw: string | null | undefined): StoreOrder
     : "todos";
 }
 
-/** Square / Shopify: pickup no es un envío. Medido 2026-09-02: Exentry. */
+/** Plataformas de commerce: pickup no es un envío. Medido 2026-09-02: Exentry. */
 export function esPedidoRetiro(order: {
   carrier?: string | null;
   shipping_service?: string | null;
@@ -281,7 +281,7 @@ export interface OrderSLAInfo {
 
 /**
  * SLA derivado de la fila de cola: combinación de estado de fulfillment
- * y antigüedad (Shopify: unfulfilled aging). No inventa datos: usa solo
+ * y antigüedad (envejecimiento de pedidos pendientes). No inventa datos: usa solo
  * `created_at` y `fulfillment_status` de la base.
  */
 export function deriveOrderSLA(

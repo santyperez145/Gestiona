@@ -7,7 +7,7 @@ import { nombreMedio } from "@/lib/paymentDiscount";
 
 /**
  * Sin catálogo no hay vitrina de conversión.
- * ESTANDAR empty-first-use / Shopify-Tiendanube: no trust bar ni «0 productos
+ * ESTANDAR empty-first-use / plataformas de comercio: no trust bar ni «0 productos
  * disponibles» encima del vacío real.
  */
 export function storeHomeShowsCommerceChrome(catalogCount: number): boolean {

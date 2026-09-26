@@ -3,7 +3,7 @@
  *
  * `ecommerce_stores.social_links` existía y `get_store_by_slug` ya lo
  * devolvía. Commerce nunca lo escribía: Exentry quedó `{}` y el pie de la
- * tienda tenía un hueco de Instagram vacío. Tiendanube/Shopify muestran
+ * tienda tenía un hueco de Instagram vacío. Las plataformas de comercio muestran
  * WhatsApp en la vitrina; acá el número lo carga el comercio, no se toma
  * de `settings.whatsapp_number` (ése es el digest del dueño).
  *
