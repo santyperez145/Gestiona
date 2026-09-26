@@ -1,7 +1,8 @@
 /**
  * Calidad de la publicación.
  *
- * Es la herramienta de merchandising más conocida de MercadoLibre y Tiendanube
+ * Es la herramienta de merchandising más conocida de MercadoLibre y
+ * plataformas de comercio
  * no la tiene: en vez de un catálogo donde todo se ve igual, le dice al
  * comercio qué le falta a cada producto **y en qué orden conviene arreglarlo**.
  *

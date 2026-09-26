@@ -1,7 +1,7 @@
 /**
  * Provincia del carrito → checkout.
  *
- * Shopify/Tiendanube muestran flete con poca fricción antes del checkout.
+ * Las plataformas de comercio muestran flete con poca fricción antes del checkout.
  * Guardamos sólo el código de provincia (no dirección) para precargar el
  * formulario; la autoridad del precio sigue siendo `quote_store_shipping`.
  */

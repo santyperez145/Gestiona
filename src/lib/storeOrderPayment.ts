@@ -8,8 +8,7 @@ import { esMedioGestionaPay } from "@/lib/gestionaPay";
 
 /**
  * Ventana en la que un cobro digital (Nerqia Pay / Mercado Pago) sigue
- * siendo trabajo de hoy. Shopify Abandoned checkouts y Tiendanube no ponen
- * en el home un checkout de hace un mes. La preferencia de MP ya venció;
+ * siendo trabajo de hoy. Plataformas de comercio no muestran un checkout de hace un mes. La preferencia de MP ya venció;
  * confirmar a mano no aplica: el webhook es la autoridad.
  */
 export const HORAS_PAGO_DIGITAL_VIVO = 72;
@@ -50,7 +49,7 @@ export function canConfirmManualStorePayment(input: {
   return esMedioPagoManualTienda(input.payment_method);
 }
 
-/** CTA de cola (Shopify unpaid / Tiendanube pendiente): no obliga a abrir el detalle. */
+/** CTA de cola (pendiente sin pago): no obliga a abrir el detalle. */
 export function storeOrderManualPayActionLabel(input: {
   payment_status?: StoreOrderPaymentStatus | null;
   payment_method?: string | null;

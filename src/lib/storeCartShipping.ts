@@ -1,7 +1,7 @@
 /**
  * Rótulo de envío en el carrito (drawer).
  *
- * Shopify/Tiendanube no cierran el flete sin ubicación cuando cotizan por
+ * Las plataformas de comercio no cierran el flete sin ubicación cuando cotizan por
  * zona/provincia. Con `shipping_mode=zones` (default del 2º comercio) usar
  * `shipping_cost` plano y decir «Gratis» si es 0 miente: el checkout cotiza
  * otra cosa con `quote_store_shipping`.

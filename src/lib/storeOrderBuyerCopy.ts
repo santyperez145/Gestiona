@@ -3,7 +3,7 @@ import { esMedioGestionaPay } from "@/lib/gestionaPay";
 /**
  * Copy de confirmación: retiro ≠ envío.
  *
- * El recorte 126 separó la cola del comercio (Square/Shopify: pickup no se
+ * El recorte 126 separó la cola del comercio (plataformas de comercio: pickup no se
  * despacha). La página de gracias y el mail al comprador seguían diciendo
  * «preparando tu envío» con carrier=retiro. Estas frases son el espejo de
  * `esPedidoRetiro`: un solo criterio, dos superficies.
@@ -11,7 +11,7 @@ import { esMedioGestionaPay } from "@/lib/gestionaPay";
 
 /**
  * Hint del checkout según el medio elegido.
- * Tiendanube/Shopify muestran instrucción de transferencia o efectivo;
+ * Las plataformas de comercio muestran instrucción de transferencia o efectivo;
  * no «te contactamos» cuando el comprador ya tiene CBU en la página de gracias.
  * Null = Nerqia Pay u otro medio que no necesita aviso offline.
  */

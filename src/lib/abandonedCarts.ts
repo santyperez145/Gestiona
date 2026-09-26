@@ -1,5 +1,5 @@
 /**
- * Carritos abandonados — cola operativa al estilo Shopify Abandoned checkouts.
+ * Carritos abandonados — cola operativa de notificaciones automáticas.
  *
  * El cron `recover-abandoned-carts` manda el email UNA vez. Acá el comercio ve
  * la población y el estado del aviso; no inventa un segundo canal de envío.
@@ -72,7 +72,7 @@ export function abandonedCartItemCount(items: unknown): number {
 
 /**
  * Estado del aviso automático. Si el canal no puede enviar, no se pinta
- * «Pendiente de aviso» (Shopify no promete email sin canal listo).
+ * «Pendiente de aviso» (no promete email sin canal listo).
  */
 export function abandonedCartRecoveryState(
   row: {
@@ -188,7 +188,7 @@ export function summarizeRecovery(
 }
 
 /**
- * Honestidad de canal (Shopify Abandoned checkouts): el panel no miente
+ * Honestidad de canal: el panel no miente
  * sobre el email automático. Los CTAs de link funcionan igual.
  */
 export function abandonedCartRecoveryChannelCopy(input: {

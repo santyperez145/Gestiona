@@ -1,7 +1,7 @@
 /**
  * Galería de la ficha pública.
  *
- * Tiendanube y Shopify abren la foto, dejan pasar entre tomas y muestran la
+ * Las plataformas de comercio abren la foto, dejan pasar entre tomas y muestran la
  * imagen de la variante elegida. No copiamos su lightbox: el orden y el índice
  * son reglas puras para que la UI no invente un slide que no existe.
  */

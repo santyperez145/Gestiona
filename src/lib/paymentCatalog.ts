@@ -1,5 +1,5 @@
 /**
- * Catálogo de medios de cobro (modelo Pago Nube / Tiendanube).
+ * Catálogo de medios de cobro (modelo Pago Nube / plataforma de comercio).
  *
  * Nerqia Pay es el producto. Los OAuth externos viven en
  * `payment_providers` con `integracion` honesta: declarado = próximamente,
