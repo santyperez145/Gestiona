@@ -48,13 +48,8 @@ export default function NerqiaAI() {
   const generateInsights = useCallback(async () => {
     if (!orgId) return;
     try {
-      // Traer ventas últimos 30 días
-      const { data: sales } = await supabase
-        .from("store_orders")
-        .select("total_ars, created_at")
-        .eq("org_id", orgId)
-        .gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())
-        .order("created_at", { ascending: true });
+      // Traer ventas últimos 30 días (RPC que está en tipos)
+      const { data: sales } = await supabase.rpc("get_my_store_orders", { p_slug: "default" });
 
       if (!sales || sales.length === 0) {
         setInsights([{ id: "empty", type: "info", title: "Sin datos todavía", description: "Hacé tu primera venta para ver insights.", value: "", icon: ShoppingCart }]);
@@ -64,7 +59,7 @@ export default function NerqiaAI() {
       const daily: Record<string, number> = {};
       for (const s of sales) {
         const d = s.created_at.slice(0, 10);
-        daily[d] = (daily[d] ?? 0) + Number(s.total_ars ?? 0);
+        daily[d] = (daily[d] ?? 0) + Number(s.total ?? 0);
       }
       const days = Object.entries(daily).sort((a, b) => a[0].localeCompare(b[0]));
       const values = days.map(([, v]) => v);
@@ -100,7 +95,7 @@ export default function NerqiaAI() {
       }
 
       // Insight 3: Ticket promedio
-      const ticket = sales.length > 0 ? sales.reduce((a, b) => a + Number(b.total_ars ?? 0), 0) / sales.length : 0;
+      const ticket = sales.length > 0 ? sales.reduce((a, b) => a + Number(b.total ?? 0), 0) / sales.length : 0;
       result.push({
         id: "ticket",
         type: "info",
