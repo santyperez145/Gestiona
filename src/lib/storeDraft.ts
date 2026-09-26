@@ -191,7 +191,7 @@ export function storeDraftInicial(
     banner_url: "",
     shipping_mode: "zones",
     // Retiro primero: sin tarifas el comprador igual puede cerrar.
-    // Modo zonas: el checkout cotiza provincia→tarifa (Tiendanube), no un
+    // Modo zonas: el checkout cotiza provincia→tarifa (plataforma de comercio), no un
     // flat $0 que parece envío nacional. Una fila existente conserva lo
     // guardado (`storeFormDesdeFila`).
     pickup_enabled: true,

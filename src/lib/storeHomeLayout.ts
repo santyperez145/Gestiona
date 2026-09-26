@@ -1,7 +1,7 @@
 /**
  * Portada de la tienda como bloques ordenables y configurables.
  *
- * Tiendanube/Shopify dejan elegir, ordenar y configurar los bloques de Inicio
+ * Las plataformas de comercio permiten elegir, ordenar y configurar los bloques de Inicio
  * (título propio, cuántos productos mostrar). No copiamos su editor en vivo ni
  * un theme engine: el comercio arma la misma composición desde Diseño, y vacío
  * significa "armalo solo", igual que `nav_links`.
@@ -26,7 +26,7 @@ export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 export type HomeSection = {
   id: HomeSectionId;
   enabled: boolean;
-  /** Título custom del bloque (Shopify sections). undefined = genérico. */
+  /** Título custom del bloque (secciones propias). undefined = genérico. */
   title?: string;
   /** Cuántos ítems muestra la vitrina. undefined/default = 8. */
   limit?: number;
@@ -63,7 +63,7 @@ export const HOME_SECTIONS_WITH_LIMIT: ReadonlySet<HomeSectionId> = new Set([
   "porque", "vistos", "ofertas", "destacados", "novedades",
 ]);
 
-/** Bloques que pueden filtrarse por una colección concreta (Shopify collection). */
+/** Bloques que pueden filtrarse por una colección concreta (colección propia). */
 export const HOME_SECTIONS_WITH_COLLECTION: ReadonlySet<HomeSectionId> = new Set([
   "destacados", "novedades",
 ]);
@@ -130,7 +130,7 @@ export function parseStorefrontLayout(raw: unknown): StorefrontLayout {
     sections.push({
       id: sid,
       enabled: (item as { enabled?: unknown }).enabled !== false,
-      // Config por bloque: título propio, límite de ítems y colección (Shopify sections).
+      // Config por bloque: título propio, límite de ítems y colección (secciones propias).
       title: textoLimpio((item as { title?: unknown }).title, 60) || undefined,
       limit: limiteDeSeccion({ id: sid }, (item as { limit?: unknown }).limit),
       collection: HOME_SECTIONS_WITH_COLLECTION.has(sid)

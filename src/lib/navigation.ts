@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: "commerce",  label: "Commerce — Adquisición", hint: "Tienda online, pedidos, catálogo y conversión" },
   { id: "business",  label: "Business — Operación", hint: "POS, inventario, clientes y compras" },
   { id: "marketing", label: "Marketing",    hint: "Campañas, email y growth" },
-  { id: "influencers", label: "Influencers — Go-Marz", hint: "Contratos bidireccionales, liquidación a Finance, descubierto global" },
+  { id: "influencers", label: "Influencers", hint: "Contratos bidireccionales, liquidación a Finance, descubierto global" },
   { id: "finance",   label: "Cobros y fiscal", hint: "Cuentas por cobrar, facturación e impuestos del comercio" },
   { id: "reportes",  label: "Reportes",    hint: "Analytics y reportes del negocio" },
   { id: "sistema",   label: "Sistema",     hint: "Configuración, equipo e integraciones" },
