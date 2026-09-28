@@ -43,6 +43,7 @@ export interface UpdateCollectionInput {
   sort_order?: number;
 }
 
+/** Slug seguro: minúsculas, guiones, sin acentos, sin espacios. */
 export function slugifyCollection(name: string): string {
   return name
     .toLowerCase()
@@ -94,7 +95,7 @@ export async function updateStoreCollection(
     p_slug: slug,
     p_collection_id: input.id,
     p_name: input.name ?? null,
-    p_slug: input.slug ? slugifyCollection(input.slug) : null,
+    p_collection_slug: input.slug ? slugifyCollection(input.slug) : null,
     p_description: input.description ?? null,
     p_product_ids: input.product_ids ?? null,
     p_cover_image_url: input.cover_image_url ?? null,

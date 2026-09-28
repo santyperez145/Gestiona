@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { reserveStock, commitSale, releaseReservation } from "@/lib/posInventory";
 import type { LocationStock } from "@/storefront/StoreInventory";
 import { Loader2, Check, X } from "lucide-react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 interface Props {
   productId: string;
@@ -83,12 +84,20 @@ export default function PosInventoryPanel({ productId, locations, onReserve, onC
       <div className="flex flex-wrap gap-3 items-end">
         <label className="flex-1 min-w-[140px]">
           <span className="text-xs block mb-1" style={{ color: "hsl(var(--st-muted))" }}>Ubicación</span>
-          <select value={locId} onChange={(e) => { setLocId(e.target.value); setReservationMsg(null); setCommitMsg(null); }} className={inputClass} style={inputStyle}>
-            <option value="">Seleccionar...</option>
-            {rows.map((l) => (
-              <option key={l.location_id} value={l.location_id}>{l.location_name} (dispo: {l.available})</option>
-            ))}
-          </select>
+          <Select value={locId} onValueChange={(v) => { setLocId(v); setReservationMsg(null); setCommitMsg(null); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccionar ubicación..." />
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Seleccionar...</SelectItem>
+              {rows.map((l) => (
+                <SelectItem key={l.location_id} value={l.location_id}>
+                  {l.location_name} (dispo: {l.available})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
         <label className="w-24">
           <span className="text-xs block mb-1" style={{ color: "hsl(var(--st-muted))" }}>Cantidad</span>
