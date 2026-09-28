@@ -357,9 +357,9 @@ export default function ProductsPage() {
   const { canCreate, canEdit, canDelete } = useModulePermissions("products");
   const [products, setProducts] = useState<any[]>([]);
 
-  // Exportar catálogo CSV (paridad Shopify/Tiendanube): la salida espejo de la
-  // importación. Mismas columnas que lee `stage_catalog_migration`, así el
-  // archivo que baja puede volver a subir sin traducir nada.
+// Exportar catálogo CSV (paridad): la salida espejo de la
+// importación. Mismas columnas que lee `stage_catalog_migration`, así el
+// archivo que baja puede volver a subir sin traducir nada.
   const exportarCatalogoCSV = async () => {
     try {
       const rows = products.map(p => ({
