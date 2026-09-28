@@ -36,7 +36,6 @@
  */
 
 import { storeFirstSaleSharePath } from "@/lib/storeFirstPublish";
-import { formatDistanceToNow, isToday, isYesterday, formatISO, parseISO } from "date-fns";
 
 export type Urgencia = "critico" | "atencion" | "normal";
 
@@ -300,31 +299,13 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
 
   // Sólo se avisa de lo vencido, no del total adeudado: una deuda al día no es
   // un pendiente, es el negocio funcionando.
-  // ── Automatización: webhook firmado (HMAC SHA-256) ──
-  // Las deudas vencidas que superan el umbral crítico se
-  // marcan para liquidación automática en Finance Ledger.
-  // El webhook firmado de MP garantiza que sólo la plataforma
-  // marca el pago como acreditado — cualquier intento sin firma
-  // se rechaza de plano.
   if (d.deudasVencidas30 > 0) {
     lista.push({
-      id: "deuda-vencida-webhook",
-      texto: `${d.deudasVencidas30} deuda vencida con webhook firmado verificado`,
+      id: "deuda-vencida",
+      texto: `${d.deudasVencidas30} ${d.deudasVencidas30 === 1 ? "deuda vencida hace más de 30 días" : "deudas vencidas hace más de 30 días"}`,
       accion: "Cobrar",
       destino: "/deudas",
       urgencia: "critico",
-    });
-  }
-
-  // ── Automatización: alerta stock bajo con fecha de reposición ──
-  // Usa date-fns para fechas relativas legibles ("hace 2 días").
-  if (d.stockBajo > 0) {
-    lista.push({
-      id: "stock-bajo-auto",
-      texto: `${d.stockBajo} producto${d.stockBajo === 1 ? "" : "s"} bajo — reposición automática`,
-      accion: "Reponer",
-      destino: "/productos",
-      urgencia: "atencion",
     });
   } else if (d.deudasPendientes > 0 && d.deudaTotalARS > 0) {
     lista.push({
