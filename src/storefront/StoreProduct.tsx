@@ -502,7 +502,7 @@ export default function StoreProduct() {
               </button>
             </div>
 
-            {/* Botón Comprar Ahora (1-click checkout de alta conversión estilo Shopify) */}
+            {/* Botón Comprar Ahora (checkout de alta conversión 1-click) */}
             <button
               onClick={comprarAhora}
               className="w-full min-h-12 py-3 px-4 font-bold text-base inline-flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.99] hover:opacity-95"

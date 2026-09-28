@@ -1,7 +1,7 @@
 /**
  * Cotizador de envío en la ficha (PDP).
  *
- * Shopify/Tiendanube muestran costo tras ubicación antes del checkout.
+ * Muestran costo tras ubicación antes del checkout.
  * Autoridad: `quote_store_shipping`. No inventa tarifas.
  */
 import { useEffect, useState } from "react";

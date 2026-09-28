@@ -1,5 +1,5 @@
 /**
- * Consultar pedido — entrada descubrible (Shopify Order status / Tiendanube).
+ * Consultar pedido — entrada descubrible (Order status).
  * Nº + email → misma autoridad que `/orden/:n` (token opaco, sin IDOR).
  */
 import { useState } from "react";

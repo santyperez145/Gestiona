@@ -96,7 +96,7 @@ export default function StoreCheckout() {
     }));
   }, [customer]);
 
-  // Shopify Abandoned checkouts: el email del checkout habilita recovery.
+  // Abandoned checkouts: el email del checkout habilita recovery.
   // Sin esto save_store_cart siempre salteaba (`p_email: null`).
   useEffect(() => {
     const t = setTimeout(() => {
@@ -1086,7 +1086,7 @@ export default function StoreCheckout() {
             Antes de confirmar, revisamos disponibilidad y total final para que tu compra salga correcta.
           </p>
 
-          {/* Sellos de seguridad y confianza (estándar Shopify) */}
+          {/* Sellos de seguridad y confianza */}
           <div className="pt-3 border-t space-y-2 text-xs" style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-muted))" }}>
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />

@@ -1,5 +1,5 @@
 /**
- * Página de carrito — paridad Shopify/Tiendanube (/cart).
+ * Página de carrito — paridad (/cart).
  *
  * El drawer sigue para el mini-cart al agregar; esta ruta da espacio completo
  * en mobile para editar líneas, cotizar envío y finalizar compra.

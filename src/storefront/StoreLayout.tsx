@@ -105,7 +105,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   // desorienta, sobre todo en el celular.
   useEffect(() => { setCartOpen(false); setMenuOpen(false); }, [pathname]);
 
-  // Shopify/Tiendanube: al agregar se abre el mini-cart (cotización + CTA).
+  // En agregar se abre el mini-cart (cotización + CTA).
   // En checkout no: el formulario ya es el resumen.
   useEffect(() => {
     if (cartRevealTick === 0) return;
@@ -128,7 +128,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   );
 
   // Provincia del drawer: sobrevive al checkout (sessionStorage) y no pide
-  // dirección completa — patrón Shopify/Tiendanube de cotizar con ubicación.
+  // dirección completa — patrón de cotizar con ubicación.
   useEffect(() => {
     if (!store?.slug) return;
     setProvinciaCarrito(leerProvinciaCarrito(store.slug));
