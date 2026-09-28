@@ -1,5 +1,5 @@
 /**
- * Mercado de integraciones del comercio (Tiendanube Apps, traducido).
+ * Mercado de integraciones del comercio (plataforma, traducido).
  * Catálogo de producto + CTA: sin tokens, sin fingir API live con contrato.
  */
 
