@@ -1856,8 +1856,8 @@ export default function Dashboard() {
         lastWeekSameDaySales={lastWeekSameDaySales}
       />
 
-      {/* Quick Actions — contextuales al estado del negocio.
-          Shopify Sidekick Pulse prioriza ≤5 acciones; aquí las ordenamos por
+      {          /* Quick Actions — contextuales al estado del negocio.
+          Foco / Pulse prioriza ≤5 acciones; aquí las ordenamos por
           qué necesita atención hoy, no por orden alfabético. */}
       <CommerceQuickActions
         actions={[

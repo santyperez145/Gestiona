@@ -4586,7 +4586,7 @@ function ForecastTab({ sales, products }: { sales: any[]; products: any[] }) {
       </div>
 
       {/* Riesgo de quiebre de stock dentro del horizonte proyectado.
-          Traducción de Shopify: "no vas a poder cumplir la proyección si te
+          Traducción: "no vas a poder cumplir la proyección si te
           quedás sin producto antes" — la proyección de ingresos sola miente. */}
       {stockRisk.length > 0 && (
         <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2">
