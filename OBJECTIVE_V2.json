@@ -1,0 +1,20 @@
+{
+  "objective": "Nerqia v2.0 — BaaS Invertible Propio",
+  "status": "in_progress",
+  "owner": "CEO/CTO/CFO/PM/PO",
+  "target": "Paridad completa sin referencias a competencia, IA propietaria, automatizaciones firmadas, deep-links accionables",
+  "sources": [
+    "docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md",
+    "docs/ESTRATEGIA.md",
+    "docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md"
+  ],
+  "rules": [
+    "No referencias a Shopify/Tiendanube/Mendel/Go-Marz/Empretienda en producción",
+    "IA propietaria (NerqiaAI) sin dependencias costosas de terceros",
+    "Automatizaciones con evidencia medible (low_stock, debt_overdue, webhook HMAC)",
+    "Finance Ledger integrado con profundos links accionables",
+    "Commit + push a main tras cada lote con tests/typecheck/lint verdes"
+  ],
+  "last_lote": "06097eb6",
+  "next_lote": "automatizaciones + deep-links + limpieza storefront"
+}

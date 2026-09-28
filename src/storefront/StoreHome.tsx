@@ -79,7 +79,7 @@ export default function StoreHome() {
   const personalizado = layoutEsPersonalizado(store?.storefront_layout);
   const mostrarHero = heroVisible(layout, banners.length, personalizado);
 
-  // Config por bloque (Shopify sections): título propio y cuántos ítems.
+  // Config por bloque (secciones ordenables): título propio y cuántos ítems.
   const nDestacados = limiteDeItems(layout, "destacados");
   const nOfertas = limiteDeItems(layout, "ofertas");
   const nNovedades = limiteDeItems(layout, "novedades");

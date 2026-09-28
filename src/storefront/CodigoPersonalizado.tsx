@@ -16,7 +16,7 @@ export default function CodigoPersonalizado({ layout }: { layout: StorefrontLayo
         </p>
         <div className="rounded-lg p-6 mb-8" style={{ border: "1px solid hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}>
           <pre className="text-xs font-mono whitespace-pre-wrap max-h-96 overflow-y-auto" style={{ color: "hsl(var(--st-muted))" }}>
-            {/* Bloque de código personalizado (patrón Tiendanube Ipanema) */}
+            {/* Bloque de código personalizado (patrón de inyección segura) */}
             {/* Aquí iría el contenido HTML/CSS/JS guardado en el layout */}
           </pre>
         </div>
