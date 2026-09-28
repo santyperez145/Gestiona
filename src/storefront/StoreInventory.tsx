@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useStore } from "@/storefront/storeContext";
 import { supabase } from "@/integrations/supabase/client";
+import { safeChannel } from "@/lib/realtimeChannel";
 
 export interface LocationStock {
   location_id: string;
@@ -24,6 +25,7 @@ export default function StoreInventory({ productId }: { productId: string }) {
   const [locations, setLocations] = useState<LocationStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!store?.slug || !productId) return;
@@ -36,6 +38,7 @@ export default function StoreInventory({ productId }: { productId: string }) {
       });
       if (rpcErr) throw rpcErr;
       setLocations((data ?? []) as unknown as LocationStock[]);
+      setLastUpdate(new Date().toISOString());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "No se pudo cargar el stock por ubicación");
     } finally {
@@ -44,6 +47,38 @@ export default function StoreInventory({ productId }: { productId: string }) {
   }, [store?.slug, productId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Suscripción realtime: cuando cambia stock en POS o storefront, actualiza.
+  useEffect(() => {
+    if (!store?.slug || !productId) return;
+    const channel = safeChannel(`stock-by-location:${store.slug}:${productId}`, "StoreInventory");
+    const subscription = channel
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "product_stock_by_location",
+        filter: `product_id=eq.${productId}`,
+      }, (payload) => {
+        const row = (payload.new ?? payload.old) as LocationStock | null;
+        if (!row) return;
+        setLocations((prev) => {
+          const exists = prev.find((l) => l.location_id === row.location_id);
+          if (exists) {
+            return prev.map((l) => (l.location_id === row.location_id ? row : l));
+          }
+          return [...prev, row];
+        });
+        setLastUpdate(new Date().toISOString());
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          // subscription ready; no-op
+        }
+      });
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [store?.slug, productId]);
 
   if (loading) {
     return (
@@ -71,7 +106,14 @@ export default function StoreInventory({ productId }: { productId: string }) {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold">Stock por ubicación</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Stock por ubicación</h3>
+        {lastUpdate && (
+          <span className="text-[10px]" style={{ color: "hsl(var(--st-muted))" }}>
+            Actualizado: {new Date(lastUpdate).toLocaleTimeString("es-AR")}
+          </span>
+        )}
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm border" style={{ borderColor: "hsl(var(--st-border))" }}>
           <thead>

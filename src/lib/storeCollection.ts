@@ -6,7 +6,7 @@
  * canal sobre el producto: la colección decide qué se muestra y en qué orden,
  * pero el producto, stock y precio siguen siendo una única fuente.
  *
- * Todo acá es puro y está testeado: no inventa stock, precio, margen ni cliente.
+ * Todo acá es puro y está testeado: no inventa stock, precio, margen ni cliente fuera del Business Core.
  */
 
 export interface StoreCollection {
@@ -43,7 +43,6 @@ export interface UpdateCollectionInput {
   sort_order?: number;
 }
 
-/** Slug seguro: minúsculas, guiones, sin acentos, sin espacios. */
 export function slugifyCollection(name: string): string {
   return name
     .toLowerCase()
@@ -54,7 +53,7 @@ export function slugifyCollection(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export async function listStoreCollections(
+export function listStoreCollections(
   supabase: { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: unknown[] | null; error: unknown }> },
   slug: string,
   options: { publishedOnly?: boolean } = {},
@@ -72,15 +71,16 @@ export async function createStoreCollection(
   slug: string,
   input: CreateCollectionInput,
 ): Promise<StoreCollection> {
-  const { data, error } = await supabase.rpc("create_store_collection", {
+  const payload: Record<string, unknown> = {
     p_slug: slug,
     p_name: input.name,
-    p_slug: slugifyCollection(input.slug ?? input.name),
+    p_collection_slug: slugifyCollection(input.slug ?? input.name),
     p_description: input.description ?? null,
     p_product_ids: input.product_ids ?? [],
     p_cover_image_url: input.cover_image_url ?? null,
     p_is_published: input.is_published ?? true,
-  });
+  };
+  const { data, error } = await supabase.rpc("create_store_collection", payload);
   if (error) throw error;
   return data as unknown as StoreCollection;
 }
