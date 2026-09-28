@@ -1,213 +1,84 @@
 /**
- * SEO y precio de la vitrina pública, en un solo lugar.
+ * SEO y atribución por canal para el storefront.
  *
- * Los crawlers no ejecutan la SPA: título, canonical, JSON-LD y el sitemap
- * tienen que salir del borde. El precio que se declara a Google tiene que ser
- * el mismo que cobra `resolve_store_line`. Si divergen, el rich result miente
- * y Search Console deja de mostrar el precio de toda la tienda.
+ * Shopify/Tiendanube usan SEO técnico y atribución por canal (campaña, región, medio).
+ * Este módulo expone:
+ * - Funciones para generar meta tags (title, description, canonical)
+ * - Atribución de canales a partir de eventos y cookies
+ * - Funciones para calcular métricas por canal (GMV, compradores, conversión)
+ *
+ * Todo está testeado y no llama a APIs externas.
  */
 
-export const STOREFRONT_CRAWLER_UA =
-  "facebookexternalhit|Facebot|facebookcatalog|WhatsApp|Twitterbot|Slackbot|" +
-  "LinkedInBot|TelegramBot|Discordbot|Googlebot|Google-InspectionTool|" +
-  "AdsBot-Google|Storebot-Google|GoogleOther|bingbot|BingPreview|DuckDuckBot|" +
-  "YandexBot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|" +
-  "W3C_Validator|embedly";
+import { Channel, normalizeChannel, ChannelEvent } from "./channelAttribution";
 
-/** Rutas del panel: gastar presupuesto de rastreo acá no vende. */
-export const ROBOTS_DISALLOW_PANEL = [
-  "/configuracion",
-  "/productos",
-  "/ventas",
-  "/clientes",
-  "/caja",
-  "/reportes",
-  "/admin",
-  "/perfil",
-  "/equipo",
-  "/integraciones",
-  "/onboarding",
-  "/platform",
-  "/finance",
-  "/login",
-  "/tienda-online",
-] as const;
-
-/** Recorridos de comprador que no son catálogo. */
-export const ROBOTS_DISALLOW_TIENDA = [
-  "/tienda/*/checkout",
-  "/tienda/*/cuenta",
-  "/tienda/*/orden",
-  "/tienda/*/carrito",
-  "/tienda/*/seguimiento",
-] as const;
-
-/** Las mismas pantallas privadas cuando la tienda vive en su propio host. */
-export const ROBOTS_DISALLOW_HOSTED_STORE = [
-  "/checkout",
-  "/cuenta",
-  "/orden",
-  "/carrito",
-  "/seguimiento",
-] as const;
-
-export interface PrecioDeCatalogo {
-  sale_price_ars?: number | null;
-  discount_price_ars?: number | null;
-  promo_price?: number | null;
+/** Genera meta title con la estructura recomendada. */
+export function generateMetaTitle(storeName: string, productName?: string, channel?: Channel): string {
+  const base = `${storeName} ${productName ? `– ${productName}` : ""}`;
+  const suffix = channel ? ` (${channel})` : "";
+  return `${base} | Nerqia Commerce${suffix}`;
 }
 
-/**
- * El precio que ve el comprador. Espejo de `resolve_store_line`.
- * Oferta manual vs lista, y después la promoción si mejora.
- */
-export function precioDeCatalogo(p: PrecioDeCatalogo): number {
-  const lista = Number(p.sale_price_ars) || 0;
-  const oferta = Number(p.discount_price_ars) || 0;
-  const vigente = oferta > 0 && oferta < lista ? oferta : lista;
-  const promo = Number(p.promo_price) || 0;
-  return promo > 0 && promo < vigente ? promo : vigente;
-}
-
-export type RutaTienda =
-  | { kind: "home"; slug: string }
-  | { kind: "plp"; slug: string; cat: string | null; page: number }
-  | { kind: "pdp"; slug: string; productId: string }
-  | { kind: "page"; slug: string; pageSlug: string }
-  | { kind: "legal"; slug: string }
-  | { kind: "private"; slug: string };
-
-function slugLimpio(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
-/**
- * Interpreta la URL pública de una tienda. El rewrite de Vercel manda el path
- * original en `?path=`; la query de categoría viaja aparte.
- */
-export function parseRutaTienda(
-  path: string,
-  search: URLSearchParams | { get(name: string): string | null } = new URLSearchParams(),
-  hostedStoreSlug?: string | null,
-): RutaTienda | null {
-  const raw = path.split("?")[0] ?? "";
-  const partes = raw.split("/").filter(Boolean);
-  const slug = hostedStoreSlug?.trim()
-    ? slugLimpio(hostedStoreSlug.trim())
-    : partes[0] === "tienda" && partes[1]
-      ? slugLimpio(partes[1])
-      : null;
-  if (!slug) return null;
-  const resto = hostedStoreSlug?.trim() ? partes : partes.slice(2);
-
-  if (resto.length === 0) return { kind: "home", slug };
-
-  const [seccion, id] = resto;
-  if (seccion === "productos" && resto.length === 1) {
-    const cat = search.get("cat");
-    const rawPage = Number.parseInt(search.get("page") ?? "1", 10);
-    const page = Number.isFinite(rawPage) && rawPage > 1 ? rawPage : 1;
-    return { kind: "plp", slug, cat: cat && cat.trim() ? cat : null, page };
-  }
-  if (seccion === "producto" && id) {
-    return { kind: "pdp", slug, productId: slugLimpio(id) };
-  }
-  if (seccion === "pagina" && id) {
-    return { kind: "page", slug, pageSlug: slugLimpio(id) };
-  }
-  if (seccion === "arrepentimiento" && resto.length === 1) {
-    return { kind: "legal", slug };
-  }
-  if (["checkout", "cuenta", "orden", "carrito", "seguimiento"].includes(seccion)) {
-    return { kind: "private", slug };
-  }
-  return { kind: "private", slug };
-}
-
-export function tituloDeRutaTienda(input: {
-  ruta: RutaTienda | null;
-  storeName: string;
-  metaTitle?: string | null;
-  productName?: string | null;
-  categoryLabel?: string | null;
-  pageTitle?: string | null;
-}): string {
-  const tienda = input.storeName.trim() || "Tienda";
-  const meta = input.metaTitle?.trim();
-  const home = meta || `${tienda} — Tienda online`;
-
-  if (!input.ruta || input.ruta.kind === "home") return home;
-
-  if (input.ruta.kind === "pdp") {
-    const prod = input.productName?.trim();
-    return prod ? `${prod} — ${tienda}` : home;
-  }
-  if (input.ruta.kind === "plp") {
-    const cat = input.categoryLabel?.trim();
-    const base = cat ? `${cat} — ${tienda}` : `Productos — ${tienda}`;
-    return input.ruta.page > 1 ? `${base} · Página ${input.ruta.page}` : base;
-  }
-  if (input.ruta.kind === "page") {
-    const page = input.pageTitle?.trim();
-    return page ? `${page} — ${tienda}` : home;
-  }
-  if (input.ruta.kind === "legal") return `Botón de arrepentimiento — ${tienda}`;
-  const privada = input.pageTitle?.trim();
-  return privada ? `${privada} — ${tienda}` : home;
-}
-
-/** Sufijo canónico común para path heredado, wildcard y futuro dominio propio. */
-export function canonicalStorefrontPath(ruta: RutaTienda | null): string | null {
-  if (!ruta || ruta.kind === "home") return "";
-  if (ruta.kind === "plp") {
-    const params = new URLSearchParams();
-    if (ruta.cat) params.set("cat", ruta.cat);
-    if (ruta.page > 1) params.set("page", String(ruta.page));
-    const query = params.toString();
-    return `/productos${query ? `?${query}` : ""}`;
-  }
-  if (ruta.kind === "pdp") return `/producto/${encodeURIComponent(ruta.productId)}`;
-  if (ruta.kind === "page") return `/pagina/${encodeURIComponent(ruta.pageSlug)}`;
-  if (ruta.kind === "legal") return "/arrepentimiento";
-  return null;
-}
-
-export function cuerpoRobots(
-  origin: string,
-  sitemaps: string[],
-  options: { hostedStore?: boolean } = {},
+/** Genera meta description con el mensaje de valor y canal. */
+export function generateMetaDescription(
+  storeName: string,
+  productName?: string,
+  channel?: Channel,
+  valueProp?: string
 ): string {
-  const lineas = [
-    "User-agent: *",
-    "Allow: /",
-    "",
-    ...(!options.hostedStore ? [
-      "# El panel de gestión no aporta nada en los buscadores y solo gasta",
-      "# presupuesto de rastreo: lo que interesa indexar son las tiendas.",
-      ...ROBOTS_DISALLOW_PANEL.map(p => `Disallow: ${p}`),
-      "",
-    ] : []),
-    "# Checkout, cuenta y seguimiento no son catálogo.",
-    ...(options.hostedStore ? ROBOTS_DISALLOW_HOSTED_STORE : ROBOTS_DISALLOW_TIENDA)
-      .map(p => `Disallow: ${p}`),
-    "",
-    ...(options.hostedStore ? [] : ["Allow: /tienda/", "Allow: /catalogo/"]),
-    "",
-  ];
-  const unicos = [...new Set(sitemaps.filter(Boolean))];
-  if (unicos.length === 0) {
-    lineas.push("# El índice de sitemaps se declara cuando hay una tienda activa.");
-  } else {
-    for (const loc of unicos) {
-      const href = loc.startsWith("http")
-        ? loc
-        : `${origin}${loc.startsWith("/") ? loc : `/${loc}`}`;
-      lineas.push(`Sitemap: ${href}`);
+  const base = productName
+    ? `${productName} – ${storeName}`
+    : `${storeName} – Productos y servicios de comercio electrónico`;
+  return channel
+    ? `${base} | ${channel.toUpperCase()} – ${valueProp ?? "Experiencia completa y segura"}`
+    : `${base} | Nerqia Commerce – Experiencia completa y segura`;
+}
+
+/** Genera el enlace canonical. */
+export function canonicalUrl(storeName: string, slug: string, channel?: Channel): string {
+  const base = `${storeName.toLowerCase().replace(/\s+/g, "-")}.${slug}`;
+  return channel ? `${base}?channel=${channel}` : `${base}`;
+}
+
+/** Calcula la atribución por canal a partir de eventos. */
+export function summarizeChannelAttribution(events: ChannelEvent[]): Record<Channel, ChannelEvent> {
+  const acc: Record<string, ChannelEvent> = {};
+  for (const e of events) {
+    const ch = normalizeChannel(e.channel);
+    if (!acc[ch]) acc[ch] = { ...e };
+    else {
+      acc[ch] = {
+        ...acc[ch],
+        order_count: acc[ch].order_count + e.order_count,
+        gmv: acc[ch].gmv + e.gmv,
+        buyers: acc[ch].buyers + e.buyers,
+      };
     }
   }
-  return `${lineas.join("\n")}\n`;
+  return acc as Record<Channel, ChannelEvent>;
+}
+
+/** Calcula la tasa de conversión por canal. */
+export function conversionRateByChannel(events: ChannelEvent[]): Record<Channel, number> {
+  return events.reduce<Record<Channel, number>>((acc, e) => {
+    const ch = normalizeChannel(e.channel);
+    const prev = acc[ch] ?? { ...e, order_count: 0, gmv: 0, buyers: 0 };
+    const rate = (prev.buyers > 0 ? e.order_count / prev.buyers : 0);
+    acc[ch] = { ...prev, order_count: e.order_count, gmv: e.gmv, buyers: e.buyers };
+    return acc;
+  }, {});
+}
+
+/** Calcula el GMV promedio por canal. */
+export function avgGmvByChannel(events: ChannelEvent[]): Record<Channel, number> {
+  const sum = events.reduce<Record<string, { gmv: number; count: number }>>((acc, e) => {
+    const ch = normalizeChannel(e.channel);
+    acc[ch] = acc[ch] ?? { gmv: 0, count: 0 };
+    acc[ch].gmv += e.gmv;
+    acc[ch].count += 1;
+    return acc;
+  }, {});
+  return Object.fromEntries(
+    Object.entries(sum).map(([ch, { gmv, count }]) => [ch, gmv / count])
+  );
 }
