@@ -1,7 +1,7 @@
 /**
  * Preguntas sobre el producto, en la ficha.
  *
- * Es lo que tiene MercadoLibre y no tiene Tiendanube. La diferencia con las
+ * Es lo que tiene MercadoLibre y no tiene plataforma. La diferencia con las
  * reseñas es quién puede escribir: para opinar hay que haber comprado, para
  * preguntar alcanza con tener cuenta — quien pregunta todavía no compró, esa
  * es toda la idea.
