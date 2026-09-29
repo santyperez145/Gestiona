@@ -21,7 +21,7 @@ de creadores como propia.
 | Campañas | Brief, presupuesto, selección, invitación privada con expiración, aceptación/rechazo, seguimiento y auditoría. | Certificación con marcas y creadores reales. |
 | Entregables | Entrega y reentrega desde portal, revisión de marca, chat por colaboración y prueba de publicación con licencia tipada. | Archivos audiovisuales privados y conectores sociales verificados. |
 | Contratos | Versiones inmutables, aceptación de marca y creador por versión, evidencia temporal y acceso del creador por sesión o enlace limitado. | Proveedor de firma cualificada sólo si el marco legal/comercial lo exige. |
-| Comisiones | Ventas y payouts históricos; destinos cifrados para Mercado Pago, CBU/CVU, alias u otra billetera; la transferencia confirmada con referencia genera payout y gasto idempotente en Finance. | Reversas y conciliación bancaria certificada del proveedor externo. |
+| Comisiones | Ventas y payouts históricos; destinos cifrados para Mercado Pago, CBU/CVU, alias u otra billetera; la transferencia confirmada con referencia genera atómicamente payout, gasto y asiento idempotentes en Finance. | Reversas y conciliación bancaria certificada del proveedor externo. |
 | Pagos automáticos | El checkout de tienda usa OAuth y split 1:1 directo al comercio. Los payouts masivos de creadores permanecen cerrados salvo capacidad comercial habilitada; nunca se simula una transferencia. | Contrato de proveedor/partner, webhook firmado, reembolsos y certificación real. |
 | Mensajería y resultados | Chat, preferencias, publicación verificable y reportes sociales con revisión durable que alimentan reputación. | OAuth de redes y atribución externa certificada. |
 
@@ -46,6 +46,9 @@ pagada. Registrar una revisión no demuestra que una red social haya publicado.
 - Los destinos de cobro viven cifrados y en snapshots por retiro. El creador ve
   datos enmascarados; sólo la marca responsable puede revelar el destino al
   liquidar, y debe conservar una referencia de la operación.
+- Aprobar o rechazar es autoridad humana; no mueve dinero. Sólo
+  `settle_creator_withdrawal`, con referencia externa, confirma el pago. La marca
+  y el sincronizador `service_role` usan la misma transición idempotente.
 
 ## Migraciones y evidencia
 
@@ -58,13 +61,16 @@ Las migraciones base son `20260921000100`, `20260921000110`,
 `20260921000120` y `20260922000100_influencer_public_profile.sql`. Los contratos
 bilaterales y su liquidación en Finance se consolidan en `20260925001500`,
 `20260925001600` y las reparaciones de autoridad `20260925012100` a
-`20260925012300`. La verificación reversible
+`20260925012300`. `20260929000500` cierra la autoridad runtime del pago y
+`npm run drill:creator-settlements` certifica el recorrido completo contra la
+base enlazada, con rollback y cero restos. La verificación reversible
 `supabase/verificaciones/20260921_influencer_campaigns.sql` cubre ciclo de campaña,
 idempotencia, conflicto de edición, aislamiento, roles, overrides y aprobación con
 evidencia; termina en rollback y comprueba cero organizaciones de prueba.
 Tests UI: `accessInfluencerMarketing.test.tsx`,
-`influencerCampaignsWorkflow.test.tsx`. Los mocks de estos tests no certifican
-entregas de correo, redes sociales ni transferencias reales.
+`influencerCampaignsWorkflow.test.tsx`. La matriz certifica la autoridad interna
+y la llegada a Finance; no certifica que un banco o billetera externa haya
+movido dinero real.
 
 ## Siguiente secuencia
 

@@ -191,7 +191,7 @@ la base linkeada. Prueba las funciones reales de PostgreSQL y al final provoca
 un rollback controlado; no llama a MercadoPago, no usa una tarjeta y no deja
 ventas, stock, eventos ni asientos de prueba.
 
-Cobertura aprobada el 2026-08-21:
+Cobertura revalidada contra la base enlazada el 2026-09-29:
 
 | Escenario | Evidencia |
 |---|---|
@@ -216,6 +216,24 @@ firmado, timeout/reconsulta y refund deben repetirse con una cuenta y medio de
 prueba reales. Eso mueve dinero y requiere una operación explícita del dueño;
 la matriz interna no se presenta como evidencia de disponibilidad de
 MercadoPago.
+
+### Matriz de retiros de creadores
+
+~~~bash
+npm run drill:creator-settlements
+~~~
+
+Esta segunda matriz ejecuta el recorrido comisión → retiro → aprobación →
+confirmación del proveedor → payout → gasto → asiento. Usa realmente los roles
+`authenticated` y `service_role`, reintenta el webhook y comprueba que la
+referencia no pueda reescribirse. El 2026-09-29 aprobó 4 escenarios y el cleanup
+con cero filas persistidas. La prueba detectó y corrigió que el sincronizador
+automático no tenía permiso de ejecución, no superaba la autoridad de la RPC y
+carecía de un actor válido para `created_by`.
+
+La aprobación humana ya no puede marcar `paid`: sólo aprobar o rechazar. El pago
+se confirma exclusivamente con `settle_creator_withdrawal` y una referencia
+externa. Marca y webhook comparten esa única autoridad transaccional.
 
 ## Reintegro de una venta POS
 

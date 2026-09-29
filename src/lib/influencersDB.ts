@@ -566,7 +566,7 @@ export async function listWithdrawalRequests(): Promise<WithdrawalRequest[]> {
   return (data || []) as WithdrawalRequest[];
 }
 
-export async function resolveWithdrawalRequest(id: string, status: 'approved' | 'rejected' | 'paid'): Promise<void> {
+export async function resolveWithdrawalRequest(id: string, status: 'approved' | 'rejected'): Promise<void> {
   const { error } = await sb.rpc('resolve_creator_withdrawal', { p_request_id: id, p_status: status });
   if (error) throw error;
 }

@@ -258,9 +258,9 @@ Prioridad: completar Influencers con referencia verificada de [GoMarz](https://w
   cifrados y liquidación externa con referencia idempotente; `mp-payouts` sólo se
   habilita con contrato comercial del proveedor; chat por colaboración y
   notificaciones consentidas (preferencia + cola + despacho service_role).
-- **Cerrado (2026-09-29):** contratos versionados con aceptación de marca y
-  creador, evidencia temporal y estado server-side; los retiros aprobados
-  generan payout y movimiento idempotente en Finance sin caja paralela.
+- **Cerrado (2026-09-29):** contratos versionados y aceptación bilateral; los
+  retiros se confirman sólo con referencia externa y generan payout, gasto y
+  asiento atómicos. La matriz prueba roles, reintentos y rollback sin residuos.
 - Siguiente: perfiles públicos, descubrimiento superadmin, archivos privados y conciliación bancaria.
 - No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
@@ -296,7 +296,7 @@ cita la evidencia que falta, no la que existe.
 | Notificaciones consentidas del chat | **Cerrado (2026-09-25):** `influencer_chat_notify_prefs` (consentimiento por persona) + cola `influencer_chat_notifications` por trigger según preferencia del destinatario; despacho email/push service_role, toggle en ambos portales, verificación reversible E2E (7 aserciones) y job `campaign-chat-dispatcher` en pg_cron (c/5 min) con reintentos. |
 | Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada y vencimiento obligatorio para usos pagados; RPC y portal del creador muestran la verificación. |
 | Contratos con aceptación de ambas partes | **Cerrado (2026-09-29):** `influencer_contract_versions` conserva condiciones inmutables; `influencer_contract_acceptances` registra marca y creador por versión. La aceptación funciona con sesión o token limitado, y una edición invalida la aceptación anterior. |
-| Liquidación enlazada a Finance | **Cerrado en autoridad interna (2026-09-29):** el creador elige Mercado Pago, CBU/CVU, alias u otra billetera; confirmar la transferencia con referencia crea idempotentemente `influencer_payouts` y su gasto en Finance. La automatización queda condicionada a capacidad contractual del proveedor. |
+| Liquidación enlazada a Finance | **Cerrado en autoridad interna y certificado (2026-09-29):** el creador elige Mercado Pago, CBU/CVU, alias u otra billetera; aprobar no mueve dinero y confirmar con referencia crea atómicamente `influencer_payouts`, gasto y asiento. `npm run drill:creator-settlements` prueba marca, `service_role`, idempotencia, referencia inmutable y cero restos. La transferencia externa real sigue condicionada a capacidad contractual del proveedor. |
 | Métricas sociales verificadas | **Cerrado por evidencia (2026-09-29):** el creador reporta período, alcance, impresiones y engagement con captura/CSV enlazado; la marca verifica o rechaza y el sello alimenta reputación y descubrimiento. OAuth directo queda como integración futura. |
 
 **Pilar 2 — Tiendas/Commerce:**

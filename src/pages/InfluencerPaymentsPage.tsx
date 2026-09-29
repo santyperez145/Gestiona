@@ -73,7 +73,7 @@ export default function InfluencerPaymentsPage() {
   const names = new Map(creators.map(item => [item.id, item.name]));
   const paid = payouts.reduce((sum, item) => sum + Number(item.amount_ars ?? 0), 0);
   const pending = sales.filter(item => !item.paid).reduce((sum, item) => sum + Number(item.commission_ars ?? 0), 0);
-  const resolve = async (id: string, status: 'approved' | 'rejected' | 'paid') => {
+  const resolve = async (id: string, status: 'approved' | 'rejected') => {
     try {
       await resolveWithdrawalRequest(id, status);
       toast.success(status === 'rejected' ? 'Solicitud rechazada' : 'Solicitud aprobada');

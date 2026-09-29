@@ -125,6 +125,13 @@ BEGIN
     INSERT INTO public.payment_connections (org_id, provider, external_id, access_token, live_mode)
     VALUES (v_org, 'mercadopago', 'zz-mp-' || v_suffix, 'ZZ-TOKEN-' || v_suffix, false);
 
+    -- La conexión sólo queda operativa cuando el callback OAuth marca la fecha.
+    -- Mantener este dato explícito hace que la matriz siga el mismo contrato que
+    -- `mp-connect`, en vez de fabricar una credencial parcialmente conectada.
+    UPDATE public.org_payment_providers
+       SET conectado_at = now()
+     WHERE org_id = v_org AND provider = 'mercadopago';
+
     INSERT INTO public.ecommerce_stores (org_id, name, slug, is_active)
     VALUES (v_org, 'ZZ tienda matriz', 'zz-payment-matrix-' || v_suffix, true)
     RETURNING id INTO v_store;
