@@ -117,6 +117,11 @@ Un gasto puede originarse en documento, compra, tarjeta externa, caja o carga
 manual autorizada. Un reembolso agrega beneficiario, cuenta validada,
 liquidación y comprobante; no crea otro proveedor si la persona ya existe.
 
+El reembolso ya comparte la bandeja y las políticas de solicitudes. Guarda el
+destino cifrado, muestra sólo una máscara, exige aprobación antes de revelar la
+cuenta al pagador y sólo pasa a pagado con referencia externa. Esa transición
+crea un único gasto y asiento; un reintento no duplica ninguno.
+
 Desde 2026-09-29 el centro de costo, el medio de pago y la solicitud origen son
 dimensiones estructuradas del gasto. Viajan al ledger y al lote contable; no se
 reconstruyen desde la descripción o el nombre del proveedor.
@@ -186,7 +191,7 @@ Fuentes oficiales consultadas 2026-09-04:
 | Inbox/captura | Base técnica | Documento real de punta a punta. |
 | Aprobaciones | Parcial | Política versionada y escalamiento. |
 | Presupuestos | Parcial | Comprometido/disponible y alertas. |
-| Gastos/reembolsos | Parcial | Centro, medio y solicitud ya llegan al ledger; falta settlement externo de reembolsos. |
+| Gastos/reembolsos | Reembolso interno cerrado | Destino cifrado, segregación, settlement referenciado y ledger; falta certificación bancaria externa y anticipos. |
 | Tarjetas | Sin emisión | Feed externo y controles; partner para emitir. |
 | Conciliación | Parcial | Banco/tarjeta y export certificado. |
 | Integración contable | Parcial | Preview, lotes y no duplicación verificados. |
@@ -208,7 +213,7 @@ Fuentes oficiales consultadas 2026-09-04:
 
 1. Proveedor privado y primer documento real.
 2. Solicitud, política versionada y compromiso de presupuesto.
-3. Reembolso/anticipo con segregación.
+3. Anticipos, rendición y devolución de sobrantes con segregación.
 4. Feed de tarjeta externa y controles preventivos.
 5. Conciliación bancaria/contable con export auditable.
 6. Acción inteligente con resultado medido.

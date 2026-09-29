@@ -15451,6 +15451,7 @@ export type Database = {
           amount: number
           approved_at: string | null
           approved_by: string | null
+          beneficiary_name: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -15461,7 +15462,14 @@ export type Database = {
           id: string
           motive: string | null
           org_id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          payout_destination_type: string | null
+          payout_identifier_masked: string | null
+          payout_provider_label: string | null
           rejection_reason: string | null
+          request_kind: string
           status: string
           title: string
           updated_at: string
@@ -15471,6 +15479,7 @@ export type Database = {
           amount: number
           approved_at?: string | null
           approved_by?: string | null
+          beneficiary_name?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -15481,7 +15490,14 @@ export type Database = {
           id?: string
           motive?: string | null
           org_id: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payout_destination_type?: string | null
+          payout_identifier_masked?: string | null
+          payout_provider_label?: string | null
           rejection_reason?: string | null
+          request_kind?: string
           status?: string
           title: string
           updated_at?: string
@@ -15491,6 +15507,7 @@ export type Database = {
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
+          beneficiary_name?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -15501,7 +15518,14 @@ export type Database = {
           id?: string
           motive?: string | null
           org_id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payout_destination_type?: string | null
+          payout_identifier_masked?: string | null
+          payout_provider_label?: string | null
           rejection_reason?: string | null
+          request_kind?: string
           status?: string
           title?: string
           updated_at?: string

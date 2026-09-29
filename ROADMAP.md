@@ -144,7 +144,7 @@ estructural limpia).
 | Inbox y captura de comprobantes | **Cerrado (F5.1, 2026-09-25)** | Volumen real del comercio. |
 | Solicitudes y aprobaciones | **Cerrado F5.2 (2026-09-25):** política versionada, escalamiento por monto/categoría y saldo comprometido del mes, verificación reversible E2E. |
 | Presupuestos y centros de costo | Parcial | Comprometido/disponible + alertas. |
-| Gastos, reembolsos y payables | Parcial | Flujo unificado y settlement externo. |
+| Gastos, reembolsos y payables | Reembolso interno cerrado | Certificación bancaria externa, anticipos y payables. |
 | Conciliación y exportación contable | Export certificado | Match bancario contra extracto importado. |
 | Tarjetas y reglas preventivas | Sin emisión | Primero tarjetas externas; emitir exige partner, legal, riesgo y economics. |
 | IA operativa | Base transversal | Excepción → acción aprobada → resultado. |
@@ -270,7 +270,7 @@ Prioridad: completar Influencers con referencia verificada de [GoMarz](https://w
 1. **Cerrado (2026-09-25):** primer documento real F5.1 con extracción habilitada
    y verificada E2E en producción.
 2. **Cerrado (2026-09-29):** solicitud → política → presupuesto → aprobación → gasto; centro de costo, medio y origen llegan estructurados al ledger/exportación.
-3. Reembolsos, fondos, anticipos y excepciones con roles.
+3. **Cerrado internamente (2026-09-29):** reembolso con destino cifrado, aprobación, referencia, gasto y ledger idempotente; siguen anticipos/fondos y certificación bancaria.
 4. Movimientos de tarjetas externas y controles preventivos; emitir sólo con partner.
 5. Conciliación bancaria/contable y exportaciones auditables.
 
