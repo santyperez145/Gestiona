@@ -1,295 +1,213 @@
 /**
- * SEO y atribución por canal para el storefront.
+ * SEO y precio de la vitrina pública, en un solo lugar.
  *
- * Shopify/Tiendanube usan SEO técnico y atribución por canal (campaña, región, medio).
- * Este módulo expone:
- * - Funciones para generar meta tags (title, description, canonical)
- * - Atribución de canales a partir de eventos y cookies
- * - Funciones para calcular métricas por canal (GMV, compradores, conversión)
- *
- * Todo está testeado y no llama a APIs externas.
+ * Los crawlers no ejecutan la SPA: título, canonical, JSON-LD y el sitemap
+ * tienen que salir del borde. El precio que se declara a Google tiene que ser
+ * el mismo que cobra `resolve_store_line`. Si divergen, el rich result miente
+ * y Search Console deja de mostrar el precio de toda la tienda.
  */
 
-import { Channel, normalizeChannel, ChannelEvent } from "./channelAttribution";
+export const STOREFRONT_CRAWLER_UA =
+  "facebookexternalhit|Facebot|facebookcatalog|WhatsApp|Twitterbot|Slackbot|" +
+  "LinkedInBot|TelegramBot|Discordbot|Googlebot|Google-InspectionTool|" +
+  "AdsBot-Google|Storebot-Google|GoogleOther|bingbot|BingPreview|DuckDuckBot|" +
+  "YandexBot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|" +
+  "W3C_Validator|embedly";
 
-/**
- * Genera meta title con la estructura recomendada.
- * Usado por: tituloDeRutaTienda, StorefrontPage.
- */
-export function generateMetaTitle(storeName: string, productName?: string, channel?: Channel): string {
-  const base = `${storeName} ${productName ? `– ${productName}` : ""}`;
-  const suffix = channel ? ` (${channel})` : "";
-  return `${base} | Nerqia Commerce${suffix}`;
-}
-
-/**
- * Genera meta description con el mensaje de valor y canal.
- * Usado por: StorefrontPage, meta tags del checkout.
- */
-export function generateMetaDescription(
-  storeName: string,
-  productName?: string,
-  channel?: Channel,
-  valueProp?: string
-): string {
-  const base = productName
-    ? `${productName} – ${storeName}`
-    : `${storeName} – Productos y servicios de comercio electrónico`;
-  return channel
-    ? `${base} | ${channel.toUpperCase()} – ${valueProp ?? "Experiencia completa y segura"}`
-    : `${base} | Nerqia Commerce – Experiencia completa y segura`;
-}
-
-/**
- * Genera el enlace canonical.
- * Usado por: canonicalStorefrontPath, StorefrontPage.
- */
-export function canonicalUrl(storeName: string, slug: string, channel?: Channel): string {
-  const base = `${storeName.toLowerCase().replace(/\s+/g, "-")}.${slug}`;
-  return channel ? `${base}?channel=${channel}` : `${base}`;
-}
-
-/**
- * parseRutaTienda: interpreta una URL de tienda en un objeto kind/slug/etc.
- * Usado por: todas las páginas, tests de SEO.
- */
-export function parseRutaTienda(
-  ruta: string,
-  search?: URLSearchParams,
-  slug?: string
-): { kind: string; slug?: string; cat?: string; productId?: string; pageSlug?: string; page?: number; kind?: string } {
-  const params = search ?? new URLSearchParams();
-  const kindMap: Record<string, string> = {
-    "home": "home",
-    "plp": "plp",
-    "pdp": "pdp",
-    "page": "page",
-    "legal": "legal",
-    "private": "private",
-  };
-
-  // Si no hay ruta, intentar por kind explícito
-  if (!ruta && kindMap[slug?.kind]) {
-    return { kind: slug.kind };
-  }
-
-  const trimmed = ruta.trim();
-  if (!trimmed) {
-    return { kind: "home" };
-  }
-
-  // Caso: /tienda/:slug[/:subpath]
-  if (trimmed.startsWith("/tienda/")) {
-    const parts = trimmed.split("/").slice(1); // quita el / inicial
-    const tiendaSlug = parts[0];
-    const subpath = parts.slice(1).join("/");
-    const kind = subpath ? kindMap[subpath] : "home";
-
-    if (kind === "home") {
-      return { kind: "home", slug: tiendaSlug };
-    }
-    if (kind === "plp") {
-      const catParam = params.get("cat");
-      return { kind: "plp", slug: tiendaSlug, cat: catParam ?? undefined, page: params.get("page") ? Number(params.get("page")) : 1 };
-    }
-    if (kind === "pdp") {
-      const prodId = subpath.split("/")[0];
-      return { kind: "pdp", slug: tiendaSlug, productId: prodId ?? undefined };
-    }
-    if (kind === "page") {
-      return { kind: "page", slug: tiendaSlug, pageSlug: subpath ?? undefined };
-    }
-    if (kind === "legal") {
-      return { kind: "legal", slug: tiendaSlug };
-    }
-    if (kind === "private") {
-      return { kind: "private", slug: tiendaSlug };
-    }
-    return { kind: "home", slug: tiendaSlug };
-  }
-
-  // Caso: /producto/:slug/:id (PDP directo)
-  if (trimmed.startsWith("/producto/")) {
-    const parts = trimmed.split("/");
-    return {
-      kind: "pdp",
-      slug: parts[1] ?? undefined,
-      productId: parts[2] ?? undefined,
-    };
-  }
-
-  // Caso: raíz /
-  if (trimmed === "/") {
-    return { kind: "home" };
-  }
-
-  // Caso: /productos (PLP raíz)
-  if (trimmed === "/productos" || trimmed === "/catalogo") {
-    return { kind: "plp", slug: undefined, cat: undefined, page: params.get("page") ? Number(params.get("page")) : 1 };
-  }
-
-  // Caso: /checkout (privado)
-  if (trimmed === "/checkout" || trimmed === "/orden") {
-    return { kind: "private" };
-  }
-
-  // Por defecto
-  return { kind: "home", slug: undefined };
-}
-
-/**
- * tituloDeRutaTienda: devuelve el título de página según la ruta.
- * Usado por: StorefrontPage, tests.
- */
-export function tituloDeRutaTienda({
-  ruta,
-  storeName,
-  categoryLabel,
-  productName,
-  pageTitle,
-  page,
-}: {
-  ruta: { kind: string; slug?: string; cat?: string; productId?: string; page?: number };
-  storeName: string;
-  categoryLabel?: string;
-  productName?: string;
-  pageTitle?: string;
-  page?: number;
-}): string {
-  const kind = ruta.kind;
-  if (kind === "home") {
-    return storeName;
-  }
-  if (kind === "pdp" && productName) {
-    return `${productName} — ${storeName}`;
-  }
-  if (kind === "plp" && categoryLabel) {
-    return `${categoryLabel} — ${storeName}`;
-  }
-  if (kind === "plp") {
-    return `${storeName}`;
-  }
-  if (kind === "page" && pageTitle) {
-    return `${pageTitle} — ${storeName}`;
-  }
-  if (kind === "private") {
-    return `Checkout — ${storeName}`;
-  }
-  if (kind === "legal") {
-    return `Términos — ${storeName}`;
-  }
-  return storeName;
-}
-
-/**
- * canonicalStorefrontPath: genera el path canonical a partir de un objeto ruta.
- * Usado por: tests de SEO, StorefrontPage.
- */
-export function canonicalStorefrontPath(ruta: { kind: string; slug?: string; cat?: string; page?: number }): string {
-  const kind = ruta.kind;
-  const slug = ruta.slug;
-  const page = ruta.page ?? 1;
-
-  if (kind === "home") {
-    return "/";
-  }
-  if (kind === "plp") {
-    const cat = ruta.cat ? `cat=${ruta.cat}` : "";
-    return `/productos?${cat}&page=${page}`;
-  }
-  if (kind === "pdp" && slug) {
-    return `/producto/${slug}`;
-  }
-  if (kind === "page" && slug) {
-    return `/tienda/${slug}/pagina/${page}`;
-  }
-  return "/";
-}
-
-/**
- * cuerpoRobots: genera el contenido del robots.txt.
- * Usado por: middleware, tests de SEO.
- * - Siempre permite Googlebot/AdsBot/bingbot
- * - Bloquea checkout/cuenta en hosted stores
- * - Sitemap con slugs publicados
- */
-export function cuerpoRobots(
-  host: string,
-  sitemapPaths: string[],
-  options?: { hostedStore?: boolean }
-): string {
-  const lines: string[] = [];
-  lines.push(`User-agent: Googlebot`);
-  lines.push(`Allow: /`);
-  lines.push(`Disallow: /checkout`);
-  lines.push(`Disallow: /cuenta`);
-  lines.push(`Disallow: /admin`);
-  lines.push("");
-
-  lines.push(`User-agent: AdsBot-Google`);
-  lines.push(`Allow: /`);
-  lines.push(`Disallow: /checkout`);
-  lines.push(`Disallow: /cuenta`);
-  lines.push("");
-
-  lines.push(`User-agent: bingbot`);
-  lines.push(`Allow: /`);
-  lines.push(`Disallow: /checkout`);
-  lines.push(`Disallow: /cuenta`);
-  lines.push("");
-
-  // Sitemaps
-  for (const p of sitemapPaths) {
-    lines.push(`Sitemap: ${host}${p}`);
-  }
-  lines.push("");
-
-  // En hosted store, bloquear todo el subárbol /tienda/ excepto /
-  if (options?.hostedStore) {
-    lines.push(`User-agent: *`);
-    lines.push(`Disallow: /tienda/*/checkout`);
-    lines.push(`Disallow: /tienda/*/cuenta`);
-    lines.push(`Disallow: /tienda/*/productos`);
-    lines.push("");
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * STOREFRONT_CRAWLER_UA: cadena de user-agent para bots de scraping.
- * Usado por: middleware.ts, tests.
- */
-export const STOREFRONT_CRAWLER_UA = "Google-InspectionTool|AdsBot-Google";
-
-/**
- * ROBOTS_DISALLOW_PANEL: rutas bloqueadas en el panel de gestión.
- * Usado por: tests de robots.
- */
+/** Rutas del panel: gastar presupuesto de rastreo acá no vende. */
 export const ROBOTS_DISALLOW_PANEL = [
-  "/checkout",
-  "/cuenta",
+  "/configuracion",
+  "/productos",
+  "/ventas",
+  "/clientes",
+  "/caja",
+  "/reportes",
   "/admin",
+  "/perfil",
+  "/equipo",
+  "/integraciones",
+  "/onboarding",
+  "/platform",
+  "/finance",
+  "/login",
+  "/tienda-online",
+] as const;
+
+/** Recorridos de comprador que no son catálogo. */
+export const ROBOTS_DISALLOW_TIENDA = [
   "/tienda/*/checkout",
   "/tienda/*/cuenta",
-];
+  "/tienda/*/orden",
+  "/tienda/*/carrito",
+  "/tienda/*/seguimiento",
+] as const;
+
+/** Las mismas pantallas privadas cuando la tienda vive en su propio host. */
+export const ROBOTS_DISALLOW_HOSTED_STORE = [
+  "/checkout",
+  "/cuenta",
+  "/orden",
+  "/carrito",
+  "/seguimiento",
+] as const;
+
+export interface PrecioDeCatalogo {
+  sale_price_ars?: number | null;
+  discount_price_ars?: number | null;
+  promo_price?: number | null;
+}
 
 /**
- * precioDeCatalogo: calcula el precio final aplicando promociones.
- * Usado por: ProductTableOwn, tests, JSON-LD del borde.
- * Fórmula: si hay promo_price usarla; si hay discount_price_ars y es menor que sale_price_ars, usarla;
- * si no, devuelve sale_price_ars.
+ * El precio que ve el comprador. Espejo de `resolve_store_line`.
+ * Oferta manual vs lista, y después la promoción si mejora.
  */
-export function precioDeCatalogo({
-  sale_price_ars,
-  discount_price_ars,
-  promo_price,
-}: {
-  sale_price_ars: number;
-  discount_price_ars?: number;
-  promo_price?: number;
-}): number {
-  if (promo_price != null && promo_price > 0) return promo_price;
-  if (discount_price_ars != null && discount_price_ars < sale_price_ars) return discount_price_ars;
-  return sale_price_ars;
+export function precioDeCatalogo(p: PrecioDeCatalogo): number {
+  const lista = Number(p.sale_price_ars) || 0;
+  const oferta = Number(p.discount_price_ars) || 0;
+  const vigente = oferta > 0 && oferta < lista ? oferta : lista;
+  const promo = Number(p.promo_price) || 0;
+  return promo > 0 && promo < vigente ? promo : vigente;
+}
+
+export type RutaTienda =
+  | { kind: "home"; slug: string }
+  | { kind: "plp"; slug: string; cat: string | null; page: number }
+  | { kind: "pdp"; slug: string; productId: string }
+  | { kind: "page"; slug: string; pageSlug: string }
+  | { kind: "legal"; slug: string }
+  | { kind: "private"; slug: string };
+
+function slugLimpio(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Interpreta la URL pública de una tienda. El rewrite de Vercel manda el path
+ * original en `?path=`; la query de categoría viaja aparte.
+ */
+export function parseRutaTienda(
+  path: string,
+  search: URLSearchParams | { get(name: string): string | null } = new URLSearchParams(),
+  hostedStoreSlug?: string | null,
+): RutaTienda | null {
+  const raw = path.split("?")[0] ?? "";
+  const partes = raw.split("/").filter(Boolean);
+  const slug = hostedStoreSlug?.trim()
+    ? slugLimpio(hostedStoreSlug.trim())
+    : partes[0] === "tienda" && partes[1]
+      ? slugLimpio(partes[1])
+      : null;
+  if (!slug) return null;
+  const resto = hostedStoreSlug?.trim() ? partes : partes.slice(2);
+
+  if (resto.length === 0) return { kind: "home", slug };
+
+  const [seccion, id] = resto;
+  if (seccion === "productos" && resto.length === 1) {
+    const cat = search.get("cat");
+    const rawPage = Number.parseInt(search.get("page") ?? "1", 10);
+    const page = Number.isFinite(rawPage) && rawPage > 1 ? rawPage : 1;
+    return { kind: "plp", slug, cat: cat && cat.trim() ? cat : null, page };
+  }
+  if (seccion === "producto" && id) {
+    return { kind: "pdp", slug, productId: slugLimpio(id) };
+  }
+  if (seccion === "pagina" && id) {
+    return { kind: "page", slug, pageSlug: slugLimpio(id) };
+  }
+  if (seccion === "arrepentimiento" && resto.length === 1) {
+    return { kind: "legal", slug };
+  }
+  if (["checkout", "cuenta", "orden", "carrito", "seguimiento"].includes(seccion)) {
+    return { kind: "private", slug };
+  }
+  return { kind: "private", slug };
+}
+
+export function tituloDeRutaTienda(input: {
+  ruta: RutaTienda | null;
+  storeName: string;
+  metaTitle?: string | null;
+  productName?: string | null;
+  categoryLabel?: string | null;
+  pageTitle?: string | null;
+}): string {
+  const tienda = input.storeName.trim() || "Tienda";
+  const meta = input.metaTitle?.trim();
+  const home = meta || `${tienda} — Tienda online`;
+
+  if (!input.ruta || input.ruta.kind === "home") return home;
+
+  if (input.ruta.kind === "pdp") {
+    const prod = input.productName?.trim();
+    return prod ? `${prod} — ${tienda}` : home;
+  }
+  if (input.ruta.kind === "plp") {
+    const cat = input.categoryLabel?.trim();
+    const base = cat ? `${cat} — ${tienda}` : `Productos — ${tienda}`;
+    return input.ruta.page > 1 ? `${base} · Página ${input.ruta.page}` : base;
+  }
+  if (input.ruta.kind === "page") {
+    const page = input.pageTitle?.trim();
+    return page ? `${page} — ${tienda}` : home;
+  }
+  if (input.ruta.kind === "legal") return `Botón de arrepentimiento — ${tienda}`;
+  const privada = input.pageTitle?.trim();
+  return privada ? `${privada} — ${tienda}` : home;
+}
+
+/** Sufijo canónico común para path heredado, wildcard y futuro dominio propio. */
+export function canonicalStorefrontPath(ruta: RutaTienda | null): string | null {
+  if (!ruta || ruta.kind === "home") return "";
+  if (ruta.kind === "plp") {
+    const params = new URLSearchParams();
+    if (ruta.cat) params.set("cat", ruta.cat);
+    if (ruta.page > 1) params.set("page", String(ruta.page));
+    const query = params.toString();
+    return `/productos${query ? `?${query}` : ""}`;
+  }
+  if (ruta.kind === "pdp") return `/producto/${encodeURIComponent(ruta.productId)}`;
+  if (ruta.kind === "page") return `/pagina/${encodeURIComponent(ruta.pageSlug)}`;
+  if (ruta.kind === "legal") return "/arrepentimiento";
+  return null;
+}
+
+export function cuerpoRobots(
+  origin: string,
+  sitemaps: string[],
+  options: { hostedStore?: boolean } = {},
+): string {
+  const lineas = [
+    "User-agent: *",
+    "Allow: /",
+    "",
+    ...(!options.hostedStore ? [
+      "# El panel de gestión no aporta nada en los buscadores y solo gasta",
+      "# presupuesto de rastreo: lo que interesa indexar son las tiendas.",
+      ...ROBOTS_DISALLOW_PANEL.map(p => `Disallow: ${p}`),
+      "",
+    ] : []),
+    "# Checkout, cuenta y seguimiento no son catálogo.",
+    ...(options.hostedStore ? ROBOTS_DISALLOW_HOSTED_STORE : ROBOTS_DISALLOW_TIENDA)
+      .map(p => `Disallow: ${p}`),
+    "",
+    ...(options.hostedStore ? [] : ["Allow: /tienda/", "Allow: /catalogo/"]),
+    "",
+  ];
+  const unicos = [...new Set(sitemaps.filter(Boolean))];
+  if (unicos.length === 0) {
+    lineas.push("# El índice de sitemaps se declara cuando hay una tienda activa.");
+  } else {
+    for (const loc of unicos) {
+      const href = loc.startsWith("http")
+        ? loc
+        : `${origin}${loc.startsWith("/") ? loc : `/${loc}`}`;
+      lineas.push(`Sitemap: ${href}`);
+    }
+  }
+  return `${lineas.join("\n")}\n`;
 }

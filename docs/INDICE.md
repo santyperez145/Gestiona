@@ -1,6 +1,6 @@
 # Índice de documentación
 
-**Estado:** canónico. **Corte:** 2026-09-07.
+**Estado:** canónico. **Corte:** 2026-09-29.
 
 Este índice enumera los documentos vigentes. ROADMAP describe presente y futuro;
 Git conserva auditorías, evidencia e incidentes cerrados. No se versionan dumps
@@ -83,6 +83,8 @@ Un documento activo:
 3. enlaza su autoridad y fuentes;
 4. se actualiza en el mismo slice que cambia el comportamiento;
 5. evita diarios de sesión, capturas repetidas y listas ya cerradas.
+6. no declara como terminada una UI con datos simulados o sin autoridad
+   server-side desplegable.
 
 Las verificaciones SQL puntuales pueden vivir junto a su migración en
 supabase/verificaciones. Los informes cerrados se consultan con git log y git

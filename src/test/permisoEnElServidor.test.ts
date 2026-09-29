@@ -33,6 +33,10 @@ import { resolve } from "node:path";
  */
 
 const MIGRACIONES = resolve(__dirname, "../../supabase/migrations");
+const ARCHIVOS = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort();
+const CONTENIDO = new Map(
+  ARCHIVOS.map(archivo => [archivo, readFileSync(resolve(MIGRACIONES, archivo), "utf8")]),
+);
 
 /** Las nueve, con el permiso que cada una tiene que exigir. */
 const EXIGEN_PERMISO: Record<string, string> = {
@@ -52,27 +56,26 @@ const EXIGEN_PERMISO: Record<string, string> = {
 
 /** El archivo más nuevo que define esa función, que es el que manda. */
 function ultimaDefinicion(fn: string): { archivo: string; cuerpo: string } | null {
-  const archivos = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort();
   const re = new RegExp(
     `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+(?:public\\.)?${fn}\\s*\\(`, "i");
 
-  for (let i = archivos.length - 1; i >= 0; i--) {
-    const texto = readFileSync(resolve(MIGRACIONES, archivos[i]), "utf8");
+  for (let i = ARCHIVOS.length - 1; i >= 0; i--) {
+    const archivo = ARCHIVOS[i];
+    const texto = CONTENIDO.get(archivo)!;
     const m = re.exec(texto);
     if (!m) continue;
     // Desde la definición hasta el cierre del cuerpo.
     const desde = m.index;
     const fin = texto.indexOf("$function$", texto.indexOf("$function$", desde) + 1);
     const hasta = fin === -1 ? texto.indexOf("$$;", desde) : fin;
-    return { archivo: archivos[i], cuerpo: texto.slice(desde, hasta === -1 ? undefined : hasta) };
+    return { archivo, cuerpo: texto.slice(desde, hasta === -1 ? undefined : hasta) };
   }
   return null;
 }
 
 describe("las RPC que mueven stock o plata exigen permiso en el servidor", () => {
   it("el escaneo encuentra las migraciones", () => {
-    const n = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).length;
-    expect(n).toBeGreaterThan(400);
+    expect(ARCHIVOS.length).toBeGreaterThan(400);
   });
 
   for (const [fn, modulo] of Object.entries(EXIGEN_PERMISO)) {
@@ -110,12 +113,12 @@ describe("las RPC que mueven stock o plata exigen permiso en el servidor", () =>
     // ⚠️ Y la lectura tiene que quedar abierta: el POS lee `promotions` para
     // cobrar. Cerrar la policy entera habría hecho que el mostrador cobrara
     // SIN la promoción, en silencio.
-    const archivos = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort();
     let ultima: { archivo: string; texto: string } | null = null;
-    for (let i = archivos.length - 1; i >= 0; i--) {
-      const texto = readFileSync(resolve(MIGRACIONES, archivos[i]), "utf8");
+    for (let i = ARCHIVOS.length - 1; i >= 0; i--) {
+      const archivo = ARCHIVOS[i];
+      const texto = CONTENIDO.get(archivo)!;
       if (/CREATE\s+POLICY[\s\S]{0,200}?ON\s+public\.promotions/i.test(texto)) {
-        ultima = { archivo: archivos[i], texto };
+        ultima = { archivo, texto };
         break;
       }
     }

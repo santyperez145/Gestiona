@@ -1,8 +1,7 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-25. **Estado:** documento rector de producto y ejecución.
-La historia de entregas vive en Git; este archivo conserva únicamente el estado
-actual, las decisiones vigentes y el trabajo siguiente.
+**Corte:** 2026-09-29. **Estado:** documento rector de producto y ejecución.
+Git conserva la historia; aquí viven el estado, decisiones y trabajo siguiente.
 
 ## Objetivo
 
@@ -24,6 +23,8 @@ Reglas de ejecución:
   validación comercial; mantener los `.md` breves y vigentes;
 - aplicar mínimo privilegio, denegación por defecto, trazabilidad, protección
   de abuso y revisión de dependencias en cada slice.
+- declarar una capacidad sólo con ruta alcanzable, autoridad server-side y
+  tests; mocks o clientes de RPC sin migración no cuentan como paridad.
 
 ## 1. Tesis
 
@@ -186,6 +187,11 @@ portal Stripe heredado responde como retirado.
   organización activa y respeta rangos civiles estables sin desfase UTC;
 - el deploy productivo se verifica después de cada push tanto en la tienda
   pública como en Commerce con una sesión autenticada.
+- saneamiento v2.0 (2026-09-29): Productos conserva un único migrador
+  transaccional (`stage_catalog_migration` → revisión →
+  `apply_catalog_migration`), Finance conserva un único Document Inbox y el SEO
+  público mantiene el mismo precio y rutas que checkout. Se retiraron prototipos
+  desconectados que duplicaban esas capacidades o invocaban RPC inexistentes.
 
 ### Nerqia Intelligence
 
@@ -336,13 +342,6 @@ por id/nombre/email; verificación reversible en producción).
 | 13 | Finance export contable | **Cerrado (2026-09-25):** lotes desde el libro real con verificación de descuadre, CSV para el contador e historia de exportación. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
-
-**Cierres recientes (2026-09-25):** F5.1 E2E, chat marca↔creador con
-notificaciones consentidas (`60a74a85`), editor de bloques (`64961a59`),
-conciliación F5.4 (`5da9f074`), payouts MP (`947cdbfb`), POS offline (`c0a06c66`),
-timeline 360 del cliente, copia de imágenes del migrador (`copy-product-images`),
-clientes C22.2 con staging (`1d9bc0a3`), colección por bloque de vitrina
-(`a2788198`) y concurrencia de checkout C20 (`e72162f6`).
 
 ## 7. Definition of Done
 
