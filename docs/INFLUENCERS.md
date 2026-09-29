@@ -17,7 +17,7 @@ de creadores como propia.
 | Trabajo | Implementación | Pendiente |
 |---|---|---|
 | Navegación | Shell propio, entrada desde Business, rutas canónicas y redirects antiguos. | Barrido autenticado con usuarios finales. |
-| Creadores | Directorio, permisos, referidos, reputación batch y métricas verificadas por evidencia desde el portal. | Perfil público consentido, verificación de identidad y OAuth directo con redes. |
+| Creadores | Directorio transversal consentido, slug revocable, moderación superadmin, alta idempotente en la red de una marca, reputación y métricas verificadas. | Proveedor de verificación de identidad y OAuth directo con redes. |
 | Campañas | Brief, presupuesto, selección, invitación privada con expiración, aceptación/rechazo, seguimiento y auditoría. | Certificación con marcas y creadores reales. |
 | Entregables | Entrega y reentrega desde portal, revisión de marca, chat por colaboración y prueba de publicación con licencia tipada. | Archivos audiovisuales privados y conectores sociales verificados. |
 | Contratos | Versiones inmutables, aceptación de marca y creador por versión, evidencia temporal y acceso del creador por sesión o enlace limitado. | Proveedor de firma cualificada sólo si el marco legal/comercial lo exige. |
@@ -49,6 +49,10 @@ pagada. Registrar una revisión no demuestra que una red social haya publicado.
 - Aprobar o rechazar es autoridad humana; no mueve dinero. Sólo
   `settle_creator_withdrawal`, con referencia externa, confirma el pago. La marca
   y el sincronizador `service_role` usan la misma transición idempotente.
+- El perfil público parte desactivado. Publicarlo y aparecer en descubrimiento
+  son consentimientos separados; ambos requieren moderación. Nunca expone email,
+  teléfono, UUID, ingresos ni métricas autodeclaradas. Cambiar nombre, bio o
+  redes reabre la revisión.
 
 ## Migraciones y evidencia
 
@@ -74,8 +78,8 @@ movido dinero real.
 
 ## Siguiente secuencia
 
-1. Perfiles públicos consentidos, descubrimiento y moderación superadmin.
-2. Archivos audiovisuales privados con versiones y retención definida.
+1. **Cerrado (2026-09-29):** perfiles públicos consentidos, descubrimiento y moderación superadmin.
+2. Archivos audiovisuales privados con versiones, selección pública y retención definida.
 3. OAuth social y atribución externa sobre la evidencia ya verificable.
 4. Conciliación bancaria, reversas y comprobantes del proveedor externo.
 5. Piloto con marca y creadores reales; certificar móvil, permisos y recuperaciones.

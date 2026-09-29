@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
@@ -67,7 +68,7 @@ function StatusBadge({ status }: { status: string | null }) {
 }
 
 function ProfileSection() {
-  const { profile, saveProfile } = useCreator();
+  const { profile, saveProfile, savePublicProfile } = useCreator();
   const [form, setForm] = useState({
     display_name: profile?.display_name ?? "",
     bio: profile?.bio ?? "",
@@ -78,6 +79,16 @@ function ProfileSection() {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [publicSaving, setPublicSaving] = useState(false);
+  const [publicForm, setPublicForm] = useState({
+    public_slug: profile?.public_slug ?? "",
+    profile_public: profile?.profile_public ?? false,
+    discoverable: profile?.discoverable ?? false,
+    category: profile?.category ?? "",
+    city: profile?.city ?? "",
+    country_code: profile?.country_code ?? "AR",
+    rate_from_ars: profile?.rate_from_ars ?? null as number | null,
+  });
 
   useEffect(() => {
     if (!profile) return;
@@ -88,6 +99,15 @@ function ProfileSection() {
       instagram: profile.instagram ?? "",
       tiktok: profile.tiktok ?? "",
       youtube: profile.youtube ?? "",
+    });
+    setPublicForm({
+      public_slug: profile.public_slug ?? "",
+      profile_public: profile.profile_public ?? false,
+      discoverable: profile.discoverable ?? false,
+      category: profile.category ?? "",
+      city: profile.city ?? "",
+      country_code: profile.country_code ?? "AR",
+      rate_from_ars: profile.rate_from_ars ?? null,
     });
   }, [profile]);
 
@@ -104,6 +124,21 @@ function ProfileSection() {
       setSaving(false);
     }
   };
+
+  const submitPublic = async () => {
+    if (publicSaving) return;
+    setPublicSaving(true);
+    try {
+      await savePublicProfile(publicForm);
+      toast.success(publicForm.profile_public ? "Perfil enviado a moderación" : "Perfil público desactivado");
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "No se pudo guardar la publicación");
+    } finally { setPublicSaving(false); }
+  };
+
+  const moderationLabel = {
+    draft: "Privado", pending: "En revisión", approved: "Aprobado", rejected: "Requiere cambios",
+  }[profile?.moderation_status ?? "draft"];
 
   return (
     <Card>
@@ -148,6 +183,22 @@ function ProfileSection() {
             {saving ? "Guardando..." : "Guardar perfil"}
           </Button>
         </form>
+        <div className="mt-6 space-y-4 border-t border-border pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><p className="text-sm font-semibold">Perfil público y descubrimiento</p><p className="text-xs text-muted-foreground">Vos decidís si las marcas pueden encontrarte. Nunca publicamos email ni teléfono.</p></div>
+            <Badge variant={profile?.moderation_status === "approved" ? "success" : profile?.moderation_status === "rejected" ? "destructive" : "outline"}>{moderationLabel}</Badge>
+          </div>
+          {profile?.moderation_status === "rejected" && profile.moderation_notes && <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">{profile.moderation_notes}</p>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5"><Label htmlFor="creator-public-slug">Enlace público</Label><div className="flex items-center"><span className="rounded-l-md border border-r-0 border-input bg-muted px-2 py-2 text-xs text-muted-foreground">nerqia.app/influencer/</span><Input id="creator-public-slug" className="rounded-l-none" value={publicForm.public_slug} onChange={e => setPublicForm(current => ({ ...current, public_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))} placeholder="tu-nombre" /></div></div>
+            <div className="space-y-1.5"><Label htmlFor="creator-category">Categoría</Label><Input id="creator-category" value={publicForm.category} onChange={e => setPublicForm(current => ({ ...current, category: e.target.value }))} placeholder="Moda, tecnología, gastronomía…" /></div>
+            <div className="space-y-1.5"><Label htmlFor="creator-city">Ciudad</Label><Input id="creator-city" value={publicForm.city} onChange={e => setPublicForm(current => ({ ...current, city: e.target.value }))} placeholder="Buenos Aires" /></div>
+            <div className="space-y-1.5"><Label htmlFor="creator-rate">Tarifa orientativa desde (ARS)</Label><Input id="creator-rate" type="number" min="0" step="100" value={publicForm.rate_from_ars ?? ""} onChange={e => setPublicForm(current => ({ ...current, rate_from_ars: e.target.value ? Number(e.target.value) : null }))} /></div>
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3"><div><Label htmlFor="creator-public">Publicar perfil</Label><p className="text-xs text-muted-foreground">El perfil será visible después de la moderación.</p></div><Switch id="creator-public" checked={publicForm.profile_public} onCheckedChange={checked => setPublicForm(current => ({ ...current, profile_public: checked, discoverable: checked ? current.discoverable : false }))} /></div>
+          <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3"><div><Label htmlFor="creator-discoverable">Aparecer en descubrimiento</Label><p className="text-xs text-muted-foreground">Sólo marcas autenticadas con permisos podrán encontrarte.</p></div><Switch id="creator-discoverable" checked={publicForm.discoverable} disabled={!publicForm.profile_public} onCheckedChange={checked => setPublicForm(current => ({ ...current, discoverable: checked }))} /></div>
+          <div className="flex flex-wrap gap-2"><Button type="button" onClick={() => void submitPublic()} disabled={publicSaving || publicForm.public_slug.length < 3}>{publicSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar publicación</Button>{profile?.moderation_status === "approved" && profile.public_slug && <Button asChild type="button" variant="outline"><Link to={`/influencer/${profile.public_slug}`} target="_blank">Ver perfil <ExternalLink className="ml-2 h-4 w-4" /></Link></Button>}</div>
+        </div>
       </CardContent>
     </Card>
   );

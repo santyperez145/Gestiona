@@ -6875,12 +6875,24 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          category: string | null
+          city: string | null
+          country_code: string
           created_at: string
           display_name: string | null
+          discoverable: boolean
           email: string
+          identity_status: string
           instagram: string | null
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_notes: string | null
+          moderation_status: string
           onboarding_completed: boolean
           phone: string | null
+          profile_public: boolean
+          public_slug: string | null
+          rate_from_ars: number | null
           tiktok: string | null
           updated_at: string
           user_id: string
@@ -6889,12 +6901,24 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          category?: string | null
+          city?: string | null
+          country_code?: string
           created_at?: string
           display_name?: string | null
+          discoverable?: boolean
           email: string
+          identity_status?: string
           instagram?: string | null
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_notes?: string | null
+          moderation_status?: string
           onboarding_completed?: boolean
           phone?: string | null
+          profile_public?: boolean
+          public_slug?: string | null
+          rate_from_ars?: number | null
           tiktok?: string | null
           updated_at?: string
           user_id: string
@@ -6903,16 +6927,49 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          category?: string | null
+          city?: string | null
+          country_code?: string
           created_at?: string
           display_name?: string | null
+          discoverable?: boolean
           email?: string
+          identity_status?: string
           instagram?: string | null
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_notes?: string | null
+          moderation_status?: string
           onboarding_completed?: boolean
           phone?: string | null
+          profile_public?: boolean
+          public_slug?: string | null
+          rate_from_ars?: number | null
           tiktok?: string | null
           updated_at?: string
           user_id?: string
           youtube?: string | null
+        }
+        Relationships: []
+      }
+      creator_publication_visibility: {
+        Row: {
+          creator_user_id: string
+          proof_id: string
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          creator_user_id: string
+          proof_id: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          creator_user_id?: string
+          proof_id?: string
+          updated_at?: string
+          visible?: boolean
         }
         Relationships: []
       }

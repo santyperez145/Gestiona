@@ -6,12 +6,12 @@
  * Los montos son read-only: la plata la decide cada marca desde su panel;
  * plataforma audita y advierte estancadas sin exponer datos personales.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  AlertTriangle, ArrowRight, Check, Sparkles, Users, Wallet,
+  AlertTriangle, ArrowRight, Check, Sparkles, Users, Wallet, X,
 } from "lucide-react";
 import { usePlatformAccess } from "@/lib/usePermissions";
 import PageHeader from "@/components/shared/PageHeader";
@@ -19,6 +19,10 @@ import KPICard from "@/components/shared/KPICard";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 const money = (v: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(v);
@@ -52,10 +56,19 @@ interface CreatorRow {
   referral_code: string | null;
 }
 
+interface ModerationRow {
+  user_id: string; display_name: string; public_slug: string; category: string | null;
+  city: string | null; country_code: string; profile_public: boolean; discoverable: boolean;
+  moderation_status: string; moderation_notes: string | null; updated_at: string;
+}
+
 export default function PlatformCreatorsPage() {
   const navigate = useNavigate();
   const { canPlatform } = usePlatformAccess();
   const autorizado = canPlatform("superadmin", "finance");
+  const [rejecting, setRejecting] = useState<ModerationRow | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [moderating, setModerating] = useState<string | null>(null);
 
   // service_role vía RLS de staff de plataforma: retiros de todas las orgs.
   const withdrawals = useQuery({
@@ -95,6 +108,27 @@ export default function PlatformCreatorsPage() {
     },
     refetchOnWindowFocus: false,
   });
+
+  const moderation = useQuery({
+    queryKey: ["platform-creator-moderation"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("platform_creator_moderation_queue");
+      if (error) throw error;
+      return (data ?? []) as ModerationRow[];
+    },
+    enabled: autorizado,
+    refetchOnWindowFocus: false,
+  });
+
+  const moderate = async (row: ModerationRow, decision: "approved" | "rejected", notes?: string) => {
+    setModerating(row.user_id);
+    const { error } = await (supabase as any).rpc("platform_moderate_creator_profile", { p_user_id: row.user_id, p_decision: decision, p_notes: notes ?? null });
+    setModerating(null);
+    if (error) { toast.error(error.message || "No se pudo moderar el perfil"); return; }
+    toast.success(decision === "approved" ? "Perfil aprobado" : "Perfil devuelto al creador");
+    setRejecting(null); setRejectReason("");
+    await moderation.refetch();
+  };
 
   const rows = useMemo(() => withdrawals.data ?? [], [withdrawals.data]);
   const kpis = useMemo(() => {
@@ -147,6 +181,11 @@ export default function PlatformCreatorsPage() {
             </div>
           )}
 
+          <section className="border-y border-border py-5">
+            <div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold">Moderación del directorio</h2><p className="text-xs text-muted-foreground">Consentimiento del creador confirmado; revisá presentación y categoría antes de publicar.</p></div><Badge variant="outline">{(moderation.data ?? []).filter(row => row.moderation_status === "pending").length} pendientes</Badge></div>
+            {moderation.isPending ? <WorkspaceState kind="initial-loading" title="Cargando perfiles…" /> : !(moderation.data ?? []).some(row => row.moderation_status === "pending") ? <p className="py-4 text-sm text-muted-foreground">No hay perfiles esperando revisión.</p> : <div className="divide-y divide-border">{(moderation.data ?? []).filter(row => row.moderation_status === "pending").map(row => <div key={row.user_id} className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_220px_auto] sm:items-center"><div><p className="font-medium">{row.display_name}</p><p className="text-xs text-muted-foreground">nerqia.app/influencer/{row.public_slug}</p></div><p className="text-sm">{[row.category, row.city, row.country_code].filter(Boolean).join(" · ")}</p><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" title="Rechazar" onClick={() => { setRejecting(row); setRejectReason(""); }}><X className="h-4 w-4 text-destructive" /></Button><Button size="sm" onClick={() => void moderate(row, "approved")} disabled={moderating === row.user_id}><Check className="mr-2 h-4 w-4" />Aprobar</Button></div></div>)}</div>}
+          </section>
+
           <div className="overflow-x-auto rounded-lg border border-border bg-card">
             <table className="w-full min-w-[720px] text-sm">
               <thead className="border-b bg-muted/20 text-left text-xs text-muted-foreground">
@@ -184,6 +223,8 @@ export default function PlatformCreatorsPage() {
           </div>
         </>
       )}
+
+      <Dialog open={Boolean(rejecting)} onOpenChange={open => { if (!open && !moderating) setRejecting(null); }}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>Solicitar cambios</DialogTitle><DialogDescription>El perfil dejará de estar visible hasta que el creador corrija y vuelva a enviarlo.</DialogDescription></DialogHeader><div className="grid gap-2"><Label htmlFor="creator-reject-reason">Motivo</Label><Textarea id="creator-reject-reason" value={rejectReason} onChange={event => setRejectReason(event.target.value)} placeholder="Explicá qué debe corregir" /></div><DialogFooter><Button variant="outline" onClick={() => setRejecting(null)}>Cancelar</Button><Button variant="destructive" disabled={!rejecting || rejectReason.trim().length < 3 || Boolean(moderating)} onClick={() => rejecting && void moderate(rejecting, "rejected", rejectReason.trim())}>Solicitar cambios</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
 }

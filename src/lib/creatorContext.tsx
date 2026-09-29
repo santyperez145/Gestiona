@@ -20,6 +20,26 @@ export interface CreatorProfile {
   tiktok: string | null;
   youtube: string | null;
   onboarding_completed: boolean;
+  public_slug: string | null;
+  profile_public: boolean;
+  discoverable: boolean;
+  category: string | null;
+  city: string | null;
+  country_code: string;
+  rate_from_ars: number | null;
+  moderation_status: "draft" | "pending" | "approved" | "rejected";
+  moderation_notes: string | null;
+  identity_status: "unverified" | "pending" | "verified" | "rejected";
+}
+
+export interface CreatorPublicProfileInput {
+  public_slug: string;
+  profile_public: boolean;
+  discoverable: boolean;
+  category: string;
+  city: string;
+  country_code: string;
+  rate_from_ars: number | null;
 }
 
 export interface CreatorCampaign {
@@ -177,6 +197,7 @@ interface CreatorCtx {
   metricReports: CreatorSocialMetricReport[];
   refresh: () => Promise<void>;
   saveProfile: (fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>) => Promise<void>;
+  savePublicProfile: (fields: CreatorPublicProfileInput) => Promise<void>;
   /** Responde la invitación de una campaña (accept/decline) con la sesión. */
   respondCampaign: (campaignId: string, action: "accept" | "decline") => Promise<void>;
   /** Entrega el contenido de una campaña: URL pública obligatoria. */
@@ -252,8 +273,9 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       // se siembra su fila para que el resto de RPCs funcionen.
       if (!own && linked.length > 0) {
         const email = user.email ?? "";
-        await accounts.insert({ user_id: user.id, email });
-        own = { user_id: user.id, email, display_name: null, avatar_url: null, bio: null, phone: null, instagram: null, tiktok: null, youtube: null, onboarding_completed: false };
+        const { error: ensureError } = await rpc("creator_ensure_account");
+        if (ensureError) throw ensureError;
+        own = { user_id: user.id, email, display_name: null, avatar_url: null, bio: null, phone: null, instagram: null, tiktok: null, youtube: null, onboarding_completed: false, public_slug: null, profile_public: false, discoverable: false, category: null, city: null, country_code: "AR", rate_from_ars: null, moderation_status: "draft", moderation_notes: null, identity_status: "unverified" };
       }
 
       setIsCreator(Boolean(own) || linked.length > 0);
@@ -317,6 +339,20 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       p_instagram: fields.instagram ?? null,
       p_tiktok: fields.tiktok ?? null,
       p_youtube: fields.youtube ?? null,
+    });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
+  const savePublicProfile = useCallback(async (fields: CreatorPublicProfileInput) => {
+    const { error } = await rpc("creator_update_public_profile", {
+      p_public_slug: fields.public_slug,
+      p_profile_public: fields.profile_public,
+      p_discoverable: fields.discoverable,
+      p_category: fields.category,
+      p_city: fields.city,
+      p_country_code: fields.country_code,
+      p_rate_from_ars: fields.rate_from_ars,
     });
     if (error) throw error;
     await refresh();
@@ -400,7 +436,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, linkedProfiles, metricReports, refresh, saveProfile, respondCampaign, submitDeliverable, listChat, sendChat, acceptContract, submitMetricReport, savePayoutDestination, disablePayoutDestination }}>
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, linkedProfiles, metricReports, refresh, saveProfile, savePublicProfile, respondCampaign, submitDeliverable, listChat, sendChat, acceptContract, submitMetricReport, savePayoutDestination, disablePayoutDestination }}>
       {children}
     </CreatorContext.Provider>
   );

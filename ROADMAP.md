@@ -261,7 +261,8 @@ Prioridad: completar Influencers con referencia verificada de [GoMarz](https://w
 - **Cerrado (2026-09-29):** contratos versionados y aceptación bilateral; los
   retiros se confirman sólo con referencia externa y generan payout, gasto y
   asiento atómicos. La matriz prueba roles, reintentos y rollback sin residuos.
-- Siguiente: perfiles públicos, descubrimiento superadmin, archivos privados y conciliación bancaria.
+- **Cerrado (2026-09-29):** perfil público opt-in sin PII, métricas verificadas, descubrimiento transversal, moderación superadmin y alta idempotente por marca.
+- Siguiente: archivos privados, OAuth social y conciliación bancaria externa.
 - No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
 
@@ -282,7 +283,6 @@ Prioridad: completar Influencers con referencia verificada de [GoMarz](https://w
    detrás de demanda, economics, seguridad y regulación; Capital exige partner.
 
 ## 6. Próximos slices
-
 ### Estudio de faltantes por pilar (2026-09-25)
 
 Auditoría de código y docs vigentes contra el estándar competitivo. Cada fila

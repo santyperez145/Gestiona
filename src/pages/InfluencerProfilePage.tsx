@@ -1,234 +1,89 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Camera, Instagram, MapPin, Mail, Calendar, Star, TrendingUp, Users, Target, Award } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BadgeCheck, BarChart3, CalendarCheck, ExternalLink, Instagram, MapPin, Star, Users } from "lucide-react";
+import BrandLogo from "@/components/shared/BrandLogo";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type InfluencerPublicProfile = {
-  id: string;
-  name: string;
-  instagram: string;
-  tiktok?: string;
-  email: string;
-  category: string;
-  bio?: string;
-  followers_ig: number;
-  followers_tiktok: number;
-  engagement_rate: number;
-  tier: 'nano' | 'micro' | 'medio' | 'macro';
-  status: 'active' | 'inactive' | 'pending';
-  verified: boolean;
-  avatar_url?: string;
-  created_at: string;
-  total_campaigns: number;
-  total_earnings_ars: number;
-  avg_delivery_days: number | null;
-  rating: number | null;
+  slug: string; name: string; avatar_url?: string; bio?: string;
+  instagram?: string; tiktok?: string; youtube?: string; category?: string;
+  city?: string; country_code: string; rate_from_ars?: number;
+  identity_verified: boolean; followers?: number; engagement_rate?: number;
+  metrics_verified: boolean; last_verified_at?: string; rating?: number;
+  reviews_count: number; completed_campaigns: number;
 };
 
+type PublicReview = { id: string; rating: number; comment: string | null; created_at: string; org_name: string | null };
+type PortfolioItem = { id: string; description: string; campaign_name: string | null; content_url: string };
+
+const compactNumber = (value?: number) => value == null ? "Sin datos verificados" : new Intl.NumberFormat("es-AR", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+const money = (value?: number) => value == null ? null : new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
+
+function socialUrl(network: "instagram" | "tiktok" | "youtube", handle: string) {
+  const clean = handle.replace(/^@/, "").trim();
+  if (handle.startsWith("https://")) return handle;
+  return network === "instagram" ? `https://instagram.com/${clean}` : network === "tiktok" ? `https://tiktok.com/@${clean}` : `https://youtube.com/@${clean}`;
+}
+
 export default function InfluencerProfilePage() {
-  const { token } = useParams<{ token: string }>();
+  const { token = "" } = useParams<{ token: string }>();
   const [profile, setProfile] = useState<InfluencerPublicProfile | null>(null);
-  const [reviews, setReviews] = useState<Array<{ id: string; rating: number; comment: string | null; created_at: string; org_name: string | null }>>([]);
-  const [portfolio, setPortfolio] = useState<Array<{ id: string; description: string; campaign_name: string | null; content_url: string | null }>>([]);
+  const [reviews, setReviews] = useState<PublicReview[]>([]);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
-    (async () => {
-      try {
-        const { data, error } = await (supabase as any).rpc("get_influencer_public_profile", { p_token: token });
-        if (!error && data) {
-          const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-          setProfile(parsed as InfluencerPublicProfile);
-          try {
-            const { data: reviewRows } = await (supabase as any)
-              .rpc("get_influencer_public_reviews", { p_token: token });
-            setReviews(Array.isArray(reviewRows) ? reviewRows : []);
-          } catch { setReviews([]); }
-          try {
-            const { data: portfolioRows } = await (supabase as any)
-              .rpc("get_influencer_public_portfolio", { p_token: token });
-            setPortfolio(Array.isArray(portfolioRows) ? portfolioRows : []);
-          } catch { setPortfolio([]); }
-          return;
-        }
-
-        // Fallback directo a la tabla influencers
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
-        const query = isUUID
-          ? (supabase as any).from("influencers").select("*").or(`id.eq.${token},referral_code.eq.${token}`).maybeSingle()
-          : (supabase as any).from("influencers").select("*").eq("referral_code", token).maybeSingle();
-
-        const { data: inf, error: infError } = await query;
-        if (infError || !inf) {
-          setProfile(null);
-        } else {
-          setProfile({
-            id: inf.id,
-            name: inf.name,
-            instagram: inf.instagram || "",
-            tiktok: inf.tiktok || "",
-            email: inf.email || "",
-            category: "Moda y Estilo",
-            bio: inf.notes || "Creador de contenido verificado.",
-            followers_ig: inf.followers_ig || 0,
-            followers_tiktok: inf.followers_tiktok || 0,
-            engagement_rate: inf.engagement_rate || 0,
-            tier: (inf.tier as any) || "micro",
-            status: ["activo", "active"].includes(inf.status) ? "active" : "inactive",
-            verified: true,
-            avatar_url: inf.avatar_url,
-            created_at: inf.created_at,
-            total_campaigns: inf.total_sales_count || 0,
-            total_earnings_ars: inf.total_commissions_ars || 0,
-            avg_delivery_days: null as unknown as number,
-            rating: null as unknown as number,
-          });
-          try {
-            const { data: reviewRows } = await (supabase as any)
-              .from("influencer_reviews")
-              .select("id, rating, comment, created_at, organizations(name)")
-              .eq("influencer_id", inf.id)
-              .order("created_at", { ascending: false });
-            setReviews(Array.isArray(reviewRows) ? reviewRows : []);
-          } catch { setReviews([]); }
-        }
-      } catch {
-        setProfile(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    let active = true;
+    setLoading(true);
+    Promise.all([
+      (supabase as any).rpc("get_influencer_public_profile", { p_token: token }),
+      (supabase as any).rpc("get_influencer_public_reviews", { p_token: token }),
+      (supabase as any).rpc("get_influencer_public_portfolio", { p_token: token }),
+    ]).then(([profileResult, reviewResult, portfolioResult]) => {
+      if (!active) return;
+      setProfile(profileResult.error ? null : profileResult.data as InfluencerPublicProfile | null);
+      setReviews(reviewResult.error || !Array.isArray(reviewResult.data) ? [] : reviewResult.data);
+      setPortfolio(portfolioResult.error || !Array.isArray(portfolioResult.data) ? [] : portfolioResult.data);
+    }).catch(() => { if (active) setProfile(null); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [token]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-9 h-9 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  useEffect(() => { document.title = profile ? `${profile.name} · Nerqia Creadores` : "Creador · Nerqia"; }, [profile]);
 
-  if (!profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-card text-foreground">
-        <div className="text-center max-w-sm">
-          <h1 className="text-2xl font-display font-bold">Perfil no encontrado</h1>
-          <p className="text-muted-foreground mt-2">Este creador no existe o su enlace ha expirado.</p>
+  if (loading) return <main className="grid min-h-screen place-items-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-label="Cargando perfil" /></main>;
+  if (!profile) return <main className="grid min-h-screen place-items-center bg-background px-6"><div className="max-w-md text-center"><BrandLogo compact decorative className="mx-auto mb-5" /><h1 className="text-2xl font-semibold">Perfil no disponible</h1><p className="mt-2 text-sm text-muted-foreground">El creador no publicó este perfil, está en revisión o el enlace ya no está vigente.</p><Button asChild className="mt-6"><Link to="/">Volver a Nerqia</Link></Button></div></main>;
+
+  const socials = (["instagram", "tiktok", "youtube"] as const).filter(network => profile[network]);
+  return <main className="min-h-screen bg-background text-foreground">
+    <header className="border-b border-border bg-card"><div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4"><Link to="/"><BrandLogo decorative /></Link><Badge variant="outline">Directorio de creadores</Badge></div></header>
+    <section className="border-b border-border bg-card"><div className="mx-auto grid max-w-5xl gap-7 px-5 py-10 md:grid-cols-[minmax(0,1fr)_260px] md:items-end">
+      <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start">
+        <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-muted">{profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <Users className="h-9 w-9 text-muted-foreground" />}</div>
+        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-3xl font-semibold">{profile.name}</h1>{profile.identity_verified && <Badge variant="success"><BadgeCheck className="mr-1 h-3.5 w-3.5" />Identidad verificada</Badge>}</div>
+          <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">{profile.category && <span>{profile.category}</span>}{profile.city && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{profile.city}, {profile.country_code}</span>}</div>
+          {profile.bio && <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground/80">{profile.bio}</p>}
+          <div className="mt-4 flex flex-wrap gap-2">{socials.map(network => <Button key={network} asChild size="sm" variant="outline"><a href={socialUrl(network, profile[network]!)} target="_blank" rel="noopener noreferrer"><Instagram className="mr-2 h-4 w-4" />{network === "instagram" ? "Instagram" : network === "tiktok" ? "TikTok" : "YouTube"}<ExternalLink className="ml-2 h-3.5 w-3.5" /></a></Button>)}</div>
         </div>
       </div>
-    );
-  }
+      <div className="border-l-2 border-primary pl-4"><p className="text-xs text-muted-foreground">Tarifa orientativa</p><p className="mt-1 text-xl font-semibold">{money(profile.rate_from_ars) ? `Desde ${money(profile.rate_from_ars)}` : "A convenir"}</p><p className="mt-2 text-xs text-muted-foreground">La contratación se acuerda dentro de cada campaña.</p></div>
+    </div></section>
 
-  const tierLabel = { nano: "Nano", micro: "Micro", medio: "Medio", macro: "Macro" }[profile.tier];
-  const isActive = profile.status === 'active';
+    <div className="mx-auto max-w-5xl px-5 py-8">
+      <div className="grid border-y border-border sm:grid-cols-4">{[
+        { icon: Users, label: "Audiencia verificada", value: compactNumber(profile.followers) },
+        { icon: BarChart3, label: "Engagement verificado", value: profile.engagement_rate == null ? "Sin datos verificados" : `${profile.engagement_rate}%` },
+        { icon: CalendarCheck, label: "Campañas completadas", value: String(profile.completed_campaigns ?? 0) },
+        { icon: Star, label: "Valoración pública", value: profile.rating == null ? "Sin reseñas públicas" : `${profile.rating}/5 (${profile.reviews_count})` },
+      ].map((item, index) => <div key={item.label} className={`min-w-0 px-4 py-5 ${index ? "sm:border-l sm:border-border" : ""}`}><item.icon className="h-4 w-4 text-primary" /><p className="mt-3 text-lg font-semibold">{item.value}</p><p className="mt-1 text-xs text-muted-foreground">{item.label}</p></div>)}</div>
+      {!profile.metrics_verified && <p className="mt-3 text-xs text-muted-foreground">Las métricas autodeclaradas no se muestran. Nerqia publica únicamente reportes revisados por una marca.</p>}
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50/40 to-card text-foreground">
-      <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-        {/* Header */}
-        <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-sm">
-          <div className="flex items-start gap-6">
-            <div className="w-20 h-20 rounded-2xl bg-primary/12 border border-primary/25 flex items-center justify-center shrink-0">
-              {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt={profile.name} className="w-full h-full rounded-2xl object-cover" />
-              ) : (
-                <Users className="w-10 h-10 text-primary" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-display font-bold">{profile.name}</h1>
-                {profile.verified && <Badge variant="success"><Award className="w-3 h-3 mr-1" />Verificado</Badge>}
-                <Badge variant={isActive ? "default" : "secondary"}>{tierLabel}</Badge>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                <span className="flex items-center gap-1"><Instagram className="w-4 h-4" />{profile.instagram}</span>
-                {profile.tiktok && <span className="flex items-center gap-1"><Instagram className="w-4 h-4" />{profile.tiktok}</span>}
-                <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />Argentina</span>
-                <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />Registrado {new Date(profile.created_at).toLocaleDateString('es-AR')}</span>
-              </div>
-            </div>
-          </div>
-          {profile.bio && <p className="mt-4 text-sm text-foreground/80">{profile.bio}</p>}
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: "Seguidores IG", value: profile.followers_ig.toLocaleString('es-AR'), icon: Users, color: "text-primary" },
-            { label: "Tasa de engagement", value: `${profile.engagement_rate}%`, icon: TrendingUp, color: "text-emerald-600" },
-            { label: "Campañas completadas", value: String(profile.total_campaigns), icon: Target, color: "text-amber-700" },
-            { label: "Rating", value: profile.rating ? `${Number(profile.rating).toFixed(1)}/5` : "Sin reviews", icon: Star, color: "text-yellow-600" },
-          ].map(kpi => (
-            <Card key={kpi.label} className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-muted-foreground text-xs"><kpi.icon className="w-4 h-4" />{kpi.label}</div>
-                <p className="text-xl font-bold mt-1">{kpi.value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Tabs: Portafolio / Reviews */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="font-display">Portafolio y Reviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="portfolio" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="portfolio">Portafolio</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews {profile.rating ? `(${Number(profile.rating).toFixed(1)})` : '(0)'}</TabsTrigger>
-              </TabsList>
-              <TabsContent value="portfolio">
-                {portfolio.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    Este creador todavía no tiene contenido aprobado publicado.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {portfolio.map(item => (
-                      <a key={item.id} href={item.content_url ?? '#'} target="_blank" rel="noopener noreferrer"
-                        className="group aspect-video rounded-xl bg-muted border border-border flex flex-col items-center justify-center gap-2 p-4 text-center hover:border-primary/40 transition">
-                        <Instagram className="w-5 h-5 text-muted-foreground group-hover:text-primary transition" />
-                        <p className="line-clamp-2 text-xs font-medium">{item.description}</p>
-                        {item.campaign_name && <p className="text-[10px] text-muted-foreground">{item.campaign_name}</p>}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="reviews">
-                <div className="space-y-4">
-                  {reviews.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                      Todavía no hay reviews de marcas para este creador.
-                    </p>
-                  ) : reviews.map(r => (
-                    <div key={r.id} className="flex gap-3 p-4 rounded-xl bg-muted/30 border border-border/50">
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map(s => (
-                          <Star key={s} className={`w-4 h-4 ${s <= r.rating ? 'text-yellow-500 fill-yellow-500' : 'text-border'}`} />
-                        ))}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{r.org_name ?? 'Marca verificada'}</p>
-                        {r.comment && <p className="text-xs text-muted-foreground break-words">{r.comment}</p>}
-                        <p className="text-xs text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString('es-AR')}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+      <Tabs defaultValue="portfolio" className="mt-8"><TabsList><TabsTrigger value="portfolio">Publicaciones</TabsTrigger><TabsTrigger value="reviews">Reseñas ({reviews.length})</TabsTrigger></TabsList>
+        <TabsContent value="portfolio" className="mt-5">{portfolio.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{portfolio.map(item => <a key={item.id} href={item.content_url} target="_blank" rel="noopener noreferrer" className="border border-border bg-card p-4 transition-colors hover:border-primary"><p className="line-clamp-2 text-sm font-medium">{item.description}</p><p className="mt-3 text-xs text-muted-foreground">{item.campaign_name ?? "Publicación verificada"}</p><span className="mt-4 flex items-center text-xs font-medium text-primary">Abrir publicación <ExternalLink className="ml-1 h-3.5 w-3.5" /></span></a>)}</div> : <p className="border-y border-border py-10 text-center text-sm text-muted-foreground">El creador todavía no eligió publicaciones verificadas para mostrar.</p>}</TabsContent>
+        <TabsContent value="reviews" className="mt-5">{reviews.length ? <div className="divide-y divide-border border-y border-border">{reviews.map(review => <article key={review.id} className="py-5"><div className="flex items-center gap-2"><span className="font-medium">{review.org_name ?? "Marca verificada"}</span><span className="text-sm text-amber-600">{review.rating}/5</span></div>{review.comment && <p className="mt-2 text-sm text-foreground/80">{review.comment}</p>}<p className="mt-2 text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString("es-AR")}</p></article>)}</div> : <p className="border-y border-border py-10 text-center text-sm text-muted-foreground">No hay reseñas con consentimiento público.</p>}</TabsContent>
+      </Tabs>
     </div>
-  );
+  </main>;
 }
