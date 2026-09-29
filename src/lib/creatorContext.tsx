@@ -93,6 +93,52 @@ export interface CreatorContract {
   notes: string | null;
 }
 
+export interface CreatorLinkedProfile {
+  id: string;
+  org_id: string;
+  org_name: string | null;
+  name: string;
+  instagram: string | null;
+  status: string;
+  commission_percent: number | null;
+}
+
+export interface CreatorSocialMetricReport {
+  id: string;
+  org_id: string;
+  org_name: string | null;
+  influencer_id: string;
+  influencer_name: string;
+  platform: "instagram" | "tiktok" | "youtube";
+  metric_kind: "captura" | "export_csv";
+  evidence_url: string;
+  period_start: string;
+  period_end: string;
+  followers: number;
+  reach: number | null;
+  impressions: number | null;
+  engagement_rate: number | null;
+  notes: string | null;
+  status: "submitted" | "verified" | "rejected";
+  reviewed_at: string | null;
+  review_notes: string | null;
+  created_at: string;
+}
+
+export interface CreatorMetricReportInput {
+  influencer_id: string;
+  platform: CreatorSocialMetricReport["platform"];
+  metric_kind: CreatorSocialMetricReport["metric_kind"];
+  evidence_url: string;
+  period_start: string;
+  period_end: string;
+  followers: number;
+  reach: number | null;
+  impressions: number | null;
+  engagement_rate: number | null;
+  notes: string | null;
+}
+
 interface CreatorCtx {
   loading: boolean;
   isCreator: boolean;
@@ -102,6 +148,8 @@ interface CreatorCtx {
   earnings: CreatorEarnings | null;
   withdrawals: CreatorWithdrawal[];
   contracts: CreatorContract[];
+  linkedProfiles: CreatorLinkedProfile[];
+  metricReports: CreatorSocialMetricReport[];
   refresh: () => Promise<void>;
   saveProfile: (fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>) => Promise<void>;
   /** Responde la invitación de una campaña (accept/decline) con la sesión. */
@@ -114,6 +162,8 @@ interface CreatorCtx {
   sendChat: (campaignId: string, body: string) => Promise<CreatorChatMessage>;
   /** Acepta la versión vigente de un contrato con firma declarada. */
   acceptContract: (contractId: string, signatureName: string) => Promise<void>;
+  /** Envía métricas sociales con evidencia para revisión de la marca. */
+  submitMetricReport: (input: CreatorMetricReportInput) => Promise<void>;
 }
 
 /** Mensaje del hilo de una colaboración, tal como lo devuelve el RPC. */
@@ -139,6 +189,8 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   const [earnings, setEarnings] = useState<CreatorEarnings | null>(null);
   const [withdrawals, setWithdrawals] = useState<CreatorWithdrawal[]>([]);
   const [contracts, setContracts] = useState<CreatorContract[]>([]);
+  const [linkedProfiles, setLinkedProfiles] = useState<CreatorLinkedProfile[]>([]);
+  const [metricReports, setMetricReports] = useState<CreatorSocialMetricReport[]>([]);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -149,6 +201,8 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setEarnings(null);
       setWithdrawals([]);
       setContracts([]);
+      setLinkedProfiles([]);
+      setMetricReports([]);
       setLoading(false);
       return;
     }
@@ -157,6 +211,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       // La cuenta es creadora si tiene fila en creator_accounts.
       const { data: ownRow } = await rpc("creator_linked_profiles", { p_user_id: user.id });
       const linked = Array.isArray(ownRow) ? ownRow : [];
+      setLinkedProfiles(linked as CreatorLinkedProfile[]);
 
       let own: CreatorProfile | null = null;
       // deno-lint-ignore no-explicit-any
@@ -176,12 +231,13 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setProfile(own);
 
       if (own) {
-        const [camp, deliv, earn, wd, ctr] = await Promise.all([
+        const [camp, deliv, earn, wd, ctr, metrics] = await Promise.all([
           rpc("creator_campaigns"),
           rpc("creator_deliverables"),
           rpc("creator_earnings"),
           rpc("creator_my_withdrawals"),
           rpc("creator_my_contracts"),
+          rpc("creator_my_social_metric_reports"),
         ]);
         setCampaigns(Array.isArray(camp.data) ? camp.data : []);
         setDeliverables(Array.isArray(deliv.data) ? deliv.data : []);
@@ -190,12 +246,14 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
         setEarnings((parsed as CreatorEarnings) ?? null);
         setWithdrawals(Array.isArray(wd.data) ? wd.data : []);
         setContracts(Array.isArray(ctr.data) ? ctr.data : []);
+        setMetricReports(Array.isArray(metrics.data) ? metrics.data : []);
       } else {
         setCampaigns([]);
         setDeliverables([]);
         setEarnings(null);
         setWithdrawals([]);
         setContracts([]);
+        setMetricReports([]);
       }
     } catch (error) {
       console.error("[creator] no se pudo cargar la superficie de creador", error);
@@ -206,6 +264,8 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setEarnings(null);
       setWithdrawals([]);
       setContracts([]);
+      setLinkedProfiles([]);
+      setMetricReports([]);
     } finally {
       setLoading(false);
     }
@@ -269,8 +329,26 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const submitMetricReport = useCallback(async (input: CreatorMetricReportInput) => {
+    const { error } = await rpc("submit_social_metric_report", {
+      p_influencer_id: input.influencer_id,
+      p_platform: input.platform,
+      p_evidence_url: input.evidence_url,
+      p_period_start: input.period_start,
+      p_period_end: input.period_end,
+      p_followers: input.followers,
+      p_reach: input.reach,
+      p_impressions: input.impressions,
+      p_engagement_rate: input.engagement_rate,
+      p_metric_kind: input.metric_kind,
+      p_notes: input.notes,
+    });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, contracts, refresh, saveProfile, respondCampaign, submitDeliverable, listChat, sendChat, acceptContract }}>
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, contracts, linkedProfiles, metricReports, refresh, saveProfile, respondCampaign, submitDeliverable, listChat, sendChat, acceptContract, submitMetricReport }}>
       {children}
     </CreatorContext.Provider>
   );

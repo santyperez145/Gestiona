@@ -6,9 +6,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { mensajeDeEdgeFunction } from '@/lib/edgeErrors';
 import { useOrg } from '@/lib/orgContext';
-import { listInfluencers, listInfluencerSales, listPayouts, listWithdrawalRequests, resolveWithdrawalRequest } from '@/lib/influencersDB';
+import { heldPaymentLabel, listInfluencers, listInfluencerSales, listPaymentsWithRelease, listPayouts, listWithdrawalRequests, resolveWithdrawalRequest } from '@/lib/influencersDB';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
+import SocialMetricReportsInbox from '@/components/influencers/SocialMetricReportsInbox';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,9 +36,13 @@ export default function InfluencerPaymentsPage() {
   const { activeOrg } = useOrg();
   const client = useQueryClient();
   const [params, setParams] = useSearchParams();
-  const tab = params.get('vista') === 'pagos' ? 'pagos' : params.get('vista') === 'retiros' ? 'retiros' : 'comisiones';
+  const tab = params.get('vista') === 'pagos' ? 'pagos' : params.get('vista') === 'retiros' ? 'retiros' : params.get('vista') === 'retenidos' ? 'retenidos' : params.get('vista') === 'metricas' ? 'metricas' : 'comisiones';
   const query = useQuery({ queryKey: ['influencer-settlements', activeOrg?.id], enabled: Boolean(activeOrg?.id), refetchOnWindowFocus: false,
     queryFn: async () => { const [sales, payouts, creators] = await Promise.all([listInfluencerSales(), listPayouts(), listInfluencers(activeOrg!.id)]); return { sales, payouts, creators }; },
+  });
+  // Pagos retenidos hasta publicación verificada (Go-Marz parity).
+  const held = useQuery({ queryKey: ['influencer-held-payments', activeOrg?.id], enabled: Boolean(activeOrg?.id) && tab === 'retenidos', refetchOnWindowFocus: false,
+    queryFn: () => listPaymentsWithRelease(),
   });
   const withdrawals = useQuery({ queryKey: ['influencer-withdrawal-requests', activeOrg?.id], enabled: Boolean(activeOrg?.id) && tab === 'retiros', refetchOnWindowFocus: false,
     queryFn: () => listWithdrawalRequests(),
@@ -119,7 +124,7 @@ export default function InfluencerPaymentsPage() {
   };
   return <div className="space-y-5"><PageHeader icon={Wallet} eyebrow="Nerqia · Influencers" title="Comisiones y pagos" />
     <dl className="grid gap-4 border-y border-border py-5 sm:grid-cols-2"><div><dt className="text-sm text-muted-foreground">Comisiones pendientes</dt><dd className="mt-2 text-2xl font-semibold tabular-nums">{money(pending)}</dd></div><div><dt className="text-sm text-muted-foreground">Pagos registrados</dt><dd className="mt-2 text-2xl font-semibold tabular-nums">{money(paid)}</dd></div></dl>
-    <Tabs value={tab} onValueChange={value => setParams({ vista: value }, { replace: true })}><TabsList><TabsTrigger value="comisiones">Ventas con comisión</TabsTrigger><TabsTrigger value="pagos">Historial de pagos</TabsTrigger><TabsTrigger value="retiros">Solicitudes de retiro</TabsTrigger></TabsList></Tabs>
+    <Tabs value={tab} onValueChange={value => setParams({ vista: value }, { replace: true })}><TabsList className="h-auto w-full justify-start overflow-x-auto"><TabsTrigger className="shrink-0" value="comisiones">Ventas con comisión</TabsTrigger><TabsTrigger className="shrink-0" value="pagos">Historial de pagos</TabsTrigger><TabsTrigger className="shrink-0" value="retenidos">Retenidos hasta publicar</TabsTrigger><TabsTrigger className="shrink-0" value="retiros">Solicitudes de retiro</TabsTrigger><TabsTrigger className="shrink-0" value="metricas">Métricas de creadores</TabsTrigger></TabsList></Tabs>
     {tab === 'retiros' ? (
       withdrawals.isPending ? <WorkspaceState kind="initial-loading" title="Cargando solicitudes de retiro" />
         : withdrawals.isError ? <WorkspaceState kind="error-recoverable" title="No pudimos cargar las solicitudes" actionLabel="Reintentar" onAction={() => void withdrawals.refetch()} />
@@ -208,6 +213,13 @@ export default function InfluencerPaymentsPage() {
             </section>
           )}
         </div>
+    ) : tab === 'metricas' ? (
+      <SocialMetricReportsInbox activeOrgId={activeOrg?.id ?? null} />
+    ) : tab === 'retenidos' ? (
+      held.isPending ? <WorkspaceState kind="initial-loading" title="Cargando pagos retenidos" />
+        : held.isError ? <WorkspaceState kind="error-recoverable" title="No pudimos cargar los pagos retenidos" actionLabel="Reintentar" onAction={() => void held.refetch()} />
+        : !(held.data ?? []).length ? <WorkspaceState kind="empty-first-use" title="Sin pagos retenidos" description="Los pagos sujetos a publicación aparecen acá y se liberan cuando la marca verifica la evidencia." />
+        : <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">Fecha</th><th className="p-3 text-right">Monto</th><th className="p-3">Estado</th></tr></thead><tbody className="divide-y divide-border">{(held.data ?? []).map(p => <tr key={p.id}><td className="py-4 font-medium">{p.influencer_name}</td><td className="p-3">{new Date(p.created_at).toLocaleDateString('es-AR')}</td><td className="p-3 text-right tabular-nums">{money(Number(p.amount))}</td><td className="p-3"><Badge variant={p.is_payable && p.status !== 'completed' ? 'default' : 'outline'}>{heldPaymentLabel(p)}</Badge></td></tr>)}</tbody></table></div>
     ) : <>
     <div className="overflow-x-auto"><table className="w-full min-w-[540px] text-sm"><thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">Fecha</th><th className="p-3 text-right">{tab === 'pagos' ? 'Pago registrado' : 'Comisión'}</th><th className="p-3">{tab === 'pagos' ? 'Medio' : 'Estado'}</th></tr></thead><tbody className="divide-y divide-border">{(tab === 'pagos' ? payouts : sales).map(item => <tr key={item.id}><td className="py-4">{names.get(item.influencer_id) ?? 'Creador no disponible'}</td><td className="p-3">{new Date(item.paid_at || item.created_at).toLocaleDateString('es-AR')}</td><td className="p-3 text-right tabular-nums">{money(Number(tab === 'pagos' ? item.amount_ars : item.commission_ars))}</td><td className="p-3">{tab === 'pagos' ? ({ transferencia: 'Transferencia', transfer: 'Transferencia', efectivo: 'Efectivo', cash: 'Efectivo', mercadopago: 'Mercado Pago' }[item.payment_method] ?? 'Otro medio') : <Badge variant="outline">{item.paid ? 'Liquidada' : 'Pendiente'}</Badge>}</td></tr>)}</tbody></table></div>
     {(tab === 'pagos' ? payouts : sales).length === 0 && <WorkspaceState kind="empty-first-use" title={tab === 'pagos' ? 'Sin pagos registrados' : 'Sin ventas atribuidas'} />}

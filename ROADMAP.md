@@ -261,7 +261,7 @@ Prioridad: completar Influencers con referencia verificada de [GoMarz](https://w
 - **Cerrado (2026-09-29):** contratos versionados con aceptación de marca y
   creador, evidencia temporal y estado server-side; los retiros aprobados
   generan payout y movimiento idempotente en Finance sin caja paralela.
-- Siguiente: perfiles públicos, descubrimiento superadmin, métricas sociales verificadas y conciliación bancaria.
+- Siguiente: perfiles públicos, descubrimiento superadmin, archivos privados y conciliación bancaria.
 - No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
 
@@ -297,7 +297,7 @@ cita la evidencia que falta, no la que existe.
 | Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada y vencimiento obligatorio para usos pagados; RPC y portal del creador muestran la verificación. |
 | Contratos con aceptación de ambas partes | **Cerrado (2026-09-29):** `influencer_contract_versions` conserva condiciones inmutables; `influencer_contract_acceptances` registra marca y creador por versión. La aceptación funciona con sesión o token limitado, y una edición invalida la aceptación anterior. |
 | Liquidación enlazada a Finance | **Cerrado en autoridad interna (2026-09-29):** aprobar un retiro crea idempotentemente `influencer_payouts` y su gasto en `financial_movements`; sigue pendiente la conciliación bancaria certificada del proveedor externo. |
-| Métricas sociales verificadas | `influencers` guarda engagement declarado; falta verificación OAuth de IG/TikTok o evidencia exportada por el creador. |
+| Métricas sociales verificadas | **Cerrado por evidencia (2026-09-29):** el creador reporta período, alcance, impresiones y engagement con captura/CSV enlazado; la marca verifica o rechaza y el sello alimenta reputación y descubrimiento. OAuth directo queda como integración futura. |
 
 **Pilar 2 — Tiendas/Commerce:**
 

@@ -4,6 +4,7 @@ import { useCreator, type CreatorCampaign, type CreatorChatMessage, type Creator
 import { supabase } from "@/integrations/supabase/client";
 import ChatNotifyCard from "@/components/influencers/ChatNotifyCard";
 import { CreatorFoco } from "@/components/creator/CreatorFoco";
+import CreatorMetricReportsCard from "@/components/creator/CreatorMetricReportsCard";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -663,6 +664,8 @@ export default function CreatorPortalPage() {
             // El portal lee y acepta por RPC server-side: creator_my_contracts /
             // accept_influencer_contract. La firma nunca la declara la marca.
           />
+
+          <CreatorMetricReportsCard />
 
           <ProfileSection />
           <ChatNotifyCard />

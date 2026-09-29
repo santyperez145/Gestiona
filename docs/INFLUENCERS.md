@@ -17,13 +17,13 @@ de creadores como propia.
 | Trabajo | Implementación | Pendiente |
 |---|---|---|
 | Navegación | Shell propio, entrada desde Business, rutas canónicas y redirects antiguos. | Barrido autenticado con usuarios finales. |
-| Creadores | Un directorio `influencers`, alta/edición/baja, permisos, enlaces de referido. | Perfil público consentido, verificación de identidad y métricas sociales verificadas. |
+| Creadores | Directorio, permisos, referidos, reputación batch y métricas verificadas por evidencia desde el portal. | Perfil público consentido, verificación de identidad y OAuth directo con redes. |
 | Campañas | Brief, presupuesto, selección, invitación privada con expiración, aceptación/rechazo, seguimiento y auditoría. | Certificación con marcas y creadores reales. |
 | Entregables | Entrega y reentrega desde portal, revisión de marca, chat por colaboración y prueba de publicación con licencia tipada. | Archivos audiovisuales privados y conectores sociales verificados. |
 | Contratos | Versiones inmutables, aceptación de marca y creador por versión, evidencia temporal y acceso del creador por sesión o enlace limitado. | Proveedor de firma cualificada sólo si el marco legal/comercial lo exige. |
 | Comisiones | Ventas y payouts históricos; un retiro aprobado genera payout y gasto idempotente en el libro Finance. | Reversas y conciliación bancaria certificada del proveedor externo. |
 | Pagos automáticos | No habilitados; no se marca un pago como transferido desde el cliente. | Proveedor/partner, webhook firmado, idempotencia, reembolsos y condiciones legales. |
-| Mensajería y resultados | Chat por colaboración, preferencias de notificación y cola de despacho; publicación verificable. | OAuth de redes y analítica con atribución externa verificable. |
+| Mensajería y resultados | Chat, preferencias, publicación verificable y reportes sociales con revisión durable que alimentan reputación. | OAuth de redes y atribución externa certificada. |
 
 Activar o cerrar una campaña es un cambio de seguimiento, no una invitación,
 publicación, firma ni movimiento de dinero. El presupuesto no equivale a inversión
@@ -67,6 +67,6 @@ entregas de correo, redes sociales ni transferencias reales.
 
 1. Perfiles públicos consentidos, descubrimiento y moderación superadmin.
 2. Archivos audiovisuales privados con versiones y retención definida.
-3. Métricas sociales por OAuth o evidencia exportada verificable.
+3. OAuth social y atribución externa sobre la evidencia ya verificable.
 4. Conciliación bancaria, reversas y comprobantes del proveedor externo.
 5. Piloto con marca y creadores reales; certificar móvil, permisos y recuperaciones.
