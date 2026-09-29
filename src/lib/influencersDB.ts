@@ -1,5 +1,6 @@
 import { supabase as _supabase } from '@/integrations/supabase/client';
 import { requireActiveOrgId } from './orgContext';
+import { mensajeDeEdgeFunction } from './edgeErrors';
 
 // New tables (influencer_contracts, influencer_deliverables, influencer_payments,
 // brand_portal_profiles) are not in the Supabase generated types yet. Cast to any
@@ -574,6 +575,68 @@ export async function settleWithdrawalRequest(id: string, reference: string, met
     p_payment_method: method,
   });
   if (error) throw error;
+}
+
+export type CreatorPayoutCapability = {
+  enabled: boolean;
+  notification_configured: boolean;
+};
+
+export type CreatorPayoutBatch = {
+  id: string;
+  status: 'processing' | 'awaiting_confirmation' | 'completed' | 'failed' | 'partially_completed';
+  total_ars: number;
+  items_count: number;
+  mp_payout_id: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreatorPayoutOperation = {
+  ok?: boolean;
+  code?: string;
+  error?: string;
+  batch_id?: string;
+  mp_payout_id?: string | null;
+  status?: string;
+  enviados?: number;
+  aprobados?: number;
+  rechazados?: number;
+};
+
+async function invokeCreatorPayout(body: Record<string, unknown>): Promise<CreatorPayoutOperation> {
+  const { data, error } = await sb.functions.invoke('mp-payouts', { body });
+  if (error) throw new Error(await mensajeDeEdgeFunction(error, data, 'merchant'));
+  return (data ?? {}) as CreatorPayoutOperation;
+}
+
+export async function getCreatorPayoutCapability(): Promise<CreatorPayoutCapability> {
+  const { data, error } = await sb.functions.invoke('mp-payouts', { body: { action: 'capability' } });
+  if (error) throw new Error(await mensajeDeEdgeFunction(error, data, 'merchant'));
+  return data as CreatorPayoutCapability;
+}
+
+export async function listCreatorPayoutBatches(): Promise<CreatorPayoutBatch[]> {
+  const { data, error } = await sb.from('influencer_payout_batches')
+    .select('id,status,total_ars,items_count,mp_payout_id,last_error,created_at,updated_at')
+    .eq('org_id', requireActiveOrgId())
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return (data ?? []) as CreatorPayoutBatch[];
+}
+
+export function createAutomaticCreatorPayout(withdrawalIds: string[]): Promise<CreatorPayoutOperation> {
+  return invokeCreatorPayout({ action: 'create', withdrawalIds });
+}
+
+export function retryAutomaticCreatorPayout(batchId: string): Promise<CreatorPayoutOperation> {
+  return invokeCreatorPayout({ action: 'dispatch', batchId });
+}
+
+export function syncAutomaticCreatorPayout(batchId: string): Promise<CreatorPayoutOperation> {
+  return invokeCreatorPayout({ action: 'sync', batchId });
 }
 
 /** ─── Reputación verificada del directorio (Go-Marz discovery parity) ─── */

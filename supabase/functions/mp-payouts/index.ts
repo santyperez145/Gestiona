@@ -74,6 +74,13 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const action = body?.action ?? "create";
 
+    if (action === "capability") {
+      return json({
+        enabled: Deno.env.get("MP_PAYOUTS_ENABLED") === "true",
+        notification_configured: Boolean(Deno.env.get("MP_PAYOUTS_NOTIFICATION_URL")),
+      });
+    }
+
     if (Deno.env.get("MP_PAYOUTS_ENABLED") !== "true") {
       return json({
         error: "Los pagos masivos de Mercado Pago requieren habilitación comercial. Usá la liquidación por destino del creador.",
@@ -81,19 +88,45 @@ Deno.serve(async (req) => {
       }, 409);
     }
 
-    // ── create: armar y enviar el lote a MP ───────────────────────────────
-    if (action === "create") {
+    // ── create/dispatch: armar una vez y reenviar siempre el mismo lote ───
+    if (action === "create" || action === "dispatch") {
       const withdrawalIds: string[] = Array.isArray(body?.withdrawalIds) ? body.withdrawalIds : [];
-      if (!withdrawalIds.length) return json({ error: "Elegí al menos un retiro aprobado" }, 400);
-
-      // Autoridad: la RPC valida permisos, org única y estado 'approved'.
-      const { data: batch, error: batchErr } = await asUser.rpc("create_payout_batch", {
-        p_withdrawal_ids: withdrawalIds,
-      });
-      if (batchErr || !batch) {
-        return json({ error: batchErr?.message ?? "No se pudo crear el lote" }, 400);
+      let batchId: string | undefined = body?.batchId;
+      if (action === "create") {
+        if (!withdrawalIds.length) return json({ error: "Elegí al menos un retiro aprobado" }, 400);
+        // Autoridad: la RPC valida permiso, organización, destino y que no
+        // exista otro lote activo para el mismo retiro.
+        const { data: created, error: batchErr } = await asUser.rpc("create_payout_batch", {
+          p_withdrawal_ids: withdrawalIds,
+        });
+        if (batchErr || !created) {
+          return json({ error: batchErr?.message ?? "No se pudo crear el lote" }, 400);
+        }
+        batchId = created.id;
       }
-      const batchId: string = batch.id;
+      if (!batchId) return json({ error: "batchId requerido" }, 400);
+
+      const { data: batch } = await admin
+        .from("influencer_payout_batches")
+        .select("id, org_id, external_reference, mp_payout_id")
+        .eq("id", batchId)
+        .maybeSingle();
+      if (!batch) return json({ error: "Lote no encontrado" }, 404);
+
+      // Un reintento manual también debe pertenecer a la organización actual.
+      const { data: membership } = await asUser
+        .from("memberships").select("role")
+        .eq("org_id", batch.org_id).eq("user_id", userId).maybeSingle();
+      if (!membership || !["owner", "admin"].includes(membership.role)) {
+        return json({ error: "Necesitás ser administrador de esta organización" }, 403);
+      }
+
+      if (batch.mp_payout_id) {
+        const synced = await sincronizarLotePayouts(admin, batchId);
+        if (synced instanceof Response) return json(await synced.json(), synced.status);
+        return json({ ...synced, batch_id: batchId, already_dispatched: true });
+      }
+
       const orgId: string = batch.org_id;
       const externalReference: string = batch.external_reference;
 
@@ -106,40 +139,31 @@ Deno.serve(async (req) => {
         return json({ error: "Conectá Mercado Pago antes de pagar (Configuración → Cobros)" }, 400);
       }
 
-      // Ítems del lote + email de destino (cuenta MP del creador).
-      const { data: items } = await admin
-        .from("influencer_payout_batch_items")
-        .select("id, withdrawal_id, influencer_id, amount_ars")
-        .eq("batch_id", batchId);
-      const influencerIds = (items ?? []).map(i => i.influencer_id);
-      const { data: influencers } = await admin
-        .from("influencers")
-        .select("id, email, name")
-        .in("id", influencerIds);
+      // El destino sale del snapshot cifrado del retiro, no del email general
+      // del perfil. Sólo service_role puede obtener este payload descifrado.
+      const { data: dispatchPayload, error: payloadError } = await admin.rpc(
+        "creator_payout_batch_dispatch_payload",
+        { p_batch_id: batchId },
+      );
+      if (payloadError || !dispatchPayload) {
+        await admin.from("influencer_payout_batches")
+          .update({ status: "failed", last_error: "El destino del lote no es válido", updated_at: new Date().toISOString() })
+          .eq("id", batchId);
+        return json({ error: "Revisá los destinos de cobro del lote", batch_id: batchId }, 400);
+      }
 
-      // Sin email = sin cuenta MP destino: se excluye con motivo explícito.
-      // deno-lint-ignore no-explicit-any
-      const emailById = new Map<string, string>((influencers ?? []).map((i: any) => [i.id, i.email].filter(Boolean) as [string, string]));
-      const sinDestino: string[] = [];
-      const transactions: unknown[] = [];
-      for (const item of items ?? []) {
-        const email = emailById.get(item.influencer_id);
-        if (!email) { sinDestino.push(item.influencer_id); continue; }
-        transactions.push({
+      const items = Array.isArray(dispatchPayload.items) ? dispatchPayload.items : [];
+      const transactions = items.map((item: { withdrawal_id: string; amount_ars: number; destination_email: string }) => {
+        const email = String(item.destination_email ?? "").trim().toLowerCase();
+        if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error("La cuenta Mercado Pago de un retiro no es un email válido");
+        return {
           type: "account",
           description: `Comisiones Nerqia retiro ${item.withdrawal_id.slice(0, 8)}`.slice(0, 100),
           account: { email },
           amount: { currency: "ARS", value: Number(item.amount_ars) },
           external_reference: `nerqia-w-${item.withdrawal_id}`.slice(0, 64),
-        });
-      }
-
-      if (!transactions.length) {
-        await admin.from("influencer_payout_batches")
-          .update({ status: "failed", last_error: "Ningún creador del lote tiene email de cuenta Mercado Pago", updated_at: new Date().toISOString() })
-          .eq("id", batchId);
-        return json({ error: "Los creadores del lote no tienen email de cuenta Mercado Pago" }, 400);
-      }
+        };
+      });
 
       const notificationUrl = Deno.env.get("MP_PAYOUTS_NOTIFICATION_URL");
 
@@ -152,24 +176,61 @@ Deno.serve(async (req) => {
 
       // Idempotencia: el external_reference del lote ES la llave; un reintento
       // sobre el mismo lote no duplica transferencias.
-      const res = await fetch(MP_PAYOUTS_URL, {
-        method: "POST",
-        signal: AbortSignal.timeout(20_000),
-        headers: {
-          Authorization: `Bearer ${creds.accessToken}`,
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": externalReference,
-          ...(creds.liveMode ? {} : { "X-test-token": "true" }),
-        },
-        body: JSON.stringify(payload),
-      });
+      let res: Response;
+      try {
+        res = await fetch(MP_PAYOUTS_URL, {
+          method: "POST",
+          signal: AbortSignal.timeout(20_000),
+          headers: {
+            Authorization: `Bearer ${creds.accessToken}`,
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": externalReference,
+            ...(creds.liveMode ? {} : { "X-test-token": "true" }),
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (networkError) {
+        // El proveedor pudo haber aceptado el POST antes del timeout. No se
+        // crea otro lote: el operador reenvía ESTE batch con la misma llave.
+        await admin.from("influencer_payout_batches")
+          .update({ status: "awaiting_confirmation", last_error: "Resultado pendiente de confirmación del proveedor", updated_at: new Date().toISOString() })
+          .eq("id", batchId);
+        return json({
+          error: "Mercado Pago no confirmó el resultado. Reintentá el mismo lote; no se duplicará el pago.",
+          code: "payout_confirmation_pending",
+          batch_id: batchId,
+        }, 202);
+      }
       const mpPayload = await res.json().catch(() => ({}));
 
       if (!res.ok) {
+        const ambiguous = res.status === 409 || res.status >= 500;
         await admin.from("influencer_payout_batches")
-          .update({ status: "failed", last_error: extractErrorMessage(mpPayload), updated_at: new Date().toISOString() })
+          .update({ status: ambiguous ? "awaiting_confirmation" : "failed", last_error: extractErrorMessage(mpPayload), updated_at: new Date().toISOString() })
           .eq("id", batchId);
-        return json({ error: extractErrorMessage(mpPayload), batch_id: batchId }, res.status);
+        if (!ambiguous) {
+          await admin.from("influencer_payout_batch_items")
+            .update({ status: "failed", failure_reason: extractErrorMessage(mpPayload), updated_at: new Date().toISOString() })
+            .eq("batch_id", batchId);
+        }
+        return json({
+          error: ambiguous
+            ? "Mercado Pago no confirmó el resultado. Reintentá el mismo lote; no se duplicará el pago."
+            : extractErrorMessage(mpPayload),
+          code: ambiguous ? "payout_confirmation_pending" : "payout_rejected",
+          batch_id: batchId,
+        }, ambiguous ? 202 : res.status);
+      }
+
+      if (!mpPayload?.id) {
+        await admin.from("influencer_payout_batches")
+          .update({ status: "awaiting_confirmation", last_error: "Mercado Pago respondió sin identificar el lote", updated_at: new Date().toISOString() })
+          .eq("id", batchId);
+        return json({
+          error: "Mercado Pago recibió el lote pero todavía no confirmó su identificador. Reintentá el mismo lote.",
+          code: "payout_confirmation_pending",
+          batch_id: batchId,
+        }, 202);
       }
 
       await admin.from("influencer_payout_batches")
@@ -179,13 +240,15 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq("id", batchId);
+      await admin.from("influencer_payout_batch_items")
+        .update({ status: "processing", updated_at: new Date().toISOString() })
+        .eq("batch_id", batchId);
 
       return json({
         ok: true,
         batch_id: batchId,
         mp_payout_id: mpPayload?.id ?? null,
         enviados: transactions.length,
-        excluidos_sin_email: sinDestino.length,
       });
     }
 

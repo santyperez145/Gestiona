@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Loader2, Wallet, X } from 'lucide-react';
+import { Check, CreditCard, Loader2, RefreshCw, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrg } from '@/lib/orgContext';
-import { heldPaymentLabel, listInfluencers, listInfluencerSales, listPaymentsWithRelease, listPayouts, listWithdrawalRequests, resolveWithdrawalRequest, settleWithdrawalRequest, withdrawalSettlementDetails, type WithdrawalRequest, type WithdrawalSettlementDetails } from '@/lib/influencersDB';
+import { createAutomaticCreatorPayout, getCreatorPayoutCapability, heldPaymentLabel, listCreatorPayoutBatches, listInfluencers, listInfluencerSales, listPaymentsWithRelease, listPayouts, listWithdrawalRequests, resolveWithdrawalRequest, retryAutomaticCreatorPayout, settleWithdrawalRequest, syncAutomaticCreatorPayout, withdrawalSettlementDetails, type WithdrawalRequest, type WithdrawalSettlementDetails } from '@/lib/influencersDB';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
 import SocialMetricReportsInbox from '@/components/influencers/SocialMetricReportsInbox';
@@ -33,10 +33,55 @@ export default function InfluencerPaymentsPage() {
   const withdrawals = useQuery({ queryKey: ['influencer-withdrawal-requests', activeOrg?.id], enabled: Boolean(activeOrg?.id) && tab === 'retiros', refetchOnWindowFocus: false,
     queryFn: () => listWithdrawalRequests(),
   });
+  const payoutCapability = useQuery({ queryKey: ['creator-payout-capability', activeOrg?.id], enabled: Boolean(activeOrg?.id) && tab === 'retiros', staleTime: 5 * 60_000,
+    queryFn: getCreatorPayoutCapability,
+  });
+  const payoutBatches = useQuery({ queryKey: ['creator-payout-batches', activeOrg?.id], enabled: Boolean(activeOrg?.id) && tab === 'retiros', refetchOnWindowFocus: false,
+    queryFn: listCreatorPayoutBatches,
+  });
   const [liquidando, setLiquidando] = useState<WithdrawalRequest | null>(null);
   const [detalleDestino, setDetalleDestino] = useState<WithdrawalSettlementDetails | null>(null);
   const [referencia, setReferencia] = useState('');
   const [guardandoPago, setGuardandoPago] = useState(false);
+  const [operandoLote, setOperandoLote] = useState<string | null>(null);
+
+  const refreshPayoutData = async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ['influencer-withdrawal-requests', activeOrg?.id] }),
+      client.invalidateQueries({ queryKey: ['influencer-settlements', activeOrg?.id] }),
+      client.invalidateQueries({ queryKey: ['creator-payout-batches', activeOrg?.id] }),
+    ]);
+  };
+
+  const ejecutarPagoAutomatico = async (withdrawalId: string) => {
+    setOperandoLote(withdrawalId);
+    try {
+      const result = await createAutomaticCreatorPayout([withdrawalId]);
+      if (result.code === 'payout_confirmation_pending') toast.warning(result.error ?? 'El proveedor todavía no confirmó el lote.');
+      else toast.success('Lote enviado a Mercado Pago. Se liquidará cuando el proveedor confirme la transferencia.');
+      await refreshPayoutData();
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : 'No pudimos enviar el pago');
+    } finally {
+      setOperandoLote(null);
+    }
+  };
+
+  const actualizarLote = async (batchId: string, retry: boolean) => {
+    setOperandoLote(batchId);
+    try {
+      const result = retry
+        ? await retryAutomaticCreatorPayout(batchId)
+        : await syncAutomaticCreatorPayout(batchId);
+      if (result.code === 'payout_confirmation_pending') toast.warning(result.error ?? 'El proveedor todavía no confirmó el lote.');
+      else toast.success(result.status === 'completed' ? 'Pago confirmado y conciliado' : 'Estado del lote actualizado');
+      await refreshPayoutData();
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : 'No pudimos actualizar el lote');
+    } finally {
+      setOperandoLote(null);
+    }
+  };
 
   const abrirLiquidacion = async (withdrawal: WithdrawalRequest) => {
     setLiquidando(withdrawal);
@@ -90,8 +135,31 @@ export default function InfluencerPaymentsPage() {
         : <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-3">
             <p className="text-sm font-medium">Liquidación por destino elegido</p>
-            <p className="mt-1 text-xs text-muted-foreground">Mercado Pago, banco u otra billetera se registran con referencia comprobable. El cobro de las tiendas continúa entrando directo en la cuenta conectada del comercio.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Mercado Pago puede transferir y conciliar automáticamente cuando la cuenta tiene Payouts habilitado. Banco u otra billetera requieren ejecutar la transferencia en ese proveedor y registrar su comprobante.</p>
+            {!payoutCapability.isPending && !payoutCapability.data?.enabled && (
+              <p className="mt-2 text-xs font-medium text-amber-700">Pago masivo de Mercado Pago pendiente de habilitación comercial. La liquidación manual comprobable sigue disponible.</p>
+            )}
+            {payoutCapability.data?.enabled && !payoutCapability.data.notification_configured && (
+              <p className="mt-2 text-xs font-medium text-amber-700">Configurá el webhook de Payouts para recibir confirmaciones automáticas; mientras tanto podés sincronizar cada lote.</p>
+            )}
           </div>
+          {(payoutBatches.data ?? []).some(batch => ['processing', 'awaiting_confirmation', 'partially_completed'].includes(batch.status)) && (
+            <div className="space-y-2 border-y border-border py-3">
+              <p className="text-sm font-medium">Lotes en curso</p>
+              {(payoutBatches.data ?? []).filter(batch => ['processing', 'awaiting_confirmation', 'partially_completed'].includes(batch.status)).map(batch => (
+                <div key={batch.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                  <div>
+                    <p className="font-medium">{money(Number(batch.total_ars))} · {batch.items_count} {batch.items_count === 1 ? 'retiro' : 'retiros'}</p>
+                    <p className="text-xs text-muted-foreground">{batch.status === 'awaiting_confirmation' ? 'Confirmación pendiente' : batch.status === 'partially_completed' ? 'Parcialmente conciliado' : 'En procesamiento'}</p>
+                  </div>
+                  <Button size="sm" variant="outline" disabled={operandoLote === batch.id} onClick={() => void actualizarLote(batch.id, batch.status === 'awaiting_confirmation')}>
+                    {operandoLote === batch.id ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1.5 h-4 w-4" />}
+                    {batch.status === 'awaiting_confirmation' ? 'Reintentar sin duplicar' : 'Sincronizar'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">Destino</th><th className="p-3">Fecha</th><th className="p-3 text-right">Monto</th><th className="p-3">Estado</th><th className="p-3 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-border">
           {(withdrawals.data ?? []).map(w => <tr key={w.id}>
             <td className="py-4 font-medium">{names.get(w.influencer_id) ?? 'Creador'}</td>
@@ -107,7 +175,13 @@ export default function InfluencerPaymentsPage() {
               <Button size="icon" variant="ghost" title="Rechazar solicitud" aria-label={`Rechazar solicitud de ${names.get(w.influencer_id) ?? 'creador'}`} onClick={() => void resolve(w.id, 'rejected')}><X className="h-4 w-4 text-destructive" /></Button>
               <Button size="icon" variant="ghost" title="Aprobar solicitud" aria-label={`Aprobar solicitud de ${names.get(w.influencer_id)}`} onClick={() => void resolve(w.id, 'approved')}><Check className="h-4 w-4 text-emerald-600" /></Button>
             </>}
-            {w.status === 'approved' && <Button size="sm" onClick={() => void abrirLiquidacion(w)}>Liquidar</Button>}
+            {w.status === 'approved' && w.payout_provider === 'mercadopago' && payoutCapability.data?.enabled && (
+              <Button size="sm" disabled={operandoLote === w.id} onClick={() => void ejecutarPagoAutomatico(w.id)}>
+                {operandoLote === w.id ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CreditCard className="mr-1.5 h-4 w-4" />}
+                Pagar con Mercado Pago
+              </Button>
+            )}
+            {w.status === 'approved' && <Button size="sm" variant="outline" onClick={() => void abrirLiquidacion(w)}>Registrar transferencia</Button>}
             </div></td>
           </tr>)}
         </tbody></table></div>

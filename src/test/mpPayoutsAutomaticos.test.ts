@@ -57,11 +57,22 @@ describe("MP Payouts: Edge Function mp-payouts", () => {
     expect(syncModule).toContain("MP_PAYOUTS_URL = \"https://api.mercadopago.com/v1/payouts\"");
     expect(syncModule).toContain(")}/transactions`");
     expect(syncModule).toContain('"partially_completed"');
+    expect(syncModule).toContain("expectedIds.has(withdrawalId)");
+    expect(syncModule).toContain("Transferencia confirmada; conciliación contable pendiente");
+    expect(syncModule).toContain("expectedItems > 0");
   });
 
-  it("nunca inventa destino: sin email se excluye y se informa", () => {
-    expect(edge).toContain("sinDestino");
-    expect(edge).toContain("excluidos_sin_email");
+  it("usa el destino cifrado elegido para el retiro, no el email general del perfil", () => {
+    expect(edge).toContain('rpc(\n        "creator_payout_batch_dispatch_payload"');
+    expect(edge).toContain("item.destination_email");
+    expect(edge).not.toContain('.from("influencers")');
+  });
+
+  it("reintenta el mismo lote ante un resultado ambiguo", () => {
+    expect(edge).toContain('action === "create" || action === "dispatch"');
+    expect(edge).toContain('status: "awaiting_confirmation"');
+    expect(edge).toContain('code: "payout_confirmation_pending"');
+    expect(edge).toContain("batch.mp_payout_id");
   });
 });
 
@@ -90,6 +101,7 @@ describe("MP Payouts: webhook asíncrono", () => {
 
 describe("MP Payouts: base y UI de la marca", () => {
   const migracion = read("supabase/migrations/20260924000800_influencer_payout_batches.sql");
+  const autoridad = read("supabase/migrations/20260929001030_creator_payout_dispatch_authority.sql");
 
   it("existen las tablas de lotes con RLS por org", () => {
     expect(migracion).toContain("CREATE TABLE IF NOT EXISTS public.influencer_payout_batches");
@@ -104,11 +116,21 @@ describe("MP Payouts: base y UI de la marca", () => {
     expect(migracion).toContain("Todos los retiros deben estar aprobados y pertenecer a tu organización");
   });
 
-  it("la página liquida al destino elegido sin prometer payout no contratado", () => {
+  it("la autoridad nueva impide lote duplicado y reserva el destino al service role", () => {
+    expect(autoridad).toContain("influencer_payout_one_active_batch");
+    expect(autoridad).toContain("creator_payout_batch_dispatch_payload");
+    expect(autoridad).toContain("service_role_required");
+    expect(autoridad).toContain("payout_identifier_encrypted");
+  });
+
+  it("la página ofrece payout real sólo cuando la capacidad está habilitada", () => {
     const page = read("src/pages/InfluencerPaymentsPage.tsx");
     expect(page).toContain("settleWithdrawalRequest");
     expect(page).toContain("Referencia o comprobante");
-    expect(page).not.toContain("Pagar con Mercado Pago");
+    expect(page).toContain("getCreatorPayoutCapability");
+    expect(page).toContain("createAutomaticCreatorPayout");
+    expect(page).toContain("Pagar con Mercado Pago");
+    expect(page).toContain("Reintentar sin duplicar");
     expect(page).toContain("resolve(w.id, 'rejected')");
   });
 });

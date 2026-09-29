@@ -64,16 +64,26 @@ export async function sincronizarLotePayouts(
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) return json2({ error: extractErrorMessage(payload) }, res.status);
 
+  const { data: expectedRows } = await admin
+    .from("influencer_payout_batch_items")
+    .select("withdrawal_id")
+    .eq("batch_id", batchId);
+  const expectedIds = new Set((expectedRows ?? []).map((row: { withdrawal_id: string }) => row.withdrawal_id));
+
   // deno-lint-ignore no-explicit-any
   const mpItems: any[] = payload?.transactions ?? [];
   let aprobados = 0;
   let rechazados = 0;
+  const procesados = new Set<string>();
 
   for (const t of mpItems) {
     const ref = String(t?.external_reference ?? "");
     const withdrawalId = ref.startsWith("nerqia-w-") ? ref.slice("nerqia-w-".length) : null;
-    if (!withdrawalId) continue;
+    if (!withdrawalId || !expectedIds.has(withdrawalId) || procesados.has(withdrawalId)) continue;
+    procesados.add(withdrawalId);
     const status = String(t?.status ?? "").toLowerCase();
+    let localStatus = ["approved", "rejected", "cancelled"].includes(status) ? status : "processing";
+    let failureReason = t?.status_detail ? String(t.status_detail) : null;
 
     if (status === "approved") {
       // MP confirmó la transferencia: se conserva el id externo como
@@ -84,23 +94,31 @@ export async function sincronizarLotePayouts(
         p_payment_method: "mercadopago",
       });
       if (!error) aprobados += 1;
+      else {
+        // La transferencia existe, pero no se presenta como pagada hasta que
+        // el payout y el asiento Finance queden confirmados en la misma RPC.
+        localStatus = "processing";
+        failureReason = "Transferencia confirmada; conciliación contable pendiente";
+        console.error(`[mp-payouts] retiro ${withdrawalId} confirmado pero no conciliado`, error);
+      }
     } else if (status === "rejected" || status === "cancelled") {
       rechazados += 1;
     }
 
     await admin.from("influencer_payout_batch_items")
       .update({
-        status: ["approved", "rejected", "cancelled"].includes(status) ? status : "processing",
+        status: localStatus,
         mp_transaction_id: t?.id ? String(t.id) : null,
-        failure_reason: t?.status_detail ? String(t.status_detail) : null,
+        failure_reason: failureReason,
         updated_at: new Date().toISOString(),
       })
       .eq("batch_id", batchId)
       .eq("withdrawal_id", withdrawalId);
   }
 
+  const expectedItems = expectedIds.size;
   const batchStatus = rechazados === 0
-    ? (aprobados === mpItems.length ? "completed" : "processing")
+    ? (expectedItems > 0 && aprobados === expectedItems && procesados.size === expectedItems ? "completed" : "processing")
     : (aprobados > 0 ? "partially_completed" : "failed");
 
   await admin.from("influencer_payout_batches")

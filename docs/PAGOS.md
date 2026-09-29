@@ -235,6 +235,14 @@ La aprobación humana ya no puede marcar `paid`: sólo aprobar o rechazar. El pa
 se confirma exclusivamente con `settle_creator_withdrawal` y una referencia
 externa. Marca y webhook comparten esa única autoridad transaccional.
 
+El adaptador opcional `mp-payouts` está conectado a la bandeja de retiros y
+desplegado. Usa la cuenta Mercado Pago elegida y cifrada en el retiro, no el
+email del perfil. Ante timeout, `409` o `5xx` conserva el lote como
+`awaiting_confirmation`; el operador reenvía ese mismo lote y la misma clave
+idempotente. Una respuesta vacía o un fallo al crear payout/gasto/asiento nunca
+se presenta como pago completo. La capacidad sigue desactivada hasta contar con
+habilitación comercial (`MP_PAYOUTS_ENABLED`) y URL de notificación contratada.
+
 ## Reintegro de una venta POS
 
 `refund-pos-payment` es el único camino que contacta a Mercado Pago desde una

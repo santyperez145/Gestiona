@@ -43,7 +43,9 @@ describe('destinos de cobro y liquidaciones de creadores', () => {
   it('la marca confirma la transferencia en vez de simular un payout', () => {
     expect(brandPayments).toContain('settleWithdrawalRequest');
     expect(brandPayments).toContain('Referencia o comprobante');
-    expect(brandPayments).not.toContain('Pagar con Mercado Pago');
+    expect(brandPayments).toContain('payoutCapability.data?.enabled');
+    expect(brandPayments).toContain('Pagar con Mercado Pago');
+    expect(brandPayments).toContain('Registrar transferencia');
   });
 
   it('separa el split oficial de tienda del payout opcional contratado', () => {
