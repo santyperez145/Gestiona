@@ -728,9 +728,12 @@ export default function CreatorPortalPage() {
                             {w.payment_reference ? ` · Ref. ${w.payment_reference}` : ""}
                           </p>
                         )}
+                        {w.reversal_reference && (
+                          <p className="text-[11px] text-muted-foreground">Reversa {w.reversal_reference}{w.reversal_reason ? ` · ${w.reversal_reason}` : ""}</p>
+                        )}
                       </div>
                       <Badge variant={w.status === "paid" ? "default" : w.status === "rejected" ? "destructive" : "outline"}>
-                        {w.status === "pending" ? "En revisión" : w.status === "approved" ? "Aprobado" : w.status === "paid" ? "Pagado" : "Rechazado"}
+                        {w.status === "pending" ? "En revisión" : w.status === "approved" ? "Aprobado" : w.status === "paid" ? "Pagado" : w.status === "reversed" ? "Revertido" : "Rechazado"}
                       </Badge>
                     </div>
                   ))}

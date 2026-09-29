@@ -525,7 +525,7 @@ export type WithdrawalRequest = {
   influencer_id: string;
   token: string;
   amount_ars: number;
-  status: 'pending' | 'approved' | 'paid' | 'rejected';
+  status: 'pending' | 'approved' | 'paid' | 'rejected' | 'reversed';
   notes?: string | null;
   created_at: string;
   processed_at?: string | null;
@@ -537,12 +537,15 @@ export type WithdrawalRequest = {
   payment_reference?: string | null;
   payment_method?: string | null;
   paid_at?: string | null;
+  reversed_at?: string | null;
+  reversal_reference?: string | null;
+  reversal_reason?: string | null;
 };
 
 export async function listWithdrawalRequests(): Promise<WithdrawalRequest[]> {
   const orgId = requireActiveOrgId();
   const { data, error } = await sb.from('influencer_withdrawal_requests')
-    .select('id,org_id,influencer_id,token,amount_ars,status,notes,created_at,processed_at,payout_provider,payout_provider_label,payout_destination_type,payout_identifier_masked,payout_holder_name,payment_reference,payment_method,paid_at')
+    .select('id,org_id,influencer_id,token,amount_ars,status,notes,created_at,processed_at,payout_provider,payout_provider_label,payout_destination_type,payout_identifier_masked,payout_holder_name,payment_reference,payment_method,paid_at,reversed_at,reversal_reference,reversal_reason')
     .eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as WithdrawalRequest[];
@@ -577,6 +580,15 @@ export async function settleWithdrawalRequest(id: string, reference: string, met
   if (error) throw error;
 }
 
+export async function reverseWithdrawalRequest(id: string, reference: string, reason: string): Promise<void> {
+  const { error } = await sb.rpc('reverse_creator_withdrawal', {
+    p_request_id: id,
+    p_provider_reference: reference,
+    p_reason: reason,
+  });
+  if (error) throw error;
+}
+
 export type CreatorPayoutCapability = {
   enabled: boolean;
   notification_configured: boolean;
@@ -584,7 +596,7 @@ export type CreatorPayoutCapability = {
 
 export type CreatorPayoutBatch = {
   id: string;
-  status: 'processing' | 'awaiting_confirmation' | 'completed' | 'failed' | 'partially_completed';
+  status: 'processing' | 'awaiting_confirmation' | 'completed' | 'failed' | 'partially_completed' | 'reversed' | 'partially_reversed';
   total_ars: number;
   items_count: number;
   mp_payout_id: string | null;

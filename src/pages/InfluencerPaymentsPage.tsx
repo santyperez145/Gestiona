@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, CreditCard, Loader2, RefreshCw, Wallet, X } from 'lucide-react';
+import { Check, CreditCard, Loader2, RefreshCw, RotateCcw, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrg } from '@/lib/orgContext';
-import { createAutomaticCreatorPayout, getCreatorPayoutCapability, heldPaymentLabel, listCreatorPayoutBatches, listInfluencers, listInfluencerSales, listPaymentsWithRelease, listPayouts, listWithdrawalRequests, resolveWithdrawalRequest, retryAutomaticCreatorPayout, settleWithdrawalRequest, syncAutomaticCreatorPayout, withdrawalSettlementDetails, type WithdrawalRequest, type WithdrawalSettlementDetails } from '@/lib/influencersDB';
+import { createAutomaticCreatorPayout, getCreatorPayoutCapability, heldPaymentLabel, listCreatorPayoutBatches, listInfluencers, listInfluencerSales, listPaymentsWithRelease, listPayouts, listWithdrawalRequests, resolveWithdrawalRequest, retryAutomaticCreatorPayout, reverseWithdrawalRequest, settleWithdrawalRequest, syncAutomaticCreatorPayout, withdrawalSettlementDetails, type WithdrawalRequest, type WithdrawalSettlementDetails } from '@/lib/influencersDB';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
 import SocialMetricReportsInbox from '@/components/influencers/SocialMetricReportsInbox';
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const money = (value: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value);
-const WITHDRAWAL_STATES: Record<string, string> = { pending: 'En revisión', approved: 'Aprobado', paid: 'Pagado', rejected: 'Rechazado' };
+const WITHDRAWAL_STATES: Record<string, string> = { pending: 'En revisión', approved: 'Aprobado', paid: 'Pagado', rejected: 'Rechazado', reversed: 'Revertido' };
 
 export default function InfluencerPaymentsPage() {
   const { activeOrg } = useOrg();
@@ -44,6 +44,27 @@ export default function InfluencerPaymentsPage() {
   const [referencia, setReferencia] = useState('');
   const [guardandoPago, setGuardandoPago] = useState(false);
   const [operandoLote, setOperandoLote] = useState<string | null>(null);
+  const [revirtiendo, setRevirtiendo] = useState<WithdrawalRequest | null>(null);
+  const [referenciaReversa, setReferenciaReversa] = useState('');
+  const [motivoReversa, setMotivoReversa] = useState('');
+  const [guardandoReversa, setGuardandoReversa] = useState(false);
+
+  const confirmarReversa = async () => {
+    if (!revirtiendo || referenciaReversa.trim().length < 3 || motivoReversa.trim().length < 5) return;
+    setGuardandoReversa(true);
+    try {
+      await reverseWithdrawalRequest(revirtiendo.id, referenciaReversa.trim(), motivoReversa.trim());
+      toast.success('Reversa registrada; saldo, gasto y asiento fueron corregidos');
+      setRevirtiendo(null);
+      setReferenciaReversa('');
+      setMotivoReversa('');
+      await refreshPayoutData();
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : 'No pudimos registrar la reversa');
+    } finally {
+      setGuardandoReversa(false);
+    }
+  };
 
   const refreshPayoutData = async () => {
     await Promise.all([
@@ -167,6 +188,7 @@ export default function InfluencerPaymentsPage() {
               {w.payout_provider_label ? `${w.payout_provider_label} · ${w.payout_identifier_masked}` : 'Solicitud anterior sin destino estructurado'}
               {w.payout_holder_name && <span className="block">Titular: {w.payout_holder_name}</span>}
               {w.payment_reference && <span className="block">Ref. {w.payment_reference}</span>}
+              {w.reversal_reference && <span className="block">Reversa {w.reversal_reference}</span>}
             </td>
             <td className="p-3 text-xs">{new Date(w.created_at).toLocaleDateString('es-AR')}</td>
             <td className="p-3 text-right tabular-nums font-semibold">{money(Number(w.amount_ars))}</td>
@@ -182,6 +204,7 @@ export default function InfluencerPaymentsPage() {
               </Button>
             )}
             {w.status === 'approved' && <Button size="sm" variant="outline" onClick={() => void abrirLiquidacion(w)}>Registrar transferencia</Button>}
+            {w.status === 'paid' && <Button size="icon" variant="ghost" title="Registrar reversa confirmada" aria-label={`Registrar reversa de ${names.get(w.influencer_id) ?? 'creador'}`} onClick={() => { setRevirtiendo(w); setReferenciaReversa(''); setMotivoReversa(''); }}><RotateCcw className="h-4 w-4" /></Button>}
             </div></td>
           </tr>)}
         </tbody></table></div>
@@ -218,6 +241,30 @@ export default function InfluencerPaymentsPage() {
           <Button variant="outline" onClick={() => setLiquidando(null)} disabled={guardandoPago}>Cancelar</Button>
           <Button onClick={() => void confirmarLiquidacion()} disabled={guardandoPago || !detalleDestino || referencia.trim().length < 3}>
             {guardandoPago && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />} Confirmar pago
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={Boolean(revirtiendo)} onOpenChange={open => { if (!open && !guardandoReversa) setRevirtiendo(null); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Registrar reversa</DialogTitle>
+          <DialogDescription>Usá esta acción sólo cuando el proveedor haya devuelto o rechazado un pago previamente confirmado. Nerqia conservará el pago original y agregará los ajustes contables.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="referencia-reversa">Referencia del proveedor</Label>
+            <Input id="referencia-reversa" value={referenciaReversa} onChange={event => setReferenciaReversa(event.target.value)} placeholder="ID de devolución o contracargo" maxLength={160} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="motivo-reversa">Motivo</Label>
+            <Input id="motivo-reversa" value={motivoReversa} onChange={event => setMotivoReversa(event.target.value)} placeholder="Por qué el proveedor revirtió el pago" maxLength={500} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRevirtiendo(null)} disabled={guardandoReversa}>Cancelar</Button>
+          <Button variant="destructive" onClick={() => void confirmarReversa()} disabled={guardandoReversa || referenciaReversa.trim().length < 3 || motivoReversa.trim().length < 5}>
+            {guardandoReversa && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />} Confirmar reversa
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -30,6 +30,7 @@ export interface SyncResultado {
   status: string;
   aprobados: number;
   rechazados: number;
+  revertidos: number;
 }
 
 /**
@@ -74,6 +75,7 @@ export async function sincronizarLotePayouts(
   const mpItems: any[] = payload?.transactions ?? [];
   let aprobados = 0;
   let rechazados = 0;
+  let revertidos = 0;
   const procesados = new Set<string>();
 
   for (const t of mpItems) {
@@ -86,20 +88,31 @@ export async function sincronizarLotePayouts(
     let failureReason = t?.status_detail ? String(t.status_detail) : null;
 
     if (status === "approved") {
-      // MP confirmó la transferencia: se conserva el id externo como
-      // comprobante y la RPC asienta la liquidación de forma idempotente.
-      const { error } = await admin.rpc("settle_creator_withdrawal", {
-        p_request_id: withdrawalId,
-        p_payment_reference: String(t?.id ?? t?.external_reference ?? "mercadopago"),
-        p_payment_method: "mercadopago",
-      });
-      if (!error) aprobados += 1;
-      else {
-        // La transferencia existe, pero no se presenta como pagada hasta que
-        // el payout y el asiento Finance queden confirmados en la misma RPC.
-        localStatus = "processing";
-        failureReason = "Transferencia confirmada; conciliación contable pendiente";
-        console.error(`[mp-payouts] retiro ${withdrawalId} confirmado pero no conciliado`, error);
+      const { data: withdrawal } = await admin
+        .from("influencer_withdrawal_requests")
+        .select("status")
+        .eq("id", withdrawalId)
+        .maybeSingle();
+      if (withdrawal?.status === "reversed") {
+        localStatus = "reversed";
+        failureReason = "Pago revertido con evidencia posterior";
+        revertidos += 1;
+      } else {
+        // MP confirmó la transferencia: se conserva el id externo como
+        // comprobante y la RPC asienta la liquidación de forma idempotente.
+        const { error } = await admin.rpc("settle_creator_withdrawal", {
+          p_request_id: withdrawalId,
+          p_payment_reference: String(t?.id ?? t?.external_reference ?? "mercadopago"),
+          p_payment_method: "mercadopago",
+        });
+        if (!error) aprobados += 1;
+        else {
+          // La transferencia existe, pero no se presenta como pagada hasta que
+          // el payout y el asiento Finance queden confirmados en la misma RPC.
+          localStatus = "processing";
+          failureReason = "Transferencia confirmada; conciliación contable pendiente";
+          console.error(`[mp-payouts] retiro ${withdrawalId} confirmado pero no conciliado`, error);
+        }
       }
     } else if (status === "rejected" || status === "cancelled") {
       rechazados += 1;
@@ -117,7 +130,11 @@ export async function sincronizarLotePayouts(
   }
 
   const expectedItems = expectedIds.size;
-  const batchStatus = rechazados === 0
+  const batchStatus = revertidos === expectedItems && expectedItems > 0
+    ? "reversed"
+    : revertidos > 0
+    ? "partially_reversed"
+    : rechazados === 0
     ? (expectedItems > 0 && aprobados === expectedItems && procesados.size === expectedItems ? "completed" : "processing")
     : (aprobados > 0 ? "partially_completed" : "failed");
 
@@ -129,5 +146,5 @@ export async function sincronizarLotePayouts(
     })
     .eq("id", batchId);
 
-  return { ok: true, status: batchStatus, aprobados, rechazados };
+  return { ok: true, status: batchStatus, aprobados, rechazados, revertidos };
 }

@@ -224,9 +224,9 @@ npm run drill:creator-settlements
 ~~~
 
 Esta segunda matriz ejecuta el recorrido comisión → retiro → aprobación →
-confirmación del proveedor → payout → gasto → asiento. Usa realmente los roles
+confirmación del proveedor → payout → gasto → asiento → reversa. Usa realmente los roles
 `authenticated` y `service_role`, reintenta el webhook y comprueba que la
-referencia no pueda reescribirse. El 2026-09-29 aprobó 4 escenarios y el cleanup
+referencia no pueda reescribirse. El 2026-09-29 aprobó 5 escenarios y el cleanup
 con cero filas persistidas. La prueba detectó y corrigió que el sincronizador
 automático no tenía permiso de ejecución, no superaba la autoridad de la RPC y
 carecía de un actor válido para `created_by`.
@@ -242,6 +242,11 @@ email del perfil. Ante timeout, `409` o `5xx` conserva el lote como
 idempotente. Una respuesta vacía o un fallo al crear payout/gasto/asiento nunca
 se presenta como pago completo. La capacidad sigue desactivada hasta contar con
 habilitación comercial (`MP_PAYOUTS_ENABLED`) y URL de notificación contratada.
+
+Una reversa confirmada por un proveedor tampoco modifica ni elimina el pago
+original: `reverse_creator_withdrawal` agrega un payout negativo, un ajuste de
+gasto y el contraasiento del movimiento Finance. El saldo vuelve a estar
+disponible para el creador y un webhook tardío no puede rehabilitar el pago.
 
 ## Reintegro de una venta POS
 

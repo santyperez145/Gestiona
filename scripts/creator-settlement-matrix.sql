@@ -153,6 +153,43 @@ BEGIN
       'detail', 'reintentos distintos se rechazan sin alterar evidencia'
     ));
 
+    -- Una reversa conserva el pago y agrega ajustes compensatorios.
+    PERFORM set_config('request.jwt.claims',
+      jsonb_build_object('sub', v_user, 'role', 'authenticated')::text, true);
+    SET LOCAL ROLE authenticated;
+    PERFORM public.reverse_creator_withdrawal(
+      v_request, 'REV-ZZ-' || v_suffix, 'Proveedor devolvió la transferencia'
+    );
+    -- Mismo evento: idempotente.
+    PERFORM public.reverse_creator_withdrawal(
+      v_request, 'REV-ZZ-' || v_suffix, 'Proveedor devolvió la transferencia'
+    );
+    RESET ROLE;
+
+    ASSERT (SELECT status = 'reversed' AND reversal_reference = 'REV-ZZ-' || v_suffix
+      FROM public.influencer_withdrawal_requests WHERE id = v_request),
+      'el retiro no quedó revertido con referencia';
+    SELECT count(*) INTO v_count FROM public.influencer_payouts
+    WHERE influencer_id = v_influencer
+      AND notes IN ('withdrawal:' || v_request::text, 'reversal:withdrawal:' || v_request::text);
+    ASSERT v_count = 2, 'la reversa no conservó pago y ajuste exactamente una vez';
+    ASSERT (SELECT COALESCE(sum(amount_ars), 0) = 0 FROM public.influencer_payouts
+      WHERE influencer_id = v_influencer), 'el payout neto no volvió a cero';
+    ASSERT (SELECT COALESCE(sum(amount_ars), 0) = 0 FROM public.expenses
+      WHERE org_id = v_org), 'el gasto neto no volvió a cero';
+    ASSERT EXISTS (
+      SELECT 1 FROM public.ledger_entries original
+      JOIN public.ledger_entries reversal ON reversal.id = original.anulado_por
+      WHERE original.org_id = v_org AND reversal.anula_a = original.id
+    ), 'el ledger no conserva el contraasiento';
+    SELECT count(*) INTO v_count FROM public.influencer_payout_reversals
+    WHERE withdrawal_id = v_request;
+    ASSERT v_count = 1, 'la reversa no es idempotente';
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'reversa_a_finance', 'passed', true,
+      'detail', 'payout, gasto y asiento quedan compensados sin borrar evidencia'
+    ));
+
     SET CONSTRAINTS ALL IMMEDIATE;
     RAISE EXCEPTION 'creator settlement matrix rollback' USING ERRCODE = 'P0002';
   EXCEPTION WHEN SQLSTATE 'P0002' THEN
@@ -165,6 +202,7 @@ BEGIN
     + (SELECT count(*) FROM public.influencer_sales WHERE org_id = v_org)
     + (SELECT count(*) FROM public.influencer_withdrawal_requests WHERE org_id = v_org)
     + (SELECT count(*) FROM public.influencer_payouts WHERE org_id = v_org)
+    + (SELECT count(*) FROM public.influencer_payout_reversals WHERE org_id = v_org)
     + (SELECT count(*) FROM public.expenses WHERE org_id = v_org)
     + (SELECT count(*) FROM public.ledger_entries WHERE org_id = v_org)
   INTO v_leftovers;

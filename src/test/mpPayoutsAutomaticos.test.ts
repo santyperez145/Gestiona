@@ -60,6 +60,8 @@ describe("MP Payouts: Edge Function mp-payouts", () => {
     expect(syncModule).toContain("expectedIds.has(withdrawalId)");
     expect(syncModule).toContain("Transferencia confirmada; conciliación contable pendiente");
     expect(syncModule).toContain("expectedItems > 0");
+    expect(syncModule).toContain('withdrawal?.status === "reversed"');
+    expect(syncModule).toContain('"partially_reversed"');
   });
 
   it("usa el destino cifrado elegido para el retiro, no el email general del perfil", () => {

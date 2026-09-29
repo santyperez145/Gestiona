@@ -94,13 +94,16 @@ export interface CreatorEarnings {
 export interface CreatorWithdrawal {
   id: string;
   amount_ars: number;
-  status: "pending" | "approved" | "paid" | "rejected";
+  status: "pending" | "approved" | "paid" | "rejected" | "reversed";
   created_at: string;
   processed_at: string | null;
   payout_provider_label: string | null;
   payout_identifier_masked: string | null;
   payment_reference: string | null;
   paid_at: string | null;
+  reversed_at: string | null;
+  reversal_reference: string | null;
+  reversal_reason: string | null;
 }
 
 export interface CreatorPayoutDestination {
