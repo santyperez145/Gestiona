@@ -446,25 +446,6 @@ export async function listPayouts(): Promise<any[]> {
   return (data || []) as any[];
 }
 
-export async function createPayout(payload: {
-  org_id: string;
-  total_amount: number;
-  influencer_id?: string;
-  status?: 'pending' | 'processing' | 'completed' | 'cancelled';
-  period_start: string;
-  period_end: string;
-  notes?: string;
-  amount_ars?: number;
-  sales_ids?: string[];
-  user_id?: string;
-  payment_method?: string;
-}): Promise<any> {
-  const orgId = requireActiveOrgId();
-  const { data, error } = await sb.from('influencer_payouts').insert({ ...payload, org_id: orgId }).select().single();
-  if (error) throw error;
-  return data;
-}
-
 /** ─── Invitaciones a creadores (flujo Go-Marz: invitar → aceptar/rechazar → expira) ─── */
 export async function listInfluencerInvitations(): Promise<InfluencerInvitation[]> {
   const orgId = requireActiveOrgId();

@@ -260,7 +260,7 @@ Prioridad: completar Influencers con referencia verificada de [GoMarz](https://w
   notificaciones consentidas (preferencia + cola + despacho service_role).
 - **Cerrado (2026-09-29):** contratos versionados y aceptación bilateral; los
   retiros se confirman sólo con referencia externa y generan payout, gasto y
-  asiento atómicos. La matriz prueba roles, reintentos y rollback sin residuos.
+  asiento atómicos; se eliminó la liquidación legacy y el DML directo. La matriz prueba roles, reintentos y rollback sin residuos.
 - **Cerrado (2026-09-29):** perfil público opt-in sin PII, métricas verificadas, descubrimiento transversal, moderación superadmin y alta idempotente por marca.
 - **Cerrado (2026-09-29):** entregables privados versionados, inmutables y con retención mínima; el creador carga y la marca revisa por URL firmada sin publicar el material.
 - Siguiente: selección pública, escaneo antimalware, OAuth social y conciliación externa; no certificar resultados sin evidencia.
