@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import {
+  listCreatorDeliverableFiles,
+  uploadCreatorDeliverableFile,
+  type CreatorDeliverableFile,
+} from "@/lib/creatorDeliverableFiles";
 
 /**
  * Contexto del CREADOR (influencer).
@@ -195,13 +200,16 @@ interface CreatorCtx {
   contracts: CreatorContract[];
   linkedProfiles: CreatorLinkedProfile[];
   metricReports: CreatorSocialMetricReport[];
+  deliverableFiles: CreatorDeliverableFile[];
   refresh: () => Promise<void>;
   saveProfile: (fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>) => Promise<void>;
   savePublicProfile: (fields: CreatorPublicProfileInput) => Promise<void>;
   /** Responde la invitación de una campaña (accept/decline) con la sesión. */
   respondCampaign: (campaignId: string, action: "accept" | "decline") => Promise<void>;
-  /** Entrega el contenido de una campaña: URL pública obligatoria. */
+  /** Entrega un enlace externo compatible. Para material previo se prefiere archivo privado. */
   submitDeliverable: (campaignId: string, campaignName: string, description: string, contentUrl: string) => Promise<void>;
+  /** Carga una nueva versión privada, inmutable y visible sólo por las partes. */
+  submitDeliverableFile: (campaignId: string, description: string, file: File) => Promise<void>;
   /** Lee el hilo de chat de una colaboración del creador. */
   listChat: (campaignId: string) => Promise<CreatorChatMessage[]>;
   /** Escribe en el hilo de chat de una colaboración del creador. */
@@ -240,6 +248,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   const [contracts, setContracts] = useState<CreatorContract[]>([]);
   const [linkedProfiles, setLinkedProfiles] = useState<CreatorLinkedProfile[]>([]);
   const [metricReports, setMetricReports] = useState<CreatorSocialMetricReport[]>([]);
+  const [deliverableFiles, setDeliverableFiles] = useState<CreatorDeliverableFile[]>([]);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -253,6 +262,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setContracts([]);
       setLinkedProfiles([]);
       setMetricReports([]);
+      setDeliverableFiles([]);
       setLoading(false);
       return;
     }
@@ -282,7 +292,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setProfile(own);
 
       if (own) {
-        const [camp, deliv, earn, wd, ctr, metrics, destinations] = await Promise.all([
+        const [camp, deliv, earn, wd, ctr, metrics, destinations, files] = await Promise.all([
           rpc("creator_campaigns"),
           rpc("creator_deliverables"),
           rpc("creator_earnings"),
@@ -290,6 +300,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
           rpc("creator_my_contracts"),
           rpc("creator_my_social_metric_reports"),
           rpc("creator_payout_destinations_list"),
+          listCreatorDeliverableFiles(user.id),
         ]);
         setCampaigns(Array.isArray(camp.data) ? camp.data : []);
         setDeliverables(Array.isArray(deliv.data) ? deliv.data : []);
@@ -300,6 +311,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
         setContracts(Array.isArray(ctr.data) ? ctr.data : []);
         setMetricReports(Array.isArray(metrics.data) ? metrics.data : []);
         setPayoutDestinations(Array.isArray(destinations.data) ? destinations.data : []);
+        setDeliverableFiles(files);
       } else {
         setCampaigns([]);
         setDeliverables([]);
@@ -308,6 +320,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
         setPayoutDestinations([]);
         setContracts([]);
         setMetricReports([]);
+        setDeliverableFiles([]);
       }
     } catch (error) {
       console.error("[creator] no se pudo cargar la superficie de creador", error);
@@ -321,6 +334,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setContracts([]);
       setLinkedProfiles([]);
       setMetricReports([]);
+      setDeliverableFiles([]);
     } finally {
       setLoading(false);
     }
@@ -374,6 +388,13 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       p_content_url: contentUrl,
     });
     if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
+  const submitDeliverableFile = useCallback(async (
+    campaignId: string, description: string, file: File,
+  ) => {
+    await uploadCreatorDeliverableFile(campaignId, description, file);
     await refresh();
   }, [refresh]);
 
@@ -436,7 +457,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, linkedProfiles, metricReports, refresh, saveProfile, savePublicProfile, respondCampaign, submitDeliverable, listChat, sendChat, acceptContract, submitMetricReport, savePayoutDestination, disablePayoutDestination }}>
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, linkedProfiles, metricReports, deliverableFiles, refresh, saveProfile, savePublicProfile, respondCampaign, submitDeliverable, submitDeliverableFile, listChat, sendChat, acceptContract, submitMetricReport, savePayoutDestination, disablePayoutDestination }}>
       {children}
     </CreatorContext.Provider>
   );

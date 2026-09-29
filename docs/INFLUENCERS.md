@@ -19,7 +19,7 @@ de creadores como propia.
 | Navegación | Shell propio, entrada desde Business, rutas canónicas y redirects antiguos. | Barrido autenticado con usuarios finales. |
 | Creadores | Directorio transversal consentido, slug revocable, moderación superadmin, alta idempotente en la red de una marca, reputación y métricas verificadas. | Proveedor de verificación de identidad y OAuth directo con redes. |
 | Campañas | Brief, presupuesto, selección, invitación privada con expiración, aceptación/rechazo, seguimiento y auditoría. | Certificación con marcas y creadores reales. |
-| Entregables | Entrega y reentrega desde portal, revisión de marca, chat por colaboración y prueba de publicación con licencia tipada. | Archivos audiovisuales privados y conectores sociales verificados. |
+| Entregables | Entrega y reentrega desde portal, archivos privados versionados (video, imagen o PDF), revisión de marca con URL firmada, chat por colaboración y prueba de publicación con licencia tipada. | Conectores sociales verificados y escaneo antimalware asíncrono. |
 | Contratos | Versiones inmutables, aceptación de marca y creador por versión, evidencia temporal y acceso del creador por sesión o enlace limitado. | Proveedor de firma cualificada sólo si el marco legal/comercial lo exige. |
 | Comisiones | Ventas y payouts históricos; destinos cifrados para Mercado Pago, CBU/CVU, alias u otra billetera; la transferencia confirmada con referencia genera atómicamente payout, gasto y asiento idempotentes en Finance. | Reversas y conciliación bancaria certificada del proveedor externo. |
 | Pagos automáticos | El checkout de tienda usa OAuth y split 1:1 directo al comercio. Los payouts masivos de creadores permanecen cerrados salvo capacidad comercial habilitada; nunca se simula una transferencia. | Contrato de proveedor/partner, webhook firmado, reembolsos y certificación real. |
@@ -79,7 +79,8 @@ movido dinero real.
 ## Siguiente secuencia
 
 1. **Cerrado (2026-09-29):** perfiles públicos consentidos, descubrimiento y moderación superadmin.
-2. Archivos audiovisuales privados con versiones, selección pública y retención definida.
-3. OAuth social y atribución externa sobre la evidencia ya verificable.
-4. Conciliación bancaria, reversas y comprobantes del proveedor externo.
-5. Piloto con marca y creadores reales; certificar móvil, permisos y recuperaciones.
+2. **Cerrado (2026-09-29):** archivos audiovisuales privados de hasta 50 MB, versiones inmutables, SHA-256, acceso temporal sólo para las partes y retención mínima de 365 días.
+3. Selección pública de publicaciones verificadas desde el portal y escaneo antimalware asíncrono.
+4. OAuth social y atribución externa sobre la evidencia ya verificable.
+5. Conciliación bancaria, reversas y comprobantes del proveedor externo.
+6. Piloto con marca y creadores reales; certificar móvil, permisos y recuperaciones.

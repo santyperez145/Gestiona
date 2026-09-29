@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCreator, type CreatorCampaign, type CreatorChatMessage, type CreatorContract, type CreatorPayoutDestination } from "@/lib/creatorContext";
+import {
+  formatDeliverableFileSize,
+  openCreatorDeliverableFile,
+  validateCreatorDeliverableFile,
+} from "@/lib/creatorDeliverableFiles";
 import { supabase } from "@/integrations/supabase/client";
 import ChatNotifyCard from "@/components/influencers/ChatNotifyCard";
 import { CreatorFoco } from "@/components/creator/CreatorFoco";
@@ -18,6 +23,7 @@ import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
   Clock, Loader2, ExternalLink, User, LogOut, Save, Upload, ArrowDownToLine,
   BadgeCheck, MessageSquare, Send, FileSignature,
+  FileVideo, LockKeyhole,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -227,10 +233,12 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 }
 
 function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; registerRef?: (id: string, node: HTMLDivElement | null) => void }) {
-  const { respondCampaign, submitDeliverable, listChat, sendChat } = useCreator();
+  const { respondCampaign, submitDeliverable, submitDeliverableFile, deliverableFiles, listChat, sendChat } = useCreator();
   const [busy, setBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<"file" | "link">("file");
   const [desc, setDesc] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
@@ -246,7 +254,9 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
   }, [registerRef, campaign.id]);
 
   const invitation = campaign.invitation_status?.toLowerCase();
-  const deliverado = Boolean(campaign.deliverable_url);
+  const campaignFiles = deliverableFiles.filter(item => item.campaign_id === campaign.id);
+  const latestFile = campaignFiles[0] ?? null;
+  const deliverado = Boolean(campaign.deliverable_url || latestFile);
   const decidida = invitation === "accepted" || invitation === "declined" || invitation === "expired";
   // La marca devolvió el contenido pidiendo corrección: 'pendiente' con notas.
   const correccionPedida = deliverado && campaign.deliverable_status === "pendiente" && Boolean(campaign.review_notes?.trim());
@@ -267,14 +277,26 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    if (!/^https:\/\/.+/.test(url.trim())) { setError("El enlace tiene que ser una URL https:// pública."); return; }
     if (!desc.trim()) { setError("Contá brevemente qué entregaste."); return; }
+    if (deliveryMode === "file" && !file) { setError("Seleccioná el archivo que querés entregar."); return; }
+    if (deliveryMode === "file" && file) {
+      const validation = validateCreatorDeliverableFile(file);
+      if (validation) { setError(validation); return; }
+    }
+    if (deliveryMode === "link" && !/^https:\/\/.+/.test(url.trim())) {
+      setError("El enlace tiene que ser una URL https:// pública."); return;
+    }
     setBusy(true); setError(null);
     try {
-      await submitDeliverable(campaign.id, campaign.title, desc.trim(), url.trim());
-      setShowForm(false); setUrl(""); setDesc("");
-    } catch {
-      setError("No pudimos registrar la entrega. Revisá el enlace e intentá de nuevo.");
+      if (deliveryMode === "file" && file) await submitDeliverableFile(campaign.id, desc.trim(), file);
+      else await submitDeliverable(campaign.id, campaign.title, desc.trim(), url.trim());
+      setShowForm(false); setUrl(""); setDesc(""); setFile(null);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "";
+      if (message.includes("todavía está en revisión")) setError("La versión enviada todavía está en revisión.");
+      else if (message.includes("ya fue aprobado")) setError("La marca ya aprobó este entregable.");
+      else if (message.includes("50 MB") || message.includes("Formato")) setError(message);
+      else setError("No pudimos completar la entrega privada. El archivo anterior no se reemplazó; intentá nuevamente.");
     } finally { setBusy(false); }
   };
 
@@ -409,13 +431,34 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
       )}
       {showForm && (
         <form onSubmit={submit} className="space-y-2 rounded-lg border border-border bg-card p-3">
-          <Input
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            placeholder="https://enlace del contenido (post, reel, video)"
-            inputMode="url"
-            aria-label="Enlace del contenido"
-          />
+          <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1" role="group" aria-label="Tipo de entrega">
+            <Button type="button" size="sm" variant={deliveryMode === "file" ? "secondary" : "ghost"} onClick={() => setDeliveryMode("file")} className="h-8 gap-1.5">
+              <LockKeyhole className="h-3.5 w-3.5" /> Archivo privado
+            </Button>
+            <Button type="button" size="sm" variant={deliveryMode === "link" ? "secondary" : "ghost"} onClick={() => setDeliveryMode("link")} className="h-8 gap-1.5">
+              <ExternalLink className="h-3.5 w-3.5" /> Enlace externo
+            </Button>
+          </div>
+          {deliveryMode === "file" ? (
+            <div className="space-y-1.5">
+              <Label htmlFor={`deliverable-${campaign.id}`}>Video, imagen o PDF</Label>
+              <Input
+                id={`deliverable-${campaign.id}`}
+                type="file"
+                accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp,application/pdf"
+                onChange={event => setFile(event.target.files?.[0] ?? null)}
+              />
+              <p className="text-[11px] text-muted-foreground">Privado entre vos y la marca. Hasta 50 MB; cada corrección conserva su versión anterior.</p>
+            </div>
+          ) : (
+            <Input
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              placeholder="https://enlace del contenido publicado"
+              inputMode="url"
+              aria-label="Enlace del contenido"
+            />
+          )}
           <Input
             value={desc}
             onChange={e => setDesc(e.target.value)}
@@ -437,7 +480,7 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
         </div>
       )}
 
-      {deliverado && (
+      {campaign.deliverable_url && (
         <a
           href={campaign.deliverable_url ?? "#"}
           target="_blank"
@@ -446,6 +489,15 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
         >
           <CheckCircle2 className="h-3.5 w-3.5" /> Contenido entregado <ExternalLink className="h-3 w-3" />
         </a>
+      )}
+      {latestFile && (
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 hover:underline"
+          onClick={() => void openCreatorDeliverableFile(latestFile).catch(() => toast.error("No pudimos abrir el archivo privado."))}
+        >
+          <FileVideo className="h-3.5 w-3.5" /> Versión {latestFile.version_number} · {formatDeliverableFileSize(latestFile.size_bytes)}
+        </button>
       )}
 
       {/* La marca verificó la publicación real de este entregable. */}
@@ -480,7 +532,7 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
 
 export default function CreatorPortalPage() {
   usePageTitle("Portal de creador");
-  const { loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, refresh, acceptContract, savePayoutDestination } = useCreator();
+  const { loading, isCreator, profile, campaigns, deliverables, deliverableFiles, earnings, withdrawals, payoutDestinations, contracts, refresh, acceptContract, savePayoutDestination } = useCreator();
   const focoScrollRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Solicitud de retiro de comisiones
@@ -720,6 +772,7 @@ export default function CreatorPortalPage() {
                 </div>
               ) : deliverables.map(d => {
                 const done = ["completado", "completed", "cumplido"].includes(d.status.toLowerCase());
+                const file = deliverableFiles.find(item => item.deliverable_id === d.id);
                 return (
                   <div key={d.id} className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -733,7 +786,11 @@ export default function CreatorPortalPage() {
                       <span className="inline-flex items-center gap-1">
                         <CalendarClock className="h-3 w-3" /> Vence {fmtDate(d.due_date)}
                       </span>
-                      {done && d.content_url ? (
+                      {file ? (
+                        <button type="button" onClick={() => void openCreatorDeliverableFile(file).catch(() => toast.error("No pudimos abrir el archivo privado."))} className="inline-flex items-center gap-1 text-emerald-600 hover:underline">
+                          <LockKeyhole className="h-3.5 w-3.5" /> Archivo privado · v{file.version_number}
+                        </button>
+                      ) : done && d.content_url ? (
                         <a href={d.content_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-emerald-600 hover:underline">
                           <CheckCircle2 className="h-3.5 w-3.5" /> Ver contenido <ExternalLink className="h-3 w-3" />
                         </a>
