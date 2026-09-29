@@ -1,0 +1,1 @@
+Fix: replace native select with Nerqia Select in PosInventoryPanel + MigrationWizard
