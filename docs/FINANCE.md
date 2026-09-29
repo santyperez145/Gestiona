@@ -117,6 +117,10 @@ Un gasto puede originarse en documento, compra, tarjeta externa, caja o carga
 manual autorizada. Un reembolso agrega beneficiario, cuenta validada,
 liquidación y comprobante; no crea otro proveedor si la persona ya existe.
 
+Desde 2026-09-29 el centro de costo, el medio de pago y la solicitud origen son
+dimensiones estructuradas del gasto. Viajan al ledger y al lote contable; no se
+reconstruyen desde la descripción o el nombre del proveedor.
+
 Anticipos y fondos rinden contra gastos y devuelven sobrantes. Excepciones
 quedan en cola con owner y SLA.
 
@@ -182,7 +186,7 @@ Fuentes oficiales consultadas 2026-09-04:
 | Inbox/captura | Base técnica | Documento real de punta a punta. |
 | Aprobaciones | Parcial | Política versionada y escalamiento. |
 | Presupuestos | Parcial | Comprometido/disponible y alertas. |
-| Gastos/reembolsos | Parcial | Flujo y settlement externo. |
+| Gastos/reembolsos | Parcial | Centro, medio y solicitud ya llegan al ledger; falta settlement externo de reembolsos. |
 | Tarjetas | Sin emisión | Feed externo y controles; partner para emitir. |
 | Conciliación | Parcial | Banco/tarjeta y export certificado. |
 | Integración contable | Parcial | Preview, lotes y no duplicación verificados. |

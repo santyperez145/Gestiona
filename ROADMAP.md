@@ -269,7 +269,7 @@ Prioridad: completar Influencers con referencia verificada de [GoMarz](https://w
 
 1. **Cerrado (2026-09-25):** primer documento real F5.1 con extracción habilitada
    y verificada E2E en producción.
-2. Solicitud → política → presupuesto → aprobación → gasto/deuda.
+2. **Cerrado (2026-09-29):** solicitud → política → presupuesto → aprobación → gasto; centro de costo, medio y origen llegan estructurados al ledger/exportación.
 3. Reembolsos, fondos, anticipos y excepciones con roles.
 4. Movimientos de tarjetas externas y controles preventivos; emitir sólo con partner.
 5. Conciliación bancaria/contable y exportaciones auditables.

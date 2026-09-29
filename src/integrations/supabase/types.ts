@@ -3509,13 +3509,16 @@ export type Database = {
           account: string
           amount_ars: number
           created_at: string
+          cost_center: string | null
           date: string
           description: string
           id: string
+          expense_request_id: string | null
           match_ref: string | null
           matched: boolean
           notes: string | null
           org_id: string
+          payment_method: string | null
           type: string
         }
         Insert: {
@@ -3535,9 +3538,11 @@ export type Database = {
           account?: string
           amount_ars?: number
           created_at?: string
+          cost_center?: string | null
           date?: string
           description?: string
           id?: string
+          expense_request_id?: string | null
           match_ref?: string | null
           matched?: boolean
           notes?: string | null
@@ -3632,6 +3637,7 @@ export type Database = {
           movement_type: string
           notes: string | null
           org_id: string
+          payment_method?: string | null
           quantity: number
         }
         Insert: {
@@ -4619,9 +4625,11 @@ export type Database = {
           amount: number
           category_id: string
           created_at?: string
+          cost_center?: string | null
           date?: string
           description: string
           id?: string
+          expense_request_id?: string | null
           org_id: string
           reference_id?: string | null
           reference_type?: string | null
@@ -4634,6 +4642,7 @@ export type Database = {
           description?: string
           id?: string
           org_id?: string
+          payment_method?: string | null
           reference_id?: string | null
           reference_type?: string | null
         }

@@ -92,12 +92,14 @@ function ExpenseReceiptLink({
 }
 
 function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => string) {
-  const header = ['Fecha', 'Descripción', 'Proveedor', 'Categoría', 'Monto (ARS)', 'Recurrente'];
+  const header = ['Fecha', 'Descripción', 'Proveedor', 'Categoría', 'Centro de costo', 'Medio de pago', 'Monto (ARS)', 'Recurrente'];
   const rows = expenses.map(e => [
     e.date,
     `"${(e.description || '').replace(/"/g, '""')}"`,
     `"${(e.vendor || '').replace(/"/g, '""')}"`,
     getCategoryLabel(e.category),
+    `"${(e.cost_center || '').replace(/"/g, '""')}"`,
+    `"${(e.payment_method || '').replace(/"/g, '""')}"`,
     Number(e.amount_ars).toFixed(2),
     e.recurring ? 'Sí' : 'No',
   ]);
@@ -1240,6 +1242,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const [category, setCategory] = useState(editItem?.category || categories[0]?.value || 'otros');
   const [description, setDescription] = useState(editItem?.description || '');
   const [vendor, setVendor] = useState(editItem?.vendor || '');
+  const [costCenter, setCostCenter] = useState(editItem?.cost_center || '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [recurring, setRecurring] = useState(editItem?.recurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState<string>(editItem?.recurring_frequency || 'monthly');
@@ -1335,6 +1338,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         category,
         description: description || null,
         vendor: vendor.trim() || null,
+        cost_center: costCenter.trim() || null,
         date: dateToNoon(date),
         recurring,
         recurring_frequency: recurring ? recurringFrequency : null,
@@ -1475,6 +1479,12 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         <label className="text-sm text-muted-foreground">Proveedor / Pagado a <span className="text-[10px] opacity-60">(opcional)</span></label>
         <Input value={vendor} onChange={e => setVendor(e.target.value)}
           placeholder="Ej: Edesur, Telefónica, Proveedor XYZ..." className="bg-muted border-border" />
+      </div>
+
+      <div>
+        <label className="text-sm text-muted-foreground">Centro de costo <span className="text-[10px] opacity-60">(opcional)</span></label>
+        <Input value={costCenter} onChange={e => setCostCenter(e.target.value)} maxLength={120}
+          placeholder="Ej: Marketing, Operaciones, Sucursal Centro" className="bg-muted border-border" />
       </div>
 
       <div>
