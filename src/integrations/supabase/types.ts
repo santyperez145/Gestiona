@@ -13635,15 +13635,19 @@ export type Database = {
       }
       expenses: {
         Row: {
+          advance_request_id: string | null
           amount_ars: number
           category: string
+          cost_center: string | null
           created_at: string
           date: string
           description: string | null
           id: string
+          expense_request_id: string | null
           last_auto_created_at: string | null
           location_id: string | null
           org_id: string
+          payment_method: string | null
           receipt_url: string | null
           recurring: boolean
           recurring_frequency: string | null
@@ -13653,15 +13657,19 @@ export type Database = {
           vendor: string | null
         }
         Insert: {
+          advance_request_id?: string | null
           amount_ars?: number
           category?: string
+          cost_center?: string | null
           created_at?: string
           date?: string
           description?: string | null
           id?: string
+          expense_request_id?: string | null
           last_auto_created_at?: string | null
           location_id?: string | null
           org_id: string
+          payment_method?: string | null
           receipt_url?: string | null
           recurring?: boolean
           recurring_frequency?: string | null
@@ -13671,15 +13679,19 @@ export type Database = {
           vendor?: string | null
         }
         Update: {
+          advance_request_id?: string | null
           amount_ars?: number
           category?: string
+          cost_center?: string | null
           created_at?: string
           date?: string
           description?: string | null
           id?: string
+          expense_request_id?: string | null
           last_auto_created_at?: string | null
           location_id?: string | null
           org_id?: string
+          payment_method?: string | null
           receipt_url?: string | null
           recurring?: boolean
           recurring_frequency?: string | null
@@ -15445,6 +15457,93 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      finance_advance_items: {
+        Row: {
+          advance_request_id: string
+          amount: number
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string
+          evidence_reference: string
+          expense_id: string | null
+          id: string
+          item_kind: string
+          ledger_entry_id: string | null
+          org_id: string
+        }
+        Insert: {
+          advance_request_id: string
+          amount: number
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description: string
+          evidence_reference: string
+          expense_id?: string | null
+          id?: string
+          item_kind: string
+          ledger_entry_id?: string | null
+          org_id: string
+        }
+        Update: {
+          advance_request_id?: string
+          amount?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          evidence_reference?: string
+          expense_id?: string | null
+          id?: string
+          item_kind?: string
+          ledger_entry_id?: string | null
+          org_id?: string
+        }
+        Relationships: []
+      }
+      finance_advances: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          disbursed_amount: number
+          disbursement_entry_id: string | null
+          due_date: string
+          org_id: string
+          rendered_amount: number
+          request_id: string
+          returned_amount: number
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          disbursed_amount: number
+          disbursement_entry_id?: string | null
+          due_date: string
+          org_id: string
+          rendered_amount?: number
+          request_id: string
+          returned_amount?: number
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          disbursed_amount?: number
+          disbursement_entry_id?: string | null
+          due_date?: string
+          org_id?: string
+          rendered_amount?: number
+          request_id?: string
+          returned_amount?: number
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       finance_expense_requests: {
         Row: {

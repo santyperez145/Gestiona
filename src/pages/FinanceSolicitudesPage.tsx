@@ -88,7 +88,7 @@ export default function FinanceSolicitudesPage() {
   // Estado para crear nueva solicitud
   const [openCreate, setOpenCreate] = useState(false);
   const [newRequest, setNewRequest] = useState<{
-    request_kind: "expense" | "reimbursement";
+    request_kind: "expense" | "reimbursement" | "advance";
     title: string;
     amount: number;
     currency: "ARS" | "USD";
@@ -99,6 +99,7 @@ export default function FinanceSolicitudesPage() {
     provider_label: string;
     destination_type: "email" | "cbu" | "cvu" | "alias" | "wallet_handle";
     identifier: string;
+    due_date: string;
   }>({
     request_kind: "expense",
     title: "",
@@ -111,6 +112,7 @@ export default function FinanceSolicitudesPage() {
     provider_label: "",
     destination_type: "alias",
     identifier: "",
+    due_date: new Date().toISOString().slice(0, 10),
   });
 
   const loadRequests = async () => {
@@ -166,6 +168,16 @@ export default function FinanceSolicitudesPage() {
             p_destination_type: newRequest.destination_type,
             p_identifier: newRequest.identifier,
           })
+        : newRequest.request_kind === "advance"
+        ? await (supabase as any).rpc("finance_create_advance_request", {
+            p_org_id: activeOrg!.id, p_title: newRequest.title, p_amount: newRequest.amount,
+            p_currency: newRequest.currency, p_category: newRequest.category,
+            p_cost_center: newRequest.cost_center, p_motive: newRequest.motive,
+            p_beneficiary_name: newRequest.beneficiary_name,
+            p_provider_label: newRequest.provider_label,
+            p_destination_type: newRequest.destination_type,
+            p_identifier: newRequest.identifier, p_due_date: newRequest.due_date,
+          })
         : await (supabase as any).rpc("finance_create_expense_request", {
             p_org_id: activeOrg!.id,
             p_title: newRequest.title,
@@ -178,7 +190,7 @@ export default function FinanceSolicitudesPage() {
       if (error) throw error;
       setNotice(`Solicitud creada: ${data?.id ?? "ok"}`);
       setOpenCreate(false);
-      setNewRequest({ request_kind: "expense", title: "", amount: 0, currency: "ARS", category: null, cost_center: null, motive: null, beneficiary_name: "", provider_label: "", destination_type: "alias", identifier: "" });
+      setNewRequest({ request_kind: "expense", title: "", amount: 0, currency: "ARS", category: null, cost_center: null, motive: null, beneficiary_name: "", provider_label: "", destination_type: "alias", identifier: "", due_date: new Date().toISOString().slice(0, 10) });
     } finally {
       setLoading(false);
     }
@@ -255,12 +267,20 @@ export default function FinanceSolicitudesPage() {
   const [settlementDetails, setSettlementDetails] = useState<Record<string, string | null> | null>(null);
   const [settlementReference, setSettlementReference] = useState("");
   const [settlementMethod, setSettlementMethod] = useState("transferencia");
+  const [advanceManaging, setAdvanceManaging] = useState<ExpenseRequest | null>(null);
+  const [advanceSummary, setAdvanceSummary] = useState<Record<string, string | number> | null>(null);
+  const [advanceAction, setAdvanceAction] = useState<"expense" | "return">("expense");
+  const [advanceAmount, setAdvanceAmount] = useState(0);
+  const [advanceDescription, setAdvanceDescription] = useState("");
+  const [advanceEvidence, setAdvanceEvidence] = useState("");
 
   const handleMarkPaid = async (request: ExpenseRequest) => {
-    if (request.request_kind === "reimbursement") {
+    if (request.request_kind === "reimbursement" || request.request_kind === "advance") {
       setMarkingPaidId(request.id);
       try {
-        const { data, error } = await (supabase as any).rpc("finance_reimbursement_settlement_details", { p_request_id: request.id });
+        const { data, error } = request.request_kind === "advance"
+          ? await (supabase as any).rpc("finance_advance_settlement_details", { p_request_id: request.id })
+          : await (supabase as any).rpc("finance_reimbursement_settlement_details", { p_request_id: request.id });
         if (error) throw error;
         setSettlingRequest(request);
         setSettlementDetails(data as Record<string, string | null>);
@@ -289,17 +309,54 @@ export default function FinanceSolicitudesPage() {
     if (!settlingRequest || settlementReference.trim().length < 3) return;
     setMarkingPaidId(settlingRequest.id);
     try {
-      const { error } = await (supabase as any).rpc("finance_settle_reimbursement", {
-        p_request_id: settlingRequest.id,
-        p_payment_reference: settlementReference.trim(),
-        p_payment_method: settlementMethod,
-      });
+      const { error } = settlingRequest.request_kind === "advance"
+        ? await (supabase as any).rpc("finance_disburse_advance", {
+            p_request_id: settlingRequest.id, p_payment_reference: settlementReference.trim(), p_payment_method: settlementMethod,
+          })
+        : await (supabase as any).rpc("finance_settle_reimbursement", {
+            p_request_id: settlingRequest.id, p_payment_reference: settlementReference.trim(), p_payment_method: settlementMethod,
+          });
       if (error) throw error;
-      setNotice("Reembolso liquidado con referencia y registrado en Finance");
+      setNotice(settlingRequest.request_kind === "advance" ? "Anticipo desembolsado y abierto para rendición" : "Reembolso liquidado con referencia y registrado en Finance");
       setSettlingRequest(null);
       void loadRequests();
     } catch (cause) {
       setLoadError(`No se pudo liquidar el reembolso: ${cause instanceof Error ? cause.message : String(cause)}`);
+    } finally { setMarkingPaidId(null); }
+  };
+
+  const openAdvanceManagement = async (request: ExpenseRequest) => {
+    setMarkingPaidId(request.id);
+    try {
+      const { data, error } = await (supabase as any).rpc("finance_advance_summary", { p_request_id: request.id });
+      if (error) throw error;
+      setAdvanceSummary(data as Record<string, string | number>);
+      setAdvanceManaging(request);
+      setAdvanceAmount(0); setAdvanceDescription(""); setAdvanceEvidence("");
+    } catch (cause) {
+      setLoadError(`No se pudo abrir el anticipo: ${cause instanceof Error ? cause.message : String(cause)}`);
+    } finally { setMarkingPaidId(null); }
+  };
+
+  const handleAdvanceAction = async () => {
+    if (!advanceManaging || advanceAmount <= 0 || advanceEvidence.trim().length < 3) return;
+    setMarkingPaidId(advanceManaging.id);
+    try {
+      const { error } = advanceAction === "expense"
+        ? await (supabase as any).rpc("finance_render_advance_expense", {
+            p_request_id: advanceManaging.id, p_amount: advanceAmount,
+            p_description: advanceDescription.trim(), p_category: advanceManaging.category,
+            p_evidence_reference: advanceEvidence.trim(), p_date: new Date().toISOString().slice(0, 10),
+          })
+        : await (supabase as any).rpc("finance_return_advance_balance", {
+            p_request_id: advanceManaging.id, p_amount: advanceAmount,
+            p_return_reference: advanceEvidence.trim(),
+          });
+      if (error) throw error;
+      setNotice(advanceAction === "expense" ? "Comprobante rendido y contabilizado" : "Devolución registrada en el ledger");
+      setAdvanceManaging(null); void loadRequests();
+    } catch (cause) {
+      setLoadError(`No se pudo registrar el movimiento: ${cause instanceof Error ? cause.message : String(cause)}`);
     } finally { setMarkingPaidId(null); }
   };
 
@@ -431,7 +488,7 @@ export default function FinanceSolicitudesPage() {
               )}
               {!loading && filtered.map((s) => (
                 <TableRow key={s.id} className="transition-colors hover:bg-muted/10">
-                  <TableCell className="p-4"><div className="font-medium">{s.title || "Sin título"}</div>{s.request_kind === "reimbursement" && <div className="mt-1 text-xs text-muted-foreground">Reembolso · {s.beneficiary_name} · {s.payout_provider_label} {s.payout_identifier_masked}</div>}</TableCell>
+                  <TableCell className="p-4"><div className="font-medium">{s.title || "Sin título"}</div>{s.request_kind !== "expense" && <div className="mt-1 text-xs text-muted-foreground">{s.request_kind === "advance" ? "Anticipo" : "Reembolso"} · {s.beneficiary_name} · {s.payout_provider_label} {s.payout_identifier_masked}</div>}</TableCell>
                   <TableCell className="p-4 font-mono">{new Intl.NumberFormat("es-AR", { style: "currency", currency: s.currency || "ARS" }).format(s.amount || 0)}</TableCell>
                   <TableCell className="p-4 text-[10px] text-muted-foreground">{s.currency || "ARS"}</TableCell>
                   <TableCell className="p-4">{s.category || "—"}</TableCell>
@@ -441,7 +498,8 @@ export default function FinanceSolicitudesPage() {
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleApprove(s.id)} disabled={s.status !== "pending"}><CheckCircle2 className="mr-1 h-4 w-4" />Aprobar</Button>
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setRejectingId(s.id); setRejectReason(""); }} disabled={s.status !== "pending"}><XCircle className="mr-1 h-4 w-4" />Rechazar</Button>
-                      <Button variant="ghost" size="sm" className="text-emerald-600" onClick={() => void handleMarkPaid(s)} disabled={s.status !== "approved" || markingPaidId === s.id}><Wallet className="mr-1 h-4 w-4" />{s.request_kind === "reimbursement" ? "Liquidar" : "Registrar pago"}</Button>
+                      <Button variant="ghost" size="sm" className="text-emerald-600" onClick={() => void handleMarkPaid(s)} disabled={s.status !== "approved" || markingPaidId === s.id}><Wallet className="mr-1 h-4 w-4" />{s.request_kind === "advance" ? "Desembolsar" : s.request_kind === "reimbursement" ? "Liquidar" : "Registrar pago"}</Button>
+                      {s.request_kind === "advance" && s.status === "paid" && <Button variant="ghost" size="sm" onClick={() => void openAdvanceManagement(s)} disabled={markingPaidId === s.id}>Rendir</Button>}
                       <Button variant="ghost" size="sm" onClick={() => { setCancellingId(s.id); setCancelReason(""); }} disabled={s.status !== "pending" && s.status !== "approved"}><Ban className="mr-1 h-4 w-4" />Cancelar</Button>
                     </div>
                   </TableCell>
@@ -462,19 +520,20 @@ export default function FinanceSolicitudesPage() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Tipo de solicitud</Label>
-              <Select value={newRequest.request_kind} onValueChange={(value) => setNewRequest({ ...newRequest, request_kind: value as "expense" | "reimbursement" })}>
+              <Select value={newRequest.request_kind} onValueChange={(value) => setNewRequest({ ...newRequest, request_kind: value as "expense" | "reimbursement" | "advance", currency: value === "advance" ? "ARS" : newRequest.currency })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="expense">Gasto</SelectItem><SelectItem value="reimbursement">Reembolso</SelectItem></SelectContent>
+                <SelectContent><SelectItem value="expense">Gasto</SelectItem><SelectItem value="reimbursement">Reembolso</SelectItem><SelectItem value="advance">Anticipo a rendir</SelectItem></SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="solicitud-title">Título <span className="text-destructive">*</span></Label>
               <Input id="solicitud-title" value={newRequest.title} onChange={(e) => setNewRequest({ ...newRequest, title: e.target.value })} />
             </div>
-            {newRequest.request_kind === "reimbursement" && <div className="space-y-4 border-t border-border pt-4">
+            {newRequest.request_kind !== "expense" && <div className="space-y-4 border-t border-border pt-4">
               <div className="grid grid-cols-2 gap-4"><div className="grid gap-2"><Label htmlFor="reimbursement-beneficiary">Beneficiario</Label><Input id="reimbursement-beneficiary" value={newRequest.beneficiary_name} onChange={e => setNewRequest({ ...newRequest, beneficiary_name: e.target.value })} /></div><div className="grid gap-2"><Label htmlFor="reimbursement-provider">Banco o billetera</Label><Input id="reimbursement-provider" value={newRequest.provider_label} onChange={e => setNewRequest({ ...newRequest, provider_label: e.target.value })} placeholder="Mercado Pago, banco..." /></div></div>
               <div className="grid grid-cols-2 gap-4"><div className="grid gap-2"><Label>Tipo de destino</Label><Select value={newRequest.destination_type} onValueChange={value => setNewRequest({ ...newRequest, destination_type: value as typeof newRequest.destination_type })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="alias">Alias</SelectItem><SelectItem value="cbu">CBU</SelectItem><SelectItem value="cvu">CVU</SelectItem><SelectItem value="email">Email</SelectItem><SelectItem value="wallet_handle">Usuario de billetera</SelectItem></SelectContent></Select></div><div className="grid gap-2"><Label htmlFor="reimbursement-identifier">Cuenta de destino</Label><Input id="reimbursement-identifier" value={newRequest.identifier} onChange={e => setNewRequest({ ...newRequest, identifier: e.target.value })} autoComplete="off" /></div></div>
-              <p className="text-xs text-muted-foreground">La cuenta se cifra y sólo se revela al responsable que liquida un reembolso aprobado.</p>
+              {newRequest.request_kind === "advance" && <div className="grid gap-2"><Label htmlFor="advance-due-date">Fecha límite de rendición</Label><Input id="advance-due-date" type="date" min={new Date().toISOString().slice(0, 10)} value={newRequest.due_date} onChange={e => setNewRequest({ ...newRequest, due_date: e.target.value })} /></div>}
+              <p className="text-xs text-muted-foreground">La cuenta se cifra y sólo se revela al responsable que ejecuta un pago aprobado.</p>
             </div>}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -483,7 +542,7 @@ export default function FinanceSolicitudesPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Divisa</Label>
-                <Select value={newRequest.currency} onValueChange={(value) => setNewRequest({ ...newRequest, currency: value as "ARS" | "USD" })}>
+                <Select value={newRequest.currency} disabled={newRequest.request_kind === "advance"} onValueChange={(value) => setNewRequest({ ...newRequest, currency: value as "ARS" | "USD" })}>
                   <SelectTrigger id="solicitud-currency"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ARS">ARS (Peso argentino)</SelectItem>
@@ -517,11 +576,22 @@ export default function FinanceSolicitudesPage() {
       </Dialog>
 
       <Dialog open={Boolean(settlingRequest)} onOpenChange={open => { if (!open && !markingPaidId) setSettlingRequest(null); }}>
-        <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Liquidar reembolso</DialogTitle><DialogDescription>Transferí al destino aprobado y registrá la referencia externa. Aprobar no equivale a pagar.</DialogDescription></DialogHeader>
+        <DialogContent className="max-w-md"><DialogHeader><DialogTitle>{settlingRequest?.request_kind === "advance" ? "Desembolsar anticipo" : "Liquidar reembolso"}</DialogTitle><DialogDescription>Transferí al destino aprobado y registrá la referencia externa. Aprobar no equivale a pagar.</DialogDescription></DialogHeader>
           {settlementDetails && <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm"><p className="font-medium">{settlementDetails.beneficiary_name}</p><p className="text-muted-foreground">{settlementDetails.provider_label}</p><p className="mt-2 break-all font-mono text-xs">{settlementDetails.identifier}</p></div>}
           <div className="grid gap-2"><Label htmlFor="reimbursement-method">Medio</Label><Select value={settlementMethod} onValueChange={setSettlementMethod}><SelectTrigger id="reimbursement-method"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="transferencia">Transferencia</SelectItem><SelectItem value="mercadopago">Mercado Pago</SelectItem><SelectItem value="billetera">Otra billetera</SelectItem></SelectContent></Select></div>
           <div className="grid gap-2"><Label htmlFor="reimbursement-reference">Referencia o comprobante</Label><Input id="reimbursement-reference" value={settlementReference} onChange={e => setSettlementReference(e.target.value)} maxLength={160} /></div>
           <DialogFooter><Button variant="outline" onClick={() => setSettlingRequest(null)} disabled={Boolean(markingPaidId)}>Cancelar</Button><Button onClick={() => void handleSettleReimbursement()} disabled={Boolean(markingPaidId) || settlementReference.trim().length < 3}>{markingPaidId && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar pago</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(advanceManaging)} onOpenChange={open => { if (!open && !markingPaidId) setAdvanceManaging(null); }}>
+        <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Rendición del anticipo</DialogTitle><DialogDescription>Aplicá comprobantes o registrá fondos devueltos. El saldo debe llegar a cero para cerrar.</DialogDescription></DialogHeader>
+          {advanceSummary && <div className="grid grid-cols-3 gap-3 rounded-lg border border-border p-3 text-sm"><div><span className="text-xs text-muted-foreground">Entregado</span><p className="font-medium">$ {Number(advanceSummary.disbursed_amount).toLocaleString("es-AR")}</p></div><div><span className="text-xs text-muted-foreground">Rendido</span><p className="font-medium">$ {Number(advanceSummary.rendered_amount).toLocaleString("es-AR")}</p></div><div><span className="text-xs text-muted-foreground">Pendiente</span><p className="font-medium">$ {Number(advanceSummary.remaining_amount).toLocaleString("es-AR")}</p></div></div>}
+          <div className="grid gap-2"><Label>Movimiento</Label><Select value={advanceAction} onValueChange={value => setAdvanceAction(value as "expense" | "return")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="expense">Rendir comprobante</SelectItem><SelectItem value="return">Devolver sobrante</SelectItem></SelectContent></Select></div>
+          <div className="grid gap-2"><Label htmlFor="advance-amount">Importe</Label><Input id="advance-amount" type="number" min="0.01" step="0.01" max={Number(advanceSummary?.remaining_amount ?? 0)} value={advanceAmount || ""} onChange={e => setAdvanceAmount(Number(e.target.value))} /></div>
+          {advanceAction === "expense" && <div className="grid gap-2"><Label htmlFor="advance-description">Descripción del gasto</Label><Input id="advance-description" value={advanceDescription} onChange={e => setAdvanceDescription(e.target.value)} /></div>}
+          <div className="grid gap-2"><Label htmlFor="advance-evidence">Referencia del comprobante</Label><Input id="advance-evidence" value={advanceEvidence} onChange={e => setAdvanceEvidence(e.target.value)} maxLength={160} /></div>
+          <DialogFooter><Button variant="outline" onClick={() => setAdvanceManaging(null)} disabled={Boolean(markingPaidId)}>Cancelar</Button><Button onClick={() => void handleAdvanceAction()} disabled={Boolean(markingPaidId) || advanceAmount <= 0 || advanceEvidence.trim().length < 3 || (advanceAction === "expense" && advanceDescription.trim().length < 3)}>Registrar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
