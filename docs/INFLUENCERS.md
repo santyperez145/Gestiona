@@ -21,8 +21,8 @@ de creadores como propia.
 | Campañas | Brief, presupuesto, selección, invitación privada con expiración, aceptación/rechazo, seguimiento y auditoría. | Certificación con marcas y creadores reales. |
 | Entregables | Entrega y reentrega desde portal, revisión de marca, chat por colaboración y prueba de publicación con licencia tipada. | Archivos audiovisuales privados y conectores sociales verificados. |
 | Contratos | Versiones inmutables, aceptación de marca y creador por versión, evidencia temporal y acceso del creador por sesión o enlace limitado. | Proveedor de firma cualificada sólo si el marco legal/comercial lo exige. |
-| Comisiones | Ventas y payouts históricos; un retiro aprobado genera payout y gasto idempotente en el libro Finance. | Reversas y conciliación bancaria certificada del proveedor externo. |
-| Pagos automáticos | No habilitados; no se marca un pago como transferido desde el cliente. | Proveedor/partner, webhook firmado, idempotencia, reembolsos y condiciones legales. |
+| Comisiones | Ventas y payouts históricos; destinos cifrados para Mercado Pago, CBU/CVU, alias u otra billetera; la transferencia confirmada con referencia genera payout y gasto idempotente en Finance. | Reversas y conciliación bancaria certificada del proveedor externo. |
+| Pagos automáticos | El checkout de tienda usa OAuth y split 1:1 directo al comercio. Los payouts masivos de creadores permanecen cerrados salvo capacidad comercial habilitada; nunca se simula una transferencia. | Contrato de proveedor/partner, webhook firmado, reembolsos y certificación real. |
 | Mensajería y resultados | Chat, preferencias, publicación verificable y reportes sociales con revisión durable que alimentan reputación. | OAuth de redes y atribución externa certificada. |
 
 Activar o cerrar una campaña es un cambio de seguimiento, no una invitación,
@@ -43,6 +43,9 @@ pagada. Registrar una revisión no demuestra que una red social haya publicado.
 - La política MFA de la organización también se exige en esta superficie.
 - Cache por organización, sin refresco al recuperar foco ni reutilizar datos de
   otro tenant. Errores visibles y recuperables, nunca falsos listados vacíos.
+- Los destinos de cobro viven cifrados y en snapshots por retiro. El creador ve
+  datos enmascarados; sólo la marca responsable puede revelar el destino al
+  liquidar, y debe conservar una referencia de la operación.
 
 ## Migraciones y evidencia
 

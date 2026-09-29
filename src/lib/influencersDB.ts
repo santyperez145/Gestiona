@@ -547,17 +547,51 @@ export type WithdrawalRequest = {
   notes?: string | null;
   created_at: string;
   processed_at?: string | null;
+  payout_provider?: string | null;
+  payout_provider_label?: string | null;
+  payout_destination_type?: string | null;
+  payout_identifier_masked?: string | null;
+  payout_holder_name?: string | null;
+  payment_reference?: string | null;
+  payment_method?: string | null;
+  paid_at?: string | null;
 };
 
 export async function listWithdrawalRequests(): Promise<WithdrawalRequest[]> {
   const orgId = requireActiveOrgId();
-  const { data, error } = await sb.from('influencer_withdrawal_requests').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('influencer_withdrawal_requests')
+    .select('id,org_id,influencer_id,token,amount_ars,status,notes,created_at,processed_at,payout_provider,payout_provider_label,payout_destination_type,payout_identifier_masked,payout_holder_name,payment_reference,payment_method,paid_at')
+    .eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as WithdrawalRequest[];
 }
 
 export async function resolveWithdrawalRequest(id: string, status: 'approved' | 'rejected' | 'paid'): Promise<void> {
   const { error } = await sb.rpc('resolve_creator_withdrawal', { p_request_id: id, p_status: status });
+  if (error) throw error;
+}
+
+export type WithdrawalSettlementDetails = {
+  provider: string | null;
+  provider_label: string | null;
+  destination_type: string | null;
+  identifier: string | null;
+  masked: string | null;
+  holder_name: string | null;
+};
+
+export async function withdrawalSettlementDetails(id: string): Promise<WithdrawalSettlementDetails> {
+  const { data, error } = await sb.rpc('creator_withdrawal_settlement_details', { p_request_id: id });
+  if (error) throw error;
+  return data as unknown as WithdrawalSettlementDetails;
+}
+
+export async function settleWithdrawalRequest(id: string, reference: string, method = 'transferencia'): Promise<void> {
+  const { error } = await sb.rpc('settle_creator_withdrawal', {
+    p_request_id: id,
+    p_payment_reference: reference,
+    p_payment_method: method,
+  });
   if (error) throw error;
 }
 

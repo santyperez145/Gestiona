@@ -20,7 +20,9 @@ describe("paridad Go-Marz: retiros de comisiones desde el portal del creador", (
     expect(portal).toContain("handleSolicitarRetiro");
     expect(portal).toContain('"creator_request_withdrawal"');
     expect(portal).toContain("Solicitar retiro de comisiones");
-    expect(portal).toContain("CBU / CVU / Alias de cobro");
+    expect(portal).toContain('<SelectItem value="mercadopago">Mercado Pago</SelectItem>');
+    expect(portal).toContain('<SelectItem value="virtual_wallet">Otra billetera</SelectItem>');
+    expect(portal).toContain("p_destination_id: destinoId");
     expect(portal).toContain("<ArrowDownToLine");
   });
 

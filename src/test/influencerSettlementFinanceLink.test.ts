@@ -54,9 +54,10 @@ describe("liquidación de influencers enlazada a Finance", () => {
     expect(trigger).toContain("AFTER INSERT ON public.expenses");
   });
 
-  it("el sync de Mercado Pago resuelve como paid vía la RPC idempotente", () => {
-    expect(SYNC).toContain('rpc("resolve_creator_withdrawal"');
-    expect(SYNC).toContain('"paid"');
+  it("el sync de Mercado Pago liquida con la referencia externa", () => {
+    expect(SYNC).toContain('rpc("settle_creator_withdrawal"');
+    expect(SYNC).toContain('p_payment_reference');
+    expect(SYNC).toContain('p_payment_method: "mercadopago"');
   });
 
   it("service role nunca decide aprobaciones: sólo confirma pagos", () => {

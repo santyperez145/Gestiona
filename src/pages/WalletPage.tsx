@@ -185,7 +185,7 @@ export default function WalletPage() {
     // Se valida acá además de en la base: un CBU mal escrito no rebota en el
     // momento — la transferencia sale y la rechaza el banco días después.
     if (!validarCbu(cbu)) {
-      toast.error("El CBU no es válido. Revisá los números.");
+      toast.error("El CBU o CVU no es válido. Revisá los números.");
       return;
     }
 
@@ -489,11 +489,11 @@ export default function WalletPage() {
               )}
             </div>
             <div>
-              <Label>Banco</Label>
+              <Label>Banco o billetera</Label>
               <Input
                 value={nuevaCuenta.banco}
                 onChange={e => setNuevaCuenta(c => ({ ...c, banco: e.target.value }))}
-                placeholder="Opcional"
+                placeholder="Ej: Banco Nación, Mercado Pago o Ualá"
               />
             </div>
           </div>

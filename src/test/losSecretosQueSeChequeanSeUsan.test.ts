@@ -47,6 +47,9 @@ const NO_SON_SECRETOS: Record<string, string> = {
   PUBLIC_APP_URL:
     "Es el origen HTTPS público usado para construir links de documentación; " +
     "tiene un fallback productivo y no contiene ninguna credencial.",
+  MP_PAYOUTS_ENABLED:
+    "Es un interruptor de capacidad contractual, no una credencial. Ausente o " +
+    "distinto de true mantiene cerrado el adaptador de pagos masivos.",
 };
 
 /** Los `Deno.env.get("X")` de todas las funciones y sus módulos compartidos. */

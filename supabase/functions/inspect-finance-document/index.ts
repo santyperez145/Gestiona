@@ -42,7 +42,7 @@ function safeText(value: unknown, max: number): string | null {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
 }
 
-async function scanWithPrivateService(bytes: Uint8Array, _mimeType: string, _sha256: string) {
+async function scanWithPrivateService(bytes: Uint8Array, mimeType: string, sha256: string) {
   const scannerUrl = Deno.env.get("FINANCE_DOCUMENT_SCANNER_URL");
   const scannerToken = Deno.env.get("FINANCE_DOCUMENT_SCANNER_TOKEN");
   if (!scannerUrl || !scannerToken) {

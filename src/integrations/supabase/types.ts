@@ -6907,6 +6907,62 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_payout_destinations: {
+        Row: {
+          created_at: string
+          currency: string
+          destination_type: string
+          holder_name: string
+          id: string
+          identifier_encrypted: string
+          identifier_masked: string
+          is_active: boolean
+          is_default: boolean
+          provider: string
+          provider_label: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          destination_type: string
+          holder_name: string
+          id?: string
+          identifier_encrypted: string
+          identifier_masked: string
+          is_active?: boolean
+          is_default?: boolean
+          provider: string
+          provider_label: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          destination_type?: string
+          holder_name?: string
+          id?: string
+          identifier_encrypted?: string
+          identifier_masked?: string
+          is_active?: boolean
+          is_default?: boolean
+          provider?: string
+          provider_label?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_payout_destinations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "creator_accounts"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           activity_type: string
@@ -20260,6 +20316,16 @@ export type Database = {
           influencer_id: string
           notes: string | null
           org_id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          payout_destination_id: string | null
+          payout_destination_type: string | null
+          payout_holder_name: string | null
+          payout_identifier_encrypted: string | null
+          payout_identifier_masked: string | null
+          payout_provider: string | null
+          payout_provider_label: string | null
           processed_at: string | null
           processed_by: string | null
           status: string
@@ -20272,6 +20338,16 @@ export type Database = {
           influencer_id: string
           notes?: string | null
           org_id: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payout_destination_id?: string | null
+          payout_destination_type?: string | null
+          payout_holder_name?: string | null
+          payout_identifier_encrypted?: string | null
+          payout_identifier_masked?: string | null
+          payout_provider?: string | null
+          payout_provider_label?: string | null
           processed_at?: string | null
           processed_by?: string | null
           status?: string
@@ -20284,6 +20360,16 @@ export type Database = {
           influencer_id?: string
           notes?: string | null
           org_id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payout_destination_id?: string | null
+          payout_destination_type?: string | null
+          payout_holder_name?: string | null
+          payout_identifier_encrypted?: string | null
+          payout_identifier_masked?: string | null
+          payout_provider?: string | null
+          payout_provider_label?: string | null
           processed_at?: string | null
           processed_by?: string | null
           status?: string
@@ -20373,6 +20459,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_withdrawal_requests_payout_destination_id_fkey"
+            columns: ["payout_destination_id"]
+            isOneToOne: false
+            referencedRelation: "creator_payout_destinations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -57767,12 +57860,49 @@ export type Database = {
           amount_ars: number
           created_at: string
           id: string
+          paid_at: string
+          payment_reference: string
+          payout_identifier_masked: string
+          payout_provider_label: string
           processed_at: string
           status: string
         }[]
       }
+      creator_payout_destination_disable: {
+        Args: { p_destination_id: string }
+        Returns: undefined
+      }
+      creator_payout_destination_save: {
+        Args: {
+          p_destination_type: string
+          p_holder_name: string
+          p_identifier: string
+          p_is_default?: boolean
+          p_provider: string
+          p_provider_label: string
+        }
+        Returns: string
+      }
+      creator_payout_destinations_list: {
+        Args: never
+        Returns: {
+          created_at: string
+          currency: string
+          destination_type: string
+          holder_name: string
+          id: string
+          identifier_masked: string
+          is_default: boolean
+          provider: string
+          provider_label: string
+        }[]
+      }
       creator_request_withdrawal: {
-        Args: { p_amount_ars: number; p_notes?: string }
+        Args: {
+          p_amount_ars: number
+          p_destination_id: string
+          p_notes?: string
+        }
         Returns: Json
       }
       creator_respond_campaign: {
@@ -57820,6 +57950,10 @@ export type Database = {
           p_youtube: string
         }
         Returns: undefined
+      }
+      creator_withdrawal_settlement_details: {
+        Args: { p_request_id: string }
+        Returns: Json
       }
       cuenta_de_cobro:
         | { Args: { p_metodo: string }; Returns: string }
@@ -59926,6 +60060,16 @@ export type Database = {
           influencer_id: string
           notes: string | null
           org_id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          payout_destination_id: string | null
+          payout_destination_type: string | null
+          payout_holder_name: string | null
+          payout_identifier_encrypted: string | null
+          payout_identifier_masked: string | null
+          payout_provider: string | null
+          payout_provider_label: string | null
           processed_at: string | null
           processed_by: string | null
           status: string
@@ -60260,6 +60404,41 @@ export type Database = {
           p_store_id: string
         }
         Returns: Json
+      }
+      settle_creator_withdrawal: {
+        Args: {
+          p_payment_method?: string
+          p_payment_reference: string
+          p_request_id: string
+        }
+        Returns: {
+          amount_ars: number
+          created_at: string
+          id: string
+          influencer_id: string
+          notes: string | null
+          org_id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          payout_destination_id: string | null
+          payout_destination_type: string | null
+          payout_holder_name: string | null
+          payout_identifier_encrypted: string | null
+          payout_identifier_masked: string | null
+          payout_provider: string | null
+          payout_provider_label: string | null
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "influencer_withdrawal_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       siguiente_numero_factura: { Args: { p_org: string }; Returns: string }
       stage_catalog_migration: {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useCreator, type CreatorCampaign, type CreatorChatMessage, type CreatorContract } from "@/lib/creatorContext";
+import { useCreator, type CreatorCampaign, type CreatorChatMessage, type CreatorContract, type CreatorPayoutDestination } from "@/lib/creatorContext";
 import { supabase } from "@/integrations/supabase/client";
 import ChatNotifyCard from "@/components/influencers/ChatNotifyCard";
 import { CreatorFoco } from "@/components/creator/CreatorFoco";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
@@ -428,16 +429,46 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
 
 export default function CreatorPortalPage() {
   usePageTitle("Portal de creador");
-  const { loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, contracts, refresh, acceptContract } = useCreator();
+  const { loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, refresh, acceptContract, savePayoutDestination } = useCreator();
   const focoScrollRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Solicitud de retiro de comisiones
   const [retirarOpen, setRetirarOpen] = useState(false);
   const [montoRetiro, setMontoRetiro] = useState("");
-  const [cbuAlias, setCbuAlias] = useState("");
+  const [destinoId, setDestinoId] = useState("");
+  const [nuevoDestino, setNuevoDestino] = useState({
+    provider: "mercadopago" as CreatorPayoutDestination["provider"],
+    destination_type: "email" as CreatorPayoutDestination["destination_type"],
+    provider_label: "Mercado Pago",
+    holder_name: "",
+    identifier: "",
+  });
+  const [guardandoDestino, setGuardandoDestino] = useState(false);
   const [retirando, setRetirando] = useState(false);
 
   useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    if (!destinoId && payoutDestinations.length) {
+      setDestinoId((payoutDestinations.find(item => item.is_default) ?? payoutDestinations[0]).id);
+    }
+  }, [destinoId, payoutDestinations]);
+
+  const handleGuardarDestino = async () => {
+    if (!nuevoDestino.holder_name.trim() || !nuevoDestino.identifier.trim()) {
+      toast.error("Completá el titular y los datos de cobro");
+      return;
+    }
+    setGuardandoDestino(true);
+    try {
+      await savePayoutDestination({ ...nuevoDestino, holder_name: nuevoDestino.holder_name.trim(), identifier: nuevoDestino.identifier.trim() });
+      toast.success("Destino de cobro guardado y protegido");
+      setNuevoDestino(current => ({ ...current, holder_name: "", identifier: "" }));
+    } catch (err: any) {
+      toast.error(err.message || "No se pudo guardar el destino");
+    } finally {
+      setGuardandoDestino(false);
+    }
+  };
 
   const handleSolicitarRetiro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -445,19 +476,19 @@ export default function CreatorPortalPage() {
     const disponible = Number(earnings?.available_ars ?? 0);
     if (isNaN(monto) || monto <= 0) { toast.error("Ingresá un monto válido mayor a cero"); return; }
     if (monto > disponible) { toast.error(`El monto supera tu saldo disponible (${fmtMoney(disponible)})`); return; }
-    if (!cbuAlias.trim()) { toast.error("Ingresá tu CBU, CVU o alias para transferirte"); return; }
+    if (!destinoId) { toast.error("Elegí o guardá un destino de cobro"); return; }
 
     setRetirando(true);
     try {
       const { data, error } = await (supabase.rpc as any)("creator_request_withdrawal", {
         p_amount_ars: monto,
-        p_notes: `Datos de cobro: ${cbuAlias.trim()}`,
+        p_destination_id: destinoId,
+        p_notes: null,
       });
       if (error) throw error;
       toast.success("Solicitud de retiro enviada. La marca la revisará para transferirte.");
       setRetirarOpen(false);
       setMontoRetiro("");
-      setCbuAlias("");
       await refresh();
     } catch (err: any) {
       toast.error(err.message || "No se pudo solicitar el retiro");
@@ -588,6 +619,12 @@ export default function CreatorPortalPage() {
                           {new Date(w.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
                           {w.processed_at && " · procesado"}
                         </p>
+                        {w.payout_provider_label && (
+                          <p className="text-[11px] text-muted-foreground">
+                            {w.payout_provider_label} · {w.payout_identifier_masked}
+                            {w.payment_reference ? ` · Ref. ${w.payment_reference}` : ""}
+                          </p>
+                        )}
                       </div>
                       <Badge variant={w.status === "paid" ? "default" : w.status === "rejected" ? "destructive" : "outline"}>
                         {w.status === "pending" ? "En revisión" : w.status === "approved" ? "Aprobado" : w.status === "paid" ? "Pagado" : "Rechazado"}
@@ -678,7 +715,7 @@ export default function CreatorPortalPage() {
           <DialogHeader>
             <DialogTitle>Solicitar retiro de comisiones</DialogTitle>
             <DialogDescription>
-              La marca revisará tu solicitud y te transferirá al CBU/CVU o alias que indiques.
+              Elegí dónde querés recibir el dinero. Los datos completos se guardan cifrados y sólo se revelan a la marca que debe liquidarte.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSolicitarRetiro} className="space-y-4 pt-2">
@@ -699,21 +736,81 @@ export default function CreatorPortalPage() {
                 Disponible: {fmtMoney(Number(earnings?.available_ars ?? 0))}
               </p>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cbu-alias">CBU / CVU / Alias de cobro</Label>
-              <Input
-                id="cbu-alias"
-                value={cbuAlias}
-                onChange={e => setCbuAlias(e.target.value)}
-                placeholder="Ej: santiago.mp o 00000031000..."
-                required
-              />
+            {payoutDestinations.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Destino de cobro</Label>
+                <Select value={destinoId} onValueChange={setDestinoId}>
+                  <SelectTrigger><SelectValue placeholder="Elegí un destino" /></SelectTrigger>
+                  <SelectContent>
+                    {payoutDestinations.map(destination => (
+                      <SelectItem key={destination.id} value={destination.id}>
+                        {destination.provider_label} · {destination.identifier_masked}{destination.is_default ? " · Principal" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <p className="text-sm font-medium">{payoutDestinations.length ? "Agregar otro destino" : "Configurá tu destino de cobro"}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label>Proveedor</Label>
+                  <Select
+                    value={nuevoDestino.provider}
+                    onValueChange={(value: CreatorPayoutDestination["provider"]) => setNuevoDestino(current => ({
+                      ...current,
+                      provider: value,
+                      provider_label: value === "mercadopago" ? "Mercado Pago" : value === "bank_transfer" ? "Transferencia bancaria" : "Billetera virtual",
+                      destination_type: value === "mercadopago" ? "email" : value === "bank_transfer" ? "cbu" : "wallet_handle",
+                    }))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                      <SelectItem value="bank_transfer">Banco</SelectItem>
+                      <SelectItem value="virtual_wallet">Otra billetera</SelectItem>
+                      <SelectItem value="other">Otro proveedor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Dato requerido</Label>
+                  <Select value={nuevoDestino.destination_type} onValueChange={(value: CreatorPayoutDestination["destination_type"]) => setNuevoDestino(current => ({ ...current, destination_type: value }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="email">Email de cuenta</SelectItem>
+                      <SelectItem value="cbu">CBU</SelectItem>
+                      <SelectItem value="cvu">CVU</SelectItem>
+                      <SelectItem value="alias">Alias</SelectItem>
+                      <SelectItem value="wallet_handle">Usuario de billetera</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {nuevoDestino.provider !== "mercadopago" && nuevoDestino.provider !== "bank_transfer" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="proveedor-destino">Nombre de la billetera o plataforma</Label>
+                  <Input id="proveedor-destino" value={nuevoDestino.provider_label} onChange={e => setNuevoDestino(current => ({ ...current, provider_label: e.target.value }))} placeholder="Ej: Ualá" />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="titular-destino">Titular</Label>
+                <Input id="titular-destino" value={nuevoDestino.holder_name} onChange={e => setNuevoDestino(current => ({ ...current, holder_name: e.target.value }))} placeholder="Nombre completo" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="identificador-destino">Email, CBU, CVU, alias o usuario</Label>
+                <Input id="identificador-destino" value={nuevoDestino.identifier} onChange={e => setNuevoDestino(current => ({ ...current, identifier: e.target.value }))} placeholder="Dato de la cuenta receptora" />
+              </div>
+              <Button type="button" variant="outline" className="w-full" disabled={guardandoDestino} onClick={() => void handleGuardarDestino()}>
+                {guardandoDestino && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />} Guardar como destino principal
+              </Button>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setRetirarOpen(false)} disabled={retirando}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={retirando}>
+              <Button type="submit" disabled={retirando || !destinoId}>
                 {retirando ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <ArrowDownToLine className="h-4 w-4 mr-1.5" />}
                 Confirmar solicitud
               </Button>

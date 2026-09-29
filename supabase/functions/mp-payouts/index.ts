@@ -1,9 +1,12 @@
 /**
- * mp-payouts — pago automático de comisiones a creadores vía Mercado Pago
- * Payouts (paridad Go-Marz: la marca paga a los influencers desde la
- * plataforma, sin transferencias manuales).
+ * mp-payouts — adaptador opcional de Mercado Pago Payouts.
  *
- * ── Contrato oficial (docs MP, verificado 2026-09-24) ─────────────────────
+ * Este producto no forma parte del contrato publico de Split 1:1. Por eso la
+ * funcion permanece cerrada salvo que Nerqia tenga habilitacion contractual
+ * explicita (`MP_PAYOUTS_ENABLED=true`). El flujo normal usa destinos cifrados
+ * y liquidacion externa con referencia comprobable.
+ *
+ * ── Contrato de cartera habilitada ─────────────────────────────────────────
  * POST https://api.mercadopago.com/v1/payouts
  *   Headers obligatorios: Authorization: Bearer, X-Idempotency-Key (UUID)
  *   Body: external_reference (único ≤64), description (≤100),
@@ -70,6 +73,13 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const action = body?.action ?? "create";
+
+    if (Deno.env.get("MP_PAYOUTS_ENABLED") !== "true") {
+      return json({
+        error: "Los pagos masivos de Mercado Pago requieren habilitación comercial. Usá la liquidación por destino del creador.",
+        code: "provider_capability_unavailable",
+      }, 409);
+    }
 
     // ── create: armar y enviar el lote a MP ───────────────────────────────
     if (action === "create") {

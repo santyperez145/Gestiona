@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
- * Guardia del lote de pagos automáticos a creadores vía Mercado Pago Payouts.
+ * Guardia del adaptador opcional de Mercado Pago Payouts.
  *
  * Contrato verificado contra docs oficiales MP (2026-09-24):
  * POST /v1/payouts con X-Idempotency-Key obligatorio, external_reference
@@ -21,6 +21,11 @@ describe("MP Payouts: Edge Function mp-payouts", () => {
     // La llave idempotente es el external_reference del lote en la base:
     // un reintento no duplica transferencias.
     expect(edge).toContain("X-Idempotency-Key\": externalReference");
+  });
+
+  it("permanece cerrado sin habilitacion comercial explicita", () => {
+    expect(edge).toContain('Deno.env.get("MP_PAYOUTS_ENABLED") !== "true"');
+    expect(edge).toContain('provider_capability_unavailable');
   });
 
   it("envía transacciones válidas: cuenta MP destino + ARS + referencia única", () => {
@@ -43,11 +48,12 @@ describe("MP Payouts: Edge Function mp-payouts", () => {
     expect(edge).not.toMatch(/Bearer\s+["']APP_USR/);
   });
 
-  it("sincroniza: MP aprobado → retiro pagado via resolve_creator_withdrawal", () => {
+  it("sincroniza: MP aprobado → retiro pagado con referencia externa", () => {
     // La lógica de sync vive en el módulo compartido con el webhook.
     expect(edge).toContain("sincronizarLotePayouts(admin, batchId)");
     const syncModule = read("supabase/functions/_shared/mpPayoutsSync.ts");
-    expect(syncModule).toContain('rpc("resolve_creator_withdrawal"');
+    expect(syncModule).toContain('rpc("settle_creator_withdrawal"');
+    expect(syncModule).toContain('p_payment_reference');
     expect(syncModule).toContain("MP_PAYOUTS_URL = \"https://api.mercadopago.com/v1/payouts\"");
     expect(syncModule).toContain(")}/transactions`");
     expect(syncModule).toContain('"partially_completed"');
@@ -75,7 +81,7 @@ describe("MP Payouts: webhook asíncrono", () => {
   });
 
   it("la sincronización es compartida y settlea idempotente vía RPC", () => {
-    expect(sync).toContain('rpc("resolve_creator_withdrawal"');
+    expect(sync).toContain('rpc("settle_creator_withdrawal"');
     expect(sync).toContain("influencer_payout_batch_items");
     // mp-payouts usa el mismo módulo: una sola verdad de estados.
     expect(read("supabase/functions/mp-payouts/index.ts")).toContain("sincronizarLotePayouts(admin, batchId)");
@@ -98,13 +104,11 @@ describe("MP Payouts: base y UI de la marca", () => {
     expect(migracion).toContain("Todos los retiros deben estar aprobados y pertenecer a tu organización");
   });
 
-  it("la página de pagos tiene selección múltiple + botón MP + lotes", () => {
+  it("la página liquida al destino elegido sin prometer payout no contratado", () => {
     const page = read("src/pages/InfluencerPaymentsPage.tsx");
-    expect(page).toContain("Pagar con Mercado Pago");
-    expect(page).toContain("mp-payouts");
-    expect(page).toContain("Lotes enviados a Mercado Pago");
-    expect(page).toContain("sincronizarLote");
-    // El flujo manual sigue disponible para retiros pendientes.
+    expect(page).toContain("settleWithdrawalRequest");
+    expect(page).toContain("Referencia o comprobante");
+    expect(page).not.toContain("Pagar con Mercado Pago");
     expect(page).toContain("resolve(w.id, 'rejected')");
   });
 });

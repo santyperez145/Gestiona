@@ -72,6 +72,30 @@ export interface CreatorWithdrawal {
   status: "pending" | "approved" | "paid" | "rejected";
   created_at: string;
   processed_at: string | null;
+  payout_provider_label: string | null;
+  payout_identifier_masked: string | null;
+  payment_reference: string | null;
+  paid_at: string | null;
+}
+
+export interface CreatorPayoutDestination {
+  id: string;
+  provider: "mercadopago" | "bank_transfer" | "virtual_wallet" | "other";
+  destination_type: "email" | "cbu" | "cvu" | "alias" | "wallet_handle";
+  provider_label: string;
+  holder_name: string;
+  identifier_masked: string;
+  currency: "ARS";
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface CreatorPayoutDestinationInput {
+  provider: CreatorPayoutDestination["provider"];
+  destination_type: CreatorPayoutDestination["destination_type"];
+  provider_label: string;
+  holder_name: string;
+  identifier: string;
 }
 
 /** Contrato visible para el creador: condiciones + estado de doble aceptación. */
@@ -147,6 +171,7 @@ interface CreatorCtx {
   deliverables: CreatorDeliverable[];
   earnings: CreatorEarnings | null;
   withdrawals: CreatorWithdrawal[];
+  payoutDestinations: CreatorPayoutDestination[];
   contracts: CreatorContract[];
   linkedProfiles: CreatorLinkedProfile[];
   metricReports: CreatorSocialMetricReport[];
@@ -164,6 +189,8 @@ interface CreatorCtx {
   acceptContract: (contractId: string, signatureName: string) => Promise<void>;
   /** Envía métricas sociales con evidencia para revisión de la marca. */
   submitMetricReport: (input: CreatorMetricReportInput) => Promise<void>;
+  savePayoutDestination: (input: CreatorPayoutDestinationInput) => Promise<void>;
+  disablePayoutDestination: (destinationId: string) => Promise<void>;
 }
 
 /** Mensaje del hilo de una colaboración, tal como lo devuelve el RPC. */
@@ -188,6 +215,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   const [deliverables, setDeliverables] = useState<CreatorDeliverable[]>([]);
   const [earnings, setEarnings] = useState<CreatorEarnings | null>(null);
   const [withdrawals, setWithdrawals] = useState<CreatorWithdrawal[]>([]);
+  const [payoutDestinations, setPayoutDestinations] = useState<CreatorPayoutDestination[]>([]);
   const [contracts, setContracts] = useState<CreatorContract[]>([]);
   const [linkedProfiles, setLinkedProfiles] = useState<CreatorLinkedProfile[]>([]);
   const [metricReports, setMetricReports] = useState<CreatorSocialMetricReport[]>([]);
@@ -200,6 +228,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setDeliverables([]);
       setEarnings(null);
       setWithdrawals([]);
+      setPayoutDestinations([]);
       setContracts([]);
       setLinkedProfiles([]);
       setMetricReports([]);
@@ -231,13 +260,14 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setProfile(own);
 
       if (own) {
-        const [camp, deliv, earn, wd, ctr, metrics] = await Promise.all([
+        const [camp, deliv, earn, wd, ctr, metrics, destinations] = await Promise.all([
           rpc("creator_campaigns"),
           rpc("creator_deliverables"),
           rpc("creator_earnings"),
           rpc("creator_my_withdrawals"),
           rpc("creator_my_contracts"),
           rpc("creator_my_social_metric_reports"),
+          rpc("creator_payout_destinations_list"),
         ]);
         setCampaigns(Array.isArray(camp.data) ? camp.data : []);
         setDeliverables(Array.isArray(deliv.data) ? deliv.data : []);
@@ -247,11 +277,13 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
         setWithdrawals(Array.isArray(wd.data) ? wd.data : []);
         setContracts(Array.isArray(ctr.data) ? ctr.data : []);
         setMetricReports(Array.isArray(metrics.data) ? metrics.data : []);
+        setPayoutDestinations(Array.isArray(destinations.data) ? destinations.data : []);
       } else {
         setCampaigns([]);
         setDeliverables([]);
         setEarnings(null);
         setWithdrawals([]);
+        setPayoutDestinations([]);
         setContracts([]);
         setMetricReports([]);
       }
@@ -263,6 +295,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setDeliverables([]);
       setEarnings(null);
       setWithdrawals([]);
+      setPayoutDestinations([]);
       setContracts([]);
       setLinkedProfiles([]);
       setMetricReports([]);
@@ -347,8 +380,27 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const savePayoutDestination = useCallback(async (input: CreatorPayoutDestinationInput) => {
+    const { error } = await rpc("creator_payout_destination_save", {
+      p_provider: input.provider,
+      p_destination_type: input.destination_type,
+      p_provider_label: input.provider_label,
+      p_holder_name: input.holder_name,
+      p_identifier: input.identifier,
+      p_is_default: true,
+    });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
+  const disablePayoutDestination = useCallback(async (destinationId: string) => {
+    const { error } = await rpc("creator_payout_destination_disable", { p_destination_id: destinationId });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, contracts, linkedProfiles, metricReports, refresh, saveProfile, respondCampaign, submitDeliverable, listChat, sendChat, acceptContract, submitMetricReport }}>
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, linkedProfiles, metricReports, refresh, saveProfile, respondCampaign, submitDeliverable, listChat, sendChat, acceptContract, submitMetricReport, savePayoutDestination, disablePayoutDestination }}>
       {children}
     </CreatorContext.Provider>
   );

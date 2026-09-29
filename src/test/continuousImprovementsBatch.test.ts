@@ -16,8 +16,9 @@ describe("mejoras continuas: barra de envio gratis en carrito y datos de cobro e
     expect(storeCart).toContain("¡Genial! Tu pedido tiene Envío Gratis");
   });
 
-  it("la tabla de retiros de influencers muestra los datos de cobro cargados por el creador", () => {
-    expect(influencerPayments).toContain("Datos de cobro");
-    expect(influencerPayments).toContain("w.notes || 'Sin datos cargados'");
+  it("la tabla de retiros muestra el destino estructurado sin filtrar datos en notas", () => {
+    expect(influencerPayments).toContain("payout_provider_label");
+    expect(influencerPayments).toContain("payout_identifier_masked");
+    expect(influencerPayments).not.toContain("w.notes || 'Sin datos cargados'");
   });
 });

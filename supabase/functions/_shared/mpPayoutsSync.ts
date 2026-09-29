@@ -76,11 +76,12 @@ export async function sincronizarLotePayouts(
     const status = String(t?.status ?? "").toLowerCase();
 
     if (status === "approved") {
-      // MP confirmó la transferencia: resolver el retiro como pagado.
-      // resolve_creator_withdrawal asienta la liquidación (idempotente).
-      const { error } = await admin.rpc("resolve_creator_withdrawal", {
+      // MP confirmó la transferencia: se conserva el id externo como
+      // comprobante y la RPC asienta la liquidación de forma idempotente.
+      const { error } = await admin.rpc("settle_creator_withdrawal", {
         p_request_id: withdrawalId,
-        p_status: "paid",
+        p_payment_reference: String(t?.id ?? t?.external_reference ?? "mercadopago"),
+        p_payment_method: "mercadopago",
       });
       if (!error) aprobados += 1;
     } else if (status === "rejected" || status === "cancelled") {
