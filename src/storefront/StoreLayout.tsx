@@ -547,7 +547,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         {/* ── Newsletter footer ─────────────────────────────── */}
         {store?.slug && (
           <div className="storefront-newsletter">
-            <StoreNewsletter />
+            <StoreNewsletter slug={store.slug} base={base} />
           </div>
         )}
         {/* Defensa del Consumidor exige que el comprador sepa dónde reclamar

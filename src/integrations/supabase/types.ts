@@ -18554,6 +18554,8 @@ export type Database = {
           contract_amount: number | null
           contract_type: string
           created_at: string | null
+          created_by: string | null
+          creator_token: string | null
           id: string
           influencer_id: string | null
           influencer_name: string
@@ -18564,6 +18566,7 @@ export type Database = {
           updated_at: string | null
           valid_from: string
           valid_until: string | null
+          version: number
         }
         Insert: {
           commission_fixed?: number | null
@@ -18571,6 +18574,8 @@ export type Database = {
           contract_amount?: number | null
           contract_type?: string
           created_at?: string | null
+          created_by?: string | null
+          creator_token?: string | null
           id?: string
           influencer_id?: string | null
           influencer_name: string
@@ -18581,6 +18586,7 @@ export type Database = {
           updated_at?: string | null
           valid_from: string
           valid_until?: string | null
+          version?: number
         }
         Update: {
           commission_fixed?: number | null
@@ -18588,6 +18594,8 @@ export type Database = {
           contract_amount?: number | null
           contract_type?: string
           created_at?: string | null
+          created_by?: string | null
+          creator_token?: string | null
           id?: string
           influencer_id?: string | null
           influencer_name?: string
@@ -18598,6 +18606,7 @@ export type Database = {
           updated_at?: string | null
           valid_from?: string
           valid_until?: string | null
+          version?: number
         }
         Relationships: [
           {

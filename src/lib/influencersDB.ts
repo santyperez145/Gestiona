@@ -33,6 +33,16 @@ export type InfluencerContract = {
   notes?: string;
   created_at: string;
   updated_at: string;
+  /** Versión vigente de las condiciones; cambia invalida aceptaciones. */
+  version?: number;
+  /** Enlace de aceptación del creador (sólo se comparte, nunca se expone en UI). */
+  creator_token?: string;
+  /** Cuándo aceptó la marca la versión vigente (server-side). */
+  brand_accepted_at?: string | null;
+  /** Cuándo aceptó el creador la versión vigente (server-side). */
+  creator_accepted_at?: string | null;
+  /** Nombre con el que el creador firmó la versión vigente. */
+  creator_signature_name?: string | null;
 };
 
 export function isActiveInfluencer(status: string) {
@@ -123,30 +133,73 @@ export type BrandPortalProfile = {
 /** ─── Contratos ─── */
 export async function listInfluencerContracts(): Promise<InfluencerContract[]> {
   const orgId = requireActiveOrgId();
+  // La vista de la base expone el estado REAL de doble aceptación computado
+  // server-side (brand_accepted_at / creator_accepted_at). La marca nunca
+  // declara la firma del creador: la aceptación es de él, por token o sesión.
   const { data, error } = await sb
-    .from('influencer_contracts')
+    .from('influencer_contract_status')
     .select('*')
     .eq('org_id', orgId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(200);
   if (error) throw error;
   return (data || []) as InfluencerContract[];
 }
 
 export async function createContract(payload: Partial<InfluencerContract> & { org_id: string; influencer_id: string }): Promise<InfluencerContract> {
-  const orgId = requireActiveOrgId();
-  const { data, error } = await sb.from('influencer_contracts').insert({ ...payload, org_id: orgId }).select().single();
+  // Server-side: crea v1 + aceptación de marca + token público para el creador.
+  // El insert directo desde el cliente queda prohibido por RLS/RPC.
+  const { data, error } = await sb.rpc('create_influencer_contract', {
+    p_org_id: payload.org_id,
+    p_influencer_id: payload.influencer_id,
+    p_contract_type: payload.contract_type,
+    p_contract_amount: payload.contract_amount ?? 0,
+    p_commission_percent: payload.commission_percent ?? 0,
+    p_valid_from: payload.valid_from,
+    p_valid_until: payload.valid_until ?? null,
+    p_notes: payload.notes ?? null,
+  });
   if (error) throw error;
-  return data as InfluencerContract;
+  return (data as unknown as InfluencerContract) ?? null;
 }
 
 export async function updateContract(id: string, updates: Partial<InfluencerContract>) {
-  const { error } = await sb.from('influencer_contracts').update(updates).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
+  const orgId = requireActiveOrgId();
+  // Cambiar condiciones es versión nueva: la aceptación previa del creador
+  // caduca y vuelve a decidir. La firma unilateral ya no existe.
+  const { error } = await sb.rpc('update_influencer_contract_terms', {
+    p_contract_id: id,
+    p_contract_type: updates.contract_type,
+    p_contract_amount: updates.contract_amount ?? 0,
+    p_commission_percent: updates.commission_percent ?? 0,
+    p_valid_from: updates.valid_from,
+    p_valid_until: updates.valid_until ?? null,
+    p_notes: updates.notes ?? null,
+  });
   if (error) throw error;
+  // El estado comercial (active/paused/...) sigue siendo de la marca.
+  if (updates.status && updates.status !== undefined) {
+    const { error: statusError } = await sb
+      .from('influencer_contracts')
+      .update({ status: updates.status, updated_at: new Date().toISOString() })
+      .eq('org_id', orgId)
+      .eq('id', id);
+    if (statusError) throw statusError;
+  }
 }
 
-export async function signContract(id: string): Promise<void> {
-  const { error } = await sb.from('influencer_contracts').update({ is_signed: true, updated_at: new Date().toISOString() }).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
+/** La firma la acepta el creador (token público o su sesión): la marca no firma por él. */
+export async function getContractShareLink(id: string): Promise<string> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb
+    .from('influencer_contracts')
+    .select('creator_token')
+    .eq('org_id', orgId)
+    .eq('id', id)
+    .single();
   if (error) throw error;
+  if (!data?.creator_token) throw new Error('contract_without_token');
+  return `${window.location.origin}/aceptar-contrato/${data.creator_token}`;
 }
 
 export async function deleteContract(id: string): Promise<void> {
@@ -236,6 +289,62 @@ export async function listPayments(): Promise<InfluencerPayment[]> {
   const { data, error } = await sb.from('influencer_payments').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as InfluencerPayment[];
+}
+
+/** Estado de retención del pago (Go-Marz parity: retener hasta publicar). */
+export interface InfluencerPaymentRelease {
+  id: string;
+  influencer_name: string;
+  amount: number;
+  status: string;
+  /** publication_verified = retenido hasta verificar la publicación. */
+  release_condition: 'manual' | 'publication_verified';
+  /** Cuándo la verificación de publicación lo habilitó (null = sigue retenido). */
+  released_at: string | null;
+  is_held: boolean;
+  is_payable: boolean;
+  created_at: string;
+}
+
+/** Lista pagos con estado de retención: la vista computa held/payable. */
+export async function listPaymentsWithRelease(): Promise<InfluencerPaymentRelease[]> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb
+    .from('influencer_payment_release_status')
+    .select('id, influencer_name, amount, status, release_condition, released_at, is_held, is_payable, created_at')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as InfluencerPaymentRelease[];
+}
+
+/** Crea un pago retenido: la verificación de publicación lo libera (server-side). */
+export async function createHeldPayment(input: {
+  influencerId: string;
+  campaignId: string;
+  amount: number;
+  paymentMethod?: 'transfer' | 'mp_money' | 'cash' | 'check' | 'other';
+  notes?: string | null;
+}): Promise<InfluencerPayment> {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await sb.rpc('create_influencer_held_payment', {
+    p_org_id: orgId,
+    p_influencer_id: input.influencerId,
+    p_campaign_id: input.campaignId,
+    p_amount: input.amount,
+    p_payment_method: input.paymentMethod ?? 'transfer',
+    p_notes: input.notes ?? null,
+  });
+  if (error) throw error;
+  return data as InfluencerPayment;
+}
+
+/** Traducción humana del estado de retención (nunca IDs crudos al usuario). */
+export function heldPaymentLabel(p: Pick<InfluencerPaymentRelease, 'is_payable' | 'released_at' | 'status'>): string {
+  if (p.status === 'completed') return 'Pagado';
+  if (p.released_at) return 'Listo para pagar';
+  if (p.status === 'failed') return 'Fallido';
+  return 'Retenido hasta publicación';
 }
 
 export async function createPayment(payload: Partial<InfluencerPayment> & { org_id: string; influencer_id: string }): Promise<InfluencerPayment> {
@@ -450,4 +559,97 @@ export async function listWithdrawalRequests(): Promise<WithdrawalRequest[]> {
 export async function resolveWithdrawalRequest(id: string, status: 'approved' | 'rejected' | 'paid'): Promise<void> {
   const { error } = await sb.rpc('resolve_creator_withdrawal', { p_request_id: id, p_status: status });
   if (error) throw error;
+}
+
+/** ─── Reputación verificada del directorio (Go-Marz discovery parity) ─── */
+export type InfluencerReputation = {
+  influencer_id: string;
+  rating: number | null;
+  reviews_count: number;
+  collaborations_count: number;
+  on_time_rate: number | null;
+  verified_publications: number;
+  /** Métricas con evidencia verificada por la marca en los últimos 180 días. */
+  verified_metrics: boolean;
+  last_verified_at: string | null;
+};
+
+export async function listInfluencerReputation(orgId: string): Promise<Map<string, InfluencerReputation>> {
+  const { data, error } = await sb.rpc('influencer_reputation_map', { p_org_id: orgId });
+  if (error) throw error;
+  const rows = (data ?? []) as InfluencerReputation[];
+  return new Map(rows.map(row => [row.influencer_id, row]));
+}
+
+/** ─── Métricas sociales verificadas (Go-Marz parity) ─── */
+export type SocialMetricReport = {
+  id: string;
+  org_id: string;
+  influencer_id: string;
+  platform: 'instagram' | 'tiktok' | 'youtube';
+  metric_kind: 'captura' | 'export_csv';
+  evidence_url: string;
+  period_start: string;
+  period_end: string;
+  followers: number;
+  reach: number | null;
+  impressions: number | null;
+  engagement_rate: number | null;
+  notes: string | null;
+  status: 'submitted' | 'verified' | 'rejected';
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_notes: string | null;
+  created_at: string;
+  influencer_name?: string | null;
+};
+
+export async function listSocialMetricReports(orgId: string): Promise<SocialMetricReport[]> {
+  const { data, error } = await sb.rpc('list_social_metric_reports', { p_org_id: orgId });
+  if (error) throw error;
+  return (data ?? []) as SocialMetricReport[];
+}
+
+export async function submitSocialMetricReport(input: {
+  influencer_id: string;
+  platform: SocialMetricReport['platform'];
+  evidence_url: string;
+  period_start: string;
+  period_end: string;
+  followers: number;
+  reach?: number | null;
+  impressions?: number | null;
+  engagement_rate?: number | null;
+  metric_kind?: 'captura' | 'export_csv';
+  notes?: string | null;
+}): Promise<SocialMetricReport> {
+  const { data, error } = await sb.rpc('submit_social_metric_report', {
+    p_influencer_id: input.influencer_id,
+    p_platform: input.platform,
+    p_evidence_url: input.evidence_url,
+    p_period_start: input.period_start,
+    p_period_end: input.period_end,
+    p_followers: input.followers,
+    p_reach: input.reach ?? null,
+    p_impressions: input.impressions ?? null,
+    p_engagement_rate: input.engagement_rate ?? null,
+    p_metric_kind: input.metric_kind ?? 'captura',
+    p_notes: input.notes ?? null,
+  });
+  if (error) throw error;
+  return data as SocialMetricReport;
+}
+
+export async function reviewSocialMetricReport(
+  reportId: string,
+  status: 'verified' | 'rejected',
+  reviewNotes: string | null,
+): Promise<SocialMetricReport> {
+  const { data, error } = await sb.rpc('review_social_metric_report', {
+    p_report_id: reportId,
+    p_status: status,
+    p_review_notes: reviewNotes,
+  });
+  if (error) throw error;
+  return data as SocialMetricReport;
 }

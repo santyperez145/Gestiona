@@ -1,111 +1,105 @@
 /**
- * Formulario de suscripción al newsletter del footer de la tienda.
+ * Newsletter de la tienda — el formulario que Tiendanube y Shopify pisan en
+ * el footer de cada página.
  *
- * Conecta directamente al RPC público `subscribe_store_newsletter` por slug,
- * sin hardcodear texto ni suposiciones de negocio: el footer de cada tienda
- * captura suscriptores anónimos respetando el opt-out global.
+ * Antes, el consentimiento de marketing sólo existía al finalizar una compra:
+ * el visitante que todavía no compraba no tenía forma de dejar su email. La
+ * suscripción vive en `store_newsletter_subscribers` (RPC pública por slug) y
+ * viaja al CRM cuando la persona compra. La baja nunca se reactiva desde acá.
  */
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useStore } from "./storeContext";
-import { Loader2, Send } from "lucide-react";
+import { Mail, Loader2, Check } from "lucide-react";
+import { normalizarEmail } from "@/lib/couponRules";
 
-export default function StoreNewsletter() {
-  const { store } = useStore();
+type Estado = "idle" | "enviando" | "suscrito" | "ya_suscrito" | "dado_de_baja" | "error";
+
+const MENSAJES: Record<Exclude<Estado, "idle" | "enviando">, string> = {
+  suscrito: "¡Listo! Te avisamos de las novedades.",
+  ya_suscrito: "Ya estabas suscripto a este boletín.",
+  dado_de_baja: "Este email había sido dado de baja. Escribinos si querés volver a recibir novedades.",
+  error: "No pudimos guardar tu email. Revisalo e intentá de nuevo.",
+};
+
+export default function StoreNewsletter({ slug, base }: { slug?: string | null; base: string }) {
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [estado, setEstado] = useState<"idle" | "ok" | "error" | "unsubscribed">("idle");
-  const [mensaje, setmensaje] = useState("");
+  const [estado, setEstado] = useState<Estado>("idle");
 
-  if (!store?.slug) return null;
+  if (!slug) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEnviando(true);
-    setEstado("idle");
-    setmensaje("");
-
-    const { data, error } = await (supabase.rpc as any)("subscribe_store_newsletter", {
-      p_store_slug: store.slug,
-      p_email: email,
-      p_name: name || null,
-    });
-
-    setEnviando(false);
-
-    if (error) {
-      console.error("[newsletter] error:", error);
+    const limpio = normalizarEmail(email);
+    if (!limpio) {
       setEstado("error");
-      setmensaje("No pudimos registrar la suscripción. Probá de nuevo.");
       return;
     }
-
-const result = (data ?? null) as { ok: boolean; error?: string } | null;
-    if (result?.ok) {
-      setEstado("ok");
-      setmensaje("¡Gracias! Tu-email está registrado.");
-      setEmail("");
-      setName("");
-    } else if (result?.error === "unsubscribed") {
-      setEstado("unsubscribed");
-      setmensaje("Este email está dado de baja. Contactanos para revertirlo.");
-    } else {
+    setEstado("enviando");
+    const { data, error } = await supabase.rpc("register_store_newsletter", {
+      p_slug: slug,
+      p_email: limpio,
+    });
+    const respuesta = (data ?? {}) as { ok?: boolean; estado?: string };
+    if (error || !respuesta.ok || !respuesta.estado) {
       setEstado("error");
-      setmensaje(result?.error ?? "No se pudo suscribir.");
+      return;
     }
+    setEstado(respuesta.estado as Estado);
+    setEmail("");
   };
 
+  const resuelto = estado === "suscrito" || estado === "ya_suscrito" || estado === "dado_de_baja";
+
   return (
-    <form onSubmit={handleSubmit} className="storefront-newsletter space-y-2">
-      <p className="text-xs font-semibold" style={{ color: "hsl(var(--st-muted))" }}>
-        Sumate al newsletter
+    <div className="storefront-newsletter">
+      <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+        <Mail className="w-4 h-4" style={{ color: "hsl(var(--st-accent))" }} />
+        Novedades y promociones
       </p>
-      <div className="flex flex-col gap-2">
-        <input
-          type="email"
-          required
-          placeholder="tu@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={enviando || estado === "ok"}
-          className="w-full px-3 py-2 text-sm border bg-transparent outline-none"
-          style={{
-            borderRadius: "var(--st-radius)",
-            borderColor: "hsl(var(--st-border))",
-            color: "hsl(var(--st-fg))",
-          }}
-        />
-        <input
-          type="text"
-          placeholder="Nombre (opcional)"
-          value={name}
-          onChange={(e) => setName(e.target.value.slice(0, 80))}
-          disabled={enviando || estado === "ok"}
-          className="w-full px-3 py-2 text-sm border bg-transparent outline-none"
-          style={{
-            borderRadius: "var(--st-radius)",
-            borderColor: "hsl(var(--st-border))",
-            color: "hsl(var(--st-fg))",
-          }}
-        />
-        <button
-          type="submit"
-          disabled={enviando || estado === "ok" || estado === "unsubscribed"}
-          className="w-full flex min-h-11 items-center justify-center gap-2 text-sm font-medium"
-          style={{
-            background: "hsl(var(--st-accent))",
-            color: "hsl(var(--st-accent-fg))",
-            borderRadius: "var(--st-radius)",
-          }}
-        >
-          {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          {enviando ? "Enviando…" : "Suscribir"}
-        </button>
-        {estado === "ok" && (
-          <p className="text-xs" style={{ color: "hsl(var(--st-link))" }}>{mensaje}</p>
-        )}
-      </div>
-    </form>
+      {resuelto ? (
+        <p className="text-sm flex items-start gap-2" style={{ color: "hsl(var(--st-muted))" }}>
+          <Check className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-accent))" }} />
+          {MENSAJES[estado as Exclude<Estado, "idle" | "enviando">]}
+        </p>
+      ) : (
+        <form onSubmit={enviar} className="flex gap-2 max-w-sm" aria-label="Suscribirse al newsletter">
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); if (estado === "error") setEstado("idle"); }}
+            placeholder="Email para novedades"
+            aria-label="Email para recibir novedades"
+            className="flex-1 min-h-11 px-3 text-sm border"
+            style={{
+              borderRadius: "var(--st-radius)",
+              borderColor: "hsl(var(--st-border))",
+              background: "hsl(var(--st-bg))",
+              color: "hsl(var(--st-fg))",
+            }}
+          />
+          <button
+            type="submit"
+            disabled={estado === "enviando"}
+            className="px-4 min-h-11 text-sm font-semibold shrink-0 disabled:opacity-60 inline-flex items-center gap-2"
+            style={{
+              background: "hsl(var(--st-accent))",
+              color: "hsl(var(--st-accent-fg))",
+              borderRadius: "var(--st-radius)",
+            }}
+          >
+            {estado === "enviando" && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+            Suscribirme
+          </button>
+        </form>
+      )}
+      {estado === "error" && (
+        <p className="text-xs mt-1.5" style={{ color: "#dc2626" }}>{MENSAJES.error}</p>
+      )}
+      <p className="text-[11px] mt-2" style={{ color: "hsl(var(--st-muted))" }}>
+        Al suscribirte aceptás recibir novedades. Podés darte de baja cuando quieras —{" "}
+        <a href={`${base}/pagina/politica-de-privacidad`} className="underline">política de privacidad</a>.
+      </p>
+    </div>
   );
 }

@@ -74,6 +74,25 @@ export interface CreatorWithdrawal {
   processed_at: string | null;
 }
 
+/** Contrato visible para el creador: condiciones + estado de doble aceptación. */
+export interface CreatorContract {
+  id: string;
+  org_id: string;
+  org_name: string | null;
+  influencer_name: string;
+  contract_type: "fixed" | "percentage" | "hybrid";
+  contract_amount: number;
+  commission_percent: number;
+  valid_from: string;
+  valid_until: string | null;
+  status: string;
+  version: number;
+  is_signed: boolean;
+  creator_accepted: boolean;
+  creator_accepted_at: string | null;
+  notes: string | null;
+}
+
 interface CreatorCtx {
   loading: boolean;
   isCreator: boolean;
@@ -82,6 +101,7 @@ interface CreatorCtx {
   deliverables: CreatorDeliverable[];
   earnings: CreatorEarnings | null;
   withdrawals: CreatorWithdrawal[];
+  contracts: CreatorContract[];
   refresh: () => Promise<void>;
   saveProfile: (fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>) => Promise<void>;
   /** Responde la invitación de una campaña (accept/decline) con la sesión. */
@@ -92,6 +112,8 @@ interface CreatorCtx {
   listChat: (campaignId: string) => Promise<CreatorChatMessage[]>;
   /** Escribe en el hilo de chat de una colaboración del creador. */
   sendChat: (campaignId: string, body: string) => Promise<CreatorChatMessage>;
+  /** Acepta la versión vigente de un contrato con firma declarada. */
+  acceptContract: (contractId: string, signatureName: string) => Promise<void>;
 }
 
 /** Mensaje del hilo de una colaboración, tal como lo devuelve el RPC. */
@@ -116,6 +138,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   const [deliverables, setDeliverables] = useState<CreatorDeliverable[]>([]);
   const [earnings, setEarnings] = useState<CreatorEarnings | null>(null);
   const [withdrawals, setWithdrawals] = useState<CreatorWithdrawal[]>([]);
+  const [contracts, setContracts] = useState<CreatorContract[]>([]);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -125,6 +148,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setDeliverables([]);
       setEarnings(null);
       setWithdrawals([]);
+      setContracts([]);
       setLoading(false);
       return;
     }
@@ -152,11 +176,12 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setProfile(own);
 
       if (own) {
-        const [camp, deliv, earn, wd] = await Promise.all([
+        const [camp, deliv, earn, wd, ctr] = await Promise.all([
           rpc("creator_campaigns"),
           rpc("creator_deliverables"),
           rpc("creator_earnings"),
           rpc("creator_my_withdrawals"),
+          rpc("creator_my_contracts"),
         ]);
         setCampaigns(Array.isArray(camp.data) ? camp.data : []);
         setDeliverables(Array.isArray(deliv.data) ? deliv.data : []);
@@ -164,11 +189,13 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
         const parsed = typeof earnData === "string" ? JSON.parse(earnData) : earnData;
         setEarnings((parsed as CreatorEarnings) ?? null);
         setWithdrawals(Array.isArray(wd.data) ? wd.data : []);
+        setContracts(Array.isArray(ctr.data) ? ctr.data : []);
       } else {
         setCampaigns([]);
         setDeliverables([]);
         setEarnings(null);
         setWithdrawals([]);
+        setContracts([]);
       }
     } catch (error) {
       console.error("[creator] no se pudo cargar la superficie de creador", error);
@@ -178,6 +205,7 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
       setDeliverables([]);
       setEarnings(null);
       setWithdrawals([]);
+      setContracts([]);
     } finally {
       setLoading(false);
     }
@@ -232,8 +260,17 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
     return data as CreatorChatMessage;
   }, []);
 
+  const acceptContract = useCallback(async (contractId: string, signatureName: string) => {
+    const { error } = await rpc("accept_influencer_contract", {
+      p_contract_id: contractId,
+      p_signature_name: signatureName,
+    });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, refresh, saveProfile, respondCampaign, submitDeliverable, listChat, sendChat }}>
+    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, contracts, refresh, saveProfile, respondCampaign, submitDeliverable, listChat, sendChat, acceptContract }}>
       {children}
     </CreatorContext.Provider>
   );

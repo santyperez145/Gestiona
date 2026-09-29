@@ -250,18 +250,18 @@ Estos puntos no se cierran con más código:
 
 ### P2 — Influencers y localización
 
-Prioridad actual: completar la superficie Influencers con referencia verificada
-de [GoMarz](https://www.go-marz.com/), sin clonar identidades ni pagos.
+Prioridad: completar Influencers con referencia verificada de [GoMarz](https://www.go-marz.com/), sin clonar identidad ni pagos.
 
-- Base operativa: rutas propias, directorio único, campañas persistentes con
-  selección real, versiones, permisos y auditoría; contratos y entregables internos.
+- Base: rutas propias, directorio único y campañas persistentes con selección, versiones, permisos y auditoría.
 - **Cerrado (2026-09-25):** aceptación/entrega desde el portal creador con sesión,
   loop de revisión (marca pide corrección → creador reentrega), liquidación de
   retiros vía Edge Function `mp-payouts` con idempotencia, cifrado de token y
   webhook firmado HMAC; chat por colaboración campaña+creador server-side y
   notificaciones consentidas (preferencia + cola + despacho service_role).
-- Siguiente: contratos con doble aceptación, liquidación enlazada a Finance,
-  perfiles públicos y descubrimiento con vista superadmin.
+- **Cerrado (2026-09-29):** contratos versionados con aceptación de marca y
+  creador, evidencia temporal y estado server-side; los retiros aprobados
+  generan payout y movimiento idempotente en Finance sin caja paralela.
+- Siguiente: perfiles públicos, descubrimiento superadmin, métricas sociales verificadas y conciliación bancaria.
 - No certificar firmas, notificaciones ni resultados sociales sin evidencia.
 - Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
 
@@ -295,8 +295,8 @@ cita la evidencia que falta, no la que existe.
 | Chat por colaboración | **Cerrado (2026-09-25):** `influencer_campaign_messages` crea un hilo por campaña+creador con RLS propia; RPCs `campaign_chat_list`/`campaign_chat_send` con autoridad en servidor, anti-spam y hilo visible en ambos portales. |
 | Notificaciones consentidas del chat | **Cerrado (2026-09-25):** `influencer_chat_notify_prefs` (consentimiento por persona) + cola `influencer_chat_notifications` por trigger según preferencia del destinatario; despacho email/push service_role, toggle en ambos portales, verificación reversible E2E (7 aserciones) y job `campaign-chat-dispatcher` en pg_cron (c/5 min) con reintentos. |
 | Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada y vencimiento obligatorio para usos pagados; RPC y portal del creador muestran la verificación. |
-| Contratos con aceptación de ambas partes | `InfluencerContractsPage` registra condiciones internas; falta aceptación explícita del creador con timestamp y versionado. |
-| Liquidación enlazada a Finance | Los payouts MP asientan en `influencer_payouts` pero no generan obligación/gasto en Finance ni conciliación bancaria. |
+| Contratos con aceptación de ambas partes | **Cerrado (2026-09-29):** `influencer_contract_versions` conserva condiciones inmutables; `influencer_contract_acceptances` registra marca y creador por versión. La aceptación funciona con sesión o token limitado, y una edición invalida la aceptación anterior. |
+| Liquidación enlazada a Finance | **Cerrado en autoridad interna (2026-09-29):** aprobar un retiro crea idempotentemente `influencer_payouts` y su gasto en `financial_movements`; sigue pendiente la conciliación bancaria certificada del proveedor externo. |
 | Métricas sociales verificadas | `influencers` guarda engagement declarado; falta verificación OAuth de IG/TikTok o evidencia exportada por el creador. |
 
 **Pilar 2 — Tiendas/Commerce:**

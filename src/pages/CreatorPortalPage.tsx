@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useCreator, type CreatorCampaign, type CreatorChatMessage } from "@/lib/creatorContext";
+import { useCreator, type CreatorCampaign, type CreatorChatMessage, type CreatorContract } from "@/lib/creatorContext";
 import { supabase } from "@/integrations/supabase/client";
 import ChatNotifyCard from "@/components/influencers/ChatNotifyCard";
 import { CreatorFoco } from "@/components/creator/CreatorFoco";
@@ -14,7 +14,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
   Clock, Loader2, ExternalLink, User, LogOut, Save, Upload, ArrowDownToLine,
-  BadgeCheck, MessageSquare, Send,
+  BadgeCheck, MessageSquare, Send, FileSignature,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -427,7 +427,7 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
 
 export default function CreatorPortalPage() {
   usePageTitle("Portal de creador");
-  const { loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, refresh } = useCreator();
+  const { loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, contracts, refresh, acceptContract } = useCreator();
   const focoScrollRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Solicitud de retiro de comisiones
@@ -656,6 +656,14 @@ export default function CreatorPortalPage() {
             </CardContent>
           </Card>
 
+          {/* Contratos con doble aceptación */}
+          <CreatorContractsCard
+            contracts={contracts}
+            onAccept={acceptContract}
+            // El portal lee y acepta por RPC server-side: creator_my_contracts /
+            // accept_influencer_contract. La firma nunca la declara la marca.
+          />
+
           <ProfileSection />
           <ChatNotifyCard />
         </OnboardingGate>
@@ -711,5 +719,151 @@ export default function CreatorPortalPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/**
+ * Contratos del creador con doble aceptación (Go-Marz parity).
+ *
+ * El contrato vale cuando marca y creador aceptaron la MISMA versión. Si la
+ * marca cambia el monto, la versión avanza y el creador vuelve a decidir:
+ * nadie firma condiciones que cambian por detrás.
+ */
+function CreatorContractsCard({
+  contracts,
+  onAccept,
+}: {
+  contracts: CreatorContract[];
+  onAccept: (contractId: string, signatureName: string) => Promise<void>;
+}) {
+  // Flujo por RPC: creator_my_contracts trae los contratos (vista del contexto)
+  // y accept_influencer_contract registra la firma declarada del creador.
+  const [aceptando, setAceptando] = useState<CreatorContract | null>(null);
+  const [firma, setFirma] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pendientes = contracts.filter(c => !c.creator_accepted && !c.is_signed);
+
+  const confirmar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aceptando || busy) return;
+    const nombre = firma.trim();
+    if (nombre.length < 2) {
+      setError("Escribí tu nombre completo para firmar.");
+      return;
+    }
+    setBusy(true); setError(null);
+    try {
+      await onAccept(aceptando.id, nombre);
+      toast.success("Contrato aceptado. La marca verá tu firma.");
+      setAceptando(null); setFirma("");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "";
+      if (message.includes("signature_required")) setError("Escribí tu nombre completo para firmar.");
+      else if (message.includes("contract_not_acceptable")) setError("Este contrato ya no admite aceptación. Contactate con la marca.");
+      else setError("No pudimos registrar tu aceptación. Intentá de nuevo.");
+    } finally { setBusy(false); }
+  };
+
+  const condiciones = (c: CreatorContract) => {
+    const tipo = c.contract_type === "fixed" ? "Monto fijo" : c.contract_type === "percentage" ? "Porcentaje" : "Mixto";
+    const monto = c.contract_type !== "percentage" ? fmtMoney(Number(c.contract_amount)) : null;
+    const pct = c.contract_type !== "fixed" ? `${Number(c.commission_percent)}% por venta` : null;
+    return [tipo, monto, pct].filter(Boolean).join(" · ");
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
+        <CardTitle className="text-base flex items-center gap-2">
+          <FileSignature className="h-4 w-4 text-primary" /> Tus contratos
+        </CardTitle>
+        <Badge variant="secondary" className="text-[10px]">
+          {contracts.filter(c => c.is_signed).length} firmados
+          {pendientes.length > 0 ? ` · ${pendientes.length} para aceptar` : ""}
+        </Badge>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {contracts.length === 0 ? (
+          <div className="py-6 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">Todavía no tenés contratos.</p>
+            <p className="text-xs text-muted-foreground">Cuando una marca te registre condiciones de colaboración, aparecen acá para que las aceptes.</p>
+          </div>
+        ) : contracts.map(c => (
+          <div key={c.id} className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{c.org_name ?? "Marca"}</p>
+                <p className="text-xs text-muted-foreground">{condiciones(c)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px]">Versión {c.version}</Badge>
+                {c.is_signed ? (
+                  <Badge className="text-[10px] bg-emerald-600 text-white">Firmado por ambos</Badge>
+                ) : c.creator_accepted ? (
+                  <Badge className="text-[10px]" variant="secondary">Esperando a la marca</Badge>
+                ) : (
+                  <Badge className="text-[10px]" variant="outline">Falta tu aceptación</Badge>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <CalendarClock className="h-3 w-3" />
+                Desde {fmtDate(c.valid_from)}{c.valid_until ? ` hasta ${fmtDate(c.valid_until)}` : ""}
+              </span>
+              {c.notes && <span className="max-w-[260px] truncate" title={c.notes}>{c.notes}</span>}
+            </div>
+            {!c.creator_accepted && !c.is_signed && (
+              <Button
+                size="sm"
+                className="h-8"
+                onClick={() => { setAceptando(c); setFirma(c.influencer_name || ""); setError(null); }}
+              >
+                <FileSignature className="h-3.5 w-3.5 mr-1.5" /> Revisar y aceptar
+              </Button>
+            )}
+          </div>
+        ))}
+      </CardContent>
+
+      <Dialog open={Boolean(aceptando)} onOpenChange={open => { if (!open && !busy) { setAceptando(null); setError(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Aceptar contrato de {aceptando?.org_name ?? "la marca"}</DialogTitle>
+            <DialogDescription>
+              Al aceptar confirmás las condiciones de la versión {aceptando?.version}:
+              {" "}{aceptando ? condiciones(aceptando) : ""}. Si la marca cambia algo después, la versión
+              avanza y vas a volver a decidir.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={confirmar} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="firma-contrato">Tu nombre completo (firma declarada)</Label>
+              <Input
+                id="firma-contrato"
+                value={firma}
+                onChange={e => setFirma(e.target.value)}
+                placeholder="Como figura en tu documento"
+                maxLength={120}
+                required
+                autoFocus
+              />
+            </div>
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setAceptando(null); setError(null); }} disabled={busy}>
+                Volver
+              </Button>
+              <Button type="submit" disabled={busy}>
+                {busy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                Aceptar y firmar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

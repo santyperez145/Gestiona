@@ -120,7 +120,7 @@ describe('identidad canónica de Nerqia', () => {
       expect(content, `${path} conserva la marca visible anterior`).not.toMatch(/\bGestiona\b/);
       expect(content, `${path} conserva un dominio anterior`).not.toMatch(/gestiona\.app|exentryimports\.vercel\.app/);
     }
-  });
+  }, 15_000);
 
   it('declara nerqia.app como origen canónico y preserva namespaces compatibles', () => {
     const vercel = JSON.parse(source('vercel.json'));

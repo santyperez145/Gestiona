@@ -1,6 +1,6 @@
 # Influencers: alcance y verificación
 
-**Corte:** 2026-09-21. Superficie propia en `/influencer-marketing`.
+**Corte:** 2026-09-29. Superficie propia en `/influencer-marketing`.
 No está terminada la paridad funcional con GoMarz.
 
 ## Referencia contrastada
@@ -18,12 +18,12 @@ de creadores como propia.
 |---|---|---|
 | Navegación | Shell propio, entrada desde Business, rutas canónicas y redirects antiguos. | Barrido autenticado con usuarios finales. |
 | Creadores | Un directorio `influencers`, alta/edición/baja, permisos, enlaces de referido. | Perfil público consentido, verificación de identidad y métricas sociales verificadas. |
-| Campañas | Brief manual, presupuesto previsto, canal, fecha, selección de creadores; guardar, pausar, activar y cerrar seguimiento interno. | Invitaciones con aceptación/rechazo y expiración, ofertas y contratación. |
-| Entregables | Relación con campaña/creador, enlace HTTPS, entrega y aprobación interna con nota de revisión obligatoria. | Archivos privados, versionado audiovisual, comentarios y verificación de publicación. |
-| Contratos | Registro interno de condiciones y vigencia. | Aceptación de ambas partes, firma con evidencia y derechos/licencias versionados. |
-| Comisiones | Lectura de ventas atribuidas y pagos históricos desde `influencer_sales`/`influencer_payouts`. | Liquidación transaccional con comprobante y enlace a Finance, reversas y conciliación. |
+| Campañas | Brief, presupuesto, selección, invitación privada con expiración, aceptación/rechazo, seguimiento y auditoría. | Certificación con marcas y creadores reales. |
+| Entregables | Entrega y reentrega desde portal, revisión de marca, chat por colaboración y prueba de publicación con licencia tipada. | Archivos audiovisuales privados y conectores sociales verificados. |
+| Contratos | Versiones inmutables, aceptación de marca y creador por versión, evidencia temporal y acceso del creador por sesión o enlace limitado. | Proveedor de firma cualificada sólo si el marco legal/comercial lo exige. |
+| Comisiones | Ventas y payouts históricos; un retiro aprobado genera payout y gasto idempotente en el libro Finance. | Reversas y conciliación bancaria certificada del proveedor externo. |
 | Pagos automáticos | No habilitados; no se marca un pago como transferido desde el cliente. | Proveedor/partner, webhook firmado, idempotencia, reembolsos y condiciones legales. |
-| Mensajería y resultados | No se anuncian envíos inexistentes, CPM ni conversiones sin fuentes válidas. | Chat por colaboración, notificaciones consentidas y analítica con atribución verificable. |
+| Mensajería y resultados | Chat por colaboración, preferencias de notificación y cola de despacho; publicación verificable. | OAuth de redes y analítica con atribución externa verificable. |
 
 Activar o cerrar una campaña es un cambio de seguimiento, no una invitación,
 publicación, firma ni movimiento de dinero. El presupuesto no equivale a inversión
@@ -51,8 +51,11 @@ La inspección productiva encontró ausentes las tablas propuestas el 17/09.
 duplicar pagos históricos. `influencer_payments` y `brand_portal_profiles` quedan
 como compatibilidad de esquema; no son nuevas autoridades de la UI.
 
-Las migraciones nuevas son `20260921000100`, `20260921000110`,
-`20260921000120` y `20260922000100_influencer_public_profile.sql`. La verificación reversible
+Las migraciones base son `20260921000100`, `20260921000110`,
+`20260921000120` y `20260922000100_influencer_public_profile.sql`. Los contratos
+bilaterales y su liquidación en Finance se consolidan en `20260925001500`,
+`20260925001600` y las reparaciones de autoridad `20260925012100` a
+`20260925012300`. La verificación reversible
 `supabase/verificaciones/20260921_influencer_campaigns.sql` cubre ciclo de campaña,
 idempotencia, conflicto de edición, aislamiento, roles, overrides y aprobación con
 evidencia; termina en rollback y comprueba cero organizaciones de prueba.
@@ -62,8 +65,8 @@ entregas de correo, redes sociales ni transferencias reales.
 
 ## Siguiente secuencia
 
-1. Invitación privada, oferta y aceptación con expiración e historial.
-2. Chat y revisión audiovisual por colaboración, archivos privados y versiones.
-3. Publicación verificable, derechos de uso y analítica consentida.
-4. Obligación en Finance, liquidación, proveedor y conciliación: sin caja paralela.
+1. Perfiles públicos consentidos, descubrimiento y moderación superadmin.
+2. Archivos audiovisuales privados con versiones y retención definida.
+3. Métricas sociales por OAuth o evidencia exportada verificable.
+4. Conciliación bancaria, reversas y comprobantes del proveedor externo.
 5. Piloto con marca y creadores reales; certificar móvil, permisos y recuperaciones.

@@ -1,12 +1,12 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BadgeCheck, Calendar, Edit, ExternalLink, FileText, Plus, Star, Trash2 } from 'lucide-react';
+import { BadgeCheck, Calendar, Edit, ExternalLink, FileSignature, FileText, Link2, Plus, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrg } from '@/lib/orgContext';
 import { useModulePerms } from '@/lib/permissionsContext';
 import { useInfluencerCampaigns } from '@/hooks/useInfluencerCampaigns';
-import { createContract, createDeliverable, createInfluencerReview, deleteContract, deleteDeliverable, listInfluencerContracts, listInfluencerDeliverables, listInfluencers, registerPublicationProof, updateContract, updateDeliverable, type InfluencerContract, type InfluencerDeliverable } from '@/lib/influencersDB';
+import { createContract, createDeliverable, createHeldPayment, createInfluencerReview, deleteContract, deleteDeliverable, getContractShareLink, listInfluencerContracts, listInfluencerDeliverables, listInfluencers, registerPublicationProof, updateContract, updateDeliverable, type InfluencerContract, type InfluencerDeliverable } from '@/lib/influencersDB';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,17 @@ type RecordRow = InfluencerContract | InfluencerDeliverable;
 const CONTRACT_STATES = { active: 'Vigente', paused: 'En pausa', expired: 'Vencido', cancelled: 'Cancelado' };
 const DELIVERY_STATES = { pendiente: 'Pendiente', en_progreso: 'En producción', entregado: 'En revisión', completado: 'Aprobado internamente' };
 const CONTRACT_TYPES = { fixed: 'Monto fijo', percentage: 'Porcentaje', hybrid: 'Mixto' };
+
+/** Estado de doble aceptación en idioma humano (server-side, nunca declarado por la marca). */
+function contractFirma(c: InfluencerContract): string {
+  // Los campos vienen de la vista influencer_contract_status (influencersDB.listInfluencerContracts):
+  // brand_accepted_at / creator_accepted_at computados por la base, no escritos por la marca.
+  if (c.is_signed) return 'Firmado por ambas partes';
+  if (c.creator_accepted_at && !c.brand_accepted_at) return 'Aceptado por el creador — falta tu firma';
+  if (c.brand_accepted_at && !c.creator_accepted_at) return 'Firmaste vos — esperando al creador';
+  if (c.creator_accepted_at && c.brand_accepted_at) return 'Firmado por ambas partes';
+  return 'Pendiente de aceptación mutua';
+}
 
 export default function InfluencerRecords({ kind }: { kind: Kind }) {
   const { activeOrg } = useOrg();
@@ -53,7 +64,7 @@ export default function InfluencerRecords({ kind }: { kind: Kind }) {
     {query.isPending ? <WorkspaceState kind="initial-loading" title={`Cargando ${title.toLowerCase()}`} /> : query.isError ? <WorkspaceState kind="error-recoverable" title="No pudimos cargar los registros" actionLabel="Reintentar" onAction={() => void query.refetch()} /> : !rows.length ? <WorkspaceState kind={search ? 'empty-filtered' : 'empty-first-use'} title="Sin registros" /> : <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead className="border-b text-left text-xs text-muted-foreground"><tr><th className="py-3">Creador</th><th className="p-3">{isContract ? 'Condiciones' : 'Contenido'}</th><th className="p-3">Fecha</th><th className="p-3">Estado</th><th className="p-3 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-border">{rows.map(item => {
       const contract = item as InfluencerContract; const delivery = item as InfluencerDeliverable;
       const date = isContract ? contract.valid_until : delivery.due_date;
-      return <tr key={item.id}><td className="max-w-[180px] break-words py-4 font-medium">{item.influencer_name}</td><td className="max-w-[300px] break-words p-3">{isContract ? <><p>{CONTRACT_TYPES[contract.contract_type]}</p><p className="text-xs text-muted-foreground">{contract.contract_type !== 'percentage' && new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(contract.contract_amount)}{contract.contract_type !== 'fixed' && ` ${contract.commission_percent}%`}</p></> : <><p>{delivery.description}</p><p className="mt-1 text-xs text-muted-foreground">{delivery.campaign_name || 'Sin campaña'}</p>{delivery.content_url?.startsWith('https://') && <a href={delivery.content_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary">Abrir contenido<ExternalLink className="h-3 w-3" /></a>}</>}</td><td className="p-3">{date ? new Date(`${date}T12:00:00`).toLocaleDateString('es-AR') : 'Sin vencimiento'}</td><td className="p-3"><Badge variant="outline">{isContract ? CONTRACT_STATES[contract.status] : DELIVERY_STATES[delivery.status]}</Badge>{isContract && <p className="mt-1 text-xs text-muted-foreground">{contract.is_signed ? 'Firma declarada' : 'Sin firma registrada'}</p>}</td><td className="p-3"><div className="flex justify-end gap-1">{!isContract && ['entregado', 'completado'].includes(delivery.status) && permissions.canCreate && <Button variant="ghost" size="icon" title="Verificar publicación" aria-label={`Verificar publicación de ${item.influencer_name}`} onClick={() => setVerifying(delivery)}><BadgeCheck className="h-4 w-4" /></Button>}{!isContract && delivery.status === 'completado' && permissions.canCreate && <Button variant="ghost" size="icon" title="Calificar colaboración" aria-label={`Calificar trabajo de ${item.influencer_name}`} onClick={() => setReviewing(delivery)}><Star className="h-4 w-4" /></Button>}{permissions.canEdit && <Button variant="ghost" size="icon" title="Editar registro" aria-label={`Editar registro de ${item.influencer_name}`} onClick={() => setEditing(item)}><Edit className="h-4 w-4" /></Button>}{permissions.canDelete && <Button variant="ghost" size="icon" title="Eliminar registro" aria-label={`Eliminar registro de ${item.influencer_name}`} onClick={() => setDeleting(item)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</div></td></tr>;
+      return <tr key={item.id}><td className="max-w-[180px] break-words py-4 font-medium">{item.influencer_name}</td><td className="max-w-[300px] break-words p-3">{isContract ? <><p>{CONTRACT_TYPES[contract.contract_type]}</p><p className="text-xs text-muted-foreground">{contract.contract_type !== 'percentage' && new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(contract.contract_amount)}{contract.contract_type !== 'fixed' && ` ${contract.commission_percent}%`}</p></> : <><p>{delivery.description}</p><p className="mt-1 text-xs text-muted-foreground">{delivery.campaign_name || 'Sin campaña'}</p>{delivery.content_url?.startsWith('https://') && <a href={delivery.content_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary">Abrir contenido<ExternalLink className="h-3 w-3" /></a>}</>}</td><td className="p-3">{date ? new Date(`${date}T12:00:00`).toLocaleDateString('es-AR') : 'Sin vencimiento'}</td><td className="p-3"><Badge variant="outline">{isContract ? CONTRACT_STATES[contract.status] : DELIVERY_STATES[delivery.status]}</Badge>{isContract && <p className="mt-1 text-xs text-muted-foreground">{contractFirma(contract)}</p>}</td><td className="p-3"><div className="flex justify-end gap-1">{isContract && !contract.is_signed && !contract.creator_accepted_at && permissions.canEdit && <Button variant="ghost" size="icon" title="Copiar enlace de aceptación" aria-label={`Copiar enlace de aceptación para ${item.influencer_name}`} onClick={() => { void (async () => { try { const url = await getContractShareLink(contract.id); await navigator.clipboard.writeText(url); toast.success('Enlace copiado: enviáselo al creador para que acepte.'); } catch { toast.error('No pudimos generar el enlace. Intentá de nuevo.'); } })(); }}><Link2 className="h-4 w-4" /></Button>}{!isContract && ['entregado', 'completado'].includes(delivery.status) && permissions.canCreate && <Button variant="ghost" size="icon" title="Verificar publicación" aria-label={`Verificar publicación de ${item.influencer_name}`} onClick={() => setVerifying(delivery)}><BadgeCheck className="h-4 w-4" /></Button>}{!isContract && delivery.status === 'completado' && permissions.canCreate && <Button variant="ghost" size="icon" title="Calificar colaboración" aria-label={`Calificar trabajo de ${item.influencer_name}`} onClick={() => setReviewing(delivery)}><Star className="h-4 w-4" /></Button>}{permissions.canEdit && <Button variant="ghost" size="icon" title="Editar registro" aria-label={`Editar registro de ${item.influencer_name}`} onClick={() => setEditing(item)}><Edit className="h-4 w-4" /></Button>}{permissions.canDelete && <Button variant="ghost" size="icon" title="Eliminar registro" aria-label={`Eliminar registro de ${item.influencer_name}`} onClick={() => setDeleting(item)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</div></td></tr>;
     })}</tbody></table></div>}
     <Dialog open={Boolean(editing)} onOpenChange={open => { if (!open) setEditing(null); }}>{editing && <RecordForm key={editing === 'new' ? 'new' : editing.id} kind={kind} initial={editing === 'new' ? null : editing} orgId={orgId} onSaved={() => { setEditing(null); void client.invalidateQueries({ queryKey }); }} />}</Dialog>
     <Dialog open={Boolean(deleting)} onOpenChange={open => { if (!open && !busy) setDeleting(null); }}><DialogContent><DialogHeader><DialogTitle>Eliminar registro</DialogTitle><DialogDescription>Se eliminará el registro de {deleting?.influencer_name}. Esta acción no puede deshacerse.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" disabled={busy} onClick={() => setDeleting(null)}>Volver</Button><Button variant="destructive" disabled={busy} onClick={() => void remove()}>Eliminar</Button></DialogFooter></DialogContent></Dialog>
@@ -104,6 +115,8 @@ function RecordForm({ kind, initial, orgId, onSaved }: { kind: Kind; initial: Re
   const creators = useQuery({ queryKey: ['influencer-creators', orgId], queryFn: () => listInfluencers(orgId), refetchOnWindowFocus: false });
   const campaigns = useInfluencerCampaigns();
   const [form, setForm] = useState({ creator: initial?.influencer_id ?? '', campaign: delivery?.campaign_id ?? '', description: delivery?.description ?? '', date: (isContract ? contract?.valid_from : delivery?.due_date) ?? '', end: contract?.valid_until ?? '', type: contract?.contract_type ?? 'fixed', amount: contract?.contract_amount ?? 0, percent: contract?.commission_percent ?? 0, status: initial?.status ?? (isContract ? 'active' : 'pendiente'), notes: initial?.notes ?? '', content: delivery?.content_url ?? '', review: delivery?.review_notes ?? '' });
+  // Go-Marz parity: retener el pago fijo hasta verificar la publicación.
+  const [retener, setRetener] = useState(false);
   const [busy, setBusy] = useState(false); const lock = useRef(false); const [error, setError] = useState('');
   const selectedCampaign = campaigns.data?.find(item => item.id === form.campaign);
   const selectable = (creators.data ?? []).filter(item => !form.campaign || selectedCampaign?.influencer_campaign_creators.some(assigned => assigned.influencer_id === item.id));
@@ -113,6 +126,7 @@ function RecordForm({ kind, initial, orgId, onSaved }: { kind: Kind; initial: Re
     if (lock.current || !(initial ? permissions.canEdit : permissions.canCreate)) return;
     const creator = selectable.find(item => item.id === form.creator);
     if (!creator) { setError('Seleccioná un creador de la campaña elegida.'); return; }
+    if (isContract && retener && !form.campaign) { setError('Elegí la campaña cuya publicación liberará el pago.'); return; }
     if (isContract && form.end && form.end < form.date) { setError('La fecha final no puede ser anterior al inicio.'); return; }
     if (!isContract && ['entregado', 'completado'].includes(form.status) && !form.content.startsWith('https://')) { setError('Agregá el enlace HTTPS del contenido antes de enviarlo a revisión.'); return; }
     if (!isContract && form.status === 'completado' && !form.review.trim()) { setError('Registrá el resultado de la revisión antes de aprobar.'); return; }
@@ -122,6 +136,19 @@ function RecordForm({ kind, initial, orgId, onSaved }: { kind: Kind; initial: Re
       if (isContract) {
         const payload = { ...base, contract_type: form.type as InfluencerContract['contract_type'], contract_amount: form.amount, commission_percent: form.percent, commission_fixed: form.amount, valid_from: form.date, valid_until: form.end || null, status: form.status as InfluencerContract['status'] };
         if (initial) await updateContract(initial.id, payload); else await createContract(payload);
+        // Pago retenido server-side: lo libera la verificación de publicación,
+        // no la marca. Ninguna plata se mueve acá.
+        if (!initial && retener && form.type !== 'percentage' && Number(form.amount) > 0) {
+          try {
+            await createHeldPayment({
+              influencerId: creator.id,
+              campaignId: form.campaign,
+              amount: Number(form.amount),
+              notes: `Retenido por contrato de colaboración${form.end ? ` (vigente hasta ${form.end})` : ''}`,
+            });
+            toast.success('Pago creado en retención: se libera al verificar la publicación');
+          } catch { toast.error('El contrato se guardó, pero no pudimos crear el pago retenido. Crealo desde Comisiones y pagos.'); }
+        }
       } else {
         const payload = { ...base, campaign_id: form.campaign || null, campaign_name: selectedCampaign?.title ?? '', description: form.description, due_date: form.date, content_url: form.content.trim() || null, review_notes: form.review.trim() || null, status: form.status as InfluencerDeliverable['status'] };
         if (initial) await updateDeliverable(initial.id, payload); else await createDeliverable(payload);
@@ -130,9 +157,9 @@ function RecordForm({ kind, initial, orgId, onSaved }: { kind: Kind; initial: Re
     } catch { setError('No pudimos guardar. Revisá permisos, fechas y asignación del creador. Para aprobar, el contenido debe estar previamente en revisión.'); }
     finally { lock.current = false; setBusy(false); }
   };
-  return <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>{initial ? 'Editar' : 'Nuevo'} {isContract ? 'contrato' : 'entregable'}</DialogTitle><DialogDescription>{isContract ? 'Registro interno de las condiciones acordadas. No constituye una firma electrónica.' : 'Contenido acordado, fecha de entrega y revisión interna.'}</DialogDescription></DialogHeader>
+  return <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>{initial ? 'Editar' : 'Nuevo'} {isContract ? 'contrato' : 'entregable'}</DialogTitle><DialogDescription>{isContract ? 'Condiciones de colaboración con doble aceptación: el contrato vale cuando marca y creador aceptan la misma versión. Si cambiás el monto o el porcentaje, el creador vuelve a decidir.' : 'Contenido acordado, fecha de entrega y revisión interna.'}</DialogDescription></DialogHeader>
     {creators.isError || (!isContract && campaigns.isError) ? <WorkspaceState kind="error-recoverable" title="No pudimos cargar las opciones" actionLabel="Reintentar" onAction={() => { void creators.refetch(); void campaigns.refetch(); }} /> : <form onSubmit={submit} className="space-y-4"><fieldset disabled={busy || creators.isPending || (!isContract && campaigns.isPending)} className="grid min-w-0 gap-3 sm:grid-cols-2">
-      {!isContract && <div className="space-y-1 sm:col-span-2"><Label htmlFor="record-campaign">Campaña</Label><Select value={form.campaign || 'none'} onValueChange={value => { update('campaign', value === 'none' ? '' : value); update('creator', ''); }}><SelectTrigger id="record-campaign"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Sin campaña</SelectItem>{campaigns.data?.map(item => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}</SelectContent></Select></div>}
+      <div className="space-y-1 sm:col-span-2"><Label htmlFor="record-campaign">Campaña {isContract ? '(necesaria si retenés el pago)' : ''}</Label><Select value={form.campaign || 'none'} onValueChange={value => { update('campaign', value === 'none' ? '' : value); update('creator', ''); }}><SelectTrigger id="record-campaign"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Sin campaña</SelectItem>{campaigns.data?.map(item => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}</SelectContent></Select></div>
       <div className="space-y-1"><Label htmlFor="record-creator">Creador</Label><Select value={form.creator} onValueChange={value => update('creator', value)}><SelectTrigger id="record-creator"><SelectValue placeholder="Elegir creador" /></SelectTrigger><SelectContent>{selectable.map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
       <div className="space-y-1"><Label htmlFor="record-date">{isContract ? 'Vigente desde' : 'Fecha de entrega'}</Label><Input id="record-date" type="date" required value={form.date} onChange={event => update('date', event.target.value)} /></div>
       {isContract ? <>
@@ -140,6 +167,7 @@ function RecordForm({ kind, initial, orgId, onSaved }: { kind: Kind; initial: Re
         <div className="space-y-1"><Label htmlFor="record-type">Tipo de acuerdo</Label><Select value={form.type} onValueChange={value => update('type', value)}><SelectTrigger id="record-type"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(CONTRACT_TYPES).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
         {form.type !== 'percentage' && <div className="space-y-1"><Label htmlFor="record-amount">Monto fijo (ARS)</Label><Input id="record-amount" type="number" min={0} step="0.01" value={form.amount} onChange={event => update('amount', Number(event.target.value))} /></div>}
         {form.type !== 'fixed' && <div className="space-y-1"><Label htmlFor="record-percent">Comisión (%)</Label><Input id="record-percent" type="number" min={0} max={100} step="0.01" value={form.percent} onChange={event => update('percent', Number(event.target.value))} /></div>}
+        {!initial && form.type !== 'percentage' && <div className="space-y-1 sm:col-span-2"><label className="flex items-start gap-2 text-sm" htmlFor="record-hold"><input id="record-hold" type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={retener} onChange={event => setRetener(event.target.checked)} /><span>Retener el pago hasta verificar la publicación<span className="block text-xs text-muted-foreground">Se registra un pago retenido por el monto fijo. Al verificar la publicación del entregable queda listo para pagar; nadie transfiere plata automáticamente.</span></span></label></div>}
       </> : <>
         <div className="space-y-1 sm:col-span-2"><Label htmlFor="record-description">Contenido acordado</Label><Textarea id="record-description" required maxLength={4000} value={form.description} onChange={event => update('description', event.target.value)} /></div>
         <div className="space-y-1 sm:col-span-2"><Label htmlFor="record-content">Enlace del contenido</Label><Input id="record-content" type="url" pattern="https://.*" value={form.content} onChange={event => update('content', event.target.value)} /></div>
