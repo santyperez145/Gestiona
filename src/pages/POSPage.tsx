@@ -304,6 +304,10 @@ function ReceiptModal({
   const invoiceCopy = posReceiptInvoiceCopy(invoice);
 
   const sendReceiptEmail = async () => {
+    if (!transactionId || !collected) {
+      toast.error("El ticket debe estar sincronizado y cobrado antes de enviarlo");
+      return;
+    }
     const trimmed = emailTo.trim().toLowerCase();
     if (!trimmed || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) {
       toast.error("Ingresá un email válido");
@@ -311,18 +315,12 @@ function ReceiptModal({
     }
     setSendingEmail(true);
     try {
-      const itemsText = items.map(it => `• ${it.quantity}× ${it.name} — ${formatARS(it.price * it.quantity)}`).join("\n");
       const { data, error } = await supabase.functions.invoke("send-invoice-email", {
         body: {
           orgId,
+          documentType: "pos_receipt",
+          documentId: transactionId,
           to: trimmed,
-          subject: `Recibo de compra — ${businessName}`,
-          invoiceNumber: `REC-${Date.now().toString().slice(-6)}`,
-          customerName: customer || "Cliente",
-          orgName: businessName,
-          totalARS: total,
-          dueDate: null,
-          notes: itemsText,
         },
       });
       if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
@@ -565,12 +563,17 @@ ${paymentInfo}
           ))}
 
           {/* Email receipt */}
-          {!emailSent ? (
+          {!transactionId || !collected ? (
+            <p className="text-xs text-muted-foreground text-center">
+              {!transactionId ? "Sincronizá el ticket para enviarlo por correo." : "El cobro debe estar confirmado para enviar un recibo."}
+            </p>
+          ) : !emailSent ? (
             <div className="flex gap-1.5">
               <Input
                 type="email"
                 value={emailTo}
                 onChange={e => setEmailTo(e.target.value)}
+                aria-label="Correo del cliente"
                 placeholder="email@cliente.com"
                 className="h-9 text-sm bg-muted border-border flex-1"
                 onKeyDown={e => e.key === "Enter" && sendReceiptEmail()}
@@ -579,6 +582,8 @@ ${paymentInfo}
                 variant="outline"
                 size="sm"
                 onClick={sendReceiptEmail}
+                aria-label="Enviar recibo por correo"
+                title="Enviar recibo por correo"
                 disabled={sendingEmail || !emailTo.trim()}
                 className="h-9 gap-1.5 shrink-0 border-blue-500/30 text-blue-400 hover:bg-blue-500/5"
               >

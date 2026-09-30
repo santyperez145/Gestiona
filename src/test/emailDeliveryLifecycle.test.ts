@@ -27,6 +27,17 @@ describe("ciclo profesional de correo", () => {
     expect(invoice).toContain('.from("memberships")');
     expect(invoice).toContain('.eq("org_id", orgId)');
     expect(invoice).toContain('UUID.test(String(orgId ?? ""))');
+    expect(invoice).toContain('UUID.test(String(documentId ?? ""))');
+    expect(invoice).toContain('.from("invoices")');
+    expect(invoice).toContain('.from("quotes")');
+    expect(invoice).toContain('.from("sale_transactions")');
+    expect(invoice).toContain('invoice.tipo_comprobante != null && !invoice.cae');
+    expect(invoice).toContain('sales.some((sale) => !sale.paid)');
+    expect(invoice).not.toContain("pdfBase64");
+    expect(invoice).not.toContain("invoiceNumber, customerName, orgName, orgId, totalARS");
+    for (const path of ["src/pages/InvoicesPage.tsx", "src/pages/PresupuestosPage.tsx", "src/pages/POSPage.tsx"]) {
+      expect(read(path)).toContain("documentId:");
+    }
     expect(invite).not.toContain("appUrl || req.headers.get");
     expect(invite).toContain('Deno.env.get("PUBLIC_BASE_URL")');
   });

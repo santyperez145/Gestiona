@@ -527,14 +527,8 @@ export default function InvoicesPage() {
       const { data, error } = await supabase.functions.invoke("send-invoice-email", {
         body: {
           orgId: activeOrg?.id,
-          to: inv.customer_email,
-          subject: `Factura N° ${inv.number} — ${activeOrg?.name || ""}`,
-          invoiceNumber: inv.number,
-          customerName: inv.customer_name,
-          orgName: activeOrg?.name || "",
-          totalARS: new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(Number(inv.total)),
-          dueDate: inv.due_date,
-          notes: inv.notes,
+          documentType: "invoice",
+          documentId: inv.id,
         },
       });
       if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
@@ -557,14 +551,8 @@ export default function InvoicesPage() {
         const { data, error } = await supabase.functions.invoke("send-invoice-email", {
           body: {
             orgId: activeOrg?.id,
-            to: inv.customer_email,
-            subject: `Factura N° ${inv.number} — ${activeOrg?.name || ""}`,
-            invoiceNumber: inv.number,
-            customerName: inv.customer_name,
-            orgName: activeOrg?.name || "",
-            totalARS: new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(Number(inv.total)),
-            dueDate: inv.due_date,
-            notes: inv.notes,
+            documentType: "invoice",
+            documentId: inv.id,
           },
         });
         if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));

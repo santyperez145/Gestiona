@@ -491,17 +491,8 @@ export default function PresupuestosPage() {
       const { data, error } = await supabase.functions.invoke("send-invoice-email", {
         body: {
           orgId: activeOrg?.id,
-          to: q.customer_email,
-          subject: `Presupuesto ${q.quote_number} — ${orgName}`,
-          invoiceNumber: q.quote_number,
-          customerName: q.customer_name,
-          orgName,
-          totalARS: q.total,
-          dueDate: q.valid_until || null,
-          notes: [
-            q.items.map(it => `• ${it.qty}× ${it.description} — ${formatARS(it.total)}`).join("\n"),
-            q.notes ? `\nNotas: ${q.notes}` : "",
-          ].join(""),
+          documentType: "quote",
+          documentId: q.id,
         },
       });
       if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));

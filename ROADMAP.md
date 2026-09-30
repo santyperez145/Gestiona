@@ -121,8 +121,10 @@ atómicas; una venta individual se factura desde su importe persistido y no
 desde valores de la URL. La NC referencia su factura original en el pedido de
 CAE a ARCA. Las alícuotas fiscales quedan acotadas en UI, base y WSFE.
 Migraciones `20260930000200`/`210`/`220`/`230` aplicadas y función
-`afip-authorize` desplegada. Falta certificar una NC A/B/C real en homologación
-y la entrega por correo antes de declarar el circuito fiscal E2E.
+`afip-authorize` desplegada. El correo de factura/presupuesto/recibo POS ahora
+resuelve destinatario e importes desde documentos persistidos; bloquea factura
+fiscal sin CAE y recibo sin cobro confirmado. Falta certificar una NC A/B/C real
+en homologación y la entrega efectiva por correo antes de declarar el circuito fiscal E2E.
 
 **Pendiente:** primera operación externa sin corrección SQL,
 catálogo polimórfico completo y evidencia de margen usado para decidir.
