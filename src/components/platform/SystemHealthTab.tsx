@@ -59,6 +59,8 @@ const DESCRIPCIONES: Record<string, Omit<SecretStatus, "configured" | "name">> =
   MP_APP_SECRET:             { required: true,  category: "payments", description: "Secreto de la app: OAuth de los comercios y token de plataforma" },
   MP_WEBHOOK_SECRET:         { required: true,  category: "payments", description: "Verifica la firma de los webhooks. Sin esto una compra queda pagada de un lado e impaga del otro" },
   MP_PLATFORM_ACCESS_TOKEN:  { required: false, category: "payments", description: "Token de plataforma explícito. Si falta se deriva de MP_APP_ID + MP_APP_SECRET" },
+  MP_PAYOUTS_NOTIFICATION_URL: { required: false, category: "payments", description: "Webhook de confirmación de pagos a creadores" },
+  MP_PAYOUTS_ALLOWED_ORGS:  { required: false, category: "payments", description: "Comercios autorizados para el piloto de pagos automáticos a creadores" },
 
   BACKUP_CRON_SECRET:        { required: true,  category: "core",  description: "Identifica al cron ante las 19 tareas programadas. Sin esto ninguna corre" },
 

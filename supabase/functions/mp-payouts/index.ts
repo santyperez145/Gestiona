@@ -8,7 +8,8 @@
  *
  * ── Contrato de cartera habilitada ─────────────────────────────────────────
  * POST https://api.mercadopago.com/v1/payouts
- *   Headers obligatorios: Authorization: Bearer, X-Idempotency-Key (UUID)
+ *   Headers obligatorios: Authorization: Bearer, X-Idempotency-Key
+ *   (UUID en lotes nuevos; se conserva la llave original en lotes anteriores)
  *   Body: external_reference (único ≤64), description (≤100),
  *         config.notification_url, transactions[]:
  *           type: "account", account: { email } (cuenta MP destino),
@@ -18,11 +19,10 @@
  *
  * ── Flujo ──────────────────────────────────────────────────────────────────
  * 1. La marca (owner/admin + can_manage_influencers) arma el lote con los
- *    retiros APROBADOS. El destino es la cuenta MP del creador ligada por
- *    email (la del influencers.email); si el creador no tiene email de
- *    cuenta MP, el ítem queda excluido con motivo — nunca inventamos destino.
- * 2. Se crea el lote en la base (create_payout_batch) ANTES de llamar a MP:
- *    el external_reference de la base es la llave idempotente de MP.
+ *    retiros APROBADOS. El destino es el email de cuenta MP elegido por el
+ *    creador y guardado cifrado en el retiro, nunca el email del perfil.
+ * 2. Se crea el lote en la base ANTES de llamar a MP. Los lotes existentes
+ *    conservan su llave histórica; los nuevos usan una llave UUID estable.
  * 3. Un solo POST /v1/payouts con todas las transacciones.
  * 4. El estado por transacción se consulta con `status` (acción sync):
  *    cuando MP aprueba el ítem, se resuelve el retiro como 'paid' — la RPC
@@ -47,6 +47,12 @@ const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const MP_PAYOUTS_URL = "https://api.mercadopago.com/v1/payouts";
+
+function hasPayoutContract(orgId: string): boolean {
+  if (Deno.env.get("MP_PAYOUTS_ENABLED") !== "true") return false;
+  return (Deno.env.get("MP_PAYOUTS_ALLOWED_ORGS") ?? "")
+    .split(",").some((id) => id.trim().toLowerCase() === orgId.toLowerCase());
+}
 
 // deno-lint-ignore no-explicit-any
 function extractErrorMessage(payload: any): string {
@@ -75,13 +81,36 @@ Deno.serve(async (req) => {
     const action = body?.action ?? "create";
 
     if (action === "capability") {
+      const orgId = String(body?.orgId ?? "");
+      // La versión anterior del panel no enviaba orgId. Durante el despliegue
+      // se desactiva el botón sin exponer una falsa capacidad ni romper la vista.
+      if (!orgId) return json({
+        enabled: false, notification_configured: false,
+        provider_connected: false, automatic_available: false, live_mode: false,
+      });
+      if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(orgId)) return json({ error: "Organización inválida" }, 400);
+      const { data: canManage, error: permissionError } = await asUser.rpc("can_manage_influencers", {
+        p_org_id: orgId, p_action: "edit",
+      });
+      if (permissionError || !canManage) return json({ error: "Sin permiso para gestionar pagos" }, 403);
+      const { data: connection, error: connectionError } = await admin.from("payment_connections")
+        .select("access_token, live_mode")
+        .eq("org_id", orgId).eq("provider", "mercadopago").maybeSingle();
+      if (connectionError) throw connectionError;
+      const enabled = hasPayoutContract(orgId);
+      const notificationConfigured = Boolean(Deno.env.get("MP_PAYOUTS_NOTIFICATION_URL"));
+      const providerConnected = Boolean(connection?.access_token);
       return json({
-        enabled: Deno.env.get("MP_PAYOUTS_ENABLED") === "true",
-        notification_configured: Boolean(Deno.env.get("MP_PAYOUTS_NOTIFICATION_URL")),
+        enabled,
+        notification_configured: notificationConfigured,
+        provider_connected: providerConnected,
+        automatic_available: enabled && notificationConfigured && providerConnected,
+        live_mode: connection?.live_mode ?? false,
       });
     }
 
-    if (Deno.env.get("MP_PAYOUTS_ENABLED") !== "true") {
+    // Apagar nuevos envíos nunca debe impedir conciliar lotes ya enviados.
+    if (action !== "sync" && Deno.env.get("MP_PAYOUTS_ENABLED") !== "true") {
       return json({
         error: "Los pagos masivos de Mercado Pago requieren habilitación comercial. Usá la liquidación por destino del creador.",
         code: "provider_capability_unavailable",
@@ -89,11 +118,47 @@ Deno.serve(async (req) => {
     }
 
     // ── create/dispatch: armar una vez y reenviar siempre el mismo lote ───
-    if (action === "create" || action === "dispatch") {
+    if (action === "create" || action === "dispatch" || action === "approve_and_pay") {
       const withdrawalIds: string[] = Array.isArray(body?.withdrawalIds) ? body.withdrawalIds : [];
       let batchId: string | undefined = body?.batchId;
+      if (action === "approve_and_pay") {
+        const withdrawalId = String(body?.withdrawalId ?? "");
+        if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(withdrawalId)) {
+          return json({ error: "Solicitud de retiro requerida" }, 400);
+        }
+        if (!Deno.env.get("MP_PAYOUTS_NOTIFICATION_URL")) {
+          return json({ error: "Falta configurar la confirmación automática del proveedor" }, 409);
+        }
+        const { data: withdrawal } = await admin.from("influencer_withdrawal_requests")
+          .select("org_id").eq("id", withdrawalId).maybeSingle();
+        if (!withdrawal) return json({ error: "Solicitud no encontrada" }, 404);
+        const { data: canManage } = await asUser.rpc("can_manage_influencers", {
+          p_org_id: withdrawal.org_id, p_action: "edit",
+        });
+        if (!canManage) return json({ error: "Sin permiso para aprobar pagos" }, 403);
+        if (!hasPayoutContract(withdrawal.org_id)) {
+          return json({ error: "Esta cuenta todavía no tiene pagos automáticos habilitados" }, 409);
+        }
+        if (!await getMpCredentials(admin, withdrawal.org_id)) {
+          return json({ error: "Conectá Mercado Pago antes de aprobar el pago automático" }, 409);
+        }
+        // Aprobación y lote comparten una transacción. Ante un retry se obtiene
+        // el lote activo en lugar de aprobar o enviar dos veces.
+        const { data: created, error: batchErr } = await asUser.rpc("approve_and_create_payout_batch", {
+          p_request_id: withdrawalId,
+        });
+        if (batchErr || !created) {
+          return json({ error: batchErr?.message ?? "No se pudo preparar el pago" }, 400);
+        }
+        batchId = created.id;
+      }
       if (action === "create") {
         if (!withdrawalIds.length) return json({ error: "Elegí al menos un retiro aprobado" }, 400);
+        const { data: firstWithdrawal } = await admin.from("influencer_withdrawal_requests")
+          .select("org_id").eq("id", withdrawalIds[0]).maybeSingle();
+        if (!firstWithdrawal || !hasPayoutContract(firstWithdrawal.org_id)) {
+          return json({ error: "Esta cuenta todavía no tiene pagos automáticos habilitados" }, 409);
+        }
         // Autoridad: la RPC valida permiso, organización, destino y que no
         // exista otro lote activo para el mismo retiro.
         const { data: created, error: batchErr } = await asUser.rpc("create_payout_batch", {
@@ -108,7 +173,7 @@ Deno.serve(async (req) => {
 
       const { data: batch } = await admin
         .from("influencer_payout_batches")
-        .select("id, org_id, external_reference, mp_payout_id")
+        .select("id, org_id, external_reference, idempotency_key, mp_payout_id")
         .eq("id", batchId)
         .maybeSingle();
       if (!batch) return json({ error: "Lote no encontrado" }, 404);
@@ -119,6 +184,13 @@ Deno.serve(async (req) => {
         .eq("org_id", batch.org_id).eq("user_id", userId).maybeSingle();
       if (!membership || !["owner", "admin"].includes(membership.role)) {
         return json({ error: "Necesitás ser administrador de esta organización" }, 403);
+      }
+      const { data: canManageBatch } = await asUser.rpc("can_manage_influencers", {
+        p_org_id: batch.org_id, p_action: "edit",
+      });
+      if (!canManageBatch) return json({ error: "Sin permiso para gestionar pagos" }, 403);
+      if (!hasPayoutContract(batch.org_id)) {
+        return json({ error: "Esta cuenta todavía no tiene pagos automáticos habilitados" }, 409);
       }
 
       if (batch.mp_payout_id) {
@@ -174,8 +246,8 @@ Deno.serve(async (req) => {
         ...(notificationUrl ? { config: { notification_url: notificationUrl } } : {}),
       };
 
-      // Idempotencia: el external_reference del lote ES la llave; un reintento
-      // sobre el mismo lote no duplica transferencias.
+      // Un reintento sobre el mismo lote usa su clave original, incluso si fue
+      // creado antes de que las claves nuevas pasaran a ser UUID.
       let res: Response;
       try {
         res = await fetch(MP_PAYOUTS_URL, {
@@ -184,7 +256,7 @@ Deno.serve(async (req) => {
           headers: {
             Authorization: `Bearer ${creds.accessToken}`,
             "Content-Type": "application/json",
-            "X-Idempotency-Key": externalReference,
+            "X-Idempotency-Key": batch.idempotency_key,
             ...(creds.liveMode ? {} : { "X-test-token": "true" }),
           },
           body: JSON.stringify(payload),
@@ -271,6 +343,10 @@ Deno.serve(async (req) => {
       if (!membership || !["owner", "admin"].includes(membership.role)) {
         return json({ error: "Necesitás ser administrador de esta organización" }, 403);
       }
+      const { data: canSyncBatch } = await asUser.rpc("can_manage_influencers", {
+        p_org_id: batch.org_id, p_action: "edit",
+      });
+      if (!canSyncBatch) return json({ error: "Sin permiso para conciliar pagos" }, 403);
 
       const resultado = await sincronizarLotePayouts(admin, batchId);
       if (resultado instanceof Response) return json(await resultado.json(), resultado.status);

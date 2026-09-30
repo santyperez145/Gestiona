@@ -1,7 +1,7 @@
 /**
  * Catálogo de medios de cobro (modelo Pago Nube / plataforma de comercio).
  *
- * Nerqia Pay es el producto. Los OAuth externos viven en
+ * Nerqia Pay es el producto. Los proveedores externos viven en
  * `payment_providers` con `integracion` honesta: declarado = próximamente,
  * sin botón Conectar. Mercado Pago es el rail de Pay, no una tarjeta aparte.
  */
@@ -19,10 +19,10 @@ export type MedioCatalogo = {
   orden: number;
 };
 
-/** Proveedores que el panel muestra como «más medios» (OAuth externo). */
-export function mediosOAuthDelCatalogo(medios: MedioCatalogo[] | null | undefined): MedioCatalogo[] {
+/** Proveedores externos que necesitan conexión o habilitación comercial. */
+export function mediosExternosDelCatalogo(medios: MedioCatalogo[] | null | undefined): MedioCatalogo[] {
   return (medios ?? [])
-    .filter((m) => m.conexion === "oauth" && m.provider !== "mercadopago")
+    .filter((m) => ["oauth", "contrato"].includes(m.conexion) && m.provider !== "mercadopago")
     .slice()
     .sort((a, b) => a.orden - b.orden || a.provider.localeCompare(b.provider));
 }
@@ -41,11 +41,7 @@ export function etiquetaEstadoMedio(integracion: string | null | undefined): {
   }
 }
 
-/**
- * ¿El panel puede ofrecer «Conectar»?
- * Slice B: ningún OAuth externo tiene adapter. Sólo Nerqia Pay (rail MP)
- * conecta de verdad. Un `produccion` sin adapter no inventa un botón.
- */
+/** Sólo el rail Mercado Pago de Nerqia Pay tiene conexión operativa hoy. */
 export function puedeConectarMedioCatalogo(m: Pick<MedioCatalogo, "conexion" | "integracion" | "provider">): boolean {
   if (m.conexion !== "oauth") return false;
   if (m.provider === "mercadopago") return false;

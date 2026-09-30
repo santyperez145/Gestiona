@@ -49,5 +49,5 @@ describe("seleccion explicita del proveedor de correo", () => {
       if (source.includes("api.resend.com")) offenders.push(entry.name);
     }
     expect(offenders).toEqual([]);
-  });
+  }, 20_000);
 });

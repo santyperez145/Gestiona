@@ -561,6 +561,11 @@ export default function CreatorPortalPage() {
       toast.error("Completá el titular y los datos de cobro");
       return;
     }
+    if ((nuevoDestino.provider === "virtual_wallet" || nuevoDestino.provider === "other")
+      && nuevoDestino.provider_label.trim() === "Otra billetera") {
+      toast.error("Indicá el nombre de la billetera o plataforma");
+      return;
+    }
     setGuardandoDestino(true);
     try {
       await savePayoutDestination({ ...nuevoDestino, holder_name: nuevoDestino.holder_name.trim(), identifier: nuevoDestino.identifier.trim() });
@@ -872,8 +877,8 @@ export default function CreatorPortalPage() {
                     onValueChange={(value: CreatorPayoutDestination["provider"]) => setNuevoDestino(current => ({
                       ...current,
                       provider: value,
-                      provider_label: value === "mercadopago" ? "Mercado Pago" : value === "bank_transfer" ? "Transferencia bancaria" : "Billetera virtual",
-                      destination_type: value === "mercadopago" ? "email" : value === "bank_transfer" ? "cbu" : "wallet_handle",
+                      provider_label: value === "mercadopago" ? "Mercado Pago" : value === "bank_transfer" ? "Transferencia bancaria" : "Otra billetera",
+                      destination_type: value === "mercadopago" ? "email" : value === "bank_transfer" ? "cbu" : "cvu",
                     }))}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -901,8 +906,24 @@ export default function CreatorPortalPage() {
               </div>
               {nuevoDestino.provider !== "mercadopago" && nuevoDestino.provider !== "bank_transfer" && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="proveedor-destino">Nombre de la billetera o plataforma</Label>
-                  <Input id="proveedor-destino" value={nuevoDestino.provider_label} onChange={e => setNuevoDestino(current => ({ ...current, provider_label: e.target.value }))} placeholder="Ej: Ualá" />
+                  <Label>Billetera o plataforma</Label>
+                  <Select
+                    value={["Ualá", "Naranja X", "Personal Pay", "Prex"].includes(nuevoDestino.provider_label) ? nuevoDestino.provider_label : "other"}
+                    onValueChange={value => setNuevoDestino(current => ({ ...current, provider_label: value === "other" ? "Otra billetera" : value }))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ualá">Ualá</SelectItem>
+                      <SelectItem value="Naranja X">Naranja X</SelectItem>
+                      <SelectItem value="Personal Pay">Personal Pay</SelectItem>
+                      <SelectItem value="Prex">Prex</SelectItem>
+                      <SelectItem value="other">Otra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!["Ualá", "Naranja X", "Personal Pay", "Prex"].includes(nuevoDestino.provider_label) && (
+                    <Input id="proveedor-destino" aria-label="Nombre de la billetera o plataforma" value={nuevoDestino.provider_label === "Otra billetera" ? "" : nuevoDestino.provider_label} onChange={e => setNuevoDestino(current => ({ ...current, provider_label: e.target.value }))} placeholder="Nombre del proveedor" />
+                  )}
+                  <p className="text-xs text-muted-foreground">Estos destinos requieren transferencia externa de la marca; no se envían automáticamente desde Nerqia.</p>
                 </div>
               )}
               <div className="space-y-1.5">

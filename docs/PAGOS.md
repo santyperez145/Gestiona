@@ -226,10 +226,11 @@ npm run drill:creator-settlements
 Esta segunda matriz ejecuta el recorrido comisión → retiro → aprobación →
 confirmación del proveedor → payout → gasto → asiento → reversa. Usa realmente los roles
 `authenticated` y `service_role`, reintenta el webhook y comprueba que la
-referencia no pueda reescribirse. El 2026-09-29 aprobó 5 escenarios y el cleanup
+referencia no pueda reescribirse. El 2026-09-30 aprobó 7 escenarios y el cleanup
 con cero filas persistidas. La prueba detectó y corrigió que el sincronizador
 automático no tenía permiso de ejecución, no superaba la autoridad de la RPC y
-carecía de un actor válido para `created_by`.
+carecía de un actor válido para `created_by`; también detectó un `min(uuid)`
+inválido en la creación del lote, corregido en `20260930000260`.
 
 La aprobación humana ya no puede marcar `paid`: sólo aprobar o rechazar. El pago
 se confirma exclusivamente con `settle_creator_withdrawal` y una referencia
@@ -241,7 +242,18 @@ email del perfil. Ante timeout, `409` o `5xx` conserva el lote como
 `awaiting_confirmation`; el operador reenvía ese mismo lote y la misma clave
 idempotente. Una respuesta vacía o un fallo al crear payout/gasto/asiento nunca
 se presenta como pago completo. La capacidad sigue desactivada hasta contar con
-habilitación comercial (`MP_PAYOUTS_ENABLED`) y URL de notificación contratada.
+habilitación comercial (`MP_PAYOUTS_ENABLED`), organización incluida en
+`MP_PAYOUTS_ALLOWED_ORGS` y URL de notificación contratada.
+`Aprobar y pagar` aprueba y crea el lote en una sola transacción. Un retry usa el
+mismo lote, y mientras su resultado sea incierto se bloquea la liquidación
+manual paralela. Los lotes anteriores conservan su clave de idempotencia; los
+nuevos reciben una UUID. Apagar nuevos envíos no impide sincronizar pagos ya
+despachados. Nada de esto sustituye la certificación de un payout externo real.
+
+El catálogo incorpora Ualá Bis, Payway y dLocal como candidatos **declarados**:
+no hay adapter de checkout, credenciales ni autorización comercial en Nerqia y
+no se ofrecen al comprador. El siguiente hito es certificar por separado cada
+API, webhook, devolución, idempotencia y conciliación con un comercio habilitado.
 
 Una reversa confirmada por un proveedor tampoco modifica ni elimina el pago
 original: `reverse_creator_withdrawal` agrega un payout negativo, un ajuste de

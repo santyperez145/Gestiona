@@ -21,7 +21,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { destinoOAuthPermitido } from "@/lib/gestionaPay";
 import {
   etiquetaEstadoMedio,
-  mediosOAuthDelCatalogo,
+  mediosExternosDelCatalogo,
   puedeConectarMedioCatalogo,
   type MedioCatalogo,
 } from "@/lib/paymentCatalog";
@@ -144,7 +144,7 @@ export default function PaymentConnectionsPanel({
   }
 
   const conectado = !!mp?.conectado;
-  const oauthExternos = mediosOAuthDelCatalogo(catalogo);
+  const mediosExternos = mediosExternosDelCatalogo(catalogo);
 
   return (
     <>
@@ -247,17 +247,17 @@ export default function PaymentConnectionsPanel({
       <GestionaPayComisiones orgId={activeOrg?.id} planId={activeOrg?.plan_id} />
     </div>
 
-    {oauthExternos.length > 0 && (
+    {mediosExternos.length > 0 && (
       <div className="bg-card border border-border rounded-xl p-4 md:p-6 space-y-3">
         <div>
           <h3 className="font-display font-semibold text-sm">Más medios de cobro</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Como en Tiendanube: se conectan por OAuth cuando el contrato esté.
-            Transferencia y efectivo se configuran arriba en Métodos de cobro.
+            Los proveedores de esta lista requieren una integración comercial verificada.
+            Transferencia y efectivo se configuran en Métodos de cobro.
           </p>
         </div>
         <ul className="divide-y divide-border/60 rounded-lg border border-border/50 overflow-hidden">
-          {oauthExternos.map((m) => {
+          {mediosExternos.map((m) => {
             const estado = etiquetaEstadoMedio(m.integracion);
             const conectarVisible = puedeConectarMedioCatalogo(m);
             return (
@@ -288,7 +288,7 @@ export default function PaymentConnectionsPanel({
                     Conectar
                   </Button>
                 ) : (
-                  <span className="text-[11px] text-muted-foreground shrink-0 pt-1">Sin adapter aún</span>
+                  <span className="text-[11px] text-muted-foreground shrink-0 pt-1">Aún no disponible</span>
                 )}
               </li>
             );

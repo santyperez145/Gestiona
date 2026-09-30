@@ -22,7 +22,7 @@ de creadores como propia.
 | Entregables | Entrega y reentrega desde portal, archivos privados versionados (video, imagen o PDF), revisión de marca con URL firmada, chat por colaboración y prueba de publicación con licencia tipada. | Conectores sociales verificados y escaneo antimalware asíncrono. |
 | Contratos | Versiones inmutables, aceptación de marca y creador por versión, evidencia temporal y acceso del creador por sesión o enlace limitado. | Proveedor de firma cualificada sólo si el marco legal/comercial lo exige. |
 | Comisiones | Ventas y payouts son proyecciones de sólo lectura; destinos cifrados para Mercado Pago, CBU/CVU, alias u otra billetera; la transferencia confirmada con referencia genera atómicamente payout, gasto y asiento idempotentes en Finance. Una reversa comprobada conserva el pago y agrega payout/gasto negativos más contraasiento. | Conciliación bancaria certificada del proveedor externo. |
-| Pagos automáticos | El checkout de tienda usa OAuth y split 1:1 directo al comercio. `mp-payouts` ya está conectado a la bandeja, usa el destino MP cifrado elegido en cada retiro, webhook firmado, conciliación con Finance y reintento del mismo lote/llave ante timeout. Permanece cerrado mientras `MP_PAYOUTS_ENABLED` no confirme capacidad comercial; nunca se simula una transferencia. | Contrato de proveedor/partner, habilitar secretos, certificación con cuenta real y circuito de reversa. |
+| Pagos automáticos | `Aprobar y pagar` crea un lote atómico e idempotente para una cuenta MP elegida; evita la liquidación manual paralela y conserva la clave original de lotes anteriores. Webhook y conciliación Finance siguen siendo la autoridad del pago. Ualá, Naranja X, Personal Pay y Prex son destinos externos identificables, no APIs de envío. `mp-payouts` permanece cerrado mientras no haya contrato global y autorización explícita de la organización en `MP_PAYOUTS_ALLOWED_ORGS`; nunca se simula una transferencia. | Contrato de proveedor/partner, habilitar secretos, certificación con cuenta real y comprobante de payout; después, un adaptador por otro proveedor con su propio contrato. |
 | Mensajería y resultados | Chat, preferencias, publicación verificable y reportes sociales con revisión durable que alimentan reputación. | OAuth de redes y atribución externa certificada. |
 
 Activar o cerrar una campaña es un cambio de seguimiento, no una invitación,
@@ -53,6 +53,10 @@ pagada. Registrar una revisión no demuestra que una red social haya publicado.
   bandeja. El servidor descifra exclusivamente el snapshot del retiro; nunca usa
   el email general del perfil. Un timeout queda `awaiting_confirmation` y sólo
   permite reenviar el mismo lote con la misma clave idempotente.
+- Si la cuenta y el webhook están listos, la marca puede aprobar y preparar el
+  envío en una sola acción. La RPC es atómica y una transferencia manual no puede
+  cerrar el retiro mientras haya un lote incierto. La matriz reversible prueba
+  ese bloqueo y siete escenarios con cero restos; no mueve dinero externo.
 - Una devolución posterior no borra historia: `reverse_creator_withdrawal`
   exige referencia y motivo, devuelve el saldo con un payout negativo, compensa
   el gasto y contraasienta el libro. Marca y creador ven el estado `Revertido`.

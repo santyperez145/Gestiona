@@ -164,11 +164,10 @@ Detalle vigente: [Finance](docs/FINANCE.md).
 ### Pay y Platform
 
 Pay ya modela conexión OAuth, checkout, pago manual, QR, webhook, comisión,
-settlement, refund y timeline. Faltan certificaciones live y economics con
-costos reales antes de escalar comisión.
+settlement, refund y timeline. Faltan certificaciones live y economics con costos reales antes de escalar comisión.
 
 **Evidencia interna (2026-09-30):** `drill:payments` (16 escenarios),
-`drill:creator-settlements` (5), `drill:seller-commissions` (4) y
+`drill:creator-settlements` (7), `drill:seller-commissions` (4) y
 `drill:wallet-withdrawals` (4) pasaron contra la base vinculada con rollback
 sin residuos. Prueban autoridad, idempotencia, reversas y ledger; no equivalen
 a un cobro, payout o retiro externo acreditado. Para cada proveedor/destino
@@ -318,7 +317,7 @@ cita la evidencia que falta, no la que existe.
 | Notificaciones consentidas del chat | **Cerrado (2026-09-25):** `influencer_chat_notify_prefs` (consentimiento por persona) + cola `influencer_chat_notifications` por trigger según preferencia del destinatario; despacho email/push service_role, toggle en ambos portales, verificación reversible E2E (7 aserciones) y job `campaign-chat-dispatcher` en pg_cron (c/5 min) con reintentos. |
 | Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada y vencimiento obligatorio para usos pagados; RPC y portal del creador muestran la verificación. |
 | Contratos con aceptación de ambas partes | **Cerrado (2026-09-29):** `influencer_contract_versions` conserva condiciones inmutables; `influencer_contract_acceptances` registra marca y creador por versión. La aceptación funciona con sesión o token limitado, y una edición invalida la aceptación anterior. |
-| Liquidación enlazada a Finance | **Cerrado en autoridad interna y certificado (2026-09-29):** el creador elige Mercado Pago, CBU/CVU, alias u otra billetera; aprobar no mueve dinero y confirmar con referencia crea atómicamente `influencer_payouts`, gasto y asiento. El adaptador MP está conectado a la UI, usa el destino cifrado exacto y reintenta el mismo lote ante resultado incierto. Una reversa conserva el pago y agrega payout/gasto compensatorios más contraasiento. `npm run drill:creator-settlements` prueba 5 escenarios, roles, idempotencia, referencia inmutable, reversa y cero restos. Activar dinero real sigue condicionado a contrato Payouts, secretos y certificación externa. |
+| Liquidación enlazada a Finance | **Cerrado en autoridad interna (2026-09-30):** el creador elige Mercado Pago, CBU/CVU, alias u otra billetera; aprobar no mueve dinero y confirmar con referencia crea atómicamente payout, gasto y asiento. `Aprobar y pagar` prepara un único lote MP sin doble liquidación; la reversa conserva el pago y agrega ajustes compensatorios. `npm run drill:creator-settlements` prueba 7 escenarios, roles, idempotencia y cero restos. Activar dinero real sigue condicionado a contrato Payouts, secretos y certificación externa. |
 | Métricas sociales verificadas | **Cerrado por evidencia (2026-09-29):** el creador reporta período, alcance, impresiones y engagement con captura/CSV enlazado; la marca verifica o rechaza y el sello alimenta reputación y descubrimiento. OAuth directo queda como integración futura. |
 
 **Pilar 2 — Tiendas/Commerce:**

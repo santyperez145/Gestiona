@@ -783,7 +783,7 @@ Deno.serve(async (req) => {
         // Cobros y suscripciones
         "MP_APP_ID", "MP_APP_SECRET", "MP_WEBHOOK_SECRET", "MP_PLATFORM_ACCESS_TOKEN",
         // Pagos automáticos a creadores (Mercado Pago Payouts)
-        "MP_PAYOUTS_NOTIFICATION_URL",
+        "MP_PAYOUTS_NOTIFICATION_URL", "MP_PAYOUTS_ALLOWED_ORGS",
         // Tareas programadas
         "BACKUP_CRON_SECRET",
         // WhatsApp (API oficial de Meta)

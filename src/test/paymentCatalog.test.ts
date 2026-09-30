@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   etiquetaEstadoMedio,
-  mediosOAuthDelCatalogo,
+  mediosExternosDelCatalogo,
   puedeConectarMedioCatalogo,
   type MedioCatalogo,
 } from "@/lib/paymentCatalog";
@@ -23,15 +23,16 @@ const base = (partial: Partial<MedioCatalogo>): MedioCatalogo => ({
 });
 
 describe("paymentCatalog", () => {
-  it("lista OAuth externos y oculta el rail Mercado Pago", () => {
-    const list = mediosOAuthDelCatalogo([
+  it("lista proveedores externos y oculta el rail Mercado Pago", () => {
+    const list = mediosExternosDelCatalogo([
       base({ provider: "mercadopago", nombre: "Mercado Pago", orden: 10, integracion: "produccion" }),
       base({ provider: "modo", orden: 20 }),
       base({ provider: "naranjax", nombre: "Naranja X", orden: 30 }),
+      base({ provider: "ualabis", nombre: "Ualá Bis", conexion: "contrato", orden: 35 }),
       base({ provider: "gestionapay", nombre: "Nerqia Pay", conexion: "plataforma", orden: 5 }),
       base({ provider: "transferencia", nombre: "Transferencia", conexion: "ninguna", orden: 50 }),
     ]);
-    expect(list.map((m) => m.provider)).toEqual(["modo", "naranjax"]);
+    expect(list.map((m) => m.provider)).toEqual(["modo", "naranjax", "ualabis"]);
   });
 
   it("etiqueta declarado como Próximamente", () => {
@@ -62,9 +63,9 @@ describe("PaymentConnectionsPanel catálogo", () => {
 
   it("lee medios_de_pago_de y no inventa Conectar para próximamente", () => {
     expect(panel).toContain('medios_de_pago_de');
-    expect(panel).toContain("mediosOAuthDelCatalogo");
+    expect(panel).toContain("mediosExternosDelCatalogo");
     expect(panel).toContain("Próximamente");
-    expect(panel).toContain("Sin adapter aún");
+    expect(panel).toContain("Aún no disponible");
     expect(panel).toContain("Activar Nerqia Pay");
   });
 

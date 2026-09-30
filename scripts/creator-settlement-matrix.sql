@@ -18,6 +18,7 @@ DECLARE
   v_influencer uuid;
   v_destination uuid;
   v_request uuid;
+  v_batch uuid;
   v_result jsonb;
   v_count integer;
   v_denied boolean;
@@ -88,9 +89,29 @@ BEGIN
       'detail', 'identificador cifrado; cliente recibe sólo máscara'
     ));
 
-    -- Aprobar no mueve dinero ni crea gasto.
+    PERFORM set_config('request.jwt.claims', '{"role":"anon"}', true);
+    SET LOCAL ROLE anon;
+    v_denied := false;
+    BEGIN
+      PERFORM public.approve_and_create_payout_batch(v_request);
+    EXCEPTION WHEN insufficient_privilege THEN v_denied := true;
+    END;
+    RESET ROLE;
+    ASSERT v_denied, 'anon pudo preparar un pago automático';
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'anon_sin_pago', 'passed', true,
+      'detail', 'anon no puede invocar la autoridad de lotes'
+    ));
+
+    -- Aprobar y preparar el envío es atómico; ni el lote ni su retry
+    -- acreditan dinero antes de que lo confirme el proveedor.
+    PERFORM set_config('request.jwt.claims',
+      jsonb_build_object('sub', v_user, 'role', 'authenticated')::text, true);
     SET LOCAL ROLE authenticated;
-    PERFORM public.resolve_creator_withdrawal(v_request, 'approved');
+    SELECT id INTO v_batch FROM public.approve_and_create_payout_batch(v_request);
+    ASSERT v_batch IS NOT NULL, 'no se preparó el lote automático';
+    ASSERT (SELECT id FROM public.approve_and_create_payout_batch(v_request)) = v_batch,
+      'el retry creó otro lote para el mismo retiro';
     SELECT count(*) INTO v_count FROM public.influencer_payouts
     WHERE notes = 'withdrawal:' || v_request::text;
     ASSERT v_count = 0, 'aprobar creó un pago inexistente';
@@ -100,6 +121,17 @@ BEGIN
     v_results := v_results || jsonb_build_array(jsonb_build_object(
       'scenario', 'aprobacion_sin_pago', 'passed', true,
       'detail', 'revisión humana no inventa una transferencia'
+    ));
+
+    v_denied := false;
+    BEGIN
+      PERFORM public.settle_creator_withdrawal(v_request, 'MANUAL-ZZ-' || v_suffix, 'transferencia');
+    EXCEPTION WHEN SQLSTATE '55000' THEN v_denied := true;
+    END;
+    ASSERT v_denied, 'se permitió registrar otro pago con un lote externo activo';
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'lote_idempotente_sin_doble_pago', 'passed', true,
+      'detail', 'retry conserva el lote y bloquea liquidación manual paralela'
     ));
 
     -- La RPC de revisión ya no puede saltarse la referencia externa.

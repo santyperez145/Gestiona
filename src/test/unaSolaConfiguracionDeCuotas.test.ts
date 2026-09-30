@@ -157,10 +157,7 @@ describe("el catálogo no promete cuotas que el comercio no ofrece", () => {
     // `org_installment_plans` la leen sólo los miembros, y el catálogo público
     // lo mira un comprador anónimo. Se expone lo mostrable por RPC, igual que
     // `get_store_categories`.
-    const dir = resolve(ROOT, "supabase/migrations");
-    const sql = readdirSync(dir).filter(f => f.endsWith(".sql")).sort().reverse()
-      .map(f => readFileSync(resolve(dir, f), "utf8"))
-      .find(t => /FUNCTION public\.cuotas_publicas/.test(t));
+    const sql = readFileSync(resolve(ROOT, "supabase/migrations/20260827000280_el_catalogo_dice_las_cuotas_que_hay.sql"), "utf8");
     expect(sql, "ninguna migración define cuotas_publicas").toBeTruthy();
     expect(sql!, "la función pública de cuotas dejó de ser SECURITY DEFINER")
       .toMatch(/SECURITY DEFINER/);

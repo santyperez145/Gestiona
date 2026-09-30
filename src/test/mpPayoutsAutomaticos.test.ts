@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 /**
  * Guardia del adaptador opcional de Mercado Pago Payouts.
  *
- * Contrato verificado contra docs oficiales MP (2026-09-24):
+ * Contrato opcional sujeto a habilitación y certificación con MP:
  * POST /v1/payouts con X-Idempotency-Key obligatorio, external_reference
  * único, transacciones type=account con email destino, amount ARS,
  * X-test-token:true en pruebas, y sincronización por GET /transactions.
@@ -18,13 +18,14 @@ describe("MP Payouts: Edge Function mp-payouts", () => {
   it("usa el endpoint oficial con idempotencia obligatoria", () => {
     expect(edge).toContain("https://api.mercadopago.com/v1/payouts");
     expect(edge).toContain('"X-Idempotency-Key"');
-    // La llave idempotente es el external_reference del lote en la base:
-    // un reintento no duplica transferencias.
-    expect(edge).toContain("X-Idempotency-Key\": externalReference");
+    // El lote conserva la clave usada para el primer envío y sus reintentos.
+    expect(edge).toContain('"X-Idempotency-Key": batch.idempotency_key');
   });
 
   it("permanece cerrado sin habilitacion comercial explicita", () => {
     expect(edge).toContain('Deno.env.get("MP_PAYOUTS_ENABLED") !== "true"');
+    expect(edge).toContain('MP_PAYOUTS_ALLOWED_ORGS');
+    expect(edge).toContain('hasPayoutContract(batch.org_id)');
     expect(edge).toContain('provider_capability_unavailable');
   });
 
@@ -43,6 +44,7 @@ describe("MP Payouts: Edge Function mp-payouts", () => {
 
   it("la autoridad es server-side: permisos y estado via RPC create_payout_batch", () => {
     expect(edge).toContain('rpc("create_payout_batch"');
+    expect(edge).toContain('can_manage_influencers');
     // El access token nunca se hardcodea: sale de la conexión OAuth cifrada.
     expect(edge).toContain("getMpCredentials");
     expect(edge).not.toMatch(/Bearer\s+["']APP_USR/);

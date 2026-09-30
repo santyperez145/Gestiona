@@ -6,6 +6,7 @@ const migration = read('supabase/migrations/20260929000300_creator_payout_destin
 const creatorPortal = read('src/pages/CreatorPortalPage.tsx');
 const brandPayments = read('src/pages/InfluencerPaymentsPage.tsx');
 const payoutEdge = read('supabase/functions/mp-payouts/index.ts');
+const automaticAuthority = read('supabase/migrations/20260930000240_creator_auto_payout_authority.sql');
 const storePay = read('supabase/functions/store-pay/index.ts');
 
 describe('destinos de cobro y liquidaciones de creadores', () => {
@@ -38,6 +39,10 @@ describe('destinos de cobro y liquidaciones de creadores', () => {
     expect(creatorPortal).toContain('<SelectItem value="virtual_wallet">Otra billetera</SelectItem>');
     expect(creatorPortal).toContain('p_destination_id: destinoId');
     expect(creatorPortal).not.toContain('Datos de cobro: ${cbuAlias.trim()}');
+    for (const wallet of ['Ualá', 'Naranja X', 'Personal Pay', 'Prex']) {
+      expect(creatorPortal).toContain(`>${wallet}</SelectItem>`);
+    }
+    expect(creatorPortal).toContain('requieren transferencia externa');
   });
 
   it('la marca confirma la transferencia en vez de simular un payout', () => {
@@ -53,5 +58,18 @@ describe('destinos de cobro y liquidaciones de creadores', () => {
     expect(storePay).toContain('getMpCredentials(admin, store.org_id)');
     expect(payoutEdge).toContain('MP_PAYOUTS_ENABLED');
     expect(payoutEdge).toContain('provider_capability_unavailable');
+  });
+
+  it('aprueba y arma un solo lote, sin permitir doble liquidación', () => {
+    expect(automaticAuthority).toContain('approve_and_create_payout_batch');
+    expect(automaticAuthority).toContain("public.resolve_creator_withdrawal(p_request_id, 'approved')");
+    expect(automaticAuthority).toContain('RETURN public.create_payout_batch(ARRAY[p_request_id])');
+    expect(automaticAuthority).toContain('prevent_parallel_creator_settlement');
+    expect(automaticAuthority).toContain("item.status IN ('pending', 'processing')");
+    expect(payoutEdge).toContain('action === "approve_and_pay"');
+    expect(automaticAuthority).toContain('idempotency_key = external_reference');
+    expect(automaticAuthority).toContain('SET DEFAULT gen_random_uuid()::text');
+    expect(payoutEdge).toContain('"X-Idempotency-Key": batch.idempotency_key');
+    expect(brandPayments).toContain('Aprobar y pagar');
   });
 });

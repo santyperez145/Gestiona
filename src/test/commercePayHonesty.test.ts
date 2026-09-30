@@ -37,7 +37,7 @@ describe('Commerce Pay honesty', () => {
   it('muestra el catálogo OAuth (próximamente) sin Conectar falso', () => {
     expect(payPanel).toContain('medios_de_pago_de');
     expect(payPanel).toContain('Más medios de cobro');
-    expect(payPanel).toContain('Sin adapter aún');
+    expect(payPanel).toContain('Aún no disponible');
     expect(payPanel).not.toMatch(/onClick=\{[^}]*Conectar[^}]*modo/i);
   });
 

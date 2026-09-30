@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, CreditCard, Loader2, RefreshCw, RotateCcw, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrg } from '@/lib/orgContext';
-import { createAutomaticCreatorPayout, getCreatorPayoutCapability, heldPaymentLabel, listCreatorPayoutBatches, listInfluencers, listInfluencerSales, listPaymentsWithRelease, listPayouts, listWithdrawalRequests, resolveWithdrawalRequest, retryAutomaticCreatorPayout, reverseWithdrawalRequest, settleWithdrawalRequest, syncAutomaticCreatorPayout, withdrawalSettlementDetails, type WithdrawalRequest, type WithdrawalSettlementDetails } from '@/lib/influencersDB';
+import { approveAndPayCreatorWithdrawal, createAutomaticCreatorPayout, getCreatorPayoutCapability, heldPaymentLabel, listCreatorPayoutBatches, listInfluencers, listInfluencerSales, listPaymentsWithRelease, listPayouts, listWithdrawalRequests, resolveWithdrawalRequest, retryAutomaticCreatorPayout, reverseWithdrawalRequest, settleWithdrawalRequest, syncAutomaticCreatorPayout, withdrawalSettlementDetails, type WithdrawalRequest, type WithdrawalSettlementDetails } from '@/lib/influencersDB';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
 import SocialMetricReportsInbox from '@/components/influencers/SocialMetricReportsInbox';
@@ -88,6 +88,24 @@ export default function InfluencerPaymentsPage() {
     }
   };
 
+  const aprobarYPagar = async (withdrawalId: string) => {
+    setOperandoLote(withdrawalId);
+    try {
+      const result = await approveAndPayCreatorWithdrawal(withdrawalId);
+      if (result.code === 'payout_confirmation_pending') {
+        toast.warning(result.error ?? 'El proveedor todavía no confirmó el lote.');
+      } else {
+        toast.success('Retiro aprobado y enviado. Se liquidará cuando Mercado Pago confirme el pago.');
+      }
+      await refreshPayoutData();
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : 'No pudimos aprobar y enviar el pago');
+      await refreshPayoutData();
+    } finally {
+      setOperandoLote(null);
+    }
+  };
+
   const actualizarLote = async (batchId: string, retry: boolean) => {
     setOperandoLote(batchId);
     try {
@@ -157,8 +175,14 @@ export default function InfluencerPaymentsPage() {
           <div className="rounded-lg border border-border bg-card p-3">
             <p className="text-sm font-medium">Liquidación por destino elegido</p>
             <p className="mt-1 text-xs text-muted-foreground">Mercado Pago puede transferir y conciliar automáticamente cuando la cuenta tiene Payouts habilitado. Banco u otra billetera requieren ejecutar la transferencia en ese proveedor y registrar su comprobante.</p>
-            {!payoutCapability.isPending && !payoutCapability.data?.enabled && (
+            {payoutCapability.isError && (
+              <p className="mt-2 text-xs font-medium text-amber-700">No pudimos verificar la disponibilidad del pago automático. Reintentá antes de enviar dinero.</p>
+            )}
+            {!payoutCapability.isPending && !payoutCapability.isError && !payoutCapability.data?.enabled && (
               <p className="mt-2 text-xs font-medium text-amber-700">Pago masivo de Mercado Pago pendiente de habilitación comercial. La liquidación manual comprobable sigue disponible.</p>
+            )}
+            {payoutCapability.data?.enabled && !payoutCapability.data.provider_connected && (
+              <p className="mt-2 text-xs font-medium text-amber-700">Conectá la cuenta Mercado Pago del comercio en Configuración → Cobros para habilitar los envíos.</p>
             )}
             {payoutCapability.data?.enabled && !payoutCapability.data.notification_configured && (
               <p className="mt-2 text-xs font-medium text-amber-700">Configurá el webhook de Payouts para recibir confirmaciones automáticas; mientras tanto podés sincronizar cada lote.</p>
@@ -195,9 +219,15 @@ export default function InfluencerPaymentsPage() {
             <td className="p-3"><Badge variant="outline">{WITHDRAWAL_STATES[w.status] ?? w.status}</Badge></td>
             <td className="p-3"><div className="flex justify-end gap-1">{w.status === 'pending' && <>
               <Button size="icon" variant="ghost" title="Rechazar solicitud" aria-label={`Rechazar solicitud de ${names.get(w.influencer_id) ?? 'creador'}`} onClick={() => void resolve(w.id, 'rejected')}><X className="h-4 w-4 text-destructive" /></Button>
-              <Button size="icon" variant="ghost" title="Aprobar solicitud" aria-label={`Aprobar solicitud de ${names.get(w.influencer_id)}`} onClick={() => void resolve(w.id, 'approved')}><Check className="h-4 w-4 text-emerald-600" /></Button>
+              <Button size="icon" variant="ghost" title="Aprobar sin enviar" aria-label={`Aprobar solicitud de ${names.get(w.influencer_id)}`} disabled={operandoLote === w.id} onClick={() => void resolve(w.id, 'approved')}><Check className="h-4 w-4 text-emerald-600" /></Button>
+              {w.payout_provider === 'mercadopago' && w.payout_destination_type === 'email' && payoutCapability.data?.automatic_available && (
+                <Button size="sm" disabled={operandoLote === w.id} onClick={() => void aprobarYPagar(w.id)}>
+                  {operandoLote === w.id ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CreditCard className="mr-1.5 h-4 w-4" />}
+                  Aprobar y pagar
+                </Button>
+              )}
             </>}
-            {w.status === 'approved' && w.payout_provider === 'mercadopago' && payoutCapability.data?.enabled && (
+            {w.status === 'approved' && w.payout_provider === 'mercadopago' && payoutCapability.data?.enabled && payoutCapability.data.provider_connected && (
               <Button size="sm" disabled={operandoLote === w.id} onClick={() => void ejecutarPagoAutomatico(w.id)}>
                 {operandoLote === w.id ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CreditCard className="mr-1.5 h-4 w-4" />}
                 Pagar con Mercado Pago

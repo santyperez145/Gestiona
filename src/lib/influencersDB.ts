@@ -592,6 +592,9 @@ export async function reverseWithdrawalRequest(id: string, reference: string, re
 export type CreatorPayoutCapability = {
   enabled: boolean;
   notification_configured: boolean;
+  provider_connected: boolean;
+  automatic_available: boolean;
+  live_mode: boolean;
 };
 
 export type CreatorPayoutBatch = {
@@ -624,7 +627,7 @@ async function invokeCreatorPayout(body: Record<string, unknown>): Promise<Creat
 }
 
 export async function getCreatorPayoutCapability(): Promise<CreatorPayoutCapability> {
-  const { data, error } = await sb.functions.invoke('mp-payouts', { body: { action: 'capability' } });
+  const { data, error } = await sb.functions.invoke('mp-payouts', { body: { action: 'capability', orgId: requireActiveOrgId() } });
   if (error) throw new Error(await mensajeDeEdgeFunction(error, data, 'merchant'));
   return data as CreatorPayoutCapability;
 }
@@ -641,6 +644,10 @@ export async function listCreatorPayoutBatches(): Promise<CreatorPayoutBatch[]> 
 
 export function createAutomaticCreatorPayout(withdrawalIds: string[]): Promise<CreatorPayoutOperation> {
   return invokeCreatorPayout({ action: 'create', withdrawalIds });
+}
+
+export function approveAndPayCreatorWithdrawal(withdrawalId: string): Promise<CreatorPayoutOperation> {
+  return invokeCreatorPayout({ action: 'approve_and_pay', withdrawalId });
 }
 
 export function retryAutomaticCreatorPayout(batchId: string): Promise<CreatorPayoutOperation> {
