@@ -43,7 +43,7 @@ const CAPABILITIES = [
     icon: Sparkles,
     kicker: 'Creadores',
     title: 'Campañas con creadores, de la invitación al pago.',
-    description: 'Brief, aceptación, entregas con revisión, publicación verificada con licencia y chat por colaboración con avisos consentidos. Los retiros se pagan automáticamente vía Mercado Pago.',
+    description: 'Brief, aceptación, entregas con revisión, publicación verificada con licencia y chat por colaboración. Comisiones y retiros con seguimiento trazable.',
     tone: 'berry',
   },
 ] as const;
@@ -91,8 +91,8 @@ const SURFACES = [
     label: 'Creadores',
     eyebrow: 'Marketing de creadores',
     title: 'Campañas con creadores, de la invitación al pago.',
-    description: 'Invitá, coordiná por chat con avisos por correo o push cuando lo autorizás, revisá entregas y verificá la publicación con su licencia de uso. El creador cobra sus comisiones con retiros pagados automáticamente vía Mercado Pago.',
-    facts: ['Chat con avisos consentidos', 'Publicación verificada con licencia', 'Retiros automáticos vía Mercado Pago'],
+    description: 'Invitá, coordiná por chat, revisá entregas y verificá la publicación con su licencia de uso. El creador sigue sus comisiones y solicita retiros desde su cuenta.',
+    facts: ['Chat con avisos consentidos', 'Publicación verificada con licencia', 'Comisiones y retiros trazables'],
     icon: Sparkles,
     tone: 'berry',
   },
@@ -148,28 +148,7 @@ const FAQ = [
   },
   {
     q: '¿Qué incluye el plan de los creadores (Go-Marz)?',
-    a: 'Portal de creador con invitaciones privadas, aceptación/rechazo con expiración, campañas, entregables con revisión, publicación verificada con licencia de uso, chat por colaboración y retiros pagados automáticamente vía Mercado Pago. El superadmin ve todas las marcas y descubre creadores globalmente.',
-  },
-];
-
-/** Dos audiencias, dos entradas: la marca opera el comercio; el creador
- * gestiona campañas e ingresos. No son lo mismo y no comparten panel. */
-const AUDIENCES = [
-  {
-    id: 'negocio' as const,
-    icon: Store,
-    title: 'Soy negocio',
-    description: 'Tienda online, POS sin conexión, gestión y finance en una sola operación.',
-    href: '/login?mode=register&role=business',
-    cta: 'Crear mi tienda gratis',
-  },
-  {
-    id: 'creador' as const,
-    icon: Sparkles,
-    title: 'Soy creador',
-    description: 'Campañas, entregables e ingresos de todas tus marcas — cobrá automáticamente vía Mercado Pago.',
-    href: '/login?mode=register&role=creator',
-    cta: 'Crear mi cuenta de creador',
+    a: 'Portal de creador con invitaciones privadas, campañas, entregables con revisión, publicación verificada con licencia de uso, chat por colaboración y retiros con seguimiento. El pago automático requiere que la cuenta tenga habilitado el servicio de transferencias del proveedor.',
   },
 ];
 
@@ -318,19 +297,9 @@ export default function LandingPage() {
                   Ver cómo funciona
                 </a>
               </div>
-              {/* Dos puertas visibles: la marca y el creador eligen destino
-                  antes de crear la cuenta. Sin esto, un influencer termina con
-                  un panel de negocio que no le sirve. */}
-              <div className="landing-audience-split">
-                {AUDIENCES.map(({ id, icon: AudienceIcon, title, description, href, cta }) => (
-                  <Link key={id} to={href} className={`landing-audience-card landing-audience-card--${id}`}>
-                    <span className="landing-audience-card__icon"><AudienceIcon /></span>
-                    <strong>{title}</strong>
-                    <span>{description}</span>
-                    <small>{cta} <ArrowRight /></small>
-                  </Link>
-                ))}
-              </div>
+              <p className="landing-hero__creator">
+                ¿Trabajás con marcas? <Link to="/login?mode=register&role=creator">Creá tu cuenta de creador <ArrowRight aria-hidden="true" /></Link>
+              </p>
               <div className="landing-checks">{CHECKS.map(check => <span key={check}><Check /> {check}</span>)}</div>
             </div>
             <StorefrontPreview />

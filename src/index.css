@@ -1543,64 +1543,6 @@
     margin-top: 1.3rem;
   }
 
-  /* Dos puertas de entrada: la marca opera, el creador colabora. */
-  .landing-audience-split {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.6rem;
-    margin-top: 1.35rem;
-  }
-
-  .landing-audience-card {
-    display: grid;
-    gap: 0.15rem;
-    padding: 0.8rem 0.9rem;
-    border: 1px solid hsl(var(--landing-line));
-    border-radius: 12px;
-    background: hsl(0 0% 100%);
-    text-decoration: none;
-    transition: border-color 140ms ease, box-shadow 140ms ease;
-  }
-
-  .landing-audience-card__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.7rem;
-    height: 1.7rem;
-    border-radius: 8px;
-    margin-bottom: 0.25rem;
-  }
-
-  .landing-audience-card__icon svg { width: 0.95rem; height: 0.95rem; }
-
-  .landing-audience-card--negocio .landing-audience-card__icon { background: hsl(222 87% 55% / 0.1); color: hsl(222 87% 51%); }
-  .landing-audience-card--creador .landing-audience-card__icon { background: hsl(45 93% 47% / 0.14); color: hsl(38 92% 50%); }
-
-  .landing-audience-card strong {
-    color: hsl(var(--landing-ink));
-    font-size: 0.76rem;
-    font-weight: 750;
-  }
-
-  .landing-audience-card > span {
-    color: hsl(var(--landing-muted));
-    font-size: 0.63rem;
-    line-height: 1.45;
-  }
-
-  .landing-audience-card small {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    margin-top: 0.35rem;
-    color: hsl(var(--landing-muted));
-    font-size: 0.6rem;
-    font-weight: 700;
-  }
-
-  .landing-audience-card:hover { border-color: hsl(var(--landing-gold)); box-shadow: 0 4px 16px hsl(var(--landing-ink) / 0.06); }
-
   .landing-checks span {
     display: inline-flex;
     align-items: center;
@@ -5400,6 +5342,24 @@
     margin-top: 1.55rem;
   }
 
+  .landing-hero__creator {
+    margin-top: 1rem;
+    color: hsl(0 0% 100% / 0.82);
+    font-size: 0.82rem;
+  }
+
+  .landing-hero__creator a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: hsl(0 0% 100%);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .landing-hero__creator svg { width: 0.85rem; height: 0.85rem; }
+
   .landing-hero .landing-button--outline {
     border-color: hsl(0 0% 100% / 0.4);
     background: hsl(0 0% 100% / 0.06);
@@ -6284,7 +6244,7 @@
     .landing-container { width: min(100% - 40px, 680px); }
     .landing-menu-toggle { border-color: hsl(var(--landing-line)); color: hsl(var(--landing-ink)); }
     .landing-nav__links { top: 4.35rem; border-radius: 7px; }
-    .landing-hero { padding-top: 3.8rem; }
+    .landing-hero { padding-top: 2.5rem; }
     .landing-hero__inner { grid-template-columns: 1fr; }
     .landing-hero__copy { padding-bottom: 0.5rem; }
     .landing-brand-kicker { font-size: clamp(2.2rem, 10vw, 3.2rem); }

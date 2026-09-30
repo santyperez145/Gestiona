@@ -18,7 +18,7 @@ for (const viewport of viewports) {
       level: 1,
       name: 'Creá tu tienda online y vendé hoy.',
     })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Crear mi tienda gratis' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Crear mi tienda gratis', exact: true })).toBeVisible();
 
     const layout = await page.evaluate(() => ({
       clientWidth: document.documentElement.clientWidth,

@@ -296,7 +296,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <Menu className="w-5 h-5" />
           </button>
 
-          <Link to={base || "/"} className="storefront-brand flex items-center gap-2.5 min-w-0 shrink-0">
+          <Link to={base || "/"} className="storefront-brand flex items-center gap-2.5 min-w-0 shrink-0" aria-label={store?.name ?? "Ir a la tienda"}>
             <span
               className="relative h-9 w-9 shrink-0 grid place-items-center overflow-hidden text-sm font-bold"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
@@ -314,7 +314,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               )}
             </span>
             <span
-              className="storefront-brand__name font-semibold truncate max-w-[9rem] sm:max-w-[14rem] tracking-tight"
+              className="storefront-brand__name hidden min-[450px]:block font-semibold truncate max-w-[9rem] sm:max-w-[14rem] tracking-tight"
               style={{ color: "hsl(var(--st-header-fg))" }}
             >
               {store?.name}

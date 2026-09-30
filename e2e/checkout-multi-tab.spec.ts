@@ -27,7 +27,8 @@ test("recupera el mismo intento al abrir una segunda pestaña con el mismo carri
   const fichas = page.locator(`a[href*="/tienda/${SLUG}/producto/"]`);
   await expect(fichas.first()).toBeVisible();
   await fichas.first().click();
-  await page.getByRole("button", { name: / agregar al carrito/i }).click();
+  await expect(page).toHaveURL(/\/producto\//);
+  await page.getByRole("button", { name: /Agregar al carrito/i }).click();
 
   // 2. Ir al checkout yllenar datos parcialmente (el storage del intento se escribe al enviar).
   await page.goto(tienda("/checkout"));
@@ -62,6 +63,11 @@ test("recupera el mismo intento al abrir una segunda pestaña con el mismo carri
 
   // 5. Abrir una segunda pestaña (mismo storage) y verificar que recupera la misma clave.
   const page2 = await page.context().newPage();
+  await page2.route("**/rest/v1/rpc/create_store_order*", async route => {
+    const payload = route.request().postDataJSON();
+    keys.push(payload.p_idempotency_key);
+    await route.fulfill({ status: 200, json: { total: 100 } });
+  });
   await page2.route("**/functions/v1/**", route => route.fulfill({ status: 200, json: {} }));
   await page2.route("**/rest/v1/rpc/record_store_visit", route => route.fulfill({ status: 200, json: null }));
   await page2.route("**/rest/v1/rpc/save_store_cart_v3", route => route.fulfill({ status: 200, json: null }));
@@ -70,6 +76,8 @@ test("recupera el mismo intento al abrir una segunda pestaña con el mismo carri
 
   // La segunda pestaña debe tener el mismo carrito (sincronización por storage).
   await expect(page2.getByText("Tu pedido")).toBeVisible();
+  await page2.getByLabel("Nombre y apellido *").fill("ZZ Checkout");
+  await page2.getByLabel("Email *", { exact: true }).fill("checkout@example.test");
 
   // 6. En la segunda pestaña, al enviar, debe reutilizar la misma clave.
   const action2 = page2.getByRole("button", { name: /Finalizar compra|Pagar con Nerqia Pay/ }).filter({ visible: true });

@@ -340,6 +340,7 @@ test.describe("carrito", () => {
     await page.goto(tienda("/productos"));
     const fichas = await fichasVisibles(page);
     await fichas.first().click();
+    await expect(page).toHaveURL(/\/producto\//);
     await page.getByRole("button", { name: /Agregar al carrito/i }).click();
     await page.goto(tienda("/carrito"));
 

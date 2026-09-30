@@ -192,6 +192,10 @@ portal Stripe heredado responde como retirado.
 - auditorías productivas 2026-09-05/06: 93 contextos de ruta y 70 escenarios
   Playwright desktop/mobile aprobados; matriz viva en
   [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md);
+- barrido público 2026-09-30: 80 escenarios Playwright desktop/mobile aprobados,
+  2 omitidos por falta de producto agotado en el catálogo actual. Incluye
+  checkout entre pestañas con todas las escrituras de prueba interceptadas,
+  contraste WCAG y ausencia de desborde móvil. No certifica cobros externos;
 - el contrato E2E cubre flujos desktop/mobile; identidad alcanza Caja, valida
   permisos, cola offline y sincronización sin escribir en producción;
 - Automatizaciones adopta el patrón Shopify Flow (flujos nacen pausados,

@@ -156,19 +156,19 @@ export default function StoreCart() {
       )}
 
       {cart.length > 0 && freeShippingThreshold > 0 && (
-        <div className="mb-6 rounded-lg border p-3.5 space-y-2 bg-muted/20" style={{ borderColor: "hsl(var(--st-border))" }}>
+        <div className="mb-6 rounded-lg border p-3.5 space-y-2" style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}>
           <div className="flex items-center justify-between text-xs font-semibold">
             <span className="inline-flex items-center gap-1.5">
               <Truck className="h-4 w-4 text-primary shrink-0" />
               {freeShippingGap && freeShippingGap > 0 ? (
                 <>¡Sumá <strong>{fmt(freeShippingGap)}</strong> más para tener <strong>Envío Gratis</strong>!</>
               ) : (
-                <span className="text-emerald-600 font-bold flex items-center gap-1">
+                <span className="font-bold flex items-center gap-1" style={{ color: "hsl(var(--st-text))" }}>
                   <CheckCircle2 className="h-3.5 w-3.5" /> ¡Genial! Tu pedido tiene Envío Gratis
                 </span>
               )}
             </span>
-            <span className="tabular-nums text-muted-foreground">{freeShippingPct}%</span>
+            <span className="tabular-nums" style={{ color: "hsl(var(--st-text))" }}>{freeShippingPct}%</span>
           </div>
           <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
             <div

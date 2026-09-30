@@ -50,8 +50,8 @@ describe("rol creador: el influencer no es un comercio", () => {
     expect(authPage).toContain(">Soy negocio<");
     expect(authPage).toContain(">Soy creador<");
     expect(authPage).toContain("role === 'creator' ? 'creator' : undefined");
-    // La landing deja las dos puertas visibles.
-    expect(landing).toContain("Soy creador");
+    // La landing deja visible una entrada distinta para el creador.
+    expect(landing).toContain("Creá tu cuenta de creador");
     expect(landing).toContain("mode=register&role=creator");
   });
 
