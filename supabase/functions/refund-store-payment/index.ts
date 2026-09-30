@@ -8,6 +8,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { getMpCredentials } from "../_shared/mpToken.ts";
+import {
+  isAmbiguousMercadoPagoStatus,
+  mercadoPagoRefundPublicError,
+} from "../_shared/mpProviderOutcome.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 
 const corsHeaders = {
@@ -140,10 +144,10 @@ Deno.serve(async (req) => {
       await admin.rpc("pago_reintegro_resultado", {
         p_refund_id: refundId,
         p_status: "failed",
-        p_failure_reason: "La cuenta de MercadoPago no está conectada",
-        p_raw: { source: "gestion", reason: "missing_credentials" },
+        p_failure_reason: "La cuenta de Mercado Pago no está conectada",
+        p_raw: { source: "nerqia", reason: "missing_credentials" },
       });
-      return json({ error: "La cuenta de MercadoPago no está conectada" }, 422);
+      return json({ error: "Conectá Mercado Pago desde Integraciones para ejecutar el reintegro." }, 422);
     }
 
     if (action === "reconcile") {
@@ -152,17 +156,20 @@ Deno.serve(async (req) => {
       try {
         providerResponse = await fetch(
           `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}/refunds`,
-          { headers: { Authorization: `Bearer ${credentials.accessToken}` } },
+          {
+            signal: AbortSignal.timeout(15_000),
+            headers: { Authorization: `Bearer ${credentials.accessToken}` },
+          },
         );
         providerPayload = await providerResponse.json().catch(() => ({}));
       } catch (error) {
         console.error("refund-store-payment reconcile network:", error);
-        return json({ ok: true, status: "processing", refundId, message: "MercadoPago no respondió; el reintegro sigue en verificación." }, 202);
+        return json({ ok: true, status: "processing", refundId, message: "Mercado Pago no respondió; el reintegro sigue en verificación." }, 202);
       }
 
       if (!providerResponse.ok) {
         console.error("refund-store-payment reconcile provider:", providerResponse.status);
-        return json({ ok: true, status: "processing", refundId, message: "No se pudo consultar MercadoPago; el reintegro sigue en verificación." }, 202);
+        return json({ ok: true, status: "processing", refundId, message: "No se pudo consultar Mercado Pago; el reintegro sigue en verificación." }, 202);
       }
 
       const rows = providerRefundRows(providerPayload);
@@ -184,8 +191,8 @@ Deno.serve(async (req) => {
           status: "processing",
           refundId,
           message: candidates.length > 1
-            ? "Hay más de un reintegro compatible en MercadoPago; requiere revisión."
-            : "MercadoPago todavía no muestra un reintegro confirmado.",
+            ? "Hay más de un reintegro compatible en Mercado Pago; requiere revisión."
+            : "Mercado Pago todavía no muestra un reintegro confirmado.",
         }, 202);
       }
 
@@ -211,6 +218,7 @@ Deno.serve(async (req) => {
         `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}/refunds`,
         {
           method: "POST",
+          signal: AbortSignal.timeout(15_000),
           headers: {
             Authorization: `Bearer ${credentials.accessToken}`,
             "Content-Type": "application/json",
@@ -228,18 +236,40 @@ Deno.serve(async (req) => {
         ok: true,
         status: "processing",
         refundId,
-        message: "MercadoPago no respondió. El reintegro quedó en verificación; reintentá con la misma operación.",
+        message: "Mercado Pago no respondió. El reintegro quedó en verificación y puede consultarse sin duplicarlo.",
       }, 202);
     }
 
     if (!providerResponse.ok) {
       const providerError = providerPayload as Record<string, unknown>;
-      const detail = cleanText(providerError.message ?? providerError.error, 400)
-        ?? `MercadoPago respondió HTTP ${providerResponse.status}`;
+      const providerDetail = cleanText(providerError.message ?? providerError.error, 400)
+        ?? `Mercado Pago respondió HTTP ${providerResponse.status}`;
+      const publicMessage = mercadoPagoRefundPublicError(providerResponse.status);
+      console.error("refund-store-payment provider rejected:", {
+        status: providerResponse.status,
+        detail: providerDetail,
+      });
+      if (isAmbiguousMercadoPagoStatus(providerResponse.status)) {
+        await admin.rpc("pago_reintegro_observar", {
+          p_refund_id: refundId,
+          p_raw: {
+            source: "mercadopago_refund",
+            outcome: "ambiguous_http_response",
+            http_status: providerResponse.status,
+            error: cleanText(providerError.error, 120),
+          },
+        });
+        return json({
+          ok: true,
+          status: "processing",
+          refundId,
+          message: publicMessage,
+        }, 202);
+      }
       const { error: resultError } = await admin.rpc("pago_reintegro_resultado", {
         p_refund_id: refundId,
         p_status: "failed",
-        p_failure_reason: detail,
+        p_failure_reason: publicMessage,
         p_raw: {
           source: "mercadopago_refund",
           http_status: providerResponse.status,
@@ -248,7 +278,7 @@ Deno.serve(async (req) => {
         },
       });
       if (resultError) console.error("pago_reintegro_resultado failed:", resultError);
-      return json({ error: detail, refundId }, providerResponse.status === 409 ? 409 : 422);
+      return json({ error: publicMessage, status: "failed", refundId }, 422);
     }
 
     const snapshot = providerSnapshot(providerPayload);
@@ -262,7 +292,7 @@ Deno.serve(async (req) => {
         ok: true,
         status: "processing",
         refundId,
-        message: "MercadoPago recibió la operación, pero todavía no confirmó el reintegro.",
+        message: "Mercado Pago recibió la operación, pero todavía no confirmó el reintegro.",
       }, 202);
     }
     const externalRefundId = cleanText((providerPayload as Record<string, unknown>)?.id, 120);
@@ -280,7 +310,7 @@ Deno.serve(async (req) => {
         ok: true,
         status: "processing",
         refundId,
-        message: "MercadoPago confirmó el reintegro; falta terminar de sincronizar Nerqia.",
+        message: "Mercado Pago confirmó el reintegro; falta terminar de sincronizar Nerqia.",
       }, 202);
     }
 

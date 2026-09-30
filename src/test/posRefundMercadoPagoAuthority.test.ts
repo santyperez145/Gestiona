@@ -46,7 +46,8 @@ describe("refund Mercado Pago de una devolución POS", () => {
   it("un timeout o rechazo conserva la deuda y obliga a verificar", () => {
     expect(edge).toContain('p_provider_status: "network_unknown"');
     expect(edge).toContain('status: "pending_external"');
-    expect(edge).toContain("provider.response.status === 409 || provider.response.status >= 500");
+    expect(edge).toContain("isAmbiguousMercadoPagoStatus(provider.response.status)");
+    expect(edge).toContain("mercadoPagoRefundPublicError(provider.response.status)");
     expect(migration).toContain("CHECK (status IN ('completed', 'pending_external'))");
     expect(migration).toContain("El reintegro continúa pending_external");
     expect(migration).not.toContain("CHECK (status IN ('completed', 'pending_external', 'failed'))");

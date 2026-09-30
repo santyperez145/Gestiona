@@ -12,6 +12,7 @@ describe("reintegros de MercadoPago", () => {
   const operations = read("supabase/migrations/20260821000047_payment_refund_operations.sql");
   const portal = read("src/components/sales/ReturnsPortalTab.tsx");
   const helper = read("src/lib/paymentRefunds.ts");
+  const providerPolicy = read("supabase/functions/_shared/mpProviderOutcome.ts");
 
   it("exige usuario real y payments.edit antes de llamar al proveedor", () => {
     expect(fn).toContain("requireUser(req, corsHeaders)");
@@ -40,8 +41,18 @@ describe("reintegros de MercadoPago", () => {
   it("deja el reembolso en verificación ante timeout y no lo marca como fallido", () => {
     expect(fn).toContain('status: "processing"');
     expect(fn).toContain("el retry usa exactamente la misma clave");
+    expect(fn).toContain("isAmbiguousMercadoPagoStatus(providerResponse.status)");
+    expect(fn).toContain("AbortSignal.timeout(15_000)");
     expect(fn).toContain("pago_reintegro_resultado success");
+    expect(providerPolicy).toContain("408, 409, 425, 429");
+    expect(providerPolicy).toContain("status >= 500");
     expect(migration).toContain("status IN ('processing', 'refunded', 'failed')");
+  });
+
+  it("no muestra errores internos de Mercado Pago en la interfaz", () => {
+    expect(fn).toContain("mercadoPagoRefundPublicError(providerResponse.status)");
+    expect(fn).toContain("detail: providerDetail");
+    expect(fn).not.toContain("return json({ error: detail");
   });
 
   it("puede reconciliar un timeout sin crear un segundo intento", () => {

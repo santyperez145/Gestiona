@@ -9,6 +9,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { getMpCredentials } from "../_shared/mpToken.ts";
+import {
+  isAmbiguousMercadoPagoStatus,
+  mercadoPagoRefundPublicError,
+} from "../_shared/mpProviderOutcome.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 
 type JsonRecord = Record<string, unknown>;
@@ -258,14 +262,19 @@ Deno.serve(async (req) => {
       const providerError = asRecord(provider.payload);
       const providerMessage = cleanText(providerError.message ?? providerError.error, 350)
         ?? `Mercado Pago respondió HTTP ${provider.response.status}`;
-      const ambiguous = provider.response.status === 409 || provider.response.status >= 500;
+      const publicMessage = mercadoPagoRefundPublicError(provider.response.status);
+      const ambiguous = isAmbiguousMercadoPagoStatus(provider.response.status);
+      console.error("refund-pos-payment provider rejected:", {
+        status: provider.response.status,
+        detail: providerMessage,
+      });
       await admin.rpc("pos_mp_refund_observe", {
         p_refund_id: refundId,
         p_provider_status: `http_${provider.response.status}`,
         p_external_refund_id: prepared.provider_refund_id ?? null,
         p_failure_reason: ambiguous
           ? "Mercado Pago no confirmó el resultado; verificá el estado antes de reintentar"
-          : providerMessage,
+          : publicMessage,
         p_raw: {
           source: "mercadopago_refund",
           http_status: provider.response.status,
@@ -281,7 +290,7 @@ Deno.serve(async (req) => {
           message: "Mercado Pago dejó un resultado ambiguo. Usá Verificar estado antes de reintentar.",
         }, 202);
       }
-      return json({ error: providerMessage, status: "pending_external", refundId }, 422);
+      return json({ error: publicMessage, status: "pending_external", refundId }, 422);
     }
 
     const rows = refundRows(provider.payload, mode);
