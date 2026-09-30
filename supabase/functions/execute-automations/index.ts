@@ -406,35 +406,47 @@ Deno.serve(async (req) => {
             }
 
           } else if (flow.action_type === "email") {
-            // Get admin emails
-            const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
-            if (usersError) throw usersError;
-            const adminEmails = (users?.users ?? [])
-              .filter((u: any) => adminIds.includes(u.id) && u.email)
-              .map((u: any) => u.email as string);
-            const configuredRecipient = typeof ac.recipient_email === "string"
-              ? ac.recipient_email.trim()
-              : "";
-            const recipientEmails = configuredRecipient ? [configuredRecipient] : adminEmails;
-
-            const smtpCfg = await smtpDeOrganizacion(orgId);
-
-            for (const email of recipientEmails) {
-              await sendEmail(
-                smtpCfg,
-                RESEND_API_KEY,
-                FROM_EMAIL,
-                {
-                  to: email,
-                  subject: ac.subject || flow.name,
-                  html: `<p>${escapeHtml(msgText)}</p>`,
-                },
-              );
-              actionsTaken++;
-            }
-            if (recipientEmails.length === 0) {
+            // The old default mistook an admin digest for customer marketing.
+            // Never reactivate that rule, even if its paused row is toggled on.
+            if (flow.name === "Reactivación: sin comprar 30 días" && ac.subject === "Te extrañamos") {
               status = "skipped";
-              errorMessage = "No hay un email destinatario disponible";
+              errorMessage = "La regla de email antigua está retirada. Creá una campaña o secuencia con consentimiento.";
+            } else {
+              // Automated email is an internal count-only digest, never a
+              // customer list and never a relay to an arbitrary address.
+              const adminEmails: string[] = [];
+              for (const adminId of adminIds) {
+                const { data: admin, error: adminError } = await supabase.auth.admin.getUserById(adminId);
+                if (adminError) throw adminError;
+                if (admin?.user?.email) adminEmails.push(admin.user.email);
+              }
+              if (!adminEmails.length) {
+                status = "skipped";
+                errorMessage = "No hay administradores con email";
+              } else {
+                const smtpCfg = await smtpDeOrganizacion(orgId);
+                const subject = String(ac.subject || flow.name).slice(0, 180);
+                const body = String(ac.message || "Revisá el detalle en Nerqia.");
+                let failures = 0;
+                for (const email of [...new Set(adminEmails)]) {
+                  const result = await sendEmail(
+                    smtpCfg, RESEND_API_KEY, FROM_EMAIL,
+                    {
+                      to: email,
+                      subject,
+                      html: `<p>${escapeHtml(body)}</p><p>${matchedEntities.length} registro(s) coinciden con esta regla. Ingresá a Nerqia para verlos.</p>`,
+                    },
+                    { org_id: orgId, flow_id: flow.id, message_type: "automation_digest" },
+                    { idempotencyKey: `automation/${flow.id}/${argentinaDate(now)}/${email.toLowerCase()}` },
+                  );
+                  if (result.ok) actionsTaken++;
+                  else { failures++; console.error("Automation email failed:", result.error); }
+                }
+                if (failures > 0) {
+                  status = "error";
+                  errorMessage = "Uno o más correos internos no pudieron enviarse";
+                }
+              }
             }
 
           } else if (flow.action_type === "whatsapp_message") {

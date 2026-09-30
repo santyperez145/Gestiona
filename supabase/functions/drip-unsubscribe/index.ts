@@ -57,24 +57,25 @@ Deno.serve(async (req) => {
   const userAgent = req.headers.get("user-agent");
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
 
-  // Extract token from query or body
+  // Extract token from query or body. GET never changes subscription state:
+  // mailbox link scanners may prefetch it without the recipient's intent.
   let token = url.searchParams.get("token");
   let isOneClickPost = false;
 
-  if (!token && req.method === "POST") {
+  if (req.method === "POST") {
     const ct = req.headers.get("content-type") || "";
     if (ct.includes("application/x-www-form-urlencoded")) {
       const form = await req.formData();
-      token = form.get("token") as string | null;
+      token ||= form.get("token") as string | null;
       // RFC 8058 one-click: body contains "List-Unsubscribe=One-Click"
       isOneClickPost = (form.get("List-Unsubscribe") as string | null) === "One-Click";
     } else {
       const body = await req.json().catch(() => ({})) as { token?: string };
-      token = body.token ?? null;
+      token ||= body.token ?? null;
     }
   }
 
-  if (!token) {
+  if (!token || !/^[a-f0-9]{32}$/i.test(token)) {
     if (isOneClickPost) {
       return new Response("Bad Request: missing token", { status: 400, headers: corsHeaders });
     }
@@ -83,6 +84,17 @@ Deno.serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } },
     );
   }
+
+  if (req.method === "GET") {
+    return new Response(
+      htmlPage("Cancelar suscripción", `<p>Vas a dejar de recibir estos correos de marketing.</p>
+        <form method="POST" action="?token=${encodeURIComponent(token)}">
+          <button type="submit">Confirmar baja</button>
+        </form>`),
+      { headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } },
+    );
+  }
+  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
 
   try {
     const { data, error } = await sb.rpc("process_drip_unsubscribe", {
@@ -95,11 +107,6 @@ Deno.serve(async (req) => {
 
     const result = data as { ok: boolean; error?: string; email?: string };
 
-    // RFC 8058 one-click: return 200 with no body
-    if (isOneClickPost) {
-      return new Response("", { status: 200, headers: corsHeaders });
-    }
-
     if (!result?.ok) {
       const msg = result?.error === "token_expired"
         ? "Este enlace ha expirado. Si querés desuscribirte, respondé al email directamente o contactá al remitente."
@@ -110,10 +117,12 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (isOneClickPost) return new Response("", { status: 200, headers: corsHeaders });
+
     return new Response(
       htmlPage(
         "Suscripción cancelada",
-        `<p>Listo — <span class="email">${result.email}</span> ya no recibirá más emails de esta secuencia.</p>
+        `<p>Listo. No recibirás más correos de marketing de este comercio.</p>
          <p>Tu preferencia fue registrada y se aplicará a futuras campañas del mismo remitente.</p>`,
         true,
       ),

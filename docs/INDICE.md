@@ -54,6 +54,7 @@ los reemplaza con otro ADR.
 - [API pública](API_PUBLICA.md): autenticación, scopes y consumo.
 - [Webhooks](WEBHOOKS.md): entrega, firma e idempotencia.
 - [Cron](CRON.md): jobs y health.
+- [Email marketing](EMAIL_MARKETING.md): audiencia, consentimiento, baja y operación.
 - [Pagos](PAGOS.md): checkout, webhook, conciliación y refunds.
 - [Mercado Pago diferencial](MP_DIFERENCIAL.md): estrategia de fees, split y conciliación.
 - [Mercado Libre](MERCADOLIBRE.md): canal y sincronización.

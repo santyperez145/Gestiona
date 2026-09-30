@@ -102,7 +102,7 @@ const TRIGGER_EMOJI: Record<TriggerType, string> = {
 
 const ACTION_LABELS: Record<ActionType, string> = {
   notification: "Notificación interna",
-  email: "Enviar email",
+  email: "Resumen interno por email",
   whatsapp_message: "Mensaje WhatsApp",
   create_task: "Crear tarea",
   create_purchase_order: "Crear orden de compra",
@@ -120,7 +120,7 @@ const ACTION_ICONS: Record<ActionType, React.ReactNode> = {
 
 const ACTION_DESCRIPTIONS: Record<ActionType, string> = {
   notification: "Aparece en el ícono de campana para todos los admins.",
-  email: "Envía un email (SMTP de plataforma o Resend). Campañas masivas piden dominio verificado.",
+  email: "Envía solo a propietarios y administradores un resumen sin nombres de clientes. Para escribir a clientes usá Campañas o Secuencias, con consentimiento y baja.",
   whatsapp_message: "WhatsApp al cliente desde el número de la plataforma (Meta Cloud). Si la plataforma aún no tiene WhatsApp listo, el runner lo saltea — no Evolution ni QR por comercio.",
   create_task: "Crea una tarea pendiente en el módulo de Tareas.",
   create_purchase_order: "Crea un borrador de orden de compra para reponer stock (solo para triggers de stock).",
@@ -225,7 +225,6 @@ const EMPTY_FORM = {
   trigger_stage: "Negociación" as string,
   action_type: "notification" as ActionType,
   action_message: "",
-  action_recipient_email: "",
   action_task_priority: "medium",
   action_task_due_days: "3",
   action_reorder_qty: "10",
@@ -278,9 +277,6 @@ function FlowForm({
       // Build action_config
       const action_config: Record<string, any> = {};
       if (form.action_message.trim()) action_config.message = form.action_message.trim();
-      if (form.action_type === "email" && form.action_recipient_email.trim()) {
-        action_config.recipient_email = form.action_recipient_email.trim();
-      }
       if (form.action_type === "create_task") {
         action_config.task_priority = form.action_task_priority;
         if (form.action_task_due_days) action_config.task_due_days = Number(form.action_task_due_days);
@@ -441,19 +437,11 @@ function FlowForm({
         </div>
       )}
 
-      {/* Action params: email recipient */}
+      {/* El email de automatizaciones es interno; no acepta destinatarios externos. */}
       {form.action_type === "email" && (
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">
-            Email destinatario <span className="text-muted-foreground/60">(opcional — vacío = todos los admins)</span>
-          </label>
-          <Input
-            type="email"
-            value={form.action_recipient_email}
-            onChange={(e) => set("action_recipient_email", e.target.value)}
-            placeholder="ejemplo@empresa.com"
-          />
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Destino: propietarios y administradores de esta organización. El correo muestra cantidades, no datos de clientes.
+        </p>
       )}
 
       {/* Action params: create_task */}
@@ -546,6 +534,12 @@ function actionBadgeClass(a: ActionType): string {
     webhook: "bg-primary/10 text-primary",
   };
   return map[a] ?? "bg-muted text-muted-foreground";
+}
+
+function isRetiredMarketingFlow(flow: FlowRule): boolean {
+  return flow.name === "Reactivación: sin comprar 30 días"
+    && flow.action_type === "email"
+    && flow.action_config?.subject === "Te extrañamos";
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -671,6 +665,10 @@ export default function AutomationFlowsTab() {
   };
 
   const toggleActive = async (flow: FlowRule) => {
+    if (isRetiredMarketingFlow(flow)) {
+      toast.error("Este envío antiguo fue retirado. Usá Campañas o Secuencias para contactar clientes.");
+      return;
+    }
     const { error } = await supabase.from("automation_flows").update({ active: !flow.active }).eq("id", flow.id);
     if (error) {
       toast.error("No pudimos cambiar el estado de la automatización.");
@@ -798,7 +796,7 @@ export default function AutomationFlowsTab() {
           <Zap className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
           <p className="text-lg text-muted-foreground font-medium">Sin flujos configurados</p>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-            Empezá con una plantilla (stock bajo, cliente inactivo o deuda). Se evalúan cada día a las 08:00; preferí email si WhatsApp todavía no está listo.
+            Empezá con una plantilla de stock, clientes o deuda. Se evalúan cada día a las 08:00; los correos de automatizaciones son solo internos.
           </p>
           <Button
             className="mt-4 text-primary-foreground font-semibold"
@@ -825,6 +823,11 @@ export default function AutomationFlowsTab() {
                     >
                       {flow.active ? "Activo" : "Pausado"}
                     </Badge>
+                    {isRetiredMarketingFlow(flow) && (
+                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                        Envío antiguo retirado. Para contactar clientes, creá una campaña o secuencia.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
@@ -845,7 +848,7 @@ export default function AutomationFlowsTab() {
                     variant="ghost"
                     size="sm"
                     onClick={() => runFlowNow(flow)}
-                    disabled={runningFlowId === flow.id}
+                    disabled={runningFlowId === flow.id || isRetiredMarketingFlow(flow)}
                     title="Ejecutar ahora"
                     className="text-primary"
                   >
@@ -856,7 +859,7 @@ export default function AutomationFlowsTab() {
                   <Button variant="ghost" size="sm" onClick={() => { setEditingFlow(flow); setShowForm(true); }}>
                     <Edit2 className="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => toggleActive(flow)} title={flow.active ? "Pausar" : "Activar"}>
+                  <Button variant="ghost" size="sm" onClick={() => toggleActive(flow)} disabled={isRetiredMarketingFlow(flow)} title={isRetiredMarketingFlow(flow) ? "Regla retirada" : flow.active ? "Pausar" : "Activar"}>
                     {flow.active
                       ? <Pause className="w-3.5 h-3.5 text-yellow-400" />
                       : <Zap className="w-3.5 h-3.5 text-emerald-400" />}
@@ -1055,7 +1058,6 @@ export default function AutomationFlowsTab() {
               trigger_stage: String(editingFlow.trigger_config?.stage ?? "Negociación"),
               action_type: editingFlow.action_type,
               action_message: editingFlow.action_config?.message ?? "",
-              action_recipient_email: editingFlow.action_config?.recipient_email ?? "",
               action_task_priority: editingFlow.action_config?.task_priority ?? "medium",
               action_task_due_days: String(editingFlow.action_config?.task_due_days ?? "3"),
               action_reorder_qty: String(editingFlow.action_config?.reorder_qty ?? "10"),

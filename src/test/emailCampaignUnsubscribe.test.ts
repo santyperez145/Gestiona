@@ -8,9 +8,8 @@ const read = (p: string) => readFileSync(join(root, p), "utf8");
 /**
  * Baja uno-clic de campañas de email.
  *
- * La campaña masiva enviaba el placeholder `{{unsubscribe_url}}` literal:
- * el contacto no podía darse de baja, lo que viola CAN-SPAM / Ley 26.652 y
- * quema el dominio de envío con quejas. Esta guarda falla si:
+ * La baja debe existir antes del envío y seguir válida en un reintento.
+ * Esta guarda falla si:
  *   1. `send-email-campaign` deja de generar y guardar un token por email;
  *   2. deja de reemplazar `{{unsubscribe_url}}` con el link real;
  *   3. desaparece la Edge Function pública que procesa la baja;
@@ -18,6 +17,7 @@ const read = (p: string) => readFileSync(join(root, p), "utf8");
  */
 describe("baja uno-clic de campañas", () => {
   const migracion = read("supabase/migrations/20260924000100_email_campaign_unsubscribe.sql");
+  const safety = read("supabase/migrations/20260930000300_marketing_email_safety.sql");
   const sender = read("supabase/functions/send-email-campaign/index.ts");
   const endpoint = read("supabase/functions/email-campaign-unsubscribe/index.ts");
 
@@ -31,16 +31,15 @@ describe("baja uno-clic de campañas", () => {
   });
 
   it("el sender genera token por destinatario y reemplaza el placeholder", () => {
-    // La generación de tokens vive en la Edge de campañas, junto al envío:
-    // smtpSender es genérico (transaccional), y el token necesita campaign_id.
-    expect(sender).toContain("email_campaign_unsubscribe_tokens");
+    expect(safety).toContain("CREATE UNIQUE INDEX IF NOT EXISTS email_campaign_unsubscribe_pair_uidx");
+    expect(safety).toContain("ON CONFLICT (campaign_id, email) DO UPDATE");
+    expect(sender).toContain('rpc("campaign_unsubscribe_token"');
     expect(sender).toMatch(/replace\(\/\\{\\{unsubscribe_url\\}\\}\/gi/);
-    // El token entra ANTES de enviar, para que una baja post-reintento siga válida.
-    // Se busca dentro del bloque de envío real (después del camino testOnly).
-    const upsertIdx = sender.indexOf('from("email_campaign_unsubscribe_tokens")');
-    const sendIdx = sender.indexOf("await sendEmail(", upsertIdx);
-    expect(upsertIdx).toBeGreaterThan(-1);
-    expect(sendIdx).toBeGreaterThan(upsertIdx);
+    const tokenIdx = sender.indexOf('rpc("campaign_unsubscribe_token"');
+    const sendIdx = sender.indexOf("const result = await sendEmail(", tokenIdx);
+    expect(tokenIdx).toBeGreaterThan(-1);
+    expect(sendIdx).toBeGreaterThan(tokenIdx);
+    expect(sender).toContain("if (tokenError || !tokenBaja) throw");
   });
 
   it("la Edge Function pública procesa la baja vía RPC y sin secretos al cliente", () => {
@@ -48,6 +47,8 @@ describe("baja uno-clic de campañas", () => {
     expect(endpoint).not.toContain("SERVICE_ROLE_KEY!); //");
     // La página de confirmación no filtra el email del contacto.
     expect(endpoint).not.toMatch(/<h1>[^<]*\$\{result\.email/);
+    expect(endpoint).toContain('if (req.method === "GET")');
+    expect(endpoint).toContain('if (oneClick) return new Response(""');
   });
 
   it("el RPC agrega la baja a email_unsubscribes para campañas futuras", () => {

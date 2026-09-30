@@ -264,7 +264,7 @@ export default function DripSequencesTab() {
       if (!seq || seq.steps.length === 0) throw new Error("Secuencia sin pasos");
       const firstStep = seq.steps[0];
       const nextSend = new Date(Date.now() + (firstStep.day_offset || 1) * 86400000).toISOString();
-      await supabase.from("drip_enrollments").insert({
+      const { error: enrollmentError } = await supabase.from("drip_enrollments").insert({
         sequence_id: enrollForm.sequenceId,
         org_id: activeOrg.id,
         customer_email: enrollForm.email.trim().toLowerCase(),
@@ -274,6 +274,7 @@ export default function DripSequencesTab() {
         status: "active",
         next_send_at: nextSend,
       });
+      if (enrollmentError) throw enrollmentError;
       toast.success(`${enrollForm.email} enrolado/a`);
       setEnrollments(prev => ({ ...prev, [enrollForm.sequenceId]: [] })); // force reload
       setEnrollForm(null);

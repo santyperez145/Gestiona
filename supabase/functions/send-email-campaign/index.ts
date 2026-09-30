@@ -35,6 +35,22 @@ const corsHeaders = {
 interface Recipient { email: string; name: string; }
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
+  })[character] ?? character);
+}
+
+function withUnsubscribe(html: string, url: string): string {
+  const hasLinkPlaceholder = /href\s*=\s*["']\{\{unsubscribe_url\}\}["']/i.test(html);
+  const personalized = html.replace(/\{\{unsubscribe_url\}\}/gi, url);
+  if (hasLinkPlaceholder) return personalized;
+  const footer = `<p style="margin-top:24px;padding-top:16px;border-top:1px solid #ddd;font-size:12px"><a href="${url}">Cancelar suscripción</a></p>`;
+  return /<\/body>/i.test(personalized)
+    ? personalized.replace(/<\/body>/i, `${footer}</body>`)
+    : personalized + footer;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (checkRateLimit(req, "send-email-campaign", { max: 5, windowMs: 60_000 })) return rateLimitResponse();
@@ -72,12 +88,12 @@ Deno.serve(async (req) => {
   // la rompa.
   const SUPABASE_URL_BASE = Deno.env.get("SUPABASE_URL")!.replace(/\/+$/, "");
 
+  let claimedCampaignId: string | null = null;
   try {
     // El navegador sólo propone: id de campaña y segmento. `recipients`,
     // `subject` y `bodyHtml` dejaron de ser input — salen de la fila guardada.
-    const { campaignId, segment: segmentFromBody, testOnly } = await req.json() as {
+    const { campaignId, testOnly } = await req.json() as {
       campaignId: string;
-      segment?: string;
       testOnly?: boolean;
     };
 
@@ -90,7 +106,7 @@ Deno.serve(async (req) => {
     // ── La fila guardada es la autoridad de contenido ─────────────────────────
     const { data: campRow } = await supabase
       .from("email_campaigns")
-      .select("id, org_id, subject, body_html, segment")
+      .select("id, org_id, subject, body_html, segment, target_customer_ids")
       .eq("id", campaignId)
       .single();
     const orgId: string = campRow?.org_id ?? "";
@@ -135,9 +151,14 @@ Deno.serve(async (req) => {
         smtpCfg,
         resendKey,
         resendFrom,
-        { to: testEmail, subject: `[PRUEBA] ${subject.slice(0, 170)}`, html: bodyHtml },
+        {
+          to: testEmail,
+          subject: `[PRUEBA] ${subject.replace(/\{\{nombre\}\}/gi, "Cliente").slice(0, 170)}`,
+          html: bodyHtml
+            .replace(/\{\{nombre\}\}/gi, "Cliente")
+            .replace(/\{\{unsubscribe_url\}\}/gi, "#vista-previa-de-baja"),
+        },
         { campaign_id: campaignId, org_id: orgId, message_type: "campaign_test" },
-        { idempotencyKey: `campaign-test/${campaignId}/${testEmail}` },
       );
       if (!result.ok) {
         return new Response(JSON.stringify(emailFailure(result, "merchant", "send-email-campaign-test")), {
@@ -150,13 +171,16 @@ Deno.serve(async (req) => {
     }
 
     // ── La audiencia la calcula el servidor ──────────────────────────────────
-    const segment = typeof segmentFromBody === "string" && segmentFromBody
-      ? segmentFromBody
-      : String(campRow?.segment ?? "all");
+    const segment = String(campRow?.segment ?? "all");
+    if (!["all", "vip", "at_risk", "dormant", "lost", "never_bought", "birthday", "bulk_custom"].includes(segment)) {
+      return new Response(JSON.stringify({ error: "El segmento guardado no está disponible", code: "INVALID_SEGMENT" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: customerRows, error: customerError } = await supabase
       .from("customers")
-      .select("name, email, birthday, marketing_consent_at, marketing_opt_out_at")
+      .select("id, name, email, birthday, marketing_consent_at, marketing_opt_out_at")
       .eq("org_id", orgId)
       .not("email", "is", null);
     if (customerError) throw customerError;
@@ -177,20 +201,38 @@ Deno.serve(async (req) => {
     }
 
     // Bajas históricas registradas desde el link del pie de email.
-    const { data: blockedRows } = await supabase
+    const { data: blockedRows, error: blockedError } = await supabase
       .from("email_unsubscribes")
       .select("email")
       .eq("org_id", orgId);
-    const blocked = new Set((blockedRows ?? []).map((row) => String(row.email ?? "").toLowerCase()));
+    if (blockedError) throw blockedError;
+    const { data: suppressedRows, error: suppressedError } = await supabase
+      .from("email_suppressions")
+      .select("email")
+      .eq("org_id", orgId);
+    if (suppressedError) throw suppressedError;
+    const blocked = new Set([...(blockedRows ?? []), ...(suppressedRows ?? [])]
+      .map((row) => String(row.email ?? "").trim().toLowerCase()));
 
     const ahora = new Date();
     const nowMs = Date.now();
+    const targetIds = new Set(campRow?.target_customer_ids ?? []);
+    if (segment === "bulk_custom" && !targetIds.size) {
+      return new Response(JSON.stringify({ error: "La selección de CRM está vacía", code: "EMPTY_SAVED_AUDIENCE" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const revokedEmails = new Set((customerRows ?? [])
+      .filter((row) => row.marketing_opt_out_at &&
+        (!row.marketing_consent_at || new Date(row.marketing_opt_out_at).getTime() >= new Date(row.marketing_consent_at).getTime()))
+      .map((row) => String(row.email ?? "").trim().toLowerCase()));
     const dedupe = new Map<string, Recipient>();
     for (const row of customerRows ?? []) {
       const email = String(row.email ?? "").trim().toLowerCase();
       const name = String(row.name ?? "").trim().slice(0, 120);
       if (!email || !EMAIL.test(email)) continue;
       if (blocked.has(email)) continue;
+      if (revokedEmails.has(email)) continue;
       // Consentimiento vigente: opt-in presente; un opt-out posterior lo anula.
       if (!row.marketing_consent_at) continue;
       if (row.marketing_opt_out_at && new Date(row.marketing_opt_out_at).getTime() > new Date(row.marketing_consent_at).getTime()) continue;
@@ -198,6 +240,7 @@ Deno.serve(async (req) => {
       const daysSince = lastPurchase[name] ? (nowMs - lastPurchase[name]) / 86_400_000 : Infinity;
       let include = false;
       if (segment === "all") include = true;
+      else if (segment === "bulk_custom") include = targetIds.has(row.id);
       else if (segment === "vip") include = daysSince <= 30;
       else if (segment === "at_risk") include = daysSince > 30 && daysSince <= 60;
       else if (segment === "dormant") include = daysSince > 60 && daysSince <= 90;
@@ -219,6 +262,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    const { data: claimed, error: claimError } = await supabase.rpc("claim_email_campaign", {
+      p_campaign_id: campaignId,
+    });
+    if (claimError) throw claimError;
+    if (claimed !== true) {
+      return new Response(JSON.stringify({ error: "Esta campaña ya se está enviando o fue enviada", code: "CAMPAIGN_ALREADY_STARTED" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    claimedCampaignId = campaignId;
+
     let sent = 0;
     let failed = 0;
     let firstFailure: Awaited<ReturnType<typeof sendEmail>> | null = null;
@@ -235,25 +289,22 @@ Deno.serve(async (req) => {
     // evita 429 y la clave idempotente hace seguro reintentar la campaña.
     for (let i = 0; i < allowed.length; i++) {
       const recipient = allowed[i];
-      const firstName = recipient.name.split(" ")[0].replace(/[&<>"']/g, "");
-      const tokenBaja = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+      const firstName = recipient.name.split(" ")[0].replace(/[\r\n]/g, "");
+      const { data: tokenBaja, error: tokenError } = await supabase.rpc("campaign_unsubscribe_token", {
+        p_campaign_id: campaignId,
+        p_email: recipient.email,
+      });
+      if (tokenError || !tokenBaja) throw tokenError ?? new Error("No se pudo crear el enlace de baja");
       const urlBaja = `${baseBaja}?token=${encodeURIComponent(tokenBaja)}`;
-      // Guardar el token antes de enviar: si el envío falla igual queda válida
-      // la baja para el próximo intento (idempotente por campaña+email).
-      await supabase.from("email_campaign_unsubscribe_tokens").upsert({
-        token: tokenBaja,
-        campaign_id: campaignId,
-        org_id: orgId,
-        email: recipient.email,
-      }, { onConflict: "campaign_id,email" });
-      const personalizedHtml = bodyHtml
-        .replace(/\{\{nombre\}\}/gi, firstName)
-        .replace(/\{\{unsubscribe_url\}\}/gi, urlBaja);
+      const personalizedHtml = withUnsubscribe(
+        bodyHtml.replace(/\{\{nombre\}\}/gi, escapeHtml(firstName)), urlBaja,
+      );
+      const personalizedSubject = subject.replace(/\{\{nombre\}\}/gi, firstName).replace(/[\r\n]/g, " ").slice(0, 180);
       const result = await sendEmail(
         smtpCfg,
         resendKey,
         resendFrom,
-        { to: recipient.email, subject: subject.slice(0, 180), html: personalizedHtml },
+        { to: recipient.email, subject: personalizedSubject, html: personalizedHtml, unsubscribeUrl: urlBaja },
         { campaign_id: campaignId, org_id: orgId, message_type: "campaign" },
         { idempotencyKey: `campaign/${campaignId}/${recipient.email}` },
       );
@@ -266,12 +317,14 @@ Deno.serve(async (req) => {
     }
 
     // ── Estado final de la campaña ─────────────────────────────────────────────
-    await supabase.from("email_campaigns").update({
+    const { error: statusError } = await supabase.from("email_campaigns").update({
       status: sent === 0 && failed > 0 ? "failed" : "sent",
       sent_count: sent,
       failed_count: failed,
       sent_at: new Date().toISOString(),
     }).eq("id", campaignId);
+    if (statusError) throw statusError;
+    claimedCampaignId = null;
 
     console.log(`send-email-campaign: org=${orgId} sent=${sent} failed=${failed} provider=${smtpCfg ? "smtp" : resendKey ? "resend" : "none"}`);
 
@@ -290,6 +343,9 @@ Deno.serve(async (req) => {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    if (claimedCampaignId) {
+      await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", claimedCampaignId);
+    }
     // El detalle queda disponible para operaciones sin filtrarse al cartel del comercio.
     console.error("send-email-campaign:", mensajeDeError(err));
     return new Response(JSON.stringify({ error: "No se pudo preparar la campaña. Revisá los destinatarios e intentá nuevamente.", code: "CAMPAIGN_PREPARATION_FAILED" }), {

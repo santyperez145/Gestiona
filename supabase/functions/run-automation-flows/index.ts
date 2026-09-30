@@ -292,7 +292,7 @@ async function executeAction(ctx: ActionContext): Promise<number> {
       return await actionNotification(org_id, flowId, today, trigger_type, summary, customMsg);
 
     case "email":
-      return await actionEmail(org_id, subjects, trigger_type, summary, customMsg, action_config);
+      return await actionEmail(org_id, flowId, today, subjects, summary, customMsg);
 
     case "whatsapp_message":
       return await actionWhatsApp(org_id, subjects, customMsg, trigger_type);
@@ -366,30 +366,23 @@ async function actionNotification(
 // ─────────────────────────────────────────────────────────────
 async function actionEmail(
   orgId: string,
+  flowId: string,
+  today: string,
   subjects: Subject[],
-  triggerType: string,
   summary: { title: string; message: string },
   customMsg: string,
-  config: any,
 ): Promise<number> {
-  // Determine recipients: org admins, or specific email in config
-  let recipients: string[] = [];
-  if (config?.recipient_email) {
-    recipients = [config.recipient_email];
-  } else {
-    const { data: members } = await supabase
-      .from("memberships")
-      .select("user_id")
-      .eq("org_id", orgId)
-      .in("role", ["owner", "admin"]);
-
-    const userIds = (members ?? []).map((m: any) => m.user_id);
-    if (userIds.length) {
-      const { data: users } = await supabase.auth.admin.listUsers();
-      recipients = (users?.users ?? [])
-        .filter((u) => userIds.includes(u.id) && u.email)
-        .map((u) => u.email!);
-    }
+  const { data: members, error: membersError } = await supabase
+    .from("memberships")
+    .select("user_id")
+    .eq("org_id", orgId)
+    .in("role", ["owner", "admin"]);
+  if (membersError) throw membersError;
+  const recipients: string[] = [];
+  for (const member of members ?? []) {
+    const { data: admin, error: adminError } = await supabase.auth.admin.getUserById(member.user_id);
+    if (adminError) throw adminError;
+    if (admin?.user?.email) recipients.push(admin.user.email);
   }
 
   if (!recipients.length) return 0;
@@ -402,34 +395,37 @@ async function actionEmail(
     return 0;
   }
 
-  const body = customMsg || summary.message;
-  const listHtml = subjects.slice(0, 10)
-    .map((s) => `<li><strong>${s.label}</strong>${s.detail ? ` — ${s.detail}` : ""}</li>`)
-    .join("");
-  const extraLine = subjects.length > 10 ? `<p>…y ${subjects.length - 10} más.</p>` : "";
+  const body = customMsg || "Revisá el detalle en Nerqia.";
 
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-      <h2 style="color:#b8973a">${summary.title}</h2>
-      <p>${body}</p>
-      <ul>${listHtml}</ul>
-      ${extraLine}
+      <h2>${escapeHtml(summary.title)}</h2>
+      <p>${escapeHtml(body)}</p>
+      <p>${subjects.length} registro(s) coinciden con esta regla. Ingresá a Nerqia para verlos.</p>
       <hr/>
       <p style="color:#888;font-size:12px">Enviado automáticamente por Nerqia</p>
     </div>`;
 
   let sent = 0;
-  for (const to of recipients) {
+  for (const to of [...new Set(recipients)]) {
     const result = await sendEmail(
       smtpCfg,
       resendKey,
       (await remitenteDe("automatizaciones")).from,
       { to, subject: summary.title, html },
+      { org_id: orgId, flow_id: flowId, message_type: "automation_digest" },
+      { idempotencyKey: `automation/${flowId}/${today}/${to.toLowerCase()}` },
     );
     if (result.ok) sent++;
     else console.error(`actionEmail failed for ${to}:`, result.error);
   }
   return sent;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
+  })[character] ?? character);
 }
 
 // ─────────────────────────────────────────────────────────────

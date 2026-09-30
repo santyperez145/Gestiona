@@ -97,13 +97,13 @@ NO_JWT=(
   # Storefront publico — el comprador no tiene sesion
   "shipping-quote" "store-pay" "store-order-email"
   # Links publicos de un solo uso
-  "drip-unsubscribe" "whatsapp-unsubscribe"
+  "drip-unsubscribe" "email-campaign-unsubscribe" "whatsapp-unsubscribe"
   # API publica con su propio esquema de api keys
   "public-api"
   # Crons / tareas programadas
   "check-alerts" "execute-automations" "run-automation-flows"
   "check-overdue-debts" "check-stock-alerts" "daily-kpi-alert"
-  "weekly-performance-digest" "send-scheduled-campaigns"
+  "weekly-performance-digest" "send-scheduled-campaigns" "send-email-campaign"
   "auto-recurring-expenses" "customer-reactivation-alerts" "fetch-usd-rate"
   "precio-suscripcion" "avisos-por-correo"
   "recover-abandoned-carts" "notify-back-in-stock" "send-drip-emails" "send-birthday-whatsapp"

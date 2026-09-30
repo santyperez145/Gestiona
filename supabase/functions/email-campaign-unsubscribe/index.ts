@@ -34,20 +34,14 @@ const html = (body: string, status = 200) =>
     { status, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } },
   );
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
   const url = new URL(req.url);
   const token = url.searchParams.get("token") || "";
 
-  if (!token) {
-    return html("<h1>Falta el enlace de baja</h1><p>El enlace no trae el código de baja. Reenvialo desde el mail original.</p>", 400);
+  if (!token || !/^[a-f0-9]{64}$/i.test(token)) {
+    return html("<h1>Enlace no válido</h1><p>Revisá el enlace de baja del correo original.</p>", 400);
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -57,19 +51,21 @@ Deno.serve(async (req) => {
   // GET sin confirmación → página de confirmación. El usuario tiene que hacer
   // click en un botón: cualquier prefetch de cliente de correo no da de baja
   // sin intención. POST directo (RFC 8058) baja sin página.
-  const confirmarDirecto =
-    req.method === "POST" || url.searchParams.get("confirmar") === "1";
-
-  if (!confirmarDirecto) {
+  if (req.method === "GET") {
     return html(
       `<h1>Cancelar suscripción</h1>` +
       `<p>Vas a dejar de recibir campañas por email de este comercio. Los avisos de tus pedidos siguen llegando normalmente.</p>` +
       `<form method="POST" action="?token=${encodeURIComponent(token)}">` +
-      `<input type="hidden" name="token" value="${token}">` +
       `<button type="submit">Confirmar baja</button></form>` +
       `<p style="font-size:12px;margin-top:16px"><a href="/">Ir al sitio</a></p>`,
     );
   }
+  if (req.method !== "POST") return html("<h1>Método no permitido</h1>", 405);
+  const contentType = req.headers.get("content-type") ?? "";
+  const form = contentType.includes("application/x-www-form-urlencoded")
+    ? await req.formData().catch(() => null)
+    : null;
+  const oneClick = form?.get("List-Unsubscribe") === "One-Click";
 
   const { data, error } = await admin.rpc("process_email_campaign_unsubscribe", {
     p_token: token,
@@ -90,9 +86,6 @@ Deno.serve(async (req) => {
     return html(`<h1>Enlace no válido</h1><p>${motivo}</p>`, 404);
   }
 
-  return json({
-    ok: true,
-    email: result.email ?? null,
-    message: "Dada de baja de campañas de email.",
-  });
+  if (oneClick) return new Response("", { status: 200, headers: corsHeaders });
+  return html("<h1>Suscripción cancelada</h1><p>Listo. No recibirás más campañas de este comercio.</p>");
 });

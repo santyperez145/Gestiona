@@ -57,6 +57,14 @@ verify_jwt = true
 [functions.store-domain]
 verify_jwt = true
 
+# Baja publica con token opaco, sin sesion de usuario.
+[functions.email-campaign-unsubscribe]
+verify_jwt = false
+
+# El cron usa secreto propio; el envio manual verifica el usuario dentro de la funcion.
+[functions.send-email-campaign]
+verify_jwt = false
+
 # Cron schedules — run via pg_cron or Supabase Dashboard > Edge Functions > Schedules
 # auto-recurring-expenses: "0 3 1 * *"   (1st of each month at 3 AM UTC)
 # weekly-backup: "30 3 * * 0" (domingos 03:30 UTC), sólo si existe

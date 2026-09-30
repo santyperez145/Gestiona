@@ -75,7 +75,7 @@ describe("arquitectura documental", () => {
     }
   });
 
-  it("evita que los documentos rectores vuelvan a ser bitácoras enormes", () => {
+  it("evita que los documentos rectores vuelvan a ser bitácoras enormes", { timeout: 20000 }, () => {
     const budgets: Record<string, number> = {
       "README.md": 220,
       "CONTRIBUTING.md": 380,

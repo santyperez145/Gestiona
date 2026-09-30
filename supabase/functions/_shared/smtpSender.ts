@@ -29,6 +29,7 @@ export interface EmailPayload {
   subject: string;
   html: string;
   text?: string;
+  unsubscribeUrl?: string;
   attachments?: Array<{
     filename: string;
     content: string; // base64
@@ -94,9 +95,15 @@ async function sendViaSmtp(
         mimeType: a.mimeType || "application/octet-stream",
       }));
     }
+    const headers: Record<string, string> = {};
     if (idempotencyKey && cfg.host.toLowerCase() === "smtp.resend.com") {
-      mail.headers = { "Resend-Idempotency-Key": idempotencyKey };
+      headers["Resend-Idempotency-Key"] = idempotencyKey;
     }
+    if (payload.unsubscribeUrl) {
+      headers["List-Unsubscribe"] = `<${payload.unsubscribeUrl}>`;
+      headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+    }
+    if (Object.keys(headers).length) mail.headers = headers;
 
     // denomailer declara un tipo más estricto que el objeto que construimos
     // dinámicamente al agregar adjuntos. Los campos requeridos se arman arriba;
@@ -123,6 +130,12 @@ async function sendViaResend(
     subject: payload.subject,
     html: payload.html,
   };
+  if (payload.unsubscribeUrl) {
+    body.headers = {
+      "List-Unsubscribe": `<${payload.unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+  }
   if (metadata) {
     // Resend expone estos valores como `tags` en webhooks. Se sanea porque el
     // proveedor sólo admite nombres ASCII y valores acotados.

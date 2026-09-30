@@ -35,6 +35,15 @@ serve(async (req) => {
   try {
     const now = new Date().toISOString();
 
+    // A terminated Edge execution may leave a claimed campaign in "sending".
+    // Never auto-retry it: some recipients may have received the message.
+    const staleBefore = new Date(Date.now() - 30 * 60_000).toISOString();
+    const { error: staleError } = await supabase.from("email_campaigns")
+      .update({ status: "failed" })
+      .eq("status", "sending")
+      .lt("sending_started_at", staleBefore);
+    if (staleError) throw staleError;
+
     // Campañas programadas cuyo momento llegó y siguen borrador.
     const { data: campaigns, error } = await supabase
       .from("email_campaigns")
@@ -80,21 +89,16 @@ serve(async (req) => {
         // Sin esto la campaña quedaba en "sending"/"draft" para siempre: no se
         // reintenta (el cron sólo mira las draft) y no se ve como fallida.
         console.error(`send-scheduled-campaigns: fallo la campaña ${campaign.id}`, res.status, payload);
-        await supabase.from("email_campaigns")
-          .update({ status: "failed" }).eq("id", campaign.id);
+        // 409 means a manual send won the claim. It must not be overwritten.
+        if (res.status !== 409) {
+          await supabase.from("email_campaigns")
+            .update({ status: "failed" }).eq("id", campaign.id).eq("status", "draft");
+        }
         fallidas.push(`${campaign.id}: ${res.status}`);
         continue;
       }
 
-      // El payload trae { sent, failed, audience } del envío real.
-      const sentCount = Number(payload?.sent ?? 0);
-      await supabase.from("email_campaigns").update({
-        status: sentCount > 0 ? "sent" : "failed",
-        sent_count: sentCount,
-        failed_count: Number(payload?.failed ?? 0),
-        sent_at: new Date().toISOString(),
-      }).eq("id", campaign.id);
-
+      // The sender owns the status and counters after claiming the row.
       totalTriggered++;
     }
 

@@ -32,6 +32,7 @@ $noJwt = @(
     "store-order-email",
     # Links publicos de un solo uso
     "drip-unsubscribe",
+    "email-campaign-unsubscribe",
     "whatsapp-unsubscribe",
     # API publica con su propio esquema de api keys
     "public-api",
@@ -48,6 +49,8 @@ $noJwt = @(
     "daily-kpi-alert",
     "weekly-performance-digest",
     "send-scheduled-campaigns",
+    # El scheduler usa secreto de cron; el envío manual valida JWT dentro de la función.
+    "send-email-campaign",
     "auto-recurring-expenses",
     "customer-reactivation-alerts",
     "fetch-usd-rate",

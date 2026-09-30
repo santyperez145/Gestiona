@@ -62,11 +62,17 @@ function applyTemplate(template: string, vars: Record<string, string>): string {
   return out;
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
+  })[character] ?? character);
+}
+
 /** Wrap the body HTML with an unsubscribe footer. */
 function withUnsubscribeFooter(html: string, unsubscribeUrl: string, businessName: string): string {
   const footer = `
 <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8;text-align:center;font-family:-apple-system,sans-serif;line-height:1.5">
-  <p style="margin:0 0 6px">Recibís este email porque estás suscripto a una campaña de ${businessName}.</p>
+  <p style="margin:0 0 6px">Recibís este email porque aceptaste novedades de ${escapeHtml(businessName)}.</p>
   <p style="margin:0"><a href="${unsubscribeUrl}" style="color:#64748b;text-decoration:underline">Cancelar suscripción</a></p>
 </div>`.trim();
   // If body already contains </body>, inject before it; otherwise append
@@ -123,17 +129,19 @@ Deno.serve(async (req) => {
         if (!seq?.active) { skipped++; continue; }
 
         // Suppression check
-        const { data: suppressed } = await sb.rpc("is_email_suppressed", {
+        const { data: eligible, error: eligibilityError } = await sb.rpc("marketing_email_eligible", {
           p_org_id: enrollment.org_id,
           p_email: enrollment.customer_email,
         });
-        if (suppressed === true) {
+        if (eligibilityError) throw eligibilityError;
+        if (eligible !== true) {
           // Mark as unsubscribed so we don't keep checking
-          await sb.from("drip_enrollments").update({
+          const { error: unsubscribeError } = await sb.from("drip_enrollments").update({
             status: "unsubscribed",
             completed_at: new Date().toISOString(),
             next_send_at: null,
           }).eq("id", enrollment.id);
+          if (unsubscribeError) throw unsubscribeError;
           skipped++;
           continue;
         }
@@ -164,7 +172,7 @@ Deno.serve(async (req) => {
           .eq("org_id", enrollment.org_id)
           .maybeSingle();
         const smtpCfg = await smtpDeOrganizacion(enrollment.org_id);
-        const businessName: string = settings?.business_name || seq.name || "Nerqia";
+        const businessName: string = settings?.business_name || "Nerqia";
 
         // 3. Generate unsubscribe token
         const unsubToken = generateToken();
@@ -197,8 +205,15 @@ Deno.serve(async (req) => {
           step:            String(nextStepIdx + 1),
           unsubscribe_url: unsubscribeUrl,
         };
-        const subject = applyTemplate(step.subject as string, vars);
-        const bodyRaw = applyTemplate(step.body_html as string, vars);
+        const subject = applyTemplate(step.subject as string, vars).replace(/[\r\n]/g, " ");
+        const bodyRaw = applyTemplate(step.body_html as string, {
+          ...vars,
+          name: escapeHtml(vars.name),
+          nombre: escapeHtml(vars.nombre),
+          business: escapeHtml(vars.business),
+          negocio: escapeHtml(vars.negocio),
+          sequence: escapeHtml(vars.sequence),
+        });
         const bodyWithFooter = withUnsubscribeFooter(bodyRaw, unsubscribeUrl, businessName);
 
         // 5. Send
@@ -206,16 +221,14 @@ Deno.serve(async (req) => {
           to: enrollment.customer_email,
           subject,
           html: bodyWithFooter,
-          // RFC 8058 one-click + RFC 2369 List-Unsubscribe headers
-          // are exposed by setting custom headers in the SMTP/Resend layer.
-          // For now we include them as a fallback via a metadata tag on Resend.
+          unsubscribeUrl,
         };
 
         const result = await sendEmail(smtpCfg, RESEND_API_KEY, resendFrom, payload, {
           drip_enrollment_id: enrollment.id,
           drip_step_id: step.id,
           drip_sequence_id: seq.id,
-        });
+        }, { idempotencyKey: `drip/${enrollment.id}/${step.id}` });
 
         // 6. Log + advance ONLY on success
         if (result.ok) {

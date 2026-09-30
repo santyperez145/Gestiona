@@ -103,9 +103,11 @@ describe("prueba segura de automatizaciones", () => {
 
   it("el motor consume las mismas claves que guarda el editor", () => {
     expect(edge).toContain("tc.min_amount ?? tc.threshold");
-    expect(edge).toContain('typeof ac.recipient_email === "string"');
-    expect(edge).toContain("configuredRecipient ? [configuredRecipient] : adminEmails");
-    expect(edge).toContain("html: `<p>${escapeHtml(msgText)}</p>`");
+    expect(edge).not.toContain("ac.recipient_email");
+    expect(edge).toContain("supabase.auth.admin.getUserById(adminId)");
+    expect(edge).not.toContain('html: `<p>${escapeHtml(msgText)}</p>`');
+    expect(edge).toContain("${matchedEntities.length} registro(s) coinciden con esta regla");
+    expect(ui).not.toContain("action_recipient_email");
     expect(ui).toContain("Sin comprar 45 días → Alerta por email");
     expect(ui).not.toContain("Sin comprar 45 días → Email de reactivación");
   });

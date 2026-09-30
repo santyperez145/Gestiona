@@ -63,6 +63,13 @@ const PUBLICAS: Record<string, string> = {
   "drip-unsubscribe":
     "Link de un solo uso en un email: el destinatario no tiene cuenta. La " +
     "puerta es el token del link, que identifica a una sola persona.",
+  "email-campaign-unsubscribe":
+    "Link público de baja: GET solo confirma y POST exige un token opaco de " +
+    "64 caracteres verificado en la base. El destinatario no tiene sesión.",
+  "send-email-campaign":
+    "Dos callers: el cron presenta x-cron-secret validado por esLlamadaDeCron, " +
+    "y el panel presenta un JWT validado con auth.getUser más rol owner/admin " +
+    "de la organización. Una anon key sola no autoriza el envío.",
   "whatsapp-unsubscribe":
     "Link de un solo uso en un WhatsApp: quien se da de baja no tiene cuenta " +
     "y el token del link identifica a una sola persona. Exigir sesión acá " +

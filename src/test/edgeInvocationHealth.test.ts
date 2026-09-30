@@ -194,10 +194,13 @@ describe("un error no se destruye al serializarlo", () => {
   });
 
   it("una campaña que falla no queda en 'sending' para siempre", () => {
-    // El cron sólo mira las `draft`, así que una campaña trabada en `sending`
-    // no se reintenta nunca y no se ve como fallida en ningún lado. El worker
-    // nuevo falla por HTTP: un !res.ok marca `failed` y lo reporta.
+    // El sender libera su propio claim al fallar. Un runtime terminado sin
+    // ejecutar el catch se reconcilia después de 30 minutos, sin reenvío.
     const campañas = leer("supabase/functions/send-scheduled-campaigns/index.ts");
-    expect(campañas).toMatch(/if \(!res\.ok\)[\s\S]{0,400}status: "failed"/);
+    const sender = leer("supabase/functions/send-email-campaign/index.ts");
+    expect(sender).toMatch(/if \(claimedCampaignId\)[\s\S]{0,180}status: "failed"/);
+    expect(campañas).toContain('lt("sending_started_at", staleBefore)');
+    expect(campañas).toContain('if (res.status !== 409)');
+    expect(campañas).toContain('.update({ status: "failed" }).eq("id", campaign.id).eq("status", "draft")');
   });
 });

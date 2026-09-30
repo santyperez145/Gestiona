@@ -9,7 +9,7 @@ describe("ciclo profesional de correo", () => {
     const sender = read("supabase/functions/_shared/smtpSender.ts");
     expect(sender).toContain("body.tags = Object.entries(metadata)");
     expect(sender).toContain('headers["Idempotency-Key"] = idempotencyKey');
-    expect(sender).toContain('"Resend-Idempotency-Key": idempotencyKey');
+    expect(sender).toContain('headers["Resend-Idempotency-Key"] = idempotencyKey');
     expect(sender).not.toContain("body.metadata = metadata");
   });
 
@@ -46,6 +46,7 @@ describe("ciclo profesional de correo", () => {
     const campaign = read("supabase/functions/send-email-campaign/index.ts");
     expect(campaign).toContain('.from("customers")');
     expect(campaign).toContain('.from("email_unsubscribes")');
+    expect(campaign).toContain('.from("email_suppressions")');
     // El límite de 500 destinatarios se impone en el cliente (no envía de más)
     // y el servidor deduplica y normaliza antes de despachar.
     expect(campaign).toContain("setTimeout(resolve, 220)");
@@ -54,7 +55,9 @@ describe("ciclo profesional de correo", () => {
     // autoridad: el navegador no manda destinatarios ni contenido.
     expect(campaign).toContain("if (!row.marketing_consent_at) continue;");
     expect(campaign).toContain('if (row.marketing_opt_out_at && new Date(row.marketing_opt_out_at).getTime() > new Date(row.marketing_consent_at).getTime()) continue;');
-    expect(campaign).toContain("const { campaignId, segment: segmentFromBody, testOnly }");
+    expect(campaign).toContain("const { campaignId, testOnly }");
+    expect(campaign).toContain('rpc("claim_email_campaign"');
+    expect(campaign).toContain('rpc("campaign_unsubscribe_token"');
     expect(campaign).not.toContain("recipients: Recipient[];");
   });
 

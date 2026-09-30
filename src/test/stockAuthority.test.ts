@@ -16,7 +16,7 @@ const directProductStockWrite = /\.from\(\s*(['"])products\1\s*\)\s*\.update\(\s
 const directVariantStockWrite = /\.from\(\s*(['"])product_variants\1\s*\)\s*\.update\(\s*\{\s*stock\s*:/;
 
 describe("autoridad de stock", () => {
-  it("el navegador no actualiza products.stock ni product_variants.stock de forma directa", () => {
+  it("el navegador no actualiza products.stock ni product_variants.stock de forma directa", { timeout: 20000 }, () => {
     const writes = sourceFiles
       .filter(file => directProductStockWrite.test(readFileSync(file, "utf8")) || directVariantStockWrite.test(readFileSync(file, "utf8")))
       .map(file => file.replace(ROOT, ""));

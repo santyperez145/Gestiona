@@ -61,12 +61,11 @@ const EMAIL_TEMPLATES = [
   },
   {
     id: "reactivacion",
-    label: "😴 Reactivación",
-    subject: "Te extrañamos, {{nombre}} 💙",
+    label: "Reactivación",
+    subject: "Novedades para vos, {{nombre}}",
     body: `<p>¡Hola {{nombre}}!</p>
-<p>Hace un tiempo que no te vemos por acá y quisimos saber cómo estás.</p>
-<p>Tenemos novedades y productos nuevos que seguramente te van a interesar. ¿Qué te parece si nos ponemos al día?</p>
-<p>¡Esperamos verte pronto! 🙌</p>`,
+<p>Queríamos compartirte las novedades de nuestra tienda. Encontrarás productos y propuestas actualizadas cuando vuelvas a visitarnos.</p>
+<p>Gracias por habernos elegido.</p>`,
   },
   {
     id: "novedad",
@@ -80,7 +79,7 @@ const EMAIL_TEMPLATES = [
   {
     id: "boletin",
     label: "📰 Boletín mensual",
-    subject: "📰 Novedades de {{nombre}} — este mes",
+    subject: "Novedades de este mes",
     body: `<p>¡Hola {{nombre}}!</p>
 <p>Te compartimos las novedades de este mes:</p>
 <ul>
@@ -100,6 +99,7 @@ interface Campaign {
   subject: string;
   body_html: string;
   segment: string;
+  target_customer_ids?: string[] | null;
   status: "draft" | "sending" | "sent" | "failed";
   sent_count: number;
   failed_count: number;
@@ -153,21 +153,28 @@ const STATUS_LABELS: Record<string, string> = {
 
 // ─── Branding helper ──────────────────────────────────────────────────────────
 
+function escapeEmailHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
+  })[character] ?? character);
+}
+
 function buildBrandedEmail(bodyHtml: string, logoUrl: string | null, businessName: string): string {
-  const logoTag = logoUrl
-    ? `<img src="${logoUrl}" alt="${businessName}" style="max-height:60px;max-width:200px;display:block;margin:0 auto 10px">`
+  const brand = escapeEmailHtml(businessName);
+  const logoTag = logoUrl && /^https:\/\//i.test(logoUrl)
+    ? `<img src="${escapeEmailHtml(logoUrl)}" alt="${brand}" style="max-height:56px;max-width:180px;display:block;margin:0 auto 12px">`
     : '';
   const header = `
-<div style="text-align:center;padding:20px 16px 16px;background:#1A1A2E;border-radius:8px 8px 0 0">
+<div style="text-align:center;padding:24px 16px 18px;background:#f6f8f9;border-bottom:1px solid #e4e9e9">
   ${logoTag}
-  <h2 style="color:var(--primary);margin:0;font-size:20px;font-weight:700;letter-spacing:1px">${businessName}</h2>
+  <h2 style="color:#18312f;margin:0;font-size:20px;font-weight:700">${brand}</h2>
 </div>`;
   const footer = `
-<div style="text-align:center;margin-top:24px;padding:12px;font-size:11px;color:#888;border-top:1px solid #eee">
-  <p style="margin:0">© ${new Date().getFullYear()} ${businessName} · Recibiste este email porque sos parte de nuestra comunidad.</p>
-  <p style="margin:4px 0 0"><a href="{{unsubscribe_url}}" style="color:#888;text-decoration:underline">Cancelar suscripción</a></p>
+<div style="text-align:center;padding:20px;font-size:12px;color:#536764;border-top:1px solid #e4e9e9;background:#f6f8f9">
+  <p style="margin:0">${brand} · Recibís este correo porque aceptaste recibir novedades.</p>
+  <p style="margin:8px 0 0"><a href="{{unsubscribe_url}}" style="color:#126b63;text-decoration:underline">Cancelar suscripción</a></p>
 </div>`;
-  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;border:1px solid #eee;border-radius:8px;overflow:hidden">
+  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;border:1px solid #e4e9e9;background:#fff;overflow:hidden">
   ${header}
   <div style="padding:24px 20px;background:#ffffff;color:#222;font-size:14px;line-height:1.7">
     ${bodyHtml}
@@ -291,13 +298,16 @@ export default function EmailCampaignsPage() {
     if (!activeOrg || !user) return;
     setLoading(true);
     try {
-      const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }, { data: coups }, { data: couponSales }, sett, prods] = await Promise.all([
+      const [{ data: camps }, { data: custs }, { data: sales }, unsubs, { data: coups }, { data: couponSales }, sett, prods] = await Promise.all([
         supabase.from("email_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         // Trae también el estado de consentimiento: es lo que distingue un
         // cliente alcanzable de uno al que no se le puede escribir.
         supabase.from("customers").select("id,name,email,birthday,marketing_consent_at,marketing_opt_out_at").eq("org_id", activeOrg.id).not("email", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
-        supabase.from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
+        Promise.all([
+          supabase.from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
+          supabase.from("email_suppressions").select("email").eq("org_id", activeOrg.id),
+        ]),
         supabase.from("coupons").select("id, code").eq("user_id", user.id),
         // One aggregate query for attribution: all sales made with any coupon
         supabase.from("sales").select("coupon_code, total_ars").eq("org_id", activeOrg.id).not("coupon_code", "is", null),
@@ -308,7 +318,7 @@ export default function EmailCampaignsPage() {
       setCampaigns((camps || []) as Campaign[]);
       setCustomers((custs || []) as unknown as Customer[]);
       setSalesData(sales || []);
-      setUnsubscribed(new Set((unsubs || []).map((u: any) => u.email.toLowerCase())));
+      setUnsubscribed(new Set(unsubs.flatMap(({ data }) => (data || []).map((u: { email: string }) => u.email.trim().toLowerCase()))));
       setCoupons((coups || []) as { id: string; code: string }[]);
       setProductosRedaccion((prods || []) as ProductoRedaccion[]);
 
@@ -363,11 +373,16 @@ export default function EmailCampaignsPage() {
     // Un cliente es alcanzable si: tiene email, no se dió de baja, dio opt-in
     // y no lo revocó después. Es la misma regla que aplica el servidor al
     // enviar — lo que ves acá es lo que va a pasar.
+    const revokedEmails = new Set(customers
+      .filter(c => c.marketing_opt_out_at &&
+        (!c.marketing_consent_at || new Date(c.marketing_opt_out_at) >= new Date(c.marketing_consent_at)))
+      .map(c => c.email?.trim().toLowerCase())
+      .filter((email): email is string => Boolean(email)));
     const withEmail = customers.filter(c => {
-      const email = c.email?.toLowerCase();
-      if (!email || unsubscribed.has(email)) return false;
+      const email = c.email?.trim().toLowerCase();
+      if (!email || unsubscribed.has(email) || revokedEmails.has(email)) return false;
       if (!c.marketing_consent_at) return false;
-      if (c.marketing_opt_out_at && new Date(c.marketing_opt_out_at) > new Date(c.marketing_consent_at)) return false;
+      if (c.marketing_opt_out_at && new Date(c.marketing_opt_out_at) >= new Date(c.marketing_consent_at)) return false;
       return true;
     });
     return (seg: string): Customer[] => {
@@ -394,13 +409,19 @@ export default function EmailCampaignsPage() {
   const bulkAudience = useMemo(() => {
     if (!bulkCampaign) return [];
     const emailSet = new Set(bulkCampaign.emails.map(e => e.toLowerCase()));
-    return customers.filter(c => c.email && emailSet.has(c.email.toLowerCase()));
-  }, [bulkCampaign, customers]);
+    return audienceFor("all").filter(c => c.email && emailSet.has(c.email.toLowerCase()));
+  }, [bulkCampaign, audienceFor]);
 
   const currentAudience = useMemo(() => {
     if (segment === 'bulk_custom') return bulkAudience;
     return audienceFor(segment);
   }, [audienceFor, segment, bulkAudience]);
+
+  const audienceForCampaign = (camp: Campaign): Customer[] => {
+    if (camp.segment !== "bulk_custom") return audienceFor(camp.segment);
+    const savedIds = new Set(camp.target_customer_ids ?? []);
+    return audienceFor("all").filter((customer) => savedIds.has(customer.id));
+  };
 
   // ── Create campaign ───────────────────────────────────────────────────────────
 
@@ -409,37 +430,75 @@ export default function EmailCampaignsPage() {
     if (!subject.trim() || !bodyHtml.trim()) { toast.error("Completá asunto y cuerpo"); return; }
     if (abMode && !subjectB.trim()) { toast.error("Ingresá el asunto B para el test A/B"); return; }
     setSaving(true);
+    const createdIds: string[] = [];
     try {
       const brandedHtml = buildBrandedEmail(bodyHtml.trim(), orgSettings.logo_url, orgSettings.business_name);
       const baseRow = {
         org_id: activeOrg.id,
         body_html: brandedHtml,
-        segment,
         status: "draft",
         sent_count: 0,
         failed_count: 0,
-        scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        scheduled_at: null,
         coupon_code: couponCode || null,
       };
 
-      if (abMode) {
-        // Create two campaigns for A/B test
-        const [resA, resB] = await Promise.all([
-          (supabase.from("email_campaigns") as any).insert({ ...baseRow, subject: `[A] ${subject.trim()}` }),
-          (supabase.from("email_campaigns") as any).insert({ ...baseRow, subject: `[B] ${subjectB.trim()}` }),
-        ]);
-        if (resA.error || resB.error) throw resA.error || resB.error;
-        toast.success("Test A/B creado — dos campañas listas para enviar");
-      } else {
-        const { error } = await (supabase.from("email_campaigns") as any).insert({ ...baseRow, subject: subject.trim() });
-        if (error) throw error;
-        toast.success(scheduledAt ? `Campaña programada para ${new Date(scheduledAt).toLocaleString("es-AR")}` : "Campaña creada como borrador");
+      const uniqueAudience = [...new Map(currentAudience
+        .filter((customer) => customer.email)
+        .map((customer) => [customer.email!.trim().toLowerCase(), customer] as const)).values()]
+        .sort((a, b) => a.id.localeCompare(b.id));
+      if (segment === "bulk_custom" && !uniqueAudience.length) {
+        throw new Error("La selección del CRM no tiene contactos con consentimiento vigente.");
       }
 
-      setOpen(false); setSubject(""); setSubjectB(""); setBodyHtml(""); setSegment("all"); setCouponCode(""); setScheduledAt(""); setAbMode(false);
+      const saveDraft = async (draftSubject: string, draftSegment: string, ids: string[] | null) => {
+        const { data, error } = await (supabase.from("email_campaigns") as any)
+          .insert({
+            ...baseRow,
+            subject: draftSubject,
+            segment: draftSegment,
+            target_customer_ids: ids,
+          })
+          .select("id")
+          .single();
+        if (error || !data?.id) throw error ?? new Error("No se guardó el borrador");
+        createdIds.push(data.id);
+      };
+
+      if (abMode) {
+        if (uniqueAudience.length < 2) throw new Error("El test A/B necesita al menos dos contactos con consentimiento.");
+        const cohortA = uniqueAudience.filter((_, index) => index % 2 === 0).map((c) => c.id);
+        const cohortB = uniqueAudience.filter((_, index) => index % 2 === 1).map((c) => c.id);
+        await saveDraft(`[A] ${subject.trim()}`, "bulk_custom", cohortA);
+        await saveDraft(`[B] ${subjectB.trim()}`, "bulk_custom", cohortB);
+      } else {
+        await saveDraft(
+          subject.trim(), segment,
+          segment === "bulk_custom" ? uniqueAudience.map((c) => c.id) : null,
+        );
+      }
+
+      if (scheduledAt) {
+        const { error } = await supabase.from("email_campaigns")
+          .update({ scheduled_at: new Date(scheduledAt).toISOString() })
+          .eq("org_id", activeOrg.id)
+          .in("id", createdIds);
+        if (error) throw error;
+      }
+
+      toast.success(abMode
+        ? "Test A/B creado con audiencias separadas"
+        : scheduledAt
+          ? `Campaña programada para ${new Date(scheduledAt).toLocaleString("es-AR")}`
+          : "Campaña creada como borrador");
+
+      setOpen(false); setSubject(""); setSubjectB(""); setBodyHtml(""); setSegment("all"); setCouponCode(""); setScheduledAt(""); setAbMode(false); setBulkCampaign(null);
       load();
-    } catch {
-      toast.error("Error al guardar campaña");
+    } catch (error) {
+      if (createdIds.length) {
+        await supabase.from("email_campaigns").delete().eq("org_id", activeOrg.id).in("id", createdIds);
+      }
+      toast.error(error instanceof Error ? error.message : "Error al guardar campaña");
     } finally {
       setSaving(false);
     }
@@ -454,6 +513,7 @@ export default function EmailCampaignsPage() {
         subject: `Copia — ${camp.subject}`,
         body_html: camp.body_html,
         segment: camp.segment,
+        target_customer_ids: camp.target_customer_ids ?? null,
         status: "draft",
         sent_count: 0,
         failed_count: 0,
@@ -470,7 +530,7 @@ export default function EmailCampaignsPage() {
   // ── Send campaign ─────────────────────────────────────────────────────────────
 
   const handleSend = async (camp: Campaign) => {
-    const audience = audienceFor(camp.segment);
+    const audience = audienceForCampaign(camp);
     if (audience.length === 0) { toast.error("No hay destinatarios con consentimiento para este segmento"); return; }
     if (!(await ask({
       title: `¿Enviar a ${audience.length} contacto(s) con email?`,
@@ -481,17 +541,11 @@ export default function EmailCampaignsPage() {
     setSending(camp.id);
     setEmailOperationError("");
     try {
-      await supabase.from("email_campaigns").update({ status: "sending" }).eq("id", camp.id);
       setCampaigns(prev => prev.map(c => c.id === camp.id ? { ...c, status: "sending" } : c));
 
-      // El navegador ya no manda destinatarios ni contenido: sólo el id y el
-      // segmento. Asunto, cuerpo, audiencia, consentimiento y baja los
-      // resuelve el servidor con la fila guardada como autoridad.
+      // La función reclama la fila de forma atómica y recalcula la audiencia.
       const { data, error } = await supabase.functions.invoke("send-email-campaign", {
-        body: {
-          campaignId: camp.id,
-          segment: camp.segment,
-        },
+        body: { campaignId: camp.id },
       });
 
       if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
@@ -506,7 +560,6 @@ export default function EmailCampaignsPage() {
       const message = error instanceof Error ? error.message : "No se pudo enviar la campaña";
       setEmailOperationError(message);
       toast.error(message);
-      await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", camp.id);
       load();
     } finally {
       setSending(null);
@@ -534,6 +587,11 @@ export default function EmailCampaignsPage() {
   /** Opt-in manual: el comercio registra el consentimiento que obtuvo por otro canal. */
   const handleConsentGrant = async (customerId: string, name: string) => {
     if (!activeOrg) return;
+    const customer = customers.find((c) => c.id === customerId);
+    if (customer?.email && unsubscribed.has(customer.email.trim().toLowerCase())) {
+      toast.error("Este contacto pidió la baja. No se puede reactivar desde el panel.");
+      return;
+    }
     setConsentSaving(customerId);
     try {
       const { error } = await supabase.from("customers").update({
@@ -740,7 +798,7 @@ export default function EmailCampaignsPage() {
             </button>
           )}
           {campaigns.map(camp => {
-            const aud = audienceFor(camp.segment);
+            const aud = audienceForCampaign(camp);
             return (
               <Card key={camp.id} className="border-border/60 bg-card">
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
@@ -779,7 +837,7 @@ export default function EmailCampaignsPage() {
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-2">
-                      <span>{SEGMENTS.find(s => s.value === camp.segment)?.label}</span>
+                      <span>{camp.segment === "bulk_custom" ? "Contactos seleccionados" : SEGMENTS.find(s => s.value === camp.segment)?.label}</span>
                       <span>·</span>
                       <span>{aud.length} destinatario(s)</span>
                       {camp.sent_count > 0 && <><span>·</span><span className="text-emerald-400">{camp.sent_count} enviados</span></>}
