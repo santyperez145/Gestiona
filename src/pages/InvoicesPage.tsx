@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useClipboard } from "@/hooks/useClipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
-import { formatARS, recordMemberStockMovementDB } from "@/lib/supabaseStore";
+import { formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,12 +25,14 @@ import {
   fechaFiscalArgentina,
   numeroFiscal,
 } from "@/lib/arcaInvoice";
+import { CONDICIONES_IVA, tipoDeComprobante, validarCuit, type CondicionIva } from "@/lib/fiscalIdentity";
 import { printFiscalInvoiceTicket } from "@/lib/saleInvoice";
+import { useModulePermissions } from "@/lib/usePermissions";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
   ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus,
-  Square, CheckSquare, CheckCheck, RotateCcw, Package, Copy, AlertTriangle, Printer,
+  Square, CheckSquare, CheckCheck, RotateCcw, Copy, AlertTriangle, Printer,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
@@ -93,7 +95,14 @@ interface AfipSettings {
 // ─────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────
-const TIPO_CBTE: Record<number, string> = { 1: "A", 6: "B", 11: "C" };
+const TIPO_CBTE: Record<number, { short: string; title: string; creditNote: boolean }> = {
+  1: { short: "A", title: "FACTURA A", creditNote: false },
+  3: { short: "NC A", title: "NOTA DE CRÉDITO A", creditNote: true },
+  6: { short: "B", title: "FACTURA B", creditNote: false },
+  8: { short: "NC B", title: "NOTA DE CRÉDITO B", creditNote: true },
+  11: { short: "C", title: "FACTURA C", creditNote: false },
+  13: { short: "NC C", title: "NOTA DE CRÉDITO C", creditNote: true },
+};
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   draft:    { label: "Borrador",  color: "bg-muted text-muted-foreground border-border",              icon: FileText },
@@ -115,7 +124,7 @@ function visibleInvoiceStatus(inv: Pick<Invoice, "status" | "cae">): string {
 
 const EMPTY_FORM = {
   customer_name: "", customer_email: "", customer_address: "", customer_tax_id: "",
-  due_date: "", notes: "", tax_pct: "21", tipo_comprobante: "",
+  due_date: "", notes: "", tax_pct: "21", receiver_condition: "consumidor_final" as CondicionIva,
 };
 
 function emptyItem(): InvoiceItem { return { description: "", quantity: 1, unit_price: 0, total: 0 }; }
@@ -149,9 +158,9 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   doc.setTextColor(229, 231, 235);
   doc.text(
     autorizado
-      ? `FACTURA ${tipoCbte} · ORIGINAL`
+      ? `${tipoCbte.title} · ORIGINAL`
       : tipoCbte
-        ? `BORRADOR FACTURA ${tipoCbte} · SIN CAE`
+        ? `BORRADOR ${tipoCbte.title} · SIN CAE`
         : "COMPROBANTE BORRADOR",
     40,
     56,
@@ -179,7 +188,7 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
     doc.setFont("helvetica", "bold");
     doc.setFontSize(28);
     doc.setTextColor(255, 255, 255);
-    doc.text(tipoCbte, W / 2, 48, { align: "center" });
+    doc.text(tipoCbte.short, W / 2, 48, { align: "center" });
     doc.setFontSize(7);
     doc.text(`COD. ${inv.tipo_comprobante}`, W / 2, 67, { align: "center" });
   }
@@ -360,8 +369,10 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
 export default function InvoicesPage() {
   usePageTitle("Facturas");
   const { user } = useAuth();
-  const { activeOrg, activeRole } = useOrg();
+  const { activeOrg } = useOrg();
+  const invoicePermissions = useModulePermissions("invoices");
   const { ask, dialog } = useConfirmDialog();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -374,43 +385,85 @@ export default function InvoicesPage() {
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [authorizingId, setAuthorizingId] = useState<string | null>(null);
   const [afipSettings, setAfipSettings] = useState<AfipSettings | null>(null);
+  const [afipSettingsOrgId, setAfipSettingsOrgId] = useState<string | null>(null);
+  const [afipSettingsLoading, setAfipSettingsLoading] = useState(true);
+  const [afipSettingsError, setAfipSettingsError] = useState(false);
+  const [afipSettingsReload, setAfipSettingsReload] = useState(0);
   const [search, setSearch] = useState("");
   const [creatingNC, setCreatingNC] = useState<string | null>(null);
   const [ncDialogInv, setNcDialogInv] = useState<Invoice | null>(null);
-  const [ncRevertStock, setNcRevertStock] = useState(true);
-  const [ncMarkReturned, setNcMarkReturned] = useState(true);
+  const [ncReason, setNcReason] = useState("");
+  const [ncAmount, setNcAmount] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkSending, setBulkSending] = useState(false);
-  const fromSaleHandled = useRef(false);
-  const fromSaleId = useRef<string | null>(null); // track sale_id to persist on save
+  const [sourceSaleGrossTotal, setSourceSaleGrossTotal] = useState<number | null>(null);
+  const [sourceSaleLoading, setSourceSaleLoading] = useState(false);
+  const fromSaleId = useRef<string | null>(null);
+  const sourceSaleParam = searchParams.get("from_sale");
+  const requestedInvoiceId = searchParams.get("invoice");
+  const afipOrgId = activeOrg?.id;
+  const accountUserId = user?.id;
 
-  const canManage = activeRole === "owner" || activeRole === "admin";
+  const canManage = invoicePermissions.canEdit;
   const { copy } = useClipboard();
 
-  // Pre-fill form when navigated from SalesPage with ?from_sale=...
+  // Load the persisted sale; URL labels and amounts are never invoice inputs.
   useEffect(() => {
-    const fromSale = searchParams.get("from_sale");
-    const customer = searchParams.get("customer") ?? "";
-    const total = searchParams.get("total") ?? "";
-    const productName = searchParams.get("product") ?? "Venta";
-    if (fromSale && !fromSaleHandled.current) {
-      fromSaleHandled.current = true;
-      fromSaleId.current = fromSale; // save for submission
-      setForm(f => ({
-        ...f,
-        customer_name: decodeURIComponent(customer),
+    if (!sourceSaleParam || !activeOrg?.id || !canManage) return;
+
+    let cancelled = false;
+    setSourceSaleLoading(true);
+    setShowForm(true);
+
+    void (async () => {
+      const { data, error } = await supabase
+        .from("sales")
+        .select("product_name, customer_name, quantity, unit_price_ars, total_ars, sale_transaction_id, ecommerce_order_id, invoice_id")
+        .eq("org_id", activeOrg.id)
+        .eq("id", sourceSaleParam)
+        .maybeSingle();
+      if (cancelled) return;
+      setSourceSaleLoading(false);
+      setSearchParams({}, { replace: true });
+      if (error || !data) {
+        console.error("No se pudo precargar la venta para facturar", error);
+        fromSaleId.current = null;
+        setSourceSaleGrossTotal(null);
+        setShowForm(false);
+        toast.error("No se pudo cargar la venta seleccionada");
+        return;
+      }
+      if (data.invoice_id) {
+        setShowForm(false);
+        setSearchParams({ invoice: data.invoice_id }, { replace: true });
+        return;
+      }
+      if (data.sale_transaction_id || data.ecommerce_order_id) {
+        setShowForm(false);
+        toast.info(data.sale_transaction_id
+          ? "Facturá el ticket completo desde Ventas"
+          : "La orden online se factura completa desde Facturas");
+        return;
+      }
+      fromSaleId.current = sourceSaleParam;
+      setForm((current) => ({
+        ...current,
+        customer_name: data.customer_name || "Consumidor final",
         notes: "",
       }));
-      if (total) {
-        setItems([{ ...emptyItem(), description: decodeURIComponent(productName), quantity: 1, unit_price: Number(total) }]);
-      }
-      setShowForm(true);
-      // Clean the URL params
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams]);
+      setItems([{
+        description: data.product_name || "Venta",
+        quantity: Number(data.quantity) || 1,
+        unit_price: Number(data.unit_price_ars) || Number(data.total_ars),
+        total: Number(data.total_ars),
+      }]);
+      setSourceSaleGrossTotal(Number(data.total_ars));
+    })();
+
+    return () => { cancelled = true; };
+  }, [activeOrg?.id, canManage, sourceSaleParam, setSearchParams]);
 
   // Estado de AFIP.
   //
@@ -423,35 +476,49 @@ export default function InvoicesPage() {
   // `settings.afip_*` es la generación vieja y nadie la llena. La vista es la
   // fuente única, y además dice si el Ticket de Acceso está vigente.
   useEffect(() => {
-    if (!activeOrg || !user) return;
-    (async () => {
-      const { data, error } = await supabase
-        .from("afip_connection_status")
-        .select("cuit,razon_social,domicilio,ingresos_brutos,inicio_actividades,punto_venta,tipo_emisor,environment,configured")
-        .eq("org_id", activeOrg.id)
-        .maybeSingle();
+    if (!afipOrgId || !accountUserId) {
+      setAfipSettings(null);
+      setAfipSettingsOrgId(null);
+      setAfipSettingsLoading(false);
+      return;
+    }
+    let active = true;
+    setAfipSettings(null);
+    setAfipSettingsOrgId(null);
+    setAfipSettingsError(false);
+    setAfipSettingsLoading(true);
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("afip_connection_status")
+          .select("cuit,razon_social,domicilio,ingresos_brutos,inicio_actividades,punto_venta,tipo_emisor,environment,configured")
+          .eq("org_id", afipOrgId)
+          .maybeSingle();
+        if (!active) return;
+        if (error) throw error;
+        setAfipSettingsOrgId(afipOrgId);
+        if (!data) return;
 
-      // Un error acá no puede leerse como "no está configurado": son cosas
-      // distintas, y confundirlas es lo que hace que alguien vuelva a cargar
-      // un certificado que ya estaba bien.
-      if (error) {
-        console.error("afip_connection_status", error);
-        return;
+        setAfipSettings({
+          afip_cuit: data.configured ? data.cuit : null,
+          afip_razon_social: data.razon_social,
+          afip_domicilio: data.domicilio,
+          afip_punto_venta: data.punto_venta,
+          afip_tipo_emisor: data.tipo_emisor,
+          afip_environment: data.environment,
+          afip_ingresos_brutos: data.ingresos_brutos,
+          afip_inicio_actividades: data.inicio_actividades,
+        });
+      } catch (cause) {
+        if (!active) return;
+        console.error("afip_connection_status", cause);
+        setAfipSettingsError(true);
+      } finally {
+        if (active) setAfipSettingsLoading(false);
       }
-      if (!data) return;
-
-      setAfipSettings({
-        afip_cuit: data.configured ? data.cuit : null,
-        afip_razon_social: data.razon_social,
-        afip_domicilio: data.domicilio,
-        afip_punto_venta: data.punto_venta,
-        afip_tipo_emisor: data.tipo_emisor,
-        afip_environment: data.environment,
-        afip_ingresos_brutos: data.ingresos_brutos,
-        afip_inicio_actividades: data.inicio_actividades,
-      });
     })();
-  }, [activeOrg, user]);
+    return () => { active = false; };
+  }, [afipOrgId, accountUserId, afipSettingsReload]);
 
   const handleSendEmail = async (inv: Invoice) => {
     if (!inv.customer_email) { toast.error("Esta factura no tiene email del cliente"); return; }
@@ -623,89 +690,111 @@ export default function InvoicesPage() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { cargarPendientes(); }, [cargarPendientes]);
+  useEffect(() => {
+    if (requestedInvoiceId && invoices.some((invoice) => invoice.id === requestedInvoiceId)) {
+      setExpanded(requestedInvoiceId);
+    }
+  }, [invoices, requestedInvoiceId]);
 
   const recalcItems = (newItems: InvoiceItem[]) =>
     newItems.map((it) => ({ ...it, total: it.quantity * it.unit_price }));
 
   const subtotal = items.reduce((s, it) => s + it.quantity * it.unit_price, 0);
-  const taxAmt = subtotal * (Number(form.tax_pct) / 100);
+  const afipSettingsReady = !afipSettingsLoading && !afipSettingsError && afipSettingsOrgId === afipOrgId;
+  const afipConfigured = afipSettingsReady && !!afipSettings?.afip_cuit;
+  const suggestedVoucher = afipConfigured && afipSettings?.afip_tipo_emisor
+    ? tipoDeComprobante(afipSettings.afip_tipo_emisor, form.receiver_condition)
+    : null;
+  const effectiveTaxPct = !afipConfigured || suggestedVoucher?.letra === "C" ? 0 : Number(form.tax_pct);
+  const taxAmt = subtotal * (effectiveTaxPct / 100);
   const total = subtotal + taxAmt;
 
-  const nextNumber = async () => {
-    if (!activeOrg) return "FAC-0001";
-    const { data } = await supabase
-      .from("invoice_sequences")
-      .select("last_number")
-      .eq("org_id", activeOrg.id)
-      .single();
-    const n = (data?.last_number || 0) + 1;
-    await supabase.from("invoice_sequences").upsert({ org_id: activeOrg.id, last_number: n });
-    return `FAC-${String(n).padStart(4, "0")}`;
-  };
-
   const handleSave = async () => {
-    if (!activeOrg || !user) return;
+    if (!activeOrg || !user || sourceSaleLoading) return;
+    if (!afipSettingsReady) {
+      toast.error("Esperá a que se verifique la conexión con ARCA antes de crear la factura");
+      return;
+    }
     if (!form.customer_name.trim()) { toast.error("Nombre del cliente requerido"); return; }
     if (items.every((it) => !it.description.trim())) { toast.error("Agregá al menos un ítem"); return; }
+    if (afipSettings?.afip_cuit && form.receiver_condition !== "consumidor_final" && !validarCuit(form.customer_tax_id)) {
+      toast.error("La condición fiscal elegida requiere un CUIT válido");
+      return;
+    }
     setSaving(true);
     try {
-      const number = await nextNumber();
-      const tipoCbte = form.tipo_comprobante ? parseInt(form.tipo_comprobante) : null;
-
-      const { data: inv, error } = await supabase.from("invoices").insert({
-        org_id: activeOrg.id,
-        number,
-        customer_name: form.customer_name,
-        customer_email: form.customer_email || null,
-        customer_address: form.customer_address || null,
-        customer_tax_id: form.customer_tax_id || null,
-        issue_date: new Date().toISOString().slice(0, 10),
+      const validItems = items.filter((it) => it.description.trim());
+      const customerPayload = {
+        name: form.customer_name,
+        email: form.customer_email || null,
+        address: form.customer_address || null,
+        tax_id: form.customer_tax_id || null,
         due_date: form.due_date || null,
         notes: form.notes || null,
-        status: "draft",
-        currency: "ARS",
-        subtotal,
-        tax_pct: Number(form.tax_pct),
-        tax_amount: taxAmt,
-        total,
-        created_by: user.id,
-        tipo_comprobante: tipoCbte,
-        afip_status: tipoCbte ? "pending" : "not_applicable",
-        sale_id: fromSaleId.current || null,
-      }).select().single();
-
+      };
+      const fiscalPayload = {
+        enabled: Boolean(afipSettings?.afip_cuit),
+        receiver_condition: form.receiver_condition,
+        tax_pct: effectiveTaxPct,
+      };
+      const sourceSaleId = fromSaleId.current;
+      const { data, error } = sourceSaleId
+        ? await supabase.rpc("facturar_venta_individual", {
+            p_org: activeOrg.id,
+            p_sale_id: sourceSaleId,
+            p_customer: customerPayload,
+            p_fiscal: fiscalPayload,
+          })
+        : await supabase.rpc("crear_factura_manual", {
+            p_org: activeOrg.id,
+            p_customer: customerPayload,
+            p_items: validItems.map((item) => ({
+              description: item.description,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+            })),
+            p_fiscal: fiscalPayload,
+            p_sale_id: null,
+          });
       if (error) throw error;
-
-      const validItems = items.filter((it) => it.description.trim());
-      await supabase.from("invoice_items").insert(
-        validItems.map((it) => ({
-          invoice_id: inv!.id,
-          description: it.description,
-          quantity: it.quantity,
-          unit_price: it.unit_price,
-          total: it.quantity * it.unit_price,
-        }))
-      );
-
-      // If created from a sale, update the sale's invoice_id bidirectional link
-      if (fromSaleId.current && inv) {
-        await supabase
-          .from("sales")
-          .update({ invoice_id: inv.id })
-          .eq("id", fromSaleId.current);
-        fromSaleId.current = null;
+      const result = data as {
+        ok?: boolean;
+        invoice_id?: string;
+        number?: string;
+        tipo_comprobante?: number | null;
+        already?: boolean;
+      } | null;
+      if (!result?.ok || !result.invoice_id || !result.number) {
+        throw new Error("No se pudo confirmar la creación de la factura");
       }
 
-      toast.success(`Factura ${number} creada`);
+      fromSaleId.current = null;
+      setSourceSaleGrossTotal(null);
+      toast.success(result.already
+        ? `La venta ya tenía la factura ${result.number}`
+        : result.tipo_comprobante
+          ? `${result.number} creada y enviada al circuito de autorización ARCA`
+          : `Borrador ${result.number} creado`);
       setShowForm(false);
       setForm({ ...EMPTY_FORM });
       setItems([emptyItem()]);
-      load();
-    } catch (e: any) {
-      toast.error(e.message);
+      await load();
+    } catch (error) {
+      console.error("crear_factura_manual", error);
+      const message = error instanceof Error ? error.message.replace(/^.*?:\s*/, "") : "No se pudo crear la factura";
+      toast.error(message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const closeCreateForm = () => {
+    setShowForm(false);
+    fromSaleId.current = null;
+    setSourceSaleGrossTotal(null);
+    setSourceSaleLoading(false);
+    setForm({ ...EMPTY_FORM });
+    setItems([emptyItem()]);
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -721,80 +810,36 @@ export default function InvoicesPage() {
     load();
   };
 
-  const createCreditNote = async (inv: Invoice, revertStock: boolean, markReturned: boolean) => {
-    if (!activeOrg || !user) return;
+  const createCreditNote = async (inv: Invoice) => {
+    if (!activeOrg || !ncReason.trim()) {
+      toast.error("Ingresá el motivo de la nota de crédito");
+      return;
+    }
+    const requestedAmount = ncAmount.trim() ? Number(ncAmount) : null;
+    if (requestedAmount !== null && (!Number.isFinite(requestedAmount) || requestedAmount <= 0)) {
+      toast.error("El importe a acreditar debe ser mayor que cero");
+      return;
+    }
     setCreatingNC(inv.id);
-    setNcDialogInv(null);
     try {
-      const ncNumber = `NC-${inv.number}`;
-      const ncItems = (inv.invoice_items ?? [{ description: `Anulación ${inv.number}`, quantity: 1, unit_price: Number(inv.total), total: Number(inv.total) }])
-        .map((it) => ({ ...it, unit_price: -Math.abs(it.unit_price), total: -Math.abs(it.total) }));
-      const ncSubtotal = ncItems.reduce((s, it) => s + it.total, 0);
-      const taxAmt = ncSubtotal * (Number(inv.tax_pct) / 100);
-      const { data: creditNote, error } = await supabase.from("invoices").insert({
-        org_id: activeOrg.id,
-        number: ncNumber,
-        customer_name: inv.customer_name,
-        customer_email: inv.customer_email,
-        customer_address: inv.customer_address,
-        customer_tax_id: inv.customer_tax_id,
-        issue_date: new Date().toISOString().slice(0, 10),
-        due_date: null,
-        status: "draft",
-        currency: inv.currency || "ARS",
-        subtotal: ncSubtotal,
-        tax_pct: Number(inv.tax_pct),
-        tax_amount: taxAmt,
-        total: ncSubtotal + taxAmt,
-        notes: `Nota de Crédito — anula/ajusta factura ${inv.number}`,
-        invoice_items: ncItems,
-        sale_id: inv.sale_id,
-        tipo_comprobante: null,
-      }).select("id").single();
+      const { data, error } = await supabase.rpc("emitir_nota_credito", {
+        p_invoice_id: inv.id,
+        p_motivo: ncReason.trim(),
+        p_importe: requestedAmount,
+      });
       if (error) throw error;
-
-      // Si se repone, primero deja el asiento de inventario que referencia la
-      // nota de crédito. Luego cambia el estado comercial de la venta.
-      if (inv.sale_id) {
-        if (revertStock) {
-          // El reverso es un movimiento de base, no una suma a products.stock.
-          // Así queda en Kardex con la nota de crédito que lo originó.
-          const { data: saleRows, error: saleRowsError } = await supabase
-            .from("sales")
-            .select("product_id, product_name, variant_id, quantity")
-            .eq("id", inv.sale_id);
-          if (saleRowsError) throw saleRowsError;
-          if (saleRows && saleRows.length > 0) {
-            for (const row of saleRows) {
-              if (!row.product_id || !row.quantity) continue;
-              await recordMemberStockMovementDB({
-                orgId: activeOrg.id,
-                productId: row.product_id,
-                productName: row.product_name,
-                variantId: row.variant_id,
-                movementType: "invoice_credit_note",
-                quantity: Number(row.quantity),
-                referenceType: "invoice_credit_note",
-                referenceId: creditNote.id,
-                notes: `Nota de crédito ${ncNumber}`,
-                userId: user.id,
-              });
-            }
-          }
-        }
-        if (markReturned) {
-          const { error: saleError } = await supabase
-            .from("sales")
-            .update({ paid: false, payment_method: "devolucion" })
-            .eq("id", inv.sale_id);
-          if (saleError) throw saleError;
-        }
+      if (!data) {
+        throw new Error("No se pudo confirmar la nota de crédito");
       }
-
-      toast.success(`Nota de Crédito ${ncNumber} creada${revertStock && inv.sale_id ? " · Stock revertido" : ""}`);
-      load();
-    } catch (e: any) {
-      toast.error(e.message || "Error al crear Nota de Crédito");
+      setNcDialogInv(null);
+      setNcReason("");
+      setNcAmount("");
+      toast.success("Nota de crédito creada y enviada al circuito de autorización ARCA");
+      await load();
+    } catch (error) {
+      console.error("emitir_nota_credito", error);
+      const message = error instanceof Error ? error.message.replace(/^.*?:\s*/, "") : "No se pudo crear la nota de crédito";
+      toast.error(message);
     } finally {
       setCreatingNC(null);
     }
@@ -810,11 +855,11 @@ export default function InvoicesPage() {
   const filteredInvoices = invoices.filter((inv) => {
     if (filterStatus !== "all" && visibleInvoiceStatus(inv) !== filterStatus) return false;
     if (filterType !== "all") {
-      if (filterType === "NC" && !inv.number.startsWith("NC-")) return false;
-      if (filterType === "A" && (inv.tipo_comprobante !== 1 || inv.number.startsWith("NC-"))) return false;
-      if (filterType === "B" && (inv.tipo_comprobante !== 6 || inv.number.startsWith("NC-"))) return false;
-      if (filterType === "C" && (inv.tipo_comprobante !== 11 || inv.number.startsWith("NC-"))) return false;
-      if (filterType === "none" && (inv.tipo_comprobante !== null || inv.number.startsWith("NC-"))) return false;
+      if (filterType === "NC" && ![3, 8, 13].includes(inv.tipo_comprobante ?? 0)) return false;
+      if (filterType === "A" && inv.tipo_comprobante !== 1) return false;
+      if (filterType === "B" && inv.tipo_comprobante !== 6) return false;
+      if (filterType === "C" && inv.tipo_comprobante !== 11) return false;
+      if (filterType === "none" && inv.tipo_comprobante !== null) return false;
     }
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -824,11 +869,6 @@ export default function InvoicesPage() {
       (inv.customer_email?.toLowerCase().includes(q) ?? false)
     );
   });
-
-  const afipConfigured = !!afipSettings?.afip_cuit;
-
-  // Default tipo_comprobante based on emisor type
-  const defaultTipoCbte = afipSettings?.afip_tipo_emisor === "responsable_inscripto" ? "6" : "11";
 
   return (
     <div className="space-y-6 pb-12">
@@ -847,7 +887,10 @@ export default function InvoicesPage() {
         }
         actions={
           canManage ? (
-            <Button onClick={() => setShowForm(!showForm)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button
+              onClick={() => showForm ? closeCreateForm() : setShowForm(true)}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
               <Plus className="w-4 h-4 mr-2" />Nueva factura
             </Button>
           ) : undefined
@@ -878,7 +921,17 @@ export default function InvoicesPage() {
       )}
 
       {/* AFIP not configured warning */}
-      {!afipConfigured && canManage && (
+      {afipSettingsError && canManage ? (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-[8px] border border-destructive/25 bg-destructive/5 p-3 text-sm text-foreground">
+          <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" />
+          <span>No pudimos verificar la conexión con ARCA. La creación de facturas está detenida para evitar comprobantes incorrectos.</span>
+          <Button size="sm" variant="outline" onClick={() => setAfipSettingsReload((value) => value + 1)}>Reintentar</Button>
+        </div>
+      ) : !afipSettingsReady && canManage ? (
+        <div role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />Verificando conexión con ARCA
+        </div>
+      ) : afipSettingsReady && !afipConfigured && canManage && (
         <div className="p-3 rounded-[8px] border border-yellow-500/20 bg-yellow-500/5 flex items-center gap-2 text-sm text-yellow-400">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>
@@ -926,26 +979,40 @@ export default function InvoicesPage() {
               <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
             </div>
             <div>
-              <Label className="text-xs">IVA %</Label>
-              <Input type="number" min={0} max={100} value={form.tax_pct} onChange={(e) => setForm({ ...form, tax_pct: e.target.value })} />
+              <Label className="text-xs">IVA sobre precio neto</Label>
+              <Select
+                value={String(effectiveTaxPct)}
+                disabled={!afipConfigured || suggestedVoucher?.letra === "C"}
+                onValueChange={(value) => setForm({ ...form, tax_pct: value })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[0, 2.5, 5, 10.5, 21, 27].map((rate) => (
+                    <SelectItem key={rate} value={String(rate)}>{rate}%</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {afipConfigured && (
-              <div className="md:col-span-2">
-                <Label className="text-xs">Tipo de comprobante ARCA</Label>
+              <div>
+                <Label className="text-xs">Condición IVA del receptor</Label>
                 <Select
-                  value={form.tipo_comprobante || defaultTipoCbte}
-                  onValueChange={(v) => setForm({ ...form, tipo_comprobante: v })}
+                  value={form.receiver_condition}
+                  onValueChange={(value: CondicionIva) => setForm({ ...form, receiver_condition: value })}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="11">Factura C (monotributista → cualquier receptor)</SelectItem>
-                    <SelectItem value="6">Factura B (R.I. → consumidor final / monotributista)</SelectItem>
-                    <SelectItem value="1">Factura A (R.I. → responsable inscripto — requiere CUIT cliente)</SelectItem>
+                    {Object.entries(CONDICIONES_IVA).map(([value, condition]) => (
+                      <SelectItem key={value} value={value}>{condition.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Podés autorizar con ARCA después de crear la factura usando el botón de escudo.
-                </p>
+              </div>
+            )}
+            {afipConfigured && suggestedVoucher && (
+              <div className="md:col-span-2 flex items-center justify-between rounded-[8px] border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+                <span className="text-muted-foreground">Comprobante determinado por la identidad fiscal</span>
+                <Badge variant="outline" className="border-primary/30 text-primary">Factura {suggestedVoucher.letra}</Badge>
               </div>
             )}
           </div>
@@ -953,10 +1020,12 @@ export default function InvoicesPage() {
           {/* Items */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label className="text-xs">Ítems</Label>
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setItems([...items, emptyItem()])}>
-                <Plus className="w-3 h-3 mr-1" />Agregar ítem
-              </Button>
+              <Label className="text-xs">{sourceSaleGrossTotal === null ? "Ítems" : "Ítems de la venta registrada"}</Label>
+              {sourceSaleGrossTotal === null && (
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setItems([...items, emptyItem()])}>
+                  <Plus className="w-3 h-3 mr-1" />Agregar ítem
+                </Button>
+              )}
             </div>
             <div className="space-y-2 pb-12">
               <div className="hidden md:grid grid-cols-12 gap-2 text-[10px] text-muted-foreground uppercase px-1">
@@ -966,40 +1035,48 @@ export default function InvoicesPage() {
                 <div className="col-span-2 text-right">Total</div>
               </div>
               {items.map((it, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                <div key={i} className="grid grid-cols-2 gap-2 items-center md:grid-cols-12">
                   <Input
-                    className="col-span-6 h-8 text-xs"
+                    className="col-span-2 h-8 text-xs md:col-span-6"
+                    aria-label={`Descripción del ítem ${i + 1}`}
                     placeholder="Descripción del producto/servicio"
                     value={it.description}
+                    disabled={sourceSaleGrossTotal !== null}
                     onChange={(e) => {
                       const n = [...items]; n[i] = { ...it, description: e.target.value };
                       setItems(recalcItems(n));
                     }}
                   />
                   <Input
-                    className="col-span-2 h-8 text-xs text-right"
+                    className="col-span-1 h-8 text-xs text-right md:col-span-2"
+                    aria-label={`Cantidad del ítem ${i + 1}`}
                     type="number" min={1} step={1}
                     value={it.quantity}
+                    disabled={sourceSaleGrossTotal !== null}
                     onChange={(e) => {
                       const n = [...items]; n[i] = { ...it, quantity: Number(e.target.value) };
                       setItems(recalcItems(n));
                     }}
                   />
                   <Input
-                    className="col-span-2 h-8 text-xs text-right"
+                    className="col-span-1 h-8 text-xs text-right md:col-span-2"
+                    aria-label={`Precio del ítem ${i + 1}`}
                     type="number" min={0} step={100}
                     value={it.unit_price}
+                    disabled={sourceSaleGrossTotal !== null}
                     onChange={(e) => {
                       const n = [...items]; n[i] = { ...it, unit_price: Number(e.target.value) };
                       setItems(recalcItems(n));
                     }}
                   />
-                  <div className="col-span-1 text-right text-xs font-mono text-muted-foreground">
+                  <div className="col-span-1 text-right text-xs font-mono text-muted-foreground md:col-span-1">
                     {formatARS(it.quantity * it.unit_price)}
                   </div>
-                  <Button size="icon" variant="ghost" className="col-span-1 h-7 w-7" onClick={() => setItems(items.filter((_, j) => j !== i))}>
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                  </Button>
+                  {sourceSaleGrossTotal === null && (
+                    <Button size="icon" variant="ghost" className="col-span-1 h-7 w-7 justify-self-end md:col-span-1" onClick={() => setItems(items.filter((_, j) => j !== i))} title="Quitar ítem">
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -1008,20 +1085,29 @@ export default function InvoicesPage() {
           {/* Totals */}
           <div className="flex justify-end">
             <div className="space-y-1 text-sm min-w-[220px]">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-mono">{formatARS(subtotal)}</span>
-              </div>
-              {Number(form.tax_pct) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">IVA ({form.tax_pct}%)</span>
-                  <span className="font-mono">{formatARS(taxAmt)}</span>
-                </div>
-              )}
+              {sourceSaleGrossTotal === null ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-mono">{formatARS(subtotal)}</span>
+                  </div>
+                  {effectiveTaxPct > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">IVA ({effectiveTaxPct}%)</span>
+                      <span className="font-mono">{formatARS(taxAmt)}</span>
+                    </div>
+                  )}
+                </>
+              ) : null}
               <div className="flex justify-between border-t border-border pt-1 font-bold text-primary">
-                <span>Total</span>
-                <span className="font-mono">{formatARS(total)}</span>
+                <span>{sourceSaleGrossTotal === null ? "Total" : "Total ya cobrado"}</span>
+                <span className="font-mono">{formatARS(sourceSaleGrossTotal ?? total)}</span>
               </div>
+              {sourceSaleGrossTotal !== null && afipConfigured ? (
+                <p className="pt-1 text-right text-[10px] font-normal text-muted-foreground">
+                  El IVA se desglosa sin modificar el importe cobrado.
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -1031,8 +1117,8 @@ export default function InvoicesPage() {
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button variant="outline" onClick={closeCreateForm}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving || sourceSaleLoading || !afipSettingsReady} className="bg-primary text-primary-foreground hover:bg-primary/90">
               {saving ? "Guardando..." : "Crear factura"}
             </Button>
           </div>
@@ -1185,7 +1271,7 @@ export default function InvoicesPage() {
                     <button className="flex-1 flex items-center gap-3 min-w-0 text-left" onClick={() => setExpanded(isOpen ? null : inv.id)}>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-mono text-sm font-semibold ${inv.number.startsWith("NC-") ? "text-orange-400" : ""}`}>{inv.number}</span>
+                          <span className={`font-mono text-sm font-semibold ${tipoCbte?.creditNote ? "text-orange-400" : ""}`}>{inv.number}</span>
                           <button
                             className="opacity-40 hover:opacity-100 transition-opacity"
                             title="Copiar número de factura"
@@ -1193,14 +1279,14 @@ export default function InvoicesPage() {
                           >
                             <Copy className="w-3 h-3" />
                           </button>
-                          {inv.number.startsWith("NC-") && (
+                          {tipoCbte?.creditNote && (
                             <span className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-bold border border-orange-500/30 text-orange-400 bg-orange-500/5">
-                              N.Crédito
+                              Nota de crédito
                             </span>
                           )}
                           {tipoCbte && (
                             <span className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-bold border border-primary/30 text-primary bg-primary/5">
-                              F{tipoCbte}
+                              {tipoCbte.short}
                             </span>
                           )}
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium border ${sc.color}`}>
@@ -1307,16 +1393,20 @@ export default function InvoicesPage() {
                           <CheckCircle2 className="w-4 h-4 text-green-400" />
                         </Button>
                       )}
-                      {canManage && (inv.status === "paid" || inv.status === "sent") && !inv.number.startsWith("NC-") && (
+                      {canManage && inv.cae && [1, 6, 11].includes(inv.tipo_comprobante ?? 0) && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Crear Nota de Crédito"
-                          onClick={() => { setNcDialogInv(inv); setNcRevertStock(true); setNcMarkReturned(true); }} disabled={creatingNC === inv.id}
+                          onClick={() => {
+                            setNcDialogInv(inv);
+                            setNcReason("");
+                            setNcAmount(String(Number(inv.total).toFixed(2)));
+                          }} disabled={creatingNC === inv.id}
                         >
                           {creatingNC === inv.id
                             ? <Loader2 className="w-4 h-4 animate-spin" />
                             : <FileMinus className="w-4 h-4 text-orange-400" />}
                         </Button>
                       )}
-                      {canManage && (
+                      {canManage && !inv.cae && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => deleteInvoice(inv.id)}>
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
@@ -1352,7 +1442,7 @@ export default function InvoicesPage() {
                           )}
                           {inv.numero_afip && tipoCbte && (
                             <p className="text-xs text-muted-foreground">
-                              Factura {tipoCbte} N° {fiscalNumber || String(inv.numero_afip).padStart(8, "0")}
+                              {tipoCbte.title} N° {fiscalNumber || String(inv.numero_afip).padStart(8, "0")}
                             </p>
                           )}
                           <div className="grid gap-2 pt-2 text-[11px] text-muted-foreground sm:grid-cols-2">
@@ -1455,7 +1545,13 @@ export default function InvoicesPage() {
       </div>
 
       {/* NC Confirm Dialog */}
-      <Dialog open={!!ncDialogInv} onOpenChange={v => { if (!v) setNcDialogInv(null); }}>
+      <Dialog open={!!ncDialogInv} onOpenChange={open => {
+        if (!open) {
+          setNcDialogInv(null);
+          setNcReason("");
+          setNcAmount("");
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1465,42 +1561,47 @@ export default function InvoicesPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Se creará la Nota de Crédito <strong className="text-foreground">NC-{ncDialogInv?.number}</strong> con los ítems negados de la factura original.
+              Se emitirá una nota de crédito fiscal vinculada a <strong className="text-foreground">{ncDialogInv?.number}</strong>. ARCA asignará su numeración y CAE.
             </p>
+            <div className="space-y-2">
+              <Label htmlFor="credit-note-reason">Motivo *</Label>
+              <Input
+                id="credit-note-reason"
+                value={ncReason}
+                maxLength={500}
+                onChange={(event) => setNcReason(event.target.value)}
+                placeholder="Devolución, bonificación o corrección documentada"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="credit-note-amount">Importe a acreditar</Label>
+              <Input
+                id="credit-note-amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                max={Number(ncDialogInv?.total || 0)}
+                value={ncAmount}
+                onChange={(event) => setNcAmount(event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Máximo de esta factura: {formatARS(Number(ncDialogInv?.total || 0))}. El servidor controla también las notas parciales anteriores.
+              </p>
+            </div>
             {ncDialogInv?.sale_id && (
-              <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Opciones de devolución</p>
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={ncMarkReturned}
-                    onChange={e => setNcMarkReturned(e.target.checked)}
-                    className="mt-0.5 accent-primary"
-                  />
-                  <div>
-                    <p className="text-sm font-medium">Marcar venta como devuelta</p>
-                    <p className="text-xs text-muted-foreground">Cambia el estado de la venta vinculada a "devolución"</p>
-                  </div>
-                </label>
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={ncRevertStock}
-                    onChange={e => setNcRevertStock(e.target.checked)}
-                    className="mt-0.5 accent-primary"
-                  />
-                  <div className="flex items-start gap-1.5">
-                    <div>
-                      <p className="text-sm font-medium flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-primary" />Revertir stock</p>
-                      <p className="text-xs text-muted-foreground">Devuelve al inventario las unidades de la venta</p>
-                    </div>
-                  </div>
-                </label>
-              </div>
-            )}
-            {!ncDialogInv?.sale_id && (
-              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-3 py-2 text-xs text-yellow-300">
-                Esta factura no está vinculada a una venta. Solo se creará la NC sin modificar el inventario.
+              <div className="rounded-[8px] border border-amber-500/25 bg-amber-500/5 p-3">
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  La nota de crédito corrige el documento fiscal. El reintegro del pago y el reingreso de unidades se registran en Devoluciones para conservar su trazabilidad.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => navigate("/devoluciones")}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />Abrir Devoluciones
+                </Button>
               </div>
             )}
           </div>
@@ -1508,8 +1609,8 @@ export default function InvoicesPage() {
             <Button variant="outline" onClick={() => setNcDialogInv(null)}>Cancelar</Button>
             <Button
               className="bg-orange-500 hover:bg-orange-600 text-white"
-              onClick={() => ncDialogInv && createCreditNote(ncDialogInv, ncRevertStock, ncMarkReturned)}
-              disabled={!!creatingNC}
+              onClick={() => ncDialogInv && void createCreditNote(ncDialogInv)}
+              disabled={!!creatingNC || !ncReason.trim()}
             >
               {creatingNC ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <RotateCcw className="w-4 h-4 mr-1.5" />}
               Crear Nota de Crédito

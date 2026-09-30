@@ -59078,8 +59078,18 @@ export type Database = {
         Returns: string
       }
       emitir_nota_credito: {
-        Args: { p_importe?: number; p_invoice_id: string; p_motivo: string }
+        Args: { p_importe?: number | null; p_invoice_id: string; p_motivo: string }
         Returns: string
+      }
+      crear_factura_manual: {
+        Args: {
+          p_customer: Json
+          p_fiscal?: Json
+          p_items: Json
+          p_org: string
+          p_sale_id?: string | null
+        }
+        Returns: Json
       }
       end_expired_promotions: { Args: never; Returns: number }
       enqueue_meli_webhook_event: {
@@ -59115,6 +59125,15 @@ export type Database = {
       facturar_orden_pagada: { Args: { p_evento: Json }; Returns: string }
       facturar_pendientes: {
         Args: { p_limite?: number; p_org: string }
+        Returns: Json
+      }
+      facturar_venta_individual: {
+        Args: {
+          p_customer: Json
+          p_fiscal?: Json
+          p_org: string
+          p_sale_id: string
+        }
         Returns: Json
       }
       facturar_venta_pos: {

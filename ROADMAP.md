@@ -116,6 +116,14 @@ duplicados con fusión asistida de un clic, panel de salud de identidad, RFM, CL
 proyectado y riesgo de churn en `CustomersPage`; toma física con borrador local
 (`stockCountDraft`); notificaciones consentidas del chat marca↔creador cerradas.
 
+**Facturación (2026-09-30):** factura manual y nota de crédito pasan por RPCs
+atómicas; una venta individual se factura desde su importe persistido y no
+desde valores de la URL. La NC referencia su factura original en el pedido de
+CAE a ARCA. Las alícuotas fiscales quedan acotadas en UI, base y WSFE.
+Migraciones `20260930000200`/`210`/`220`/`230` aplicadas y función
+`afip-authorize` desplegada. Falta certificar una NC A/B/C real en homologación
+y la entrega por correo antes de declarar el circuito fiscal E2E.
+
 **Pendiente:** primera operación externa sin corrección SQL,
 catálogo polimórfico completo y evidencia de margen usado para decidir.
 
@@ -156,6 +164,14 @@ Detalle vigente: [Finance](docs/FINANCE.md).
 Pay ya modela conexión OAuth, checkout, pago manual, QR, webhook, comisión,
 settlement, refund y timeline. Faltan certificaciones live y economics con
 costos reales antes de escalar comisión.
+
+**Evidencia interna (2026-09-30):** `drill:payments` (16 escenarios),
+`drill:creator-settlements` (5), `drill:seller-commissions` (4) y
+`drill:wallet-withdrawals` (4) pasaron contra la base vinculada con rollback
+sin residuos. Prueban autoridad, idempotencia, reversas y ledger; no equivalen
+a un cobro, payout o retiro externo acreditado. Para cada proveedor/destino
+faltan transacción de homologación o live autorizada, webhook conciliado y
+comprobante bancario o de billetera antes de marcarlo operativo.
 
 Platform tiene shell, MFA, Merchant 360, métricas, operaciones, integraciones,
 comisiones, mensajería, anuncios, soporte y alta idempotente. El chat
@@ -319,27 +335,6 @@ cita la evidencia que falta, no la que existe.
 | Conciliación bancaria | **Cerrado (2026-09-25):** extracto CSV idempotente por hash, matches contra asientos de banco y confirmación con traza (F5.4); sin match queda visible para revisión. |
 | Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Conciliación cerrada en fila 12 (F5.4). |
 | Tarjetas externas | Sin feed de transacciones externas ni controles preventivos; emisión exige partner (gate externo). |
-
-**CRM/ERP (usabilidad cualquier comercio):** conteo físico con borrador local,
-notificaciones consentidas del chat y timeline 360 cerrado (RPC
-`customer_timeline_360` unifica ventas, pedidos online, notas, WhatsApp y deudas
-por id/nombre/email; verificación reversible en producción).
-
-| Orden | Slice | Resultado verificable |
-|---|---|---|
-| 1 | A1 Contratos de acción | Cada CTA crítica tiene test reversible/sandbox y resultado observable. |
-| 2 | C22.2 Certificar migración | Exports reales de comercios, clientes, imágenes propias y rollback condicionado. La migración unificada ya está verificada con segundo commerce. |
-| 3 | C20 Estados de checkout | **Cerrado (2026-09-25):** intento persistido con idempotencia server-side y client-side; concurrencia demostrada entre pestañas con el mismo storage (una sola clave y una sola orden); recuperación desde el pedido y tolerancia a storage bloqueado. |
-| 4 | C23 Operación de pedidos | Historial paginado server-side, SLA y cierre integral de fulfillment/devolución con RMA legal Ley 24.240. |
-| 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
-| 6 | F5.1 Primer documento Finance | **Cerrado (2026-09-25):** extracción habilitada (claude-haiku-4-5, zero retention), inspector con fallback `structural-policy` y verificación E2E reversible de 13 aserciones. |
-| 7 | F5.2 Políticas y presupuesto | **Cerrado (2026-09-25):** política versionada con escalamiento por monto/categoría/centro, saldo comprometido del mes y Budget Pulse con comprometido/liberación (fix de pago idempotente incluido). |
-| 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
-| 9 | P0 Segundo comercio | **Completado:** alta, migración y gestión de productos sin intervención SQL. |
-| 10 | Economics | Pricing y comisión aprobados con costos reales. |
-| 11 | Influencers chat + publicación verificable | **Cerrado (2026-09-25):** publicación verificable (`influencer_publication_proofs` con licencia versionada), chat por colaboración (`influencer_campaign_messages` con RPCs server-side, anti-spam y hilo visible en ambos portales) y notificaciones consentidas del chat (`influencer_chat_notify_prefs` + cola con despacho service_role, verificación reversible E2E). |
-| 12 | Finance conciliación bancaria | **Cerrado (2026-09-25):** extracto importado idempotente por hash, `bank_lines_match` contra asientos de banco (±3 días, uno por movimiento) y `bank_line_confirm` con traza; verificación reversible en producción. Panel en Movimientos. |
-| 13 | Finance export contable | **Cerrado (2026-09-25):** lotes desde el libro real con verificación de descuadre, CSV para el contador e historia de exportación. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 

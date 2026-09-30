@@ -1,0 +1,33 @@
+export interface AfipAssociatedVoucher {
+  tipo_comprobante: number | null;
+  punto_venta: number | null;
+  numero_afip: number | null;
+}
+
+const SOURCE_TYPE_BY_CREDIT_NOTE: Record<number, number> = {
+  3: 1,
+  8: 6,
+  13: 11,
+};
+
+export function associatedVoucherXml(
+  creditNoteType: number,
+  source: AfipAssociatedVoucher | null,
+): string {
+  const expectedType = SOURCE_TYPE_BY_CREDIT_NOTE[creditNoteType];
+  if (!expectedType) {
+    if (source) throw new Error("Solo una nota de credito puede asociar una factura");
+    return "";
+  }
+  if (!source || source.tipo_comprobante !== expectedType ||
+      typeof source.punto_venta !== "number" || !Number.isSafeInteger(source.punto_venta) || source.punto_venta <= 0 ||
+      typeof source.numero_afip !== "number" || !Number.isSafeInteger(source.numero_afip) || source.numero_afip <= 0) {
+    throw new Error("La nota de credito necesita una factura original autorizada y numerada");
+  }
+
+  return `<ar:CbtesAsoc><ar:CbteAsoc>` +
+    `<ar:Tipo>${source.tipo_comprobante}</ar:Tipo>` +
+    `<ar:PtoVta>${source.punto_venta}</ar:PtoVta>` +
+    `<ar:Nro>${source.numero_afip}</ar:Nro>` +
+    `</ar:CbteAsoc></ar:CbtesAsoc>`;
+}

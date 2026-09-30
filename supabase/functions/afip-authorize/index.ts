@@ -34,6 +34,11 @@ import {
   validarEventoFiscalOutbox,
   type FiscalOutboxEvent,
 } from "../_shared/fiscalOutboxEvent.ts";
+import {
+  associatedVoucherXml,
+  type AfipAssociatedVoucher,
+} from "../_shared/afipAssociatedVoucher.ts";
+import { afipIvaId } from "../_shared/afipIva.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -444,6 +449,31 @@ Deno.serve(async (req) => {
     const tipoCbte = invoice.tipo_comprobante || defaultTipoCbte(cred.tipo_emisor ?? "");
     providerEnvironment = isProd ? "produccion" : "homologacion";
 
+    let associatedInvoice: AfipAssociatedVoucher | null = null;
+    if ([3, 8, 13].includes(tipoCbte)) {
+      if (!invoice.nota_credito_de) {
+        return err("La nota de credito no tiene una factura original asociada");
+      }
+      const { data: source, error: sourceError } = await supabase
+        .from("invoices")
+        .select("org_id, tipo_comprobante, punto_venta, numero_afip, cae, afip_status, afip_environment")
+        .eq("id", invoice.nota_credito_de)
+        .eq("org_id", invoice.org_id)
+        .single();
+      if (sourceError || !source || !source.cae || source.afip_status !== "authorized" ||
+          source.afip_environment !== providerEnvironment) {
+        return err("La factura original debe estar autorizada en el mismo entorno ARCA");
+      }
+      associatedInvoice = source;
+    } else if (invoice.nota_credito_de) {
+      return err("El tipo de comprobante no corresponde a una nota de credito");
+    }
+    try {
+      associatedVoucherXml(tipoCbte, associatedInvoice);
+    } catch (cause) {
+      return err(cause instanceof Error ? cause.message : "Comprobante asociado invalido");
+    }
+
     // FECompUltimoAutorizado is scoped by point of sale + receipt type. The
     // reservation is server-side and rechecks the role because this client
     // deliberately uses service_role to reach protected AFIP credentials.
@@ -574,6 +604,7 @@ Deno.serve(async (req) => {
       tipoCbte,
       numero: nextNumber,
       invoice,
+      associatedInvoice,
     });
     providerResult = { cae, caeVencimiento };
 
@@ -862,8 +893,9 @@ async function solicitarCAE(args: {
   tipoCbte: number;
   numero: number;
   invoice: any;
+  associatedInvoice: AfipAssociatedVoucher | null;
 }): Promise<{ cae: string; caeVencimiento: string }> {
-  const { wsfeUrl, token, sign, cuit, puntoVenta, tipoCbte, numero, invoice } = args;
+  const { wsfeUrl, token, sign, cuit, puntoVenta, tipoCbte, numero, invoice, associatedInvoice } = args;
 
   const fecha = invoice.issue_date.replace(/-/g, "");
   const total = round2(Number(invoice.total));
@@ -894,8 +926,7 @@ async function solicitarCAE(args: {
     );
   }
 
-  // Determine IVA aliquot ID: 3=0%, 4=10.5%, 5=21%, 6=27%
-  const ivaId = ivaPct === 21 ? 5 : ivaPct === 10.5 ? 4 : ivaPct === 27 ? 6 : 3;
+  const ivaId = esClaseC ? null : afipIvaId(ivaPct);
 
   // Determine DocTipo / DocNro
   const taxId = (invoice.customer_tax_id || "").replace(/[-\s]/g, "");
@@ -914,7 +945,7 @@ async function solicitarCAE(args: {
   // final, que es lo que corresponde a una venta de tienda sin datos fiscales.
   const condicionIva = Number(invoice.condicion_iva_receptor) || 5;
 
-  const ivaBlock = ivaPct > 0 ? `
+  const ivaBlock = !esClaseC ? `
     <ar:Iva>
       <ar:AlicIva>
         <ar:Id>${ivaId}</ar:Id>
@@ -952,6 +983,7 @@ async function solicitarCAE(args: {
         <ar:MonId>PES</ar:MonId>
         <ar:MonCotiz>1</ar:MonCotiz>
         <ar:CondicionIVAReceptorId>${condicionIva}</ar:CondicionIVAReceptorId>
+        ${associatedVoucherXml(tipoCbte, associatedInvoice)}
         ${ivaBlock}
       </ar:FECAEDetRequest>
     </ar:FeDetReq>

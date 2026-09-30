@@ -52,6 +52,8 @@ describe("chat por colaboración", () => {
     const panel = src("src/components/influencers/CampaignChatPanel.tsx");
     expect(panel).toContain("listCampaignChat");
     expect(panel).toContain("sendCampaignChatMessage");
+    expect(panel).not.toContain("<form");
+    expect(panel).toContain('type="button" onClick={() => void send()}');
     const page = src("src/pages/InfluencerCampaignsPage.tsx");
     expect(page).toContain("CampaignChatPanel");
     expect(page).toContain("campaignId={campaign.id}");

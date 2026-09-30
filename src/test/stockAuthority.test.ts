@@ -44,7 +44,8 @@ describe("autoridad de stock", () => {
     const publicApi = readFileSync(resolve(ROOT, "supabase/functions/public-api/index.ts"), "utf8");
 
     expect(purchases).toContain("trg_purchase_stock_movement");
-    expect(invoices).toContain("recordMemberStockMovementDB");
+    expect(invoices).not.toContain("recordMemberStockMovementDB");
+    expect(invoices).toContain('supabase.rpc("emitir_nota_credito"');
     expect(pos).toContain("recordMemberStockMovementDB");
     expect(returns).toContain('supabase.rpc("create_sales_return_v1"');
     expect(returnAuthority).toContain("PERFORM public.record_stock_movement(");

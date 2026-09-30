@@ -27,7 +27,8 @@ describe("factura ticket dentro y fuera del POS", () => {
   });
 
   it("la representación térmica contiene identidad, CAE, QR y transparencia", () => {
-    expect(service).toContain("FACTURA ${letter} · ORIGINAL");
+    expect(service).toContain("${documentType.title} · ORIGINAL");
+    expect(service).toContain('title: "NOTA DE CRÉDITO A"');
     expect(service).toContain("Vencimiento CAE");
     expect(service).toContain("QR oficial ARCA");
     expect(service).toContain("TRANSPARENCIA FISCAL");

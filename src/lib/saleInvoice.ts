@@ -52,7 +52,14 @@ export type FiscalTicketInvoice = {
   invoice_items?: FiscalTicketItem[];
 };
 
-const TYPE_LETTER: Record<number, string> = { 1: "A", 6: "B", 11: "C" };
+const DOCUMENT_TYPE: Record<number, { letter: string; title: string }> = {
+  1: { letter: "A", title: "FACTURA A" },
+  3: { letter: "NC A", title: "NOTA DE CRÉDITO A" },
+  6: { letter: "B", title: "FACTURA B" },
+  8: { letter: "NC B", title: "NOTA DE CRÉDITO B" },
+  11: { letter: "C", title: "FACTURA C" },
+  13: { letter: "NC C", title: "NOTA DE CRÉDITO C" },
+};
 const money = (value: unknown) => new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS",
@@ -108,7 +115,8 @@ export async function printFiscalInvoiceTicket(
 
   try {
     const items = invoice.invoice_items ?? [];
-    const authorized = Boolean(invoice.cae && invoice.numero_afip && invoice.tipo_comprobante);
+    const documentType = invoice.tipo_comprobante ? DOCUMENT_TYPE[invoice.tipo_comprobante] : null;
+    const authorized = Boolean(invoice.cae && invoice.numero_afip && documentType);
     const qrUrl = authorized ? arcaQrUrl(invoice) : null;
     const itemHeight = items.reduce((height, item) => (
       height + Math.max(1, Math.ceil(String(item.description || "Producto").length / 34)) * 3.2 + 4
@@ -149,8 +157,7 @@ export async function printFiscalInvoiceTicket(
     if (invoice.emisor_inicio_actividades) center(`Inicio de actividades ${fechaFiscalArgentina(invoice.emisor_inicio_actividades)}`, 7);
     rule();
 
-    const letter = invoice.tipo_comprobante ? TYPE_LETTER[invoice.tipo_comprobante] : null;
-    center(authorized && letter ? `FACTURA ${letter} · ORIGINAL` : "BORRADOR DE FACTURA", 11, true);
+    center(authorized && documentType ? `${documentType.title} · ORIGINAL` : "BORRADOR DE COMPROBANTE", 11, true);
     center(
       numeroFiscal(invoice.punto_venta, invoice.numero_afip) || `N° interno ${invoice.number}`,
       9,

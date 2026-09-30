@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, MessageSquare, Send } from 'lucide-react';
 import { campaignChatErrorMessage, getChatNotifyPrefs, listCampaignChat, sendCampaignChatMessage, setChatNotifyPrefs, type CampaignChatMessage, type ChatNotifyPrefs } from '@/lib/campaignChatDB';
@@ -65,8 +65,7 @@ export default function CampaignChatPanel({ campaignId, influencerId, creatorNam
     }
   }, [query.data]);
 
-  const send = async (event: FormEvent) => {
-    event.preventDefault();
+  const send = async () => {
     const text = body.trim();
     if (!text || lock.current) return;
     lock.current = true; setBusy(true); setError('');
@@ -159,19 +158,26 @@ export default function CampaignChatPanel({ campaignId, influencerId, creatorNam
 
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
 
-      <form onSubmit={send} className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <Input
           value={body}
           maxLength={MAX_BODY}
           placeholder={`Mensaje para ${creatorName}`}
           aria-label={`Mensaje para ${creatorName}`}
           onChange={e => setBody(e.target.value)}
+          onKeyDown={event => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              event.stopPropagation();
+              void send();
+            }
+          }}
           className="h-9"
         />
-        <Button type="submit" size="icon" className="h-9 w-9 shrink-0" disabled={busy || !body.trim()} aria-label="Enviar mensaje">
+        <Button type="button" onClick={() => void send()} size="icon" className="h-9 w-9 shrink-0" disabled={busy || !body.trim()} aria-label="Enviar mensaje">
           <Send className="h-4 w-4" />
         </Button>
-      </form>
+      </div>
     </section>
   );
 }

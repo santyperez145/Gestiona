@@ -918,6 +918,12 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
         );
         return;
       }
+      if (saleTicketDetail.ecommerceOrderId) {
+        navigate("/facturas");
+        toast.info("La orden online se factura completa desde Facturas");
+        closeSaleDetail();
+        return;
+      }
       if (!saleTicketDetail.isGrouped) {
         navigate(`/facturas?from_sale=${saleTicketDetail.selected.id}`);
         closeSaleDetail();
@@ -1671,7 +1677,14 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                         {isAdmin && <>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
                             title={s.invoice_id ? "Ver factura" : "Crear factura"}
-                            onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}&product=${encodeURIComponent(s.product_name || '')}`)}>
+                            onClick={() => {
+                              if (s.invoice_id) navigate(`/facturas?invoice=${s.invoice_id}`);
+                              else if (s.sale_transaction_id) openSaleDetail(s.id);
+                              else if (s.ecommerce_order_id) {
+                                navigate("/facturas");
+                                toast.info("La orden online se factura completa desde Facturas");
+                              } else navigate(`/facturas?from_sale=${s.id}`);
+                            }}>
                             <FileText className={`w-3.5 h-3.5 ${s.invoice_id ? "text-blue-400" : "text-primary"}`} />
                           </Button>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
