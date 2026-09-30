@@ -14,6 +14,7 @@ import {
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
 const POS = readFileSync(resolve(ROOT, 'src/pages/POSPage.tsx'), 'utf8');
+const SERVICE = readFileSync(resolve(ROOT, 'src/lib/saleInvoice.ts'), 'utf8');
 const MIGRACION = readFileSync(
   resolve(ROOT, 'supabase/migrations/20260901000050_facturar_venta_pos.sql'),
   'utf8',
@@ -87,8 +88,9 @@ describe('el POS reusa el motor fiscal, no inventa uno', () => {
   });
 
   it('el mostrador cobra, factura y autoriza por los caminos reales', () => {
-    expect(POS).toContain('facturar_venta_pos');
-    expect(POS).toContain('afip-authorize');
+    expect(SERVICE).toContain('facturar_venta_pos');
+    expect(SERVICE).toContain('afip-authorize');
+    expect(POS).toContain('ensureSaleTransactionInvoice');
     expect(POS).toContain('posSaleTransactionId');
     expect(POS).toContain('POS_WANTS_ARCA_INVOICE_DEFAULT');
     expect(POS).toContain('posThermalPrintCopy');

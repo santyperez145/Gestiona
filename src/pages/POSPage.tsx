@@ -40,13 +40,13 @@ import {
 import {
   POS_WANTS_ARCA_INVOICE_DEFAULT,
   posArcaInvoiceCopy,
-  posDebeIntentarAutorizar,
-  posParseFacturarResult,
   posReceiptInvoiceCopy,
   posSaleTransactionId,
   posThermalPrintCopy,
   type PosFacturaEstado,
 } from "@/lib/posComprobante";
+import { ensureSaleTransactionInvoice, printFiscalInvoiceById } from "@/lib/saleInvoice";
+import { escapePrintHtml } from "@/lib/saleReceipt";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
@@ -298,6 +298,7 @@ function ReceiptModal({
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [facturando, setFacturando] = useState(false);
+  const [printingInvoice, setPrintingInvoice] = useState(false);
   const arcaCopy = posArcaInvoiceCopy();
   const thermalCopy = posThermalPrintCopy();
   const invoiceCopy = posReceiptInvoiceCopy(invoice);
@@ -349,7 +350,7 @@ function ReceiptModal({
   const print = () => {
     const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
     const rows = items.map(it =>
-      `<tr><td>${it.name}</td><td align="center">x${it.quantity}</td><td align="right">${formatARS(it.price * it.quantity)}</td></tr>`
+      `<tr><td>${escapePrintHtml(it.name)}</td><td align="center">x${it.quantity}</td><td align="right">${formatARS(it.price * it.quantity)}</td></tr>`
     ).join("");
 
     let discountRows = "";
@@ -380,9 +381,9 @@ function ReceiptModal({
   .total-row td { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 4px; }
   .footer { text-align: center; margin-top: 8px; font-size: 10px; }
 </style></head><body>
-<h1>${businessName}</h1>
+  <h1>${escapePrintHtml(businessName)}</h1>
 <p class="center">${new Date().toLocaleString("es-AR")}</p>
-${customer ? `<p class="center">Cliente: ${customer}</p>` : ""}
+  ${customer ? `<p class="center">Cliente: ${escapePrintHtml(customer)}</p>` : ""}
 <div class="divider"></div>
 <table>
   <tbody>${rows}</tbody>
@@ -397,8 +398,9 @@ ${customer ? `<p class="center">Cliente: ${customer}</p>` : ""}
 <div class="divider"></div>
 ${paymentInfo}
 <p class="center">${payMethod === "fiado" ? "⚠ PENDIENTE DE PAGO" : "✓ PAGADO"}</p>
-${invoice?.cae ? `<p class="center">CAE ${invoice.cae}${invoice.number ? ` · ${invoice.number}` : ""}</p>` : `<p class="footer">${arcaCopy.notFiscalTicket}</p>`}
-${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><span style="font-weight:bold">Nota:</span> ${note}</div>` : ""}
+  <p class="footer">${arcaCopy.notFiscalTicket}</p>
+  ${invoice?.cae ? `<p class="center">Factura ${escapePrintHtml(invoice.number || "")} autorizada por separado · CAE ${escapePrintHtml(invoice.cae)}</p>` : ""}
+  ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><span style="font-weight:bold">Nota:</span> ${escapePrintHtml(note)}</div>` : ""}
 <div class="footer">${thermalCopy.hint}</div>
 <div class="footer">¡Gracias por tu compra!</div>
 </body></html>`;
@@ -602,6 +604,29 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
               {invoiceCopy.title}
               {invoiceCopy.detail ? <span className="block font-mono mt-0.5">{invoiceCopy.detail}</span> : null}
             </p>
+          ) : null}
+
+          {invoice?.invoiceId ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5"
+              disabled={printingInvoice}
+              onClick={async () => {
+                setPrintingInvoice(true);
+                try {
+                  await printFiscalInvoiceById(invoice.invoiceId as string, businessName);
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "No se pudo imprimir la factura");
+                } finally {
+                  setPrintingInvoice(false);
+                }
+              }}
+            >
+              {printingInvoice
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Preparando factura…</>
+                : <><Printer className="w-4 h-4" />Factura 80 mm</>}
+            </Button>
           ) : null}
 
           {transactionId && !invoice?.cae ? (
@@ -2268,35 +2293,9 @@ export default function POSPage() {
 
   const emitirFacturaDelTicket = async (transactionId: string): Promise<PosFacturaEstado> => {
     if (!activeOrg) {
-      return posParseFacturarResult({ ok: false, motivo: "Sin organización" });
+      return { ok: false, motivo: "No hay una organización activa." };
     }
-    const { data, error } = await supabase.rpc("facturar_venta_pos" as never, {
-      p_org: activeOrg.id,
-      p_transaction_id: transactionId,
-    } as never);
-    if (error) {
-      console.error("[POS] facturar_venta_pos:", error);
-      return posParseFacturarResult({ ok: false, motivo: error.message });
-    }
-    const parsed = posParseFacturarResult(data);
-    if (!posDebeIntentarAutorizar(parsed) || !parsed.invoiceId) return parsed;
-
-    const { data: authData, error: authError } = await supabase.functions.invoke("afip-authorize", {
-      body: { invoice_id: parsed.invoiceId },
-    });
-    if (authError || (authData as { error?: unknown } | null)?.error) {
-      console.error("[POS] afip-authorize:", authError || authData);
-      return {
-        ...parsed,
-        motivo: (await mensajeDeEdgeFunction(authError, authData)) || "ARCA no autorizó el comprobante",
-      };
-    }
-    const auth = (authData ?? {}) as { cae?: unknown; status?: unknown };
-    return {
-      ...parsed,
-      cae: typeof auth.cae === "string" ? auth.cae : undefined,
-      afipStatus: typeof auth.status === "string" ? auth.status : undefined,
-    };
+    return ensureSaleTransactionInvoice({ orgId: activeOrg.id, transactionId });
   };
 
   // ── Confirm sale ──

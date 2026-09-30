@@ -25,11 +25,12 @@ import {
   fechaFiscalArgentina,
   numeroFiscal,
 } from "@/lib/arcaInvoice";
+import { printFiscalInvoiceTicket } from "@/lib/saleInvoice";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
   ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus,
-  Square, CheckSquare, CheckCheck, RotateCcw, Package, Copy, AlertTriangle,
+  Square, CheckSquare, CheckCheck, RotateCcw, Package, Copy, AlertTriangle, Printer,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
@@ -270,6 +271,23 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   doc.text("TOTAL:", W / 2 + 8, y + 13);
   doc.text(formatARS(inv.total), right, y + 13, { align: "right" });
   y += 28;
+
+  if (y > 650) { doc.addPage(); y = 48; }
+
+  // Transparencia Fiscal al Consumidor: la representación gráfica informa
+  // estos importes aun cuando el IVA no se discrimine como crédito fiscal.
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(55, 65, 81);
+  doc.text("TRANSPARENCIA FISCAL", W / 2 + 8, y + 8);
+  y += 15;
+  doc.setFont("helvetica", "normal");
+  doc.text("IVA contenido:", W / 2 + 8, y + 8);
+  doc.text(formatARS(inv.tax_amount), right, y + 8, { align: "right" });
+  y += 14;
+  doc.text("Otros impuestos nacionales indirectos:", W / 2 + 8, y + 8);
+  doc.text(formatARS(0), right, y + 8, { align: "right" });
+  y += 18;
 
   // ── Notes ─────────────────────────────────────────────────
   if (inv.notes) {
@@ -1235,6 +1253,21 @@ export default function InvoicesPage() {
                         })}
                       >
                         <FileDown className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        title="Imprimir factura ticket 80 mm"
+                        onClick={() => void printFiscalInvoiceTicket(
+                          { ...inv, invoice_items: inv.invoice_items || [] },
+                          activeOrg?.name || "Nerqia",
+                        ).catch((error) => {
+                          console.error("No se pudo imprimir la factura ticket", error);
+                          toast.error(error instanceof Error ? error.message : "No se pudo imprimir la factura");
+                        })}
+                      >
+                        <Printer className="w-4 h-4" />
                       </Button>
                       {inv.customer_email && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title={`Enviar por email a ${inv.customer_email}`}

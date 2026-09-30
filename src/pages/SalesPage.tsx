@@ -35,6 +35,9 @@ import { buildSaleTicketDetail, type SaleTicketDetail } from "@/lib/saleTicketDe
 import { productoEsPerfume } from "@/lib/catalogIndustry";
 import { listProductTypes } from "@/lib/productTypes";
 import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
+import { useModulePermissions } from "@/lib/usePermissions";
+import { ensureSaleTransactionInvoice, printFiscalInvoiceById } from "@/lib/saleInvoice";
+import { escapePrintHtml, printSaleReceipt } from "@/lib/saleReceipt";
 
 import { plural } from "@/lib/plural";
 const PAGE_SIZE = 20;
@@ -96,6 +99,10 @@ function SaleTicketInspector({
   requestedId,
   onClose,
   onAnalyze,
+  onPrintReceipt,
+  onInvoice,
+  canInvoice,
+  invoiceBusy,
 }: {
   open: boolean;
   orgId?: string;
@@ -103,6 +110,10 @@ function SaleTicketInspector({
   requestedId: string | null;
   onClose: () => void;
   onAnalyze: () => void;
+  onPrintReceipt: () => void;
+  onInvoice: () => void;
+  canInvoice: boolean;
+  invoiceBusy: boolean;
 }) {
   const navigate = useNavigate();
   return (
@@ -255,6 +266,17 @@ function SaleTicketInspector({
 
             <div className="flex flex-col-reverse gap-2 border-t border-border/60 bg-popover px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
               <Button variant="outline" onClick={onClose}>Cerrar</Button>
+              <Button variant="outline" onClick={onPrintReceipt}>
+                <Printer className="mr-2 h-4 w-4" />Ticket 80 mm
+              </Button>
+              {canInvoice && (
+                <Button variant="outline" onClick={onInvoice} disabled={invoiceBusy}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  {invoiceBusy
+                    ? "Procesando…"
+                    : detail.invoicedLines > 0 ? "Imprimir factura" : "Crear e imprimir factura"}
+                </Button>
+              )}
               <Button onClick={onAnalyze} className="bg-primary text-primary-foreground hover:bg-primary/90">Analizar rendimiento</Button>
             </div>
           </>
@@ -287,6 +309,7 @@ export default function SalesPage() {
   const { activeOrg } = useOrg();
   const { nombre: nombreCategoria } = useOrgCategoryNames(activeOrg?.id);
   const { isAdmin } = useUserRole();
+  const invoicePermissions = useModulePermissions("invoices");
   // If vendedor, only show their own sales
   const sellerFilter = !isAdmin ? (localStorage.getItem('gestiona.pos.seller') || null) : null;
   const navigate = useNavigate();
@@ -381,6 +404,7 @@ export default function SalesPage() {
   const [filterHasNote, setFilterHasNote] = usePersistedState(orgViewKey("sales.note-filter", activeOrg?.id), false);
   const [commPct, setCommPct] = useState(5);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
+  const [ticketInvoiceBusy, setTicketInvoiceBusy] = useState(false);
   const selectedSaleId = searchParams.get("sale");
   const saleTicketDetail = useMemo(
     () => buildSaleTicketDetail(sales, selectedSaleId),
@@ -661,39 +685,16 @@ export default function SalesPage() {
 
   const printReceipt = (s: any) => {
     const businessName = (settings as any)?.business_name || "Mi Negocio";
-    const date = new Date(s.date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo</title>
-<style>
-  body{font-family:Arial,sans-serif;max-width:320px;margin:20px auto;font-size:13px;color:#333}
-  h1{font-size:18px;text-align:center;margin-bottom:4px}
-  .sub{text-align:center;color:#666;font-size:11px;margin-bottom:16px}
-  hr{border:none;border-top:1px dashed #ccc;margin:10px 0}
-  .row{display:flex;justify-content:space-between;padding:3px 0}
-  .bold{font-weight:bold}
-  .total{font-size:16px;font-weight:bold;text-align:right;margin-top:12px}
-  .footer{text-align:center;font-size:10px;color:#999;margin-top:20px}
-  .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${s.paid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
-</style></head><body>
-<h1>RECIBO DE VENTA</h1>
-<div class="sub">Fecha: ${date}</div>
-<hr>
-<div class="row"><span>Producto:</span><span class="bold">${s.product_name || "—"}</span></div>
-${s.customer_name ? `<div class="row"><span>Cliente:</span><span>${s.customer_name}</span></div>` : ""}
-<div class="row"><span>Cantidad:</span><span>${s.quantity}</span></div>
-<div class="row"><span>Precio unitario:</span><span>${formatARS(Number(s.unit_price_ars))}</span></div>
-${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span></div>` : ""}
-<div class="row"><span>Método de pago:</span><span>${s.payment_method || "efectivo"}</span></div>
-<hr>
-<div class="total">TOTAL: ${formatARS(Number(s.total_ars))}</div>
-<div style="text-align:right;margin-top:4px"><span class="estado">${s.paid ? "✓ Cobrado" : "Pendiente"}</span></div>
-<div class="footer"><p>¡Gracias por su compra!</p></div>
-<div class="qr-block" style="text-align:center;border-top:1px dashed #ddd;padding-top:12px;margin-top:14px">
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${encodeURIComponent('VTA-' + s.id)}" alt="QR" width="72" height="72" style="opacity:.55" />
-  <p style="font-size:8px;color:#bbb;margin:4px 0 0">Ref: ${s.id.slice(0,8).toUpperCase()}</p>
-</div>
-</body></html>`;
-    const w = window.open("", "_blank", "width=380,height=560");
-    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
+    const detail = buildSaleTicketDetail(sales, s.id);
+    if (!detail) {
+      toast.error("No se pudo reconstruir el ticket completo");
+      return;
+    }
+    try {
+      printSaleReceipt(detail, businessName);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo imprimir el ticket");
+    }
   };
 
   const printBulkReceipt = () => {
@@ -705,7 +706,7 @@ ${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span>
     const allPaid = selected.every(s => s.paid);
     const total = selected.reduce((sum, s) => sum + Number(s.total_ars), 0);
     const rows = selected.map(s =>
-      `<tr><td>${s.product_name || "—"}</td><td style="text-align:center">${s.quantity}</td><td style="text-align:right">${formatARS(Number(s.unit_price_ars))}</td><td style="text-align:right">${formatARS(Number(s.total_ars))}</td></tr>`
+      `<tr><td>${escapePrintHtml(s.product_name || "—")}</td><td style="text-align:center">${Number(s.quantity) || 0}</td><td style="text-align:right">${escapePrintHtml(formatARS(Number(s.unit_price_ars)))}</td><td style="text-align:right">${escapePrintHtml(formatARS(Number(s.total_ars)))}</td></tr>`
     ).join("");
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo</title>
 <style>
@@ -720,19 +721,19 @@ ${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span>
   .footer{text-align:center;font-size:10px;color:#999;margin-top:20px}
   .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${allPaid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
 </style></head><body>
-<h1>RECIBO DE VENTA</h1>
-<div class="sub">${businessName} · ${date}</div>
-${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</strong></div>` : ""}
+<h1>RESUMEN DE VENTAS</h1>
+<div class="sub">${escapePrintHtml(businessName)} · ${escapePrintHtml(date)}</div>
+${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(customer)}</strong></div>` : ""}
 <hr>
 <table><thead><tr><th>Producto</th><th style="text-align:center">Cant.</th><th style="text-align:right">P.Unit</th><th style="text-align:right">Total</th></tr></thead>
 <tbody>${rows}</tbody></table>
 <hr>
-<div class="total">TOTAL: ${formatARS(total)}</div>
+<div class="total">TOTAL: ${escapePrintHtml(formatARS(total))}</div>
 <div style="text-align:right;margin-top:4px"><span class="estado">${allPaid ? "✓ Cobrado" : "Pendiente"}</span></div>
 <div class="footer"><p>¡Gracias por su compra!</p></div>
 <div style="text-align:center;border-top:1px dashed #ddd;padding-top:12px;margin-top:14px">
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${encodeURIComponent(selected.map(s => s.id.slice(0,8)).join(','))}" alt="QR" width="72" height="72" style="opacity:.5" />
-  <p style="font-size:8px;color:#bbb;margin:4px 0 0">${selected.length} comprobante${selected.length > 1 ? 's' : ''}</p>
+  <strong style="font-size:9px">RESUMEN COMERCIAL NO FISCAL</strong>
+  <p style="font-size:8px;color:#777;margin:4px 0 0">${selected.length} operación${selected.length > 1 ? 'es' : ''} seleccionada${selected.length > 1 ? 's' : ''}. La factura electrónica se emite por separado.</p>
 </div>
 </body></html>`;
     const w = window.open("", "_blank", "width=440,height=660");
@@ -893,6 +894,57 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
     window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   };
 
+  const printSelectedTicket = () => {
+    if (!saleTicketDetail) return;
+    try {
+      printSaleReceipt(
+        saleTicketDetail,
+        settings?.business_name || activeOrg?.name || "Mi negocio",
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo imprimir el ticket");
+    }
+  };
+
+  const invoiceSelectedTicket = async () => {
+    if (!saleTicketDetail || !activeOrg || ticketInvoiceBusy) return;
+    const existingInvoiceId = saleTicketDetail.lines.find((line) => line.invoice_id)?.invoice_id || null;
+    setTicketInvoiceBusy(true);
+    try {
+      if (existingInvoiceId) {
+        await printFiscalInvoiceById(
+          existingInvoiceId,
+          settings?.business_name || activeOrg.name,
+        );
+        return;
+      }
+      if (!saleTicketDetail.isGrouped) {
+        navigate(`/facturas?from_sale=${saleTicketDetail.selected.id}`);
+        closeSaleDetail();
+        return;
+      }
+      const result = await ensureSaleTransactionInvoice({
+        orgId: activeOrg.id,
+        transactionId: saleTicketDetail.id,
+      });
+      if (!result.ok || !result.invoiceId) {
+        toast.error(result.motivo || "No se pudo crear la factura del ticket");
+        return;
+      }
+      if (result.cae) toast.success(`Factura autorizada · CAE ${result.cae}`);
+      else toast.info(result.motivo || "Factura creada. Falta la autorización de ARCA.");
+      await reload();
+      await printFiscalInvoiceById(
+        result.invoiceId,
+        settings?.business_name || activeOrg.name,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo operar la factura");
+    } finally {
+      setTicketInvoiceBusy(false);
+    }
+  };
+
   return (
     <div className="workspace-page workspace-sales space-y-6 pb-12">
       <SaleTicketInspector
@@ -901,6 +953,12 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         detail={saleTicketDetail}
         requestedId={selectedSaleId}
         onClose={closeSaleDetail}
+        onPrintReceipt={printSelectedTicket}
+        onInvoice={() => void invoiceSelectedTicket()}
+        canInvoice={saleTicketDetail?.invoicedLines
+          ? invoicePermissions.canView
+          : invoicePermissions.canEdit}
+        invoiceBusy={ticketInvoiceBusy || invoicePermissions.loading}
         onAnalyze={() => {
           closeSaleDetail();
           setSalesWorkspaceTab("performance");
