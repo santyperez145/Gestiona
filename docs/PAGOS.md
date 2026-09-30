@@ -294,3 +294,15 @@ intento, evento, liquidación y asiento— con una sola correlación. Una metada
 ausente en un pago histórico no bloquea la acreditación; una metadata del
 proveedor distinta deja un warning explícito y la relación server-side por
 organización + orden sigue siendo la autoridad.
+
+### Comisiones del equipo comercial
+
+Las comisiones internas de vendedores no comparten saldo ni retiros con
+Creator. `generate_seller_commission` calcula en la base las ventas cobradas
+netas de devoluciones y mantiene una única liquidación por vendedor/período.
+`settle_seller_commission` exige referencia externa y crea en la misma
+transacción el gasto y el asiento de Finance. La aplicación no puede insertar
+liquidaciones ni marcarlas como pagadas directamente.
+`npm run drill:seller-commissions` certifica cálculo neto, idempotencia,
+referencia inmutable, gasto, asiento y rollback sin restos contra la base
+vinculada.

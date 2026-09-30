@@ -112,7 +112,7 @@ const FAQ = [
   },
   {
     q: '¿Cómo se manejan los pagos y las devoluciones?',
-    a: 'Todo el dinero pasa por Mercado Pago. Los pagos se cobran en el checkout y los retiros de creadores se pagan automáticamente vía MP con webhook firmado e idempotencia. Las devoluciones y reembolsos se procesan por MP y actualizan el estado del pedido y del lote de payout, sin caja paralela.',
+    a: 'Los cobros de tienda conectados a Mercado Pago se acreditan directamente en la cuenta del comercio. Las devoluciones y reembolsos se concilian con el pedido. Los retiros de creadores pueden confirmarse con referencia y trazabilidad contable; el envío automático se habilita únicamente para cuentas con el servicio Payouts contratado.',
   },
   {
     q: '¿Necesito tener cuenta en Mercado Pago o ARCA?',

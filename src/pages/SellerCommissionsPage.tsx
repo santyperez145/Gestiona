@@ -3,9 +3,15 @@ import { roleLabel } from "@/lib/roleLabels";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
-import { calcSellerCommission, calcMonthPeriod } from "@/lib/businessCalc";
+import { calcMonthPeriod } from "@/lib/businessCalc";
+import {
+  configureSellerCommission,
+  generateSellerCommission,
+  settleSellerCommission,
+} from "@/lib/sellerCommissionsDB";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -35,6 +41,10 @@ type SellerPayout = {
   commission_ars: number;
   status: "pending" | "paid";
   paid_at: string | null;
+  payment_reference: string | null;
+  payment_method: string | null;
+  expense_id: string | null;
+  ledger_entry_id: string | null;
   notes: string | null;
 };
 
@@ -58,6 +68,14 @@ export default function SellerCommissionsPage() {
   const [configEnabled, setConfigEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [paying, setPaying] = useState<SellerPayout | null>(null);
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("transferencia");
+
+  const humanError = (error: unknown, fallback: string) => {
+    const message = error instanceof Error ? error.message : String(error ?? "");
+    return message.replace(/^.*?:\s*/, "").replace(/_/g, " ").trim() || fallback;
+  };
 
   const load = async () => {
     if (!activeOrg) return;
@@ -88,16 +106,21 @@ export default function SellerCommissionsPage() {
   const saveConfig = async () => {
     if (!configMember || !activeOrg) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("memberships")
-      .update({ commission_percent: Number(configPercent), commission_enabled: configEnabled })
-      .eq("user_id", configMember.user_id)
-      .eq("org_id", activeOrg.id);
-    setSaving(false);
-    if (error) { toast.error("Error al guardar configuración"); return; }
-    toast.success("Comisión actualizada");
-    setShowConfig(false);
-    await load();
+    try {
+      await configureSellerCommission({
+        orgId: activeOrg.id,
+        userId: configMember.user_id,
+        enabled: configEnabled,
+        percent: Number(configPercent),
+      });
+      toast.success("Comisión actualizada");
+      setShowConfig(false);
+      await load();
+    } catch (error) {
+      toast.error(humanError(error, "No pudimos guardar la configuración"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const generatePayout = async (member: SellerMember) => {
@@ -106,48 +129,44 @@ export default function SellerCommissionsPage() {
     try {
       const { periodStart, periodEnd } = calcMonthPeriod(selectedPeriod);
 
-      // Get sales for this seller in the period
-      const { data: sales } = await supabase
-        .from("sales")
-        .select("total_ars")
-        .eq("org_id", activeOrg.id)
-        .eq("user_id", member.user_id)
-        .gte("date", `${periodStart}T00:00:00`)
-        .lte("date", `${periodEnd}T23:59:59`);
-
-      const salesTotal = (sales || []).reduce((s, r) => s + Number(r.total_ars || 0), 0);
-      const commissionARS = calcSellerCommission(salesTotal, member.commission_percent);
-
-      if (salesTotal === 0) { toast.error("Sin ventas registradas para este vendedor en el período"); return; }
-
-      const sellerName = member.profile?.full_name || member.profile?.email || member.user_id.slice(0, 8);
-
-      const { error } = await supabase.from("seller_payouts").insert({
-        org_id: activeOrg.id,
-        user_id: member.user_id,
-        seller_name: sellerName,
-        period_start: periodStart,
-        period_end: periodEnd,
-        sales_total_ars: salesTotal,
-        commission_percent: member.commission_percent,
-        commission_ars: commissionARS,
-        status: "pending",
+      const payout = await generateSellerCommission({
+        orgId: activeOrg.id,
+        userId: member.user_id,
+        periodStart,
+        periodEnd,
       });
-
-      if (error) throw error;
-      toast.success(`Liquidación generada: ${formatARS(commissionARS)} para ${sellerName}`);
+      toast.success(`Liquidación calculada: ${formatARS(Number(payout.commission_ars))} para ${payout.seller_name}`);
       await load();
-    } catch (e: any) {
-      toast.error(e.message || "Error al generar liquidación");
+    } catch (error) {
+      toast.error(humanError(error, "No pudimos calcular la liquidación"));
     } finally {
       setGenerating(false);
     }
   };
 
-  const markPaid = async (payout: SellerPayout) => {
-    await supabase.from("seller_payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", payout.id);
-    await load();
-    toast.success("Liquidación marcada como pagada");
+  const openPayment = (payout: SellerPayout) => {
+    setPaying(payout);
+    setPaymentReference("");
+    setPaymentMethod("transferencia");
+  };
+
+  const confirmPayment = async () => {
+    if (!paying || paymentReference.trim().length < 3) return;
+    setSaving(true);
+    try {
+      await settleSellerCommission({
+        payoutId: paying.id,
+        paymentReference: paymentReference.trim(),
+        paymentMethod,
+      });
+      toast.success("Pago confirmado y registrado en Finance");
+      setPaying(null);
+      await load();
+    } catch (error) {
+      toast.error(humanError(error, "No pudimos confirmar el pago"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const activeMembers = members.filter(m => m.role !== "viewer");
@@ -296,8 +315,8 @@ export default function SellerCommissionsPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     {p.status === "pending" && (
-                      <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => markPaid(p)}>
-                        <Check className="w-3 h-3 mr-1" />Pagar
+                      <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => openPayment(p)}>
+                        <Check className="w-3 h-3 mr-1" />Confirmar pago
                       </Button>
                     )}
                   </td>
@@ -344,6 +363,53 @@ export default function SellerCommissionsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(paying)} onOpenChange={open => !open && setPaying(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar pago de comisión</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Confirmá únicamente después de realizar la transferencia. Nerqia registrará el gasto y su asiento contable con esta evidencia.
+            </p>
+            {paying && (
+              <div className="rounded-[8px] border border-border/70 bg-muted/30 p-3 text-sm">
+                <span className="font-medium">{paying.seller_name}</span>
+                <span className="float-right font-mono font-semibold">{formatARS(Number(paying.commission_ars))}</span>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium" htmlFor="seller-payment-method">Medio de pago</label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger id="seller-payment-method"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="transferencia">Transferencia bancaria</SelectItem>
+                  <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                  <SelectItem value="efectivo">Efectivo</SelectItem>
+                  <SelectItem value="otro">Otro medio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="seller-payment-reference">Referencia o comprobante</Label>
+              <Input
+                id="seller-payment-reference"
+                value={paymentReference}
+                onChange={event => setPaymentReference(event.target.value)}
+                placeholder="Número de operación"
+                maxLength={160}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setPaying(null)} disabled={saving}>Cancelar</Button>
+            <Button onClick={confirmPayment} disabled={saving || paymentReference.trim().length < 3}>
+              {saving ? "Confirmando…" : "Confirmar pago"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

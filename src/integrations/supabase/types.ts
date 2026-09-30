@@ -40616,51 +40616,89 @@ export type Database = {
       }
       seller_payouts: {
         Row: {
+          calculation_key: string | null
           commission_ars: number
           commission_percent: number
           created_at: string
+          expense_id: string | null
+          generated_by: string | null
           id: string
+          ledger_entry_id: string | null
           notes: string | null
           org_id: string
           paid_at: string | null
+          paid_by: string | null
+          payment_method: string | null
+          payment_reference: string | null
           period_end: string
           period_start: string
           sales_total_ars: number
           seller_name: string
           status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          calculation_key?: string | null
           commission_ars?: number
           commission_percent?: number
           created_at?: string
+          expense_id?: string | null
+          generated_by?: string | null
           id?: string
+          ledger_entry_id?: string | null
           notes?: string | null
           org_id: string
           paid_at?: string | null
+          paid_by?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
           period_end: string
           period_start: string
           sales_total_ars?: number
           seller_name: string
           status?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
+          calculation_key?: string | null
           commission_ars?: number
           commission_percent?: number
           created_at?: string
+          expense_id?: string | null
+          generated_by?: string | null
           id?: string
+          ledger_entry_id?: string | null
           notes?: string | null
           org_id?: string
           paid_at?: string | null
+          paid_by?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
           period_end?: string
           period_start?: string
           sales_total_ars?: number
           seller_name?: string
           status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "seller_payouts_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_payouts_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "seller_payouts_org_id_fkey"
             columns: ["org_id"]
@@ -58351,6 +58389,15 @@ export type Database = {
         Args: { p_industry_code: string; p_org_id: string }
         Returns: Json
       }
+      configure_seller_commission: {
+        Args: {
+          p_enabled: boolean
+          p_org_id: string
+          p_percent: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       confirm_payment_link_transfer: {
         Args: { p_id: string }
         Returns: boolean
@@ -59437,6 +59484,43 @@ export type Database = {
       generate_org_slug: { Args: { _name: string }; Returns: string }
       generate_po_number: { Args: { p_org_id: string }; Returns: string }
       generate_request_number: { Args: { p_org_id: string }; Returns: string }
+      generate_seller_commission: {
+        Args: {
+          p_org_id: string
+          p_period_end: string
+          p_period_start: string
+          p_user_id: string
+        }
+        Returns: {
+          calculation_key: string | null
+          commission_ars: number
+          commission_percent: number
+          created_at: string
+          expense_id: string | null
+          generated_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          notes: string | null
+          org_id: string
+          paid_at: string | null
+          paid_by: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          sales_total_ars: number
+          seller_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seller_payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       generate_service_order_number: {
         Args: { p_org_id: string }
         Returns: string
@@ -61572,6 +61656,42 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "influencer_withdrawal_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      settle_seller_commission: {
+        Args: {
+          p_payment_method?: string
+          p_payment_reference: string
+          p_payout_id: string
+        }
+        Returns: {
+          calculation_key: string | null
+          commission_ars: number
+          commission_percent: number
+          created_at: string
+          expense_id: string | null
+          generated_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          notes: string | null
+          org_id: string
+          paid_at: string | null
+          paid_by: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          sales_total_ars: number
+          seller_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seller_payouts"
           isOneToOne: true
           isSetofReturn: false
         }
