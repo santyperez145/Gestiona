@@ -28,6 +28,7 @@
     "drill:payments": "node scripts/payment-matrix.mjs",
     "drill:creator-settlements": "node scripts/creator-settlement-matrix.mjs",
     "drill:seller-commissions": "node scripts/seller-commission-matrix.mjs",
+    "drill:wallet-withdrawals": "node scripts/wallet-withdrawal-matrix.mjs",
     "certify:webhooks": "vite-node scripts/certificar-webhook-externo.ts",
     "check:conteos": "node scripts/verificar-conteos.mjs",
     "check:enlaces": "node scripts/verificar-enlaces.mjs"

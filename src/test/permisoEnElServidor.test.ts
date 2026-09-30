@@ -49,6 +49,8 @@ const EXIGEN_PERMISO: Record<string, string> = {
   adjust_stock: "inventory",
   record_member_stock_movement: "inventory",
   wallet_solicitar_retiro: "finance",
+  wallet_confirmar_retiro: "finance",
+  wallet_rechazar_retiro: "finance",
   medio_de_pago_habilitar: "payments",
   save_afip_config: "invoices",
   facturar_venta_pos: "invoices",

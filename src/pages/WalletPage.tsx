@@ -34,12 +34,17 @@ import {
 } from "@/components/ui/dialog";
 import {
   Wallet, ArrowDownToLine, Clock, Banknote, Plus, Loader2,
-  ArrowUpRight, ArrowDownLeft, Landmark, Info, RefreshCw,
+  ArrowUpRight, ArrowDownLeft, Landmark, Info, RefreshCw, CircleCheck, CircleX,
 } from "lucide-react";
 import {
   leerSaldo, validarRetiro, validarCbu, formatearCbu, explicarPendiente,
   saldoVacio, ESTADO_RETIRO, type SaldoBilletera, type EstadoRetiro,
 } from "@/lib/wallet";
+import {
+  confirmWalletWithdrawal,
+  rejectWalletWithdrawal,
+  saveWalletBankAccount,
+} from "@/lib/walletDB";
 import PageHeader from "@/components/shared/PageHeader";
 
 interface CuentaBancaria {
@@ -68,6 +73,10 @@ interface Retiro {
   estado: EstadoRetiro;
   created_at: string;
   motivo_rechazo: string | null;
+  referencia: string | null;
+  payment_method: string | null;
+  pagado_at: string | null;
+  bank_account_id: string | null;
 }
 
 const TONO_BADGE: Record<string, string> = {
@@ -92,6 +101,11 @@ export default function WalletPage() {
   const [monto, setMonto] = useState("");
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [retiroActivo, setRetiroActivo] = useState<Retiro | null>(null);
+  const [accionRetiro, setAccionRetiro] = useState<"confirmar" | "cancelar" | null>(null);
+  const [referenciaRetiro, setReferenciaRetiro] = useState("");
+  const [motivoRetiro, setMotivoRetiro] = useState("");
+  const [metodoRetiro, setMetodoRetiro] = useState("transferencia");
 
   const [nuevaCuenta, setNuevaCuenta] = useState({ alias: "", titular: "", cbu: "", banco: "" });
 
@@ -110,7 +124,7 @@ export default function WalletPage() {
         .eq("org_id", activeOrg.id)
         .order("fecha", { ascending: false }).limit(50),
       supabase.from("wallet_withdrawals")
-        .select("id,monto,estado,created_at,motivo_rechazo")
+        .select("id,monto,estado,created_at,motivo_rechazo,referencia,payment_method,pagado_at,bank_account_id")
         .eq("org_id", activeOrg.id)
         .order("created_at", { ascending: false }).limit(20),
     ]);
@@ -190,21 +204,66 @@ export default function WalletPage() {
     }
 
     setEnviando(true);
-    const { error } = await supabase.from("wallet_bank_accounts").insert({
-      org_id: activeOrg.id,
-      alias: nuevaCuenta.alias.trim(),
-      titular: nuevaCuenta.titular.trim(),
-      cbu,
-      banco: nuevaCuenta.banco.trim() || null,
-      is_default: cuentas.length === 0,
-    });
-    setEnviando(false);
+    try {
+      await saveWalletBankAccount({
+        orgId: activeOrg.id,
+        alias: nuevaCuenta.alias.trim(),
+        holder: nuevaCuenta.titular.trim(),
+        cbu,
+        bank: nuevaCuenta.banco.trim() || null,
+      });
+      toast.success("Cuenta guardada");
+      setDialogCuenta(false);
+      setNuevaCuenta({ alias: "", titular: "", cbu: "", banco: "" });
+      await cargar();
+    } catch (error) {
+      console.error("wallet_guardar_cuenta", error);
+      toast.error("No pudimos guardar la cuenta. Revisá los datos y tus permisos.");
+    } finally {
+      setEnviando(false);
+    }
+  };
 
-    if (error) { toast.error("No se pudo guardar: " + error.message); return; }
-    toast.success("Cuenta agregada");
-    setDialogCuenta(false);
-    setNuevaCuenta({ alias: "", titular: "", cbu: "", banco: "" });
-    cargar();
+  const abrirAccionRetiro = (retiro: Retiro, action: "confirmar" | "cancelar") => {
+    setRetiroActivo(retiro);
+    setAccionRetiro(action);
+    setReferenciaRetiro("");
+    setMotivoRetiro("");
+    setMetodoRetiro("transferencia");
+  };
+
+  const cerrarAccionRetiro = () => {
+    if (enviando) return;
+    setRetiroActivo(null);
+    setAccionRetiro(null);
+  };
+
+  const procesarAccionRetiro = async () => {
+    if (!retiroActivo || !accionRetiro) return;
+    setEnviando(true);
+    try {
+      if (accionRetiro === "confirmar") {
+        await confirmWalletWithdrawal({
+          withdrawalId: retiroActivo.id,
+          reference: referenciaRetiro.trim(),
+          paymentMethod: metodoRetiro,
+        });
+        toast.success("Transferencia confirmada y conciliada en Finance");
+      } else {
+        await rejectWalletWithdrawal(retiroActivo.id, motivoRetiro.trim());
+        toast.success("Reserva cancelada; el saldo volvió a estar disponible");
+      }
+      setRetiroActivo(null);
+      setAccionRetiro(null);
+      await cargar();
+    } catch (error) {
+      console.error("wallet_withdrawal_action", error);
+      toast.error(accionRetiro === "confirmar"
+        ? "No pudimos confirmar la transferencia. Revisá la referencia y tus permisos."
+        : "No pudimos cancelar la reserva. Revisá el motivo y tus permisos.");
+    } finally {
+      setEnviando(false);
+    }
   };
 
   const avisoPendiente = explicarPendiente(saldo);
@@ -263,6 +322,14 @@ export default function WalletPage() {
           </p>
         </div>
       )}
+
+      <div className="flex items-start gap-2 rounded-[8px] border border-border/70 bg-card px-4 py-3 text-sm">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p className="text-muted-foreground">
+          <strong className="text-foreground">Nerqia no mueve el dinero.</strong>{" "}
+          El retiro reserva saldo para evitar duplicados. Después de transferir desde tu proveedor o banco, confirmalo con el número de operación para reflejarlo en Finance.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Movimientos */}
@@ -376,13 +443,17 @@ export default function WalletPage() {
                 <p className="text-xs text-muted-foreground">Todavía no pediste ninguno.</p>
               ) : retiros.map(r => {
                 const cfg = ESTADO_RETIRO[r.estado] ?? ESTADO_RETIRO.solicitado;
+                const cuenta = cuentas.find(item => item.id === r.bank_account_id);
                 return (
-                  <div key={r.id} className="flex items-start justify-between gap-2">
+                  <div key={r.id} className="rounded-[6px] border border-border/60 p-3">
+                    <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-sm font-medium tabular-nums">{formatARS(r.monto)}</p>
                       <p className="text-[11px] text-muted-foreground">
                         {new Date(r.created_at).toLocaleDateString("es-AR")}
+                        {cuenta ? ` · ${cuenta.alias}` : ""}
                       </p>
+                      {r.referencia && <p className="mt-1 text-[11px] text-muted-foreground">Operación: {r.referencia}</p>}
                       {r.motivo_rechazo && (
                         <p className="text-[11px] text-destructive">{r.motivo_rechazo}</p>
                       )}
@@ -390,6 +461,17 @@ export default function WalletPage() {
                     <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${TONO_BADGE[cfg.tono]}`}>
                       {cfg.label}
                     </span>
+                    </div>
+                    {(["solicitado", "en_proceso"] as EstadoRetiro[]).includes(r.estado) && (
+                      <div className="mt-2 flex justify-end gap-1 border-t border-border/50 pt-2">
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Cancelar reserva" onClick={() => abrirAccionRetiro(r, "cancelar")}>
+                          <CircleX className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600" title="Confirmar transferencia" onClick={() => abrirAccionRetiro(r, "confirmar")}>
+                          <CircleCheck className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -445,6 +527,54 @@ export default function WalletPage() {
             <Button variant="outline" onClick={() => setDialogRetiro(false)}>Cancelar</Button>
             <Button onClick={pedirRetiro} disabled={!validacion.puede || enviando}>
               {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : "Solicitar retiro"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(retiroActivo && accionRetiro)} onOpenChange={open => !open && cerrarAccionRetiro()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{accionRetiro === "confirmar" ? "Confirmar transferencia" : "Cancelar reserva"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-[6px] border border-border/70 bg-muted/30 px-3 py-2 text-sm">
+              {retiroActivo && formatARS(retiroActivo.monto)}
+            </div>
+            {accionRetiro === "confirmar" ? (
+              <>
+                <p className="text-sm text-muted-foreground">Usá esta acción únicamente cuando la transferencia externa ya figure confirmada.</p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wallet-payment-method">Medio</Label>
+                  <Select value={metodoRetiro} onValueChange={setMetodoRetiro}>
+                    <SelectTrigger id="wallet-payment-method"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="transferencia">Transferencia bancaria</SelectItem>
+                      <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                      <SelectItem value="otra_billetera">Otra billetera</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wallet-payment-reference">Número de operación</Label>
+                  <Input id="wallet-payment-reference" value={referenciaRetiro} onChange={event => setReferenciaRetiro(event.target.value)} maxLength={160} />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1.5">
+                <Label htmlFor="wallet-rejection-reason">Motivo</Label>
+                <Input id="wallet-rejection-reason" value={motivoRetiro} onChange={event => setMotivoRetiro(event.target.value)} placeholder="Ej: decidí usar otra cuenta" maxLength={500} />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={cerrarAccionRetiro} disabled={enviando}>Volver</Button>
+            <Button
+              variant={accionRetiro === "cancelar" ? "destructive" : "default"}
+              onClick={procesarAccionRetiro}
+              disabled={enviando || (accionRetiro === "confirmar" ? referenciaRetiro.trim().length < 3 : motivoRetiro.trim().length < 5)}
+            >
+              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : accionRetiro === "confirmar" ? "Confirmar" : "Cancelar reserva"}
             </Button>
           </DialogFooter>
         </DialogContent>

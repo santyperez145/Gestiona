@@ -306,3 +306,13 @@ liquidaciones ni marcarlas como pagadas directamente.
 `npm run drill:seller-commissions` certifica cálculo neto, idempotencia,
 referencia inmutable, gasto, asiento y rollback sin restos contra la base
 vinculada.
+
+### Billetera del comercio
+
+Nerqia no custodia fondos: refleja el saldo del comercio en su proveedor. Un
+retiro nuevo sólo reserva disponibilidad y no crea un ingreso bancario. Después
+de realizar la transferencia externa, `wallet_confirmar_retiro` exige la
+referencia y recién entonces mueve el ledger de billetera a banco. Cancelar una
+reserva la libera sin inventar un contraasiento. Los retiros históricos que ya
+tenían asiento conservan compatibilidad. `npm run drill:wallet-withdrawals`
+certifica reserva, confirmación, referencia inmutable, cancelación y cero restos.

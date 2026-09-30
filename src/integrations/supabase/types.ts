@@ -47549,6 +47549,9 @@ export type Database = {
           motivo_rechazo: string | null
           org_id: string
           pagado_at: string | null
+          payment_method: string | null
+          procesado_at: string | null
+          procesado_por: string | null
           referencia: string | null
           reversa_id: string | null
           solicitado_por: string | null
@@ -47565,6 +47568,9 @@ export type Database = {
           motivo_rechazo?: string | null
           org_id: string
           pagado_at?: string | null
+          payment_method?: string | null
+          procesado_at?: string | null
+          procesado_por?: string | null
           referencia?: string | null
           reversa_id?: string | null
           solicitado_por?: string | null
@@ -47581,6 +47587,9 @@ export type Database = {
           motivo_rechazo?: string | null
           org_id?: string
           pagado_at?: string | null
+          payment_method?: string | null
+          procesado_at?: string | null
+          procesado_por?: string | null
           referencia?: string | null
           reversa_id?: string | null
           solicitado_por?: string | null
@@ -62019,6 +62028,61 @@ export type Database = {
       void_activation_intervention: {
         Args: { p_intervention_id: string }
         Returns: Json
+      }
+      wallet_confirmar_retiro: {
+        Args: { p_id: string; p_payment_method?: string; p_referencia: string }
+        Returns: {
+          bank_account_id: string | null
+          created_at: string
+          entry_id: string | null
+          estado: string
+          id: string
+          moneda: string
+          monto: number
+          motivo_rechazo: string | null
+          org_id: string
+          pagado_at: string | null
+          payment_method: string | null
+          procesado_at: string | null
+          procesado_por: string | null
+          referencia: string | null
+          reversa_id: string | null
+          solicitado_por: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "wallet_withdrawals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      wallet_guardar_cuenta: {
+        Args: {
+          p_alias: string
+          p_banco?: string
+          p_cbu: string
+          p_org: string
+          p_titular: string
+        }
+        Returns: {
+          alias: string
+          banco: string | null
+          cbu: string
+          created_at: string
+          cuit: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          org_id: string
+          titular: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "wallet_bank_accounts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       wallet_liberar: {
         Args: {
