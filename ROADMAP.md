@@ -124,10 +124,12 @@ sigue abierto como certificación operacional.
   Suites públicas no sustituyen el flujo autenticado.
 - Consulta GitHub del 2026-10-01: `main` no protegida. Falta configurar PR y
   checks requeridos; el auto-deploy de Vercel no depende hoy de CI completado.
-- CI de `c5c53ac0` falló en Critical E2E (19 casos). Se corrigieron el ancho
-  intrínseco del newsletter, acceso estable al CTA de compra, altura del drawer
-  POS bajo avisos y selectores del panel desactualizados. El siguiente SHA debe
-  confirmar el E2E remoto autenticado; no se relajan aserciones ni se omite el panel.
+- CI de `c876ed57` pasó todos sus jobs, incluido Critical E2E autenticado:
+  [104 aprobados y 3 omitidos por datos](https://github.com/santyperez145/Gestiona/actions/runs/36913162530).
+  Se corrigieron los 19 fallos previos: ancho del newsletter, CTA de compra,
+  drawer POS bajo avisos y selectores desactualizados; sin omitir el panel.
+  Producción también pasó 90 escenarios públicos; los 2 omitidos requieren
+  productos totalmente agotados. Esto no certifica proveedores ni todos los roles.
 - La aplicación no recarga automáticamente al desplegar; la caché PWA no
   almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
 
@@ -138,7 +140,7 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
 
 ### P0 — Seguridad, release y operación confiable
 
-1. Resolver Critical E2E remoto, proteger `main`, requerir los checks CI y definir
+1. Mantener Critical E2E remoto verde, proteger `main`, requerir los checks CI y definir
    promoción/rollback: configuración real, no sólo YAML; sin cortar el deploy.
 2. Revisar funciones expuestas pendientes, permisos RPC/RLS, cron, secretos,
    archivo/libro de migraciones y restauración reproducible.

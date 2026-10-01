@@ -94,9 +94,14 @@ de checkout y no crean pedidos:
 E2E_BASE_URL=https://nerqia.app npm run test:e2e:public
 ~~~
 
-Última evidencia productiva (2026-09-06): **70 aprobados y 2 omitidos** en
+Última evidencia productiva (2026-10-01, `c876ed57`): **90 aprobados y 2 omitidos** en
 Chromium desktop/mobile. Los dos omitidos requieren que el catálogo real tenga
 un producto completamente agotado; las variantes agotadas sí quedaron cubiertas.
+
+CI del mismo SHA: [104 aprobados y 3 omitidos](https://github.com/santyperez145/Gestiona/actions/runs/36913162530),
+incluyendo setup y panel autenticados. Build, lint, tipos, tests y auditoría
+también pasaron. Estos escenarios no demuestran cobros externos, cobertura de
+todos los roles ni branch protection; `main` sigue sin checks requeridos.
 
 Para reutilizar deliberadamente un servidor local:
 
