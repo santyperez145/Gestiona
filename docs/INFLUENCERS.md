@@ -1,6 +1,6 @@
 # Influencers: alcance y verificación
 
-**Corte:** 2026-09-29. Superficie propia en `/influencer-marketing`.
+**Corte:** 2026-10-01. Superficie propia en `/influencer-marketing`.
 No está terminada la paridad funcional con GoMarz.
 
 ## Referencia contrastada
@@ -17,6 +17,7 @@ de creadores como propia.
 | Trabajo | Implementación | Pendiente |
 |---|---|---|
 | Navegación | Shell propio, entrada desde Business, rutas canónicas y redirects antiguos. | Barrido autenticado con usuarios finales. |
+| Portal y canjes | `/portal-creador` con sesión y seis pestañas persistidas en URL. La marca vincula un perfil de su organización; el creador entrega evidencia HTTPS sin aprobarse ni mover dinero. Los errores de carga permiten reintentar, no simulan saldo cero. | Vincular explícitamente canjes históricos y certificar el recorrido con usuarios reales. |
 | Creadores | Directorio transversal consentido, slug revocable, moderación superadmin, alta idempotente en la red de una marca, reputación y métricas verificadas. | Proveedor de verificación de identidad y OAuth directo con redes. |
 | Campañas | Brief, presupuesto, selección, invitación privada con expiración, aceptación/rechazo, seguimiento y auditoría. | Certificación con marcas y creadores reales. |
 | Entregables | Entrega y reentrega desde portal, archivos privados versionados (video, imagen o PDF), revisión de marca con URL firmada, chat por colaboración y prueba de publicación con licencia tipada. | Conectores sociales verificados y escaneo antimalware asíncrono. |
@@ -38,6 +39,15 @@ pagada. Registrar una revisión no demuestra que una red social haya publicado.
   relaciones por organización y auditoría de cambios de estado.
 - Owner/admin con membresía y permisos `influencers.view/create/edit/delete`.
   Los overrides del módulo rigen también sobre el directorio anterior.
+- Los canjes se relacionan por `influencer_id` y `org_id`, nunca por nombre o
+  código de referido. La identidad del creador exige email confirmado de Auth
+  coincidente con su perfil y el contacto de la marca. El vínculo se elige
+  explícitamente; un nombre repetido no concede acceso. No se reasigna una
+  entrega presentada ni se sobrescribe un canje cerrado desde el portal.
+- `/portal-influencer/:token` sólo redirige al portal autenticado descartando
+  el token. Ingresos y retiros no tienen RPC pública por token/UUID: se consultan
+  con sesión y se solicitan con destino propio cifrado. Los canjes históricos
+  sin vínculo permanecen sin asignar hasta una selección autorizada de la marca.
 - La UI usa el mismo contexto de permisos que Business; no hay timer de acceso
   simulado ni llamada al entitlement Finance con una clave no soportada.
 - La política MFA de la organización también se exige en esta superficie.
@@ -86,6 +96,17 @@ Tests UI: `accessInfluencerMarketing.test.tsx`,
 `influencerCampaignsWorkflow.test.tsx`. La matriz certifica la autoridad interna
 y la llegada a Finance; no certifica que un banco o billetera externa haya
 movido dinero real.
+
+`20261001000300_creator_portal_session_authority.sql` retira cinco RPC legacy,
+endurece RLS/columnas de canjes y concede tres RPC autenticadas para lectura,
+entrega y vínculo de marca. `20261001_creator_portal_authority.sql` prueba roles
+web reales, dos tenants, nombres repetidos, FK de organización, reintentos,
+validación, aceptación bilateral y destino de retiro propio; todo termina en
+rollback. `creatorContextWorkflow`, `creatorExchangesWorkflow`,
+`brandExchangeLinkWorkflow` y `creatorWithdrawalsWorkflow` cubren la UI.
+`e2e/creator-portal.spec.ts` verifica desktop/móvil, accesibilidad, pestañas,
+redirect sin token y fallas recuperables. Sus casos autenticados interceptan una
+sesión sintética: no certifican login de usuarios reales ni transferencias externas.
 
 ## Siguiente secuencia
 

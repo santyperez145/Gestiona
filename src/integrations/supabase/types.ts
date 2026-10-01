@@ -19930,6 +19930,13 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
           {
+            foreignKeyName: "influencer_exchanges_creator_org_fk"
+            columns: ["influencer_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
             foreignKeyName: "influencer_exchanges_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -58777,6 +58784,31 @@ export type Database = {
         }[]
       }
       creator_earnings: { Args: never; Returns: Json }
+      creator_exchanges: {
+        Args: never
+        Returns: {
+          id: string
+          org_name: string
+          product_name: string
+          quantity: number
+          status: string
+          exchange_type: string
+          expected_posts: number
+          actual_posts: number
+          content_url: string
+          content_submitted_at: string
+          delivery_date: string
+          goal_notes: string
+        }[]
+      }
+      creator_submit_exchange_content: {
+        Args: { p_exchange_id: string; p_content_url: string; p_actual_posts: number }
+        Returns: boolean
+      }
+      brand_link_creator_exchange: {
+        Args: { p_exchange_id: string; p_influencer_id: string }
+        Returns: boolean
+      }
       creator_ensure_account: { Args: never; Returns: undefined }
       creator_fail_deliverable_file: {
         Args: { p_file_id: string; p_reason?: string }
@@ -59631,7 +59663,6 @@ export type Database = {
           running_total: number
         }[]
       }
-      get_creator_earnings: { Args: { p_token: string }; Returns: Json }
       get_customer_journey: {
         Args: { p_customer_id: string; p_org_id: string }
         Returns: {
@@ -59672,23 +59703,6 @@ export type Database = {
         Returns: Json
       }
       get_influencer_invitation: { Args: { p_token: string }; Returns: Json }
-      get_influencer_portal: {
-        Args: { p_token: string }
-        Returns: {
-          actual_posts: number
-          content_submitted_at: string
-          content_url: string
-          delivery_date: string
-          exchange_type: string
-          expected_posts: number
-          goal_notes: string
-          id: string
-          influencer_name: string
-          product_name: string
-          quantity: number
-          status: string
-        }[]
-      }
       get_influencer_public_portfolio: {
         Args: { p_token: string }
         Returns: {
@@ -60361,15 +60375,6 @@ export type Database = {
       ledger_saldo: {
         Args: { p_account_id: string; p_hasta?: string }
         Returns: number
-      }
-      list_creator_withdrawals: {
-        Args: { p_token: string }
-        Returns: {
-          amount_ars: number
-          created_at: string
-          id: string
-          status: string
-        }[]
       }
       list_platform_announcements: {
         Args: never
@@ -61230,10 +61235,6 @@ export type Database = {
         Args: { p_subscription_id: string }
         Returns: string
       }
-      request_creator_withdrawal: {
-        Args: { p_amount_ars: number; p_token: string }
-        Returns: Json
-      }
       request_product_access: {
         Args: { p_org_id: string; p_product_key: string }
         Returns: string
@@ -61858,15 +61859,6 @@ export type Database = {
       store_volume_discount: {
         Args: { p_items: Json; p_org_id: string }
         Returns: number
-      }
-      submit_influencer_content: {
-        Args: {
-          p_actual_posts: number
-          p_content_url: string
-          p_exchange_id: string
-          p_token: string
-        }
-        Returns: boolean
       }
       submit_social_metric_report: {
         Args: {

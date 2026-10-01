@@ -120,7 +120,7 @@ describe("métricas sociales verificadas por evidencia", () => {
 
   it("el portal completa el circuito creador → revisión → reputación", () => {
     expect(creatorPortal).toContain("<CreatorMetricReportsCard />");
-    expect(creatorContext).toContain('rpc("creator_my_social_metric_reports")');
+    expect(creatorContext).toContain('read("creator_my_social_metric_reports")');
     expect(creatorContext).toContain('rpc("submit_social_metric_report"');
     expect(creatorForm).toContain("Enviar para revisión");
     expect(creatorForm).not.toContain("p_impressions");

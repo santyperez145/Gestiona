@@ -1,6 +1,6 @@
 # Seguridad y prevención de fraude
 
-**Estado:** canónico. **Corte:** 2026-09-04.
+**Estado:** canónico. **Corte:** 2026-10-01.
 
 Este documento define la línea base de seguridad de Nerqia. La arquitectura
 funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
@@ -30,6 +30,7 @@ funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
 | Organización | JWT + `memberships` | módulo, acción y tenant |
 | Finance | JWT + producto + capacidad | `finance_document_can` y permisos Finance |
 | Plataforma | JWT + `platform_admins` + MFA | rol de staff específico |
+| Creador | JWT + email confirmado + perfil propio | campañas, canjes y retiros propios |
 | Workers | `service_role` | una función y un propósito concretos |
 
 Los tokens públicos son capacidades revocables y de alta entropía. No
@@ -60,8 +61,24 @@ revisar el contrato. No se aceptan allowlists sin motivo o sin fecha.
 
 Corte 2026-10-01: resolvedor de checkout y sincronizador de consentimiento
 son internos, sin ejecución web; checkout/newsletter públicos se prueban con
-roles reales y rollback. Quedan 19 funciones en `audit_funciones_expuestas`
+roles reales y rollback. Quedan 15 funciones en `audit_funciones_expuestas`
 para revisar guardas y contratos: no se consideran aprobadas por pasar tests.
+
+`20261001000300` elimina cinco RPC legacy de portal/ingresos/retiros por token,
+revoca ejecución web del helper interno de contratos y acceso anónimo a campañas.
+Las funciones futuras creadas por `postgres` no reciben ejecución pública ni de
+`anon`/`authenticated` por defecto. PostgreSQL exige revocar `PUBLIC` globalmente:
+un REVOKE por esquema no resta ese privilegio global. No se modifican defaults
+de roles administrados por Supabase; cada migración concede su audiencia explícita.
+
+El portal canónico exige sesión; los enlaces antiguos descartan el token y
+redirigen a `/portal-creador`. Los canjes requieren `influencer_id` y organización
+coincidentes, email confirmado de Auth y perfil propio. La marca vincula el perfil
+explícitamente con permisos `influencers.view/edit`; no se infiere por nombre.
+RLS separa lectura, alta, edición y baja; el cliente no puede alterar identidad,
+tenant ni evidencia de entrega directamente. Una publicación declarada no aprueba
+el canje ni mueve dinero. `20261001_creator_portal_authority.sql` verifica roles,
+aislamiento, contratos y retiros canónicos con rollback y cero residuos.
 
 `audit_costo_expuesto` inspecciona además el tipo devuelto: usar costo para
 calcular un precio público es válido; devolver una columna de costo no lo es.

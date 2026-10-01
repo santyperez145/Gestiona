@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import {
   getExchangesDB, addExchangeDB, updateExchangeDB, deleteExchangeDB, generateInfluencerCode, formatARS as _fmt,
 } from "@/lib/supabaseStore";
 import { useAuth } from "@/lib/auth";
+import { useModulePerms } from "@/lib/permissionsContext";
 import { listInfluencers, listInfluencerContracts, listDeliverables, createDeliverable, updateDeliverable, deleteDeliverable, listPayments, listBrandPortals, type Influencer } from "@/lib/influencersDB";
 import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 import CommerceKPICard from "@/components/commerce/CommerceKPICard";
@@ -43,6 +44,11 @@ import { Gift as GiftIcon } from "lucide-react";
  */
 export default function InfluencerExchangesPage() {
   const { user } = useAuth();
+  const permissions = useModulePerms('influencers');
+  const [linkingExchange, setLinkingExchange] = useState<any>(null);
+  const [linkedCreatorId, setLinkedCreatorId] = useState('');
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState('');
   const [exchanges, setExchanges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -160,32 +166,38 @@ export default function InfluencerExchangesPage() {
     reload();
   };
 
-  // Portal token copy
+  // Sharing a URL never assigns identity or grants access.
   const [portalBusy, setPortalBusy] = useState<string | null>(null);
-  const handleCopyPortalLink = async (influencerName: string) => {
-    const key = influencerName.trim().toLowerCase();
-    const rows = exchanges.filter(e => (e.influencer_name || '').trim().toLowerCase() === key);
-    if (!rows.length) return;
-    setPortalBusy(key);
+  const handleCopyPortalLink = async (exchange: any) => {
+    if (!exchange.influencer_id) return;
+    setPortalBusy(exchange.id);
     try {
-      let token: string = rows.find(r => r.portal_token)?.portal_token || '';
-      if (!token) {
-        token = (crypto.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 20);
-      }
-      const idsToUpdate = rows.filter(r => r.portal_token !== token).map(r => r.id);
-      if (idsToUpdate.length) {
-        const { error } = await (supabase as any).from('influencer_exchanges').update({ portal_token: token }).in('id', idsToUpdate);
-        if (error) throw error;
-        setExchanges(prev => prev.map(e => idsToUpdate.includes(e.id) ? { ...e, portal_token: token } : e));
-      }
-      const link = `${window.location.origin}/portal-influencer/${token}`;
+      const link = `${window.location.origin}/portal-creador?tab=canjes`;
       await navigator.clipboard.writeText(link);
-      toast.success("Link del portal copiado", { description: `Portal de ${influencerName}` });
-    } catch (err: any) {
-      toast.error("No se pudo generar el link: " + (err?.message || 'error'));
+      toast.success("Enlace del portal copiado", { description: "El creador deberá iniciar sesión con el email de su perfil." });
+    } catch (cause) {
+      console.error('[influencers] copiar portal', cause);
+      toast.error("No pudimos copiar el enlace. Volvé a intentar.");
     } finally {
       setPortalBusy(null);
     }
+  };
+
+  const linkCreator = async () => {
+    if (!permissions.canEdit || linkBusy || !linkedCreatorId || !linkingExchange) return;
+    setLinkBusy(true); setLinkError('');
+    try {
+      const { error } = await supabase.rpc('brand_link_creator_exchange', {
+        p_exchange_id: linkingExchange.id, p_influencer_id: linkedCreatorId,
+      });
+      if (error) throw error;
+      setExchanges(previous => previous.map(exchange => exchange.id === linkingExchange.id ? { ...exchange, influencer_id: linkedCreatorId } : exchange));
+      setLinkingExchange(null);
+      toast.success('Creador vinculado al canje');
+    } catch (cause) {
+      console.error('[influencers] vincular creador al canje', cause);
+      setLinkError('No pudimos vincular el creador. Revisá los permisos, el email del perfil y si el canje ya tiene una entrega.');
+    } finally { setLinkBusy(false); }
   };
 
   // Tab content component
@@ -401,6 +413,7 @@ export default function InfluencerExchangesPage() {
                     <th className="text-right p-3 font-medium">Ventas atribuidas</th>
                     <th className="text-center p-3 font-medium">Posts</th>
                     <th className="text-center p-3 font-medium">Estado</th>
+                    <th className="text-right p-3 font-medium">Portal del creador</th>
                   </tr></thead>
                   <tbody>
                     {filtered.map(ex => (
@@ -415,6 +428,12 @@ export default function InfluencerExchangesPage() {
                         <td className="p-3 text-right">{_fmt(Number(ex.sales_generated_ars || 0))}</td>
                         <td className="p-3 text-center">{ex.actual_posts || 0}/{ex.expected_posts || 0}</td>
                         <td className="p-3 text-center">{ex.status}</td>
+                        <td className="p-3 text-right">
+                          {!ex.influencer_id && <p className="mb-2 text-xs text-muted-foreground">Sin creador vinculado</p>}
+                          {permissions.canEdit && !ex.content_submitted_at && <Button size="sm" variant="outline" onClick={() => { setLinkingExchange(ex); setLinkedCreatorId(ex.influencer_id ?? ''); setLinkError(''); }}><Link2 className="mr-1 h-3.5 w-3.5" />{ex.influencer_id ? 'Cambiar creador' : 'Vincular creador'}</Button>}
+                          {ex.influencer_id && <Button size="icon" variant="ghost" title="Copiar enlace del portal" aria-label={`Copiar portal de ${ex.influencer_name}`} disabled={portalBusy === ex.id} onClick={() => void handleCopyPortalLink(ex)}><Copy className="h-4 w-4" /></Button>}
+                          {ex.content_url?.startsWith('https://') && <a className="mt-2 block text-xs text-primary underline" href={ex.content_url} target="_blank" rel="noopener noreferrer">Revisar contenido</a>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -514,6 +533,14 @@ export default function InfluencerExchangesPage() {
       )}
 
       {renderTab()}
+      <Dialog open={Boolean(linkingExchange)} onOpenChange={value => { if (!value && !linkBusy) setLinkingExchange(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Vincular creador al canje</DialogTitle><DialogDescription>{linkingExchange?.product_name}. El creador ingresará con el email de su perfil; no se asigna por nombre.</DialogDescription></DialogHeader>
+          <div className="space-y-2"><Label htmlFor="exchange-creator">Creador</Label><Select value={linkedCreatorId} onValueChange={setLinkedCreatorId} disabled={linkBusy}><SelectTrigger id="exchange-creator"><SelectValue placeholder="Seleccioná un perfil con email" /></SelectTrigger><SelectContent>{influencers.filter(item => item.email?.trim()).map(item => <SelectItem key={item.id} value={item.id}>{item.name} · {item.email}</SelectItem>)}</SelectContent></Select></div>
+          {linkError && <p role="alert" className="text-sm text-destructive">{linkError}</p>}
+          <DialogFooter><Button variant="outline" onClick={() => setLinkingExchange(null)} disabled={linkBusy}>Cancelar</Button><Button onClick={() => void linkCreator()} disabled={linkBusy || !linkedCreatorId}>Vincular creador</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -334,6 +334,7 @@ export const PUBLIC_ROUTES: RouteDefinition[] = [
   { id: "portal_creador", path: "/portal-creador", roles: PUBLICO, module: null,
     component: lazy(() => import("@/pages/CreatorPortalPage")),
     openReason: "Portal del creador autenticado: el influencer no es un comercio y no comparte el panel del tenant.",
+    aliases: [{ path: "/portal-influencer/:token", redirectTo: "/portal-creador" }],
     status: "canonical" },
 ];
 

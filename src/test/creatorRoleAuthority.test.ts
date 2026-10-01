@@ -56,10 +56,10 @@ describe("rol creador: el influencer no es un comercio", () => {
   });
 
   it("el portal del creador se sirve desde RPCs server-side, no desde tablas", () => {
-    expect(context).toContain('rpc("creator_linked_profiles"');
-    expect(context).toContain('rpc("creator_campaigns"');
-    expect(context).toContain('rpc("creator_deliverables"');
-    expect(context).toContain('rpc("creator_earnings"');
+    expect(context).toContain('read("creator_linked_profiles"');
+    expect(context).toContain('read("creator_campaigns"');
+    expect(context).toContain('read("creator_deliverables"');
+    expect(context).toContain('read("creator_earnings"');
     // La identidad por email vive server-side: el cliente no declara su email
     // de marca.
     expect(migration).toContain("lower(i.email) = lower(ca.email)");

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { useCreator, type CreatorCampaign, type CreatorChatMessage, type CreatorContract, type CreatorPayoutDestination } from "@/lib/creatorContext";
+import { Link, useSearchParams } from "react-router-dom";
+import { CreatorProvider, useCreator, type CreatorCampaign, type CreatorChatMessage, type CreatorContract, type CreatorPayoutDestination } from "@/lib/creatorContext";
 import {
   formatDeliverableFileSize,
   openCreatorDeliverableFile,
@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import ChatNotifyCard from "@/components/influencers/ChatNotifyCard";
 import { CreatorFoco } from "@/components/creator/CreatorFoco";
 import CreatorMetricReportsCard from "@/components/creator/CreatorMetricReportsCard";
+import CreatorExchangesSection from "@/components/creator/CreatorExchangesSection";
+import { creatorOperationError } from "@/lib/creatorOperationError";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Root as Tabs, Content as TabsContent, List as TabsList, Trigger as TabsTrigger } from "@radix-ui/react-tabs";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Sparkles, Instagram, Wallet, Target, CalendarClock, CheckCircle2,
@@ -126,6 +129,9 @@ function ProfileSection() {
       await saveProfile(form);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
+    } catch (cause) {
+      console.error("[creator] guardar perfil", cause);
+      toast.error("No pudimos guardar tu perfil. Volvé a intentar.");
     } finally {
       setSaving(false);
     }
@@ -138,7 +144,8 @@ function ProfileSection() {
       await savePublicProfile(publicForm);
       toast.success(publicForm.profile_public ? "Perfil enviado a moderación" : "Perfil público desactivado");
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "No se pudo guardar la publicación");
+      console.error("[creator] guardar publicación", cause);
+      toast.error(creatorOperationError(cause, "No pudimos guardar la publicación. Revisá los datos y volvé a intentar."));
     } finally { setPublicSaving(false); }
   };
 
@@ -531,8 +538,17 @@ function CampaignCard({ campaign, registerRef }: { campaign: CreatorCampaign; re
 }
 
 export default function CreatorPortalPage() {
+  return <CreatorProvider><CreatorPortalContent /></CreatorProvider>;
+}
+
+function CreatorPortalContent() {
   usePageTitle("Portal de creador");
-  const { loading, isCreator, profile, campaigns, deliverables, deliverableFiles, earnings, withdrawals, payoutDestinations, contracts, refresh, acceptContract, savePayoutDestination } = useCreator();
+  const { loading, error, authenticated, isCreator, profile, campaigns, deliverables, deliverableFiles, earnings, withdrawals, payoutDestinations, contracts, refresh, acceptContract, savePayoutDestination } = useCreator();
+  const [params, setParams] = useSearchParams();
+  const requestedTab = params.get("tab");
+  const tab = profile && !profile.onboarding_completed ? "perfil" : ["campanas", "contenido", "canjes", "ingresos", "contratos", "perfil"].includes(requestedTab) ? requestedTab : "campanas";
+  const changeTab = (value: string) => setParams(current => { const next = new URLSearchParams(current); next.set("tab", value); return next; }, { replace: true });
+  const [focoTarget, setFocoTarget] = useState<string | null>(null);
   const focoScrollRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Solicitud de retiro de comisiones
@@ -549,7 +565,14 @@ export default function CreatorPortalPage() {
   const [guardandoDestino, setGuardandoDestino] = useState(false);
   const [retirando, setRetirando] = useState(false);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    if (tab !== "campanas" || !focoTarget) return;
+    const node = focoScrollRef.current[focoTarget];
+    node?.scrollIntoView({ behavior: "smooth", block: "center" });
+    node?.classList.add("ring-2", "ring-primary/40");
+    const timer = setTimeout(() => node?.classList.remove("ring-2", "ring-primary/40"), 2000);
+    return () => clearTimeout(timer);
+  }, [tab, focoTarget]);
   useEffect(() => {
     if (!destinoId && payoutDestinations.length) {
       setDestinoId((payoutDestinations.find(item => item.is_default) ?? payoutDestinations[0]).id);
@@ -571,8 +594,9 @@ export default function CreatorPortalPage() {
       await savePayoutDestination({ ...nuevoDestino, holder_name: nuevoDestino.holder_name.trim(), identifier: nuevoDestino.identifier.trim() });
       toast.success("Destino de cobro guardado y protegido");
       setNuevoDestino(current => ({ ...current, holder_name: "", identifier: "" }));
-    } catch (err: any) {
-      toast.error(err.message || "No se pudo guardar el destino");
+    } catch (cause) {
+      console.error("[creator] guardar destino", cause);
+      toast.error(creatorOperationError(cause, "No pudimos guardar el destino. Revisá los datos y volvé a intentar."));
     } finally {
       setGuardandoDestino(false);
     }
@@ -582,13 +606,14 @@ export default function CreatorPortalPage() {
     e.preventDefault();
     const monto = Number(montoRetiro);
     const disponible = Number(earnings?.available_ars ?? 0);
-    if (isNaN(monto) || monto <= 0) { toast.error("Ingresá un monto válido mayor a cero"); return; }
+    if (retirando) return;
+    if (!Number.isFinite(monto) || monto <= 0) { toast.error("Ingresá un monto válido mayor a cero"); return; }
     if (monto > disponible) { toast.error(`El monto supera tu saldo disponible (${fmtMoney(disponible)})`); return; }
     if (!destinoId) { toast.error("Elegí o guardá un destino de cobro"); return; }
 
     setRetirando(true);
     try {
-      const { data, error } = await (supabase.rpc as any)("creator_request_withdrawal", {
+      const { error } = await supabase.rpc("creator_request_withdrawal", {
         p_amount_ars: monto,
         p_destination_id: destinoId,
         p_notes: null,
@@ -598,8 +623,9 @@ export default function CreatorPortalPage() {
       setRetirarOpen(false);
       setMontoRetiro("");
       await refresh();
-    } catch (err: any) {
-      toast.error(err.message || "No se pudo solicitar el retiro");
+    } catch (cause) {
+      console.error("[creator] solicitar retiro", cause);
+      toast.error(creatorOperationError(cause, "No pudimos solicitar el retiro. Volvé a intentar."));
     } finally {
       setRetirando(false);
     }
@@ -607,10 +633,8 @@ export default function CreatorPortalPage() {
 
   /** El foco scrollea hasta la campaña y la resalta dos segundos. */
   const navigateToFoco = (campaignId: string) => {
-    const node = focoScrollRef.current[campaignId];
-    node?.scrollIntoView({ behavior: "smooth", block: "center" });
-    node?.classList.add("ring-2", "ring-primary/40");
-    setTimeout(() => node?.classList.remove("ring-2", "ring-primary/40"), 2000);
+    changeTab("campanas");
+    setFocoTarget(campaignId);
   };
 
   const signOut = async () => { await supabase.auth.signOut(); };
@@ -626,6 +650,10 @@ export default function CreatorPortalPage() {
     );
   }
 
+  if (error) {
+    return <main className="grid min-h-screen place-items-center bg-background px-4"><div className="max-w-md space-y-4 text-center"><h1 className="text-xl font-semibold">No pudimos cargar tu portal</h1><p role="alert" className="text-sm text-muted-foreground">{error}</p><Button onClick={() => void refresh()}>Volver a intentar</Button></div></main>;
+  }
+
   if (!isCreator) {
     return (
       <div className="min-h-screen grid place-items-center bg-background px-4">
@@ -633,13 +661,13 @@ export default function CreatorPortalPage() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-muted">
             <Sparkles className="h-7 w-7 text-muted-foreground" />
           </div>
-          <h1 className="text-xl font-semibold">Esta cuenta no es de un creador</h1>
+          <h1 className="text-xl font-semibold">{authenticated ? "Esta cuenta no es de un creador" : "Ingresá a tu portal de creador"}</h1>
           <p className="text-sm text-muted-foreground">
             Si te registraste como negocio, tu lugar es el panel completo. Si sos creador y llegaste por error, iniciá sesión con el email que te registró la marca.
           </p>
           <div className="flex gap-2 justify-center">
             <Link to="/"><Button variant="outline">Ir al panel de negocio</Button></Link>
-            <Link to="/login"><Button>Iniciar sesión</Button></Link>
+            <Link to="/login?role=creator"><Button>Iniciar sesión</Button></Link>
           </div>
         </div>
       </div>
@@ -655,7 +683,7 @@ export default function CreatorPortalPage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link to="/portal-creador" className="flex items-center gap-2" aria-label="Portal de creador">
             <BrandLogo compact eager markClassName="h-7 w-7" nameClassName="text-sm font-semibold" />
-            <Badge variant="secondary" className="text-[10px]">Creador</Badge>
+            <Badge variant="outline" className="text-[10px]">Creador</Badge>
           </Link>
           <div className="flex items-center gap-2">
             <span className="hidden sm:inline text-xs text-muted-foreground">{profile?.display_name ?? profile?.email}</span>
@@ -667,9 +695,12 @@ export default function CreatorPortalPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-6">
+        <Tabs value={tab} onValueChange={changeTab}>
+          <div className="overflow-x-auto pb-1"><TabsList aria-label="Secciones del portal" className="flex w-max max-w-none items-center gap-1">
+            {[["campanas", "Campañas"], ["contenido", "Contenido"], ["canjes", "Canjes"], ["ingresos", "Ingresos"], ["contratos", "Contratos"], ["perfil", "Perfil"]].map(([value, label]) => <TabsTrigger key={value} value={value} className="min-h-11 rounded-md border border-transparent px-3 text-sm font-medium text-muted-foreground hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-primary">{label}</TabsTrigger>)}
+          </TabsList></div>
         <OnboardingGate>
-          <CreatorFoco campaigns={campaigns} onNavigate={navigateToFoco} />
-
+          <TabsContent forceMount hidden={tab !== "ingresos"} value="ingresos" className="mt-5 space-y-6">
           {/* Ingresos */}
           {earnings && (
             <section aria-label="Ingresos" className="grid gap-4 sm:grid-cols-3">
@@ -747,6 +778,9 @@ export default function CreatorPortalPage() {
             </section>
           )}
 
+          </TabsContent>
+          <TabsContent forceMount hidden={tab !== "campanas"} value="campanas" className="mt-5 space-y-6">
+          <CreatorFoco campaigns={campaigns} onNavigate={navigateToFoco} />
           {/* Campañas */}
           <Card>
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -765,6 +799,9 @@ export default function CreatorPortalPage() {
             </CardContent>
           </Card>
 
+          </TabsContent>
+          <TabsContent forceMount hidden={tab !== "canjes"} value="canjes" className="mt-5"><CreatorExchangesSection /></TabsContent>
+          <TabsContent forceMount hidden={tab !== "contenido"} value="contenido" className="mt-5 space-y-6">
           {/* Entregables */}
           <Card>
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -810,6 +847,9 @@ export default function CreatorPortalPage() {
             </CardContent>
           </Card>
 
+          <CreatorMetricReportsCard />
+          </TabsContent>
+          <TabsContent forceMount hidden={tab !== "contratos"} value="contratos" className="mt-5">
           {/* Contratos con doble aceptación */}
           <CreatorContractsCard
             contracts={contracts}
@@ -818,11 +858,10 @@ export default function CreatorPortalPage() {
             // accept_influencer_contract. La firma nunca la declara la marca.
           />
 
-          <CreatorMetricReportsCard />
-
-          <ProfileSection />
-          <ChatNotifyCard />
+          </TabsContent>
         </OnboardingGate>
+        <TabsContent forceMount hidden={tab !== "perfil"} value="perfil" className="mt-5 space-y-6"><ProfileSection /><ChatNotifyCard /></TabsContent>
+        </Tabs>
       </main>
 
       {/* Modal para solicitar retiro de comisiones */}

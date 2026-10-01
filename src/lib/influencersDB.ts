@@ -499,25 +499,6 @@ export async function createInfluencerReview(payload: {
   return data as InfluencerReview;
 }
 
-/** ─── Lado creador: saldo y retiros (portal público por token) ─── */
-export async function getCreatorEarnings(token: string): Promise<Record<string, unknown> | null> {
-  const { data, error } = await sb.rpc('get_creator_earnings', { p_token: token });
-  if (error) throw error;
-  return data as Record<string, unknown> | null;
-}
-
-export async function listCreatorWithdrawals(token: string): Promise<Array<Record<string, unknown>>> {
-  const { data, error } = await sb.rpc('list_creator_withdrawals', { p_token: token });
-  if (error) throw error;
-  return (data ?? []) as Array<Record<string, unknown>>;
-}
-
-export async function requestCreatorWithdrawal(token: string, amountArs: number): Promise<Record<string, unknown>> {
-  const { data, error } = await sb.rpc('request_creator_withdrawal', { p_token: token, p_amount_ars: amountArs });
-  if (error) throw error;
-  return data as Record<string, unknown>;
-}
-
 /** ─── Lado marca: revisar solicitudes de retiro ─── */
 export type WithdrawalRequest = {
   id: string;

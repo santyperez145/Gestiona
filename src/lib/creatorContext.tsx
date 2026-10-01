@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
@@ -80,6 +80,21 @@ export interface CreatorDeliverable {
   content_url: string | null;
   due_date: string | null;
   status: string;
+}
+
+export interface CreatorExchange {
+  id: string;
+  org_name: string;
+  product_name: string;
+  quantity: number;
+  status: string;
+  exchange_type: string;
+  expected_posts: number | null;
+  actual_posts: number | null;
+  content_url: string | null;
+  content_submitted_at: string | null;
+  delivery_date: string | null;
+  goal_notes: string | null;
 }
 
 export interface CreatorEarnings {
@@ -193,6 +208,8 @@ export interface CreatorMetricReportInput {
 
 interface CreatorCtx {
   loading: boolean;
+  error: string | null;
+  authenticated: boolean;
   isCreator: boolean;
   profile: CreatorProfile | null;
   campaigns: CreatorCampaign[];
@@ -204,6 +221,7 @@ interface CreatorCtx {
   linkedProfiles: CreatorLinkedProfile[];
   metricReports: CreatorSocialMetricReport[];
   deliverableFiles: CreatorDeliverableFile[];
+  exchanges: CreatorExchange[];
   refresh: () => Promise<void>;
   saveProfile: (fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>) => Promise<void>;
   savePublicProfile: (fields: CreatorPublicProfileInput) => Promise<void>;
@@ -223,6 +241,7 @@ interface CreatorCtx {
   submitMetricReport: (input: CreatorMetricReportInput) => Promise<void>;
   savePayoutDestination: (input: CreatorPayoutDestinationInput) => Promise<void>;
   disablePayoutDestination: (destinationId: string) => Promise<void>;
+  submitExchangeContent: (exchangeId: string, contentUrl: string, actualPosts: number) => Promise<void>;
 }
 
 /** Mensaje del hilo de una colaboración, tal como lo devuelve el RPC. */
@@ -240,7 +259,9 @@ const rpc = (fn: string, args?: Record<string, unknown>) => (supabase as any).rp
 
 export function CreatorProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id;
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCreator, setIsCreator] = useState(false);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [campaigns, setCampaigns] = useState<CreatorCampaign[]>([]);
@@ -252,98 +273,83 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   const [linkedProfiles, setLinkedProfiles] = useState<CreatorLinkedProfile[]>([]);
   const [metricReports, setMetricReports] = useState<CreatorSocialMetricReport[]>([]);
   const [deliverableFiles, setDeliverableFiles] = useState<CreatorDeliverableFile[]>([]);
+  const [exchanges, setExchanges] = useState<CreatorExchange[]>([]);
+  const requestVersion = useRef(0);
+  const successfulUserId = useRef<string | null>(null);
+  const currentUserId = useRef(userId);
+  currentUserId.current = userId;
 
   const refresh = useCallback(async () => {
-    if (!user) {
-      setIsCreator(false);
-      setProfile(null);
-      setCampaigns([]);
-      setDeliverables([]);
-      setEarnings(null);
-      setWithdrawals([]);
-      setPayoutDestinations([]);
-      setContracts([]);
-      setLinkedProfiles([]);
-      setMetricReports([]);
-      setDeliverableFiles([]);
+    const version = ++requestVersion.current;
+    const isCurrent = () => version === requestVersion.current && currentUserId.current === userId;
+    const clear = () => {
+      successfulUserId.current = null;
+      setIsCreator(false); setProfile(null); setCampaigns([]); setDeliverables([]);
+      setEarnings(null); setWithdrawals([]); setPayoutDestinations([]); setContracts([]);
+      setLinkedProfiles([]); setMetricReports([]); setDeliverableFiles([]); setExchanges([]);
+    };
+    setError(null);
+    if (!userId) {
+      clear();
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (successfulUserId.current !== userId) setLoading(true);
     try {
-      // La cuenta es creadora si tiene fila en creator_accounts.
-      const { data: ownRow } = await rpc("creator_linked_profiles", { p_user_id: user.id });
-      const linked = Array.isArray(ownRow) ? ownRow : [];
-      setLinkedProfiles(linked as CreatorLinkedProfile[]);
-
-      let own: CreatorProfile | null = null;
-      // deno-lint-ignore no-explicit-any
-      const accounts = (supabase as any).from("creator_accounts");
-      const { data: accountRow } = await accounts.select("*").eq("user_id", user.id).maybeSingle();
-      own = (accountRow as CreatorProfile | null) ?? null;
-
-      // Si no tiene fila pero SÍ perfiles ligados por email, la cuenta existe:
-      // se siembra su fila para que el resto de RPCs funcionen.
-      if (!own && linked.length > 0) {
-        const email = user.email ?? "";
-        const { error: ensureError } = await rpc("creator_ensure_account");
-        if (ensureError) throw ensureError;
-        own = { user_id: user.id, email, display_name: null, avatar_url: null, bio: null, phone: null, instagram: null, tiktok: null, youtube: null, onboarding_completed: false, public_slug: null, profile_public: false, discoverable: false, category: null, city: null, country_code: "AR", rate_from_ars: null, moderation_status: "draft", moderation_notes: null, identity_status: "unverified" };
+      const readAccount = async () => {
+        const result = await (supabase as any).from("creator_accounts").select("*").eq("user_id", userId).maybeSingle();
+        if (result.error) throw result.error;
+        return result.data as CreatorProfile | null;
+      };
+      let own = await readAccount();
+      if (!own) {
+        // The server decides whether signup/invitation permits creator onboarding.
+        const ensured = await rpc("creator_ensure_account");
+        if (ensured.error) {
+          if (ensured.error.code === "42501" && ensured.error.message === "Esta cuenta no esta registrada como creador") {
+            if (isCurrent()) clear();
+            return;
+          }
+          throw ensured.error;
+        }
+        own = await readAccount();
+        if (!own) throw new Error("creator_account_not_loaded");
       }
-
-      setIsCreator(Boolean(own) || linked.length > 0);
-      setProfile(own);
-
-      if (own) {
-        const [camp, deliv, earn, wd, ctr, metrics, destinations, files] = await Promise.all([
-          rpc("creator_campaigns"),
-          rpc("creator_deliverables"),
-          rpc("creator_earnings"),
-          rpc("creator_my_withdrawals"),
-          rpc("creator_my_contracts"),
-          rpc("creator_my_social_metric_reports"),
-          rpc("creator_payout_destinations_list"),
-          listCreatorDeliverableFiles(user.id),
-        ]);
-        setCampaigns(Array.isArray(camp.data) ? camp.data : []);
-        setDeliverables(Array.isArray(deliv.data) ? deliv.data : []);
-        const earnData = earn.data;
-        const parsed = typeof earnData === "string" ? JSON.parse(earnData) : earnData;
-        setEarnings((parsed as CreatorEarnings) ?? null);
-        setWithdrawals(Array.isArray(wd.data) ? wd.data : []);
-        setContracts(Array.isArray(ctr.data) ? ctr.data : []);
-        setMetricReports(Array.isArray(metrics.data) ? metrics.data : []);
-        setPayoutDestinations(Array.isArray(destinations.data) ? destinations.data : []);
-        setDeliverableFiles(files);
-      } else {
-        setCampaigns([]);
-        setDeliverables([]);
-        setEarnings(null);
-        setWithdrawals([]);
-        setPayoutDestinations([]);
-        setContracts([]);
-        setMetricReports([]);
-        setDeliverableFiles([]);
-      }
-    } catch (error) {
-      console.error("[creator] no se pudo cargar la superficie de creador", error);
-      setIsCreator(false);
-      setProfile(null);
-      setCampaigns([]);
-      setDeliverables([]);
-      setEarnings(null);
-      setWithdrawals([]);
-      setPayoutDestinations([]);
-      setContracts([]);
-      setLinkedProfiles([]);
-      setMetricReports([]);
-      setDeliverableFiles([]);
+      const read = async (name: string, args?: Record<string, unknown>) => {
+        const result = await rpc(name, args);
+        if (result.error) throw result.error;
+        if (name === "creator_earnings" ? result.data == null : !Array.isArray(result.data)) {
+          throw new Error(`creator_response_invalid:${name}`);
+        }
+        return result.data;
+      };
+      const [linked, camp, deliv, earn, wd, ctr, metrics, destinations, files, canjes] = await Promise.all([
+        read("creator_linked_profiles", { p_user_id: userId }),
+        read("creator_campaigns"), read("creator_deliverables"), read("creator_earnings"),
+        read("creator_my_withdrawals"), read("creator_my_contracts"),
+        read("creator_my_social_metric_reports"), read("creator_payout_destinations_list"),
+        listCreatorDeliverableFiles(userId), read("creator_exchanges"),
+      ]);
+      if (!isCurrent()) return;
+      successfulUserId.current = userId;
+      setIsCreator(true); setProfile(own);
+      setLinkedProfiles(linked); setCampaigns(camp); setDeliverables(deliv);
+      setEarnings(typeof earn === "string" ? JSON.parse(earn) : earn);
+      setWithdrawals(wd); setContracts(ctr); setMetricReports(metrics);
+      setPayoutDestinations(destinations); setDeliverableFiles(files); setExchanges(canjes);
+    } catch (cause) {
+      if (!isCurrent()) return;
+      console.error("[creator] no se pudo cargar la superficie de creador", cause);
+      setError("No pudimos cargar tu portal. Comprobá tu conexión y volvé a intentar.");
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
-  useEffect(() => { if (!authLoading) void refresh(); }, [authLoading, refresh]);
+  useEffect(() => {
+    if (!authLoading) void refresh();
+    return () => { requestVersion.current += 1; };
+  }, [authLoading, refresh]);
 
   const saveProfile = useCallback(async (
     fields: Partial<Pick<CreatorProfile, "display_name" | "bio" | "phone" | "instagram" | "tiktok" | "youtube">>,
@@ -459,8 +465,16 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const submitExchangeContent = useCallback(async (exchangeId: string, contentUrl: string, actualPosts: number) => {
+    const { error } = await rpc("creator_submit_exchange_content", {
+      p_exchange_id: exchangeId, p_content_url: contentUrl, p_actual_posts: actualPosts,
+    });
+    if (error) throw error;
+    await refresh();
+  }, [refresh]);
+
   return (
-    <CreatorContext.Provider value={{ loading, isCreator, profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, linkedProfiles, metricReports, deliverableFiles, refresh, saveProfile, savePublicProfile, respondCampaign, submitDeliverable, submitDeliverableFile, listChat, sendChat, acceptContract, submitMetricReport, savePayoutDestination, disablePayoutDestination }}>
+    <CreatorContext.Provider value={{ loading: authLoading || loading || (!error && Boolean(profile && profile.user_id !== userId)), error, authenticated: Boolean(userId), isCreator: isCreator && Boolean(userId), profile, campaigns, deliverables, earnings, withdrawals, payoutDestinations, contracts, linkedProfiles, metricReports, deliverableFiles, exchanges, refresh, saveProfile, savePublicProfile, respondCampaign, submitDeliverable, submitDeliverableFile, listChat, sendChat, acceptContract, submitMetricReport, savePayoutDestination, disablePayoutDestination, submitExchangeContent }}>
       {children}
     </CreatorContext.Provider>
   );

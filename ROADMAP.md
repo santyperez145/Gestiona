@@ -247,7 +247,7 @@ Estos puntos no se cierran con más código:
    brechas; extender el contrato transaccional e idempotente a toda mutación
    monetaria que aún no lo tenga.
 2. Extender ciberseguridad: RPC versionadas, roles web sin operaciones internas;
-   revisar 19 contratos de funciones expuestas (2026-10-01), inventario de
+   revisar 15 contratos de funciones expuestas (2026-10-01), inventario de
    activos, threat model, alertas y simulacros.
 3. Completar datos legales, inventario físico y certificaciones live.
 4. Instrumentar errores, SLO, fraude y funnels sin PII innecesaria.
@@ -273,7 +273,7 @@ Estos puntos no se cierran con más código:
 
 Prioridad: completar Influencers con referencia verificada de [GoMarz](https://www.go-marz.com/), sin clonar identidad ni pagos.
 
-- Base: rutas propias, directorio único y campañas persistentes con selección, versiones, permisos y auditoría.
+- **Cerrado (2026-10-01):** portal autenticado con seis pestañas y canjes vinculados explícitamente por marca/identidad; RLS por acción, evidencia sin aprobación automática y retiro con destino propio. Se retiran cinco RPC públicas legacy; SQL reversible de roles y navegador sintético, no certificación externa.
 - **Cerrado (2026-09-29):** aceptación/entrega desde el portal creador con sesión,
   loop de revisión (marca pide corrección → creador reentrega), destinos de cobro
   cifrados y liquidación externa con referencia idempotente; `mp-payouts` sólo se

@@ -47,7 +47,6 @@ const PublicCatalogPage      = lazy(() => import("@/pages/PublicCatalogPage"));
 const StorefrontPage         = lazy(() => import("@/pages/StorefrontPage"));
 const CustomDomainStorefrontPage = lazy(() => import("@/pages/CustomDomainStorefrontPage"));
 const PublicPaymentPage      = lazy(() => import("@/pages/PublicPaymentPage"));
-const InfluencerPortalPage   = lazy(() => import("@/pages/InfluencerPortalPage"));
 const InfluencerProfilePage  = lazy(() => import("@/pages/InfluencerProfilePage"));
 const InfluencerInvitationPage = lazy(() => import("@/pages/InfluencerInvitationPage"));
 const InfluencerContractAcceptPage = lazy(() => import("@/pages/InfluencerContractAcceptPage"));
@@ -395,7 +394,6 @@ function ApplicationRoutes() {
       <Route path="/tienda/:slug/vista-previa/:previewVersionId/*" element={<StorefrontPage preview />} />
       <Route path="/tienda/:slug/*" element={<StorefrontPage />} />
       <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
-      <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />
       <Route path="/influencer/:token" element={<InfluencerProfilePage />} />
       <Route path="/invitacion-creador/:token" element={<InfluencerInvitationPage />} />
       <Route path="/aceptar-contrato/:token" element={<InfluencerContractAcceptPage />} />
