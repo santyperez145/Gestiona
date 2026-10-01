@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
  *  2. Snapshot de settings (umbrales y descuentos de medios).
  *  3. Snapshot del turno (cash session summary) para seguir cobrando.
  *  4. Cola de tickets offline con reconciliación por ticket completo.
- *  5. Service worker: precache del shell + POS, NetworkFirst en REST.
+ *  5. Service worker: precache del shell + POS, sin cachear respuestas privadas.
  */
 
 const pos = readFileSync("src/pages/POSPage.tsx", "utf8");
@@ -49,10 +49,9 @@ describe("POS offline: vender sin conexión", () => {
     const viteCfg = readFileSync("vite.config.ts", "utf8");
     expect(viteCfg).toContain("POSPage");
     expect(sw).toContain("precacheAndRoute(self.__WB_MANIFEST)");
-    // NetworkFirst para la REST de Supabase: dato fresco con red, copia de
-    // emergencia hasta 24 h sin ella.
-    expect(sw).toContain('NetworkFirst');
-    expect(sw).toContain("supabase-api");
+    // El POS conserva sus snapshots; una caché REST común no aísla sesiones.
+    expect(sw).not.toContain('NetworkFirst');
+    expect(sw).toContain("clearLegacyPrivateCaches(caches)");
   });
 
   it("el dinero lo decide el servidor: create_sales_transaction_v3 con fallback", () => {

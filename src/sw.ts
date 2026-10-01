@@ -1,8 +1,9 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
-import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
+import { CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
+import { canCachePublicSupabaseMedia, clearLegacyPrivateCaches } from "./lib/serviceWorkerPrivacy";
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -19,8 +20,11 @@ self.addEventListener("install", () => {
 });
 
 self.addEventListener("activate", (event) => {
-  // Take control of all open tabs immediately
-  event.waitUntil(self.clients.claim());
+  // Remove old private responses before controlling this origin's tabs.
+  event.waitUntil((async () => {
+    await clearLegacyPrivateCaches(caches);
+    await self.clients.claim();
+  })());
 });
 
 // ── Also handle explicit SKIP_WAITING messages (legacy / manual) ──────────
@@ -56,27 +60,11 @@ registerRoute(
   })
 );
 
-// ── Runtime caching — Supabase REST ─────────────────────────
+// Private REST and signed files bypass CacheStorage; POS owns its scoped snapshots.
 registerRoute(
-  ({ url }) =>
-    url.hostname.includes("supabase.co") && url.pathname.startsWith("/rest/"),
-  new NetworkFirst({
-    cacheName: "supabase-api",
-    // 24 h y 200 entradas. Con los 5 minutos anteriores, una jornada en una
-    // feria sin señal dejaba al POS sin catálogo. Al ser NetworkFirst, con
-    // conexión siempre se sirve el dato fresco: el TTL solo define hasta
-    // cuándo vale la copia de emergencia.
-    plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 })],
-  })
-);
-
-// ── Runtime caching — Supabase Storage ──────────────────────
-registerRoute(
-  ({ url }) =>
-    url.hostname.includes("supabase.co") &&
-    url.pathname.startsWith("/storage/"),
+  ({ url, request }) => canCachePublicSupabaseMedia(url, request),
   new CacheFirst({
-    cacheName: "supabase-storage",
+    cacheName: "supabase-public-media-v2",
     plugins: [
       new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 }),
     ],

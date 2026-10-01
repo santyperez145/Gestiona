@@ -1,6 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
+// Worker-originated requests bypass page.route; synthetic sessions must never reach live Auth.
+test.use({ serviceWorkers: 'block' });
+
 const userId = '00000000-0000-4000-8000-000000000001';
 const fixtureAccount = {
   user_id: userId, email: 'zz-creator@invalid.test', display_name: 'Creadora de prueba',
@@ -73,6 +76,7 @@ test('synthetic creator UI: tabs, canje submission and withdrawal without public
   await page.getByRole('button', { name: 'Confirmar solicitud' }).click();
   await expect.poll(() => calls.length).toBe(2);
   expect(calls[1].body).toEqual({ p_amount_ars: 500, p_destination_id: '00000000-0000-4000-8000-000000000003', p_notes: null });
+  await expect(page.getByRole('dialog')).toBeHidden();
   await page.getByRole('tab', { name: 'Canjes', exact: true }).click();
   await page.getByRole('tab', { name: 'Canjes', exact: true }).press('ArrowLeft');
   await expect(page.getByRole('tab', { name: 'Contenido', exact: true })).toHaveAttribute('aria-selected', 'true');

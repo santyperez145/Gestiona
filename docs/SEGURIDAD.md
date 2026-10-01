@@ -136,6 +136,12 @@ temporal. Una validación fallida no puede reservar una clave de idempotencia.
   al paquete vulnerable del registro npm.
 - Los buckets privados no generan URLs permanentes; usan autorización o links
   firmados de vida corta.
+- El service worker no cachea REST privada ni archivos firmados. Sólo conserva
+  medios de buckets públicos, chunks y shell. Al activarse elimina las cachés
+  REST/Storage legacy antes de controlar pestañas; no reutiliza respuestas de
+  otra sesión. El POS conserva sus snapshots y cola offline, no una caché REST
+  común. Los tests con sesión sintética bloquean workers para interceptar toda
+  petición y no enviar credenciales ficticias a proveedores reales.
 
 ## Verificación obligatoria
 
