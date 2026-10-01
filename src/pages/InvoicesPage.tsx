@@ -28,6 +28,7 @@ import {
 } from "@/lib/arcaInvoice";
 import { CONDICIONES_IVA, tipoDeComprobante, validarCuit, type CondicionIva } from "@/lib/fiscalIdentity";
 import { loadAssociatedFiscalInvoice, printFiscalInvoiceTicket } from "@/lib/saleInvoice";
+import { invoiceIvaGroups, invoiceDisplayLines } from "../../supabase/functions/_shared/invoiceIva";
 import { useModulePermissions } from "@/lib/usePermissions";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
@@ -49,7 +50,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
-interface InvoiceItem { id?: string; description: string; quantity: number; unit_price: number; total: number }
+interface InvoiceItem { id?: string; description: string; quantity: number; unit_price: number; total: number; tax_rate?: number | null; tax_amount?: number | null }
 interface Invoice {
   id: string; org_id: string; number: string; customer_name: string; customer_email: string | null;
   customer_address: string | null; customer_tax_id: string | null;
@@ -135,6 +136,8 @@ function emptyItem(): InvoiceItem { return { description: "", quantity: 1, unit_
 // PDF generator — includes AFIP data when authorized
 // ─────────────────────────────────────────────────────────────
 async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings | null) {
+  const ivaGroups = invoiceIvaGroups(inv);
+  const discriminatesVat = [1, 2, 3].includes(Number(inv.tipo_comprobante));
   const qrUrl = printableArcaQrUrl(inv);
   const associated = await loadAssociatedFiscalInvoice(inv);
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -243,7 +246,7 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   }
 
   // ── Items table ───────────────────────────────────────────
-  const items = inv.invoice_items || [];
+  const items = invoiceDisplayLines(inv);
   let tableY = Math.max(cy + 18, yStart + 88);
   if (associated) {
     doc.setFont("helvetica", "bold");
@@ -276,13 +279,16 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   doc.setTextColor(100, 100, 100);
   doc.setFont("helvetica", "normal");
   doc.text("Subtotal:", W / 2 + 8, y + 9);
-  doc.text(formatARS(inv.subtotal), right, y + 9, { align: "right" });
+  doc.text(formatARS(discriminatesVat ? inv.subtotal : inv.total), right, y + 9, { align: "right" });
   y += 20;
-  // Sólo Factura A discrimina IVA en la representación entregada al receptor.
-  if (inv.tipo_comprobante === 1 && inv.tax_pct > 0) {
-    doc.text(`IVA (${inv.tax_pct}%):`, W / 2 + 8, y + 9);
-    doc.text(formatARS(inv.tax_amount), right, y + 9, { align: "right" });
-    y += 20;
+  // Los comprobantes clase A discriminan IVA, incluidas sus notas de crédito.
+  if (discriminatesVat) {
+    for (const group of ivaGroups) {
+      if (y > 650) { doc.addPage(); y = 48; }
+      doc.text(`IVA (${group.rate}%):`, W / 2 + 8, y + 9);
+      doc.text(formatARS(group.amount), right, y + 9, { align: "right" });
+      y += 20;
+    }
   }
   doc.setFillColor(124, 92, 255);
   doc.rect(W / 2, y - 2, W / 2 - 40, 20, "F");
@@ -802,7 +808,12 @@ export default function InvoicesPage() {
 
   const deleteInvoice = async (id: string) => {
     if (!(await ask({ title: "¿Eliminar factura?", confirmText: "Eliminar", variant: "destructive" }))) return;
-    await supabase.from("invoices").delete().eq("id", id);
+    const { error } = await supabase.from("invoices").delete().eq("id", id);
+    if (error) {
+      console.error("No se pudo eliminar el borrador de factura", error);
+      toast.error("No se pudo eliminar el comprobante. Verificá que no esté emitido ni en autorización.");
+      return;
+    }
     toast.success("Factura eliminada");
     load();
   };
@@ -1395,7 +1406,9 @@ export default function InvoicesPage() {
                           onClick={() => {
                             setNcDialogInv(inv);
                             setNcReason("");
-                            setNcAmount(String(Number(inv.total).toFixed(2)));
+                            const credited = invoices.reduce((sum, credit) =>
+                              credit.nota_credito_de === inv.id ? sum + Number(credit.total) : sum, 0);
+                            setNcAmount((Number(inv.total) - credited).toFixed(2));
                           }} disabled={creatingNC === inv.id}
                         >
                           {creatingNC === inv.id
@@ -1403,8 +1416,8 @@ export default function InvoicesPage() {
                             : <FileMinus className="w-4 h-4 text-orange-400" />}
                         </Button>
                       )}
-                      {canManage && !inv.cae && (
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => deleteInvoice(inv.id)}>
+                      {canManage && !inv.cae && inv.afip_status !== "processing" && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Eliminar borrador" onClick={() => deleteInvoice(inv.id)}>
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       )}
@@ -1528,7 +1541,7 @@ export default function InvoicesPage() {
                       )}
                       <div className="flex justify-end gap-4 text-xs font-mono pt-1">
                         <span className="text-muted-foreground">Subtotal: {formatARS(Number(inv.subtotal))}</span>
-                        {Number(inv.tax_pct) > 0 && <span className="text-muted-foreground">IVA: {formatARS(Number(inv.tax_amount))}</span>}
+                        {Number(inv.tax_amount) > 0 && <span className="text-muted-foreground">IVA: {formatARS(Number(inv.tax_amount))}</span>}
                         <span className="font-bold text-primary">Total: {formatARS(Number(inv.total))}</span>
                       </div>
                       {inv.notes && <p className="text-xs text-muted-foreground italic">Notas: {inv.notes}</p>}

@@ -116,15 +116,15 @@ duplicados con fusión asistida de un clic, panel de salud de identidad, RFM, CL
 proyectado y riesgo de churn en `CustomersPage`; toma física con borrador local
 (`stockCountDraft`); notificaciones consentidas del chat marca↔creador cerradas.
 
-**Facturación (2026-09-30):** factura manual y nota de crédito pasan por RPCs
-atómicas; una venta individual se factura desde su importe persistido y no
-desde valores de la URL. La NC referencia su factura original en el pedido de
-CAE a ARCA. Las alícuotas fiscales quedan acotadas en UI, base y WSFE.
-Migraciones `20260930000200`/`210`/`220`/`230` aplicadas y función
-`afip-authorize` desplegada. El correo de factura/presupuesto/recibo POS ahora
-resuelve destinatario e importes desde documentos persistidos; bloquea factura
-sin CAE y recibo sin cobro. A4/80 mm validan QR contra snapshot y muestran la factura asociada en NC.
-Pendiente: NC A/B/C en homologación, entrega por correo y otros impuestos nacionales indirectos sin importe cero supuesto.
+**Facturación (2026-10-01):** manual/venta/POS/NC usan autoridades transaccionales.
+POS conserva el total cobrado y desglosa IVA por producto; WSFE agrupa por tasa
+oficial, no por promedio. Las nuevas ventas capturan alícuota server-side.
+NC parcial/final conserva saldo por tasa; cabecera y renglones se protegen al
+reservar y emitir. A4/80 mm usan precios netos o finales según clase, validan
+QR y muestran la factura asociada. Correo resuelve documentos persistidos;
+no envía factura sin CAE ni recibo sin cobro. [Contrato fiscal](docs/FACTURACION.md).
+Pendiente: renglones/snapshot Commerce, IVA manual por línea, tributos reales,
+certificación ARCA A/B/C y NC, impresión física y entrega por correo.
 
 **Pendiente:** primera operación externa sin corrección SQL,
 catálogo polimórfico completo y evidencia de margen usado para decidir.

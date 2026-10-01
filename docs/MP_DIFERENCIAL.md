@@ -1,6 +1,6 @@
 # Diferencial MP — Innovación verificada (post-subagent)
 
-Confirmado por [Audita MP functions](ee7313b7-e7fc-422c-9792-e09d8fa826b7): el flujo Mercado Pago de Nerqia es profundo (brick, webhook firmado, QR POS, links, reembolsos) y usa las APIs actuales de MP.
+Resumen de la revisión interna "Audita MP functions": el flujo Mercado Pago de Nerqia cubre brick, webhook firmado, QR POS, links y reembolsos. Esa revisión interna no sustituye la certificación con el proveedor indicada abajo.
 
 Con las nuevas APIs de MP (2026):
 

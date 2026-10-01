@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { from } = vi.hoisted(() => ({ from: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from } }));
 
-import { loadAssociatedFiscalInvoice, printFiscalInvoiceById, printFiscalInvoiceTicket } from "./saleInvoice";
+import { loadAssociatedFiscalInvoice, printFiscalInvoiceById, printFiscalInvoiceTicket, type FiscalTicketInvoice } from "./saleInvoice";
 
 describe("factura asociada a nota de crédito", () => {
   beforeEach(() => from.mockReset());
@@ -116,6 +116,65 @@ describe("impresión después de una consulta asíncrona", () => {
       expect(popup.location.href).toMatch(/^blob:/);
       expect(popup.close).not.toHaveBeenCalled();
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([1, 6])("imprime el PDF mixto clase %s con precios y total correctos", async (documentType) => {
+    const invoice: FiscalTicketInvoice = {
+      id: "invoice-mixed",
+      number: "F-002",
+      customer_name: "Cliente de prueba",
+      issue_date: "2026-10-01",
+      currency: "ARS",
+      subtotal: 200,
+      tax_pct: 0,
+      tax_amount: 31.5,
+      total: 231.5,
+      tipo_comprobante: documentType,
+      condicion_iva_receptor: documentType === 1 ? 1 : 5,
+      cae: null,
+      cae_vencimiento: null,
+      numero_afip: null,
+      invoice_items: [
+        { description: "Producto IVA 21", quantity: 1, unit_price: 100, total: 100, tax_rate: 21, tax_amount: 21 },
+        { description: "Producto IVA 10.5", quantity: 2, unit_price: 50, total: 100, tax_rate: 10.5, tax_amount: 10.5 },
+      ],
+    };
+    let pdfBlob: Blob | undefined;
+    const objectUrl = vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+      pdfBlob = blob as Blob;
+      return "blob:mixed-pdf";
+    });
+    const popup = { location: { href: "" }, close: vi.fn() } as unknown as Window;
+    vi.useFakeTimers();
+    try {
+      await printFiscalInvoiceTicket(invoice, "Comercio de prueba", popup);
+      expect(pdfBlob?.type).toBe("application/pdf");
+      const pdf = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(pdfBlob!);
+      });
+      expect(pdf).toMatch(/^%PDF-/);
+      expect(pdf).toContain("231,50");
+      expect(pdf).toContain("NO ES UN COMPROBANTE FISCAL");
+      if (documentType === 1) {
+        expect(pdf).toContain("(IVA 10.5%)");
+        expect(pdf).toContain("(IVA 21%)");
+        expect(pdf).toContain("200,00");
+      } else {
+        expect(pdf).not.toContain("(IVA 10.5%)");
+        expect(pdf).not.toContain("(IVA 21%)");
+        expect(pdf).toContain("55,25");
+        expect(pdf).toContain("121,00");
+        expect(pdf).toContain("110,50");
+      }
+      expect(popup.location.href).toBe("blob:mixed-pdf");
+      expect(popup.close).not.toHaveBeenCalled();
+    } finally {
+      objectUrl.mockRestore();
       vi.useRealTimers();
     }
   });

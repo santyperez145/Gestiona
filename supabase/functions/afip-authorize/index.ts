@@ -38,7 +38,7 @@ import {
   associatedVoucherXml,
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
-import { afipIvaId } from "../_shared/afipIva.ts";
+import { invoiceIvaXml } from "../_shared/invoiceIva.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -399,12 +399,13 @@ Deno.serve(async (req) => {
     if (!invoiceId) return err("invoice_id required");
 
     // Load invoice
-    const { data: invoice, error: invErr } = await supabase
+    const { data: loadedInvoice, error: invErr } = await supabase
       .from("invoices")
-      .select("*")
+      .select("*, invoice_items(*)")
       .eq("id", invoiceId)
       .single();
-    if (invErr || !invoice) return err("Factura no encontrada");
+    if (invErr || !loadedInvoice) return err("Factura no encontrada");
+    let invoice = loadedInvoice;
     if (llamadaOutbox && invoice.org_id !== eventoFiscal?.orgId) {
       return err("La organización del evento no corresponde a la factura", 401);
     }
@@ -508,6 +509,14 @@ Deno.serve(async (req) => {
       }, 202);
     }
     authorizationReserved = true;
+
+    // The reservation freezes header and line edits. Read that exact document,
+    // not the potentially stale row loaded before acquiring the parent lock.
+    const { data: reservedInvoice, error: reservedError } = await supabase.from("invoices")
+      .select("*, invoice_items(*)").eq("id", invoiceId).eq("org_id", invoice.org_id).single();
+    if (reservedError || !reservedInvoice) throw new Error("No se pudo cargar el comprobante reservado");
+    invoice = reservedInvoice;
+    invoiceIvaXml({ ...invoice, tipo_comprobante: tipoCbte });
 
     // ── Step 1: Get / refresh Ticket de Acceso ────────────────
     let token_ta: string;
@@ -900,33 +909,9 @@ async function solicitarCAE(args: {
   const fecha = invoice.issue_date.replace(/-/g, "");
   const total = round2(Number(invoice.total));
 
-  // ⚠️ **Un comprobante clase C no lleva IVA discriminado.** ARCA lo rechaza:
-  //
-  //   10047: El campo ImpIVA para comprobantes tipo C debe ser igual a cero
-  //   10048: ImpTotal debe ser igual a la suma de ImpNeto + ImpTrib
-  //
-  // Un monotributista o un exento emiten C, y para ARCA el total ES el neto —
-  // la descomposición "subtotal + IVA" no significa nada ahí. No se está
-  // ocultando un impuesto: se está representando lo que la clase C es.
-  //
-  // Verificado emitiendo contra homologación: con IVA la rechaza, sin IVA
-  // devuelve CAE.
-  const esClaseC = tipoCbte === 11 || tipoCbte === 12 || tipoCbte === 13;
-
-  const subtotal = esClaseC ? total : round2(Number(invoice.subtotal));
-  const ivaImporte = esClaseC ? 0 : round2(Number(invoice.tax_amount));
-  const ivaPct = esClaseC ? 0 : (Number(invoice.tax_pct) || 0);
-
-  if (esClaseC && round2(Number(invoice.tax_amount)) > 0) {
-    // No se corta la emisión —la factura es correcta igual— pero que una C
-    // traiga IVA cargado significa que algo aguas arriba lo calculó mal.
-    console.warn(
-      `Factura ${invoice.number}: es clase C y trae IVA ${invoice.tax_amount}. ` +
-      `Se emite con ImpIVA 0, que es lo que corresponde. Revisar quién lo calculó.`,
-    );
-  }
-
-  const ivaId = esClaseC ? null : afipIvaId(ivaPct);
+  const subtotal = round2(Number(invoice.subtotal));
+  const ivaImporte = round2(Number(invoice.tax_amount));
+  const ivaBlock = invoiceIvaXml({ ...invoice, tipo_comprobante: tipoCbte });
 
   // Determine DocTipo / DocNro
   const taxId = (invoice.customer_tax_id || "").replace(/[-\s]/g, "");
@@ -935,8 +920,8 @@ async function solicitarCAE(args: {
   if (taxId.length === 11) { docTipo = 80; docNro = parseInt(taxId); } // CUIT
   else if (taxId.length === 7 || taxId.length === 8) { docTipo = 96; docNro = parseInt(taxId); } // DNI
 
-  // For Factura A (tipo 1), DocTipo must be CUIT (80)
-  if (tipoCbte === 1 && docTipo !== 80) {
+  // Class A invoices and associated debit/credit notes require CUIT (80).
+  if ([1, 2, 3].includes(tipoCbte) && docTipo !== 80) {
     throw new Error("Factura A requiere CUIT del cliente");
   }
 
@@ -944,15 +929,6 @@ async function solicitarCAE(args: {
   // Sin este campo WSFE rechaza con 10246 y no autoriza nada. 5 = consumidor
   // final, que es lo que corresponde a una venta de tienda sin datos fiscales.
   const condicionIva = Number(invoice.condicion_iva_receptor) || 5;
-
-  const ivaBlock = !esClaseC ? `
-    <ar:Iva>
-      <ar:AlicIva>
-        <ar:Id>${ivaId}</ar:Id>
-        <ar:BaseImp>${subtotal}</ar:BaseImp>
-        <ar:Importe>${ivaImporte}</ar:Importe>
-      </ar:AlicIva>
-    </ar:Iva>` : "";
 
   // ⚠️ **`FeCAEReq` envuelve a los dos bloques, y faltaba.** Sin él WSFE
   // responde «Tag <FeCAEReq> no fue ingresado» y **ninguna factura se autoriza

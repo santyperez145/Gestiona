@@ -22438,6 +22438,8 @@ export type Database = {
           id: string
           invoice_id: string
           quantity: number
+          tax_amount: number | null
+          tax_rate: number | null
           total: number
           unit_price: number
         }
@@ -22446,6 +22448,8 @@ export type Database = {
           id?: string
           invoice_id: string
           quantity?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
           total?: number
           unit_price?: number
         }
@@ -22454,6 +22458,8 @@ export type Database = {
           id?: string
           invoice_id?: string
           quantity?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
           total?: number
           unit_price?: number
         }
@@ -39190,6 +39196,7 @@ export type Database = {
           discount_applied: boolean
           ecommerce_order_id: string | null
           first_installment_date: string | null
+          fiscal_tax_rate: number | null
           global_discount_ars: number | null
           id: string
           installment_amount_ars: number | null
@@ -39236,6 +39243,7 @@ export type Database = {
           discount_applied?: boolean
           ecommerce_order_id?: string | null
           first_installment_date?: string | null
+          fiscal_tax_rate?: number | null
           global_discount_ars?: number | null
           id?: string
           installment_amount_ars?: number | null
@@ -39282,6 +39290,7 @@ export type Database = {
           discount_applied?: boolean
           ecommerce_order_id?: string | null
           first_installment_date?: string | null
+          fiscal_tax_rate?: number | null
           global_discount_ars?: number | null
           id?: string
           installment_amount_ars?: number | null

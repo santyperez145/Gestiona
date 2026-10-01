@@ -56,6 +56,7 @@ los reemplaza con otro ADR.
 - [Cron](CRON.md): jobs y health.
 - [Email marketing](EMAIL_MARKETING.md): audiencia, consentimiento, baja y operación.
 - [Pagos](PAGOS.md): checkout, webhook, conciliación y refunds.
+- [Facturación](FACTURACION.md): renglones, IVA, NC, impresión y autoridad ARCA.
 - [Mercado Pago diferencial](MP_DIFERENCIAL.md): estrategia de fees, split y conciliación.
 - [Mercado Libre](MERCADOLIBRE.md): canal y sincronización.
 - [Google OAuth](GOOGLE_OAUTH_SETUP.md): configuración de acceso.

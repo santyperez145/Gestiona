@@ -8,6 +8,7 @@ import {
   printableArcaQrUrl,
 } from "@/lib/arcaInvoice";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { invoiceIvaGroups, invoiceDisplayLines } from "../../supabase/functions/_shared/invoiceIva";
 import {
   posDebeIntentarAutorizar,
   posParseFacturarResult,
@@ -19,6 +20,8 @@ export type FiscalTicketItem = {
   quantity: number;
   unit_price: number;
   total: number;
+  tax_rate?: number | null;
+  tax_amount?: number | null;
 };
 
 export type FiscalTicketInvoice = {
@@ -145,7 +148,9 @@ export async function printFiscalInvoiceTicket(
   if (!popup) throw new Error("Permití las ventanas emergentes para imprimir la factura.");
 
   try {
-    const items = invoice.invoice_items ?? [];
+    const groups = invoiceIvaGroups(invoice);
+    const items = invoiceDisplayLines(invoice);
+    const discriminatesVat = [1, 2, 3].includes(Number(invoice.tipo_comprobante));
     const documentType = invoice.tipo_comprobante ? DOCUMENT_TYPE[invoice.tipo_comprobante] : null;
     const qrUrl = printableArcaQrUrl(invoice);
     const authorized = Boolean(qrUrl);
@@ -153,7 +158,7 @@ export async function printFiscalInvoiceTicket(
     const itemHeight = items.reduce((height, item) => (
       height + Math.max(1, Math.ceil(String(item.description || "Producto").length / 34)) * 3.2 + 4
     ), 0);
-    const estimatedHeight = Math.max(170, 122 + itemHeight + (qrUrl ? 45 : 15) + (associated ? 18 : 0));
+    const estimatedHeight = Math.max(170, 122 + itemHeight + (qrUrl ? 45 : 15) + (associated ? 18 : 0) + groups.length * 4);
     const doc = new jsPDF({ unit: "mm", format: [80, estimatedHeight], orientation: "portrait" });
     const width = 80;
     const left = 4;
@@ -225,9 +230,9 @@ export async function printFiscalInvoiceTicket(
       y += 4;
     }
     rule();
-    row("Subtotal", money(invoice.subtotal));
-    if (invoice.tipo_comprobante === 1 && Number(invoice.tax_amount) > 0) {
-      row(`IVA ${Number(invoice.tax_pct) || 0}%`, money(invoice.tax_amount));
+    row("Subtotal", money(discriminatesVat ? invoice.subtotal : invoice.total));
+    if (discriminatesVat) {
+      for (const group of groups) row(`IVA ${group.rate}%`, money(group.amount));
     }
     row("TOTAL", money(invoice.total), true);
     rule();
