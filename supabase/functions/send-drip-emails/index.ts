@@ -4,10 +4,10 @@
  * Runs every 30 minutes. For each active enrollment where next_send_at <= now():
  *   1. Skip if recipient is on the org's suppression list
  *   2. Load the current step's subject + body_html
- *   3. Generate fresh unsubscribe token (90-day expiry)
+ *   3. Reuse a persisted unsubscribe token (90-day expiry)
  *   4. Substitute template variables ({{name}} and {name} both supported)
  *   5. Append unsubscribe footer + set List-Unsubscribe headers
- *   6. Send via SMTP → Resend fallback
+ *   6. Send via the explicitly configured provider
  *   7. Log send result. Only advance enrollment on success (idempotent retry)
  *   8. On final step → mark completed; else schedule next step
  *
@@ -28,59 +28,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion, type EmailPayload } from "../_shared/smtpSender.ts";
+import { applyMarketingTemplate, withMarketingUnsubscribe } from "../_shared/marketingEmail.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY       = Deno.env.get("RESEND_API_KEY") ?? "";
-const PUBLIC_BASE_URL      = Deno.env.get("PUBLIC_BASE_URL") ?? SUPABASE_URL;
+const UNSUBSCRIBE_BASE_URL = SUPABASE_URL.replace(/\/+$/, "");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-/** Generate a URL-safe random token (32 chars hex). */
-function generateToken(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/** Apply template variables — supports both {{var}} and {var} syntax. */
-function applyTemplate(template: string, vars: Record<string, string>): string {
-  let out = template;
-  for (const [key, value] of Object.entries(vars)) {
-    const safe = String(value ?? "");
-    // {{key}}
-    out = out.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "gi"), safe);
-    // {key}
-    out = out.replace(new RegExp(`(?<![{])\\{\\s*${key}\\s*\\}(?![}])`, "gi"), safe);
-  }
-  return out;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
-  })[character] ?? character);
-}
-
-/** Wrap the body HTML with an unsubscribe footer. */
-function withUnsubscribeFooter(html: string, unsubscribeUrl: string, businessName: string): string {
-  const footer = `
-<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8;text-align:center;font-family:-apple-system,sans-serif;line-height:1.5">
-  <p style="margin:0 0 6px">Recibís este email porque aceptaste novedades de ${escapeHtml(businessName)}.</p>
-  <p style="margin:0"><a href="${unsubscribeUrl}" style="color:#64748b;text-decoration:underline">Cancelar suscripción</a></p>
-</div>`.trim();
-  // If body already contains </body>, inject before it; otherwise append
-  if (/<\/body>/i.test(html)) {
-    return html.replace(/<\/body>/i, `${footer}</body>`);
-  }
-  return html + footer;
-}
 
 // ─── Main handler ───────────────────────────────────────────────────────────
 
@@ -127,6 +86,7 @@ Deno.serve(async (req) => {
         // deno-lint-ignore no-explicit-any
         const seq: any = enrollment.drip_sequences;
         if (!seq?.active) { skipped++; continue; }
+        if (seq.org_id !== enrollment.org_id) throw new Error("La secuencia no pertenece a la organización");
 
         // Suppression check
         const { data: eligible, error: eligibilityError } = await sb.rpc("marketing_email_eligible", {
@@ -174,15 +134,11 @@ Deno.serve(async (req) => {
         const smtpCfg = await smtpDeOrganizacion(enrollment.org_id);
         const businessName: string = settings?.business_name || "Nerqia";
 
-        // 3. Generate unsubscribe token
-        const unsubToken = generateToken();
-        const { error: tokenErr } = await sb.from("drip_unsubscribe_tokens").insert({
-          token: unsubToken,
-          enrollment_id: enrollment.id,
-          org_id: enrollment.org_id,
-          customer_email: enrollment.customer_email,
+        // Stable links keep the payload identical on a provider retry.
+        const { data: unsubToken, error: tokenErr } = await sb.rpc("drip_unsubscribe_token", {
+          p_enrollment_id: enrollment.id,
         });
-        if (tokenErr) {
+        if (tokenErr || !unsubToken) {
           console.error("Unsubscribe token insert failed:", tokenErr);
           // Fall through — sending without unsubscribe is illegal; we abort
           await sb.from("drip_send_log").insert({
@@ -193,7 +149,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const unsubscribeUrl = `${PUBLIC_BASE_URL}/functions/v1/drip-unsubscribe?token=${unsubToken}`;
+        const unsubscribeUrl = `${UNSUBSCRIBE_BASE_URL}/functions/v1/drip-unsubscribe?token=${encodeURIComponent(unsubToken)}`;
 
         // 4. Apply template variables
         const vars = {
@@ -205,16 +161,9 @@ Deno.serve(async (req) => {
           step:            String(nextStepIdx + 1),
           unsubscribe_url: unsubscribeUrl,
         };
-        const subject = applyTemplate(step.subject as string, vars).replace(/[\r\n]/g, " ");
-        const bodyRaw = applyTemplate(step.body_html as string, {
-          ...vars,
-          name: escapeHtml(vars.name),
-          nombre: escapeHtml(vars.nombre),
-          business: escapeHtml(vars.business),
-          negocio: escapeHtml(vars.negocio),
-          sequence: escapeHtml(vars.sequence),
-        });
-        const bodyWithFooter = withUnsubscribeFooter(bodyRaw, unsubscribeUrl, businessName);
+        const subject = applyMarketingTemplate(step.subject as string, vars).replace(/[\r\n]/g, " ").slice(0, 180);
+        const bodyRaw = applyMarketingTemplate(step.body_html as string, vars, true);
+        const bodyWithFooter = withMarketingUnsubscribe(bodyRaw, unsubscribeUrl, businessName);
 
         // 5. Send
         const payload: EmailPayload = {

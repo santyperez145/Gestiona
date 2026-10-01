@@ -34,7 +34,8 @@ describe("baja uno-clic de campañas", () => {
     expect(safety).toContain("CREATE UNIQUE INDEX IF NOT EXISTS email_campaign_unsubscribe_pair_uidx");
     expect(safety).toContain("ON CONFLICT (campaign_id, email) DO UPDATE");
     expect(sender).toContain('rpc("campaign_unsubscribe_token"');
-    expect(sender).toMatch(/replace\(\/\\{\\{unsubscribe_url\\}\\}\/gi/);
+    expect(sender).toContain("unsubscribe_url: urlBaja");
+    expect(sender).toContain("withMarketingUnsubscribe(");
     const tokenIdx = sender.indexOf('rpc("campaign_unsubscribe_token"');
     const sendIdx = sender.indexOf("const result = await sendEmail(", tokenIdx);
     expect(tokenIdx).toBeGreaterThan(-1);

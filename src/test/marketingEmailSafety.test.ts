@@ -13,6 +13,7 @@ const ui = read("src/pages/EmailCampaignsPage.tsx");
 const deployPs = read("scripts/deploy-functions.ps1");
 const deploySh = read("scripts/deploy-functions.sh");
 const config = read("supabase/config.toml");
+const dripMigration = read("supabase/migrations/20261001000000_drip_stable_unsubscribe.sql");
 
 describe("seguridad de email marketing", () => {
   it("retira el envío diario sembrado sin reintroducirlo en nuevas organizaciones", () => {
@@ -63,9 +64,25 @@ describe("seguridad de email marketing", () => {
     expect(campaign).toContain('.from("email_unsubscribes")');
     expect(campaign).toContain('.from("email_suppressions")');
     expect(drip).toContain('rpc("marketing_email_eligible"');
+    const loop = campaign.slice(campaign.indexOf("for (let i = 0; i < allowed.length; i++)"));
+    expect(loop.indexOf('rpc("marketing_email_eligible"')).toBeLessThan(loop.indexOf("await sendEmail("));
+    expect(loop).toContain("if (eligible !== true) { skipped++; continue; }");
     expect(drip).toContain("if (eligibilityError) throw eligibilityError");
     expect(smtp).toContain('headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"');
     expect(smtp).toContain('"List-Unsubscribe-Post": "List-Unsubscribe=One-Click"');
+  });
+
+  it("las secuencias conservan los enlaces de baja y apuntan a la función real", () => {
+    expect(drip).toContain('rpc("drip_unsubscribe_token"');
+    expect(drip).not.toContain("generateToken()");
+    expect(drip).not.toContain('Deno.env.get("PUBLIC_BASE_URL")');
+    expect(drip).toContain("${UNSUBSCRIBE_BASE_URL}/functions/v1/drip-unsubscribe");
+    expect(drip).toContain("seq.org_id !== enrollment.org_id");
+    expect(dripMigration).toContain("FOR UPDATE");
+    expect(dripMigration).toContain("RETURN v_token.token");
+    expect(dripMigration).toContain("FROM PUBLIC, anon, authenticated");
+    expect(dripMigration).toContain("TO service_role");
+    expect(dripMigration).not.toContain("DELETE FROM");
   });
 
   it("el despliegue conserva la baja pública y la autenticación interna del envío", () => {

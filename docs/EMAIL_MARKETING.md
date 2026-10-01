@@ -28,6 +28,9 @@ contactar compradores se usan Campañas o Secuencias, no Automatizaciones.
    cambia un borrador a `sending`. Los reintentos no generan otro token de baja
    para el mismo par campaña/email. El token debe guardarse antes del envío;
    ante error se corta, no sale correo sin baja.
+   Las campañas revalidan consentimiento y supresión antes de cada mensaje.
+   Las secuencias reutilizan su token persistido bajo bloqueo de la suscripción;
+   la baja apunta a Supabase, nunca a una ruta inexistente del dominio público.
 4. Cada mensaje comercial muestra una baja visible y lleva los encabezados
    `List-Unsubscribe` y `List-Unsubscribe-Post`. GET abre confirmación sin
    efectos; POST registra la baja. Las plantillas sustituyen datos propios del
@@ -51,4 +54,11 @@ contactar compradores se usan Campañas o Secuencias, no Automatizaciones.
   local antes de campañas masivas. No convertir una compra previa en opt-in.
 
 Referencias: [guía oficial de Gmail para remitentes](https://support.google.com/mail/answer/81126),
-[encabezados personalizados de Resend](https://resend.com/changelog/custom-email-headers).
+[encabezados personalizados de Resend](https://resend.com/changelog/custom-email-headers),
+[idempotencia de Resend](https://resend.com/docs/dashboard/emails/idempotency-keys).
+La clave del proveedor dura 24 horas; no reemplaza un ledger durable ni garantiza
+reintentos idénticos si se edita el contenido entre intentos.
+
+Verificación reversible: `npx supabase db query --linked --file supabase/verificaciones/20261001_marketing_email_safety.sql`.
+Prueba tokens estables, bajas y permisos como `service_role`, `anon` y
+`authenticated`; termina en `ROLLBACK`, sin envíos reales.

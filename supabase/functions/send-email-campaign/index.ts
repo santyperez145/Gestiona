@@ -1,14 +1,11 @@
 /**
  * send-email-campaign — Sends an email marketing campaign.
  *
- * Email provider priority:
- *   1. Own SMTP  — if the organization connected its private credential
- *   2. Resend    — if RESEND_API_KEY env var is set
- *   3. Error     — no provider configured
+ * Email provider: the configured organization route, without silent fallback.
  *
  * ── La audiencia la resuelve el servidor ────────────────────────────────────
  * El navegador ya no manda `recipients` ni contenido: manda el id de la
- * campaña y opcionalmente el segmento. El servidor lee asunto y cuerpo de la
+ * campaña. El servidor lee asunto y cuerpo de la
  * fila guardada y calcula los destinatarios aplicando segmento, consentimiento
  * vigente (opt-in sin opt-out posterior) y baja explícita. El navegador no
  * decide a quién se le escribe ni qué contenido sale.
@@ -26,6 +23,7 @@ import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { emailFailure } from "../_shared/emailErrors.ts";
 import { mensajeDeError } from "../_shared/errorMessage.ts";
 import { esLlamadaDeCron } from "../_shared/cronAuth.ts";
+import { applyMarketingTemplate, withMarketingUnsubscribe } from "../_shared/marketingEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,22 +32,6 @@ const corsHeaders = {
 
 interface Recipient { email: string; name: string; }
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
-  })[character] ?? character);
-}
-
-function withUnsubscribe(html: string, url: string): string {
-  const hasLinkPlaceholder = /href\s*=\s*["']\{\{unsubscribe_url\}\}["']/i.test(html);
-  const personalized = html.replace(/\{\{unsubscribe_url\}\}/gi, url);
-  if (hasLinkPlaceholder) return personalized;
-  const footer = `<p style="margin-top:24px;padding-top:16px;border-top:1px solid #ddd;font-size:12px"><a href="${url}">Cancelar suscripción</a></p>`;
-  return /<\/body>/i.test(personalized)
-    ? personalized.replace(/<\/body>/i, `${footer}</body>`)
-    : personalized + footer;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -90,7 +72,7 @@ Deno.serve(async (req) => {
 
   let claimedCampaignId: string | null = null;
   try {
-    // El navegador sólo propone: id de campaña y segmento. `recipients`,
+    // El navegador sólo propone: id de campaña. `recipients`,
     // `subject` y `bodyHtml` dejaron de ser input — salen de la fila guardada.
     const { campaignId, testOnly } = await req.json() as {
       campaignId: string;
@@ -153,10 +135,10 @@ Deno.serve(async (req) => {
         resendFrom,
         {
           to: testEmail,
-          subject: `[PRUEBA] ${subject.replace(/\{\{nombre\}\}/gi, "Cliente").slice(0, 170)}`,
-          html: bodyHtml
-            .replace(/\{\{nombre\}\}/gi, "Cliente")
-            .replace(/\{\{unsubscribe_url\}\}/gi, "#vista-previa-de-baja"),
+          subject: `[PRUEBA] ${applyMarketingTemplate(subject, { nombre: "Cliente", name: "Cliente" }).replace(/[\r\n]/g, " ").slice(0, 170)}`,
+          html: applyMarketingTemplate(bodyHtml, {
+            nombre: "Cliente", name: "Cliente", unsubscribe_url: "#vista-previa-de-baja",
+          }, true),
         },
         { campaign_id: campaignId, org_id: orgId, message_type: "campaign_test" },
       );
@@ -275,6 +257,7 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     let failed = 0;
+    let skipped = 0;
     let firstFailure: Awaited<ReturnType<typeof sendEmail>> | null = null;
 
     // ── Baja uno-clic (CAN-SPAM / RFC 8058) ────────────────────────────────
@@ -289,6 +272,12 @@ Deno.serve(async (req) => {
     // evita 429 y la clave idempotente hace seguro reintentar la campaña.
     for (let i = 0; i < allowed.length; i++) {
       const recipient = allowed[i];
+      // A recipient may opt out while a campaign is being dispatched.
+      const { data: eligible, error: eligibilityError } = await supabase.rpc("marketing_email_eligible", {
+        p_org_id: orgId, p_email: recipient.email,
+      });
+      if (eligibilityError) throw eligibilityError;
+      if (eligible !== true) { skipped++; continue; }
       const firstName = recipient.name.split(" ")[0].replace(/[\r\n]/g, "");
       const { data: tokenBaja, error: tokenError } = await supabase.rpc("campaign_unsubscribe_token", {
         p_campaign_id: campaignId,
@@ -296,10 +285,10 @@ Deno.serve(async (req) => {
       });
       if (tokenError || !tokenBaja) throw tokenError ?? new Error("No se pudo crear el enlace de baja");
       const urlBaja = `${baseBaja}?token=${encodeURIComponent(tokenBaja)}`;
-      const personalizedHtml = withUnsubscribe(
-        bodyHtml.replace(/\{\{nombre\}\}/gi, escapeHtml(firstName)), urlBaja,
+      const personalizedHtml = withMarketingUnsubscribe(
+        applyMarketingTemplate(bodyHtml, { nombre: firstName, name: firstName, unsubscribe_url: urlBaja }, true), urlBaja,
       );
-      const personalizedSubject = subject.replace(/\{\{nombre\}\}/gi, firstName).replace(/[\r\n]/g, " ").slice(0, 180);
+      const personalizedSubject = applyMarketingTemplate(subject, { nombre: firstName, name: firstName }).replace(/[\r\n]/g, " ").slice(0, 180);
       const result = await sendEmail(
         smtpCfg,
         resendKey,
@@ -337,6 +326,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       sent,
       failed,
+      skipped,
       audience: allowed.length,
       ...(firstFailure ? { warning: emailFailure(firstFailure, "merchant", "send-email-campaign-partial") } : {}),
     }), {

@@ -182,7 +182,7 @@ contrato de errores por audiencia e idempotencia API/SMTP con ledger firmado de
 entrega/rebote/queja; quedan activar Auth SMTP, secreto del webhook y la
 certificación real. Identidad exige reautenticación al cambiar contraseña; falta certificarlo con Auth SMTP.
 
-**Email marketing (2026-09-30):** envío heredado de las 08:00 pausado; campañas y secuencias exigen consentimiento y baja. Certificación real pendiente. [Contrato operativo](docs/EMAIL_MARKETING.md).
+**Email marketing (2026-10-01):** envío de las 08:00 retirado; baja estable, personalización segura y consentimiento revalidado antes del despacho. Entrega real por certificar. [Contrato operativo](docs/EMAIL_MARKETING.md).
 Billing mantiene Mercado Pago como único proveedor con webhook firmado; el portal Stripe heredado responde como retirado.
 
 ### Experiencia y rendimiento
