@@ -32,6 +32,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import SupportWorkspace from "@/components/support/SupportWorkspace";
 
 import { plural } from "@/lib/plural";
+import { roleLabel } from "@/lib/roleLabels";
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface OrgRow {
@@ -1298,11 +1299,11 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                       </label>
                       {u.isPlatformAdmin && (
                         <Select value={u.platformRole || 'support'} onValueChange={(v) => handleSetPlatformRole(u, v)}>
-                          <SelectTrigger className="h-6 w-[96px] text-[10px]"><SelectValue /></SelectTrigger>
+                          <SelectTrigger aria-label={`Rol de plataforma de ${u.name || u.email}`} className="h-6 w-40 text-[10px]"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="support">Soporte</SelectItem>
-                            <SelectItem value="finance">Finanzas</SelectItem>
-                            <SelectItem value="superadmin">Superadmin</SelectItem>
+                            <SelectItem value="support">{roleLabel("support")}</SelectItem>
+                            <SelectItem value="finance">{roleLabel("finance")}</SelectItem>
+                            <SelectItem value="superadmin">{roleLabel("superadmin")}</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -1381,13 +1382,13 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                                 value={u.platformRole || 'support'}
                                 onValueChange={(v) => handleSetPlatformRole(u, v)}
                               >
-                                <SelectTrigger className="h-7 w-[110px] text-[11px]">
+                                <SelectTrigger aria-label={`Rol de plataforma de ${u.name || u.email}`} className="h-7 w-44 text-[11px]">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="support">Soporte</SelectItem>
-                                  <SelectItem value="finance">Finanzas</SelectItem>
-                                  <SelectItem value="superadmin">Superadmin</SelectItem>
+                                  <SelectItem value="support">{roleLabel("support")}</SelectItem>
+                                  <SelectItem value="finance">{roleLabel("finance")}</SelectItem>
+                                  <SelectItem value="superadmin">{roleLabel("superadmin")}</SelectItem>
                                 </SelectContent>
                               </Select>
                             )}
@@ -1621,14 +1622,14 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                             value={m.role}
                             onValueChange={(v) => handleUpdateMemberRole(selectedOrg.id, m.user_id, v)}
                           >
-                            <SelectTrigger className="h-7 w-24 text-[10px] shrink-0">
+                            <SelectTrigger aria-label={`Rol de ${m.name || m.email}`} className="h-7 w-32 text-[10px] shrink-0">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="owner">Owner</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="vendedor">Vendedor</SelectItem>
-                              <SelectItem value="viewer">Viewer</SelectItem>
+                              <SelectItem value="owner">{roleLabel("owner")}</SelectItem>
+                              <SelectItem value="admin">{roleLabel("admin")}</SelectItem>
+                              <SelectItem value="vendedor">{roleLabel("vendedor")}</SelectItem>
+                              <SelectItem value="viewer">{roleLabel("viewer")}</SelectItem>
                             </SelectContent>
                           </Select>
                           {m.role !== 'owner' && (

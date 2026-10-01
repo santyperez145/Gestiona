@@ -893,9 +893,9 @@ function CreatorPortalContent() {
             </div>
             {payoutDestinations.length > 0 && (
               <div className="space-y-1.5">
-                <Label>Destino de cobro</Label>
+                <Label htmlFor="withdrawal-destination">Destino de cobro</Label>
                 <Select value={destinoId} onValueChange={setDestinoId}>
-                  <SelectTrigger><SelectValue placeholder="Elegí un destino" /></SelectTrigger>
+                  <SelectTrigger id="withdrawal-destination"><SelectValue placeholder="Elegí un destino" /></SelectTrigger>
                   <SelectContent>
                     {payoutDestinations.map(destination => (
                       <SelectItem key={destination.id} value={destination.id}>
@@ -910,7 +910,7 @@ function CreatorPortalContent() {
               <p className="text-sm font-medium">{payoutDestinations.length ? "Agregar otro destino" : "Configurá tu destino de cobro"}</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1.5">
-                  <Label>Proveedor</Label>
+                  <Label htmlFor="withdrawal-provider">Proveedor</Label>
                   <Select
                     value={nuevoDestino.provider}
                     onValueChange={(value: CreatorPayoutDestination["provider"]) => setNuevoDestino(current => ({
@@ -920,7 +920,7 @@ function CreatorPortalContent() {
                       destination_type: value === "mercadopago" ? "email" : value === "bank_transfer" ? "cbu" : "cvu",
                     }))}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="withdrawal-provider"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="mercadopago">Mercado Pago</SelectItem>
                       <SelectItem value="bank_transfer">Banco</SelectItem>
@@ -930,9 +930,9 @@ function CreatorPortalContent() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Dato requerido</Label>
+                  <Label htmlFor="withdrawal-destination-type">Dato requerido</Label>
                   <Select value={nuevoDestino.destination_type} onValueChange={(value: CreatorPayoutDestination["destination_type"]) => setNuevoDestino(current => ({ ...current, destination_type: value }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="withdrawal-destination-type"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="email">Email de cuenta</SelectItem>
                       <SelectItem value="cbu">CBU</SelectItem>
@@ -945,12 +945,12 @@ function CreatorPortalContent() {
               </div>
               {nuevoDestino.provider !== "mercadopago" && nuevoDestino.provider !== "bank_transfer" && (
                 <div className="space-y-1.5">
-                  <Label>Billetera o plataforma</Label>
+                  <Label htmlFor="withdrawal-wallet">Billetera o plataforma</Label>
                   <Select
                     value={["Ualá", "Naranja X", "Personal Pay", "Prex"].includes(nuevoDestino.provider_label) ? nuevoDestino.provider_label : "other"}
                     onValueChange={value => setNuevoDestino(current => ({ ...current, provider_label: value === "other" ? "Otra billetera" : value }))}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="withdrawal-wallet"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Ualá">Ualá</SelectItem>
                       <SelectItem value="Naranja X">Naranja X</SelectItem>

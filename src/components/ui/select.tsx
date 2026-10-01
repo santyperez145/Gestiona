@@ -14,7 +14,8 @@
 import { cn } from "@/lib/utils";
 import { ChevronDown, Check } from "lucide-react";
 import {
-  useState, useRef, useEffect, useLayoutEffect, useCallback, useId,
+  useState, useRef, useEffect, useLayoutEffect, useCallback, useId, useMemo,
+  Children, isValidElement,
   forwardRef, createContext, useContext,
 } from "react";
 import { Portal } from "@/components/ui/portal";
@@ -49,6 +50,7 @@ interface SelectItemProps {
   className?: string;
   children: React.ReactNode;
   disabled?: boolean;
+  textValue?: string;
 }
 
 interface SelectLabelProps {
@@ -66,7 +68,29 @@ interface SelectGroupProps {
 }
 
 function optionDomId(listboxId: string, value: string) {
-  return `${listboxId}-opt-${value.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+  return `${listboxId}-opt-${encodeURIComponent(value)}`;
+}
+
+function optionLabelText(children: React.ReactNode): string {
+  return Children.toArray(children).map(child => {
+    if (typeof child === "string" || typeof child === "number") return String(child);
+    if (!isValidElement<{ children?: React.ReactNode; hidden?: boolean; "aria-hidden"?: boolean | string }>(child)) return "";
+    if (child.props.hidden || child.props["aria-hidden"] === true || child.props["aria-hidden"] === "true") return "";
+    return optionLabelText(child.props.children);
+  }).join("");
+}
+
+function optionLabels(children: React.ReactNode, labels = new Map<string, string>()): Map<string, string> {
+  Children.forEach(children, child => {
+    if (!isValidElement<{ children?: React.ReactNode; value?: string; textValue?: string }>(child)) return;
+    if (child.type === SelectItem && typeof child.props.value === "string") {
+      const text = child.props.textValue ?? optionLabelText(child.props.children);
+      labels.set(child.props.value, text.replace(/\s+/g, " ").trim());
+    } else {
+      optionLabels(child.props.children, labels);
+    }
+  });
+  return labels;
 }
 
 // Context para compartir estado
@@ -81,8 +105,7 @@ interface SelectContextValue {
   highlighted: string | null;
   setHighlighted: (value: string | null) => void;
   listboxId: string;
-  registerLabel: (value: string, label: string) => void;
-  labels: Record<string, string>;
+  labels: Map<string, string>;
 }
 
 const SelectContext = createContext<SelectContextValue | null>(null);
@@ -106,7 +129,8 @@ export function Select({
   const [internalValue, setInternalValue] = useState(defaultValue || "");
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState<string | null>(null);
-  const [labels, setLabels] = useState<Record<string, string>>({});
+  // Resolve labels before the portal mounts; deriving them also drops stale context.
+  const labels = useMemo(() => optionLabels(children), [children]);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const listboxId = useId();
@@ -122,13 +146,6 @@ export function Select({
     triggerRef.current?.focus();
   };
 
-  // El registro es persistente a propósito: los items sólo están montados
-  // mientras el panel está abierto, pero SelectValue necesita la etiqueta
-  // legible también cuando está cerrado. Las etiquetas de un select son estables.
-  const registerLabel = useCallback((val: string, label: string) => {
-    setLabels(prev => (prev[val] === label ? prev : { ...prev, [val]: label }));
-  }, []);
-
   const contextValue: SelectContextValue = {
     value: currentValue || "",
     onValueChange: handleValueChange,
@@ -140,13 +157,12 @@ export function Select({
     highlighted,
     setHighlighted,
     listboxId,
-    registerLabel,
     labels,
   };
 
   return (
     <SelectContext.Provider value={contextValue}>
-      <div className="relative">{children}</div>
+      <div className="relative min-w-0">{children}</div>
     </SelectContext.Provider>
   );
 }
@@ -160,10 +176,10 @@ function enabledOptionsOf(root: HTMLElement | null): HTMLElement[] {
 
 // Trigger
 export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
-  ({ className, disabled, children, onKeyDown, onClick, ...props }, ref) => {
+  ({ className, disabled, children, onKeyDown, onClick, id, ...props }, ref) => {
     const {
       disabled: ctxDisabled, triggerRef, contentRef, open, setOpen,
-      value, onValueChange, highlighted, setHighlighted, listboxId,
+      value, onValueChange, highlighted, setHighlighted, listboxId, labels,
     } = useSelectContext();
     const isDisabled = disabled || ctxDisabled;
     const typeahead = useRef<{ buffer: string; timer: number | null }>({ buffer: "", timer: null });
@@ -196,7 +212,7 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
       state.timer = window.setTimeout(() => { state.buffer = ""; }, 600);
       const options = enabledOptionsOf(contentRef.current);
       const match = options.find(el =>
-        (el.textContent || "").trim().toLowerCase().startsWith(state.buffer),
+        (labels.get(el.getAttribute("data-value") || "") ?? el.textContent ?? "").trim().toLowerCase().startsWith(state.buffer),
       );
       if (match) {
         setHighlighted(match.getAttribute("data-value"));
@@ -225,7 +241,9 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
         case "Enter":
         case " ":
           event.preventDefault();
-          if (highlighted) onValueChange(highlighted);
+          if (highlighted && enabledOptionsOf(contentRef.current).some(el => el.getAttribute("data-value") === highlighted)) {
+            onValueChange(highlighted);
+          }
           break;
         case "Escape":
           event.preventDefault();
@@ -252,6 +270,7 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
           }
         }}
         type="button"
+        id={id ?? `${listboxId}-trigger`}
         disabled={isDisabled}
         role="combobox"
         aria-haspopup="listbox"
@@ -287,10 +306,10 @@ SelectTrigger.displayName = "SelectTrigger";
 // SelectValue: muestra la etiqueta legible del valor elegido (no el valor crudo).
 export function SelectValue({ placeholder }: SelectValueProps) {
   const { value, labels } = useSelectContext();
-  const label = value ? (labels[value] ?? value) : "";
+  const label = value ? labels.get(value) : "";
   return (
-    <span className={cn("truncate", value ? "text-foreground" : "text-muted-foreground/60")}>
-      {label || placeholder}
+    <span data-unresolved={value && !label ? "" : undefined} className={cn("min-w-0 flex-1 truncate text-left", label ? "text-foreground" : "text-muted-foreground")}>
+      {value ? label || "Selección no disponible" : placeholder}
     </span>
   );
 }
@@ -307,26 +326,31 @@ export function SelectContent({ children, className, sideOffset = 4 }: SelectCon
     const estimated = Math.min(384, contentRef.current?.offsetHeight || 240);
     const spaceBelow = window.innerHeight - rect.bottom;
     const placement: "bottom" | "top" = spaceBelow < estimated && rect.top > spaceBelow ? "top" : "bottom";
+    const width = Math.min(rect.width, Math.max(0, window.innerWidth - 16));
     setCoords({
       top: placement === "bottom" ? rect.bottom + sideOffset : rect.top - sideOffset,
-      left: rect.left,
-      width: rect.width,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+      width,
       placement,
     });
   }, [triggerRef, contentRef, sideOffset]);
 
-  // Inicializa el resaltado (valor elegido o primera opción) y ancla el panel.
+  // Keep the active descendant valid as async options change while open.
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open) {
+      if (highlighted !== null) setHighlighted(null);
+      return;
+    }
     reposition();
     const options = enabledOptionsOf(contentRef.current);
     const values = options.map(el => el.getAttribute("data-value") || "");
-    const initial = value && values.includes(value) ? value : values[0] ?? null;
-    setHighlighted(initial);
+    const initial = highlighted && values.includes(highlighted)
+      ? highlighted
+      : value && values.includes(value) ? value : values[0] ?? null;
+    if (highlighted !== initial) setHighlighted(initial);
     const activeEl = options.find(el => el.getAttribute("data-value") === initial);
     activeEl?.scrollIntoView?.({ block: "nearest" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, children, value, highlighted, setHighlighted, reposition, contentRef]);
 
   // Cerrar al hacer click afuera; reubicar ante scroll/resize.
   useEffect(() => {
@@ -337,17 +361,34 @@ export function SelectContent({ children, className, sideOffset = 4 }: SelectCon
       setOpen(false);
     };
     const onReflow = () => reposition();
+    // Consume Escape before a parent dialog's document capture listener.
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target) && !contentRef.current?.contains(target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
     document.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onEscape, true);
     window.addEventListener("scroll", onReflow, true);
     window.addEventListener("resize", onReflow);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onEscape, true);
       window.removeEventListener("scroll", onReflow, true);
       window.removeEventListener("resize", onReflow);
     };
   }, [open, reposition, setOpen, contentRef, triggerRef]);
 
   if (!open) return null;
+  const trigger = triggerRef.current;
+  const accessibleLabel = trigger?.getAttribute("aria-label")
+    || Array.from(trigger?.labels ?? []).map(label => label.textContent).join(" ").trim()
+    || trigger?.textContent?.trim()
+    || "Opciones";
 
   return (
     <Portal>
@@ -355,6 +396,8 @@ export function SelectContent({ children, className, sideOffset = 4 }: SelectCon
         ref={contentRef}
         id={listboxId}
         role="listbox"
+        aria-label={accessibleLabel}
+        aria-labelledby={trigger?.getAttribute("aria-labelledby") || undefined}
         aria-activedescendant={highlighted ? optionDomId(listboxId, highlighted) : undefined}
         className={cn(
           "z-50 max-h-96 overflow-y-auto rounded-[8px] border bg-card text-card-foreground shadow-xl",
@@ -368,6 +411,8 @@ export function SelectContent({ children, className, sideOffset = 4 }: SelectCon
           bottom: coords && coords.placement === "top" ? window.innerHeight - coords.top : undefined,
           left: coords?.left,
           minWidth: coords?.width,
+          maxWidth: coords ? Math.max(0, window.innerWidth - coords.left - 8) : undefined,
+          pointerEvents: "auto",
           visibility: coords ? "visible" : "hidden",
         }}
       >
@@ -379,21 +424,14 @@ export function SelectContent({ children, className, sideOffset = 4 }: SelectCon
 
 // SelectItem
 export const SelectItem = forwardRef<HTMLDivElement, SelectItemProps>(
-  ({ className, value, children, disabled = false, ...props }, ref) => {
+  ({ className, value, children, disabled = false, textValue: _textValue, ...props }, ref) => {
     const {
       value: currentValue, onValueChange, disabled: ctxDisabled,
-      highlighted, setHighlighted, listboxId, registerLabel,
+      highlighted, setHighlighted, listboxId,
     } = useSelectContext();
     const isSelected = currentValue === value;
     const isDisabled = disabled || ctxDisabled;
     const isHighlighted = highlighted === value;
-
-    // Registrar la etiqueta legible para que SelectValue no muestre el valor crudo.
-    useEffect(() => {
-      if (typeof children === "string" || typeof children === "number") {
-        registerLabel(value, String(children));
-      }
-    }, [value, children, registerLabel]);
 
     return (
       <div
@@ -426,7 +464,7 @@ export const SelectItem = forwardRef<HTMLDivElement, SelectItemProps>(
         <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
           {isSelected && <Check className="h-3.5 w-3.5" />}
         </span>
-        <span className="pl-8">{children}</span>
+        <span className="min-w-0 flex-1 break-words pl-8 [overflow-wrap:anywhere]">{children}</span>
       </div>
     );
   }

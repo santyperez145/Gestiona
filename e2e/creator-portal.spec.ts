@@ -13,7 +13,7 @@ const fixtureAccount = {
 
 // This is a synthetic, intercepted UI session, not live authentication evidence.
 // Every Supabase request is fulfilled here; no email or money can leave the test.
-async function mockCreator(page: Page, failEarnings = false) {
+async function mockCreator(page: Page, failEarnings = false, destinationLabel = 'Mercado Pago') {
   const url = process.env.VITE_SUPABASE_URL ?? 'https://hummeopatkniwkyrrhwc.supabase.co';
   const storageKey = `sb-${new URL(url).hostname.split('.')[0]}-auth-token`;
   const expires = Math.floor(Date.now() / 1000) + 3600;
@@ -36,7 +36,7 @@ async function mockCreator(page: Page, failEarnings = false) {
     else if (path === '/rest/v1/creator_accounts') result = [fixtureAccount];
     else if (path.endsWith('/creator_earnings')) result = { total_commissions_ars: 1500, total_sales_count: 3, paid_ars: 500, pending_withdrawals_ars: 0, available_ars: 1000 };
     else if (path.endsWith('/creator_exchanges')) result = [{ id: '00000000-0000-4000-8000-000000000002', org_name: 'Marca de prueba', product_name: 'Producto de prueba', quantity: 1, status: 'pendiente', exchange_type: 'canje', expected_posts: 2, actual_posts: 0, content_url: null, content_submitted_at: null, delivery_date: null, goal_notes: 'Dos publicaciones' }];
-    else if (path.endsWith('/creator_payout_destinations_list')) result = [{ id: '00000000-0000-4000-8000-000000000003', provider: 'mercadopago', provider_label: 'Mercado Pago', identifier_masked: 'z***@invalid.test', is_default: true }];
+    else if (path.endsWith('/creator_payout_destinations_list')) result = [{ id: '00000000-0000-4000-8000-000000000003', provider: 'mercadopago', provider_label: destinationLabel, identifier_masked: 'z***@invalid.test', is_default: true }];
     else if (path.endsWith('/creator_submit_exchange_content') || path.endsWith('/creator_request_withdrawal')) {
       calls.push({ name: path.split('/').at(-1), body: route.request().postDataJSON() }); result = true;
     }
@@ -96,4 +96,63 @@ test('failed source is a recoverable portal error, not false role or zero balanc
   await expect(page.getByRole('button', { name: 'Volver a intentar' })).toBeVisible();
   await expect(page.getByText('Esta cuenta no es de un creador', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Disponible', { exact: true })).toHaveCount(0);
+});
+
+test('synthetic withdrawal selectors show current labels, support keyboard and contain long names', async ({ page }, testInfo) => {
+  const label = `Cuenta de prueba ${'NombreExtendido'.repeat(18)}`;
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  const calls = await mockCreator(page, false, label);
+  await page.goto('/portal-creador?tab=ingresos');
+  await page.getByRole('button', { name: 'Retirar', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Solicitar retiro de comisiones' });
+  const destination = dialog.getByRole('combobox', { name: 'Destino de cobro', exact: true });
+  const provider = dialog.getByRole('combobox', { name: 'Proveedor', exact: true });
+  const type = dialog.getByRole('combobox', { name: 'Dato requerido', exact: true });
+  await expect(destination).toContainText(label);
+  await expect(destination).not.toContainText('00000000-0000-4000-8000-000000000003');
+  await expect(provider).toHaveText('Mercado Pago');
+  await expect(type).toHaveText('Email de cuenta');
+  await provider.press('ArrowDown');
+  await provider.press('ArrowDown');
+  await provider.press('Enter');
+  await expect(provider).toHaveText('Banco');
+  await expect(type).toHaveText('CBU');
+  await expect(provider).toBeFocused();
+  await provider.click();
+  await page.getByRole('option', { name: 'Otra billetera', exact: true }).click();
+  await expect(dialog).toBeVisible();
+  await expect(provider).toHaveText('Otra billetera');
+  await expect(type).toHaveText('CVU');
+  await expect(dialog.getByRole('combobox', { name: 'Billetera o plataforma', exact: true })).toHaveText('Otra');
+
+  const widths = testInfo.project.name === 'mobile' ? [360, 390] : [768, 1024, 1280, 1440];
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    const dialogSize = await dialog.evaluate(element => ({ width: element.clientWidth, scrollWidth: element.scrollWidth }));
+    expect(dialogSize.scrollWidth, `dialog clips content at ${width}px`).toBeLessThanOrEqual(dialogSize.width);
+    await destination.click();
+    const listbox = page.getByRole('listbox');
+    await expect(listbox).toBeVisible();
+    await expect(listbox).toHaveAttribute('aria-label', 'Destino de cobro');
+    await expect(listbox).toHaveAccessibleName('Destino de cobro');
+    await expect(listbox.getByRole('option', { selected: true })).toContainText(label);
+    const bounds = await listbox.boundingBox();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width, `listbox overflows at ${width}px`).toBeLessThanOrEqual(width);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    if (width === widths[0]) {
+      await page.screenshot({ path: testInfo.outputPath(`withdrawal-select-${width}.png`), fullPage: true });
+      const menuViolations = (await new AxeBuilder({ page }).include('[role="listbox"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations
+        .filter(item => ['critical', 'serious'].includes(item.impact));
+      expect(menuViolations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) }))).toEqual([]);
+    }
+    await destination.press('Escape');
+    await expect(destination).toBeFocused();
+  }
+  const violations = (await new AxeBuilder({ page }).include('[role="dialog"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations
+    .filter(item => ['critical', 'serious'].includes(item.impact));
+  expect(violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) }))).toEqual([]);
+  await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  expect(calls).toEqual([]);
+  expect(errors).toEqual([]);
 });

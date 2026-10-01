@@ -25,7 +25,7 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof Primitive.Content
     <DialogPortal>
       <DialogOverlay className={overlayClassName} />
       <Primitive.Content ref={ref} className={cn(
-        'fixed left-1/2 top-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-lg border border-border bg-card p-6 text-card-foreground shadow-xl focus:outline-none',
+        'fixed left-1/2 top-1/2 z-50 grid grid-cols-1 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-lg border border-border bg-card p-6 text-card-foreground shadow-xl focus:outline-none',
         sizes[size], className,
       )} {...props}>
         {children}

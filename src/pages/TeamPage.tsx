@@ -241,13 +241,13 @@ export default function TeamPage() {
               <Input id="email" type="email" placeholder="persona@email.com" value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div className="md:w-48">
-              <Label className="text-xs">Rol</Label>
+              <Label htmlFor="invitation-role" className="text-xs">Rol</Label>
               <Select value={role} onValueChange={(v) => setRole(v as OrgRole)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="invitation-role"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="vendedor">Vendedor</SelectItem>
-                  <SelectItem value="viewer">Solo lectura</SelectItem>
+                  <SelectItem value="admin">{roleLabel("admin")}</SelectItem>
+                  <SelectItem value="vendedor">{roleLabel("vendedor")}</SelectItem>
+                  <SelectItem value="viewer">{roleLabel("viewer")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -271,7 +271,7 @@ export default function TeamPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate flex items-center gap-2">
-                      {m.display_name || m.user_id.slice(0, 8)}
+                      {m.display_name || "Miembro sin nombre"}
                       {m.role === 'owner' && <Crown className="w-3.5 h-3.5 text-primary" />}
                     </div>
                     <div className="text-xs text-muted-foreground">Desde {new Date(m.joined_at).toLocaleDateString('es-AR')}</div>
@@ -280,11 +280,11 @@ export default function TeamPage() {
                 <div className="flex items-center gap-2">
                   {canManage && m.role !== 'owner' ? (
                     <Select value={m.role} onValueChange={v => updateRole(m.id, v as OrgRole)}>
-                      <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger aria-label={`Rol de ${m.display_name || "miembro sin nombre"}`} className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="vendedor">Vendedor</SelectItem>
-                        <SelectItem value="viewer">Solo lectura</SelectItem>
+                        <SelectItem value="admin">{roleLabel("admin")}</SelectItem>
+                        <SelectItem value="vendedor">{roleLabel("vendedor")}</SelectItem>
+                        <SelectItem value="viewer">{roleLabel("viewer")}</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (

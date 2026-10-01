@@ -112,10 +112,15 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-01: `npm run verify` pasa 3.428 tests en 395
+- Validación local del 2026-10-01: `npm run verify` pasa 3.449 tests en 395
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
+- Select compartido: etiquetas iniciales/compuestas y asíncronas, cambios de
+  contexto, opciones retiradas/deshabilitadas, foco y Escape dentro de modales.
+  28 pruebas de componente; retiro sintético con teclado/mouse, Axe y nombres
+  largos en 360/390/768/1024/1280/1440 px. Critical E2E comprueba también la
+  etiqueta inicial de tienda y sucursal; no cambia roles ni mueve dinero.
 - Auditoría de seguridad del 2026-10-01: 15 contratos de funciones expuestas
   pendientes de revisar; no se silencian para mostrar cero.
 - `npm run verify` unifica funciones, documentación, lint, TypeScript real,

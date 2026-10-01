@@ -27,6 +27,19 @@ if (faltanCredenciales && process.env.E2E_REQUIRE_AUTH === "true") {
 test.skip(faltanCredenciales,
   "Definí E2E_USER y E2E_PASSWORD para probar el panel");
 
+async function assertInitialSelectedLabel(page: Page, name: string) {
+  const trigger = page.getByRole("combobox", { name, exact: true });
+  await expect(trigger).toBeVisible();
+  await expect(trigger).not.toHaveText(/Selección no disponible|Elegir (tienda|sucursal)/);
+  await expect(trigger).not.toHaveText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  const initialLabel = (await trigger.innerText()).trim();
+  await trigger.click();
+  await expect(page.getByRole("listbox").getByRole("option", { selected: true })).toHaveText(initialLabel);
+  await trigger.press("Escape");
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toHaveText(initialLabel);
+}
+
 test.describe("dashboard", () => {
   test("cada tab por hash muestra sus datos y oculta sólo las otras vistas", async ({ page }) => {
     await page.goto("/#dashboard-sales");
@@ -62,6 +75,8 @@ test.describe("tienda e-commerce", () => {
     // Si la sesión no viajó, la app manda al login y no hay nada que probar.
     await expect(page.getByRole("heading", { level: 1, name: "Tienda online", exact: true })).toBeVisible();
     const tabs = page.getByRole("tablist", { name: "Configuración de la tienda" });
+    await expect(tabs).toBeVisible();
+    await assertInitialSelectedLabel(page, "Elegir tienda");
 
     for (const pestaña of [
       "Publicar",
@@ -259,6 +274,9 @@ test.describe("POS", () => {
       page.getByRole("link", { name: /Gestionar turno/ }).first()
         .or(page.getByText("Caja todavía no tiene una sucursal", { exact: true })),
     ).toBeVisible();
+    if (await page.getByRole("combobox", { name: "Sucursal del punto de venta" }).isVisible()) {
+      await assertInitialSelectedLabel(page, "Sucursal del punto de venta");
+    }
     expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
   });
 

@@ -102,6 +102,14 @@ refrescan todas las métricas dependientes con un único criterio civil inclusiv
 El período que se ve en el control es exactamente el período de las tarjetas,
 tablas y gráficos, también para fechas sin hora y zona argentina.
 
+El Select compartido muestra nombres desde la primera carga, no IDs ni códigos.
+Las etiquetas compuestas y las opciones asíncronas conservan el valor original;
+una selección ausente se declara no disponible, sin elegir otra automáticamente.
+Etiquetas opacas usan `textValue`. El menú conserva un descendiente activo válido,
+admite nombres largos sin overflow y consume Escape antes del modal padre.
+Los modales mantienen una columna con mínimo cero para no recortar el formulario.
+Equipo y Platform reutilizan los mismos nombres de roles, sin modificar permisos.
+
 ## 5. Arquitectura de información objetivo de Finance
 
 Finance usa el lenguaje de Mendel como referencia de trabajo y el de Nerqia
