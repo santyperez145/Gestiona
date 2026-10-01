@@ -4,11 +4,17 @@ Este archivo es la autoridad de trabajo para cualquier persona o proceso que
 modifique el repositorio. Centraliza las reglas para evitar versiones
 divergentes.
 
+**Revisión:** 2026-10-01. **Owner:** Ingeniería.
+
 ## Misión
 
 Nerqia es un Commerce Operating System. La tienda es la puerta; el Business
 Graph es la ventaja. Commerce, POS, Mercado Libre, WhatsApp, Pay y Finance
 comparten productos, stock, clientes, costos, órdenes, cobros y margen.
+Profit se construye primero sobre ese margen; Growth reutiliza CRM y marketing.
+Son productos fuera de Finance y comparten Graph, identidad, builders y runtime.
+Contratos aprobados no equivalen a superficies listas; ver
+[ADR 004](docs/ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md).
 
 Documentos de entrada:
 
@@ -62,6 +68,10 @@ los últimos nombres de `supabase/migrations`.
   una ruta canónica y una autoridad.
 - Comparaciones con terceros llevan fuente oficial y fecha. Lo no verificado se
   marca como hipótesis.
+- No clonar customer stores, analytics, ledger, builders, integraciones o motores
+  de automatización. Subdominios/servicios separados exigen un gate medido.
+- Distinguir planeado, implementado, verificado internamente, certificado y
+  adoptado. SQL con rollback y red interceptada no prueban operación externa.
 - Los pushes son automáticos al cerrar cada slice; cada push dispara producción
   en Vercel.
 
@@ -190,20 +200,26 @@ seguir con el roadmap.
 Antes de cada commit:
 
 ```bash
-NODE_OPTIONS=--max-old-space-size=6144 npm run typecheck
-NODE_OPTIONS=--max-old-space-size=6144 npm run lint
-NODE_OPTIONS=--max-old-space-size=6144 npm test
-NODE_OPTIONS=--max-old-space-size=6144 npm run build
-git diff --check
+npm run verify
 ```
 
 No usar `npx tsc --noEmit`: el `tsconfig.json` raíz tiene `files: []`.
 Warnings `exhaustive-deps` conocidos no se corrigen en masa; errores de lint:
 cero.
 
+El plan compartido incluye `check:functions`, conteos/enlaces, lint, typecheck,
+build, Vitest, auditoría de dependencias desde moderate y `git diff --check`.
+CI usa `--stage=build|test|security|e2e`; no inventar una puerta más débil.
+
 Flujos usan Playwright; cálculos usan Vitest. E2E autenticado necesita
-`E2E_USER` y `E2E_PASSWORD`. El archivo `e2e/.auth/usuario.json` es secreto y
-queda ignorado.
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `E2E_STORE_SLUG`,
+`E2E_USER` y `E2E_PASSWORD`. Ejecutar `npm run verify:ci`: exige autenticación,
+falla si falta configuración y no omite el panel. La puerta técnica `verify`
+no sustituye ese E2E. `e2e/.auth/usuario.json` es secreto y queda ignorado.
+
+Verificar estado real de CI/deploy del SHA; pasar comandos locales no demuestra
+branch protection. Mientras `main` siga sin checks requeridos, reportarlo como
+gate pendiente y no afirmar que Vercel promociona sólo después de CI.
 
 Los números medidos llevan fecha o comando reproducible. Ejecutar:
 
@@ -276,14 +292,14 @@ usuario; nunca guardarla en el repo.
 
 ## Estado actual
 
-Corte técnico 2026-09-04: `main` publicado en `nerqia.app`, TypeScript y build
-verdes, lint con 0 errores/142 warnings conocidos y 2.727 tests en 297 archivos
-(`npm test`). Commerce y Pedidos cargan datos reales en sesión autenticada.
+El estado y los números reproducibles viven en [ROADMAP.md](ROADMAP.md), no
+en una segunda bitácora de esta guía. Prioridad: confiabilidad/release,
+Commerce certificado y Profit Foundation; después Finance operacional y Growth.
+La expansión Creators se pausa sin abandonar incidentes/seguridad/certificación.
 
-Prioridad inmediata: surtido/publicación multi-tienda, migración de comercio,
-estados completos de checkout y primer documento Finance real. Gates externos:
-identidad legal, conteo físico, certificaciones live de pago/logística/ARCA y
-segundo comercio.
+Los gates externos no se cierran con fixtures: documento Finance persistido,
+cobro/payout, correo, logística, ARCA y segundo merchant necesitan evidencia
+autorizada de operación. No inferir proveedor deshabilitado sólo por tablas vacías.
 
 ## Documentación
 

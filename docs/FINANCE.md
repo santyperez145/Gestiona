@@ -1,10 +1,12 @@
 # Nerqia Finance
 
-**Estado:** contrato vigente. **Corte:** 2026-09-04.
+**Estado:** contrato vigente. **Revisión:** 2026-10-01. **Owner:** Producto Finance.
 
 Finance es una superficie propia para controlar gasto empresarial. Su benchmark
 principal es Mendel; su ventaja es operar sobre el mismo Business Graph que
 Commerce y Business.
+Growth (CRM/marketing) y Profit (contribución/decisiones) quedan fuera de Finance.
+Reutilizan el Graph; Profit no crea otra contabilidad. [ADR 004](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md).
 
 ## Límite
 
@@ -27,6 +29,9 @@ No se crean copias Finance de esas entidades. Platform staff no entra sin una
 membresía real de la organización.
 
 ## Arquitectura de información
+
+Contrato objetivo, no inventario de rutas completas; el estado comprobado está
+en la matriz final. Toda ruta publicada debe tener autoridad y permiso reales.
 
 | Área | Trabajo |
 |---|---|
@@ -73,9 +78,11 @@ Estado técnico construido:
 - borradores separados de factura, compra y deuda;
 - aprobación y entrega al Core.
 
-Estado operativo pendiente: configurar proveedor privado de
-inspección/extracción y procesar un documento real completo. Hasta entonces la
-UI debe mostrar “no configurado”; no simula éxito.
+Estado operativo: el contrato de extracción y su verificación reversible están
+implementados; la certificación de un documento real persistido sigue abierta.
+La prueba SQL del 2026-09-25 usa metadata de Storage y payload preparado: no
+certifica HTTP al proveedor ni OCR real. La UI obtiene disponibilidad del servicio,
+no la infiere de tablas vacías y no simula éxito. Inspección estructural no es AV externo.
 
 ### Estados
 
@@ -193,14 +200,21 @@ Fuentes oficiales consultadas 2026-09-04:
 
 | Trabajo | Estado Nerqia | Gate siguiente |
 |---|---|---|
-| Inbox/captura | Base técnica | Documento real de punta a punta. |
-| Aprobaciones | Parcial | Política versionada y escalamiento. |
-| Presupuestos | Parcial | Comprometido/disponible y alertas. |
+| Inbox/captura | Contrato técnico verificado con fixture reversible | Original/Edge/proveedor reales y efecto aprobado en Core. |
+| Aprobaciones | Política versionada y escalamiento implementados | Configuración del negocio y solicitud real con segregación. |
+| Presupuestos | Comprometido/disponible con liberación y traza implementados | Presupuesto real, alertas y límites validados en operación. |
 | Gastos/reembolsos | Reembolso + anticipo interno cerrados | Destino cifrado, segregación, rendición/devolución y ledger; falta certificación bancaria externa. |
 | Tarjetas | Sin emisión | Feed externo y controles; partner para emitir. |
-| Conciliación | Parcial | Banco/tarjeta y export certificado. |
-| Integración contable | Parcial | Preview, lotes y no duplicación verificados. |
+| Conciliación | CSV/match/confirmación con traza implementados | Extracto real conciliado; feed bancario/tarjetas por certificar. |
+| Integración contable | Lotes del ledger, doble entrada e idempotencia verificados internamente | Export validado por responsable contable; no integración ERP genérica. |
 | Inteligencia | Base | Excepción → acción aprobada → outcome. |
+
+Evidencia agregada del 2026-10-01 en la base vinculada: 0 documentos Finance,
+0 políticas y 0 lotes contables. Reproducir con
+`supabase/verificaciones/20261001_finance_product_evidence.sql`.
+No demuestra proveedor desconfigurado; sí deja adopción sin evidencia persistida.
+Las verificaciones SQL de extracción, políticas, presupuesto, conciliación y
+export del 2026-09-25 prueban contratos con rollback, no operación externa.
 
 ## Métricas
 
@@ -216,12 +230,12 @@ Fuentes oficiales consultadas 2026-09-04:
 
 ## Próximos cierres
 
-1. Proveedor privado y primer documento real.
-2. Solicitud, política versionada y compromiso de presupuesto.
-3. **Cerrado (2026-09-29):** anticipos, rendición y devolución de sobrantes con segregación.
-4. Feed de tarjeta externa y controles preventivos.
-5. Conciliación bancaria/contable con export auditable.
-6. Acción inteligente con resultado medido.
+1. Certificar original privado → Edge/proveedor → revisión → efecto aprobado;
+   protocolo [F5.1](F5_1_PRIMER_DOCUMENTO_FINANCE_REAL.md), sin hardcodear confianza.
+2. Configurar política/presupuesto del negocio y validar solicitud real.
+3. Certificar reembolso/anticipo con evidencia bancaria y rendición/reversa.
+4. Extracto/export reales; después feed de tarjeta externa y controles preventivos.
+5. Acción inteligente con resultado medido, no mutación financiera autónoma.
 
 Cada cierre incluye RLS, estados, reversa, auditoría, tests, navegador y
 operación real. El orden global vive en [ROADMAP.md](../ROADMAP.md).

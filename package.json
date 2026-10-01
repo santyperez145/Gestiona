@@ -12,6 +12,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "verify": "node scripts/verify.mjs",
+    "verify:ci": "node scripts/verify.mjs --with-e2e",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

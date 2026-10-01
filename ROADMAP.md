@@ -1,379 +1,242 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-29. **Estado:** documento rector de producto y ejecución.
-Git conserva la historia; aquí viven el estado, decisiones y trabajo siguiente.
+**Estado:** canónico. **Revisión:** 2026-10-01. **Owner:** Producto / CTO.
+Este documento contiene decisiones activas y próximos cierres, no un diario.
+Git conserva la historia; los contratos de dominio viven en [el índice](docs/INDICE.md).
 
 ## Objetivo
 
-Llevar Nerqia a un Commerce Operating System de primer nivel: Commerce y las
-tiendas online son el núcleo visible; Business mantiene la fuente de verdad;
-Finance alcanza profundidad comparable a Mendel sin duplicar el Core; Pay,
-Automate y Platform completan la operación. Toda la experiencia debe ser
-homogénea, rápida, accesible, resistente al fraude y funcional de punta a punta.
+Commerce y las tiendas online son el núcleo de Nerqia. Business sostiene una
+fuente de verdad compartida; Finance controla gasto sin clonar Core; Profit
+explica contribución y decisiones; Growth conecta captación, ventas y retención.
+Completar trabajos verificables antes de ampliar el catálogo de módulos.
 
-Reglas de ejecución:
+La referencia competitiva es Shopify/Tiendanube/Empretienda para Commerce,
+Mendel para Finance, GoMarz para creadores, Clientify para Growth y Escalafy
+para Profit. Cada comparación lleva fuente oficial y fecha; descripción pública
+no equivale a auditoría del producto privado ni paridad demostrada.
+El [estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md) gobierna UI,
+investigación y tecnología. La marca y experiencia final son propias.
 
-- comparar capacidades con fuentes oficiales de Shopify, Tiendanube,
-  Empretienda, Mercado Libre/Mercado Pago y Mendel; traducir patrones, nunca
-  copiar marca ni interfaz;
-- una capacidad tiene una ruta, un contrato y una fuente de verdad;
-- cerrar slices pequeños con base, UI, errores, tests, navegador, documentación,
-  commit, push y deploy;
-- diferenciar implementación técnica de adopción, habilitación externa o
-  validación comercial; mantener los `.md` breves y vigentes;
-- aplicar mínimo privilegio, denegación por defecto, trazabilidad, protección
-  de abuso y revisión de dependencias en cada slice.
-- declarar una capacidad sólo con ruta alcanzable, autoridad server-side y
-  tests; mocks o clientes de RPC sin migración no cuentan como paridad.
+## 1. Decisiones de producto
 
-## 1. Tesis
+- Commerce sigue siendo la puerta comercial y prioridad operacional.
+- Profit se construye antes que Growth: aprovecha margen y costo existentes.
+- Growth y Profit son productos fuera de Finance, sobre el mismo Graph.
+- Commerce Graph es el Business Graph existente, no una segunda base.
+- Una identidad, permisos, integraciones, event bus, Automation Runtime, AI
+  Gateway y Page/Theme Engine; no motores separados por producto.
+- Las rutas actuales siguen vigentes hasta una migración funcional con aliases.
+  No se anuncian pantallas planeadas como capacidades disponibles.
+- Creators mantiene seguridad, soporte y certificación; se pausa su expansión.
+- Ads empieza con importación read-only; campañas, precios y dinero necesitan
+  autoridad, política y aprobación antes de ejecutar.
+- Comercio gratuito, standalone Profit, add-ons y Consulting son hipótesis de
+  ICP/economics. Este roadmap no cambia precios ni habilita billing.
+- Capital, emisión de tarjetas y custodia requieren partner, legal y riesgo.
+- No se reescribe el stack por reputación; separar servicios/SSR requiere SLO
+  o problema medido, owner, operación y costo de salida.
 
-> Creá tu tienda, vendé en cualquier canal y gestioná todo el negocio sin
-> cambiar de plataforma. Nerqia explica cuánto ganaste, no sólo cuánto vendiste.
+Decisión vigente: [ADR 004](docs/ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md).
+Actualiza parcialmente [ADR 002](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md);
+no revierte multitienda, dominios ni temas ya implementados.
 
-La ventaja no es tener más módulos. Es calcular margen real por operación con
-datos que normalmente viven separados: costo histórico/landed cost, comisión
-del cobro, envío, promoción, devolución e impuestos.
+## 2. Autoridades y navegación
 
-La North Star es **Active Transacting Merchants (ATM)**: organizaciones
-distintas con al menos una venta POS u orden online confirmada en los últimos
-30 días. Registros, tests, cantidad de pantallas o GMV no conciliado no son
-tracción.
+| Producto | Entrada actual / planeada | Autoridad y límite |
+|---|---|---|
+| Commerce | `/tienda-online`, `/pedidos-online`, `/tienda/:slug`, dominios | Vitrina, checkout, pedido, conversión y postventa sobre Core. |
+| Business | `/`, catálogo, POS, compras e inventario | Producto, stock, cliente, costo y operación canónicos. |
+| Finance | `/finance` | Documentos, solicitudes, políticas y control de gasto; usa obligaciones/ledger del Graph. |
+| Profit | Actual `/analytics`; `/profit` planeada | Proyecciones de contribución, cobertura y alertas; no otra contabilidad. |
+| Growth | Clientes/Marketing actuales; `/growth` planeada | Pipeline, seguimiento, audiencias y comunicación; no otro customer store. |
+| Pay | Integrado | Orquesta/reconcilia; el proveedor acredita dinero. |
+| Automate / Intelligence | Inicio e `/ia` | Señal → propuesta → aprobación → ejecución → outcome; un runtime. |
+| Platform | `/platform` | Staff con MFA y scopes; no acceso automático a organizaciones. |
 
-## 2. Arquitectura de producto
+Cada entidad conserva su ficha canónica. CRM no vuelve a Finance; analítica no
+crea un ledger. Mover navegación exige revisar permisos, deep links, búsqueda,
+URL state y consumidores, no duplicar páginas.
+Contratos: [Profit](docs/PROFIT.md), [Growth](docs/GROWTH.md),
+[Finance](docs/FINANCE.md), [Intelligence](docs/NERQIA_INTELLIGENCE.md).
 
-Un solo Business Graph es dueño de productos, variantes, categorías,
-inventario, clientes, proveedores, compras, ventas, costos, cobros y margen.
+## 3. Cómo se declara el estado
 
-| Superficie | Ruta | Responsabilidad | Límite |
-|---|---|---|---|
-| Commerce | `/tienda-online`, `/pedidos-online`, `/tienda/:slug` y `<slug>.nerqia.app` | Vitrina, checkout, pedidos, recuperación y canales. | Cada tienda personaliza experiencia; comparte el Core. |
-| Business | `/` | POS, productos, stock, clientes, compras y operación. | Autoridad operacional de la organización. |
-| Finance | `/finance` | Documentos, gastos, aprobaciones, payables y conciliación. | Producto y permisos propios; reutiliza entidades del Core. |
-| Platform | `/platform` | Merchants, billing, integraciones, soporte y riesgo. | Staff con MFA; nunca hereda acceso a organizaciones. |
-| Pay | Integrado en Commerce/POS/Finance | Orquestar y reconciliar cobros/reintegros. | No custodia dinero ni inventa acreditaciones. |
-| Automate | Inicio e Inteligencia | Hallazgo → acción revisable → resultado. | No es un chatbot ni otro Core. |
+| Estado | Evidencia mínima |
+|---|---|
+| Planeado | Contrato, owner y gate; no se vende como disponible. |
+| Implementado | Ruta/consumidor real, autoridad desplegable y estados completos. |
+| Verificado internamente | Unit/integración, roles/RLS y fixtures reversibles; alcance explícito. |
+| Certificado externamente | Proveedor/ambiente, webhook, reconciliación y evidencia autorizada. |
+| Adoptado | Merchant real completa el trabajo sin SQL; outcome observado. |
 
-Decisiones canónicas: [Commerce OS](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md),
-[Finance](docs/ADR_001_FINANCE_PRODUCT_SURFACE.md) e
-[identidad/dominio](docs/ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md). La arquitectura
-del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.md).
+Fixtures, Playwright con red interceptada y SQL con rollback prueban contratos,
+no cobran dinero, entregan correos ni acreditan adopción. Un indicador con dato
+faltante queda parcial; ausente no significa cero ni resultado conciliado.
 
-## 3. Estado actual
+## 4. Base disponible y evidencia pendiente
 
-### Commerce
+| Dominio | Base implementada / comprobación interna | Próximo gate |
+|---|---|---|
+| Commerce | Storefront, variantes, carrito/checkout canónicos, pedidos, recuperación, SEO, temas/páginas, dominios y surtido multitienda. | Pago/fulfillment externo y conversión/performance de campo. |
+| Migración | Un staging/apply transaccional; variantes, clientes, imágenes, identidad externa y redirects. | Export real Shopify + Tiendanube, reconciliación y rollback; [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
+| Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
+| Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo desde documento persistido. | ARCA A/B/C y NC, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
+| Finance | Inbox, aprobación versionada, comprometido/disponible, reembolsos/anticipos, dimensiones, conciliación CSV y export del ledger. | Documento y cierre reales; feeds de tarjetas externas y controles; [contrato](docs/FINANCE.md). |
+| Profit | `sale_margin_facts`, `sale_margin_operations`, detalle/canal, cobertura y propuestas/outcomes. | SKU/tienda, agregado reconciliado, inventario y confianza visibles; Ads después. |
+| Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
+| Creators | Portal autenticado, identidad/canjes, contratos, chat, evidencia privada y liquidación interna. | Payout acreditado, escaneo y social OAuth; expansión pausada; [contrato](docs/INFLUENCERS.md). |
+| Pay | OAuth, checkout, webhook, manual, refund, comisión y settlement idempotentes. | Certificación por proveedor/destino; cuenta cargada no garantiza rail disponible. |
+| Correo | Remitentes por propósito, baja, consentimiento, ledger de entrega e idempotencia; envío de las 08:00 retirado. | Auth SMTP/webhook y entrega/rebote/queja reales; [marketing](docs/EMAIL_MARKETING.md). |
+| Platform | MFA, alta, Merchant 360, integraciones, soporte, riesgo y billing MP firmado. | SLO, economía real y operación autorizada. |
 
-**Construido y verificado técnicamente**
-
-- landing productiva centrada en tienda online, con Gestión y Finance como
-  continuidad del mismo pedido;
-- storefront con catálogo paginado, variantes, carrito server-side, identidad
-  de comprador, checkout y orden canónica; precios, stock, descuentos, envío,
-  impuestos y comisiones recalculados en la base;
-- Mercado Pago OAuth, transferencia/efectivo, estados de pago y reintegros con
-  idempotencia; retiro, zonas/tarifas, despacho, tracking, devoluciones legales
-  y emails transaccionales;
-- SEO, sitemap, metadata, dominio propio/subdominio, temas versionados, favicon
-  por tienda y navegación SPA accesible, páginas, banners, menú, reseñas y preguntas;
-- pedidos: historial filtrado en servidor, aislamiento por vitrina, cobro
-  manual, SLA configurable por tienda y vista de atrasados;
-- recuperación: email con `recovery_email_channel_ready`, resumen medido y
-  observabilidad de salud sin exponer PII;
-- analítica first-party mínima, disclosure legal, adquisición y embudo;
-- varias vitrinas por organización con exactamente una principal: configuración,
-  dominio, páginas, menú, pedidos, recuperación, reseñas y analítica por tienda;
-  productos, stock, clientes, categorías y costos compartidos. Surtido por
-  vitrina con publicación, precio comparativo, categoría, destacado y orden
-  propios; el checkout y los endpoints SEO vuelven a resolver la vitrina en la base;
-- migrador único en Productos para Shopify, Tiendanube y planillas propias:
-  detecta origen, agrupa variantes e imágenes, conserva identidad externa,
-  mueve stock por Kardex y crea redirects por vitrina dentro de una transacción;
-- la ficha de producto conserva carga manual/pegado e incorpora búsqueda de
-  imágenes con licencia comercial server-side, permiso owner/admin, límite de
-  abuso, fuente/licencia visible y selección humana obligatoria.
-
-**Falta:** lo detallado por fila en el estudio de faltantes (sección 6): certificar
-el migrador con archivos reales, certificación live de
-pagos/envíos y métricas de campo.
-
-### Business Core
-
-**Construido:** productos polimórficos en evolución, variantes, stock por
-ubicación, Kardex, compras/recepciones, transferencias, POS, ventas, CRM,
-deudas, presupuestos, facturación, devoluciones, reportes y ledger.
-
-**Invariantes cerrados:** sólo la base mueve stock; cada movimiento de dinero
-tiene autoridad server-side; rutas/permisos salen de `routeManifest`; secretos
-no vuelven al navegador; fallas no se convierten en listas vacías.
-
-**POS offline-first (2026-09-25):** el punto de venta opera sin conexión con
-snapshot local de catálogo, `settings` y turno de caja abierto; la cola de
-ventas/movimientos generados sin red sincroniza automáticamente al recuperar
-conectividad sin duplicar ni perder operaciones.
-
-**CRM/ERP usable por cualquier comercio (2026-09-25):** detección proactiva de
-duplicados con fusión asistida de un clic, panel de salud de identidad, RFM, CLV
-proyectado y riesgo de churn en `CustomersPage`; toma física con borrador local
-(`stockCountDraft`); notificaciones consentidas del chat marca↔creador cerradas.
-
-**Facturación (2026-10-01):** manual/venta/POS/NC usan autoridades transaccionales.
-POS conserva el cobro/IVA; WSFE agrupa tasas oficiales. Commerce captura el
-detalle fiscal, descuento y envío al comprar; factura y ventas conservan tasas.
-NC parcial/final conserva saldo por tasa; cabecera y renglones se protegen al
-reservar y emitir. A4/80 mm usan precios netos o finales según clase, validan
-QR y muestran la factura asociada. Correo resuelve documentos persistidos;
-no envía factura sin CAE ni recibo sin cobro. [Contrato fiscal](docs/FACTURACION.md).
-Pendiente: revisión fiscal histórica/correcciones, IVA manual por línea, tributos reales,
-certificación ARCA A/B/C y NC, impresión física y entrega por correo.
-
-**Pendiente:** primera operación externa sin corrección SQL,
-catálogo polimórfico completo y evidencia de margen usado para decidir.
-
-### Finance
-
-Nerqia Finance tiene producto, layout, entitlement y permiso separados. Reusa
-proveedores, órdenes, gastos, obligaciones, ledger y documentos del Core.
-
-**Construido técnicamente:** superficie canónica con resumen, documentos, gastos,
-banco, flujo, resultados y libro mayor; Budget Pulse y presupuesto mensual por
-organización con permisos y auditoría; Document Inbox privado con extracción
-estructurada de proveedor aprobado (Anthropic, claude-haiku-4-5, zero data
-retention), revisión, matching, aprobación e idempotencia (F5.1 verificada E2E,
-2026-09-25); exportación contable auditada (F5.3) y conciliación bancaria con
-traza (F5.4, 2026-09-25).
+### Evidencia Finance corregida
 
 #### Contrato de paridad Mendel-class
 
-Mendel-class como benchmark significa cubrir el trabajo, no copiar su menú. El
-límite actual: F5.1 habilitada y verificada E2E (13 aserciones reversibles);
-falta volumen real del negocio; scanner AV externo pendiente (hoy política
-estructural limpia).
+Cubrir captura, políticas, presupuestos, gasto, conciliación y cierre, no copiar
+el menú. Primero tarjetas externas; emisión exige partner y certificación.
+La matriz canónica vive en [Finance](docs/FINANCE.md).
 
-| Trabajo | Estado Nerqia | Siguiente cierre |
+La verificación SQL de extracción del 2026-09-25 usa un documento de prueba,
+metadata de Storage y un payload de proveedor preparado, dentro de rollback.
+Valida transiciones y autoridad; no invoca por sí sola OCR externo ni demuestra
+el primer documento comercial persistido.
+
+Consulta agregada a la base vinculada el 2026-10-01:
+documentos Finance = 0, políticas = 0, lotes contables = 0. Reproducir con
+`supabase/verificaciones/20261001_finance_product_evidence.sql`.
+Esto no determina si un secreto/proveedor está configurado. Sí impide declarar
+adopción a partir de fixtures. El [protocolo F5.1](docs/F5_1_PRIMER_DOCUMENTO_FINANCE_REAL.md)
+sigue abierto como certificación operacional.
+
+### Calidad y release
+
+- Base publicada del 2026-10-01: 3.412 tests en 394 archivos con `npm test`;
+  24 escenarios de navegador desktop/mobile para landing, checkout entre
+  pestañas, portal sintético y privacidad del service worker. No certifican
+  pagos externos ni todos los roles del panel con una sesión real.
+- Auditoría de seguridad del 2026-10-01: 15 contratos de funciones expuestas
+  pendientes de revisar; no se silencian para mostrar cero.
+- `npm run verify` unifica funciones, documentación, lint, TypeScript real,
+  build, Vitest, dependencias y diff; CI usa el mismo plan por etapa.
+- `npm run verify:ci` agrega E2E autenticado y falla si faltan sus credenciales.
+  Suites públicas no sustituyen el flujo autenticado.
+- Consulta GitHub del 2026-10-01: `main` no protegida. Falta configurar PR y
+  checks requeridos; el auto-deploy de Vercel no depende hoy de CI completado.
+- CI de `ad64eafa` falló en Critical E2E: desborde móvil/timeouts y escenarios
+  del panel. Localmente header/seguimiento pasan; falta explicar y corregir la
+  diferencia de entorno, no relajar aserciones ni omitir el panel.
+- La aplicación no recarga automáticamente al desplegar; la caché PWA no
+  almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
+
+## 5. Orden ejecutable
+
+Un slice activo; un incidente desplaza el orden. P0 acompaña toda entrega.
+No abrir más productos mientras Commerce carezca de prueba operacional.
+
+### P0 — Seguridad, release y operación confiable
+
+1. Resolver Critical E2E remoto, proteger `main`, requerir los checks CI y definir
+   promoción/rollback: configuración real, no sólo YAML; sin cortar el deploy.
+2. Revisar funciones expuestas pendientes, permisos RPC/RLS, cron, secretos,
+   archivo/libro de migraciones y restauración reproducible.
+3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
+   honestos, alerts accionables y soporte con correlación sanitizada.
+4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con
+   evidencia autorizada; ningún simulacro mueve dinero o envía campañas.
+5. Acompañar segundo merchant: onboarding, migración, publicación, primera venta
+   y margen explicado sin intervención SQL.
+
+### P1 — Commerce completo y Profit Foundation
+
+1. Certificar migrador con archivos reales, variantes/clientes/imágenes,
+   redirects, cantidades, opt-out y reversa. No crear otro importador.
+2. Checkout → pago → fulfillment → devolución/refund: concurrencia, estados,
+   recuperación, permisos y timeline hasta conciliación externa.
+3. Mobile, búsqueda/merchandising, SEO, accesibilidad y Core Web Vitals de campo;
+   mejoras guiadas por conversión, no nuevos temas sin evidencia.
+4. Profit por orden/producto/canal: reusar hechos existentes, explicar fuentes,
+   faltantes, moneda, período y reversas; conciliar detalle contra agregado.
+5. Extender a SKU/tienda y capital en inventario con costo histórico, alertas
+   explicables y una decisión observada por merchant. Una ruta `/profit` sólo
+   aparece cuando contrato, navegación y permisos estén conectados.
+
+### P2 — Finance operacional y Growth CRM
+
+1. Finance: original privado → inspección/extracción real → revisión →
+   política/presupuesto → efecto aprobado en Core → export/reconciliación.
+   Políticas implementadas no significan políticas del negocio configuradas.
+2. Finance: reembolso/anticipo con comprobante externo; feed de tarjetas externas
+   y controles preventivos. Emisión permanece detrás del partner.
+3. Growth: consolidar clientes, empresas, contactos, deals, tareas y pipeline
+   con identidad compartida; email/teléfono no fusionan automáticamente tenants.
+4. Ordenar la navegación sin clones; lanzamiento `/growth` tras migrar
+   consumidores y probar deep links/roles. Profundidad CRM, no menús vacíos.
+
+### P3 — Marketing, runtime visual y Ads
+
+1. Inbox y consentimiento omnicanal; email/WhatsApp con auditoría, supresión,
+   entregabilidad y canal configurado. Shopify-like checkout sigue en Commerce.
+2. Landings/formularios/campañas reutilizan Page/Theme Engine; A/B conserva
+   asignación y resultado. No builder nuevo ni atribución ficticia.
+3. Runtime visual común: flujos existentes → simulación sin efectos → jobs →
+   aprobación → ejecución idempotente → verificador/outcome; shadow mode primero.
+4. Meta/Google/TikTok: importación read-only, gasto normalizado, identidad,
+   revisión y cobertura antes de permitir cualquier mutación publicitaria.
+5. Profit signal → propuesta Growth/Commerce → acción autorizada → outcome.
+   Contribution ROAS y Marketing ROI tienen break-even diferentes;
+   [fórmulas](docs/PROFIT.md), no confundir contribución con utilidad neta.
+6. MCP comparte herramientas tipadas, scopes, auditoría y límites; sin SQL libre,
+   exportación indiscriminada ni credenciales de proveedor.
+
+### Posterior — Escala bajo demanda
+
+Standalone Profit/Growth, Ship, Developers/apps, regiones, Consulting y Capital
+exigen ICP, retención, unit economics y ownership. No se crean repositorios,
+subdominios nuevos o servicios financieros sólo para completar un portfolio.
+
+## 6. Gates externos
+
+| Gate | Evidencia requerida | Owner |
 |---|---|---|
-| Inbox y captura de comprobantes | **Cerrado (F5.1, 2026-09-25)** | Volumen real del comercio. |
-| Solicitudes y aprobaciones | **Cerrado F5.2 (2026-09-25):** política versionada, escalamiento por monto/categoría y saldo comprometido del mes, verificación reversible E2E. |
-| Presupuestos y centros de costo | Parcial | Comprometido/disponible + alertas. |
-| Gastos, reembolsos y payables | Reembolso + anticipo interno cerrados | Certificación bancaria externa y payables. |
-| Conciliación y exportación contable | Export certificado | Match bancario contra extracto importado. |
-| Tarjetas y reglas preventivas | Sin emisión | Primero tarjetas externas; emitir exige partner, legal, riesgo y economics. |
-| IA operativa | Base transversal | Excepción → acción aprobada → resultado. |
-
-Detalle vigente: [Finance](docs/FINANCE.md).
-
-### Pay y Platform
-
-Pay ya modela conexión OAuth, checkout, pago manual, QR, webhook, comisión,
-settlement, refund y timeline. Faltan certificaciones live y economics con costos reales antes de escalar comisión.
-
-**Evidencia interna (2026-09-30):** `drill:payments` (16 escenarios),
-`drill:creator-settlements` (7), `drill:seller-commissions` (4) y
-`drill:wallet-withdrawals` (4) pasaron contra la base vinculada con rollback
-sin residuos. Prueban autoridad, idempotencia, reversas y ledger; no equivalen
-a un cobro, payout o retiro externo acreditado. Para cada proveedor/destino
-faltan transacción de homologación o live autorizada, webhook conciliado y
-comprobante bancario o de billetera antes de marcarlo operativo.
-
-Platform tiene shell, MFA, Merchant 360, métricas, operaciones, integraciones,
-comisiones, mensajería, anuncios, soporte y alta idempotente. El chat
-comercio–Nerqia tiene cola, responsable, prioridad, no leídos y estados
-server-side. Correo tiene dominio Resend verificado, remitentes por propósito,
-contrato de errores por audiencia e idempotencia API/SMTP con ledger firmado de
-entrega/rebote/queja; quedan activar Auth SMTP, secreto del webhook y la
-certificación real. Identidad exige reautenticación al cambiar contraseña; falta certificarlo con Auth SMTP.
-
-**Email marketing (2026-10-01):** envío de las 08:00 retirado; baja estable, personalización segura y consentimiento revalidado antes del despacho. Entrega real por certificar. [Contrato operativo](docs/EMAIL_MARKETING.md).
-Billing mantiene Mercado Pago como único proveedor con webhook firmado; el portal Stripe heredado responde como retirado.
-
-### Experiencia y rendimiento
-
-- un sistema visual claro compartido por organización, Finance y Platform;
-  storefront conserva identidad propia por tienda;
-- navegación, tabs, filtros y selección de organización/tienda persisten;
-- auditorías productivas 2026-09-05/06: 93 contextos de ruta y 70 escenarios
-  Playwright desktop/mobile aprobados; matriz viva en
-  [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md);
-- barrido público 2026-09-30: 80 escenarios Playwright desktop/mobile aprobados,
-  2 omitidos por falta de producto agotado en el catálogo actual. Incluye
-  checkout entre pestañas con todas las escrituras de prueba interceptadas,
-  contraste WCAG y ausencia de desborde móvil. No certifica cobros externos;
-- el contrato E2E cubre flujos desktop/mobile; identidad alcanza Caja, valida
-  permisos, cola offline y sincronización sin escribir en producción;
-- Automatizaciones adopta el patrón Shopify Flow (flujos nacen pausados,
-  previsualizan sin efectos, borradores atómicos idempotentes); el pago a
-  proveedor usa `record_supplier_payment` con bloqueo de deuda, tenant/permiso
-  e idempotencia transaccional;
-- rutas privadas son lazy; deploys anuncian versión sin recarga automática;
-- el dashboard conserva datos ante fallos parciales, liga widgets a la
-  organización activa y respeta rangos civiles estables sin desfase UTC;
-- el deploy productivo se verifica después de cada push tanto en la tienda
-  pública como en Commerce con una sesión autenticada.
-- saneamiento v2.0 (2026-09-29): Productos conserva un único migrador
-  transaccional (`stage_catalog_migration` → revisión →
-  `apply_catalog_migration`), Finance conserva un único Document Inbox y el SEO
-  público mantiene el mismo precio y rutas que checkout. Se retiraron prototipos
-  desconectados que duplicaban esas capacidades o invocaban RPC inexistentes.
-
-### Nerqia Intelligence
-
-Control plane separado, no un segundo Core: señales del Business Graph → plan
-estructurado → política/aprobación → herramienta server-side idempotente →
-verificación → auditoría. Precio, publicación, campañas, dinero, fiscal,
-permisos y datos sensibles nunca quedan a discreción de un prompt. Primer slice
-visible: Catalog Steward para imágenes; luego Ventas, Inventario, Margen y
-Finance en shadow mode antes de aumentar autonomía.
-
-## 4. Gates externos
-
-Estos puntos no se cierran con más código:
-
-| Gate | Evidencia requerida | Responsable |
-|---|---|---|
-| Identidad legal de la tienda | Razón social, CUIT, domicilio y páginas publicadas. | Dueño del comercio. |
-| ARCA productiva | Certificado/punto de venta y primera factura real. | Responsable fiscal. |
-| Inventario confiable | Conteo físico y ajuste trazable. | Comercio. |
-| Pago real | Aprobación, rechazo, webhook, timeout y refund observados. | Operación/proveedor. |
-| Logística real | Contrato, tarifa, etiqueta y entrega trazada. | Comercio/transportista. |
-| Segundo comercio | Onboarding, migración y primera venta sin SQL. | Founder-led sales. |
-| Finance real | Documentos aprobados/recibidos en volumen; extracción F5.1 ya habilitada y verificada E2E. | Producto/operación. |
-| Correo productivo | Activar Resend, Auth SMTP y webhook firmado; observar envío real desde `@nerqia.app`, recepción, reset/magic link/invitación, rebote, queja y supresión. | Plataforma/Resend. |
-| Monetización | Costos, comisión neta, soporte y retención medidos. | CEO/CFO. |
-
-## 5. Orden de ejecución
-
-### P0 — Confiabilidad y evidencia
-
-1. Mantener CI, RLS, autoridad de stock/dinero, cron y libro de migraciones sin
-   brechas; extender el contrato transaccional e idempotente a toda mutación
-   monetaria que aún no lo tenga.
-2. Extender ciberseguridad: RPC versionadas, roles web sin operaciones internas;
-   revisar 15 contratos de funciones expuestas (2026-10-01), inventario de
-   activos, threat model, alertas y simulacros.
-3. Completar datos legales, inventario físico y certificaciones live.
-4. Instrumentar errores, SLO, fraude y funnels sin PII innecesaria.
-5. Incorporar un segundo comercio antes de ampliar el portfolio.
-6. Convertir el barrido de rutas en contratos de acción por pantalla: lectura,
-   borrador reversible, sandbox proveedor o mutación productiva aprobada.
-
-### P1 — Commerce first-level
-
-1. **Cerrado — surtido multi-tienda:** publicación, precio visible, categoría,
-   destacado y orden por vitrina sin duplicar producto ni stock.
-2. **Migración:** C22.1 cerró catálogo, variantes, identidad y redirects; C22.2
-   debe cerrar archivos reales, clientes, copia de imágenes y rollback seguro.
-3. **Checkout:** estados separados de cart/order/payment/fulfillment, concurrencia
-   y recuperación clara.
-4. **Operación:** fulfillment por ubicación, etiquetas, devoluciones y SLA.
-5. **Storefront:** mobile, accesibilidad, performance de campo, búsqueda,
-   merchandising y conversión.
-6. **Merchant analytics:** adquisición, embudo, margen y cohortes accionables.
-7. **Prueba real:** dos tiendas, segundo comercio y primera venta completa.
-
-### P2 — Influencers y localización
-
-Prioridad: completar Influencers con referencia verificada de [GoMarz](https://www.go-marz.com/), sin clonar identidad ni pagos.
-
-- **Cerrado (2026-10-01):** portal autenticado con seis pestañas y canjes vinculados explícitamente por marca/identidad; RLS por acción, evidencia sin aprobación automática y retiro con destino propio. Se retiran cinco RPC públicas legacy; SQL reversible de roles y navegador sintético, no certificación externa.
-- **Cerrado (2026-09-29):** aceptación/entrega desde el portal creador con sesión,
-  loop de revisión (marca pide corrección → creador reentrega), destinos de cobro
-  cifrados y liquidación externa con referencia idempotente; `mp-payouts` sólo se
-  habilita con contrato comercial del proveedor; chat por colaboración y
-  notificaciones consentidas (preferencia + cola + despacho service_role).
-- **Cerrado (2026-09-29):** contratos versionados y aceptación bilateral; los
-  retiros se confirman sólo con referencia externa y generan payout, gasto y
-  asiento atómicos; se eliminó la liquidación legacy y el DML directo. La matriz prueba roles, reintentos y rollback sin residuos.
-- **Cerrado (2026-09-29):** perfil público opt-in sin PII, métricas verificadas, descubrimiento transversal, moderación superadmin y alta idempotente por marca.
-- **Cerrado (2026-09-29):** entregables privados versionados, inmutables y con retención mínima; el creador carga y la marca revisa por URL firmada sin publicar el material.
-- Siguiente: selección pública, escaneo antimalware, OAuth social y conciliación externa; no certificar resultados sin evidencia.
-- Alcance y evidencia vigentes: [Influencers](docs/INFLUENCERS.md).
-
-### P2 — Finance Mendel-class
-
-1. **Cerrado (2026-09-25):** primer documento real F5.1 con extracción habilitada
-   y verificada E2E en producción.
-2. **Cerrado (2026-09-29):** solicitud → política → presupuesto → aprobación → gasto; centro de costo, medio y origen llegan estructurados al ledger/exportación.
-3. **Cerrado internamente (2026-09-29):** reembolso y anticipo a rendir con destino cifrado, segregación, evidencia, devolución y ledger idempotente; sigue certificación bancaria.
-4. Movimientos de tarjetas externas y controles preventivos; emitir sólo con partner.
-5. Conciliación bancaria/contable y exportaciones auditables.
-
-### P3/P4 — Margin Intelligence y Escala
-
-1. Completar hechos de margen por operación/canal y priorizar hallazgos.
-2. Convertir recomendación en acción revisable y medir `AI Action Rate`.
-3. Pay/Ship, Developer Platform, apps, regionalización y Capital permanecen
-   detrás de demanda, economics, seguridad y regulación; Capital exige partner.
-
-## 6. Próximos slices
-### Estudio de faltantes por pilar (2026-09-25)
-
-Auditoría de código y docs vigentes contra el estándar competitivo. Cada fila
-cita la evidencia que falta, no la que existe.
-
-**Pilar 1 — Influencers/Marz:**
-
-| Falta | Detalle verificable |
-|---|---|
-| Chat por colaboración | **Cerrado (2026-09-25):** `influencer_campaign_messages` crea un hilo por campaña+creador con RLS propia; RPCs `campaign_chat_list`/`campaign_chat_send` con autoridad en servidor, anti-spam y hilo visible en ambos portales. |
-| Notificaciones consentidas del chat | **Cerrado (2026-09-25):** `influencer_chat_notify_prefs` (consentimiento por persona) + cola `influencer_chat_notifications` por trigger según preferencia del destinatario; despacho email/push service_role, toggle en ambos portales, verificación reversible E2E (7 aserciones) y job `campaign-chat-dispatcher` en pg_cron (c/5 min) con reintentos. |
-| Publicación verificable | **Cerrado (2026-09-25):** `influencer_publication_proofs` registra URL + captura + plataforma, con licencia de uso tipada y vencimiento obligatorio para usos pagados; RPC y portal del creador muestran la verificación. |
-| Contratos con aceptación de ambas partes | **Cerrado (2026-09-29):** `influencer_contract_versions` conserva condiciones inmutables; `influencer_contract_acceptances` registra marca y creador por versión. La aceptación funciona con sesión o token limitado, y una edición invalida la aceptación anterior. |
-| Liquidación enlazada a Finance | **Cerrado en autoridad interna (2026-09-30):** el creador elige Mercado Pago, CBU/CVU, alias u otra billetera; aprobar no mueve dinero y confirmar con referencia crea atómicamente payout, gasto y asiento. `Aprobar y pagar` prepara un único lote MP sin doble liquidación; la reversa conserva el pago y agrega ajustes compensatorios. `npm run drill:creator-settlements` prueba 7 escenarios, roles, idempotencia y cero restos. Activar dinero real sigue condicionado a contrato Payouts, secretos y certificación externa. |
-| Métricas sociales verificadas | **Cerrado por evidencia (2026-09-29):** el creador reporta período, alcance, impresiones y engagement con captura/CSV enlazado; la marca verifica o rechaza y el sello alimenta reputación y descubrimiento. OAuth directo queda como integración futura. |
-
-**Pilar 2 — Tiendas/Commerce:**
-
-| Falta | Detalle verificable |
-|---|---|
-| Certificar migrador (C22.2) | El RPC está verificado con segundo commerce; falta correrlo con 1 export real Shopify y 1 Tiendanube y documentar el resultado. |
-| Copia de imágenes a storage propio | **Cerrado (2026-09-25):** Edge `copy-product-images` descarga las URLs https externas del lote aplicado (productos y variantes), valida tipo/tamaño y las reemplaza por la URL pública de `product-images`; idempotente y con tandas de 40. |
-| Clientes en migración | **Cerrado (2026-09-25):** staging auditado con gate owner/admin, matcheo por email/teléfono argentino canónico y aplicación atómica idempotente que no pisa datos manuales ni revive el opt-out; el CSV de Clientes usa el RPC. |
-| Editor de bloques con config por bloque | **Cerrado (2026-09-25):** título propio, límite de ítems (3-12) y **colección** (slug de categoría) por bloque persistido en `storefront_layout`; la vitrina filtra Destacados/Novedades por colección y el Theme Studio lo publica versionado. |
-| Certificación live de pagos/envíos | Webhook y refund modelados; falta ciclo aprobación/rechazo/timeout/refund observado, etiqueta con transportista y métricas de campo (LCP/INP/CLS). |
-
-**Pilar 3 — Finance/Mendel:**
-
-| Falta | Detalle verificable |
-|---|---|
-| Primer documento real (F5.1) | **Cerrado (2026-09-25):** extracción en producción (claude-haiku-4-5, zero data retention); inspector `structural-policy`; verificación E2E reversible de 13 aserciones. |
-| Políticas versionadas de aprobación | **Cerrado (2026-09-25):** motor F5.2 — `finance_approval_policies` versiona reglas por categoría/centro con tope ARS y rol mínimo; la aprobación aplica la más específica, escala a owner (siempre en USD) y verifica presupuesto disponible del mes; verificación reversible E2E en producción. |
-| Presupuesto comprometido/disponible | **Cerrado (2026-09-25):** comprometido F5.2 visible en Budget Pulse (`monthly_committed_ars`), categorías que exceden al sumar aprobadas no pagadas, cancelación con traza que libera saldo al instante y foco automático de excedente. |
-| Conciliación bancaria | **Cerrado (2026-09-25):** extracto CSV idempotente por hash, matches contra asientos de banco y confirmación con traza (F5.4); sin match queda visible para revisión. |
-| Exportación contable | **Cerrado (2026-09-25):** `finance_export_batches` crea lotes desde el ledger con verificación de doble entrada, reuso idempotente y CSV para el contador (F5.3). Conciliación cerrada en fila 12 (F5.4). |
-| Tarjetas externas | Sin feed de transacciones externas ni controles preventivos; emisión exige partner (gate externo). |
-
-No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
+| Legal e inventario | Identidad fiscal/domicilio publicado y conteo físico trazable. | Merchant / responsable fiscal. |
+| Cobro y payouts | Aprobación/rechazo/timeout/refund, webhook y acreditación del destino. | Operación / proveedor. |
+| Logística | Tarifa, etiqueta y entrega trazada con contrato vigente. | Merchant / transportista. |
+| ARCA | Factura/NC autorizada y revisión de clase/IVA/documento. | Responsable fiscal. |
+| Finance | Documento persistido autorizado y efecto/cierre auditados, no fixtures. | Producto / operación. |
+| Correo | Recepción, Auth SMTP, baja, rebote, queja y webhook firmado. | Platform / proveedor. |
+| Adopción | Segundo merchant realiza primera venta sin SQL; retención y costos medidos. | Producto / ventas. |
+| Release | Branch protection + CI requerido + deploy del SHA verificado. | CTO / administrador del repo. |
+| Monetización | Ingreso neto, costo, fraude, soporte y margen medidos; tarifas autorizadas. | CEO / CFO. |
 
 ## 7. Definition of Done
 
-Una entrega está terminada cuando: tiene una sola autoridad de datos y permisos
-server-side; cubre loading, vacío, error, offline/stale, parcial y éxito; no
-traga errores ni expone secretos/PII/costos en superficies públicas; valida
-tenant, rol, input, abuso, idempotencia y auditoría según riesgo; es usable con
-teclado, lector, móvil y desktop; incluye tests proporcionales al riesgo y
-verificación contra Supabase real sin modificar datos del negocio; pasa
-`npm run typecheck`, `npm run lint`, `npm test` y `npm run build`; se prueba en
-`localhost` y en el deploy productivo; actualiza este roadmap sólo si cambia
-estado, prioridad o un gate; y queda commiteada, pusheada y `Ready` en Vercel.
+Autoridad y permisos server-side; tenant/input/abuso/idempotencia auditables;
+loading, vacío, error recuperable, offline/stale, parcial, éxito y dirty state;
+móvil/desktop/teclado; tests proporcionales; `npm run verify` verde; E2E del flujo
+y roles afectados (autenticado donde corresponda); SQL reversible sin residuos
+si toca DB; docs/index alineados; commit + push y SHA `Ready` verificado.
 
-## 8. Métricas
+Una ausencia de credenciales o contrato externo se reporta como gate pendiente,
+no prueba aprobada. Ningún test altera el negocio real sin autorización.
 
-| Capa | Métricas |
+## 8. Métricas y documentos
+
+North Star: **Active Transacting Merchants**, organizaciones con venta POS u
+orden online confirmada durante los últimos 30 días, sin contar fixtures.
+
+| Capa | Indicadores |
 |---|---|
-| Adquisición | Visitante → inicio → alta válida. |
-| Activación | Tiempo a primera publicación, ticket y orden paga. |
-| Commerce | Conversión, abandono, GMV pago, fulfillment, devolución e INP/LCP. |
-| Business | Stock confiable, margen explicado y correcciones manuales. |
-| Finance | Documentos procesados, tiempo de aprobación, excepciones y match. |
-| Automate | AI Action Rate, impacto, override y abstención. |
-| Platform | Tiempo de alta, MTTR, error rate y costo de soporte. |
-| Seguridad | Intentos bloqueados, replay, abuso, privilegios, MTTR e incidentes. |
-| Negocio | ATM, retención, ingreso neto, margen de contribución y concentración. |
+| Commerce | Activación, primera orden paga, conversión, abandono, fulfillment, refund, LCP/INP/CLS. |
+| Profit | Cobertura de ingresos/costos, margen explicable, decisiones y resultado observado. |
+| Growth | Pipeline válido, opt-in, entregabilidad, retención y contribución atribuible. |
+| Finance | Tiempo de documento/aprobación/cierre, excepciones y match conciliado. |
+| Automate | Acción útil, precisión, override, abstención, reversión y costo. |
+| Negocio / Platform | ATM, ingreso neto, retención, soporte, MTTR y concentración. |
+| Seguridad | Replay/abuso bloqueados, incidentes, exposición pendiente y recuperación. |
 
-## 9. Documentación y decisiones
-
-- [Índice](docs/INDICE.md) · [Estrategia](docs/ESTRATEGIA.md) · [Arquitectura](docs/ARQUITECTURA.md) · [Estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md)
-- [Diseño](DESIGNROADMAP.md) · [Interfaz](docs/INTERFAZ.md) · [Configuración](docs/CONFIGURACION.md) · [Cron](docs/CRON.md) · [E2E](docs/E2E.md) · [Legal](docs/LEGAL.md) · [Permisos](docs/permisos.md)
-
-Las decisiones que cambian límites de producto o datos requieren ADR. Los
-incidentes y resultados históricos se buscan con `git log`; no vuelven a crecer
-como una segunda bitácora dentro de este archivo.
+[Índice](docs/INDICE.md) · [Estrategia](docs/ESTRATEGIA.md) ·
+[Arquitectura](docs/ARQUITECTURA.md) · [Diseño](DESIGNROADMAP.md).
+Toda decisión de autoridad necesita ADR; las evidencias históricas se consultan
+en Git, no se duplican como una segunda cola en el roadmap.

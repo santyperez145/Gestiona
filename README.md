@@ -5,6 +5,10 @@ productos, stock, clientes, compras, cobros y margen desde una sola fuente de
 verdad. Commerce es la puerta de entrada; Business, Pay, Finance, Automate y
 Platform completan el sistema operativo del comercio.
 
+Profit (contribución y decisiones) y Growth (CRM/marketing) tienen contratos
+aprobados; sus superficies dedicadas están pendientes. Se construyen sobre el
+mismo Graph, fuera de Finance, empezando por Profit; no son productos terminados.
+
 Producción: [nerqia.app](https://nerqia.app)
 
 ## Producto
@@ -61,6 +65,9 @@ puede validar tiendas ni datos reales.
 
 ```bash
 npm run dev              # servidor local
+npm run verify           # puerta técnica completa y fail-fast
+npm run verify:ci        # puerta completa + E2E autenticado obligatorio
+npm run check:functions  # tipos de Edge Functions con Deno
 npm run typecheck        # TypeScript real de la aplicación
 npm run lint             # ESLint
 npm test                 # suite Vitest
@@ -73,15 +80,13 @@ npm run check:conteos    # cifras documentadas con fecha/comando
 Antes de un commit:
 
 ```bash
-NODE_OPTIONS=--max-old-space-size=6144 npm run typecheck
-NODE_OPTIONS=--max-old-space-size=6144 npm run lint
-NODE_OPTIONS=--max-old-space-size=6144 npm test
-NODE_OPTIONS=--max-old-space-size=6144 npm run build
-git diff --check
+npm run verify
 ```
 
 No usar `npx tsc --noEmit`: el `tsconfig.json` raíz contiene referencias y no
 comprueba la aplicación. El comando válido es `npm run typecheck`.
+`verify` también exige enlaces/conteos, dependencias sin vulnerabilidades
+moderadas o superiores y diff limpio. CI ejecuta el mismo plan por etapa.
 
 ## Trabajo seguro
 
@@ -123,20 +128,27 @@ revertida: primero recuperar o reconstruir el archivo correcto.
 Los specs públicos corren sin credenciales. El panel autenticado necesita:
 
 ```bash
-E2E_USER=pruebas@dominio.com
-E2E_PASSWORD=<secreto>
-npm run test:e2e:ci
+# Configurar además VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY.
+# Credenciales de una cuenta de pruebas autorizada, nunca usuarios del negocio.
+export E2E_STORE_SLUG="<tienda-de-prueba>"
+export E2E_USER="<cuenta-de-pruebas>"
+export E2E_PASSWORD="<secreto>"
+npm run verify:ci
 ```
 
 La sesión se guarda en `e2e/.auth/usuario.json`, que está ignorado. Los tests
 contra producción son de lectura; cualquier verificación que escriba debe ser
 reversible y dejar cero restos.
+`verify:ci` falla antes de ejecutar controles si falta alguna variable; no
+omite autenticación silenciosamente. `verify` no certifica por sí solo el panel.
 
 ## Deploy
 
 Cada push a `main` inicia un deploy en Vercel. El dominio canónico es
 `nerqia.app`; `www.nerqia.app` redirige al apex. Supabase usa ese origen y
 los dominios permitidos declarados en `supabase/config.toml`.
+Al 2026-10-01, GitHub informa `main` sin protección. Requerir CI/PR y coordinar
+la promoción sigue pendiente: un auto-deploy no demuestra que CI terminó verde.
 
 Las Edge Functions se publican con:
 
@@ -155,6 +167,8 @@ compruebe en producción sin mutar datos del comercio.
 - [Estrategia y benchmarks](docs/ESTRATEGIA.md)
 - [Arquitectura](docs/ARQUITECTURA.md)
 - [Finance](docs/FINANCE.md)
+- [Profit](docs/PROFIT.md)
+- [Growth](docs/GROWTH.md)
 - [Experiencia competitiva](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md)
 - [Legal](docs/LEGAL.md)
 

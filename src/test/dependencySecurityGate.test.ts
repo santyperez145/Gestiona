@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { verificationPlan } from '../../scripts/verification-plan.mjs';
 
 const root = process.cwd();
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
@@ -44,9 +45,11 @@ describe("dependencias sin alertas productivas conocidas", () => {
     ).toBe(true);
   });
 
-  it("el audit moderado es un comando reproducible y el CI conserva la foto completa", () => {
+  it("el audit moderado es bloqueante también en CI", () => {
     expect(pkg.scripts["check:dependencies"]).toBe("npm audit --audit-level=moderate");
-    expect(ci).toContain("run: npm audit");
+    expect(ci).toContain("npm run verify -- --stage=security");
+    expect(verificationPlan(['--stage=security']).some(step => step.args.includes('check:dependencies'))).toBe(true);
+    expect(ci).not.toContain('continue-on-error: true');
   });
 
   it("la versión mínima de Node usa la línea LTS del CI", () => {

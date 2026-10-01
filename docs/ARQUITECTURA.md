@@ -1,6 +1,6 @@
 # Arquitectura de Nerqia
 
-**Estado:** vigente. **Corte:** 2026-09-04.
+**Estado:** vigente. **Revisión:** 2026-10-01. **Owner:** CTO.
 
 Este documento fija límites técnicos. El alcance de producto vive en
 [ROADMAP.md](../ROADMAP.md) y las decisiones estructurales en los ADR.
@@ -29,6 +29,8 @@ Pagos, correo, IA, logística, ARCA y canales externos
 
 Las cuatro superficies comparten deploy, primitives y observabilidad. No
 comparten automáticamente permisos ni navegación.
+Growth y Profit son superficies aprobadas pendientes; no se declaran montadas
+en el diagrama actual. Reutilizan esta infraestructura, no otros repositorios.
 
 ## 2. Superficies y confianza
 
@@ -43,6 +45,11 @@ Ser staff de Platform no crea una membresía de organización. El soporte entra
 por un flujo consentido, temporal y auditado.
 
 ## 3. Business Graph
+
+Commerce Graph es el nombre de producto del mismo Business Graph. Según
+[ADR 004](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md), Growth consume identidad,
+clientes y actividad comercial; Profit proyecta margen y cobertura. Finance y
+el ledger conservan autoridad financiera. No clonar CRM, analytics ni contabilidad.
 
 Autoridades compartidas:
 
@@ -123,6 +130,12 @@ del negocio permanecen en servidor y TanStack Query gestiona su caché.
 
 La PWA no recarga automáticamente al detectar un deploy. Informa la nueva
 versión y el usuario decide cuándo activarla, preservando trabajo no guardado.
+REST privado y archivos firmados no se persisten en CacheStorage. La activación
+purga cachés privadas legacy antes de reclamar clientes.
+
+`/growth` y `/profit` son rutas planeadas, no aliases existentes. Su lanzamiento
+requiere migrar consumidores/permisos; Clientes, Marketing y Analytics siguen
+canónicos. Productos distintos no requieren subdominios ni otro login ahora.
 
 ## 7. Seguridad
 
@@ -179,6 +192,17 @@ intención de carga → original privado → inspección → extracción
 
 Ningún OCR o modelo crea stock, deuda o asiento antes de la aprobación. El
 contrato completo está en [FINANCE.md](FINANCE.md).
+Growth no se anida en Finance; Profit no escribe asientos. Si una señal necesita
+un gasto, pago o cambio de precio, propone una acción a la autoridad existente.
+
+## Runtime compartido
+
+Automate e Intelligence conservan un runtime, registro de herramientas y bus
+de eventos. Growth/Profit consumen el mismo contrato señal/aprobación/job/outcome.
+Page/Theme Engine se reutiliza para landings y formularios; no nace otro builder.
+MCP expone herramientas tipadas y scoping por sesión/tenant, primero read-only;
+no SQL libre, acceso transversal ni credenciales externas. El event bus no
+demuestra acreditación financiera; el verificador relee la autoridad.
 
 ## 9. Pay y conectores
 
@@ -224,7 +248,8 @@ Cada slice combina:
 - SQL reversible como roles reales para RLS/triggers;
 - Playwright para flujos y responsive;
 - navegador local y producción;
-- `typecheck`, lint, tests, build, enlaces y diff;
+- `npm run verify` (funciones, docs, lint, typecheck, build, tests, dependencias y diff);
+- `npm run verify:ci` para E2E autenticado; configuración ausente no cuenta como éxito;
 - revisión de logs, errores, secretos y cambios de dependencias.
 
 Los datos productivos no se alteran para demostrar un resultado. Las fixtures

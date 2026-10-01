@@ -2,6 +2,9 @@
 
 - **Estado:** aceptado
 - **Fecha:** 2026-09-01
+- **Sustitución parcial (2026-10-01):** [ADR 004](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md)
+  actualiza portfolio/jerarquía (§2/§5) y la congelación de multi-store,
+  dominio y Theme/Page Engine (§9). El texto original conserva su contexto.
 - **Supersede parcial:** el lineamiento 2026-08-14 de “no creador de tiendas”
   queda acotado. La tienda es la **puerta de adquisición**. El producto sigue
   siendo un solo Business Graph, no un clon de Tiendanube.

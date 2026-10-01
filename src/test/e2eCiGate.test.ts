@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { verificationPlan } from '../../scripts/verification-plan.mjs';
 
 const read = (file: string) => readFileSync(file, "utf8");
 
@@ -21,7 +22,8 @@ describe("puerta E2E de CI", () => {
 
   it("CI instala Chromium y ejecuta tienda desktop, mobile y panel", () => {
     expect(workflow).toContain("npx playwright install --with-deps chromium");
-    expect(workflow).toContain("npm run test:e2e:ci");
+    expect(workflow).toContain("npm run verify -- --stage=e2e");
+    expect(verificationPlan(['--stage=e2e']).some(step => step.args.includes('test:e2e:ci'))).toBe(true);
     expect(packageJson).toContain(
       'playwright test --project=chromium --project=mobile --project=panel',
     );

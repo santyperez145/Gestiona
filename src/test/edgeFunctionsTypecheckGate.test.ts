@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { verificationPlan } from '../../scripts/verification-plan.mjs';
 
 const ROOT = process.cwd();
 const functionsDir = resolve(ROOT, "supabase/functions");
@@ -29,7 +30,7 @@ describe("guardia de tipos de Edge Functions", () => {
   it("lo convierte en una puerta bloqueante del CI", () => {
     expect(packageJson.scripts?.["check:functions"]).toBe("node scripts/check-edge-functions.mjs");
     expect(workflow).toContain("denoland/setup-deno@v2");
-    expect(workflow).toContain("Type check Edge Functions");
-    expect(workflow).toContain("npm run check:functions");
+    expect(workflow).toContain("npm run verify -- --stage=build");
+    expect(verificationPlan(['--stage=build']).some(step => step.args.includes('check:functions'))).toBe(true);
   });
 });

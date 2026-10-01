@@ -1,6 +1,7 @@
 # Estrategia de Nerqia
 
-**Estado:** vigente. **Corte competitivo:** 2026-09-04.
+**Estado:** vigente. **Revisión de portfolio:** 2026-10-01. **Owner:** Producto.
+Benchmarks anteriores conservan su fecha; no quedan recertificados por esta revisión.
 
 ## 1. Categoría y promesa
 
@@ -42,11 +43,18 @@ POS u orden online confirmada en los últimos 30 días.
 | Nerqia Business | Productos, inventario, POS, clientes, compras y gestión. |
 | Nerqia Pay | Orquestación, comisión, conciliación y reintegros; no custodia de fondos. |
 | Nerqia Finance | Gastos, documentos, políticas, aprobaciones, obligaciones y cierre. |
+| Nerqia Profit | Contribución, confianza y decisiones; contrato aprobado, superficie dedicada pendiente. |
+| Nerqia Growth | CRM, captación, comunicación y retención; contrato aprobado, superficie dedicada pendiente. |
 | Nerqia Automate | Señal → recomendación → aprobación → ejecución → resultado. |
 | Nerqia Platform | Control interno de merchants, billing, soporte, riesgo e integraciones. |
 
 Capital, emisión de tarjetas, movimiento de fondos y crédito requieren partner,
 marco legal, riesgo y economics. No son promesas de software.
+
+Profit se construye antes que Growth, fuera de Finance. Reutilizan el mismo
+Business/Commerce Graph, identidad, permisos, conectores, builders y runtime.
+Un portfolio no justifica duplicar motores ni abrir pantallas incompletas.
+Decisión: [ADR 004](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md).
 
 ## 4. Evidencia
 
@@ -86,6 +94,20 @@ facturación, compras, stock, bancos y ecommerce:
 [Colppy](https://colppy.com/sistema-de-gestion-para-pymes), consultados
 2026-09-04. 📌 Nerqia no replica tres módulos contables: conecta esos trabajos a
 la orden y al margen del mismo comercio.
+
+### Growth y Profit
+
+Referencias públicas consultadas 2026-10-01:
+[Clientify Marketing](https://clientify.com/marketing) y
+[MCP](https://clientify.com/mcp) describen CRM/segmentación, campañas,
+automatización y herramientas; [Escalafy](https://www.escalafy.com/) presenta
+rentabilidad por producto/campaña/canal, inventario e integraciones.
+Son descripciones del proveedor, no prueba de todas sus pantallas privadas.
+
+La traducción propia es [Growth](GROWTH.md) sin duplicar customers/CRM y
+[Profit](PROFIT.md) con margen histórico y confianza del Graph. Primero lectura
+y datos reconciliables; después acciones aprobadas y outcome. Ads no administra
+presupuestos hasta certificar importación, identidad y permisos.
 
 ## 5. Paridad Commerce
 
@@ -127,18 +149,21 @@ gasto aprobado puede alimentar costo e inventario del mismo Core. Ver
 Hecho de margen por operación:
 
 ```text
+ventas brutas - descuentos - devoluciones = ingreso neto
 ingreso neto
 - costo histórico / landed cost
 - comisión de pago
 - subsidio y costo de envío
-- descuentos/promociones
 - impuestos atribuibles
-- devoluciones y contracargos
+- contracargos no incluidos ya en el ingreso neto
 = margen de contribución
 ```
 
 Cada componente declara fuente, moneda, fecha y confianza. “Sin dato” no es
 cero. El contrato está en [MARGIN_FACTS.md](MARGIN_FACTS.md).
+No duplicar descuentos/refunds, ni tratar IVA como costo automático. Publicidad
+se separa de contribución previa; ROAS y ROI tienen fórmulas/break-even diferentes
+en [Profit](PROFIT.md). Contribución positiva no equivale a utilidad neta.
 
 El Business Copilot prioriza por impacto y confianza, genera una acción
 revisable y mide adopción/resultado. Nunca sigue el camino usuario → texto
@@ -158,6 +183,10 @@ Las métricas mínimas son ATM, GMV pago y conciliado, retención, ingreso neto,
 margen de contribución, costo de soporte, fraude/contracargo y concentración.
 Ver [ECONOMICS.md](ECONOMICS.md).
 
+Commerce gratuito con add-ons, Growth/Profit por uso y Profit standalone son
+hipótesis nuevas: validar ICP, soporte, retención y costo antes de reemplazar
+tarifas vigentes. La revisión estratégica no autoriza cambios de billing.
+
 ## 9. Moats
 
 1. Business Graph con historial operativo difícil de reconstruir.
@@ -171,13 +200,16 @@ La cantidad de páginas, temas o prompts no es un moat.
 
 ## 10. Secuencia
 
-1. Comercio productivo completo y segundo merchant real.
-2. Surtido multi-tienda y migración competitiva.
-3. Checkout/fulfillment certificados y métricas de conversión.
-4. Primer documento Finance real hasta efecto aprobado en Core.
-5. Políticas, presupuestos, tarjetas externas y conciliación.
-6. Acciones de margen con resultado medido.
-7. Pay, regiones, apps y Capital sólo detrás de gates.
+1. Confiabilidad/CI real, Commerce certificado y segundo merchant sin SQL.
+2. Migración real y conversión/performance de campo; mantener multitienda existente.
+3. Profit Foundation: orden/producto/canal, cobertura, SKU e inventario.
+4. Finance operacional: documento persistido, control de gasto y cierre externo.
+5. Growth CRM sobre clientes/pipeline existentes; después inbox y marketing.
+6. Builder/runtime común, Ads read-only y loop Profit → acción autorizada → outcome.
+7. Standalone, Pay/Ship, regiones, apps y Capital sólo detrás de gates.
+
+Creators pausa expansión funcional; continúa seguridad, soporte y certificación
+de pagos comprometidos. Abrir más features no sustituye operar las existentes.
 
 El orden ejecutable vive en [ROADMAP.md](../ROADMAP.md). Cualquier iniciativa
 que no acerque una venta real, stock confiable, margen, control de gasto,

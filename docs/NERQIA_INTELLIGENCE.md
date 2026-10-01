@@ -1,7 +1,7 @@
 # Nerqia Intelligence — control plane operativo
 
 **Estado:** arquitectura aprobada; búsqueda asistida de imágenes y prueba segura
-de automatizaciones implementadas. **Corte:** 2026-09-06.
+de automatizaciones implementadas. **Revisión de límites:** 2026-10-01. **Owner:** CTO.
 
 ## 1. Resultado
 
@@ -28,6 +28,11 @@ el Business Graph de Nerqia.
 Comparten gateway, registro de herramientas, motor de políticas, cola de jobs,
 presupuesto de inferencia, trazas y evaluaciones. Sus permisos y datasets son
 distintos.
+
+Growth y Profit consumen este mismo gateway/runtime, registro de herramientas,
+bus de eventos y políticas. No construyen otro engine de CRM ni agentes con
+SQL libre. MCP reutiliza contratos tipados, tenant/scopes, presupuestos y trazas;
+primero lectura. [ADR 004](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md).
 
 ## 3. Arquitectura objetivo
 
@@ -82,6 +87,11 @@ la separación Manager/Worker de Odoo, el modelo decide sobre herramientas
 permitidas y el ejecutor determinístico conserva reglas, autorización y efectos.
 
 ## 5. Primeros agentes de producto
+
+Las entradas siguientes son casos de producto, no agentes autónomos certificados.
+Con Profit Foundation, Margin Guardian e Inventory Planner se evalúan en shadow
+mode sobre hechos/cobertura actuales; Growth recibe propuestas sólo después de
+consolidar CRM. Una observación antes/después no demuestra impacto causal.
 
 1. **Catalog Steward:** identidad SKU/GTIN, duplicados, atributos, imágenes,
    publicación y SEO.

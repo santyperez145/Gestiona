@@ -37,48 +37,9 @@ jobs:
         with:
           deno-version: v2.9.5
 
-      - name: Type check Edge Functions
-        run: npm run check:functions
-
-      # P0-01: la documentación no puede declarar números sin fecha ni comando.
-      # Medido el 2026-08-25, había SEIS cantidades distintas de tests (418,
-      # 1.201, 1.446, 1.469, 1.498, 1.534) y cuatro de tablas repartidas entre
-      # CONTRIBUTING.md, ROADMAP.md y docs/. Este repo es público y sus números se
-      # citan afuera: uno externo tomó "418 tests" de una línea vieja.
-      - name: Conteos de la documentación
-        run: npm run check:conteos
-
-      # P0-01: un enlace roto en un repo público manda a alguien a una página
-      # que no existe. Y adentro es peor: CONTRIBUTING.md le dice a cada sesión que
-      # lea docs/ARQUITECTURA.md antes de escribir código — si ese archivo se
-      # renombra, la instrucción sigue ahí apuntando a la nada.
-      #
-      # Valida rutas y anclas de los .md del repo. NO sale a la red: un sitio
-      # externo caído no es un error de este repo, y un CI que falla por algo
-      # ajeno enseña a ignorar el CI.
-      - name: Enlaces de la documentación
-        run: npm run check:enlaces
-
-      # Bloqueante: falla el CI ante cualquier ERROR de eslint.
-      # Los warnings (deuda de exhaustive-deps) todavía no bloquean.
-      - name: Lint
-        run: npm run lint
-
-      # OJO: `npx tsc --noEmit` sobre el tsconfig raíz (files: []) NO chequea
-      # NINGÚN archivo — daba verde siempre. Por eso pasaron sin detectarse
-      # errores que rompían páginas en runtime (ver DialogFooter, settings).
-      # `npm run typecheck` apunta a tsconfig.app.json y sí chequea de verdad.
-      #
-      # BLOQUEANTE desde 2026-07-28: la deuda llegó a 0 (venía de ~810).
-      # Mantenerlo así — varios bugs de runtime (columnas inexistentes, upserts
-      # sin NOT NULL, firmas mal llamadas) solo se detectaron acá.
-      - name: Type check
-        run: npm run typecheck
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-
-      - name: Build
-        run: npm run build
+      # El mismo plan que npm run verify local: Edge, docs, lint, tipos y build.
+      - name: Shared build verification
+        run: npm run verify -- --stage=build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'placeholder-key' }}
@@ -111,7 +72,7 @@ jobs:
 
       # Bloqueante: los tests (smoke de páginas + cálculos) deben pasar.
       - name: Run tests
-        run: npm test -- --reporter=verbose
+        run: npm run verify -- --stage=test
 
   e2e:
     name: Critical E2E (store + panel)
@@ -159,7 +120,7 @@ jobs:
       # Todos son de sólo lectura: tienda en escritorio/teléfono y superficies
       # críticas del panel con una identidad técnica sin MFA ni acceso Platform.
       - name: Run critical E2E
-        run: npm run test:e2e:ci
+        run: npm run verify -- --stage=e2e
 
       # Un fallo sin captura ni trace obliga a adivinar el estado real de una
       # sesión remota. La evidencia se conserva sólo cuando hace falta y no
@@ -191,16 +152,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # BLOQUEANTE. Solo dependencias de producción (lo que llega al browser) y
-      # solo severidad `critical`: es un gate que hoy pasa y que frena de verdad
-      # cuando entra algo urgente. Subir a `high` cuando se resuelva `xlsx`.
-      - name: Audit (producción, crítico)
-        run: npm audit --omit=dev --audit-level=critical
-
-      # Informativo: la foto completa, incluido el tooling de build.
-      # Lo que queda son majors de dev (eslint 10, vite 8, @sentry/vite-plugin 5)
-      # y `xlsx`, que no tiene fix publicado en npm — SheetJS se distribuye por
-      # su propio CDN desde la v0.19. Ver ROADMAP, sesión 84.
-      - name: Audit completo (informativo)
-        run: npm audit
-        continue-on-error: true
+      # Bloqueante desde moderate, incluyendo herramientas de build.
+      - name: Shared dependency audit
+        run: npm run verify -- --stage=security

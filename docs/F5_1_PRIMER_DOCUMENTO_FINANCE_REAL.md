@@ -1,30 +1,48 @@
-# F5.1 — Primer documento Finance real (cierre 2026-09-19)
+# F5.1 — Certificación del primer documento Finance
 
-Estado: **EN PROGRESO / PRIMER FLUJO REAL**
+**Estado:** referencia operativa; certificación real pendiente.
+**Revisión:** 2026-10-01. **Owner:** Producto / Operación Finance.
+Autoridad del dominio: [Finance](FINANCE.md); prioridad: [roadmap](../ROADMAP.md).
 
-Flujo objetivo (según estándar competitivo / Mendel):
-1. Captura → subida (`uploadFinanceDocument`)
-2. Inspección / extracción (`extractFinanceDocument`, `reviewFinanceDocumentExtraction`)
-3. Matching / conciliación (`runFinanceDocumentMatching`, `confirmFinanceDocumentMatching`)
-4. Revisión / aprobación (`approveFinanceDocumentDrafts`, `reviewFinanceDocumentExtraction`)
-5. Entrega al Core → PO / compras (`buildPurchaseOrderHandoffPath` + `FinanceDocumentDraftBundle`).
+## Alcance de la evidencia existente
 
-Evidencia actual:
-- `financeDocumentUpload.ts`: tipos completos (`FinanceDocumentExtractionPayload`, `FinanceDocumentDraftBundle`, `FinanceMatchingOptions`), funciones de extracción, matching, draft y aprobación.
-- `FinanceDocumentsPage.tsx`: UI funcional con tabs (`revisar`, `matching`, `borradores`, `aprobados`, `excepcion`), inspector (`FinanceDocumentInspector`), upload, draft creation.
-- `publicDataSource.ts`: referencias a `getFinanceDocuments`, `approveFinanceDocumentDrafts`.
-- `FinanceDocumentInspector`: componente de revisión real.
+La verificación `supabase/verificaciones/20260925_finance_document_extraction_e2e.sql`
+crea una fixture y metadata de Storage; inicia/completa la extracción con un
+payload preparado, dentro de `BEGIN/ROLLBACK`. Comprueba autoridad, transiciones,
+matching y entrega idempotente. No llama al proveedor HTTP, no sube por sí sola
+un PDF físico ni prueba OCR/antimalware externo. No demuestra adopción comercial.
 
-Lo que falta para considerar F5.1 **cerrado** (prueba de flujo real):
-- Un documento de proveedor subido en entorno real.
-- Extracción con `overallConfidence > 0.85`.
-- Matching confirmado (`confirmFinanceDocumentMatching`).
-- Draft aprobado (`approveFinanceDocumentDrafts`).
-- PO generado y entregado al Core.
+La consulta `supabase/verificaciones/20261001_finance_product_evidence.sql`
+registró 0 documentos, 0 políticas y 0 lotes contables el 2026-10-01.
+Sólo usa agregados; no revela nombres, documentos ni beneficiarios.
+Es evidencia persistida ausente, no prueba de proveedor deshabilitado.
 
-Acción inmediata propuesta (autómata, sin esperar orden):
-- Ejecutar `npm run typecheck` tras modificar `publicDataSource.ts` para conectar el flujo completo.
-- Agregar prueba `financeDocumentRealFlow.test.ts` que simule captura → extracción → matching → aprobación con datos reales.
-- Documentar en `FINAL_WORK_SUMMARY.md` al cerrar.
+## Protocolo real autorizado
 
-Nota: NO hay mocks ni hardcodeos en el flujo F5.1; todo pasa por `supabase.from('finance_documents')` o RPC auditados.
+1. Elegir tenant, usuario/rol y documento del negocio autorizados; no crear datos
+   comerciales ni enviar PII al proveedor sin aprobación y política de datos.
+2. Confirmar disponibilidad del extractor/inspector mediante su contrato de
+   servicio, bucket privado, permisos y configuración; no leer secretos en UI.
+3. Cargar bytes reales mediante `uploadFinanceDocument`: intención/path
+   server-side, MIME/tamaño/hash, versión, inspección y original privado.
+4. Invocar el extractor real, conservar request/correlación y resultado sanitizado.
+   Confianza calibrada por campo, sin umbral mágico ni importe/categoría por defecto.
+5. Revisar originales, impuestos, moneda y líneas; corregir con traza y confirmar
+   matching contra proveedor/orden del mismo tenant.
+6. Preparar y aprobar borradores bajo política/presupuesto y segregación; verificar
+   efecto en Core y vínculo al original. Aprobar no implica pago externo.
+7. Probar reintento: sin segunda compra/deuda/asiento. Verificar estados de fallo,
+   permiso, duplicado, cuarentena y recuperación con fixtures reversibles.
+8. Conciliar/exportar cuando corresponda; el responsable financiero valida cifras.
+   Conservar evidencia de operación, sin adjuntar PII al repo.
+
+## Cierre
+
+Certificado sólo con original físico, proveedor real, revisión, aprobación,
+efecto canónico, idempotencia y evidencia autorizada. Adoptado requiere además
+uso por merchant sin intervención SQL. Una fixture verde no cierra ninguno.
+
+Registrar fecha, entorno, tenant anonimizado, roles, versiones/IDs de correlación,
+resultado y limitaciones en el contrato vigente; no crear otra bitácora.
+No declarar pago, recepción bancaria o integración ERP a partir de una referencia
+manual. El rollback de las pruebas no reemplaza conciliación de una operación real.
