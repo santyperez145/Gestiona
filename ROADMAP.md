@@ -123,8 +123,8 @@ CAE a ARCA. Las alícuotas fiscales quedan acotadas en UI, base y WSFE.
 Migraciones `20260930000200`/`210`/`220`/`230` aplicadas y función
 `afip-authorize` desplegada. El correo de factura/presupuesto/recibo POS ahora
 resuelve destinatario e importes desde documentos persistidos; bloquea factura
-fiscal sin CAE y recibo sin cobro confirmado. Falta certificar una NC A/B/C real
-en homologación y la entrega efectiva por correo antes de declarar el circuito fiscal E2E.
+sin CAE y recibo sin cobro. A4/80 mm validan QR contra snapshot y muestran la factura asociada en NC.
+Pendiente: NC A/B/C en homologación, entrega por correo y otros impuestos nacionales indirectos sin importe cero supuesto.
 
 **Pendiente:** primera operación externa sin corrección SQL,
 catálogo polimórfico completo y evidencia de margen usado para decidir.

@@ -24,6 +24,7 @@ describe("factura ticket dentro y fuera del POS", () => {
     expect(service).toContain("printFiscalInvoiceById");
     expect(pos).toContain("Factura 80 mm");
     expect(sales).toContain("Crear e imprimir factura");
+    expect(sales).toContain('const printWindow = willPrint ? window.open("", "_blank") : null');
   });
 
   it("la representación térmica contiene identidad, CAE, QR y transparencia", () => {
@@ -35,6 +36,16 @@ describe("factura ticket dentro y fuera del POS", () => {
     expect(service).toContain("IVA contenido");
     expect(service).toContain("NO ES UN COMPROBANTE FISCAL");
     expect(invoices).toContain("Imprimir factura ticket 80 mm");
+  });
+
+  it("ambos formatos validan QR y muestran la factura fiscal asociada a una nota de crédito", () => {
+    expect(service).toContain("printableArcaQrUrl(invoice)");
+    expect(service).toContain("loadAssociatedFiscalInvoice(invoice)");
+    expect(service).toContain("associated.title} ${associated.number}");
+    expect(invoices).toContain("printableArcaQrUrl(inv)");
+    expect(invoices).toContain("loadAssociatedFiscalInvoice(inv)");
+    expect(invoices).toContain("COMPROBANTE ASOCIADO");
+    expect(invoices).toContain('doc.text("Subtotal:"');
   });
 
   it("el recibo comercial no se disfraza de factura", () => {

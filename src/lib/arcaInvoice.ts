@@ -40,6 +40,13 @@ export type ArcaInvoiceSnapshot = {
   arca_qr_payload?: unknown;
 };
 
+export type PrintableArcaInvoice = ArcaInvoiceSnapshot & {
+  cae_vencimiento?: string | null;
+  emisor_razon_social?: string | null;
+  emisor_domicilio?: string | null;
+  afip_environment?: string | null;
+};
+
 const fechaArca = /^\d{4}-\d{2}-\d{2}$/;
 
 function enteroSeguro(value: unknown): number | null {
@@ -150,6 +157,42 @@ function base64Utf8(value: string): string {
 export function arcaQrUrl(invoice: ArcaInvoiceSnapshot): string | null {
   const payload = arcaQrPayload(invoice);
   return payload ? `${ARCA_QR_BASE_URL}?p=${base64Utf8(JSON.stringify(payload))}` : null;
+}
+
+/** An authorized PDF must never omit the QR or encode values unlike its visible fiscal data. */
+export function printableArcaQrUrl(invoice: PrintableArcaInvoice): string | null {
+  if (!invoice.cae) return null;
+  const invalidSnapshot = !invoice.emisor_razon_social?.trim() ||
+    (!invoice.emisor_domicilio?.trim() && invoice.afip_environment !== "homologacion") ||
+    !invoice.emisor_cuit ||
+    !invoice.numero_afip ||
+    !invoice.punto_venta ||
+    !invoice.tipo_comprobante ||
+    !invoice.cae_vencimiento ||
+    ![1, 3, 6, 8, 11, 13].includes(Number(invoice.tipo_comprobante)) ||
+    !fechaArca.test(invoice.cae_vencimiento.slice(0, 10));
+  if (invalidSnapshot) {
+    throw new Error("Faltan datos fiscales del comprobante autorizado. Revisalo antes de imprimir.");
+  }
+
+  const payload = arcaQrPayload(invoice);
+  const currency = invoice.currency === "ARS" ? "PES" : String(invoice.currency ?? "").toUpperCase();
+  const exchangeRate = Number(invoice.moneda_cotizacion ?? (invoice.currency === "ARS" ? 1 : null));
+  const matches = payload &&
+    payload.fecha === String(invoice.issue_date ?? "").slice(0, 10) &&
+    payload.cuit === Number(String(invoice.emisor_cuit).replace(/\D/g, "")) &&
+    payload.ptoVta === Number(invoice.punto_venta) &&
+    payload.tipoCmp === Number(invoice.tipo_comprobante) &&
+    payload.nroCmp === Number(invoice.numero_afip) &&
+    Math.abs(payload.importe - Number(invoice.total)) < 0.005 &&
+    payload.moneda === currency &&
+    Math.abs(payload.ctz - exchangeRate) < 0.000001 &&
+    payload.tipoCodAut === (invoice.codigo_autorizacion_tipo === "A" ? "A" : "E") &&
+    payload.codAut === Number(invoice.cae);
+  if (!matches) {
+    throw new Error("Los datos del QR no coinciden con la factura autorizada. Revisalo antes de imprimir.");
+  }
+  return arcaQrUrl(invoice);
 }
 
 export function numeroFiscal(puntoVenta: number | null | undefined, numero: number | null | undefined): string | null {

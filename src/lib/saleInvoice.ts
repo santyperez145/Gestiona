@@ -2,10 +2,10 @@ import jsPDF from "jspdf";
 import * as QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  arcaQrUrl,
   condicionIvaLabel,
   fechaFiscalArgentina,
   numeroFiscal,
+  printableArcaQrUrl,
 } from "@/lib/arcaInvoice";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import {
@@ -23,6 +23,7 @@ export type FiscalTicketItem = {
 
 export type FiscalTicketInvoice = {
   id: string;
+  org_id?: string;
   number: string;
   customer_name: string;
   customer_tax_id?: string | null;
@@ -49,8 +50,11 @@ export type FiscalTicketInvoice = {
   moneda_cotizacion?: number | null;
   codigo_autorizacion_tipo?: string | null;
   arca_qr_payload?: unknown;
+  nota_credito_de?: string | null;
   invoice_items?: FiscalTicketItem[];
 };
+
+export type AssociatedFiscalInvoice = { title: string; number: string; issueDate: string };
 
 const DOCUMENT_TYPE: Record<number, { letter: string; title: string }> = {
   1: { letter: "A", title: "FACTURA A" },
@@ -65,6 +69,32 @@ const money = (value: unknown) => new Intl.NumberFormat("es-AR", {
   currency: "ARS",
   minimumFractionDigits: 2,
 }).format(Number(value) || 0);
+
+export async function loadAssociatedFiscalInvoice(invoice: {
+  org_id?: string;
+  nota_credito_de?: string | null;
+  tipo_comprobante?: number | null;
+}): Promise<AssociatedFiscalInvoice | null> {
+  const sourceType: Record<number, number> = { 3: 1, 8: 6, 13: 11 };
+  const expectedType = sourceType[Number(invoice.tipo_comprobante)];
+  if (!invoice.nota_credito_de) {
+    if (expectedType) throw new Error("La nota de crédito no tiene una factura fiscal asociada.");
+    return null;
+  }
+  if (!expectedType) throw new Error("El comprobante asociado no corresponde a una nota de crédito válida.");
+  if (!invoice.org_id) throw new Error("No se pudo verificar la factura asociada a esta nota de crédito.");
+  const { data, error } = await supabase.from("invoices")
+    .select("tipo_comprobante, punto_venta, numero_afip, issue_date, cae")
+    .eq("id", invoice.nota_credito_de)
+    .eq("org_id", invoice.org_id)
+    .maybeSingle();
+  const title = data?.tipo_comprobante ? DOCUMENT_TYPE[data.tipo_comprobante]?.title : null;
+  const number = numeroFiscal(data?.punto_venta, data?.numero_afip);
+  if (error || !data?.cae || !title || !number || data.tipo_comprobante !== expectedType) {
+    throw new Error("No se pudo verificar el comprobante fiscal asociado a la nota de crédito.");
+  }
+  return { title, number, issueDate: fechaFiscalArgentina(data.issue_date) };
+}
 
 export async function ensureSaleTransactionInvoice({
   orgId,
@@ -109,19 +139,21 @@ export async function ensureSaleTransactionInvoice({
 export async function printFiscalInvoiceTicket(
   invoice: FiscalTicketInvoice,
   organizationName: string,
+  printWindow?: Window,
 ): Promise<void> {
-  const popup = window.open("", "_blank");
+  const popup = printWindow ?? window.open("", "_blank");
   if (!popup) throw new Error("Permití las ventanas emergentes para imprimir la factura.");
 
   try {
     const items = invoice.invoice_items ?? [];
     const documentType = invoice.tipo_comprobante ? DOCUMENT_TYPE[invoice.tipo_comprobante] : null;
-    const authorized = Boolean(invoice.cae && invoice.numero_afip && documentType);
-    const qrUrl = authorized ? arcaQrUrl(invoice) : null;
+    const qrUrl = printableArcaQrUrl(invoice);
+    const authorized = Boolean(qrUrl);
+    const associated = await loadAssociatedFiscalInvoice(invoice);
     const itemHeight = items.reduce((height, item) => (
       height + Math.max(1, Math.ceil(String(item.description || "Producto").length / 34)) * 3.2 + 4
     ), 0);
-    const estimatedHeight = Math.max(170, 122 + itemHeight + (qrUrl ? 45 : 15));
+    const estimatedHeight = Math.max(170, 122 + itemHeight + (qrUrl ? 45 : 15) + (associated ? 18 : 0));
     const doc = new jsPDF({ unit: "mm", format: [80, estimatedHeight], orientation: "portrait" });
     const width = 80;
     const left = 4;
@@ -174,6 +206,13 @@ export async function printFiscalInvoiceTicket(
     center(condicionIvaLabel(invoice.condicion_iva_receptor), 7.5);
     rule();
 
+    if (associated) {
+      center("Comprobante asociado", 7.5, true);
+      center(`${associated.title} ${associated.number}`, 7.5);
+      center(`Emitido el ${associated.issueDate}`, 7);
+      rule();
+    }
+
     doc.setFontSize(7.5);
     for (const item of items) {
       const description = doc.splitTextToSize(item.description || "Producto", 46) as string[];
@@ -223,15 +262,26 @@ export async function printFiscalInvoiceTicket(
   }
 }
 
-export async function printFiscalInvoiceById(invoiceId: string, organizationName: string): Promise<void> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("*, invoice_items(*)")
-    .eq("id", invoiceId)
-    .single();
-  if (error || !data) {
-    console.error("printFiscalInvoiceById:", error);
-    throw new Error("No se pudo cargar la factura para imprimir.");
+export async function printFiscalInvoiceById(
+  invoiceId: string,
+  organizationName: string,
+  printWindow?: Window,
+): Promise<void> {
+  const popup = printWindow ?? window.open("", "_blank");
+  if (!popup) throw new Error("Permití las ventanas emergentes para imprimir la factura.");
+  try {
+    const { data, error } = await supabase
+      .from("invoices")
+      .select("*, invoice_items(*)")
+      .eq("id", invoiceId)
+      .single();
+    if (error || !data) {
+      console.error("printFiscalInvoiceById:", error);
+      throw new Error("No se pudo cargar la factura para imprimir.");
+    }
+    await printFiscalInvoiceTicket(data as unknown as FiscalTicketInvoice, organizationName, popup);
+  } catch (error) {
+    popup.close();
+    throw error;
   }
-  await printFiscalInvoiceTicket(data as unknown as FiscalTicketInvoice, organizationName);
 }

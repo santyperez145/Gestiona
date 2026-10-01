@@ -24,9 +24,10 @@ import {
   condicionIvaLabel,
   fechaFiscalArgentina,
   numeroFiscal,
+  printableArcaQrUrl,
 } from "@/lib/arcaInvoice";
 import { CONDICIONES_IVA, tipoDeComprobante, validarCuit, type CondicionIva } from "@/lib/fiscalIdentity";
-import { printFiscalInvoiceTicket } from "@/lib/saleInvoice";
+import { loadAssociatedFiscalInvoice, printFiscalInvoiceTicket } from "@/lib/saleInvoice";
 import { useModulePermissions } from "@/lib/usePermissions";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
@@ -50,7 +51,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 // ─────────────────────────────────────────────────────────────
 interface InvoiceItem { id?: string; description: string; quantity: number; unit_price: number; total: number }
 interface Invoice {
-  id: string; number: string; customer_name: string; customer_email: string | null;
+  id: string; org_id: string; number: string; customer_name: string; customer_email: string | null;
   customer_address: string | null; customer_tax_id: string | null;
   issue_date: string; due_date: string | null; status: string; notes: string | null;
   currency: string; subtotal: number; tax_pct: number; tax_amount: number; total: number;
@@ -79,6 +80,7 @@ interface Invoice {
   arca_qr_payload: unknown;
   fiscal_snapshot_source: string | null;
   fiscal_issued_at: string | null;
+  nota_credito_de: string | null;
 }
 
 interface AfipSettings {
@@ -133,10 +135,12 @@ function emptyItem(): InvoiceItem { return { description: "", quantity: 1, unit_
 // PDF generator — includes AFIP data when authorized
 // ─────────────────────────────────────────────────────────────
 async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings | null) {
+  const qrUrl = printableArcaQrUrl(inv);
+  const associated = await loadAssociatedFiscalInvoice(inv);
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const tipoCbte = inv.tipo_comprobante ? TIPO_CBTE[inv.tipo_comprobante] : null;
-  const autorizado = !!(inv.cae && inv.numero_afip && tipoCbte);
+  const autorizado = Boolean(qrUrl);
   const razonSocial = inv.emisor_razon_social || (!autorizado ? afipSettings?.afip_razon_social : null) || orgName;
   const cuit = inv.emisor_cuit || (!autorizado ? afipSettings?.afip_cuit : null);
   const domicilio = inv.emisor_domicilio || (!autorizado ? afipSettings?.afip_domicilio : null);
@@ -240,7 +244,15 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
 
   // ── Items table ───────────────────────────────────────────
   const items = inv.invoice_items || [];
-  const tableY = Math.max(cy + 18, yStart + 88);
+  let tableY = Math.max(cy + 18, yStart + 88);
+  if (associated) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.text("COMPROBANTE ASOCIADO", 40, tableY);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${associated.title} ${associated.number} · ${associated.issueDate}`, 40, tableY + 14);
+    tableY += 28;
+  }
   autoTable(doc, {
     startY: tableY,
     head: [["Descripción", "Cant.", "Precio unit.", "Total"]],
@@ -263,7 +275,7 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
   doc.setFont("helvetica", "normal");
-  doc.text(`Subtotal: ${formatARS(inv.subtotal)}`, W / 2 + 8, y + 9);
+  doc.text("Subtotal:", W / 2 + 8, y + 9);
   doc.text(formatARS(inv.subtotal), right, y + 9, { align: "right" });
   y += 20;
   // Sólo Factura A discrimina IVA en la representación entregada al receptor.
@@ -308,7 +320,7 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   }
 
   // ── CAE block ─────────────────────────────────────────────
-  if (inv.cae && inv.cae_vencimiento) {
+  if (autorizado && qrUrl && inv.cae && inv.cae_vencimiento) {
     if (y > 680) { doc.addPage(); y = 48; }
     y += 10;
     doc.setDrawColor(200, 200, 200);
@@ -329,24 +341,21 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
     doc.text(fechaFiscalArgentina(inv.cae_vencimiento), W / 2 + 60, y);
     y += 16;
 
-    const qrUrl = arcaQrUrl(inv);
-    if (qrUrl) {
-      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-        errorCorrectionLevel: "M", margin: 1, width: 220,
-        color: { dark: "#111827", light: "#FFFFFF" },
-      });
-      doc.addImage(qrDataUrl, "PNG", 40, y, 76, 76);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(17, 24, 39);
-      doc.setFontSize(10);
-      doc.text("Comprobante autorizado por ARCA", 130, y + 21);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(75, 85, 99);
-      doc.text("Escaneá el QR para consultar los datos oficiales del comprobante.", 130, y + 39);
-      doc.text(`CAE ${inv.cae} · Vencimiento ${fechaFiscalArgentina(inv.cae_vencimiento)}`, 130, y + 56);
-      y += 84;
-    }
+    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+      errorCorrectionLevel: "M", margin: 1, width: 220,
+      color: { dark: "#111827", light: "#FFFFFF" },
+    });
+    doc.addImage(qrDataUrl, "PNG", 40, y, 76, 76);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(10);
+    doc.text("Comprobante autorizado por ARCA", 130, y + 21);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(75, 85, 99);
+    doc.text("Escaneá el QR para consultar los datos oficiales del comprobante.", 130, y + 39);
+    doc.text(`CAE ${inv.cae} · Vencimiento ${fechaFiscalArgentina(inv.cae_vencimiento)}`, 130, y + 56);
+    y += 84;
   }
 
   // ── Footer ────────────────────────────────────────────────
@@ -354,7 +363,7 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   doc.setFontSize(8);
   doc.setTextColor(160, 160, 160);
   doc.setFont("helvetica", "normal");
-  const footerText = inv.cae
+  const footerText = autorizado
     ? `Comprobante electrónico autorizado por ARCA${esHomologacion ? " · HOMOLOGACIÓN" : ""}`
     : "Borrador sin CAE · No es un comprobante fiscal";
   doc.text(footerText, W / 2, fY, { align: "center" });
@@ -1323,7 +1332,7 @@ export default function InvoicesPage() {
                           afipSettings,
                         ).catch((error) => {
                           console.error("No se pudo generar el PDF fiscal", error);
-                          toast.error("No se pudo generar el PDF de la factura");
+                          toast.error(error instanceof Error ? error.message : "No se pudo generar el PDF de la factura");
                         })}
                       >
                         <FileDown className="w-4 h-4" />

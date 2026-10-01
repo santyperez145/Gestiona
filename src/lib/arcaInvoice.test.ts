@@ -6,6 +6,7 @@ import {
   condicionIvaLabel,
   fechaFiscalArgentina,
   numeroFiscal,
+  printableArcaQrUrl,
 } from "./arcaInvoice";
 
 const invoice = {
@@ -21,6 +22,14 @@ const invoice = {
   receptor_tipo_documento: 80,
   moneda_cotizacion: 1,
   codigo_autorizacion_tipo: "E",
+};
+
+const printable = {
+  ...invoice,
+  cae_vencimiento: "2026-09-13",
+  emisor_razon_social: "Comercio de prueba SA",
+  emisor_domicilio: "Calle 123, Buenos Aires",
+  afip_environment: "produccion",
 };
 
 describe("comprobante electrónico ARCA", () => {
@@ -61,6 +70,24 @@ describe("comprobante electrónico ARCA", () => {
     expect(arcaQrUrl({ ...invoice, cae: null })).toBeNull();
     expect(arcaQrUrl({ ...invoice, emisor_cuit: null })).toBeNull();
     expect(arcaQrUrl({ ...invoice, numero_afip: null })).toBeNull();
+  });
+
+  it("no presenta como fiscal un PDF con CAE pero sin snapshot o QR completo", () => {
+    expect(printableArcaQrUrl({ ...printable, cae: null })).toBeNull();
+    expect(() => printableArcaQrUrl({ ...printable, emisor_razon_social: null })).toThrow("Faltan datos fiscales");
+    expect(() => printableArcaQrUrl({ ...printable, emisor_domicilio: null })).toThrow("Faltan datos fiscales");
+    expect(() => printableArcaQrUrl({ ...printable, cae_vencimiento: null })).toThrow("Faltan datos fiscales");
+    expect(() => printableArcaQrUrl({ ...printable, numero_afip: null })).toThrow("Faltan datos fiscales");
+    expect(printableArcaQrUrl(printable)).toBe(arcaQrUrl(printable));
+    expect(printableArcaQrUrl({ ...printable, afip_environment: "homologacion", emisor_domicilio: null }))
+      .toBe(arcaQrUrl(printable));
+  });
+
+  it("rechaza un QR guardado que no coincide con los importes o el número visibles", () => {
+    const stored = arcaQrPayload(printable);
+    expect(() => printableArcaQrUrl({ ...printable, total: 999, arca_qr_payload: stored })).toThrow("no coinciden");
+    expect(() => printableArcaQrUrl({ ...printable, numero_afip: 95, arca_qr_payload: stored })).toThrow("no coinciden");
+    expect(() => printableArcaQrUrl({ ...printable, punto_venta: 11, arca_qr_payload: stored })).toThrow("no coinciden");
   });
 
   it("formatea el número fiscal a cinco más ocho dígitos", () => {

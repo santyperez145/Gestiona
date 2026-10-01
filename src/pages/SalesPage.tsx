@@ -909,12 +909,19 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
   const invoiceSelectedTicket = async () => {
     if (!saleTicketDetail || !activeOrg || ticketInvoiceBusy) return;
     const existingInvoiceId = saleTicketDetail.lines.find((line) => line.invoice_id)?.invoice_id || null;
+    const willPrint = Boolean(existingInvoiceId || (!saleTicketDetail.ecommerceOrderId && saleTicketDetail.isGrouped));
+    const printWindow = willPrint ? window.open("", "_blank") : null;
+    if (willPrint && !printWindow) {
+      toast.error("Permití las ventanas emergentes para imprimir la factura.");
+      return;
+    }
     setTicketInvoiceBusy(true);
     try {
       if (existingInvoiceId) {
         await printFiscalInvoiceById(
           existingInvoiceId,
           settings?.business_name || activeOrg.name,
+          printWindow ?? undefined,
         );
         return;
       }
@@ -934,6 +941,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
         transactionId: saleTicketDetail.id,
       });
       if (!result.ok || !result.invoiceId) {
+        printWindow?.close();
         toast.error(result.motivo || "No se pudo crear la factura del ticket");
         return;
       }
@@ -943,8 +951,10 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
       await printFiscalInvoiceById(
         result.invoiceId,
         settings?.business_name || activeOrg.name,
+        printWindow ?? undefined,
       );
     } catch (error) {
+      printWindow?.close();
       toast.error(error instanceof Error ? error.message : "No se pudo operar la factura");
     } finally {
       setTicketInvoiceBusy(false);
