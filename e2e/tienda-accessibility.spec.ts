@@ -59,7 +59,7 @@ async function abrirPrimeraFicha(page: Page) {
 
 async function prepararCarrito(page: Page) {
   await abrirPrimeraFicha(page);
-  await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+  await page.getByTestId('product-add-to-cart').click();
   await expect(page.getByLabel(/Carrito, \d+ artículo/)).toBeVisible();
 }
 

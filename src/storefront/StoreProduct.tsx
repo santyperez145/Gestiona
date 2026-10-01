@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   mejorDescuento, nombreMedio, precioConMedioDePago, medioMejoraElPrecio,
 } from "@/lib/paymentDiscount";
@@ -36,7 +35,6 @@ import {
 } from "@/lib/storeProductVariant";
 
 export default function StoreProduct() {
-  const isMobile = useIsMobile();
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   const { productId } = useParams<{ productId: string }>();
   const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart, basePath: base } = useStore();
@@ -462,8 +460,8 @@ export default function StoreProduct() {
             <StockAlertForm productId={p.id} variantId={variantId} />
           ) : (
           <div ref={atcRef} className="space-y-3 mt-6">
-            <div className="flex items-center gap-3">
-              {!faltaElegir && <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
+            <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 ${!faltaElegir ? 'sm:grid-cols-[auto_minmax(0,1fr)_auto]' : ''}`}>
+              {!faltaElegir && <div className="flex items-center justify-self-start border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
                 <button className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
                   <Minus className="w-4 h-4" />
                 </button>
@@ -478,15 +476,14 @@ export default function StoreProduct() {
                 </button>
               </div>}
               <button
+                data-testid="product-add-to-cart"
                 onClick={agregarOEnfocar}
-                aria-hidden={isMobile && !atcVisible}
-                tabIndex={!isMobile || atcVisible ? 0 : -1}
-                className="flex-1 min-h-11 py-3 font-semibold inline-flex items-center justify-center gap-2 border transition-colors hover:bg-black/5"
+                className={`min-w-0 min-h-11 px-2 py-3 text-sm leading-snug font-semibold inline-flex items-center justify-center gap-2 border transition-colors hover:bg-black/5 ${!faltaElegir ? 'col-span-2 order-3 sm:col-span-1 sm:order-none' : ''}`}
                 style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
               >
                 {faltaElegir
                   ? textoCtaVariante(tipoVariante)
-                  : added ? <><Check className="w-4 h-4 text-emerald-600" /> ¡Agregado al carrito!</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
+                  : added ? <><Check className="w-4 h-4 shrink-0 text-emerald-600" /><span>¡Agregado al carrito!</span></> : <><ShoppingBag className="w-4 h-4 shrink-0" /><span>Agregar al carrito</span></>}
               </button>
               <button
                 onClick={() => deseos.toggle(p.id)}
@@ -612,22 +609,25 @@ export default function StoreProduct() {
           <div className="h-20 md:hidden" aria-hidden="true" />
           <div
             className="storefront-buy-bar md:hidden fixed inset-x-0 bottom-0 z-30 border-t px-4 pt-3"
+            role="region"
+            aria-label="Compra rápida"
             style={{
               background: "hsl(var(--st-bg))",
               borderColor: "hsl(var(--st-border))",
               paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
             }}
           >
-            <div className="mx-auto flex max-w-6xl items-center gap-3">
-              <p className="shrink-0 font-bold tabular-nums">{fmt(price)}</p>
+            <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+              <p className="min-w-0 font-bold tabular-nums">{fmt(price)}</p>
               <button
+                data-testid="product-quick-add-to-cart"
                 onClick={agregarOEnfocar}
-                className="min-h-11 flex-1 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                className="min-h-11 flex-1 min-w-0 px-2 py-3 text-sm leading-snug font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
                 style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
               >
                 {faltaElegir
                   ? textoCtaVariante(tipoVariante)
-                  : added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
+                  : added ? <><Check className="w-4 h-4 shrink-0" /><span>Agregado</span></> : <><ShoppingBag className="w-4 h-4 shrink-0" /><span>Agregar al carrito</span></>}
               </button>
             </div>
           </div>

@@ -3806,7 +3806,7 @@ export default function POSPage() {
         ) : null}
 
         {/* Main area */}
-        <div className="pos-main flex min-h-0 flex-1 overflow-hidden">
+        <div className="pos-main relative flex min-h-0 flex-1 overflow-hidden">
           {/* Product grid / Bundle grid */}
           <div className={`pos-product-area min-w-0 flex-1 overflow-y-auto p-3 ${showCart ? "hidden xl:block" : "block"}`}>
             {/* Bundles grid */}
@@ -3982,11 +3982,11 @@ export default function POSPage() {
 
           {/* Mobile cart slide-up */}
           {showCart && (
-            <div className="pos-mobile-cart absolute inset-x-0 bottom-0 z-40 flex h-[min(85dvh,48rem)] flex-col rounded-t-2xl border-t border-border bg-card shadow-2xl xl:hidden">
+            <div className="pos-mobile-cart absolute inset-x-0 bottom-0 z-40 flex h-[min(85dvh,48rem)] max-h-full min-h-0 flex-col overflow-hidden rounded-t-2xl border-t border-border bg-card shadow-2xl xl:hidden">
               <div aria-hidden="true" className="flex justify-center pb-1 pt-3">
                 <span className="h-1 w-10 rounded-full bg-border" />
               </div>
-              <div className="flex-1 overflow-hidden">
+              <div className="min-h-0 flex-1 overflow-hidden">
                 {cartPanel}
               </div>
             </div>

@@ -51,7 +51,7 @@ export default function StoreNewsletter({ slug, base }: { slug?: string | null; 
   const resuelto = estado === "suscrito" || estado === "ya_suscrito" || estado === "dado_de_baja";
 
   return (
-    <div className="storefront-newsletter">
+    <div className="storefront-newsletter min-w-0">
       <p className="text-sm font-semibold mb-2 flex items-center gap-2">
         <Mail className="w-4 h-4" style={{ color: "hsl(var(--st-accent))" }} />
         Novedades y promociones
@@ -62,7 +62,7 @@ export default function StoreNewsletter({ slug, base }: { slug?: string | null; 
           {MENSAJES[estado as Exclude<Estado, "idle" | "enviando">]}
         </p>
       ) : (
-        <form onSubmit={enviar} className="flex gap-2 max-w-sm" aria-label="Suscribirse al newsletter">
+        <form onSubmit={enviar} className="flex w-full min-w-0 gap-2 max-w-sm" aria-label="Suscribirse al newsletter">
           <input
             type="email"
             required
@@ -70,12 +70,12 @@ export default function StoreNewsletter({ slug, base }: { slug?: string | null; 
             onChange={(e) => { setEmail(e.target.value); if (estado === "error") setEstado("idle"); }}
             placeholder="Email para novedades"
             aria-label="Email para recibir novedades"
-            className="flex-1 min-h-11 px-3 text-sm border"
+            className="flex-1 min-w-0 min-h-11 px-3 text-sm border"
             style={{
               borderRadius: "var(--st-radius)",
               borderColor: "hsl(var(--st-border))",
               background: "hsl(var(--st-bg))",
-              color: "hsl(var(--st-fg))",
+              color: "hsl(var(--st-text))",
             }}
           />
           <button

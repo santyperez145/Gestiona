@@ -28,7 +28,7 @@ test("recupera el mismo intento al abrir una segunda pestaña con el mismo carri
   await expect(fichas.first()).toBeVisible();
   await fichas.first().click();
   await expect(page).toHaveURL(/\/producto\//);
-  await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+  await page.getByTestId('product-add-to-cart').click();
 
   // 2. Ir al checkout yllenar datos parcialmente (el storage del intento se escribe al enviar).
   await page.goto(tienda("/checkout"));

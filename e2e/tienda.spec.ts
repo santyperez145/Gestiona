@@ -230,8 +230,10 @@ test.describe("ficha de producto", () => {
     await expect(disponible).toHaveAttribute("aria-checked", "true");
     // En desktop bajo puede quedar debajo del pliegue y el sticky existe sólo
     // en mobile. Se lleva a viewport antes de exigir su nombre accesible.
-    await page.locator("button").filter({ hasText: "Agregar al carrito" }).first().scrollIntoViewIfNeeded();
-    await expect(page.getByRole("button", { name: "Agregar al carrito" }).first()).toBeVisible();
+    const primaryAdd = page.getByTestId('product-add-to-cart');
+    await primaryAdd.scrollIntoViewIfNeeded();
+    await expect(primaryAdd).toHaveAccessibleName('Agregar al carrito');
+    await expect(primaryAdd).toBeVisible();
     await expect(page.getByText("Envío a tu provincia")).toBeVisible();
 
     const geometry = await page.evaluate(() => ({
@@ -299,7 +301,7 @@ test.describe("carrito", () => {
     });
     await page.goto(tienda("/productos"));
     await (await fichasVisibles(page)).first().click();
-    await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+    await page.getByTestId('product-add-to-cart').click();
     await page.goto(tienda("/checkout"));
     await page.getByLabel("Nombre y apellido *").fill("ZZ Checkout test");
     await page.getByLabel("Email *", { exact: true }).fill("checkout@example.test");
@@ -341,7 +343,7 @@ test.describe("carrito", () => {
     const fichas = await fichasVisibles(page);
     await fichas.first().click();
     await expect(page).toHaveURL(/\/producto\//);
-    await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+    await page.getByTestId('product-add-to-cart').click();
     await page.goto(tienda("/carrito"));
 
     await expect(page.getByRole("heading", { name: /Tu carrito/ })).toBeVisible();
@@ -393,7 +395,14 @@ test.describe("carrito", () => {
     await expect(page).toHaveURL(/\/producto\//);
 
     const titulo = await page.getByRole("heading", { level: 1 }).innerText();
-    await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+    const primaryAdd = page.getByTestId('product-add-to-cart');
+    await primaryAdd.focus();
+    await expect(primaryAdd).toBeFocused();
+    await expect(primaryAdd).toHaveAccessibleName('Agregar al carrito');
+    const purchaseBounds = await primaryAdd.boundingBox();
+    expect(purchaseBounds!.height).toBeGreaterThanOrEqual(44);
+    expect(purchaseBounds!.height, 'el texto no se apila en tres líneas').toBeLessThanOrEqual(64);
+    await primaryAdd.click();
 
     // El contador del header es la señal inmediata de que entró al carrito.
     await expect(page.getByLabel(/Carrito, \d+ artículo/)).toBeVisible();
@@ -418,7 +427,7 @@ test.describe("carrito", () => {
     await page.goto(tienda("/productos"));
     const fichas = await fichasVisibles(page);
     await fichas.first().click();
-    await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+    await page.getByTestId('product-add-to-cart').click();
     await page.goto(tienda("/checkout"));
 
     await expect(page.getByRole("heading", { name: "Finalizar compra" })).toBeVisible();

@@ -1,6 +1,6 @@
 # E2E críticos
 
-**Estado:** gate vigente. **Corte:** 2026-09-10.
+**Estado:** gate vigente. **Corte:** 2026-10-01.
 
 La puerta E2E prueba la tienda pública en Chromium de escritorio y teléfono, y
 las superficies críticas del panel con una identidad técnica. Los specs leen la
@@ -13,9 +13,16 @@ conservado y reintento con la misma clave. Las pruebas de componente cubren
 recarga, doble submit, fallo del pago y segunda compra idéntica. No certifican
 pagos live ni concurrencia de sesiones con claves diferentes.
 
-La entrada al checkout también cubre el CTA de la ficha: en escritorio no se
-oculta del árbol accesible al salir del viewport; la sustitución por barra fija
-se aplica sólo en móvil. Ambos botones dicen "Agregar al carrito".
+La entrada al checkout también cubre el CTA de la ficha: el botón principal
+conserva su acceso por teclado y lector, incluso fuera del viewport. La barra
+móvil de compra rápida lo complementa sin ocultarlo. Ambos botones dicen
+"Agregar al carrito" y tienen identificadores distintos para no confundirlos
+con acciones de productos relacionados ni con controles transitorios.
+
+`header.spec.ts` aumenta el ancho intrínseco del email del newsletter y exige
+que el formulario y sus controles sigan dentro de 360 px, sin esconderlos con
+overflow. El panel verifica que el drawer móvil del POS quede dentro del área
+disponible bajo las barras de navegación y de estado de la suscripción.
 
 `store-order.spec.ts` usa un pedido sintético e intercepta lectura, seguimiento,
 pagos y creación. Comprueba recuperación de red inicial y botones de tarjeta/
@@ -76,6 +83,7 @@ tipo de bundle que llega a producción y transforma ese caso en una señal útil
 ~~~bash
 npm run test:e2e:public
 npm run test:e2e:ci
+npm run verify:ci
 ~~~
 
 Si esta PC no tiene el runtime público local, el barrido público puede ejecutarse

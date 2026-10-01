@@ -112,10 +112,10 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Base publicada del 2026-10-01: 3.412 tests en 394 archivos con `npm test`;
-  24 escenarios de navegador desktop/mobile para landing, checkout entre
-  pestañas, portal sintético y privacidad del service worker. No certifican
-  pagos externos ni todos los roles del panel con una sesión real.
+- Validación local del 2026-10-01: `npm run verify` pasa 3.428 tests en 395
+  archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
+  El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
+  portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
 - Auditoría de seguridad del 2026-10-01: 15 contratos de funciones expuestas
   pendientes de revisar; no se silencian para mostrar cero.
 - `npm run verify` unifica funciones, documentación, lint, TypeScript real,
@@ -124,9 +124,10 @@ sigue abierto como certificación operacional.
   Suites públicas no sustituyen el flujo autenticado.
 - Consulta GitHub del 2026-10-01: `main` no protegida. Falta configurar PR y
   checks requeridos; el auto-deploy de Vercel no depende hoy de CI completado.
-- CI de `ad64eafa` falló en Critical E2E: desborde móvil/timeouts y escenarios
-  del panel. Localmente header/seguimiento pasan; falta explicar y corregir la
-  diferencia de entorno, no relajar aserciones ni omitir el panel.
+- CI de `c5c53ac0` falló en Critical E2E (19 casos). Se corrigieron el ancho
+  intrínseco del newsletter, acceso estable al CTA de compra, altura del drawer
+  POS bajo avisos y selectores del panel desactualizados. El siguiente SHA debe
+  confirmar el E2E remoto autenticado; no se relajan aserciones ni se omite el panel.
 - La aplicación no recarga automáticamente al desplegar; la caché PWA no
   almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
 

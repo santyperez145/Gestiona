@@ -22,6 +22,23 @@ describe("recorrido de compra a 360 px", () => {
     expect(ficha).toContain("env(safe-area-inset-bottom)");
   });
 
+  it('the primary purchase action remains accessible outside the viewport', () => {
+    const product = leer('src/storefront/StoreProduct.tsx');
+    expect(product).toContain('data-testid="product-add-to-cart"');
+    expect(product).toContain('data-testid="product-quick-add-to-cart"');
+    expect(product).not.toContain('aria-hidden={isMobile && !atcVisible}');
+    expect(product).not.toContain('tabIndex={!isMobile || atcVisible ? 0 : -1}');
+    expect(product).toContain('grid-cols-[auto_minmax(0,1fr)_auto]');
+    expect(product).toContain('col-span-2 order-3 sm:col-span-1 sm:order-none');
+  });
+
+  it('newsletter permits intrinsic input width to shrink inside its grid track', () => {
+    const newsletter = leer('src/storefront/StoreNewsletter.tsx');
+    expect(newsletter).toContain('storefront-newsletter min-w-0');
+    expect(newsletter).toContain('flex w-full min-w-0 gap-2 max-w-sm');
+    expect(newsletter).toContain('flex-1 min-w-0 min-h-11');
+  });
+
   it("el carrito cierra, quita y termina la compra con objetivo de 44 px", () => {
     const layout = leer("src/storefront/StoreLayout.tsx");
     expect(layout).toContain('aria-label="Cerrar"');

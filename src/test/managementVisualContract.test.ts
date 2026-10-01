@@ -168,6 +168,8 @@ describe('contrato visual transversal de Gestión', () => {
     expect(pos).toContain('pos-confirm-sale');
     expect(pos).toContain('xl:hidden h-9 relative shrink-0');
     expect(pos).toContain('pos-cart-sidebar hidden w-80');
+    expect(pos).toContain('pos-main relative flex min-h-0 flex-1 overflow-hidden');
+    expect(pos).toContain('h-[min(85dvh,48rem)] max-h-full min-h-0');
     expect(pos).not.toContain('hidden lg:flex w-80');
     expect(css).toContain('@container pos-catalog (min-width: 34rem)');
     expect(css).toContain('@container pos-catalog (min-width: 50rem)');

@@ -60,7 +60,8 @@ test.describe("tienda e-commerce", () => {
     await page.goto("/tienda-online");
 
     // Si la sesión no viajó, la app manda al login y no hay nada que probar.
-    await expect(page.getByRole("heading", { name: "Nerqia Commerce" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Tienda online", exact: true })).toBeVisible();
+    const tabs = page.getByRole("tablist", { name: "Configuración de la tienda" });
 
     for (const pestaña of [
       "Publicar",
@@ -72,8 +73,8 @@ test.describe("tienda e-commerce", () => {
       "Diseño y tema",
       "Pagos y envíos",
     ]) {
-      await page.getByRole("button", { name: pestaña, exact: true }).click();
-      await expect(page.getByRole("button", { name: pestaña, exact: true })).toBeVisible();
+      await tabs.getByRole("button", { name: pestaña, exact: true }).click();
+      await expect(tabs.getByRole("button", { name: pestaña, exact: true })).toBeVisible();
     }
   });
 
@@ -122,7 +123,7 @@ test.describe("tienda e-commerce", () => {
 test.describe("credenciales", () => {
   test("integraciones no pide pegar ningún token", async ({ page }) => {
     await page.goto("/integraciones");
-    await expect(page.getByRole("heading", { level: 1, name: "Integraciones & API" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Integraciones", exact: true })).toBeVisible();
 
     // MercadoPago y MercadoLibre se conectan por OAuth. Un campo para pegar el
     // access token es lo que se sacó, y no tiene que volver.
@@ -134,16 +135,16 @@ test.describe("credenciales", () => {
 test.describe("clientes", () => {
   test("el command center separa cartera e insights sin perder el contexto", async ({ page }) => {
     await page.goto("/clientes");
-    await expect(page.getByRole("heading", { level: 1, name: "Clientes / CRM" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Clientes", exact: true })).toBeVisible();
 
-    await expect(page.getByRole("region", { name: "Centro de control del CRM" })).toBeVisible();
-    const tabs = page.getByRole("tablist", { name: "Vistas del CRM" });
+    await expect(page.getByRole("region", { name: "Resumen de compradores" })).toBeVisible();
+    const tabs = page.getByRole("tablist", { name: "Vistas de clientes" });
     await expect(tabs.getByRole("tab", { name: /Clientes/ })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("complementary", { name: "Segmentos rápidos" })).toBeVisible();
 
-    await tabs.getByRole("tab", { name: /Insights/ }).click();
-    await expect(tabs.getByRole("tab", { name: /Insights/ })).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByRole("region", { name: "Insights de clientes" })).toBeVisible();
+    await tabs.getByRole("tab", { name: /Recurrencia/ }).click();
+    await expect(tabs.getByRole("tab", { name: /Recurrencia/ })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("region", { name: "Recurrencia de compradores" })).toBeVisible();
 
     await tabs.getByRole("tab", { name: /Clientes/ }).click();
     await expect(page.getByRole("region", { name: "Listado de clientes" })).toBeVisible();
@@ -294,6 +295,11 @@ test.describe("POS", () => {
         await expect(mobileToggle).toBeVisible();
         await mobileToggle.click();
         const confirm = page.getByRole("button", { name: /Confirmar venta/ });
+        const drawer = page.locator('.pos-mobile-cart');
+        const mainBounds = await page.locator('.pos-main').boundingBox();
+        const drawerBounds = await drawer.boundingBox();
+        expect(drawerBounds!.y, 'el carrito no invade avisos ni encabezado del POS').toBeGreaterThanOrEqual(mainBounds!.y - 1);
+        expect(drawerBounds!.height).toBeLessThanOrEqual(mainBounds!.height + 1);
         await confirm.scrollIntoViewIfNeeded();
         await expect(confirm).toBeVisible();
         await expect(confirm).toBeDisabled();
