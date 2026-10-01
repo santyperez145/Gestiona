@@ -12238,6 +12238,7 @@ export type Database = {
           delivery_days_max: number | null
           delivery_days_min: number | null
           discount_amount: number
+          fiscal_snapshot: Json | null
           fulfillment_location_id: string | null
           fulfillment_status: string
           id: string
@@ -12294,6 +12295,7 @@ export type Database = {
           delivery_days_max?: number | null
           delivery_days_min?: number | null
           discount_amount?: number
+          fiscal_snapshot?: Json | null
           fulfillment_location_id?: string | null
           fulfillment_status?: string
           id?: string
@@ -12350,6 +12352,7 @@ export type Database = {
           delivery_days_max?: number | null
           delivery_days_min?: number | null
           discount_amount?: number
+          fiscal_snapshot?: Json | null
           fulfillment_location_id?: string | null
           fulfillment_status?: string
           id?: string

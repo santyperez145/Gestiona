@@ -26,10 +26,14 @@
  * porque alguien escribió mal un código de moneda.
  *
  * ⚠️ Espejo exacto de `public.redondear_moneda`, `public.decimales_de_moneda`
- * y `public.prorratear` (`20260811000001_redondeo_declarado.sql`). Si se toca
+ * y `public.prorratear` (`20261001000200_store_invoice_snapshot.sql`). Si se toca
  * una, se toca la otra: el servidor es la autoridad y el cliente sólo tiene
  * que mostrar lo mismo que se va a cobrar.
  */
+
+import Decimal from "decimal.js";
+
+const MoneyDecimal = Decimal.clone({ precision: 40 });
 
 /** Monedas sin subdivisión en uso: un importe con centavos no existe. */
 const SIN_CENTAVOS = new Set(["CLP", "PYG", "JPY", "KRW", "COP", "ISK", "VND"]);
@@ -64,10 +68,9 @@ export function redondearMoneda(importe: number, moneda?: string | null): number
  * Reparte un total en partes proporcionales cuya suma es **exactamente** el
  * total.
  *
- * Prorratear y redondear cada parte por separado casi nunca cierra: tres partes
- * iguales de $100 dan $33,33 y falta un centavo. La regla declarada es que **el
- * resto va a la última parte**. Cuál parte se lo lleva es arbitrario; que la
- * suma cierre, no — es la diferencia entre que una factura cuadre y que no.
+ * Los restos mayores reciben las unidades indivisibles de la moneda; un
+ * empate se resuelve desde la última línea. Ninguna parte puede cambiar de
+ * signo por absorber todo el redondeo acumulado.
  */
 export function prorratear(
   total: number,
@@ -77,30 +80,29 @@ export function prorratear(
   const n = pesos.length;
   if (n === 0) return [];
 
-  const positivos = pesos.map(p => (Number.isFinite(p) && p > 0 ? p : 0));
-  const suma = positivos.reduce((a, b) => a + b, 0);
-  const objetivo = redondearMoneda(total, moneda);
-
-  const salida: number[] = [];
-  let acum = 0;
-
-  for (let i = 0; i < n; i++) {
-    let parte: number;
-    if (i === n - 1) {
-      // La última absorbe el resto para que la suma cierre.
-      parte = redondearMoneda(objetivo - acum, moneda);
-    } else if (suma <= 0) {
-      // Sin pesos positivos se reparte en partes iguales: devolver ceros
-      // escondería el importe en vez de distribuirlo.
-      parte = redondearMoneda(total / n, moneda);
-    } else {
-      parte = redondearMoneda((total * positivos[i]) / suma, moneda);
-    }
-    salida.push(parte);
-    acum += parte;
+  let positivos = pesos.map(p => new MoneyDecimal(Number.isFinite(p) && p > 0 ? p : 0));
+  let suma = positivos.reduce((a, b) => a.plus(b), new MoneyDecimal(0));
+  if (suma.isZero()) {
+    positivos = pesos.map(() => new MoneyDecimal(1));
+    suma = new MoneyDecimal(n);
   }
-
-  return salida;
+  const factor = new MoneyDecimal(10).pow(decimalesDeMoneda(moneda));
+  const objetivo = new MoneyDecimal(Number.isFinite(total) ? total : 0)
+    .toDecimalPlaces(decimalesDeMoneda(moneda), Decimal.ROUND_HALF_UP);
+  const unidades = objetivo.abs().times(factor);
+  const partes = positivos.map((peso, index) => {
+    const exacto = unidades.times(peso).div(suma);
+    const entero = exacto.floor();
+    return { index, entero, resto: exacto.minus(entero) };
+  });
+  const asignadas = partes.reduce((sum, parte) => sum.plus(parte.entero), new MoneyDecimal(0));
+  const restantes = unidades.minus(asignadas).toNumber();
+  const prioridad = [...partes].sort((a, b) => b.resto.comparedTo(a.resto) || b.index - a.index);
+  for (let i = 0; i < restantes; i++) prioridad[i].entero = prioridad[i].entero.plus(1);
+  return partes.map(parte => {
+    const monto = parte.entero.div(factor).times(objetivo.isNegative() ? -1 : 1).toNumber();
+    return monto === 0 ? 0 : monto;
+  });
 }
 
 /**

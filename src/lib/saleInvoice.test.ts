@@ -178,4 +178,64 @@ describe("impresión después de una consulta asíncrona", () => {
       vi.useRealTimers();
     }
   });
+
+  it.each([1, 6])("imprime el pedido con descuento y envío clase %s sin sumar IVA al cobro", async (documentType) => {
+    const invoice: FiscalTicketInvoice = {
+      id: "store-invoice",
+      number: "F-003",
+      customer_name: "Comprador de tienda",
+      issue_date: "2026-10-01",
+      currency: "ARS",
+      subtotal: 280,
+      tax_pct: 0,
+      tax_amount: 49.35,
+      total: 329.35,
+      tipo_comprobante: documentType,
+      condicion_iva_receptor: documentType === 1 ? 1 : 5,
+      cae: null,
+      cae_vencimiento: null,
+      numero_afip: null,
+      invoice_items: [
+        { description: "Producto con descuento", quantity: 1, unit_price: 90, total: 90, tax_rate: 21, tax_amount: 18.9 },
+        { description: "Segundo producto", quantity: 1, unit_price: 90, total: 90, tax_rate: 10.5, tax_amount: 9.45 },
+        { description: "Envio", quantity: 1, unit_price: 100, total: 100, tax_rate: 21, tax_amount: 21 },
+      ],
+    };
+    let pdfBlob: Blob | undefined;
+    const objectUrl = vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+      pdfBlob = blob as Blob;
+      return "blob:store-invoice";
+    });
+    const popup = { location: { href: "" }, close: vi.fn() } as unknown as Window;
+    vi.useFakeTimers();
+    try {
+      await printFiscalInvoiceTicket(invoice, "Comercio de prueba", popup);
+      const pdf = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(pdfBlob!);
+      });
+      expect(pdf).toMatch(/^%PDF-/);
+      expect(pdf).toContain("Producto con descuento");
+      expect(pdf).toContain("Segundo producto");
+      expect(pdf).toContain("Envio");
+      expect(pdf).toContain("329,35");
+      expect(pdf).toContain("NO ES UN COMPROBANTE FISCAL");
+      if (documentType === 1) {
+        expect(pdf).toContain("280,00");
+        expect(pdf).toContain("49,35");
+      } else {
+        expect(pdf).toContain("108,90");
+        expect(pdf).toContain("99,45");
+        expect(pdf).toContain("121,00");
+        expect(pdf).not.toContain("(IVA 10.5%)");
+      }
+      expect(popup.location.href).toBe("blob:store-invoice");
+      expect(popup.close).not.toHaveBeenCalled();
+    } finally {
+      objectUrl.mockRestore();
+      vi.useRealTimers();
+    }
+  });
 });

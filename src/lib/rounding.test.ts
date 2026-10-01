@@ -95,6 +95,31 @@ describe("prorratear", () => {
     expect(prorratear(33.333, [1])).toEqual([33.33]);
   });
 
+  it("no crea una última línea negativa al repartir dos centavos", () => {
+    expect(prorratear(0.02, [1, 1, 1, 1])).toEqual([0, 0, 0.01, 0.01]);
+    expect(prorratear(-0.02, [1, 1, 1, 1])).toEqual([0, 0, -0.01, -0.01]);
+  });
+
+  it("el resto no termina en una línea sin peso", () => {
+    expect(prorratear(0.01, [500, 500, 0])).toEqual([0, 0.01, 0]);
+    expect(prorratear(100, [1, 1, 1])).toEqual([33.33, 33.33, 33.34]);
+  });
+
+  it("mantiene signo y suma para muchos importes pequeños y monedas", () => {
+    for (const moneda of ["ARS", "CLP"]) {
+      for (let cantidad = 1; cantidad <= 20; cantidad++) {
+        for (let unidades = 1; unidades <= 20; unidades++) {
+          for (const signo of [-1, 1]) {
+            const total = signo * unidades / (moneda === "ARS" ? 100 : 1);
+            const partes = prorratear(total, Array.from({ length: cantidad }, (_, i) => (i % 3) + 1), moneda);
+            expect(sumaCierra(partes, total, moneda)).toBe(true);
+            expect(partes.every(parte => parte === 0 || Math.sign(parte) === signo)).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
   it("cierra también en una moneda sin centavos", () => {
     const p = prorratear(100, [1, 1, 1], "CLP");
     expect(p.reduce((a, b) => a + b, 0)).toBe(100);

@@ -117,13 +117,13 @@ proyectado y riesgo de churn en `CustomersPage`; toma física con borrador local
 (`stockCountDraft`); notificaciones consentidas del chat marca↔creador cerradas.
 
 **Facturación (2026-10-01):** manual/venta/POS/NC usan autoridades transaccionales.
-POS conserva el total cobrado y desglosa IVA por producto; WSFE agrupa por tasa
-oficial, no por promedio. Las nuevas ventas capturan alícuota server-side.
+POS conserva el cobro/IVA; WSFE agrupa tasas oficiales. Commerce captura el
+detalle fiscal, descuento y envío al comprar; factura y ventas conservan tasas.
 NC parcial/final conserva saldo por tasa; cabecera y renglones se protegen al
 reservar y emitir. A4/80 mm usan precios netos o finales según clase, validan
 QR y muestran la factura asociada. Correo resuelve documentos persistidos;
 no envía factura sin CAE ni recibo sin cobro. [Contrato fiscal](docs/FACTURACION.md).
-Pendiente: renglones/snapshot Commerce, IVA manual por línea, tributos reales,
+Pendiente: revisión fiscal histórica/correcciones, IVA manual por línea, tributos reales,
 certificación ARCA A/B/C y NC, impresión física y entrega por correo.
 
 **Pendiente:** primera operación externa sin corrección SQL,
@@ -246,8 +246,8 @@ Estos puntos no se cierran con más código:
 1. Mantener CI, RLS, autoridad de stock/dinero, cron y libro de migraciones sin
    brechas; extender el contrato transaccional e idempotente a toda mutación
    monetaria que aún no lo tenga.
-2. Extender el baseline de ciberseguridad: RPC con contrato versionado, roles
-   web sin operaciones internas, auditorías en cero; continuar inventario de
+2. Extender ciberseguridad: RPC versionadas, roles web sin operaciones internas;
+   revisar 19 contratos de funciones expuestas (2026-10-01), inventario de
    activos, threat model, alertas y simulacros.
 3. Completar datos legales, inventario físico y certificaciones live.
 4. Instrumentar errores, SLO, fraude y funnels sin PII innecesaria.

@@ -58,6 +58,11 @@ El registro guarda nombre, firma, audiencia, motivo y hash del cuerpo. Si una
 función pública cambia, `audit_funciones_expuestas` vuelve a mostrarla hasta
 revisar el contrato. No se aceptan allowlists sin motivo o sin fecha.
 
+Corte 2026-10-01: resolvedor de checkout y sincronizador de consentimiento
+son internos, sin ejecución web; checkout/newsletter públicos se prueban con
+roles reales y rollback. Quedan 19 funciones en `audit_funciones_expuestas`
+para revisar guardas y contratos: no se consideran aprobadas por pasar tests.
+
 `audit_costo_expuesto` inspecciona además el tipo devuelto: usar costo para
 calcular un precio público es válido; devolver una columna de costo no lo es.
 
