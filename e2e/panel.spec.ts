@@ -98,7 +98,7 @@ test.describe("tienda e-commerce", () => {
     await page.goto("/tienda-online");
     await page.getByRole("button", { name: "Diseño y tema", exact: true }).click();
 
-    await expect(page.getByText("Identidad")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 3, name: "Identidad", exact: true })).toBeVisible();
     await expect(page.getByText("Elegí, arrastrá o pegá una imagen").first()).toBeVisible();
     // Si alguien vuelve a poner un campo de URL, esto lo agarra.
     await expect(page.getByPlaceholder("https://")).toHaveCount(0);
