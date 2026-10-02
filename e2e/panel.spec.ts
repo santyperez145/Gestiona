@@ -80,6 +80,27 @@ test("Profit real: alias, canonical RPC and honest contribution", async ({ page 
   }
 });
 
+test("Capital real: canonical read, bounded layers and no business writes", async ({ page }) => {
+  const responsePromise = page.waitForResponse(response => response.url().includes("/rpc/get_inventory_capital"));
+  await page.goto("/valuacion-inventario");
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  const data = await response.json();
+  expect(data.version).toBe(1); expect(data.currency).toBe("ARS"); expect(data.method).toBe("fifo_movement_snapshot");
+  expect(data.items.length).toBeLessThanOrEqual(data.pageSize); expect(data.layers.length).toBeLessThanOrEqual(data.pageSize);
+  expect(data.summary.knownUnits + data.summary.unvaluedUnits).toBe(data.summary.positiveUnits);
+  if (data.summary.unvaluedUnits || data.summary.blockedItems) expect(data.summary.valueARS).toBeNull();
+  const section = page.getByRole("region", { name: "Capital en inventario" });
+  await expect(section.getByRole("heading", { name: "Capital en inventario" })).toBeVisible();
+  await expect(section.getByText("No pudimos cargar capital", { exact: true })).toHaveCount(0);
+  for (const name of ["Capas de costo", "Rotación", "Histórico"]) {
+    await section.getByRole("tab", { name, exact: true }).click();
+    await expect(section.getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
+  }
+  await expect(section.getByText(/fifo_movement_snapshot|missing_cost|movement_reconciliation/)).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
 test.describe("dashboard", () => {
   test("cada tab por hash muestra sus datos y oculta sólo las otras vistas", async ({ page }) => {
     await page.goto("/#dashboard-sales");

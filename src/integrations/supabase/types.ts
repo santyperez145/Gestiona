@@ -21944,7 +21944,10 @@ export type Database = {
           product_id: string
           snapshot_date: string
           stock_quantity: number
-          stock_value: number
+          stock_value: number | null
+          valuation_version: number | null
+          valuation_details: Json | null
+          recorded_by: string | null
         }
         Insert: {
           avg_daily_sales?: number
@@ -21954,7 +21957,10 @@ export type Database = {
           product_id: string
           snapshot_date?: string
           stock_quantity?: number
-          stock_value?: number
+          stock_value?: number | null
+          valuation_version?: number | null
+          valuation_details?: Json | null
+          recorded_by?: string | null
         }
         Update: {
           avg_daily_sales?: number
@@ -21964,7 +21970,10 @@ export type Database = {
           product_id?: string
           snapshot_date?: string
           stock_quantity?: number
-          stock_value?: number
+          stock_value?: number | null
+          valuation_version?: number | null
+          valuation_details?: Json | null
+          recorded_by?: string | null
         }
         Relationships: [
           {
@@ -59654,6 +59663,14 @@ export type Database = {
           quadrant: string
           revenue_ltm: number
         }[]
+      }
+      get_inventory_capital: {
+        Args: { p_org_id: string; p_search: string; p_page: number; p_page_size: number; p_history_page: number; p_layer_page?: number }
+        Returns: Json
+      }
+      capture_inventory_capital: {
+        Args: { p_org_id: string; p_date: string }
+        Returns: Json
       }
       get_carrier_performance: {
         Args: { p_days?: number; p_org_id: string }

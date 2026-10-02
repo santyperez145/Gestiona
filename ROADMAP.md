@@ -83,7 +83,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
 | Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo desde documento persistido. | ARCA A/B/C y NC, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
 | Finance | Inbox, aprobación versionada, comprometido/disponible, reembolsos/anticipos, dimensiones, conciliación CSV y export del ledger. | Documento y cierre reales; feeds de tarjetas externas y controles; [contrato](docs/FINANCE.md). |
-| Profit | Hechos y `get_profit_period`: producto/SKU/canal, filtros de tienda, agregado completo/paginado, cobertura y permisos; rollback con 1.007 líneas y dimensiones. | Inventario, primera operación explicable y decisión adoptada; Ads después. |
+| Profit | Hechos por producto/SKU/canal/tienda; capital FIFO registrado en Kardex, capas/rotación, export y cierres org/día. Agregados completos, permisos y detalle paginado. | Adquisiciones/retornos con costo completo, conciliación física, primera operación explicable y decisión adoptada; Ads después. |
 | Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
 | Creators | Portal autenticado, identidad/canjes, contratos, chat, evidencia privada y liquidación interna. | Payout acreditado, escaneo y social OAuth; expansión pausada; [contrato](docs/INFLUENCERS.md). |
 | Pay | OAuth, checkout, webhook, manual, refund, comisión y settlement idempotentes. | Certificación por proveedor/destino; cuenta cargada no garantiza rail disponible. |
@@ -112,7 +112,7 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-02: `npm run verify` pasa 3.503 tests en 398
+- Validación local del 2026-10-02: `npm run verify` pasa 3.530 tests en 399
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
@@ -122,6 +122,11 @@ sigue abierto como certificación operacional.
   paginación, teclado, recuperación, persistencia, Axe en ambos temas y capturas
   en seis anchos.
   La RPC y los inspectores comparten autoridad; no certifica Ads ni utilidad neta.
+- Capital en inventario: verificación SQL reversible de cuatro roles, dos
+  tenants, 1.007 movimientos, capas FIFO, saldos iniciales, retornos sin costo,
+  transferencias, negativos, variantes y cierres idempotentes. UI con tabs
+  Radix, tres paginaciones, exports de cada vista, recuperación, URL state y
+  Axe en claro/oscuro en seis anchos; no certifica landed cost ni inventario físico.
 - Select compartido: etiquetas iniciales/compuestas y asíncronas, cambios de
   contexto, opciones retiradas/deshabilitadas, foco y Escape dentro de modales.
   28 pruebas de componente; retiro sintético con teclado/mouse, Axe y nombres
@@ -147,7 +152,9 @@ sigue abierto como certificación operacional.
   transitoria, incluido `PGRST002`; permisos/esquema/validación no se repiten.
   Acceso a tenant y staff tienen errores independientes y recuperación explícita;
   una caída no se presenta como aprobación pendiente ni habilita roles previos.
-  El gate remoto detectó este incidente; exigir nueva evidencia CI/producción.
+  El gate remoto detectó este incidente y la corrección `ced9f641` pasó CI,
+  incluido panel autenticado, y el barrido de producción. Exigir los mismos
+  gates en cada SHA; no inferir que la recuperación elimina caídas del proveedor.
 
 ## 5. Orden ejecutable
 
@@ -177,8 +184,10 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    mejoras guiadas por conversión, no nuevos temas sin evidencia.
 4. Profit Foundation: agregado/permiso/paginación conectados y reconciliados
    internamente; cerrar la primera operación con fuentes reales completas.
-5. Certificar SKU/tienda y extender a capital en inventario con costo histórico, alertas
-   explicables y una decisión observada por merchant. `/profit` es hoy alias
+5. Certificar SKU/tienda y capital en inventario: costo original de retornos,
+   landed cost, conciliación física, alertas explicables y una decisión observada
+   por merchant. FIFO analítico y cierres ya usan el Core; no política contable
+   ni costo histórico reconstruido desde precios actuales. `/profit` es hoy alias
    de la vista Foundation; no anuncia la suite completa ni Ads certificados.
 
 ### P2 — Finance operacional y Growth CRM

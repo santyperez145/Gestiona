@@ -1,365 +1,137 @@
-﻿import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, type ReactNode } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Download, History, Layers, Package, RefreshCw, Save, ShieldCheck, TrendingDown, Wallet } from "lucide-react";
 import { useOrg } from "@/lib/orgContext";
+import { useModulePerms } from "@/lib/permissionsContext";
+import { useInventoryCapital } from "@/hooks/useInventoryCapital";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CAPITAL_REASONS, inventoryCapitalCsv, type CapitalItem } from "@/lib/inventoryCapital";
+import { formatARS } from "@/lib/supabaseStore";
 import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import WorkspaceState from "@/components/shared/WorkspaceState";
+import DataPagination from "@/components/shared/DataPagination";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Package, DollarSign, TrendingUp, TrendingDown, BarChart3,
-  RefreshCw, Download, Layers, Calculator, Loader2
-} from "lucide-react";
-import InventoryAgingTab from "@/components/inventory/InventoryAgingTab";
-import { calcCostARS, calcInventoryValue, calcLayerUnitCostARS } from "@/lib/businessCalc";
-import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { Root as Tabs, Content as TabsContent, List as TabsList, Trigger as TabsTrigger } from "@radix-ui/react-tabs";
 
-interface ValuationRow {
-  product_id: string;
-  product_name: string;
-  total_units: number;
-  avg_cost: number;
-  fifo_value: number;
-  market_value: number;
-  gain_loss: number;
-  sku?: string;
-  category?: string;
-}
-
-interface InventoryLayer {
-  id: string;
-  product_name: string;
-  layer_date: string;
-  layer_type: string;
-  quantity_remaining: number;
-  unit_cost: number;
-  total_cost: number;
-}
-
+const money = (value: number | null) => value === null ? "Pendiente" : formatARS(value);
+const date = (value: string | null) => value ? new Date(value).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" }) : "Sin evidencia";
+const title = (row: Pick<CapitalItem, "product_name" | "variant_name" | "sku">) => <div className="min-w-0"><p className="line-clamp-2 break-words font-medium">{row.product_name}</p>
+  <p className="line-clamp-2 break-words text-xs text-muted-foreground">{[row.variant_name, row.sku].filter(Boolean).join(" · ") || "Sin SKU"}</p></div>;
+const cell = "px-3 py-3 text-right tabular-nums break-words";
+const header = "px-3 py-3 text-right font-medium";
+const TableFrame = ({ children }: { children: ReactNode }) => <div tabIndex={0} className="max-w-full overflow-x-auto rounded-lg border border-border bg-card outline-none focus-visible:ring-2 focus-visible:ring-primary">{children}</div>;
 
 export default function InventoryValuationPage() {
-  usePageTitle("Valuación de Inventario");
+  usePageTitle("Capital en inventario");
   const { activeOrg } = useOrg();
-  const [tab, setTab] = usePersistedState<"valuation" | "layers" | "aging" | "snapshots" | "config">(
-    orgViewKey("inventory-valuation.tab", activeOrg?.id),
-    "valuation",
-  );
-  const [method, setMethod] = useState("average");
-  const [rows, setRows] = useState<ValuationRow[]>([]);
-  const [layers, setLayers] = useState<InventoryLayer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "value" | "gain">("value");
-
-  useEffect(() => {
-    if (!activeOrg?.id) return;
-    setLoading(true);
-
-    Promise.all([
-      supabase.from("products")
-        .select("id, name, sku, category, stock, cost_usd, sale_price_ars, profit_per_unit_ars")
-        .eq("org_id", activeOrg.id)
-        .gt("stock", 0)
-        .order("sale_price_ars", { ascending: false }),
-      supabase.from("purchases")
-        .select("product_name, product_id, quantity, unit_cost_usd, date, exchange_rate_used:exchange_rate")
-        .eq("org_id", activeOrg.id)
-        .order("date", { ascending: false })
-        .limit(200),
-      // settings es por organización (no por owner_id, que no existe en Organization)
-      supabase.from("settings")
-        .select("exchange_rate")
-        .eq("org_id", activeOrg.id)
-        .maybeSingle(),
-    ]).then(([prodRes, purchRes, settRes]) => {
-      const exchangeRate = Number((settRes.data as any)?.exchange_rate ?? 1200);
-      const products = prodRes.data || [];
-
-      // Build ValuationRow per product
-      const valuationRows: ValuationRow[] = products.map((p: any) => {
-        const costARS = calcCostARS(p.sale_price_ars, p.profit_per_unit_ars);
-        const marketValue = Number(p.stock) * Number(p.sale_price_ars || 0);
-        const avgCost = costARS;
-        const gainLoss = Number(p.stock) * Number(p.profit_per_unit_ars || 0);
-        return {
-          product_id: p.id,
-          product_name: p.name,
-          sku: p.sku || "",
-          category: p.category || "Sin categoría",
-          total_units: Number(p.stock),
-          avg_cost: avgCost,
-          fifo_value: calcInventoryValue(p.stock, costARS),
-          market_value: marketValue,
-          gain_loss: gainLoss,
-        };
-      });
-      setRows(valuationRows);
-
-      // Build InventoryLayer from purchases
-      const purchases = purchRes.data || [];
-      const layerData: InventoryLayer[] = purchases.map((pu: any) => {
-        const unitCostARS = calcLayerUnitCostARS(pu.unit_cost_usd, pu.exchange_rate_used, exchangeRate);
-        const qty = Number(pu.quantity || 0);
-        return {
-          id: pu.product_id + "_" + pu.date,
-          product_name: pu.product_name || "—",
-          layer_date: pu.date,
-          layer_type: "compra",
-          quantity_remaining: qty,
-          unit_cost: unitCostARS,
-          total_cost: qty * unitCostARS,
-        };
-      });
-      setLayers(layerData);
-    }).finally(() => setLoading(false));
-  }, [activeOrg?.id]);
-
-  const totalCostAvg = rows.reduce((s, r) => s + r.avg_cost * r.total_units, 0);
-  const totalMarket = rows.reduce((s, r) => s + r.market_value, 0);
-  const totalGain = rows.reduce((s, r) => s + r.gain_loss, 0);
-  const totalUnits = rows.reduce((s, r) => s + r.total_units, 0);
-
-  const filtered = rows
-    .filter(r => !search || r.product_name.toLowerCase().includes(search.toLowerCase()) || r.sku?.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      if (sortBy === "name") return a.product_name.localeCompare(b.product_name);
-      if (sortBy === "value") return b.market_value - a.market_value;
-      return b.gain_loss - a.gain_loss;
-    });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Cargando valuación de inventario...</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Layers}
-        title="Valuación de Inventario"
-        description="Métodos FIFO, LIFO y Costo Promedio Ponderado"
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Select value={method} onValueChange={setMethod}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="average">Costo Promedio ✓</SelectItem>
-                <SelectItem value="fifo">FIFO (1° en entrar)</SelectItem>
-                <SelectItem value="lifo">LIFO (1° en salir)</SelectItem>
-                <SelectItem value="specific">Identificación Específica</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => toast.success("Snapshot generado")}>
-              <RefreshCw className="w-4 h-4 mr-2" />Snapshot
-            </Button>
-            <Button variant="outline" onClick={() => toast.info("Exportando...")}>
-              <Download className="w-4 h-4 mr-2" />Exportar
-            </Button>
-          </div>
-        }
-      />
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPICard label="Unidades Totales" value={totalUnits.toLocaleString()} icon={Package} color="blue" />
-        <KPICard label={`Costo Total (${method.toUpperCase()})`} value={`$${(totalCostAvg / 1_000_000).toFixed(2)}M`} icon={DollarSign} color="purple" />
-        <KPICard label="Valor de Mercado" value={`$${(totalMarket / 1_000_000).toFixed(2)}M`} icon={BarChart3} color="success" />
-        <KPICard
-          label="Gan./Pérd. No Realizada"
-          value={`${totalGain >= 0 ? "+" : ""}$${(totalGain / 1000).toFixed(0)}K`}
-          icon={totalGain >= 0 ? TrendingUp : TrendingDown}
-          color={totalGain >= 0 ? "success" : "destructive"}
-        />
-      </div>
-
-      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
-        <TabsList>
-          <TabsTrigger value="valuation">Valuación</TabsTrigger>
-          <TabsTrigger value="layers">Capas de Costo</TabsTrigger>
-          <TabsTrigger value="aging">Aging</TabsTrigger>
-          <TabsTrigger value="snapshots">Histórico</TabsTrigger>
-          <TabsTrigger value="config">Configuración</TabsTrigger>
-        </TabsList>
-
-        {/* VALUATION TABLE */}
-        <TabsContent value="valuation" className="space-y-3 pb-12">
-          <div className="flex gap-2 items-center">
-            <Input placeholder="Buscar producto o SKU..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
-            <Select value={sortBy} onValueChange={v => setSortBy(v as typeof sortBy)}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="value">Por Valor ↓</SelectItem>
-                <SelectItem value="gain">Por Ganancia ↓</SelectItem>
-                <SelectItem value="name">Por Nombre</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              {filtered.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  {search ? "No se encontraron productos con ese criterio." : "Sin productos con stock disponible."}
-                </div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="border-b border-border/60">
-                    <tr>
-                      <th className="text-left py-3 px-4">Producto</th>
-                      <th className="text-right py-3 px-4">Unidades</th>
-                      <th className="text-right py-3 px-4">Costo {method === "fifo" ? "FIFO" : method === "lifo" ? "LIFO" : "Prom."}</th>
-                      <th className="text-right py-3 px-4">Valor Mercado</th>
-                      <th className="text-right py-3 px-4">G/P No Realizada</th>
-                      <th className="text-right py-3 px-4">Margen</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map(row => {
-                      const marginPct = row.market_value > 0 ? (row.gain_loss / row.market_value) * 100 : 0;
-                      return (
-                        <tr key={row.product_id} className="border-b last:border-0 hover:bg-muted/30">
-                          <td className="py-3 px-4">
-                            <p className="font-medium">{row.product_name}</p>
-                            <p className="text-xs text-muted-foreground">{row.sku} · {row.category}</p>
-                          </td>
-                          <td className="py-3 px-4 text-right">{row.total_units}</td>
-                          <td className="py-3 px-4 text-right">${(row.avg_cost * row.total_units / 1000).toFixed(0)}K</td>
-                          <td className="py-3 px-4 text-right font-medium">${(row.market_value / 1000).toFixed(0)}K</td>
-                          <td className={`py-3 px-4 text-right font-medium ${row.gain_loss >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                            {row.gain_loss >= 0 ? "+" : ""}${(row.gain_loss / 1000).toFixed(0)}K
-                          </td>
-                          <td className={`py-3 px-4 text-right text-xs font-medium ${marginPct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                            {marginPct >= 0 ? "+" : ""}{marginPct.toFixed(1)}%
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot className="bg-muted/30 font-semibold border-t">
-                    <tr>
-                      <td className="py-3 px-4">TOTAL</td>
-                      <td className="py-3 px-4 text-right">{totalUnits}</td>
-                      <td className="py-3 px-4 text-right">${(totalCostAvg / 1_000_000).toFixed(2)}M</td>
-                      <td className="py-3 px-4 text-right">${(totalMarket / 1_000_000).toFixed(2)}M</td>
-                      <td className={`py-3 px-4 text-right ${totalGain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {totalGain >= 0 ? "+" : ""}${(totalGain / 1000).toFixed(0)}K
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {totalMarket > 0 ? ((totalGain / totalMarket) * 100).toFixed(1) : "0.0"}%
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* LAYERS */}
-        <TabsContent value="layers" className="space-y-3 pb-12">
-          <p className="text-sm text-muted-foreground">Capas de costo activas (stock disponible con su costo de adquisición)</p>
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              {layers.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">Sin compras registradas para mostrar capas de costo.</div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="border-b border-border/60">
-                    <tr>
-                      <th className="text-left py-3 px-4">Producto</th>
-                      <th className="text-left py-3 px-4">Fecha Ingreso</th>
-                      <th className="text-left py-3 px-4">Tipo</th>
-                      <th className="text-right py-3 px-4">Unidades Restantes</th>
-                      <th className="text-right py-3 px-4">Costo Unitario</th>
-                      <th className="text-right py-3 px-4">Total Capa</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {layers.map(layer => (
-                      <tr key={layer.id} className="border-b last:border-0 hover:bg-muted/30">
-                        <td className="py-3 px-4 font-medium">{layer.product_name}</td>
-                        <td className="py-3 px-4">{new Date(layer.layer_date).toLocaleDateString("es-AR")}</td>
-                        <td className="py-3 px-4">
-                          <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded capitalize">{layer.layer_type}</span>
-                        </td>
-                        <td className="py-3 px-4 text-right">{layer.quantity_remaining}</td>
-                        <td className="py-3 px-4 text-right">${layer.unit_cost.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right font-medium">${(layer.total_cost / 1000).toFixed(0)}K</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </CardContent>
-          </Card>
-          <div className="flex gap-3 text-xs text-muted-foreground items-center">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-blue-500 rounded-full" />FIFO: primeras capas se consumen primero</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-primary rounded-full" />LIFO: últimas capas se consumen primero</span>
-          </div>
-        </TabsContent>
-
-        {/* AGING */}
-        <TabsContent value="aging">
-          <InventoryAgingTab />
-        </TabsContent>
-
-        {/* SNAPSHOTS */}
-        <TabsContent value="snapshots">
-          <Card>
-            <CardContent className="p-6">
-              {rows.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sin historial de snapshots</p>
-              ) : (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm font-semibold mb-2">Snapshot actual</p>
-                  <div className="flex gap-6 text-sm">
-                    <div><p className="text-xs text-muted-foreground">Costo Total</p><p className="font-medium">${(totalCostAvg / 1_000_000).toFixed(2)}M</p></div>
-                    <div><p className="text-xs text-muted-foreground">Valor Mercado</p><p className="font-medium">${(totalMarket / 1_000_000).toFixed(2)}M</p></div>
-                    <div><p className="text-xs text-muted-foreground">Fecha</p><p className="font-medium">{new Date().toLocaleDateString("es-AR")}</p></div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* CONFIG */}
-        <TabsContent value="config">
-          <Card className="max-w-md">
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Calculator className="w-4 h-4" />Método de Valuación</CardTitle></CardHeader>
-            <CardContent className="space-y-4 pb-12">
-              {[
-                { value: "average", label: "Costo Promedio Ponderado", desc: "El más usado en Argentina. Promedia el costo de todas las unidades." },
-                { value: "fifo", label: "FIFO (First In, First Out)", desc: "Primero en entrar, primero en salir. El stock más antiguo se registra como vendido primero." },
-                { value: "lifo", label: "LIFO (Last In, First Out)", desc: "Último en entrar, primero en salir. Útil con precios inflacionarios." },
-                { value: "specific", label: "Identificación Específica", desc: "Cada unidad se rastrea individualmente. Ideal para bienes únicos." },
-              ].map(opt => (
-                <div
-                  key={opt.value}
-                  className={`p-3 rounded-lg border cursor-pointer transition-all ${method === opt.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
-                  onClick={() => setMethod(opt.value)}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${method === opt.value ? "border-primary" : "border-muted-foreground"}`}>
-                      {method === opt.value && <div className="w-2 h-2 rounded-full bg-primary" />}
-                    </div>
-                    <span className="font-medium text-sm">{opt.label}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1 ml-6">{opt.desc}</p>
-                </div>
-              ))}
-              <Button onClick={() => toast.success("Método actualizado")} className="w-full">Guardar Configuración</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+  const inventory = useModulePerms("inventory"), analytics = useModulePerms("analytics");
+  const [params, setParams] = useSearchParams();
+  const search = (params.get("q") || "").slice(0, 120);
+  const [draft, setDraft] = useState({ search, text: search });
+  const tab = ["valuation", "layers", "rotation", "history"].includes(params.get("vista")) ? params.get("vista") : "valuation";
+  const readPage = (key: string) => { const value = Number(params.get(key) || 1); return Number.isSafeInteger(value) && value > 0 ? Math.min(value, 1000000) : 1; };
+  const allowed = inventory.canView && analytics.canView && !inventory.loading && !analytics.loading;
+  const source = useInventoryCapital({ orgId: activeOrg?.id ?? null, enabled: allowed, search, page: readPage("pagina"), historyPage: readPage("historial"), layerPage: readPage("capas") });
+  const { data, loading, error } = source;
+  const change = (key: string, value: string) => setParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (value) next.set(key, value); else next.delete(key);
+    if (key === "q") { next.delete("pagina"); next.delete("capas"); }
+    return next;
+  }, { replace: true });
+  const exportPage = () => {
+    if (!data || error || loading || !inventory.canExport) return;
+    const url = URL.createObjectURL(new Blob(["\uFEFF", inventoryCapitalCsv(data, tab)], { type: "text/csv;charset=utf-8" }));
+    const viewName = tab === "history" ? "historial" : tab === "layers" ? "capas" : "inventario";
+    const exportPage = tab === "history" ? data.historyPage : tab === "layers" ? data.layerPage : data.page;
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = `capital-${viewName}_${data.snapshotDate}_pagina-${exportPage}.csv`;
+    document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+  };
+  const summary = data?.summary;
+  return <section aria-label="Capital en inventario" className="min-w-0 space-y-4 pb-8">
+    <PageHeader icon={Layers} title="Capital en inventario" description="Costo registrado en Kardex · Organización completa · ARS" actions={<div className="flex flex-wrap gap-2">
+      <Button variant="outline" disabled={!allowed || loading} onClick={source.retry}><RefreshCw className="mr-2 h-4 w-4" />Actualizar</Button>
+      {inventory.canExport && <Button variant="outline" onClick={exportPage} disabled={!data || loading || !!error}><Download className="mr-2 h-4 w-4" />Exportar página</Button>}
+      {inventory.canCreate && <Button onClick={() => void source.capture()} disabled={!allowed || !data || !data.itemCount || loading || !!error || source.capturing}>
+        <Save className="mr-2 h-4 w-4" />{source.capturing ? "Guardando cierre" : "Guardar cierre del día"}</Button>}
+    </div>} />
+    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+      <p>FIFO analítico sobre costos congelados. No es valor de mercado ni cierre contable.</p>
+      <div className="flex gap-4"><Link to="/profit" className="font-medium text-primary dark:text-blue-300 hover:underline">Rentabilidad</Link><Link to="/kardex" className="font-medium text-primary dark:text-blue-300 hover:underline">Kardex</Link></div>
     </div>
-  );
+    <form className="flex flex-wrap gap-2" onSubmit={event => { event.preventDefault(); change("q", draft.search === search ? draft.text.trim() : search); }}>
+      <div className="min-w-0 max-w-sm flex-1"><Input aria-label="Buscar producto o SKU" placeholder="Buscar producto o SKU" maxLength={120} value={draft.search === search ? draft.text : search}
+        onChange={event => setDraft({ search, text: event.target.value })} /></div>
+      <Button type="submit" variant="outline">Buscar</Button>
+      {search && <Button type="button" variant="ghost" onClick={() => { change("q", ""); setDraft({ search: "", text: "" }); }}>Limpiar</Button>}
+    </form>
+    <Tabs value={tab} onValueChange={value => change("vista", value)} className="min-w-0">
+      <div className="max-w-full overflow-x-auto"><TabsList aria-label="Vistas de capital" className="flex w-max gap-1 border-b border-border">
+        {[{ value: "valuation", label: "Valuación" }, { value: "layers", label: "Capas de costo" }, { value: "rotation", label: "Rotación" }, { value: "history", label: "Histórico" }].map(view =>
+          <TabsTrigger key={view.value} value={view.value} className="min-h-10 shrink-0 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary data-[state=active]:border-primary data-[state=active]:text-primary dark:data-[state=active]:text-blue-300">{view.label}</TabsTrigger>)}
+      </TabsList></div>
+      {!allowed && !inventory.loading && !analytics.loading && <WorkspaceState kind="permission" title="Capital sin acceso" description="Esta lectura requiere permisos de inventario y rentabilidad." />}
+      {(inventory.loading || analytics.loading || (loading && !data)) && <WorkspaceState kind="initial-loading" title="Cargando capital en inventario" />}
+      {error && <WorkspaceState kind={data ? "stale" : "error-recoverable"} title={data ? "Lectura anterior, sin actualizar" : "No pudimos cargar capital"}
+        description={error} actionLabel="Volver a intentar" onAction={source.retry} />}
+      {source.captureError && <WorkspaceState kind="error-recoverable" layout="banner" title="No se confirmó el cierre" description={source.captureError} />}
+      {source.captureMessage && <WorkspaceState kind="success" layout="banner" title={source.captureMessage} />}
+      {allowed && data && <>
+        {loading && <WorkspaceState kind="refreshing" layout="banner" title="Actualizando lectura" />}
+        <p className="mt-4 text-xs text-muted-foreground">{data.itemCount} posiciones · Lectura {new Date(data.asOf).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}
+          {search ? " · Totales de la búsqueda" : " · Totales de la organización"}</p>
+        {tab !== "history" && <>
+          <div className="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {[
+              { label: "Capital completo", value: money(summary.valueARS), detail: summary.valueARS === null ? "Falta evidencia o conciliación" : "Costo registrado, no valor de venta", icon: Wallet },
+              { label: "Subtotal trazable", value: money(summary.measuredValueARS), detail: `${summary.knownUnits} unidades con costo`, icon: ShieldCheck },
+              { label: "Unidades pendientes", value: summary.unvaluedUnits.toLocaleString("es-AR"), detail: `${summary.blockedItems} posiciones a conciliar`, icon: Package },
+              { label: "Más de 90 días sin vender", value: money(summary.slowCapitalARS), detail: "Subtotal con venta previa comprobable", icon: TrendingDown },
+            ].map(metric => <div key={metric.label} className="workspace-kpi-card min-w-0 border border-border bg-card p-3 sm:p-4">
+              <div className="flex justify-between gap-2"><p className="text-xs font-medium text-muted-foreground">{metric.label}</p><metric.icon className="h-4 w-4 shrink-0 text-primary" /></div>
+              <p className="mt-2 break-words text-xl font-semibold tabular-nums">{metric.value}</p><p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>
+            </div>)}
+          </div>
+          {summary.valueARS === null && data.itemCount > 0 && <WorkspaceState kind="partial" layout="banner" className="mt-3" title="Capital parcialmente explicado"
+            description={`${summary.coveragePct ?? 0}% de las unidades positivas tiene costo trazable. El stock negativo y los saldos sin conciliar siguen visibles.`} />}
+        </>}
+        {data.itemCount === 0 && tab !== "history" ? <WorkspaceState kind={search ? "empty-filtered" : "empty-first-use"} title={search ? "Sin posiciones para esta búsqueda" : "No hay stock para valorizar"}
+          description="Los servicios y productos sin control de stock no forman parte del capital en inventario." actionLabel={search ? "Limpiar búsqueda" : undefined} onAction={() => change("q", "")} /> : <>
+          {tab === "valuation" && <TabsContent value="valuation"><TableFrame><table aria-label="Valuación por producto y variante" className="w-full min-w-[720px] table-fixed text-sm">
+            <thead className="border-b bg-muted/20"><tr><th className="w-[30%] px-3 py-3 text-left font-medium">Producto / SKU</th><th className={header}>Stock</th><th className={header}>Con costo</th><th className={header}>Capital ARS</th><th className={header}>Subtotal ARS</th><th className="w-[22%] px-3 py-3 text-left font-medium">Pendientes</th></tr></thead>
+            <tbody>{data.items.map(row => <tr key={`${row.product_id}:${row.variant_id || "base"}`} className="border-b last:border-0">
+              <td className="px-3 py-3">{title(row)}</td><td className={cell}>{row.stock_units ?? "Sin saldo"}</td><td className={cell}>{row.known_units}</td>
+              <td className={cell}>{money(row.value_ars)}</td><td className={cell}>{money(row.measured_value_ars)}</td><td className="px-3 py-3 text-xs leading-relaxed">{row.reasons.length ? row.reasons.map(code => CAPITAL_REASONS[code]).join(" · ") : "Costo trazable"}</td>
+            </tr>)}</tbody></table></TableFrame></TabsContent>}
+          {tab === "layers" && <TabsContent value="layers"><p className="mb-3 text-xs text-muted-foreground">Unidades remanentes después de las salidas FIFO. Las devoluciones sin costo original y el saldo inicial quedan pendientes.</p>
+            {data.layerCount === 0 ? <WorkspaceState kind="partial" title="Conciliar movimientos antes de asignar capas" description="El Kardex y el saldo actual deben reconciliar para explicar las unidades remanentes." /> :
+            <TableFrame><table aria-label="Capas remanentes de costo" className="w-full min-w-[680px] table-fixed text-sm"><thead className="border-b bg-muted/20"><tr>
+              <th className="w-[30%] px-3 py-3 text-left font-medium">Producto / SKU</th><th className="px-3 py-3 text-left font-medium">Ingreso</th><th className={header}>Remanentes</th><th className={header}>Costo unitario ARS</th><th className={header}>Capa ARS</th></tr></thead>
+              <tbody>{data.layers.map((layer, index) => <tr key={`${layer.product_id}:${layer.variant_id}:${layer.movementId || index}`} className="border-b last:border-0">
+                <td className="px-3 py-3">{title(layer)}</td><td className="px-3 py-3 text-xs">{date(layer.receivedAt)}<p className="mt-1 text-muted-foreground">{layer.source === "movement_snapshot" ? "Costo registrado" : layer.source === "opening" ? "Saldo inicial sin costo" : "Ingreso sin costo verificado"}</p></td>
+                <td className={cell}>{layer.remainingUnits}</td><td className={cell}>{money(layer.unitCostARS)}</td><td className={cell}>{money(layer.valueARS)}</td>
+              </tr>)}</tbody></table></TableFrame>}
+          </TabsContent>}
+          {tab === "rotation" && <TabsContent value="rotation"><p className="mb-3 text-xs text-muted-foreground">Ventas netas de devoluciones registradas en los últimos 90 días. Cobertura de stock observada, no pronóstico.</p>
+            <TableFrame><table aria-label="Rotación del inventario" className="w-full min-w-[660px] table-fixed text-sm"><thead className="border-b bg-muted/20"><tr>
+              <th className="w-[30%] px-3 py-3 text-left font-medium">Producto / SKU</th><th className={header}>Última venta</th><th className={header}>Días sin vender</th><th className={header}>Unidades netas 90 días</th><th className={header}>Cobertura en días</th><th className={header}>Subtotal ARS</th></tr></thead>
+              <tbody>{data.items.map(row => <tr key={`${row.product_id}:${row.variant_id}`} className="border-b last:border-0"><td className="px-3 py-3">{title(row)}</td>
+                <td className={cell}>{date(row.last_sold_at)}</td><td className={cell}>{row.days_without_sale ?? "Sin historial"}</td><td className={cell}>{row.sold_units_90}</td>
+                <td className={cell}>{row.days_of_stock ?? "Sin demanda comprobable"}</td><td className={cell}>{money(row.measured_value_ars)}</td></tr>)}</tbody></table></TableFrame>
+          </TabsContent>}
+        </>}
+        {tab !== "history" && <DataPagination page={(tab === "layers" ? data.layerPage : data.page) - 1} totalPages={Math.ceil((tab === "layers" ? data.layerCount : data.itemCount) / data.pageSize)} totalItems={tab === "layers" ? data.layerCount : data.itemCount} pageSize={data.pageSize}
+          itemLabel={tab === "layers" ? "capas" : "posiciones"} disabled={loading} onPageChange={page => change(tab === "layers" ? "capas" : "pagina", String(page + 1))} />}
+        {tab === "history" && <TabsContent value="history"><div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><History className="h-4 w-4" /><p>Cierres diarios de toda la organización. Una captura previa no se sobrescribe.</p></div>
+          {data.historyCount === 0 ? <WorkspaceState kind="empty-first-use" title="Todavía no hay cierres guardados" description="El cierre del día conserva stock, cobertura y fuentes sin crear asientos." />
+            : <TableFrame><table aria-label="Cierres diarios de inventario" className="w-full min-w-[620px] text-sm"><thead className="border-b bg-muted/20"><tr><th className="px-3 py-3 text-left font-medium">Fecha</th><th className={header}>Productos</th><th className={header}>Stock</th><th className={header}>Capital ARS</th><th className={header}>Subtotal ARS</th><th className="px-3 py-3 text-left font-medium">Fuente</th></tr></thead>
+              <tbody>{data.history.map(row => <tr key={row.snapshot_date} className="border-b last:border-0"><td className="px-3 py-3">{date(`${row.snapshot_date}T12:00:00-03:00`)}</td><td className={cell}>{row.products}</td><td className={cell}>{row.units}</td>
+                <td className={cell}>{money(row.value_ars)}</td><td className={cell}>{money(row.measured_value_ars)}</td><td className="px-3 py-3 text-xs">{row.verified ? "FIFO · Kardex" : "Registro anterior sin evidencia de costo"}</td></tr>)}</tbody></table></TableFrame>}
+          <DataPagination page={data.historyPage - 1} totalPages={Math.ceil(data.historyCount / data.pageSize)} totalItems={data.historyCount} pageSize={data.pageSize}
+            itemLabel="cierres" disabled={loading} onPageChange={page => change("historial", String(page + 1))} />
+        </TabsContent>}
+      </>}
+    </Tabs>
+  </section>;
 }

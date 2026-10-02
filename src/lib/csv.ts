@@ -14,6 +14,6 @@ export function csvCell(value: unknown): string {
   const text = String(value ?? "").replace(/\r?\n/g, " ");
   // Excel and Sheets interpret values beginning with these characters as
   // formulas. An internal export must remain data when someone opens it.
-  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  const safe = /^[\s\p{Cc}]*[=+\-@]/u.test(text) ? `'${text}` : text;
   return `"${safe.replace(/"/g, '""')}"`;
 }

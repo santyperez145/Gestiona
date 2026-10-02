@@ -31,7 +31,7 @@ conserva además las líneas sin costo como pendientes, no las oculta del perío
 | Profit por producto/SKU/canal/tienda | Un agregado SQL, detalle paginado, cobertura y filtros; verificación reversible de 1.007 líneas y dimensiones. | Certificación con fuentes completas; inventario/Ads siguen pendientes. |
 | Gasto y atribución Ads | No certificado. | Conector read-only, identidad y conciliación de gasto. |
 | Profit de campaña | Contrato futuro. | Atribución, devolución, gasto completo y cobertura. |
-| Capital en inventario/alertas | Datos Core; producto por completar. | Costo histórico, disponibilidad y prueba de decisión. |
+| Capital en inventario | `/valuacion-inventario`: FIFO sobre costos congelados, cobertura, capas/rotación paginadas, export y cierres diarios. | Evidencia de adquisiciones/retornos completa, conciliación física, landed cost y decisión real. |
 | Entrada `/profit` / standalone | Alias de `/analytics?vista=rentabilidad`; misma vista/autoridad, no otra página. | Producto standalone y piloto; Growth sigue planeado. |
 
 El contrato de fuentes actual vive en [MARGIN_FACTS](MARGIN_FACTS.md). No se
@@ -87,6 +87,55 @@ juntos; una selección retirada no muestra UUID ni elige otra automáticamente.
 `supabase/verificaciones/20261002_profit_sku_store_dimensions.sql` valida cuatro
 roles, dos tenants, SKUs repetidos, paginación, tienda inactiva, devoluciones,
 NULL y dinero inmutable tras cambiar el costo actual, con rollback y cero restos.
+
+### Capital en inventario
+
+Una sola pantalla: `/valuacion-inventario`, enlazada desde Profit y con acceso a Kardex.
+`inventory_capital_items` proyecta el stock Core por producto/variante; no crea
+otro inventario ni asientos. `get_inventory_capital` exige membresía y permisos
+`inventory.view` + `analytics.view`; población, cobertura e importes completos
+se agregan antes de paginar posiciones, capas e histórico de forma independiente.
+La navegación administrativa vigente no cambia por los tests SQL de lectura.
+
+FIFO analítico consume ingresos antiguos primero y mantiene únicamente unidades
+remanentes. Usa `stock_movements.unit_cost_ars` congelado, nunca precio, margen,
+costo actual o FX por defecto. Es costo registrado en Kardex, **no certifica
+landed cost ni política contable**. Un saldo inicial no documentado, cero legacy
+sin evidencia o devolución sin costo original quedan pendientes. Transferencias
+balanceadas no adquieren capital. Negativos, saltos en el Kardex, orden simultáneo
+ambiguo o variantes sin reconciliar bloquean la valuación de esa identidad;
+los saldos negativos no se recortan. Se preservan subtotal cubierto y `NULL`
+completo; ausencia de demanda no se muestra como infinitos ni días inventados.
+
+Rotación usa ventas netas de devoluciones registradas de los últimos 90 días,
+por identidad, no por coincidencia de nombres. Días de cobertura observados no
+son pronóstico; sin historial no prueba stock muerto. La señal de más de 90 días
+sin vender sólo suma costo trazable con una venta previa comprobable.
+
+`capture_inventory_capital` requiere además `inventory.create`, fecha civil
+vigente y bloqueo org/día. Guarda en `inventory_snapshots` existente, con versión,
+actor y detalle de fuentes de toda la organización, sin aplicar el filtro de la
+pantalla. Reintentos/doble clic conservan la primera captura; el navegador no
+puede reescribirla. Filas anteriores sin versión no se presentan como costo
+comprobado. Son capturas analíticas, no cierres contables ni ajustes físicos.
+
+Búsqueda literal, tabs y tres páginas se preservan en URL. Cada tab exporta su
+página identificada, con `NULL` vacío, labels humanos y celdas neutralizadas;
+no exporta un subtotal como total ni expone UUID como etiquetas. Estados de
+permiso, parcialidad, error y lectura anterior conservan recuperación explícita.
+
+`supabase/verificaciones/20261002_inventory_capital_authority.sql` prueba cuatro
+roles, dos tenants, 1.007 movimientos sin truncar, FIFO, variantes con SKU igual,
+saldo inicial, devoluciones, negativos, transferencias, paginación, capturas
+idempotentes y costos inmutables tras cambiar catálogo, con rollback y cero restos.
+No demuestra adopción ni conciliación física. FIFO/AVCO/política contable completa,
+identificación específica, landed cost y costo original de retornos siguen siendo
+trabajos de dominio, no opciones simuladas en la interfaz.
+
+Referencia oficial consultada 2026-10-02: [Shopify Inventory reports](https://help.shopify.com/en/manual/reports-and-analytics/shopify-reports/report-types/default-reports/inventory-reports)
+publica snapshots y reportes de valor de inventario. [Odoo, valoración de operaciones](https://www.odoo.com/documentation/19.0/applications/inventory_and_mrp/inventory/inventory_valuation/operations_valuation.html)
+distingue ingresos, salidas, retornos y costos bajo FIFO/AVCO. Referencias de
+trabajo, no evidencia de algoritmos idénticos ni paridad certificada.
 
 ## Contrato económico
 
