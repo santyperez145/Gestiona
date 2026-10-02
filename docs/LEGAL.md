@@ -8,6 +8,8 @@ con el estado medido contra la base cuando se pudo.
 Última revisión técnica: 2026-09-03 (documentos de plataforma alineados con
 ARS/Mercado Pago, transferencias internacionales declaradas y Session Replay
 retirado; la identidad legal y la revisión profesional siguen pendientes).
+Actualización técnica parcial: 2026-10-02, consulta de cuotas y límites de la
+oferta financiera. No constituye una revisión normativa integral.
 
 ---
 
@@ -55,7 +57,7 @@ el art. 37 de la 25.065 más abajo.
 | Requisito | Estado |
 |---|---|
 | **Precio final al consumidor, con IVA incluido** (Res. 7/2002) | ✅ Los precios son finales. El IVA se discrimina por línea desde A3/A8: `products.tax_rate` permite que cada producto herede la tasa de la organización o declare 0% exento. |
-| **Costo Financiero Total si hay financiación** (Res. 51/2017) | 🟠 Se muestra "6 cuotas sin interés de $X". Si son **sin interés**, el CFT es 0% y alcanza; si algún día se ofrecen cuotas con interés, **hay que mostrar el CFT y el precio de contado**. Hoy no se distingue una cosa de la otra en el código. |
+| **Costo Financiero Total si hay financiación** (Res. 51/2017) | 🟠 La tasa de cuotas procede de Mercado Pago; una tasa ausente no se presenta como interés cero. Falta el desglose completo de precio de contado, total financiado, TEA/CFT y revisión profesional antes de certificar la oferta. Interés cero no demuestra por sí solo CFT cero. Ver [PAGOS](PAGOS.md). |
 | **La oferta debe cumplirse en los términos publicados** (art. 7) | ✅ Es la razón de fondo de la regla "los descuentos no se acumulan, gana el mejor": si se publica "20% OFF con transferencia" y se cobrara el 10% de la oferta, se estaría incumpliendo lo publicado. |
 | **Precio tachado real** | ✅ Desde la sesión 99. Antes el precio tachado no correspondía a ningún porcentaje sobre el final, que es publicidad engañosa. |
 | **Ley 25.065 art. 37 — no cobrar más por tarjeta** | 🟠 **Requiere opinión profesional.** El sistema ofrece descuento por transferencia/efectivo, que en los hechos es un precio distinto según el medio. La práctica está extendida y hubo cambios normativos, pero no es una decisión que deba tomar el código. |

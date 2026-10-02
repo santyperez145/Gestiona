@@ -1,6 +1,6 @@
 # Medios de cobro
 
-**Estado:** contrato vigente. **Corte:** 2026-09-04.
+**Estado:** contrato vigente. **Corte:** 2026-10-02.
 
 Cómo cobra cada comercio en su tienda online.
 
@@ -28,6 +28,33 @@ El checkout **no lista Nerqia Pay** si el rail no está listo (token OAuth y
 medio habilitado). Marcarlo en Comercio no alcanza: `get_store_by_slug` filtra
 el array y una orden con ese método no entra. Stripe y PayPal no se ofrecen
 como cobro de la tienda.
+
+### Cuotas de la ficha
+
+La consulta sólo se ejecuta si el contrato público ofrece Nerqia Pay en ARS.
+Frontend y `mp-installments` reconocen `gestiona_pay` y el alias `mercadopago`;
+la cuenta y sus planes se resuelven server-side, nunca desde un org enviado por
+el comprador. Una tienda manual o de otra moneda no dispara la consulta.
+
+El monto conserva centavos. La caché compartida vive hasta 15 minutos, admite
+hasta 200 tienda/montos y deduplica lecturas simultáneas; al cambiar contexto
+no muestra la cotización previa. No hay polling ni recarga al recuperar foco.
+Una respuesta incompatible o fuente caída no se cachea como una oferta vacía.
+Las fallas transitorias se reintentan hasta tres veces; otras fallas permiten
+reintento explícito sin impedir la compra ni presentar datos internos.
+
+El handler responde con CORS también ante fallos de configuración/DB y evita
+cachear errores HTTP. Una tasa ausente nunca significa `sinInteres = true`.
+Los planes publicados siguen pasando por `cuotas_disponibles`, compartido con
+la validación del cobro. Esto no certifica elegibilidad de una tarjeta ni el
+cobro real; el desglose completo de financiación/TEA/CFT y su revisión siguen
+pendientes. Referencia oficial consultada 2026-10-02:
+[consideraciones de Mercado Pago para Argentina](https://www.mercadopago.com.ar/developers/es/docs/checkout-api-payments/additional-content/considerations-argentina?scope=prod).
+
+Tests del handler ejecutan el código real con dependencias controladas, sin
+contactar al proveedor. Playwright intercepta cuota/configuración de tienda:
+comprueba medio canónico, proveedor apagado, recuperación, teclado y Axe en
+escritorio/móvil. No son certificación financiera externa.
 
 ## Catálogo de medios (2026-09-02)
 
@@ -106,9 +133,8 @@ Y guardá la clave secreta que te da MercadoPago:
 npx supabase secrets set MP_WEBHOOK_SECRET=la_clave_del_webhook
 ```
 
-Sin `MP_WEBHOOK_SECRET` el webhook igual funciona, pero **no valida la firma**:
-cualquiera podría hacerle creer que un pedido se pagó. Configuralo antes de
-salir a producción.
+Sin `MP_WEBHOOK_SECRET` el webhook **falla cerrado** y no acredita el pago.
+Debe configurarse y certificarse la firma antes de habilitar cobros.
 
 ### 4. Desplegar
 

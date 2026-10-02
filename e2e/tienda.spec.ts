@@ -16,6 +16,7 @@
  * checkout completo, va con datos `ZZ` y limpieza.
  */
 import { test, expect, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 test.use({ serviceWorkers: 'block' });
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
@@ -42,6 +43,70 @@ test.beforeEach(async ({ page }) => {
       body: "null",
     }));
   }
+});
+
+test.describe("cuotas de ficha con proveedor interceptado", () => {
+  async function configure(page: Page, enabled: () => boolean) {
+    await page.route("**/rest/v1/rpc/get_store_by_slug", async route => {
+      const response = await route.fetch();
+      if (response.status() !== 200) { await route.fulfill({ response }); return; }
+      const data = await response.json();
+      const patch = (row: Record<string, unknown>) => ({ ...row, currency: "ARS", payment_methods: enabled() ? ["gestiona_pay"] : ["transferencia"] });
+      await route.fulfill({ response, json: Array.isArray(data) ? data.map(patch) : patch(data) });
+    });
+  }
+  async function openProduct(page: Page) {
+    await page.goto(tienda("/productos"));
+    await (await fichasVisibles(page)).first().click();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
+  const result = (amount: number) => {
+    const option = { cuotas: 3, monto: amount / 3, total: amount, sinInteres: true };
+    return { opciones: [option], mejorSinInteres: option, maxCuotas: 3 };
+  };
+  test("no consulta un proveedor deshabilitado ni al pasar al checkout", async ({ page }) => {
+    await configure(page, () => false);
+    let calls = 0;
+    await page.route("**/functions/v1/mp-installments", route => {
+      calls++; return route.fulfill({ status: 200, json: result(route.request().postDataJSON().amount) });
+    });
+    await openProduct(page);
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await expect(page.getByText(/^3 cuotas sin interés de/)).toHaveCount(0);
+    await page.goto(tienda("/checkout"));
+    await expect(page.getByRole("heading", { name: /carrito está vacío/i })).toBeVisible();
+    expect(calls).toBe(0);
+  });
+  test("el medio canónico consulta una vez y no conserva cuotas al deshabilitarse", async ({ page }) => {
+    let enabled = true, calls = 0;
+    await configure(page, () => enabled);
+    await page.route("**/functions/v1/mp-installments", route => {
+      calls++; return route.fulfill({ status: 200, json: result(route.request().postDataJSON().amount) });
+    });
+    await openProduct(page); await expect(page.getByText(/^3 cuotas sin interés de/)).toBeVisible();
+    expect(calls).toBe(1); enabled = false; await page.reload();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText(/^3 cuotas sin interés de/)).toHaveCount(0); expect(calls).toBe(1);
+  });
+  test("una falla de lectura permite recuperar sin prometer financiación", async ({ page }, testInfo) => {
+    await configure(page, () => true);
+    let calls = 0;
+    await page.route("**/functions/v1/mp-installments", route => {
+      calls++;
+      return route.fulfill({ status: calls <= 3 ? 503 : 200, json: calls <= 3 ? { code: "ZZ_INTERNAL", message: "ZZ confidential detail" }
+        : result(route.request().postDataJSON().amount), headers: { "Access-Control-Allow-Origin": "*" } });
+    });
+    await openProduct(page);
+    await expect(page.getByRole("button", { name: "Volver a consultar cuotas" })).toBeVisible();
+    await expect(page.getByText(/^3 cuotas sin interés de/)).toHaveCount(0);
+    await expect(page.getByText(/ZZ_INTERNAL|confidential/)).toHaveCount(0); expect(calls).toBe(3);
+    const violations = (await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations
+      .filter(violation => ["serious", "critical"].includes(violation.impact));
+    expect(violations.map(violation => violation.id)).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath("installment-recovery.png"), fullPage: true });
+    await page.getByRole("button", { name: "Volver a consultar cuotas" }).click();
+    await expect(page.getByText(/^3 cuotas sin interés de/)).toBeVisible(); expect(calls).toBe(4);
+  });
 });
 
 test.describe("vitrina", () => {

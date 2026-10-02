@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { esMedioGestionaPay } from "@/lib/gestionaPay";
+
 /**
  * Cuotas de MercadoPago, del lado del navegador.
  *
@@ -24,6 +27,23 @@ export interface RespuestaCuotas {
   maxCuotas: number;
   /** Por qué no hay cuotas, cuando no las hay. Sirve para diagnosticar. */
   motivo?: string;
+}
+
+const installmentOption = z.object({ cuotas: z.number().int().positive(), monto: z.number().finite().positive(),
+  total: z.number().finite().positive(), sinInteres: z.boolean() });
+export const installmentResponseSchema = z.object({ opciones: z.array(installmentOption).max(100),
+  mejorSinInteres: installmentOption.nullable().default(null), maxCuotas: z.number().int().nonnegative().default(0), motivo: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.maxCuotas !== Math.max(0, ...data.opciones.map(option => option.cuotas))
+    || (data.mejorSinInteres && (!data.mejorSinInteres.sinInteres || data.mejorSinInteres.cuotas <= 1
+      || !data.opciones.some(option => option.cuotas === data.mejorSinInteres.cuotas && option.monto === data.mejorSinInteres.monto
+        && option.total === data.mejorSinInteres.total && option.sinInteres)))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Inconsistent installment response" });
+  }
+});
+
+export function canQueryStoreInstallments(store?: { payment_methods?: string[] | null; currency?: string | null } | null): boolean {
+  return !!store?.payment_methods?.some(esMedioGestionaPay) && (store.currency || "ARS") === "ARS";
 }
 
 /**

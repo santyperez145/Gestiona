@@ -28,6 +28,7 @@ import { requireEnv } from "../_shared/env.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
@@ -39,7 +40,7 @@ const json = (data: unknown, status = 200) =>
       "Content-Type": "application/json",
       // Las promociones no cambian de un minuto al otro y la ficha se mira
       // mucho. Sin caché, cada visita golpea a MercadoPago.
-      "Cache-Control": "public, max-age=900",
+      "Cache-Control": status < 400 ? "public, max-age=900" : "no-store",
     },
   });
 
@@ -71,8 +72,9 @@ interface MpMetodo {
   }>;
 }
 
-Deno.serve(async (req) => {
+async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
 
   let slug = "";
   let amount = 0;
@@ -95,29 +97,32 @@ Deno.serve(async (req) => {
 
   // El org sale del slug, nunca del cliente: si lo mandara el navegador, se
   // podrían pedir las cuotas de otra organización.
-  const { data: tienda } = await admin
+  const { data: tienda, error: storeError } = await admin
     .from("ecommerce_stores")
-    .select("org_id, payment_methods")
+    .select("org_id, payment_methods, currency")
     .ilike("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
+  if (storeError) throw storeError;
 
   if (!tienda?.org_id) return json({ opciones: [], motivo: "tienda_no_encontrada" });
 
   // Si la tienda no cobra con MercadoPago, no hay cuotas que mostrar.
-  if (!(tienda.payment_methods ?? []).includes("mercadopago")) {
+  if (!(tienda.payment_methods ?? []).some((method: string) => method === "mercadopago" || method === "gestiona_pay")) {
     return json({ opciones: [], motivo: "mercadopago_no_habilitado" });
   }
+  if ((tienda.currency || "ARS") !== "ARS") return json({ opciones: [], motivo: "moneda_no_soportada" });
 
   // La `public_key` es de la conexión OAuth del comercio. Se lee con
   // service_role porque `payment_connections` tiene RLS y cero policies, y no
   // sale de acá: sólo se usa para preguntarle a MercadoPago.
-  const { data: conn } = await admin
+  const { data: conn, error: connectionError } = await admin
     .from("payment_connections")
     .select("public_key")
     .eq("org_id", tienda.org_id)
     .eq("provider", "mercadopago")
     .maybeSingle();
+  if (connectionError) throw connectionError;
 
   if (!conn?.public_key) {
     // Sin OAuth no hay forma de saber qué cuotas ofrece. Se devuelve vacío en
@@ -155,7 +160,7 @@ Deno.serve(async (req) => {
   if (metodos.length === 0) {
     // Que MercadoPago no conteste no puede romper la ficha: se muestra sin
     // cuotas, como antes.
-    return json({ opciones: [], motivo: "mp_sin_respuesta" });
+    return json({ opciones: [], motivo: "mp_sin_respuesta" }, 503);
   }
 
   // Sólo crédito: débito y efectivo devuelven una única "cuota", que no es
@@ -177,7 +182,7 @@ Deno.serve(async (req) => {
       total: Number(c.total_amount ?? monto * cuotas),
       // El recargo lo informa MercadoPago. No se deduce comparando totales:
       // el redondeo de centavos daría "con interés" a cuotas que no lo tienen.
-      sinInteres: Number(c.installment_rate ?? 0) === 0,
+      sinInteres: typeof c.installment_rate === "number" && Number.isFinite(c.installment_rate) && c.installment_rate === 0,
     };
     const previa = mejorPorCuota.get(cuotas);
     if (!previa || opcion.monto < previa.monto) mejorPorCuota.set(cuotas, opcion);
@@ -205,8 +210,8 @@ Deno.serve(async (req) => {
   if (permitidas.error) {
     // No se traga: si no se puede saber qué acepta el comercio, se muestra sin
     // cuotas. Mostrar de más es prometer algo que el checkout va a negar.
-    console.error("cuotas_disponibles falló", permitidas.error);
-    return json({ opciones: [], motivo: "no_se_pudo_validar" });
+    console.error("cuotas_disponibles falló", { code: permitidas.error.code });
+    return json({ opciones: [], motivo: "no_se_pudo_validar" }, 503);
   }
 
   const aceptadas = new Set(
@@ -230,4 +235,12 @@ Deno.serve(async (req) => {
     mejorSinInteres,
     maxCuotas: opciones.length ? Math.max(...opciones.map(o => o.cuotas)) : 0,
   });
+}
+
+Deno.serve(async req => {
+  try { return await handle(req); }
+  catch (error) {
+    console.error("[mp-installments] source unavailable", { kind: error instanceof Error ? error.name : "SourceError" });
+    return json({ opciones: [], motivo: "consulta_no_disponible" }, 503);
+  }
 });

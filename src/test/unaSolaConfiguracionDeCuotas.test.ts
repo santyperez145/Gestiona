@@ -49,6 +49,10 @@ function soloCodigo(texto: string): string {
 }
 
 describe("una sola configuración de cuotas", () => {
+  it("la ficha sólo consulta cuotas cuando su tienda habilita el proveedor y la moneda", () => {
+    const page = soloCodigo(readFileSync(resolve(ROOT, "src/storefront/StoreProduct.tsx"), "utf8"));
+    expect(page).toMatch(/useInstallments\(store\?\.slug, precioParaTracking, canQueryStoreInstallments\(store\)\)/);
+  });
   it("lo que la tienda muestra pasa por lo que el comercio acepta", () => {
     const fn = soloCodigo(readFileSync(resolve(FUNCS, "mp-installments/index.ts"), "utf8"));
     expect(fn, "la ficha volvió a mostrar cuotas sin consultar qué acepta el comercio")

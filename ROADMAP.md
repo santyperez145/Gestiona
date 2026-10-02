@@ -112,7 +112,7 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-02: `npm run verify` pasa 3.530 tests en 399
+- Validación local del 2026-10-02: `npm run verify` pasa 3.561 tests en 401
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
@@ -155,6 +155,10 @@ sigue abierto como certificación operacional.
   El gate remoto detectó este incidente y la corrección `ced9f641` pasó CI,
   incluido panel autenticado, y el barrido de producción. Exigir los mismos
   gates en cada SHA; no inferir que la recuperación elimina caídas del proveedor.
+- Cuotas públicas: elegibilidad de Nerqia Pay/alias y ARS, centavos, caché
+  acotada, contexto sin cotizaciones viejas y recuperación. Handler con CORS
+  ante error y tasa ausente sin promesa de interés cero; seis escenarios de
+  navegador interceptados no certifican tarjetas, TEA/CFT ni cobro externo.
 
 ## 5. Orden ejecutable
 
@@ -171,6 +175,8 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    honestos, alerts accionables y soporte con correlación sanitizada.
 4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con
    evidencia autorizada; ningún simulacro mueve dinero o envía campañas.
+   Conexiones guiadas para el cliente: requisitos, permiso, estado, diagnóstico,
+   prueba segura y recuperación; no exigir secretos de Platform al merchant.
 5. Acompañar segundo merchant: onboarding, migración, publicación, primera venta
    y margen explicado sin intervención SQL.
 
@@ -189,6 +195,10 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    por merchant. FIFO analítico y cierres ya usan el Core; no política contable
    ni costo histórico reconstruido desde precios actuales. `/profit` es hoy alias
    de la vista Foundation; no anuncia la suite completa ni Ads certificados.
+6. Fiscal/ARCA: simplificar certificado, CUIT, representación y punto de venta
+   Web Services con guía contextual, validación y diagnóstico. Completar
+   factura/ticket y nota de crédito desde POS y ventas, impresión y recepción,
+   sin anunciar autorización productiva hasta obtener y conciliar el CAE real.
 
 ### P2 — Finance operacional y Growth CRM
 

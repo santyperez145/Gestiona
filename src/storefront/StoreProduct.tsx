@@ -4,7 +4,7 @@ import { useStore } from "./storeContext";
 import {
   mejorDescuento, nombreMedio, precioConMedioDePago, medioMejoraElPrecio,
 } from "@/lib/paymentDiscount";
-import { opcionDestacada, textoCuotas } from "@/lib/installments";
+import { canQueryStoreInstallments, opcionDestacada, textoCuotas } from "@/lib/installments";
 import { ahorroDeUnPar } from "@/lib/promo2x";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { scoreRelatedProducts } from "@/lib/relatedProducts";
@@ -19,7 +19,7 @@ import { getCategoryLabel } from "@/lib/supabaseStore";
 import {
   FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, taxLabel,
 } from "@/lib/scentTaxonomy";
-import { ChevronLeft, Minus, Plus, ShoppingBag, Check, Heart, Truck, ShieldCheck, Zap } from "lucide-react";
+import { ChevronLeft, Minus, Plus, ShoppingBag, Check, Heart, Truck, ShieldCheck, Zap, RefreshCw } from "lucide-react";
 import { trackViewItem, trackAddToCart } from "./tracking";
 import { useStoreTrackingRuntimeReady } from "./trackingConsent";
 import ProductReviews from "./ProductReviews";
@@ -129,7 +129,7 @@ export default function StoreProduct() {
   // Cuotas: va ANTES del early return por la regla de los hooks, igual que el
   // tracking. Se consulta sobre `precioParaTracking`, que ya contempla la
   // variante elegida.
-  const cuotas = useInstallments(store?.slug, precioParaTracking);
+  const { data: cuotas, error: cuotasError, loading: cuotasLoading, retry: retryCuotas } = useInstallments(store?.slug, precioParaTracking, canQueryStoreInstallments(store));
   const textoCuota = textoCuotas(opcionDestacada(cuotas), fmt);
 
   useEffect(() => {
@@ -353,6 +353,10 @@ export default function StoreProduct() {
               {textoCuota}
             </p>
           )}
+          {cuotasError && <div role="status" className="mt-2 flex items-center gap-2 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+            <p>{cuotasError}</p><button type="button" onClick={retryCuotas} disabled={cuotasLoading} aria-label="Volver a consultar cuotas" title="Volver a consultar cuotas"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-current focus-visible:outline focus-visible:outline-2 disabled:opacity-50"><RefreshCw className="h-4 w-4" /></button>
+          </div>}
 
           {variantes.length > 0 && (
             <fieldset ref={variantRef} className="mt-5">

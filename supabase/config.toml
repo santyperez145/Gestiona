@@ -53,6 +53,10 @@ verify_jwt = false
 [functions.store-order-status-email]
 verify_jwt = true
 
+# Consulta publica de cuotas: resuelve el comercio por slug sin exponer claves.
+[functions.mp-installments]
+verify_jwt = false
+
 # Operación del comercio y proveedor pago: exige JWT de usuario y owner/admin.
 [functions.store-domain]
 verify_jwt = true

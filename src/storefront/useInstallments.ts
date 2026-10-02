@@ -1,49 +1,60 @@
-/**
- * Cuotas reales del comercio para un monto, pedidas a `mp-installments`.
- *
- * El hook no calcula nada: la función pregunta a MercadoPago con la clave del
- * comercio y devuelve lo que esa cuenta puede ofrecer. Ver `src/lib/installments.ts`
- * para por qué no se dividen el precio y listo.
- *
- * Falla en silencio a propósito. Si MercadoPago no contesta, o la tienda no
- * cobra con MercadoPago, o no está conectada por OAuth, la ficha simplemente no
- * muestra la línea de cuotas — que es como estaba antes. Un error acá no puede
- * romper la página del producto.
- */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { convieneConsultar, type RespuestaCuotas } from "@/lib/installments";
+import { convieneConsultar, installmentResponseSchema, type RespuestaCuotas } from "@/lib/installments";
+import { retryRead } from "@/lib/transientRead";
 
-/** Se cachea por tienda+monto: al cambiar de variante se repite el mismo pedido. */
-const cache = new Map<string, RespuestaCuotas>();
+const TTL = 15 * 60 * 1000;
+type Quote = { data: RespuestaCuotas; expiresAt: number };
+const cache = new Map<string, Quote>();
+const inFlight = new Map<string, Promise<Quote>>();
+const recovery = "No pudimos consultar las cuotas. Podés verificarlas al pagar o volver a intentar.";
 
-export function useInstallments(slug: string | undefined, monto: number | null | undefined): RespuestaCuotas | null {
-  const [datos, setDatos] = useState<RespuestaCuotas | null>(null);
+async function readQuote(key: string, slug: string, amount: number): Promise<Quote> {
+  const cached = cache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached;
+  cache.delete(key);
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const request = (async () => {
+    const result = await retryRead(async () => {
+      const response = await supabase.functions.invoke("mp-installments", { body: { slug, amount } });
+      const status = response.response?.status;
+      return { ...response, status, error: response.error?.name === "FunctionsFetchError"
+        ? { code: "ECONNRESET", message: "Installment transport unavailable" } : response.error };
+    });
+    if (result.error) throw result.error;
+    const data = installmentResponseSchema.parse(result.data) as RespuestaCuotas;
+    if (["mp_sin_respuesta", "no_se_pudo_validar"].includes(data.motivo || "")) throw new Error("Installment source unavailable");
+    const quote = { data, expiresAt: Date.now() + TTL };
+    if (cache.size >= 200) cache.delete(cache.keys().next().value);
+    cache.set(key, quote);
+    return quote;
+  })();
+  inFlight.set(key, request);
+  try { return await request; } finally { inFlight.delete(key); }
+}
 
+export function useInstallments(slug: string | undefined, monto: number | null | undefined, enabled: boolean) {
+  const amount = Math.round(Number(monto) * 100) / 100;
+  const key = enabled && slug && convieneConsultar(monto) ? JSON.stringify([slug, amount]) : null;
+  const [snapshot, setSnapshot] = useState<{ key: string; quote: Quote } | null>(null);
+  const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
-    if (!slug || !convieneConsultar(monto)) { setDatos(null); return; }
-
-    // Se redondea para no partir el caché por diferencias de centavos entre
-    // variantes que cuestan casi lo mismo.
-    const amount = Math.round(Number(monto));
-    const clave = `${slug}:${amount}`;
-
-    const enCache = cache.get(clave);
-    if (enCache) { setDatos(enCache); return; }
-
-    let cancelado = false;
-    supabase.functions
-      .invoke("mp-installments", { body: { slug, amount } })
-      .then(({ data, error }) => {
-        if (cancelado || error || !data) return;
-        const r = data as RespuestaCuotas;
-        cache.set(clave, r);
-        setDatos(r);
-      })
-      .catch(() => { /* sin cuotas: la ficha se muestra igual */ });
-
-    return () => { cancelado = true; };
-  }, [slug, monto]);
-
-  return datos;
+    if (!key) { setSnapshot(null); setFailure(null); setPending(null); return; }
+    let cancelled = false;
+    setPending(key); setFailure(null);
+    void readQuote(key, slug, amount).then(quote => {
+      if (!cancelled) setSnapshot({ key, quote });
+    }).catch(error => {
+      if (cancelled) return;
+      console.error("[Store installments] source unavailable", { kind: error?.name || "SourceError" });
+      setSnapshot(null); setFailure({ key, message: recovery });
+    }).finally(() => { if (!cancelled) setPending(null); });
+    return () => { cancelled = true; };
+  }, [key, slug, amount, revision]);
+  const data = key && snapshot?.key === key && snapshot.quote.expiresAt > Date.now() ? snapshot.quote.data : null;
+  const error = key && failure?.key === key ? failure.message : null;
+  return { data, error, loading: !!key && (pending === key || (!data && !error)), retry: () => setRevision(value => value + 1) };
 }
