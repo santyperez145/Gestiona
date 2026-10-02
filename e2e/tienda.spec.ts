@@ -712,10 +712,14 @@ test.describe("páginas de contenido", () => {
       test.skip(true, "no hay páginas de contenido publicadas");
     }
 
-    await dePagina.first().click();
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    // El markdown se renderiza a elementos, no a HTML crudo: si apareciera un
-    // `<h2>` escapado como texto, el parser se rompió.
+    const publicada = dePagina.first();
+    const destino = await publicada.evaluate((link: HTMLAnchorElement) => link.href);
+    const titulo = (await publicada.innerText()).trim();
+    await publicada.click();
+    // The previous storefront heading can remain visible during the route transition.
+    await expect(page).toHaveURL(destino);
+    await expect(page.getByRole("heading", { level: 1, name: titulo, exact: true })).toBeVisible();
+    await expect(page.locator("article")).toHaveCount(1);
     await expect(page.locator("article")).toBeVisible();
   });
 });
