@@ -12,13 +12,16 @@ async function assertProfitContrast(page: Page, context: string) {
   const violations = (await new AxeBuilder({ page }).include('section[aria-label="Rentabilidad por producto y canal"]')
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations
     .filter(item => ["critical", "serious"].includes(item.impact));
-  expect(violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) })), context).toEqual([]);
+  expect(violations.map(item => ({ id: item.id, nodes: item.nodes.map(node => ({ target: node.target, reason: node.failureSummary })) })), context).toEqual([]);
 }
 
 async function setProfitTheme(page: Page, theme: "light" | "dark") {
-  await page.evaluate(theme => {
+  await page.evaluate(async theme => {
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(theme);
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    await Promise.all(document.getAnimations().filter(animation => animation instanceof CSSTransition)
+      .map(animation => animation.finished.catch(() => undefined)));
   }, theme);
 }
 function operation(index: number) {

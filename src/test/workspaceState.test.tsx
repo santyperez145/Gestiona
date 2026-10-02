@@ -42,7 +42,9 @@ describe('contrato transversal de estados del workspace', () => {
     render(<WorkspaceState kind="error-recoverable" title="No cargó" description="La consulta falló." actionLabel="Reintentar" onAction={retry} />);
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
     expect(retry).toHaveBeenCalledOnce();
-    expect(screen.getByText('La consulta falló.')).toBeVisible();
+    const description = screen.getByText('La consulta falló.');
+    expect(description).toBeVisible();
+    expect(description).toHaveClass('dark:text-foreground/80');
   });
 
   it('Finance adopta carga estable, error recuperable, offline y éxito comunes', () => {

@@ -141,7 +141,7 @@ export default function WorkspaceState({
       </span>
       <div className={cn('min-w-0', !isBanner && 'mt-3 max-w-lg')}>
         <p className={cn('font-semibold', tone.foreground, isBanner ? 'text-sm' : 'font-display text-base')}>{title}</p>
-        {description && <p className={cn('leading-relaxed text-muted-foreground', isBanner ? 'mt-0.5 text-xs' : 'mt-1.5 text-sm')}>{description}</p>}
+        {description && <p className={cn('leading-relaxed text-muted-foreground dark:text-foreground/80', isBanner ? 'mt-0.5 text-xs' : 'mt-1.5 text-sm')}>{description}</p>}
         {(actionLabel && onAction || secondaryActionLabel && onSecondaryAction) && (
           <div className={cn('flex flex-wrap gap-2', isBanner ? 'mt-2.5' : 'mt-5 justify-center')}>
             {actionLabel && onAction && <Button size="sm" onClick={onAction}>{actionLabel}</Button>}
