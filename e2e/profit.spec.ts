@@ -7,6 +7,20 @@ const userId = "00000000-0000-4000-8000-000000000001";
 const product = { productId: "zz-product", productName: `Producto ${"NombreExtendido".repeat(12)}`, channel: "pos",
   lines: 1007, units: 1007, revenueARS: 10110.05, cogsARS: null, paymentFeeARS: 0, shippingCostARS: 0,
   taxARS: null, contributionMarginARS: null, coveragePct: 75, pendingCodes: ["iva", "devolucion_neta"] };
+
+async function assertProfitContrast(page: Page, context: string) {
+  const violations = (await new AxeBuilder({ page }).include('section[aria-label="Rentabilidad por producto y canal"]')
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations
+    .filter(item => ["critical", "serious"].includes(item.impact));
+  expect(violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) })), context).toEqual([]);
+}
+
+async function setProfitTheme(page: Page, theme: "light" | "dark") {
+  await page.evaluate(theme => {
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(theme);
+  }, theme);
+}
 function operation(index: number) {
   return { org_id: orgId, operation_key: `zz-operation-${index}`, operation_id: `zz-id-${index}`, operation_reference: `ZZ-${index}`,
     operation_type: "venta", channel: "pos", recorded_source: "pos", sold_at: "2026-09-30T15:00:00Z", line_count: 1, units: 1,
@@ -69,6 +83,11 @@ test("synthetic Profit: complete population, pagination, keyboard, persistence a
   await section.getByRole("button", { name: "Ir a la página siguiente" }).click();
   await expect(section.getByText("Último producto", { exact: true })).toBeVisible();
   await expect(section.getByText("27 operaciones · 1007 líneas", { exact: true })).toBeVisible();
+  for (const theme of ["light", "dark"] as const) {
+    await setProfitTheme(page, theme);
+    await assertProfitContrast(page, `products in ${theme} theme`);
+  }
+  await setProfitTheme(page, "light");
   await section.getByRole("tab", { name: "Producto y canal", exact: true }).press("ArrowRight");
   await expect(section.getByRole("tab", { name: "Operaciones", exact: true })).toBeFocused();
   await section.getByRole("button", { name: "Ir a la página siguiente" }).click();
@@ -84,8 +103,11 @@ test("synthetic Profit: complete population, pagination, keyboard, persistence a
     expect((await pendingCell.boundingBox())!.width, `margin cell too narrow at ${width}`).toBeGreaterThan(65);
     await page.screenshot({ path: testInfo.outputPath(`profit-${width}.png`), fullPage: true });
   }
-  const violations = (await new AxeBuilder({ page }).include('section[aria-label="Rentabilidad por producto y canal"]').withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations.filter(item => ["critical", "serious"].includes(item.impact));
-  expect(violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) }))).toEqual([]);
+  for (const theme of ["light", "dark"] as const) {
+    await setProfitTheme(page, theme);
+    await assertProfitContrast(page, `expanded operations in ${theme} theme`);
+  }
+  await setProfitTheme(page, "light");
   await page.reload();
   await expect(section.getByRole("tab", { name: "Operaciones", exact: true })).toHaveAttribute("aria-selected", "true");
   expect(errors).toEqual([]);

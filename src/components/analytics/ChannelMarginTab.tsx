@@ -75,7 +75,7 @@ export default function ChannelMarginTab({ enabled, from, to }: Props) {
         <div role="tablist" aria-label="Vista de rentabilidad" className="flex flex-wrap gap-1">
           {(["products", "operations"] as const).map(value => <button key={value} type="button" role="tab"
             aria-selected={mode === value} aria-controls={panelId} tabIndex={mode === value ? 0 : -1}
-            className={`min-h-11 rounded-md border px-3 text-sm font-medium ${mode === value ? "border-primary/40 bg-card text-primary" : "border-border text-muted-foreground"}`}
+            className={`min-h-11 rounded-md border px-3 text-sm font-medium ${mode === value ? "border-primary/40 bg-card text-primary dark:text-blue-300" : "border-border text-muted-foreground"}`}
             onClick={() => setMode(value)} onKeyDown={event => {
               if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
               event.preventDefault();
@@ -120,7 +120,7 @@ function ProductMargins({ products }: { products: ProfitProduct[] }) {
         <td className="break-words px-3 py-3 align-top [overflow-wrap:anywhere]">
           <span className="font-medium">{product.productName}</span>
           <span className="mt-1 block text-muted-foreground">{CHANNEL_LABEL[product.channel] || "Otro canal"} · {product.units} u.</span>
-          <span className={`mt-2 inline-flex items-start gap-1 ${product.contributionMarginARS != null && product.pendingCodes.length === 0 ? "text-emerald-700" : "text-amber-800"}`}>
+          <span className={`mt-2 inline-flex items-start gap-1 ${product.contributionMarginARS != null && product.pendingCodes.length === 0 ? "text-emerald-700 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}>
             {product.contributionMarginARS != null && product.pendingCodes.length === 0 ? <><CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Completo</> : <><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {profitPendingLabels(product).join(", ") || "Fuentes pendientes"}</>}
           </span>
         </td>

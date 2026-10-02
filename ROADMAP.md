@@ -118,7 +118,8 @@ sigue abierto como certificación operacional.
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
 - Profit Foundation: SQL reversible con cuatro roles, overrides y dos tenants;
   1.007 líneas sin truncar, detalle disjunto y cero restos. UI sintética con
-  paginación, teclado, recuperación, persistencia, Axe y capturas en seis anchos.
+  paginación, teclado, recuperación, persistencia, Axe en ambos temas y capturas
+  en seis anchos.
   La RPC y los inspectores comparten autoridad; no certifica Ads ni utilidad neta.
 - Select compartido: etiquetas iniciales/compuestas y asíncronas, cambios de
   contexto, opciones retiradas/deshabilitadas, foco y Escape dentro de modales.
