@@ -29,8 +29,8 @@ Pagos, correo, IA, logística, ARCA y canales externos
 
 Las cuatro superficies comparten deploy, primitives y observabilidad. No
 comparten automáticamente permisos ni navegación.
-Growth y Profit son superficies aprobadas pendientes; no se declaran montadas
-en el diagrama actual. Reutilizan esta infraestructura, no otros repositorios.
+Growth y la suite Profit completa siguen pendientes; Profit Foundation vive en
+Analytics. Reutilizan esta infraestructura, no otros repositorios.
 
 ## 2. Superficies y confianza
 
@@ -133,8 +133,10 @@ versión y el usuario decide cuándo activarla, preservando trabajo no guardado.
 REST privado y archivos firmados no se persisten en CacheStorage. La activación
 purga cachés privadas legacy antes de reclamar clientes.
 
-`/growth` y `/profit` son rutas planeadas, no aliases existentes. Su lanzamiento
-requiere migrar consumidores/permisos; Clientes, Marketing y Analytics siguen
+`/growth` sigue planeada. `/profit` es alias de `/analytics?vista=rentabilidad`,
+con fechas civiles preservadas; no duplica página. Profit Foundation usa
+`get_profit_period` sobre los hechos canónicos, con `analytics.view` en SQL,
+población completa y detalle paginado. Clientes, Marketing y Analytics siguen
 canónicos. Productos distintos no requieren subdominios ni otro login ahora.
 
 ## 7. Seguridad

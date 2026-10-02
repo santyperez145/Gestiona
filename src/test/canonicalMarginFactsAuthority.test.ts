@@ -40,7 +40,8 @@ describe("autoridad canónica de margen", () => {
   });
 
   it("hace que la UI lea una sola autoridad y no vuelva a cruzar tablas crudas", () => {
-    expect(component).toContain('.from("sale_margin_facts")');
+    const query = readFileSync(resolve(process.cwd(), "src/hooks/useProfitPeriod.ts"), "utf8");
+    expect(query).toContain('.rpc("get_profit_period"');
     expect(component).not.toContain('.from("sales")');
     expect(component).not.toContain("store_order_margin_facts");
     expect(component).not.toContain("meli_order_sale_lines");

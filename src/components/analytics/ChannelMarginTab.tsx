@@ -1,273 +1,133 @@
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Database, Loader2, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { formatARS } from "@/lib/supabaseStore";
-import { isMissingRelation } from "@/lib/publicDataSource";
+import { useId, useState, type ReactNode } from "react";
+import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import DataPagination from "@/components/shared/DataPagination";
+import WorkspaceState from "@/components/shared/WorkspaceState";
 import { useOrganization } from "@/hooks/useOrganization";
-import {
-  summarizeChannelMargins,
-  summarizeMarginCoverage,
-  type CanonicalMarginFact,
-} from "@/lib/channelMargins";
-import MarginOperationsTable, { type MarginOperation } from "@/components/analytics/MarginOperationsTable";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { useProfitPeriod } from "@/hooks/useProfitPeriod";
+import { useModulePerms } from "@/lib/permissionsContext";
+import { formatARS } from "@/lib/supabaseStore";
+import { profitPendingLabels, type ProfitProduct } from "@/lib/profitPeriod";
+import MarginOperationsTable from "@/components/analytics/MarginOperationsTable";
 
-type Props = {
-  enabled: boolean;
-  from?: string;
-  to?: string;
-};
-
+type Props = { enabled: boolean; from?: string; to?: string };
 const CHANNEL_LABEL: Record<string, string> = {
-  pos: "Mostrador",
-  tienda_online: "Tienda propia",
-  mercadolibre: "MercadoLibre",
-  sin_atribuir: "Histórica · sin atribuir",
+  pos: "Mostrador", tienda_online: "Tienda propia", mercadolibre: "Mercado Libre", sin_atribuir: "Sin atribuir",
 };
-
-function amount(value: number | null) {
-  return value === null ? <span className="text-muted-foreground">Pendiente</span> : formatARS(value);
+function amount(value: number | null | undefined) {
+  return value == null ? <span className="text-muted-foreground">Pendiente</span> : formatARS(value);
 }
 
-function ratio(known: number, total: number) {
-  return total > 0 ? Math.round(known * 100 / total) : 0;
-}
-
-/**
- * F2: el navegador presenta la autoridad SQL. No cruza ventas, liquidaciones
- * ni costos por su cuenta y nunca convierte un dato ausente en cero.
- */
 export default function ChannelMarginTab({ enabled, from, to }: Props) {
   const { orgId } = useOrganization();
-  const [facts, setFacts] = useState<CanonicalMarginFact[]>([]);
-  const [operations, setOperations] = useState<MarginOperation[]>([]);
-  const [viewMode, setViewMode] = useState<"products" | "operations">("products");
-  const [operationsUnavailable, setOperationsUnavailable] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const permission = useModulePerms("analytics");
+  const [storedMode, setMode] = usePersistedState(orgViewKey("profit.mode.v1", orgId), "products");
+  const mode = storedMode === "operations" ? "operations" : "products";
+  const panelId = useId();
+  const scope = JSON.stringify([orgId, from, to]);
+  const [pages, setPages] = useState({ scope, products: 1, operations: 1 });
+  const currentPages = pages.scope === scope ? pages : { scope, products: 1, operations: 1 };
+  const { data, loading, error, retry, updatedAt } = useProfitPeriod({
+    orgId, enabled: enabled && permission.canView && !permission.loading,
+    from, to, productPage: currentPages.products, operationPage: currentPages.operations,
+  });
+  if (!enabled) return null;
+  if (permission.loading) return <WorkspaceState kind="initial-loading" title="Comprobando acceso a rentabilidad" />;
+  if (!permission.canView || !orgId) return <WorkspaceState kind="permission" title="Rentabilidad sin acceso" description="Necesitás permiso de Analytics en esta organización." />;
+  if (!data) return <WorkspaceState kind={error ? "error-recoverable" : "initial-loading"}
+    title={error ? "No pudimos cargar rentabilidad" : "Leyendo rentabilidad del período"}
+    description={error || undefined} actionLabel={error ? "Volver a intentar" : undefined} onAction={error ? retry : undefined} />;
 
-  useEffect(() => {
-    if (!enabled || !orgId) return;
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      setOperationsUnavailable(false);
-
-      let query = supabase
-        .from("sale_margin_facts")
-        .select("sale_id,product_id,product_name,channel,quantity,revenue_ars,cogs_ars,payment_fee_ars,shipping_cost_ars,tax_ars,contribution_margin_ars,coverage_pct,is_explainable,missing_components,margin_blockers")
-        .eq("org_id", orgId)
-        .order("sold_at", { ascending: false });
-      if (from) query = query.gte("sold_at", `${from}T00:00:00`);
-      if (to) query = query.lte("sold_at", `${to}T23:59:59`);
-
-      let operationsQuery = supabase
-        .from("sale_margin_operations")
-        .select("*")
-        .eq("org_id", orgId)
-        .order("sold_at", { ascending: false });
-      if (from) operationsQuery = operationsQuery.gte("sold_at", `${from}T00:00:00`);
-      if (to) operationsQuery = operationsQuery.lte("sold_at", `${to}T23:59:59`);
-
-      const [result, operationsResult] = await Promise.all([query, operationsQuery]);
-      if (cancelled) return;
-      if (result.error) {
-        const message = isMissingRelation(result.error)
-          ? "La base todavía no tiene los hechos canónicos de margen."
-          : "No se pudieron leer los hechos canónicos de margen.";
-        console.error("Margen canónico:", result.error.message);
-        setError(message);
-        toast.error(message);
-        setLoading(false);
-        return;
-      }
-
-      if (operationsResult.error && !isMissingRelation(operationsResult.error)) {
-        const message = "No se pudo leer la explicación por operación.";
-        console.error("Margen por operación:", operationsResult.error.message);
-        setError(message);
-        toast.error(message);
-        setLoading(false);
-        return;
-      }
-
-      setFacts((result.data ?? []) as CanonicalMarginFact[]);
-      if (operationsResult.error) {
-        setOperations([]);
-        setOperationsUnavailable(true);
-      } else {
-        setOperations((operationsResult.data ?? []) as MarginOperation[]);
-      }
-      setLoading(false);
-    };
-
-    void load();
-    return () => { cancelled = true; };
-  }, [enabled, from, orgId, to]);
-
-  const summaries = useMemo(() => summarizeChannelMargins(facts), [facts]);
-  const coverage = useMemo(() => summarizeMarginCoverage(facts), [facts]);
-  const componentCoverage = useMemo(() => [
-    { label: "Costo de mercadería", known: coverage.cogsKnownLines },
-    { label: "Comisión de cobro", known: coverage.paymentFeeKnownLines },
-    { label: "Costo real de envío", known: coverage.shippingKnownLines },
-    { label: "IVA", known: coverage.taxKnownLines },
-  ], [coverage]);
-
-  if (loading) {
-    return <div className="bg-card border border-border rounded-2xl p-10 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Leyendo hechos canónicos…</div>;
-  }
-
-  if (error) {
-    return <div className="bg-destructive/5 border border-destructive/30 rounded-2xl p-5 text-sm text-destructive">{error}</div>;
-  }
-
+  const { coverage } = data;
+  const count = mode === "products" ? data.productCount : data.operationCount;
+  const page = mode === "products" ? data.productPage : data.operationPage;
   return (
-    <div className="space-y-4">
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <div className="flex gap-3">
-          <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-semibold">Margen por canal — sólo con hechos medidos</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              El margen final aparece únicamente cuando costo de mercadería, comisión de cobro, costo real de envío e IVA tienen una fuente persistida. “Pendiente” nunca significa $0.
-            </p>
-          </div>
+    <section aria-label="Rentabilidad por producto y canal" className="min-w-0 space-y-4" aria-busy={loading}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold">Rentabilidad del período</h3>
+          <p className="mt-1 text-xs text-muted-foreground">ARS · Fecha de la operación en Buenos Aires · Antes de publicidad y gastos operativos</p>
         </div>
+        <Button variant="outline" size="sm" onClick={retry} disabled={loading} aria-label="Actualizar rentabilidad">
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
       </div>
-
-      {facts.length > 0 && (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <CoverageCard label="Ingresos explicables" value={`${coverage.explainableRevenuePct}%`} detail={`${formatARS(coverage.explainableRevenueARS)} de ${formatARS(coverage.revenueARS)}`} />
-            <CoverageCard label="Cobertura promedio" value={`${coverage.averageCoveragePct}%`} detail="4 fuentes por línea" />
-            <CoverageCard label="Líneas completas" value={`${coverage.explainableLines}/${coverage.lines}`} detail="margen final auditable" />
-            <CoverageCard label="Fuente canónica" value="SQL" detail="sin cruces en el navegador" icon={Database} />
-          </div>
-
-          <section className="bg-card border border-border rounded-2xl p-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {componentCoverage.map(component => {
-                const value = ratio(component.known, coverage.lines);
-                return (
-                  <div key={component.label} className="rounded-xl border border-border/60 bg-muted/10 p-3">
-                    <div className="flex items-center justify-between gap-2 text-[11px]">
-                      <span className="font-medium">{component.label}</span>
-                      <span className="text-muted-foreground">{component.known}/{coverage.lines}</span>
-                    </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full bg-amber-500" style={{ width: `${value}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        </>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          className={`rounded-lg border px-3 py-2 text-xs transition-colors ${viewMode === "products" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
-          onClick={() => setViewMode("products")}
-        >
-          Producto × canal
-        </button>
-        <button
-          type="button"
-          className={`rounded-lg border px-3 py-2 text-xs transition-colors ${viewMode === "operations" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
-          onClick={() => setViewMode("operations")}
-          disabled={operationsUnavailable}
-        >
-          Explicar operaciones
-        </button>
-        {operationsUnavailable && <span className="text-[10px] text-amber-700 dark:text-amber-300">La vista por operación todavía no está disponible en esta base.</span>}
-      </div>
-
-      {viewMode === "operations" ? (
-        <MarginOperationsTable operations={operations} />
-      ) : summaries.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl p-10 text-center text-sm text-muted-foreground">
-          No hay ventas en el período seleccionado.
+      {error && <WorkspaceState kind="stale" layout="banner" title="Datos de la última lectura" description={error} actionLabel="Volver a intentar" onAction={retry} />}
+      {loading && <p role="status" className="text-xs text-muted-foreground">Actualizando rentabilidad…</p>}
+      {coverage.lines === 0 ? <WorkspaceState kind="empty-filtered" title="Sin operaciones en este período" description="No hay ventas asentadas para las fechas seleccionadas." /> : <>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric label="Ingresos del período" value={formatARS(coverage.revenueARS)} detail={`${data.operationCount} operaciones · ${coverage.lines} líneas`} />
+          <Metric label="Contribución del período" value={amount(coverage.contributionMarginARS)} detail={coverage.contributionMarginARS == null ? "Faltan fuentes o hay devoluciones sin netear" : "Cuatro fuentes medidas por línea"} />
+          <Metric label="Contribución medida" value={amount(coverage.measuredContributionARS)} detail={`${coverage.explainableLines} de ${coverage.lines} líneas explicables; no es el resultado total`} />
+          <Metric label="Ingresos explicables" value={coverage.explainableRevenuePct == null ? "No disponible" : `${coverage.explainableRevenuePct}%`} detail={`${formatARS(coverage.explainableRevenueARS)} de ${formatARS(coverage.revenueARS)}`} />
         </div>
-      ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold">Producto × canal</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Incluye el historial sin canal confiable; no lo presenta como POS ni lo descarta.</p>
-            </div>
-            <span className="text-xs text-muted-foreground">{summaries.length} combinaciones</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-xs">
-              <thead className="bg-muted/30 text-muted-foreground uppercase tracking-wide text-[10px]">
-                <tr>
-                  <th className="text-left px-4 py-3">Producto</th>
-                  <th className="text-left px-3 py-3">Canal</th>
-                  <th className="text-right px-3 py-3">Ingresos</th>
-                  <th className="text-right px-3 py-3">Mercadería</th>
-                  <th className="text-right px-3 py-3">Comisión</th>
-                  <th className="text-right px-3 py-3">Envío real</th>
-                  <th className="text-right px-3 py-3">IVA</th>
-                  <th className="text-right px-3 py-3">Margen final</th>
-                  <th className="text-left px-4 py-3">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {summaries.map(summary => {
-                  const complete = summary.pending.length === 0;
-                  return (
-                    <tr key={`${summary.productId}-${summary.channel}`}>
-                      <td className="px-4 py-3 font-medium">{summary.productName}<span className="block text-[10px] text-muted-foreground">{summary.units} u. · {summary.lines} líneas</span></td>
-                      <td className="px-3 py-3">{CHANNEL_LABEL[summary.channel] || summary.channel}</td>
-                      <td className="px-3 py-3 text-right font-mono">{formatARS(summary.revenueARS)}</td>
-                      <td className="px-3 py-3 text-right font-mono">{amount(summary.cogsARS)}</td>
-                      <td className="px-3 py-3 text-right font-mono">{amount(summary.paymentFeeARS)}</td>
-                      <td className="px-3 py-3 text-right font-mono">{amount(summary.shippingCostARS)}</td>
-                      <td className="px-3 py-3 text-right font-mono">{amount(summary.taxARS)}</td>
-                      <td className="px-3 py-3 text-right font-mono font-semibold">{amount(summary.contributionMarginARS)}</td>
-                      <td className="px-4 py-3 max-w-[260px]">
-                        {complete ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5" /> Completo</span>
-                        ) : (
-                          <span className="inline-flex items-start gap-1 text-amber-700 dark:text-amber-300"><AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {summary.coveragePct}% · falta {summary.pending.join(", ")}</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        {coverage.explainableLines < coverage.lines && <WorkspaceState kind="partial" layout="banner" title="Rentabilidad parcial" description="Pendiente no significa cero. El total se publica cuando todas las líneas tienen costos medidos y las devoluciones están reconciliadas." />}
+        <div className="grid gap-3 border-y border-border py-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "Mercadería", known: coverage.cogsKnownLines }, { label: "Comisión de cobro", known: coverage.paymentFeeKnownLines },
+            { label: "Envío real", known: coverage.shippingKnownLines }, { label: "IVA", known: coverage.taxKnownLines },
+          ].map(item => <div key={item.label} className="min-w-0">
+            <div className="flex justify-between gap-2 text-xs"><span>{item.label}</span><span className="text-muted-foreground">{item.known}/{coverage.lines}</span></div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded bg-muted" aria-hidden="true"><div className="h-full bg-primary" style={{ width: `${item.known * 100 / coverage.lines}%` }} /></div>
+          </div>)}
         </div>
-      )}
-    </div>
+        <div role="tablist" aria-label="Vista de rentabilidad" className="flex flex-wrap gap-1">
+          {(["products", "operations"] as const).map(value => <button key={value} type="button" role="tab"
+            aria-selected={mode === value} aria-controls={panelId} tabIndex={mode === value ? 0 : -1}
+            className={`min-h-11 rounded-md border px-3 text-sm font-medium ${mode === value ? "border-primary/40 bg-card text-primary" : "border-border text-muted-foreground"}`}
+            onClick={() => setMode(value)} onKeyDown={event => {
+              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+              event.preventDefault();
+              const next = event.key === "Home" ? "products" : event.key === "End" ? "operations" : mode === "products" ? "operations" : "products";
+              setMode(next);
+              const buttons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+              buttons?.[next === "products" ? 0 : 1]?.focus();
+            }}>{value === "products" ? "Producto y canal" : "Operaciones"}</button>)}
+        </div>
+        <div id={panelId} role="tabpanel" aria-label={mode === "products" ? "Producto y canal" : "Operaciones"} tabIndex={0}>
+          {mode === "operations" ? <MarginOperationsTable operations={data.operations} totalCount={data.operationCount} /> : <ProductMargins products={data.products} />}
+        </div>
+        <DataPagination page={page - 1} totalPages={Math.ceil(count / data.pageSize)} totalItems={count} pageSize={data.pageSize}
+          disabled={loading} itemLabel={mode === "products" ? "combinaciones" : "operaciones"}
+          onPageChange={next => setPages({ ...currentPages, [mode]: next + 1 })} />
+      </>}
+      <p className="text-xs text-muted-foreground">Fuente: hechos canónicos de venta · Población completa del período{updatedAt ? ` · Última lectura ${new Date(updatedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
+    </section>
   );
 }
 
-function CoverageCard({
-  label,
-  value,
-  detail,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  icon?: typeof Database;
-}) {
-  return (
-    <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-        {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground" />}
-      </div>
-      <p className="text-xl font-semibold mt-1">{value}</p>
-      <p className="text-[10px] text-muted-foreground mt-1">{detail}</p>
-    </div>
-  );
+function Metric({ label, value, detail }: { label: string; value: ReactNode; detail: string }) {
+  return <div className="min-w-0 rounded-lg border border-border bg-card p-4">
+    <p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 break-words font-mono text-lg font-semibold">{value}</p>
+    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{detail}</p>
+  </div>;
+}
+
+function ProductMargins({ products }: { products: ProfitProduct[] }) {
+  return <div className="overflow-hidden rounded-lg border border-border bg-card">
+    <table className="w-full table-fixed text-xs" aria-label="Margen por producto y canal">
+      <thead className="border-b border-border text-muted-foreground"><tr>
+        <th className="w-[45%] px-3 py-3 text-left sm:w-auto">Producto y canal</th>
+        <th className="px-3 py-3 text-right">Ingresos</th>
+        <th className="hidden px-3 py-3 text-right lg:table-cell">Mercadería</th>
+        <th className="hidden px-3 py-3 text-right lg:table-cell">Comisión</th>
+        <th className="hidden px-3 py-3 text-right lg:table-cell">Envío real</th>
+        <th className="hidden px-3 py-3 text-right lg:table-cell">IVA</th>
+        <th className="px-3 py-3 text-right">Contribución</th>
+      </tr></thead>
+      <tbody className="divide-y divide-border">{products.map(product => <tr key={`${product.productId}:${product.channel}`}>
+        <td className="break-words px-3 py-3 align-top [overflow-wrap:anywhere]">
+          <span className="font-medium">{product.productName}</span>
+          <span className="mt-1 block text-muted-foreground">{CHANNEL_LABEL[product.channel] || "Otro canal"} · {product.units} u.</span>
+          <span className={`mt-2 inline-flex items-start gap-1 ${product.contributionMarginARS != null && product.pendingCodes.length === 0 ? "text-emerald-700" : "text-amber-800"}`}>
+            {product.contributionMarginARS != null && product.pendingCodes.length === 0 ? <><CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Completo</> : <><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {profitPendingLabels(product).join(", ") || "Fuentes pendientes"}</>}
+          </span>
+        </td>
+        <td className="break-words px-3 py-3 text-right align-top font-mono [overflow-wrap:anywhere]">{amount(product.revenueARS)}</td>
+        {[product.cogsARS, product.paymentFeeARS, product.shippingCostARS, product.taxARS].map((value, index) => <td key={index} className="hidden break-words px-3 py-3 text-right align-top font-mono lg:table-cell">{amount(value)}</td>)}
+        <td className="break-words px-3 py-3 text-right align-top font-mono font-semibold [overflow-wrap:anywhere]">{amount(product.contributionMarginARS)}</td>
+      </tr>)}</tbody>
+    </table>
+  </div>;
 }

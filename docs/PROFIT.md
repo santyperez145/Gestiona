@@ -1,7 +1,7 @@
 # Nerqia Profit
 
-**Estado:** canónico; contrato de producto aprobado, superficie dedicada pendiente.
-**Revisión:** 2026-10-01. **Owner:** Producto / Datos.
+**Estado:** canónico; Foundation en Analytics, suite completa pendiente.
+**Revisión:** 2026-10-02. **Owner:** Producto / Datos.
 Decisión: [ADR 004](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md).
 
 ## Propósito y límite
@@ -21,18 +21,44 @@ ni paridad demostrada de Nerqia. Las capacidades se construyen con marca propia.
 
 | Trabajo | Estado comprobable en el repositorio | Gate pendiente |
 |---|---|---|
-| Hechos por línea | `sale_margin_facts`, leídos por `ChannelMarginTab`. | Operaciones reales con fuentes completas. |
+| Hechos por línea | `sale_margin_facts`; `get_profit_period` presenta agregados y detalle. | Operaciones reales con fuentes completas. |
 | Desglose por operación | `sale_margin_operations` y `OperationMarginPanel`. | Cobertura real por tienda y canal. |
 | Confianza | `missing_components`, `coverage_pct`, bloqueos de devolución. | Métrica de cobertura visible en cada agregado. |
 | Precio y outcome | Propuesta, aplicación/reversión y ventana observada existentes. | Piloto; observación no equivale a causalidad. |
-| Profit por SKU/producto/tienda | Fundaciones reutilizables; no suite terminada. | Proyección tenant-safe y regresión contra detalle. |
+| Profit por producto/canal | Agregado completo en SQL, detalle paginado y cobertura; verificación reversible de 1.007 líneas. | SKU/tienda y certificación con fuentes completas. |
 | Gasto y atribución Ads | No certificado. | Conector read-only, identidad y conciliación de gasto. |
 | Profit de campaña | Contrato futuro. | Atribución, devolución, gasto completo y cobertura. |
 | Capital en inventario/alertas | Datos Core; producto por completar. | Costo histórico, disponibilidad y prueba de decisión. |
-| Entrada `/profit` / standalone | Planeada; entrada vigente `/analytics`. | Navegación, permisos, UI y pilotos antes de moverla. |
+| Entrada `/profit` / standalone | Alias de `/analytics?vista=rentabilidad`; misma vista/autoridad, no otra página. | Producto standalone y piloto; Growth sigue planeado. |
 
 El contrato de fuentes actual vive en [MARGIN_FACTS](MARGIN_FACTS.md). No se
 reimplementa en el navegador ni se reconstruye costo viejo desde `products`.
+
+### Foundation publicado por contrato
+
+`get_profit_period` exige membresía y `analytics.view`, incluso ante overrides
+de admin/owner. Las vistas por línea, operación y cobertura conservan la misma
+restricción. Staff Platform no obtiene detalle por ser staff.
+
+Un snapshot SQL conserva población completa, cobertura, contribución total y
+subtotal explicable; sólo producto/canal y operaciones se paginan (25 filas en
+UI, hasta 100 por petición). Paginar no recalcula los totales desde una página.
+La fecha del ticket es la primera línea, en Buenos Aires; el fin civil es
+exclusivo al inicio del día siguiente. Todas sus líneas pertenecen a ese ticket,
+incluso al cruzar medianoche. Moneda actual ARS; no representa FX ni gasto Ads.
+
+La vista dedicada no hereda KPI de ganancia neta, año o sucursal que no aplica.
+Declara todas las sucursales/canales; fechas sobreviven en URL y el modo queda
+por organización. `/profit` conserva sólo `df`/`dt`, nunca tokens. El acceso
+vigente a Analytics continúa administrativo; los tests SQL de cuatro roles
+prueban autoridad de lectura, no amplían los roles de navegación.
+
+Errores recuperables, refresh sin vaciar la lectura, datos stale identificados,
+revocación de permisos sin conservar cifras, vacío, parcialidad y contrato JSON
+validado. Si falta la RPC no se vuelve al agregado truncado del navegador.
+Prueba reproducible: `supabase/verificaciones/20261002_profit_period_authority.sql`
+valida roles/denegaciones/dos tenants, 1.007 líneas, páginas disjuntas, límites
+de medianoche y cero restos con rollback. No certifica adopción externa.
 
 ## Contrato económico
 

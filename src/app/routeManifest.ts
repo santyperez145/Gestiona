@@ -94,6 +94,7 @@ export interface RouteAlias {
    * otra pantalla.
    */
   redirectTo: string;
+  preserveSearch?: string[];
 }
 
 export interface RouteNav {
@@ -264,6 +265,7 @@ export const ROUTES: RouteDefinition[] = [
     // vistas de este workspace; el KPI Registry (ANA-001) va aparte.
     aliases: [
       { path: "/analytics-ia", redirectTo: "/analytics" },
+      { path: "/profit", redirectTo: "/analytics?vista=rentabilidad", preserveSearch: ["df", "dt"] },
       { path: "/kpi-dashboard", redirectTo: "/analytics?vista=tableros" },
       { path: "/bi-reportes", redirectTo: "/analytics?vista=cohortes" },
       { path: "/forecast", redirectTo: "/analytics?vista=pronostico" },
@@ -408,6 +410,11 @@ export function businessRoutes(role: NavRole): RouteDefinition[] {
 export function businessAliases(): Array<[string, string]> {
   return [...ROUTES, ...INTERNAL_ROUTES]
     .flatMap(r => (r.aliases ?? []).map(a => [a.path, a.redirectTo] as [string, string]));
+}
+
+export function businessAliasSearchParams(path: string): string[] | undefined {
+  return [...ROUTES, ...INTERNAL_ROUTES].flatMap(route => route.aliases ?? [])
+    .find(alias => alias.path === path)?.preserveSearch;
 }
 
 /** Las rutas públicas con página propia. */

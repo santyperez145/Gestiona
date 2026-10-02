@@ -12,6 +12,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { isMissingRelation } from "@/lib/publicDataSource";
 import { marginGapActions } from "@/lib/channelMargins";
 import { formatARS } from "@/lib/supabaseStore";
+import { useModulePerms } from "@/lib/permissionsContext";
+import { Button } from "@/components/ui/button";
 
 export type OperationMarginRow = Database["public"]["Views"]["sale_margin_operations"]["Row"];
 
@@ -68,10 +70,19 @@ interface Props {
 }
 
 export default function OperationMarginPanel({ orgId, operationId }: Props) {
+  const permission = useModulePerms("analytics");
+  if (!operationId) return null;
+  if (permission.loading) return <p role="status" className="text-xs text-muted-foreground">Comprobando acceso al margen…</p>;
+  if (!permission.canView) return <p className="text-xs text-muted-foreground">No tenés permiso para consultar el margen de esta operación.</p>;
+  return <OperationMarginFacts key={`${orgId}:${operationId}`} orgId={orgId} operationId={operationId} />;
+}
+
+function OperationMarginFacts({ orgId, operationId }: Props) {
   const [row, setRow] = useState<OperationMarginRow | null>(null);
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     if (!orgId || !operationId) {
@@ -108,11 +119,16 @@ export default function OperationMarginPanel({ orgId, operationId }: Props) {
         }
         setRow((data as OperationMarginRow | null) ?? null);
         setLoading(false);
+      }, (err) => {
+        if (cancelado) return;
+        console.error("OperationMarginPanel: source failed", err);
+        setError("No se pudo leer el margen canónico de esta operación.");
+        setLoading(false);
       });
     return () => {
       cancelado = true;
     };
-  }, [orgId, operationId]);
+  }, [orgId, operationId, revision]);
 
   if (!operationId) return null;
 
@@ -123,7 +139,7 @@ export default function OperationMarginPanel({ orgId, operationId }: Props) {
           Margen de esta operación
         </h3>
         <Link
-          to="/analytics?vista=resumen"
+          to="/analytics?vista=rentabilidad"
           className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
         >
           Ver por canal
@@ -138,7 +154,9 @@ export default function OperationMarginPanel({ orgId, operationId }: Props) {
           La base todavía no expone el margen canónico. No se inventa un número acá.
         </p>
       ) : error ? (
-        <p className="text-xs text-destructive">{error}</p>
+        <div className="space-y-2"><p role="alert" className="text-xs text-destructive">{error}</p>
+          <Button size="sm" variant="outline" onClick={() => setRevision(value => value + 1)}>Volver a intentar</Button>
+        </div>
       ) : !row ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
           Todavía no hay hechos de margen para esta operación. Aparecen cuando la venta queda

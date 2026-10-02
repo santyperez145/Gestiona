@@ -40,6 +40,25 @@ async function assertInitialSelectedLabel(page: Page, name: string) {
   await expect(trigger).toHaveText(initialLabel);
 }
 
+test("Profit real: alias, canonical RPC and honest contribution", async ({ page }) => {
+  const responsePromise = page.waitForResponse(response => response.url().includes("/rpc/get_profit_period"));
+  await page.goto("/profit");
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  const period = await response.json();
+  expect(period.version).toBe(1);
+  expect(period.currency).toBe("ARS");
+  expect(period.coverage.lines).toBeGreaterThanOrEqual(0);
+  expect(period.operations.length).toBeLessThanOrEqual(period.pageSize);
+  await expect(page).toHaveURL(/\/analytics\?.*vista=rentabilidad/);
+  await expect(page.getByRole("heading", { name: "Rentabilidad del período" })).toBeVisible();
+  if (period.coverage.lines > 0) {
+    await expect(page.getByText(`${period.operationCount} operaciones · ${period.coverage.lines} líneas`, { exact: true })).toBeVisible();
+  } else {
+    await expect(page.getByText("Sin operaciones en este período", { exact: true })).toBeVisible();
+  }
+});
+
 test.describe("dashboard", () => {
   test("cada tab por hash muestra sus datos y oculta sólo las otras vistas", async ({ page }) => {
     await page.goto("/#dashboard-sales");

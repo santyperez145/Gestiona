@@ -162,6 +162,30 @@ margen; una parte pendiente reduce cobertura en vez de transformarse en cero.
 
 ## Próximo gate
 
+### Profit Foundation, 2026-10-02
+
+`get_profit_period` conserva esta autoridad: no consulta precios/costos actuales
+ni crea otro ledger. Agrupa todo el período en SQL y pagina sólo el detalle;
+evita derivar totales de un `select()` sujeto al límite de filas de la API
+([contrato oficial Supabase](https://supabase.com/docs/reference/javascript/select)).
+Un snapshot incluye población, cobertura, subtotal explicable y contribución
+total `NULL` si hay fuentes faltantes o devoluciones sin netear. Fecha de la
+operación en Buenos Aires; límite final exclusivo y todas las líneas del ticket.
+
+Vistas tenant y RPC exigen `analytics.view` además de membresía. Overrides de
+admin/owner y lectores se respetan; Platform conserva sólo su contrato agregado
+sanitizado, sin ganar detalle por su rol. Operaciones/Analytics comparten la
+vista y los inspectores indican falta de permiso en vez de un falso vacío.
+Verificación reversible: `supabase/verificaciones/20261002_profit_period_authority.sql`
+(cuatro roles, dos tenants, 1.007 líneas, páginas disjuntas, totales reconciliados,
+fracciones de segundo/medianoche y cero restos). No certifica costo faltante,
+IVA, Ads, adopción ni el procesamiento externo.
+
+La migración `20261002000000_profit_period_authority.sql` está aplicada en la
+base vinculada. Reproducir alineación con `npx supabase db push --linked --dry-run`.
+
+### Operación pendiente
+
 1. Hacer una venta POS real nueva y conciliar su liquidación desde Finanzas.
 2. Completar costo de transportista en tienda y fiscalidad de MercadoLibre.
 3. Persistir la base de cupón/precio promocional hacia adelante para medir su

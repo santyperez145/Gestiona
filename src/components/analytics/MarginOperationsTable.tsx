@@ -2,6 +2,7 @@ import { Fragment, useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { formatARS } from "@/lib/supabaseStore";
+import { useIsDesktop } from "@/hooks/useMediaQuery";
 
 export type MarginOperation = Database["public"]["Views"]["sale_margin_operations"]["Row"];
 
@@ -55,8 +56,9 @@ function amount(value: number | null) {
   return value === null ? <span className="text-muted-foreground">Pendiente</span> : formatARS(value);
 }
 
-export default function MarginOperationsTable({ operations }: { operations: MarginOperation[] }) {
+export default function MarginOperationsTable({ operations, totalCount = operations.length }: { operations: MarginOperation[]; totalCount?: number }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const isDesktop = useIsDesktop();
 
   if (operations.length === 0) {
     return (
@@ -67,25 +69,25 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
   }
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+    <div className="min-w-0 bg-card border border-border rounded-lg overflow-hidden">
       <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Operaciones explicables</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Un ticket conserva sus líneas, mix de cobro, promoción y fuentes sin duplicar importes.</p>
         </div>
-        <span className="text-xs text-muted-foreground">{operations.length} operaciones</span>
+        <span className="text-xs text-muted-foreground">{operations.length} de {totalCount} operaciones</span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1050px] text-xs antialiased">
+        <table className="w-full table-fixed text-xs antialiased" aria-label="Margen por operación">
           <thead className="bg-muted/30 text-muted-foreground uppercase tracking-wide text-[10px]">
             <tr>
-              <th className="text-left px-4 py-3">Operación</th>
-              <th className="text-left px-3 py-3">Canal</th>
-              <th className="text-left px-3 py-3">Cobro</th>
-              <th className="text-left px-3 py-3">Promoción</th>
+              <th className="w-[35%] text-left px-3 py-3 lg:w-auto">Operación</th>
+              <th className="hidden text-left px-3 py-3 lg:table-cell">Canal</th>
+              <th className="hidden text-left px-3 py-3 lg:table-cell">Cobro</th>
+              <th className="hidden text-left px-3 py-3 lg:table-cell">Promoción</th>
               <th className="text-right px-3 py-3">Ingresos</th>
               <th className="text-right px-3 py-3">Margen final</th>
-              <th className="text-left px-3 py-3">Calidad</th>
+              <th className="hidden text-left px-3 py-3 lg:table-cell">Calidad</th>
               <th className="w-10 px-3 py-3" />
             </tr>
           </thead>
@@ -98,17 +100,18 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
               return (
                 <Fragment key={key}>
                   <tr className="hover:bg-muted/20">
-                    <td className="px-4 py-3 text-foreground">
+                    <td className="break-words px-3 py-3 text-foreground [overflow-wrap:anywhere]">
                       <span className="font-medium">#{operation.operation_reference || "Sin referencia"}</span>
                       <span className="block text-[10px] text-muted-foreground">{dateLabel(operation.sold_at)} · {operation.line_count || 0} líneas · {operation.units || 0} u.</span>
+                      <span className="mt-1 block text-muted-foreground lg:hidden">{CHANNEL_LABEL[operation.channel || ""] || "Otro canal"} · {operation.is_explainable ? "Completo" : "Parcial"}</span>
                     </td>
-                    <td className="px-3 py-3 text-foreground">{CHANNEL_LABEL[operation.channel || ""] || operation.channel || "Sin atribuir"}</td>
-                    <td className="px-3 py-3 text-foreground">
+                    <td className="hidden break-words px-3 py-3 text-foreground lg:table-cell">{CHANNEL_LABEL[operation.channel || ""] || "Otro canal"}</td>
+                    <td className="hidden break-words px-3 py-3 text-foreground lg:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {(operation.payment_methods ?? []).map(method => <span key={method} className="rounded bg-muted/80 px-1.5 py-0.5 text-foreground">{method}</span>)}
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="hidden break-words px-3 py-3 lg:table-cell">
                       {operation.promotion_evidence_status === "not_applicable" ? (
                         <span className="text-muted-foreground">Sin promoción</span>
                       ) : operation.promotion_evidence_status === "measured" ? (
@@ -117,23 +120,24 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
                         <span className="text-amber-600 dark:text-amber-400">Evidencia parcial</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono text-foreground">{formatARS(operation.revenue_ars || 0)}</td>
-                    <td className="px-3 py-3 text-right font-mono font-semibold text-foreground">{amount(operation.contribution_margin_ars)}</td>
-                    <td className="px-3 py-3 text-foreground">
+                    <td className="break-words px-2 py-3 text-right font-mono text-foreground [overflow-wrap:anywhere]">{formatARS(operation.revenue_ars || 0)}</td>
+                    <td className="break-words px-2 py-3 text-right font-mono font-semibold text-foreground [overflow-wrap:anywhere]">{amount(operation.contribution_margin_ars)}</td>
+                    <td className="hidden break-words px-3 py-3 text-foreground lg:table-cell">
                       {operation.is_explainable ? (
                         <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5" /> 100% explicable</span>
                       ) : blockers.length > 0 ? (
                         <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400"><RotateCcw className="w-3.5 h-3.5" /> Devolución pendiente</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400"><AlertTriangle className="w-3.5 h-3.5" /> {operation.coverage_pct || 0}% cubierto</span>
+                        <span className="inline-flex items-center gap-1 text-amber-800 dark:text-amber-300"><AlertTriangle className="w-3.5 h-3.5" /> {operation.coverage_pct || 0}% cubierto</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-right">
                       <button
                         type="button"
-                        className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        className="inline-flex h-11 w-full items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                         onClick={() => setExpanded(isExpanded ? null : key)}
                         aria-label={isExpanded ? "Ocultar explicación" : "Explicar operación"}
+                        aria-expanded={isExpanded}
                       >
                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
@@ -141,7 +145,7 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
                   </tr>
                   {isExpanded && (
                     <tr className="bg-muted/10">
-                      <td colSpan={8} className="px-4 py-4">
+                      <td colSpan={isDesktop ? 8 : 4} className="px-4 py-4">
                         <div className="grid gap-3 lg:grid-cols-4">
                           <Fact label="Mercadería" value={operation.cogs_ars} sources={operation.cogs_sources} />
                           <Fact label="Comisión" value={operation.payment_fee_ars} sources={operation.payment_fee_sources} />
@@ -149,7 +153,7 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
                           <Fact label="IVA" value={operation.tax_ars} sources={operation.tax_sources} />
                         </div>
                         <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                          <div className="rounded-xl border border-border/60 bg-card p-3">
+                          <div className="min-w-0 border-t border-border pt-3">
                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Mix de cobro persistido</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                               {mix.map(leg => <span key={leg.method} className="rounded-md border border-border px-2 py-1 text-foreground">{leg.method}: {formatARS(leg.amount_ars)}</span>)}
@@ -159,7 +163,7 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
                               <p className="mt-2 text-[10px] text-amber-600 dark:text-amber-400">Diferencia contra ingresos: {formatARS(operation.payment_mix_difference_ars || 0)}</p>
                             )}
                           </div>
-                          <div className="rounded-xl border border-border/60 bg-card p-3">
+                          <div className="min-w-0 border-t border-border pt-3">
                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Evidencia de promoción</p>
                             <p className="mt-2">Descuento medido: <span className="font-mono text-foreground">{formatARS(operation.measured_discount_ars || 0)}</span></p>
                             {(operation.coupon_codes ?? []).length > 0 && <p className="mt-1 text-muted-foreground">Cupones: {(operation.coupon_codes ?? []).join(", ")}</p>}
@@ -184,7 +188,7 @@ export default function MarginOperationsTable({ operations }: { operations: Marg
 
 function Fact({ label, value, sources }: { label: string; value: number | null; sources: string[] | null }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-3">
+    <div className="min-w-0 break-words text-foreground [overflow-wrap:anywhere]">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 font-mono font-semibold">{amount(value)}</p>
       <p className="mt-1 text-[10px] text-muted-foreground">

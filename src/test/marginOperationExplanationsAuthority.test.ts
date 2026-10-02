@@ -44,6 +44,7 @@ describe("explicación canónica por operación", () => {
     expect(migration).toContain("public.is_org_member(operation.org_id, auth.uid())");
     expect(migration).toContain("REVOKE ALL ON TABLE public._sale_margin_operations_source FROM PUBLIC, anon, authenticated");
     expect(migration).toContain("REVOKE ALL ON TABLE public.sale_margin_operations FROM PUBLIC, anon");
-    expect(tab).toContain('.from("sale_margin_operations")');
+    expect(tab).toContain("useProfitPeriod");
+    expect(tab).toContain("MarginOperationsTable");
   });
 });

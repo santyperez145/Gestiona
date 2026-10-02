@@ -47,10 +47,12 @@ verificados. Mientras tanto mantiene `/clientes`, `/marketing`, email,
 WhatsApp e Influencers. Los enlaces antiguos se redirigen después de migrar
 consumidores; no se duplica una página para anunciar otro producto.
 
-Profit comienza sobre `/analytics` y sus hechos canónicos; `/profit` será
-la entrada cuando el contrato completo esté publicado. Ninguna de esas rutas
-futuras ni subdominios se declara operativa en este ADR. Mismo login/tenant,
-primitives y observabilidad; superficie propia no implica repositorio separado.
+Profit Foundation vive en `/analytics?vista=rentabilidad`; desde 2026-10-02,
+`/profit` es un alias de esa vista, no otra página ni una suite completa.
+Usa `get_profit_period` sobre los mismos hechos, permisos tenant, contribución
+y cobertura del período completo. Growth y subdominios siguen pendientes.
+Mismo login/tenant, primitives y observabilidad; superficie propia no implica
+repositorio separado.
 
 ### Actualización de decisiones anteriores
 

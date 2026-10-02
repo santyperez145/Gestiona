@@ -33,6 +33,14 @@ de software ni una colección de cards decorativas.
 
 ## 3. Anatomía compartida
 
+Profit Foundation (2026-10-02) vive como Rentabilidad en Analytics, con alias
+`/profit`; sin otra pantalla ni KPI heredados. Población completa y detalle
+paginado, contribución total/medida separadas, fuente y cobertura, modo por org,
+período en URL, error recuperable y refresh sin vaciar la lectura. Producto/canal
+y operación compactos en móvil; expandir conserva columnas legibles. Verificación
+sintética con teclado/Axe y capturas en 360/390/768/1024/1280/1440 px; no prueba
+adopción ni operación financiera externa.
+
 Toda vista de gestión usa, cuando corresponda:
 
 1. shell y breadcrumb de superficie;

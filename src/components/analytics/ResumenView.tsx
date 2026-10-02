@@ -30,7 +30,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import PredictiveAnalyticsTab from "@/components/analytics/PredictiveAnalyticsTab";
-import ChannelMarginTab from "@/components/analytics/ChannelMarginTab";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { plural } from "@/lib/plural";
@@ -597,7 +596,6 @@ export default function ResumenView() {
           <TabsTrigger value="dormant" className="text-xs">⚠️ Sin movimiento</TabsTrigger>
           <TabsTrigger value="rentabilidad" className="text-xs">💰 Rentabilidad</TabsTrigger>
           <TabsTrigger value="canales" className="text-xs">📊 Canales</TabsTrigger>
-          <TabsTrigger value="margen-canal" className="text-xs">Margen por canal</TabsTrigger>
           <TabsTrigger value="vendedores" className="text-xs">🧑‍💼 Vendedores</TabsTrigger>
           <TabsTrigger value="gastos" className="text-xs">💸 Gastos</TabsTrigger>
         </TabsList>
@@ -1687,15 +1685,6 @@ export default function ResumenView() {
               </div>
             </>
           )}
-        </TabsContent>
-
-        {/* E4: margen factual por producto y canal */}
-        <TabsContent value="margen-canal" className="mt-4 space-y-4">
-          <ChannelMarginTab
-            enabled={analyticsTab === "margen-canal"}
-            from={dateFrom ? dateFrom.toISOString().slice(0, 10) : undefined}
-            to={dateTo ? dateTo.toISOString().slice(0, 10) : undefined}
-          />
         </TabsContent>
 
         {/* VENDEDORES TAB */}

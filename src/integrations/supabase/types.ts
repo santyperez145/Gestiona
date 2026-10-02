@@ -59621,6 +59621,17 @@ export type Database = {
           unique_users: number
         }[]
       }
+      get_profit_period: {
+        Args: {
+          p_org_id: string
+          p_from?: string
+          p_to?: string
+          p_product_page?: number
+          p_operation_page?: number
+          p_page_size?: number
+        }
+        Returns: Json
+      }
       get_bcg_matrix: {
         Args: { p_org_id: string }
         Returns: {

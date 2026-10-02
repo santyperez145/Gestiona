@@ -19,7 +19,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [Estrategia](ESTRATEGIA.md): categoría, benchmarks y secuencia.
 - [Arquitectura](ARQUITECTURA.md): autoridades, límites y seguridad.
 - [Capacidad Finance](FINANCE.md): contrato de producto y paridad Mendel-class.
-- [Profit](PROFIT.md): contribución, confianza, atribución y fases; superficie dedicada pendiente.
+- [Profit](PROFIT.md): Foundation en Analytics, contribución/cobertura completas; suite y atribución pendientes.
 - [Growth](GROWTH.md): CRM/marketing fuera de Finance, identidad compartida y fases.
 - [Influencers](INFLUENCERS.md): alcance real, referencia GoMarz y pendientes.
 - [Economics](ECONOMICS.md): monetización y métricas.
@@ -90,7 +90,7 @@ sus benchmarks. Fuente fechada e implementación comprobada son evidencias disti
 | CONTRIBUTING | Canónico: ejecución | Ingeniería | 2026-10-01. |
 | Arquitectura / Estrategia | Canónico: límites / portfolio | CTO / Producto | 2026-10-01; fuentes conservan su fecha. |
 | Finance | Canónico: control de gasto | Producto Finance | 2026-10-01; certificación real abierta. |
-| Profit / Growth | Canónico: contratos; superficies pendientes | Producto / Datos / Growth | 2026-10-01. |
+| Profit / Growth | Canónico: Profit Foundation; Growth pendiente | Producto / Datos / Growth | 2026-10-02. |
 | Intelligence | Canónico: runtime y autonomía | CTO | 2026-10-01; no segundo motor. |
 | ADR 001 / 003 | Aceptado | CTO | Fecha de cada ADR; no sustituidos. |
 | ADR 002 | Aceptado parcialmente sustituido | CTO | ADR 004 reemplaza límites indicados; contexto histórico intacto. |

@@ -9,7 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { OrgProvider, useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
-import { businessRoutes, businessAliases, financeProductRoutes, influencerMarketingProductRoutes, publicPages, publicAliases,
+import { businessRoutes, businessAliases, businessAliasSearchParams, financeProductRoutes, influencerMarketingProductRoutes, publicPages, publicAliases,
 } from "@/app/routeManifest";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -22,6 +22,12 @@ import { storeSlugFromHostname } from "@/lib/storefrontHost";
 import { isPotentialCustomStoreHostname } from "@/lib/storeCustomDomain";
 import PlatformSeoHead from "@/components/seo/PlatformSeoHead";
 import BrandLogo from "@/components/shared/BrandLogo";
+import { routeAliasDestination } from "@/lib/routeAliasDestination";
+
+function BusinessAliasRedirect({ destination, preserveSearch }: { destination: string; preserveSearch?: string[] }) {
+  const { search } = useLocation();
+  return <Navigate to={routeAliasDestination(destination, search, preserveSearch)} replace />;
+}
 
 // ── Eager (needed for first paint / public routes) ──────────────────────────
 import AuthPage from "@/pages/AuthPage";
@@ -338,7 +344,7 @@ function ProtectedRoutes() {
           {/* URLs viejas: siguen vivas en bookmarks y mails. El destino puede
               llevar query (`/admin?tab=audit`), así que se conserva entero. */}
           {businessAliases().map(([desde, hacia]) => (
-            <Route key={desde} path={desde} element={<Navigate to={hacia} replace />} />
+            <Route key={desde} path={desde} element={<BusinessAliasRedirect destination={hacia} preserveSearch={businessAliasSearchParams(desde)} />} />
           ))}
 
           {/* Un vendedor que escribe una URL de admin vuelve al inicio en vez
