@@ -265,7 +265,7 @@ export const ROUTES: RouteDefinition[] = [
     // vistas de este workspace; el KPI Registry (ANA-001) va aparte.
     aliases: [
       { path: "/analytics-ia", redirectTo: "/analytics" },
-      { path: "/profit", redirectTo: "/analytics?vista=rentabilidad", preserveSearch: ["df", "dt"] },
+      { path: "/profit", redirectTo: "/analytics?vista=rentabilidad", preserveSearch: ["df", "dt", "profit_store", "profit_channel", "profit_mode"] },
       { path: "/kpi-dashboard", redirectTo: "/analytics?vista=tableros" },
       { path: "/bi-reportes", redirectTo: "/analytics?vista=cohortes" },
       { path: "/forecast", redirectTo: "/analytics?vista=pronostico" },

@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-09-07. Este documento define la dirección visual y los próximos
+**Corte:** 2026-10-02. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -36,8 +36,11 @@ de software ni una colección de cards decorativas.
 Profit Foundation (2026-10-02) vive como Rentabilidad en Analytics, con alias
 `/profit`; sin otra pantalla ni KPI heredados. Población completa y detalle
 paginado, contribución total/medida separadas, fuente y cobertura, modo por org,
-período en URL, error recuperable y refresh sin vaciar la lectura. Producto/canal
-y operación compactos en móvil; expandir conserva columnas legibles. Verificación
+período/tienda/canal/modo en URL, error recuperable y refresh sin vaciar la lectura.
+Tres modos: producto, SKU y operación; filtros/tablist siguen montados durante
+carga/error y las opciones retiradas no muestran UUID ni eligen otra tienda.
+SKU actual se distingue de los costos históricos; duplicados conservan identidad.
+Producto/SKU/canal y operación compactos en móvil; expandir conserva columnas legibles. Verificación
 sintética con teclado/Axe y capturas en 360/390/768/1024/1280/1440 px; no prueba
 adopción ni operación financiera externa.
 

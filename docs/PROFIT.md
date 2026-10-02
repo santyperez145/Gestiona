@@ -16,6 +16,9 @@ Referencia pública consultada 2026-10-01: [Escalafy](https://www.escalafy.com/)
 describe rentabilidad por producto/campaña/canal, stock multicanal y MCP/API.
 Es una descripción del proveedor, no una certificación de su aplicación privada
 ni paridad demostrada de Nerqia. Las capacidades se construyen con marca propia.
+Comparación verificada 2026-10-02: [Shopify Profit reports](https://help.shopify.com/en/manual/reports-and-analytics/shopify-reports/report-types/default-reports/profit-reports)
+ofrece desglose por producto/variante y usa costo registrado al vender. Nerqia
+conserva además las líneas sin costo como pendientes, no las oculta del período.
 
 ## Base existente y faltantes
 
@@ -25,7 +28,7 @@ ni paridad demostrada de Nerqia. Las capacidades se construyen con marca propia.
 | Desglose por operación | `sale_margin_operations` y `OperationMarginPanel`. | Cobertura real por tienda y canal. |
 | Confianza | `missing_components`, `coverage_pct`, bloqueos de devolución. | Métrica de cobertura visible en cada agregado. |
 | Precio y outcome | Propuesta, aplicación/reversión y ventana observada existentes. | Piloto; observación no equivale a causalidad. |
-| Profit por producto/canal | Agregado completo en SQL, detalle paginado y cobertura; verificación reversible de 1.007 líneas. | SKU/tienda y certificación con fuentes completas. |
+| Profit por producto/SKU/canal/tienda | Un agregado SQL, detalle paginado, cobertura y filtros; verificación reversible de 1.007 líneas y dimensiones. | Certificación con fuentes completas; inventario/Ads siguen pendientes. |
 | Gasto y atribución Ads | No certificado. | Conector read-only, identidad y conciliación de gasto. |
 | Profit de campaña | Contrato futuro. | Atribución, devolución, gasto completo y cobertura. |
 | Capital en inventario/alertas | Datos Core; producto por completar. | Costo histórico, disponibilidad y prueba de decisión. |
@@ -41,15 +44,16 @@ de admin/owner. Las vistas por línea, operación y cobertura conservan la misma
 restricción. Staff Platform no obtiene detalle por ser staff.
 
 Un snapshot SQL conserva población completa, cobertura, contribución total y
-subtotal explicable; sólo producto/canal y operaciones se paginan (25 filas en
+subtotal explicable; sólo producto/SKU/canal y operaciones se paginan (25 filas en
 UI, hasta 100 por petición). Paginar no recalcula los totales desde una página.
 La fecha del ticket es la primera línea, en Buenos Aires; el fin civil es
 exclusivo al inicio del día siguiente. Todas sus líneas pertenecen a ese ticket,
 incluso al cruzar medianoche. Moneda actual ARS; no representa FX ni gasto Ads.
 
 La vista dedicada no hereda KPI de ganancia neta, año o sucursal que no aplica.
-Declara todas las sucursales/canales; fechas sobreviven en URL y el modo queda
-por organización. `/profit` conserva sólo `df`/`dt`, nunca tokens. El acceso
+Producto, SKU y operación comparten controles; período, tienda, canal y modo
+sobreviven en URL, con preferencia de modo por organización. `/profit` conserva
+sólo `df`, `dt`, `profit_store`, `profit_channel`, `profit_mode`, nunca tokens. El acceso
 vigente a Analytics continúa administrativo; los tests SQL de cuatro roles
 prueban autoridad de lectura, no amplían los roles de navegación.
 
@@ -59,6 +63,30 @@ validado. Si falta la RPC no se vuelve al agregado truncado del navegador.
 Prueba reproducible: `supabase/verificaciones/20261002_profit_period_authority.sql`
 valida roles/denegaciones/dos tenants, 1.007 líneas, páginas disjuntas, límites
 de medianoche y cero restos con rollback. No certifica adopción externa.
+
+### Dimensiones de SKU y tienda
+
+`get_profit_period_dimensions` exige los siete argumentos, incluido `p_filters`:
+`storeId`, `channel`, `groupBy` (`product`/`sku`). Se rechazan claves inválidas,
+tiendas ajenas y canales desconocidos; el contrato devuelve los filtros aplicados.
+`get_profit_period` conserva su firma y delega sin filtros en esa autoridad;
+no duplica cálculo ni introduce sobrecargas ambiguas.
+`sale_margin_dimensions` sólo incorpora identidad y etiquetas del catálogo
+actual, nunca precio o costo actual. Agrupa por producto/variante/canal, no por
+texto SKU: dos variantes con el mismo SKU no se fusionan. El bucket sin variante
+identificada sigue visible; etiquetas actuales no prueban identidad histórica.
+
+La tienda procede del pedido canónico de Commerce. Elegir una tienda restringe
+a sus operaciones completas, no a un surtido ni a stock clonado. Sus ventas
+anteriores siguen consultables aunque esté inactiva. Sin filtro se incluyen
+también ventas sin tienda atribuida. `profit_store_options` expone sólo ID,
+nombre/estado con la misma membresía y permiso; no configuración ni secretos.
+Los filtros permanecen operables durante errores/cambios y se pueden limpiar
+juntos; una selección retirada no muestra UUID ni elige otra automáticamente.
+
+`supabase/verificaciones/20261002_profit_sku_store_dimensions.sql` valida cuatro
+roles, dos tenants, SKUs repetidos, paginación, tienda inactiva, devoluciones,
+NULL y dinero inmutable tras cambiar el costo actual, con rollback y cero restos.
 
 ## Contrato económico
 
@@ -116,7 +144,7 @@ Cambios antes/después se muestran como observados, no experimentos causales.
 
 1. **P1:** orden/producto/canal con fuentes actuales, cobertura y faltantes;
    distinguir disponibilidad de datos de rentabilidad y mantener un solo detalle.
-2. **P1/P2:** SKU, tienda, devoluciones, costo de inventario y alertas con
+2. **P1/P2:** certificar SKU/tienda, netear devoluciones, costo de inventario y alertas con
    explicación, responsable, rango y enlace al origen; sin alertas inventadas.
 3. **P2:** importación externa read-only de comercio/pagos y luego Ads. No basta
    un CSV/OAuth para declarar el conector conciliado o attribution completa.

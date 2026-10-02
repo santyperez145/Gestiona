@@ -4,9 +4,12 @@ import { expect, test, type Page } from "@playwright/test";
 test.use({ serviceWorkers: "block" });
 const orgId = "00000000-0000-4000-8000-000000000002";
 const userId = "00000000-0000-4000-8000-000000000001";
+const storeId = "00000000-0000-4000-8000-000000000010";
+const inactiveId = "00000000-0000-4000-8000-000000000011";
 const product = { productId: "zz-product", productName: `Producto ${"NombreExtendido".repeat(12)}`, channel: "pos",
   lines: 1007, units: 1007, revenueARS: 10110.05, cogsARS: null, paymentFeeARS: 0, shippingCostARS: 0,
-  taxARS: null, contributionMarginARS: null, coveragePct: 75, pendingCodes: ["iva", "devolucion_neta"] };
+  taxARS: null, contributionMarginARS: null, coveragePct: 75, pendingCodes: ["iva", "devolucion_neta"],
+  variantId: null, sku: null, variantName: null, skuSource: null };
 
 async function assertProfitContrast(page: Page, context: string) {
   const violations = (await new AxeBuilder({ page }).include('section[aria-label="Rentabilidad por producto y canal"]')
@@ -56,17 +59,25 @@ async function mockProfit(page: Page, failFirst = false) {
     else if (path === "/rest/v1/settings") result = [{ org_id: orgId, user_id: userId, business_name: "ZZ Profit", business_logo: null }];
     else if (path === "/rest/v1/memberships") result = [{ org_id: orgId, role: "owner", organization: { id: orgId, name: "ZZ Profit", slug: "zz-profit",
       owner_user_id: userId, onboarding_completed: true, onboarding_goal: "explore", plan_id: null, trial_ends_at: null, logo_url: null } }];
-    else if (path.endsWith("/get_profit_period")) {
+    else if (path.endsWith("/get_profit_period_dimensions")) {
       const body = route.request().postDataJSON(); calls.push(body);
       if (fail) { fail = false; await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ code: "XX000", message: "internal synthetic error" }) }); return; }
       const productPage = Number(body.p_product_page), operationPage = Number(body.p_operation_page);
+      const filters = body.p_filters;
       result = { version: 1, currency: "ARS", timeZone: "America/Argentina/Buenos_Aires", from: body.p_from, to: body.p_to,
         pageSize: 25, productCount: 26, operationCount: 27, productPage, operationPage,
+        filters, stores: [{ id: storeId, name: `Sucursal ${"NombreExtendido".repeat(6)}`, active: true }, { id: inactiveId, name: "Tienda anterior", active: false }],
         coverage: { lines: 1007, explainableLines: 0, revenueARS: 10110.05, explainableRevenueARS: 0, explainableRevenuePct: 0,
           averageCoveragePct: 75, cogsKnownLines: 1006, paymentFeeKnownLines: 1007, shippingKnownLines: 1007, taxKnownLines: 0,
           measuredContributionARS: null, contributionMarginARS: null },
-        products: productPage === 1 ? Array.from({ length: 25 }, (_, index) => ({ ...product, productId: `zz-${index}` })) : [{ ...product, productName: "Último producto", productId: "zz-last" }],
+        products: productPage === 1 ? Array.from({ length: 25 }, (_, index) => ({ ...product, productId: `zz-${index}`,
+          ...(filters.groupBy === "sku" ? { variantId: `zz-variant-${index}`, variantName: `Talle ${index + 1}`, sku: index < 2 ? "SKU-COMPARTIDO" : `SKU-${index}`, skuSource: "current_catalog" } : {}) })) : [{ ...product, productName: "Último producto", productId: "zz-last" }],
         operations: operationPage === 1 ? Array.from({ length: 25 }, (_, index) => operation(index)) : [operation(25), operation(26)] };
+      if (filters.storeId && filters.channel === "pos") result = { ...result as Record<string, unknown>,
+        productCount: 0, operationCount: 0, productPage: 1, operationPage: 1, products: [], operations: [],
+        coverage: { lines: 0, explainableLines: 0, revenueARS: 0, explainableRevenueARS: 0, explainableRevenuePct: null,
+          averageCoveragePct: null, cogsKnownLines: 0, paymentFeeKnownLines: 0, shippingKnownLines: 0, taxKnownLines: 0,
+          measuredContributionARS: null, contributionMarginARS: null } };
     }
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(result) });
   });
@@ -92,6 +103,16 @@ test("synthetic Profit: complete population, pagination, keyboard, persistence a
   }
   await setProfitTheme(page, "light");
   await section.getByRole("tab", { name: "Producto y canal", exact: true }).press("ArrowRight");
+  await expect(section.getByRole("tab", { name: "SKU y canal", exact: true })).toBeFocused();
+  await expect(section.getByRole("table", { name: "Margen por SKU y canal" })).toBeVisible();
+  await expect(section.getByText("Talle 1 · SKU-COMPARTIDO", { exact: true })).toBeVisible();
+  await expect(section.getByText("Talle 2 · SKU-COMPARTIDO", { exact: true })).toBeVisible();
+  for (const theme of ["light", "dark"] as const) {
+    await setProfitTheme(page, theme);
+    await assertProfitContrast(page, `SKU in ${theme} theme`);
+  }
+  await setProfitTheme(page, "light");
+  await section.getByRole("tab", { name: "SKU y canal", exact: true }).press("ArrowRight");
   await expect(section.getByRole("tab", { name: "Operaciones", exact: true })).toBeFocused();
   await section.getByRole("button", { name: "Ir a la página siguiente" }).click();
   await expect(section.getByText("2 de 27 operaciones", { exact: true })).toBeVisible();
@@ -122,5 +143,42 @@ test("synthetic Profit source error is recoverable, not a zero or guessed margin
   await expect(page.getByText("No pudimos cargar rentabilidad", { exact: true })).toBeVisible();
   await expect(page.getByText("Ingresos del período", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Volver a intentar", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Rentabilidad del período" })).toBeVisible();
+  await expect(page.getByText("27 operaciones · 1007 líneas", { exact: true })).toBeVisible();
+});
+
+test("synthetic Profit: scoped store/channel deep links preserve human labels and SKU mode", async ({ page }, testInfo) => {
+  const calls = await mockProfit(page);
+  await page.goto(`/profit?profit_mode=sku&profit_store=${inactiveId}&profit_channel=tienda_online&token=discard-me`);
+  const section = page.getByRole("region", { name: "Rentabilidad por producto y canal" });
+  await expect(section.getByRole("table", { name: "Margen por SKU y canal" })).toBeVisible();
+  expect(calls.at(-1)?.p_filters).toEqual({ storeId: inactiveId, channel: "tienda_online", groupBy: "sku" });
+  await expect(section.getByRole("combobox", { name: "Tienda", exact: true })).toHaveText("Tienda anterior (Inactiva)");
+  await expect(page).not.toHaveURL(/token=/);
+  await section.getByRole("combobox", { name: "Tienda", exact: true }).click();
+  await page.getByRole("option", { name: /^Sucursal / }).click();
+  await expect(page).toHaveURL(new RegExp(`profit_store=${storeId}`));
+  await section.getByRole("combobox", { name: "Canal", exact: true }).click();
+  await page.getByRole("option", { name: "Todos los canales", exact: true }).click();
+  await expect(page).not.toHaveURL(/profit_channel=/);
+  await expect(section.getByRole("table", { name: "Margen por SKU y canal" })).toBeVisible();
+  for (const width of testInfo.project.name === "mobile" ? [360, 390] : [768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await section.evaluate(element => element.scrollWidth <= element.clientWidth), `SKU/filter overflow at ${width}`).toBe(true);
+    expect((await section.getByRole("table", { name: "Margen por SKU y canal" }).locator("tbody > tr").first().boundingBox())!.height,
+      `long name made SKU row unbounded at ${width}`).toBeLessThan(200);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `page overflow at ${width}`).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`profit-sku-filters-${width}.png`), fullPage: true });
+  }
+  for (const theme of ["light", "dark"] as const) {
+    await setProfitTheme(page, theme); await assertProfitContrast(page, `SKU filters ${theme}`);
+  }
+  await page.reload();
+  await expect(section.getByRole("combobox", { name: "Tienda", exact: true })).toHaveText(/^Sucursal /);
+  await expect(section.getByRole("tab", { name: "SKU y canal", exact: true })).toHaveAttribute("aria-selected", "true");
+  await section.getByRole("combobox", { name: "Canal", exact: true }).click();
+  await page.getByRole("option", { name: "Mostrador", exact: true }).click();
+  await expect(section.getByText("Sin operaciones en este período", { exact: true })).toBeVisible();
+  await section.getByRole("button", { name: "Limpiar filtros", exact: true }).click();
+  await expect(page).not.toHaveURL(/profit_(store|channel)=/);
+  await expect(section.getByRole("table", { name: "Margen por SKU y canal" })).toBeVisible();
 });

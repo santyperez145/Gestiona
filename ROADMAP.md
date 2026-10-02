@@ -83,7 +83,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
 | Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo desde documento persistido. | ARCA A/B/C y NC, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
 | Finance | Inbox, aprobación versionada, comprometido/disponible, reembolsos/anticipos, dimensiones, conciliación CSV y export del ledger. | Documento y cierre reales; feeds de tarjetas externas y controles; [contrato](docs/FINANCE.md). |
-| Profit | Hechos existentes y `get_profit_period`: agregado completo/paginado, cobertura, permisos y vista dedicada; rollback con 1.007 líneas. | SKU/tienda, inventario, primera operación explicable y decisión adoptada; Ads después. |
+| Profit | Hechos y `get_profit_period`: producto/SKU/canal, filtros de tienda, agregado completo/paginado, cobertura y permisos; rollback con 1.007 líneas y dimensiones. | Inventario, primera operación explicable y decisión adoptada; Ads después. |
 | Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
 | Creators | Portal autenticado, identidad/canjes, contratos, chat, evidencia privada y liquidación interna. | Payout acreditado, escaneo y social OAuth; expansión pausada; [contrato](docs/INFLUENCERS.md). |
 | Pay | OAuth, checkout, webhook, manual, refund, comisión y settlement idempotentes. | Certificación por proveedor/destino; cuenta cargada no garantiza rail disponible. |
@@ -112,12 +112,13 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-02: `npm run verify` pasa 3.469 tests en 397
+- Validación local del 2026-10-02: `npm run verify` pasa 3.476 tests en 397
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
 - Profit Foundation: SQL reversible con cuatro roles, overrides y dos tenants;
   1.007 líneas sin truncar, detalle disjunto y cero restos. UI sintética con
+  SKU duplicado, tienda inactiva, costos históricos inmutables y filtros;
   paginación, teclado, recuperación, persistencia, Axe en ambos temas y capturas
   en seis anchos.
   La RPC y los inspectores comparten autoridad; no certifica Ads ni utilidad neta.
@@ -171,7 +172,7 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    mejoras guiadas por conversión, no nuevos temas sin evidencia.
 4. Profit Foundation: agregado/permiso/paginación conectados y reconciliados
    internamente; cerrar la primera operación con fuentes reales completas.
-5. Extender a SKU/tienda y capital en inventario con costo histórico, alertas
+5. Certificar SKU/tienda y extender a capital en inventario con costo histórico, alertas
    explicables y una decisión observada por merchant. `/profit` es hoy alias
    de la vista Foundation; no anuncia la suite completa ni Ads certificados.
 

@@ -59632,6 +59632,18 @@ export type Database = {
         }
         Returns: Json
       }
+      get_profit_period_dimensions: {
+        Args: {
+          p_org_id: string
+          p_from: string
+          p_to: string
+          p_product_page: number
+          p_operation_page: number
+          p_page_size: number
+          p_filters: Json
+        }
+        Returns: Json
+      }
       get_bcg_matrix: {
         Args: { p_org_id: string }
         Returns: {

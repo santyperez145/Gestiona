@@ -41,7 +41,7 @@ async function assertInitialSelectedLabel(page: Page, name: string) {
 }
 
 test("Profit real: alias, canonical RPC and honest contribution", async ({ page }) => {
-  const responsePromise = page.waitForResponse(response => response.url().includes("/rpc/get_profit_period"));
+  const responsePromise = page.waitForResponse(response => response.url().includes("/rpc/get_profit_period_dimensions"));
   await page.goto("/profit");
   const response = await responsePromise;
   expect(response.status()).toBe(200);
@@ -50,12 +50,33 @@ test("Profit real: alias, canonical RPC and honest contribution", async ({ page 
   expect(period.currency).toBe("ARS");
   expect(period.coverage.lines).toBeGreaterThanOrEqual(0);
   expect(period.operations.length).toBeLessThanOrEqual(period.pageSize);
+  expect(period.filters).toEqual({ storeId: null, channel: null, groupBy: "product" });
   await expect(page).toHaveURL(/\/analytics\?.*vista=rentabilidad/);
   await expect(page.getByRole("heading", { name: "Rentabilidad del período" })).toBeVisible();
   if (period.coverage.lines > 0) {
     await expect(page.getByText(`${period.operationCount} operaciones · ${period.coverage.lines} líneas`, { exact: true })).toBeVisible();
   } else {
     await expect(page.getByText("Sin operaciones en este período", { exact: true })).toBeVisible();
+  }
+  const skuPromise = page.waitForResponse(response => response.url().includes("/rpc/get_profit_period_dimensions")
+    && response.request().postDataJSON()?.p_filters?.groupBy === "sku");
+  await page.getByRole("tab", { name: "SKU y canal", exact: true }).click();
+  const skuResponse = await skuPromise;
+  expect(skuResponse.status()).toBe(200);
+  const sku = await skuResponse.json();
+  expect(sku.filters.groupBy).toBe("sku");
+  expect(sku.coverage).toEqual(period.coverage);
+  await expect(page.getByRole("combobox", { name: "Tienda", exact: true })).toHaveText("Todas las tiendas");
+  if (sku.stores.length) {
+    const store = sku.stores[0];
+    const storePromise = page.waitForResponse(response => response.url().includes("/rpc/get_profit_period_dimensions")
+      && response.request().postDataJSON()?.p_filters?.storeId === store.id);
+    await page.getByRole("combobox", { name: "Tienda", exact: true }).click();
+    await page.getByRole("option", { name: store.name + (store.active ? "" : " (Inactiva)"), exact: true }).click();
+    const storeResponse = await storePromise;
+    expect(storeResponse.status()).toBe(200);
+    expect((await storeResponse.json()).filters.storeId).toBe(store.id);
+    await expect(page).toHaveURL(new RegExp(`profit_store=${store.id}`));
   }
 });
 

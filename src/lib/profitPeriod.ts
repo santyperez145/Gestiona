@@ -4,6 +4,12 @@ import { labelMissingMarginComponent } from "@/lib/channelMargins";
 const money = z.number().finite().nullable();
 const count = z.number().int().nonnegative();
 const strings = z.array(z.string()).nullable();
+export const PROFIT_CHANNELS = { pos: "Mostrador", tienda_online: "Tienda propia", mercadolibre: "Mercado Libre", sin_atribuir: "Sin atribuir" } as const;
+export type ProfitMode = "products" | "sku" | "operations";
+const filtersSchema = z.object({ storeId: z.string().uuid().nullable(), channel: z.enum(["pos", "tienda_online", "mercadolibre", "sin_atribuir"]).nullable(), groupBy: z.enum(["product", "sku"]) });
+const storeSchema = z.object({ id: z.string().uuid(), name: z.string(), active: z.boolean() });
+export type ProfitFilters = Required<z.infer<typeof filtersSchema>>;
+export type ProfitStore = Required<z.infer<typeof storeSchema>>;
 const operationSchema = z.object({
   org_id: z.string(), operation_key: z.string(), operation_id: z.string(),
   operation_reference: z.string().nullable(), operation_type: z.string().nullable(),
@@ -23,11 +29,14 @@ const productSchema = z.object({
   units: z.number().int(), revenueARS: z.number().finite(), cogsARS: money,
   paymentFeeARS: money, shippingCostARS: money, taxARS: money, contributionMarginARS: money,
   coveragePct: money, pendingCodes: z.array(z.string()),
+  variantId: z.string().nullable(), sku: z.string().nullable(), variantName: z.string().nullable(),
+  skuSource: z.enum(["current_catalog", "unavailable"]).nullable(),
 });
 const profitPeriodBaseSchema = z.object({
   version: z.literal(1), currency: z.literal("ARS"), timeZone: z.literal("America/Argentina/Buenos_Aires"),
   from: z.string().nullable(), to: z.string().nullable(), pageSize: z.number().int().min(1).max(100),
   productCount: count, operationCount: count, productPage: z.number().int().positive(), operationPage: z.number().int().positive(),
+  filters: filtersSchema, stores: z.array(storeSchema),
   coverage: z.object({
     lines: count, explainableLines: count, revenueARS: z.number().finite(), explainableRevenueARS: z.number().finite(),
     explainableRevenuePct: money, averageCoveragePct: money, cogsKnownLines: count, paymentFeeKnownLines: count,
@@ -42,7 +51,8 @@ const profitPeriodBaseSchema = z.object({
   }
 });
 export type ProfitProduct = Required<z.infer<typeof productSchema>>;
-export type ProfitPeriod = Required<Omit<z.infer<typeof profitPeriodBaseSchema>, "coverage" | "products" | "operations">> & {
+export type ProfitPeriod = Required<Omit<z.infer<typeof profitPeriodBaseSchema>, "coverage" | "products" | "operations" | "filters" | "stores">> & {
+  filters: ProfitFilters; stores: ProfitStore[];
   coverage: Required<z.infer<typeof profitPeriodBaseSchema>["coverage"]>;
   products: ProfitProduct[];
   operations: Required<z.infer<typeof operationSchema>>[];
@@ -61,6 +71,6 @@ export function profitSourceError(error: { code?: string }) {
   if (["42883", "PGRST202"].includes(error.code || "")) {
     return "La lectura completa de rentabilidad todavía no está disponible. No se muestran totales parciales como completos.";
   }
-  if (error.code === "22023") return "Revisá las fechas: el inicio no puede ser posterior al fin.";
+  if (error.code === "22023") return "Revisá las fechas, la tienda y el canal. Podés volver a todas las tiendas si la selección ya no está disponible.";
   return "No pudimos actualizar la rentabilidad. Volvé a intentar; no se reemplazaron datos por ceros.";
 }

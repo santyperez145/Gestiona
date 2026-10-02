@@ -13,16 +13,21 @@ export function fixture() {
   return {
     version: 1, currency: "ARS", timeZone: "America/Argentina/Buenos_Aires", from: null, to: null,
     pageSize: 25, productCount: 1, operationCount: 1006, productPage: 1, operationPage: 1,
+    filters: { storeId: null, channel: null, groupBy: "product" },
+    stores: [{ id: "00000000-0000-4000-8000-000000000010", name: "Tienda propia", active: true }],
     coverage: { lines: 1007, explainableLines: 1, revenueARS: 10110.05, explainableRevenueARS: 10,
       explainableRevenuePct: 0.1, averageCoveragePct: 75, cogsKnownLines: 1006, paymentFeeKnownLines: 1007,
       shippingKnownLines: 1007, taxKnownLines: 1, measuredContributionARS: 4, contributionMarginARS: null },
     products: [{ productId: "product-one", productName: "Producto de prueba", channel: "pos", lines: 1007,
       units: 1007, revenueARS: 10110.05, cogsARS: null, paymentFeeARS: 0, shippingCostARS: 0, taxARS: null,
-      contributionMarginARS: null, coveragePct: 75, pendingCodes: ["iva", "devolucion_neta"] }], operations: [],
+      contributionMarginARS: null, coveragePct: 75, pendingCodes: ["iva", "devolucion_neta"],
+      variantId: null, sku: null, variantName: null, skuSource: null }], operations: [],
   };
 }
 const props = { orgId: "org-one", enabled: true, productPage: 1, operationPage: 1 };
-beforeEach(() => { state.org = "org-one"; state.allowed = true; state.rpc.mockReset().mockResolvedValue({ data: fixture(), error: null }); localStorage.clear(); });
+beforeEach(() => { state.org = "org-one"; state.allowed = true;
+  state.rpc.mockReset().mockImplementation((_name, args) => Promise.resolve({ data: { ...fixture(), filters: args.p_filters }, error: null }));
+  localStorage.clear(); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("Profit Foundation: period authority and recovery", () => {
@@ -40,8 +45,9 @@ describe("Profit Foundation: period authority and recovery", () => {
   it("fetches one atomic RPC with civil dates and bounded detail", async () => {
     const { result } = renderHook(() => useProfitPeriod(props));
     await waitFor(() => expect(result.current.data).not.toBeNull());
-    expect(state.rpc).toHaveBeenCalledWith("get_profit_period", {
+    expect(state.rpc).toHaveBeenCalledWith("get_profit_period_dimensions", {
       p_org_id: "org-one", p_from: null, p_to: null, p_product_page: 1, p_operation_page: 1, p_page_size: 25,
+      p_filters: { storeId: null, channel: null, groupBy: "product" },
     });
     expect(result.current.data.coverage.lines).toBe(1007);
   });
@@ -96,18 +102,66 @@ describe("Profit Foundation: period authority and recovery", () => {
   });
   it("shows full population, partial contribution and paged operations", async () => {
     render(<ChannelMarginTab enabled />);
-    await screen.findByRole("heading", { name: "Rentabilidad del período" });
+    await screen.findByText("1006 operaciones · 1007 líneas");
     expect(screen.getByText("1006 operaciones · 1007 líneas")).toBeInTheDocument();
     expect(screen.getByText("Rentabilidad parcial")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Operaciones" }));
     await waitFor(() => expect(screen.getByRole("tab", { name: "Operaciones" })).toHaveAttribute("aria-selected", "true"));
     fireEvent.click(screen.getByRole("button", { name: "Ir a la página siguiente" }));
-    await waitFor(() => expect(state.rpc).toHaveBeenLastCalledWith("get_profit_period", expect.objectContaining({ p_operation_page: 2 })));
+    await waitFor(() => expect(state.rpc).toHaveBeenLastCalledWith("get_profit_period_dimensions", expect.objectContaining({ p_operation_page: 2 })));
     expect(localStorage.getItem("gestiona.view.profit.mode.v1.org-one")).toContain("operations");
   });
   it("does not confuse missing permission with an empty period", () => {
     state.allowed = false; render(<ChannelMarginTab enabled />);
     expect(screen.getByText("Rentabilidad sin acceso")).toBeInTheDocument();
     expect(state.rpc).not.toHaveBeenCalled();
+  });
+  it("loads SKU groups with exact store/channel scope and hides old results immediately", async () => {
+    const { result, rerender } = renderHook(input => useProfitPeriod(input), { initialProps: { ...props, storeId: "", channel: "", groupBy: "product" as "product" | "sku" } });
+    await waitFor(() => expect(result.current.data).not.toBeNull());
+    let resolveOld: (response: unknown) => void;
+    state.rpc.mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
+    rerender({ ...props, storeId: fixture().stores[0].id, channel: "tienda_online", groupBy: "sku" });
+    expect(result.current.data).toBeNull();
+    expect(result.current.stores).toHaveLength(1);
+    rerender({ ...props, storeId: "", channel: "pos", groupBy: "sku" });
+    await waitFor(() => expect(result.current.data?.filters.channel).toBe("pos"));
+    await act(async () => resolveOld({ data: { ...fixture(), productCount: 999 }, error: null }));
+    expect(result.current.data.productCount).toBe(1);
+    expect(state.rpc).toHaveBeenLastCalledWith("get_profit_period_dimensions", expect.objectContaining({ p_filters: { storeId: null, channel: "pos", groupBy: "sku" } }));
+    rerender({ ...props, orgId: "org-two", storeId: "", channel: "pos", groupBy: "sku" });
+    expect(result.current.stores).toEqual([]);
+  });
+  it("rejects a response with filters from another request", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    state.rpc.mockResolvedValue({ data: fixture(), error: null });
+    const { result } = renderHook(() => useProfitPeriod({ ...props, groupBy: "sku" }));
+    await waitFor(() => expect(result.current.error).toBeTruthy());
+    expect(result.current.data).toBeNull();
+  });
+  it("retains filter recovery controls while the selected store is unavailable", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    state.rpc.mockResolvedValue({ data: null, error: { code: "22023" } });
+    const change = vi.fn();
+    render(<ChannelMarginTab enabled storeId={fixture().stores[0].id} onFilterChange={change} />);
+    await screen.findByText("No pudimos cargar rentabilidad");
+    fireEvent.click(screen.getByRole("combobox", { name: "Tienda" }));
+    fireEvent.pointerDown(screen.getByRole("option", { name: "Todas las tiendas" }));
+    expect(change).toHaveBeenCalledWith("store", "");
+    expect(screen.queryByText(fixture().stores[0].id)).not.toBeInTheDocument();
+  });
+  it("keeps keyboard tabs mounted during SKU requests and identifies duplicate SKUs by variant", async () => {
+    state.rpc.mockImplementation((_name, args) => Promise.resolve({ data: { ...fixture(), filters: args.p_filters,
+      productCount: 2, products: ["Talle S", "Talle M"].map((name, index) => ({ ...fixture().products[0], variantId: `variant-${index}`, variantName: name, sku: "REPETIDO", skuSource: "current_catalog" })) }, error: null }));
+    render(<ChannelMarginTab enabled />);
+    await screen.findByText("1006 operaciones · 1007 líneas");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Producto y canal" }), { key: "ArrowRight" });
+    const skuTab = screen.getByRole("tab", { name: "SKU y canal" });
+    expect(skuTab).toHaveFocus();
+    await screen.findByRole("table", { name: "Margen por SKU y canal" });
+    expect(screen.getByText("Talle S · REPETIDO")).toBeInTheDocument();
+    expect(screen.getByText("Talle M · REPETIDO")).toBeInTheDocument();
+    fireEvent.keyDown(skuTab, { key: "End" });
+    expect(screen.getByRole("tab", { name: "Operaciones" })).toHaveFocus();
   });
 });

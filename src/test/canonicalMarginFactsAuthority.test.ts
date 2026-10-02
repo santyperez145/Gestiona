@@ -41,10 +41,27 @@ describe("autoridad canónica de margen", () => {
 
   it("hace que la UI lea una sola autoridad y no vuelva a cruzar tablas crudas", () => {
     const query = readFileSync(resolve(process.cwd(), "src/hooks/useProfitPeriod.ts"), "utf8");
-    expect(query).toContain('.rpc("get_profit_period"');
+    expect(query).toContain('.rpc("get_profit_period_dimensions"');
     expect(component).not.toContain('.from("sales")');
     expect(component).not.toContain("store_order_margin_facts");
     expect(component).not.toContain("meli_order_sale_lines");
     expect(component).toContain("Pendiente");
+  });
+  it("enriquece dimensiones sin costos actuales ni autoridad financiera nueva", () => {
+    const dimensions = readFileSync(resolve(process.cwd(), "supabase/migrations/20261002000100_profit_sku_store_dimensions.sql"), "utf8");
+    expect(dimensions).toContain("FROM public.sale_margin_facts fact");
+    expect(dimensions).toContain("variant.product_id = fact.product_id AND variant.org_id = fact.org_id");
+    expect(dimensions).toContain("JOIN eligible_operations operation");
+    expect(dimensions).toContain("GROUP BY fact.product_key, fact.variant_key");
+    expect(dimensions).not.toMatch(/product\.(cost|sale_price)|variant\.(cost|sale_price)/);
+    expect(dimensions).not.toMatch(/INSERT INTO public\.(sales|products|product_variants|ledger)|UPDATE public\./);
+  });
+  it("conserva un único cálculo detrás de la firma anterior y filtros explícitos", () => {
+    const dimensions = readFileSync(resolve(process.cwd(), "supabase/migrations/20261002000100_profit_sku_store_dimensions.sql"), "utf8");
+    expect(dimensions).toContain("SELECT public.get_profit_period_dimensions(p_org_id, p_from, p_to, p_product_page, p_operation_page, p_page_size, '{}'::jsonb)");
+    expect(dimensions).toContain("public.has_permission(p_org_id, 'analytics', 'view')");
+    expect(dimensions).toContain("Unsupported profit filter");
+    expect(dimensions).toContain("REVOKE ALL ON public.profit_store_options FROM PUBLIC, anon");
+    expect(dimensions).toContain("REVOKE ALL ON public.sale_margin_dimensions FROM PUBLIC, anon");
   });
 });

@@ -134,9 +134,11 @@ REST privado y archivos firmados no se persisten en CacheStorage. La activación
 purga cachés privadas legacy antes de reclamar clientes.
 
 `/growth` sigue planeada. `/profit` es alias de `/analytics?vista=rentabilidad`,
-con fechas civiles preservadas; no duplica página. Profit Foundation usa
+con fechas, tienda/canal y modo preservados; no duplica página. Profit Foundation usa
 `get_profit_period` sobre los hechos canónicos, con `analytics.view` en SQL,
-población completa y detalle paginado. Clientes, Marketing y Analytics siguen
+población completa y detalle paginado por producto/SKU u operación. Dimensiones
+del catálogo aportan etiquetas actuales, nunca recalculan costos históricos.
+Clientes, Marketing y Analytics siguen
 canónicos. Productos distintos no requieren subdominios ni otro login ahora.
 
 ## 7. Seguridad

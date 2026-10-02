@@ -49,8 +49,8 @@ hecho de origen.
 - `platform_org_margin_coverage`: cobertura agregada para Merchant 360. No
   contiene producto, cliente, venta, costo ni impuesto por operación.
 
-La UI de Analytics sólo lee `sale_margin_facts`; ya no cruza `sales`,
-liquidaciones de tienda y líneas de MercadoLibre en el navegador.
+La UI consume estos hechos y `get_profit_period`; no cruza `sales`,
+liquidaciones de tienda ni líneas de MercadoLibre en el navegador.
 
 ### Explicación por operación
 
@@ -171,6 +171,12 @@ evita derivar totales de un `select()` sujeto al límite de filas de la API
 Un snapshot incluye población, cobertura, subtotal explicable y contribución
 total `NULL` si hay fuentes faltantes o devoluciones sin netear. Fecha de la
 operación en Buenos Aires; límite final exclusivo y todas las líneas del ticket.
+Delega en `get_profit_period_dimensions`, cuya entrada `p_filters` agrega
+producto/SKU y tienda/canal sin otro motor ni sobrecargas ambiguas.
+`sale_margin_dimensions` añade IDs/etiquetas actuales de variante y tienda,
+no importes; `profit_store_options` sólo nombres/estado autorizados. SKU repetido
+no fusiona variantes, sin identidad sigue visible e inactiva conserva historia.
+Verificación: `supabase/verificaciones/20261002_profit_sku_store_dimensions.sql`.
 
 Vistas tenant y RPC exigen `analytics.view` además de membresía. Overrides de
 admin/owner y lectores se respetan; Platform conserva sólo su contrato agregado
