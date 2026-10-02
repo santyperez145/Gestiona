@@ -16,6 +16,7 @@
  * checkout completo, va con datos `ZZ` y limpieza.
  */
 import { test, expect, type Page } from "@playwright/test";
+test.use({ serviceWorkers: 'block' });
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const tienda = (ruta = "") => `/tienda/${SLUG}${ruta}`;
@@ -44,6 +45,23 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("vitrina", () => {
+  test('recupera una caída transitoria de schema cache sin recargar ni perder el catálogo', async ({ page }) => {
+    let attempts = 0;
+    await page.route('**/rest/v1/rpc/get_store_by_slug', async route => {
+      if (++attempts === 1) {
+        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({
+          code: 'PGRST002', message: 'Could not query the database for the schema cache. Retrying.', details: null, hint: null,
+        }) });
+      } else await route.continue();
+    });
+    const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+    await page.goto(tienda('/productos'));
+    await fichasVisibles(page);
+    expect(attempts).toBe(2);
+    await expect(page.getByText('Tienda no encontrada', { exact: true })).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test("la home carga con productos y sin errores de consola", async ({ page }) => {
     const errores: string[] = [];
     page.on("console", m => { if (m.type() === "error") errores.push(m.text()); });

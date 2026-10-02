@@ -39,7 +39,7 @@ function operation(index: number) {
 }
 
 // Synthetic UI only. All Supabase traffic is intercepted, including Auth and writes.
-async function mockProfit(page: Page, failFirst = false) {
+async function mockProfit(page: Page, failFirst = false, failures: { memberships?: number; platform?: number; profit?: number } = {}) {
   const url = process.env.VITE_SUPABASE_URL ?? "https://hummeopatkniwkyrrhwc.supabase.co";
   const storageKey = `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
   const expires = Math.floor(Date.now() / 1000) + 3600;
@@ -54,6 +54,16 @@ async function mockProfit(page: Page, failFirst = false) {
   let fail = failFirst;
   await page.route("**/*.supabase.co/**", async route => {
     const path = new URL(route.request().url()).pathname;
+    const source = path === '/rest/v1/memberships' ? 'memberships'
+      : path === '/rest/v1/platform_admins' ? 'platform'
+      : path.endsWith('/get_profit_period_dimensions') ? 'profit' : null;
+    if (source && failures[source] > 0) {
+      failures[source]--;
+      await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({
+        code: 'PGRST002', message: 'Could not query the database for the schema cache. Retrying.', details: null, hint: null,
+      }) });
+      return;
+    }
     let result: unknown = [];
     if (path === "/auth/v1/user") result = user;
     else if (path === "/rest/v1/settings") result = [{ org_id: orgId, user_id: userId, business_name: "ZZ Profit", business_logo: null }];
@@ -135,6 +145,45 @@ test("synthetic Profit: complete population, pagination, keyboard, persistence a
   await page.reload();
   await expect(section.getByRole("tab", { name: "Operaciones", exact: true })).toHaveAttribute("aria-selected", "true");
   expect(errors).toEqual([]);
+});
+
+test('synthetic access and Profit recover transient database outages without pending approval', async ({ page }) => {
+  const failures = { memberships: 1, profit: 1 };
+  await mockProfit(page, false, failures);
+  await page.goto('/profit');
+  await expect(page.getByRole('heading', { name: 'Rentabilidad del período' })).toBeVisible();
+  await expect(page.getByText('27 operaciones · 1007 líneas', { exact: true })).toBeVisible();
+  expect(failures).toEqual({ memberships: 0, profit: 0 });
+  await expect(page.getByRole('heading', { name: 'Esperando aprobación' })).toHaveCount(0);
+});
+
+test('synthetic membership failure offers recovery instead of pending approval on all tenant surfaces', async ({ page }, testInfo) => {
+  const failures = { memberships: 100 };
+  await mockProfit(page, false, failures);
+  for (const path of ['/productos', '/finance', '/influencer-marketing']) {
+    await page.goto(path);
+    await expect(page.getByText('No pudimos verificar tu acceso', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Esperando aprobación' })).toHaveCount(0);
+    await expect(page.getByText(/PGRST002|schema cache/)).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+  await page.screenshot({ path: testInfo.outputPath('access-recovery.png'), fullPage: true });
+  failures.memberships = 0;
+  await page.getByRole('button', { name: 'Volver a intentar', exact: true }).click();
+  await expect(page.getByText('No pudimos verificar tu acceso', { exact: true })).toHaveCount(0);
+  await page.goto('/profit');
+  await expect(page.getByText('27 operaciones · 1007 líneas', { exact: true })).toBeVisible();
+});
+
+test('synthetic Platform role failure remains closed and allows explicit retry', async ({ page }) => {
+  const failures = { platform: 3 };
+  await mockProfit(page, false, failures);
+  await page.goto('/platform');
+  await expect(page.getByText('No pudimos verificar tu acceso', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Volver a intentar', exact: true }).click();
+  // The valid tenant is not staff. Recovery must return to its surface, not grant Platform.
+  await expect(page).not.toHaveURL(/\/platform/);
+  await expect(page.getByText('No pudimos verificar tu acceso', { exact: true })).toHaveCount(0);
 });
 
 test("synthetic Profit source error is recoverable, not a zero or guessed margin", async ({ page }) => {

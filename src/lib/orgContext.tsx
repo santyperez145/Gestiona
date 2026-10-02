@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
+import { retryRead } from '@/lib/transientRead';
 
 export type OrgRole = 'owner' | 'admin' | 'vendedor' | 'viewer';
 
@@ -33,6 +34,8 @@ export interface Membership {
 
 interface OrgContextValue {
   loading: boolean;
+  loadError: boolean;
+  platformLoadError: boolean;
   memberships: Membership[];
   activeOrg: Organization | null;
   activeRole: OrgRole | null;
@@ -50,7 +53,8 @@ const ACTIVE_ORG_KEY = 'gestiona.activeOrgId';
 let _activeOrgId: string | null = null;
 let _activeRole: OrgRole | null = null;
 export function getActiveOrgId(): string | null {
-  return _activeOrgId || (typeof localStorage !== 'undefined' ? localStorage.getItem(ACTIVE_ORG_KEY) : null);
+  // A remembered preference is not evidence of a current membership.
+  return _activeOrgId;
 }
 export function getActiveRole(): OrgRole | null {
   return _activeRole;
@@ -68,59 +72,78 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [activeRole, setActiveRole] = useState<OrgRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [platformRole, setPlatformRole] = useState<PlatformRole | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [platformLoadError, setPlatformLoadError] = useState(false);
+  const [loadedUserId, setLoadedUserId] = useState<string | null | undefined>(undefined);
+  const userId = user?.id ?? null;
+  const currentUserId = useRef(userId);
+  if (currentUserId.current !== userId) { _activeOrgId = null; _activeRole = null; }
+  currentUserId.current = userId;
+  const requestRef = useRef(0);
 
-  const refresh = useCallback(async (isInitial = false) => {
-    if (!user) {
+  const refresh = useCallback(async () => {
+    const request = ++requestRef.current;
+    const isCurrent = () => request === requestRef.current && currentUserId.current === userId;
+    setLoading(true);
+    setLoadError(false);
+    setPlatformLoadError(false);
+    _activeOrgId = null; _activeRole = null;
+    if (!userId) {
       setMemberships([]); setActiveOrg(null); setActiveRole(null);
       setPlatformRole(null);
-      _activeOrgId = null; _activeRole = null;
+      setLoadedUserId(null);
       setLoading(false);
       return;
     }
-    // Only show the loading spinner on first load — background refreshes are silent
-    if (isInitial) setLoading(true);
-    const { data, error } = await supabase
-      .from('memberships')
-      .select('org_id, role, organization:organizations(*)')
-      .eq('user_id', user.id);
-    if (error) {
-      console.error('Error loading memberships', error);
-      setMemberships([]); setLoading(false); return;
-    }
-    const mems = (data || []).filter(m => m.organization) as unknown as Membership[];
-    setMemberships(mems);
-
-    // Pick active org: localStorage > first
-    const stored = localStorage.getItem(ACTIVE_ORG_KEY);
-    const picked = mems.find(m => m.org_id === stored) || mems[0] || null;
-    if (picked) {
-      setActiveOrg(picked.organization);
-      setActiveRole(picked.role);
-      _activeOrgId = picked.org_id;
-      _activeRole = picked.role;
-      localStorage.setItem(ACTIVE_ORG_KEY, picked.org_id);
+    // Independent authorities load together. Failure of one never grants the other.
+    const [membershipResult, platformResult] = await Promise.allSettled([
+      retryRead(() => supabase.from('memberships')
+        .select('org_id, role, organization:organizations(*)').eq('user_id', userId)),
+      retryRead(() => supabase.from('platform_admins')
+        .select('user_id, role').eq('user_id', userId).maybeSingle()),
+    ]);
+    if (!isCurrent()) return;
+    const membershipError = membershipResult.status === 'rejected' ? membershipResult.reason : membershipResult.value.error;
+    if (membershipError) {
+      console.error('[OrgProvider] membership read failed', { code: membershipError.code ?? 'transport' });
+      setLoadError(true);
+      setMemberships([]); setActiveOrg(null); setActiveRole(null);
     } else {
-      setActiveOrg(null); setActiveRole(null);
-      _activeOrgId = null; _activeRole = null;
+      const data = membershipResult.status === 'fulfilled' ? membershipResult.value.data : null;
+      const mems = (data || []).filter(m => m.organization) as unknown as Membership[];
+      setMemberships(mems);
+      const stored = localStorage.getItem(ACTIVE_ORG_KEY);
+      const picked = mems.find(m => m.org_id === stored) || mems[0] || null;
+      if (picked) {
+        setActiveOrg(picked.organization);
+        setActiveRole(picked.role);
+        _activeOrgId = picked.org_id; _activeRole = picked.role;
+        localStorage.setItem(ACTIVE_ORG_KEY, picked.org_id);
+      } else {
+        setActiveOrg(null); setActiveRole(null);
+      }
     }
-
-    // Staff de plataforma (superficie separada del tenant)
-    const { data: pa } = await supabase
-      .from('platform_admins')
-      .select('user_id, role')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    setPlatformRole(pa ? (((pa as { role?: string }).role as PlatformRole) || 'superadmin') : null);
-
+    const platformError = platformResult.status === 'rejected' ? platformResult.reason : platformResult.value.error;
+    if (platformError) {
+      console.error('[OrgProvider] platform role read failed', { code: platformError.code ?? 'transport' });
+      setPlatformLoadError(true);
+      setPlatformRole(null);
+    } else {
+      const pa = platformResult.status === 'fulfilled' ? platformResult.value.data : null;
+      const role = pa?.role;
+      setPlatformRole(role === 'superadmin' || role === 'support' || role === 'finance' ? role : null);
+    }
+    setLoadedUserId(userId);
     setLoading(false);
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
-    if (!authLoading) refresh(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user?.id]); // user?.id — avoids re-run on same-user token refreshes
+    if (!authLoading) void refresh();
+    return () => { requestRef.current += 1; _activeOrgId = null; _activeRole = null; };
+  }, [authLoading, refresh]);
 
   const switchOrg = useCallback((orgId: string) => {
+    if (loading || loadError || loadedUserId !== userId) return;
     const m = memberships.find(x => x.org_id === orgId);
     if (!m) return;
     setActiveOrg(m.organization);
@@ -128,12 +151,17 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     _activeOrgId = m.org_id;
     _activeRole = m.role;
     localStorage.setItem(ACTIVE_ORG_KEY, m.org_id);
-  }, [memberships]);
+  }, [memberships, loading, loadError, loadedUserId, userId]);
+
+  const sameUser = loadedUserId === userId;
 
   return (
     <OrgContext.Provider value={{
-      loading, memberships, activeOrg, activeRole, switchOrg, refresh,
-      platformRole, isPlatformAdmin: platformRole !== null,
+      loading: authLoading || loading || !sameUser,
+      loadError: sameUser && loadError, platformLoadError: sameUser && platformLoadError,
+      memberships: sameUser ? memberships : [], activeOrg: sameUser ? activeOrg : null,
+      activeRole: sameUser ? activeRole : null, switchOrg, refresh,
+      platformRole: sameUser ? platformRole : null, isPlatformAdmin: sameUser && platformRole !== null,
     }}>
       {children}
     </OrgContext.Provider>

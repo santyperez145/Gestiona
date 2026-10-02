@@ -380,7 +380,8 @@ export function StoreProvider({
       // es como venía funcionando. No tener reglas es un estado válido.
       setReglasCantidad((qRes?.data ?? []) as unknown as ReglaCantidad[]);
       setLoading(false);
-    })().catch(() => {
+    })().catch(error => {
+      console.error('[tienda] carga interrumpida', { code: error?.code ?? 'transport' });
       if (!cancelled) { setLoadError(true); setLoading(false); }
     });
 

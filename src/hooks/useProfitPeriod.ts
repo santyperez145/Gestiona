@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { profitPeriodSchema, profitSourceError, type ProfitPeriod } from "@/lib/profitPeriod";
+import { retryRead } from "@/lib/transientRead";
 
 type Props = { orgId: string | null; enabled: boolean; from?: string; to?: string; productPage: number; operationPage: number;
   storeId?: string; channel?: string; groupBy?: "product" | "sku" };
@@ -20,11 +21,11 @@ export function useProfitPeriod({ orgId, enabled, from, to, productPage, operati
     setFailure(null);
     const load = async () => {
       try {
-        const result = await supabase.rpc("get_profit_period_dimensions", {
+        const result = await retryRead(() => supabase.rpc("get_profit_period_dimensions", {
           p_org_id: orgId, p_from: from || null, p_to: to || null,
           p_product_page: productPage, p_operation_page: operationPage, p_page_size: 25,
           p_filters: { storeId: storeId || null, channel: channel || null, groupBy },
-        });
+        }));
         if (cancelled) return;
         if (result.error) throw result.error;
         const data = profitPeriodSchema.parse(result.data);

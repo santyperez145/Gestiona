@@ -1,4 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { retryRead as retryPublicRead, retryIdempotentWrite, isTransientReadError as isTransientPublicError, type PgError } from '@/lib/transientRead';
+
+export { retryPublicRead, retryIdempotentWrite };
+export { isTransientReadError as isTransientPublicError, type PgError } from '@/lib/transientRead';
 
 /**
  * Acceso a datos de las superficies públicas, tolerando la ventana de migración.
@@ -39,78 +43,9 @@ const PRODUCT_COLUMNS_WITH_DECANTS =
 const STORE_PRODUCT_COLUMNS_WITH_DECANTS =
   `${STORE_PRODUCT_COLUMNS},decant_price_10ml,decant_price_5ml,decant_price_2_5ml`;
 
-export interface PgError { code?: string; message?: string; status?: number }
-
-const PUBLIC_READ_RETRY_DELAYS_MS = [150, 450] as const;
-
-/**
- * A public read may be retried when the transport failed, not when Supabase
- * answered with a permission, schema or validation error. Returning an empty
- * catalog for a brief network interruption is worse than spending two short
- * attempts to preserve the storefront.
- */
-export function isTransientPublicError(error: PgError | null | undefined): boolean {
-  if (!error) return false;
-
-  const status = Number(error.status);
-  if (status === 408 || status === 425 || status === 429 || status >= 500) return true;
-
-  const code = String(error.code ?? "");
-  if (/^(ECONNRESET|ECONNREFUSED|ENETUNREACH|ETIMEDOUT|EAI_AGAIN)$/i.test(code)) return true;
-
-  return /failed to fetch|fetch failed|network|timed out|timeout|connection (?:reset|closed|refused)|temporarily unavailable|service unavailable/i
-    .test(error.message ?? "");
-}
-
-type PublicReadResult = { error?: PgError | null };
-
 export type LecturaPublica<T> =
   | { ok: true; data: T }
   | { ok: false; error: PgError };
-
-async function retryTransient<T extends PublicReadResult>(
-  op: () => PromiseLike<T>,
-  options: { delaysMs?: readonly number[]; maxAttempts?: number } = {},
-): Promise<T> {
-  const delays = options.delaysMs ?? PUBLIC_READ_RETRY_DELAYS_MS;
-  const maxAttempts = Math.max(1, options.maxAttempts ?? delays.length + 1);
-
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    try {
-      const result = await op();
-      if (!isTransientPublicError(result.error) || attempt === maxAttempts - 1) return result;
-    } catch (error) {
-      if (!isTransientPublicError(error as PgError) || attempt === maxAttempts - 1) throw error;
-    }
-
-    const delay = delays[Math.min(attempt, Math.max(0, delays.length - 1))] ?? 0;
-    if (delay > 0) await new Promise<void>(resolve => setTimeout(resolve, delay));
-  }
-
-  throw new Error("No se pudo completar la operación pública");
-}
-
-/** Retries only idempotent public reads; callers must never use it for writes. */
-export async function retryPublicRead<T extends PublicReadResult>(
-  read: () => PromiseLike<T>,
-  options: { delaysMs?: readonly number[]; maxAttempts?: number } = {},
-): Promise<T> {
-  return retryTransient(read, options);
-}
-
-/**
- * Misma espera que una lectura, sólo para RPCs con clave de idempotencia.
- * Sin esa clave, un retry duplicaría la orden.
- */
-export async function retryIdempotentWrite<T extends PublicReadResult>(
-  write: () => PromiseLike<T>,
-  options: { delaysMs?: readonly number[]; maxAttempts?: number } = {},
-): Promise<T> {
-  return retryTransient(write, {
-    delaysMs: options.delaysMs ?? [300, 900],
-    maxAttempts: options.maxAttempts ?? 3,
-  });
-}
 
 /**
  * ¿El error es "esa relación no existe"? Sólo en ese caso se cae a la tabla:

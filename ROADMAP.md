@@ -112,7 +112,7 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-02: `npm run verify` pasa 3.476 tests en 397
+- Validación local del 2026-10-02: `npm run verify` pasa 3.503 tests en 398
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
@@ -143,6 +143,11 @@ sigue abierto como certificación operacional.
   productos totalmente agotados. Esto no certifica proveedores ni todos los roles.
 - La aplicación no recarga automáticamente al desplegar; la caché PWA no
   almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
+- Recuperación de lectura compartida: hasta tres intentos ante conexión
+  transitoria, incluido `PGRST002`; permisos/esquema/validación no se repiten.
+  Acceso a tenant y staff tienen errores independientes y recuperación explícita;
+  una caída no se presenta como aprobación pendiente ni habilita roles previos.
+  El gate remoto detectó este incidente; exigir nueva evidencia CI/producción.
 
 ## 5. Orden ejecutable
 

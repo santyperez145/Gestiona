@@ -148,7 +148,9 @@ export default defineConfig(() => ({
               name: "vendor-utils",
               test: (id: string) =>
                 id.includes("vite/preload-helper") ||
-                esPaquete(id, "clsx", "tailwind-merge", "class-variance-authority"),
+                esPaquete(id, "clsx", "tailwind-merge", "class-variance-authority") ||
+                // Shared, dependency-free recovery must not add a boot request.
+                id.replaceAll("\\", "/").endsWith("/src/lib/transientRead.ts"),
               priority: 100,
               includeDependenciesRecursively: false,
             },

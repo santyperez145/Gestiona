@@ -39,6 +39,44 @@ describe("publicDataSource public read recovery", () => {
     expect(isTransientPublicError({ code: "PGRST205", message: "relation missing" })).toBe(false);
   });
 
+  it.each(['PGRST000', 'PGRST001', 'PGRST002', 'PGRST003', '08006'])("recognizes database connection code %s without an embedded HTTP status", code => {
+    expect(isTransientPublicError({ code, message: 'Could not query the database for the schema cache. Retrying.' })).toBe(true);
+  });
+
+  it.each(['42501', '42P01', '42883', '22023', 'PGRST202', 'PGRST205', 'PGRST301', 'PGRST300', 'XX000'])("does not retry structured error %s even with misleading transport wording", code => {
+    expect(isTransientPublicError({ code, status: 500, message: 'network connection unavailable' })).toBe(false);
+  });
+
+  it("uses Supabase result status and preserves the final error after bounded retries", async () => {
+    let attempts = 0;
+    const error = { message: 'Gateway unavailable' };
+    const result = await retryPublicRead(async () => { attempts++; return { data: null, error, status: 503 }; }, { delaysMs: [0, 0] });
+    expect(attempts).toBe(3);
+    expect(result.error).toBe(error);
+    expect(result.status).toBe(503);
+  });
+
+  it("recovers from the exact production schema-cache outage instead of returning an empty catalog", async () => {
+    let attempts = 0;
+    const result = await retryPublicRead(async () => ++attempts === 1
+      ? { data: null, error: { code: 'PGRST002', message: 'Could not query the database for the schema cache. Retrying.' }, status: 503 }
+      : { data: ['producto'], error: null, status: 200 }, { delaysMs: [0] });
+    expect(attempts).toBe(2);
+    expect(result.data).toEqual(['producto']);
+  });
+
+  it("recovers a thrown transport error but never retries a thrown permission error", async () => {
+    let attempts = 0;
+    expect((await retryPublicRead(async () => {
+      if (++attempts === 1) throw new TypeError('Failed to fetch');
+      return { data: 'ok', error: null };
+    }, { delaysMs: [0] })).data).toBe('ok');
+    attempts = 0;
+    const denied = { code: '42501' };
+    await expect(retryPublicRead(async () => { attempts++; throw denied; }, { delaysMs: [0, 0] })).rejects.toBe(denied);
+    expect(attempts).toBe(1);
+  });
+
   it("reintenta una lectura transitoria y devuelve los productos cuando vuelve la red", async () => {
     let attempts = 0;
     const result = await retryPublicRead(async () => {

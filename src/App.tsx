@@ -23,6 +23,7 @@ import { isPotentialCustomStoreHostname } from "@/lib/storeCustomDomain";
 import PlatformSeoHead from "@/components/seo/PlatformSeoHead";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { routeAliasDestination } from "@/lib/routeAliasDestination";
+import AccessLoadError from "@/components/auth/AccessLoadError";
 
 function BusinessAliasRedirect({ destination, preserveSearch }: { destination: string; preserveSearch?: string[] }) {
   const { search } = useLocation();
@@ -139,10 +140,11 @@ function AppLoader({ label = 'Cargando Nerqia...' }: { label?: string }) {
  */
 function PlatformRoutes() {
   const { user, loading: authLoading } = useAuth();
-  const { platformRole, loading: orgLoading } = useOrg();
+  const { platformRole, loading: orgLoading, platformLoadError, refresh } = useOrg();
 
   if (authLoading || orgLoading) return <AppLoader label="Verificando acceso de plataforma..." />;
   if (!user) return <AuthPage />;
+  if (platformLoadError) return <AccessLoadError onRetry={refresh} />;
   if (!platformRole) return <Navigate to="/" replace />;
 
   return (
@@ -189,7 +191,7 @@ function PlatformRoutes() {
  */
 function FinanceRoutes() {
   const { user, loading: authLoading } = useAuth();
-  const { activeOrg, activeRole, platformRole, loading: orgLoading } = useOrg();
+  const { activeOrg, activeRole, platformRole, loading: orgLoading, loadError, platformLoadError, refresh } = useOrg();
   const [orgRequiresMfa, setOrgRequiresMfa] = useState(false);
   const [mfaPolicyLoading, setMfaPolicyLoading] = useState(true);
 
@@ -205,6 +207,7 @@ function FinanceRoutes() {
 
   if (authLoading || orgLoading || mfaPolicyLoading) return <AppLoader label="Verificando acceso a Finance..." />;
   if (!user) return <AuthPage />;
+  if (loadError || (!activeOrg && platformLoadError)) return <AccessLoadError onRetry={refresh} />;
   if (!activeOrg || !activeRole) {
     return platformRole ? <Navigate to="/platform" replace /> : <ViewerGate />;
   }
@@ -239,7 +242,7 @@ function FinanceRoutes() {
 
 function InfluencerMarketingRoutes() {
   const { user, loading: authLoading } = useAuth();
-  const { activeOrg, activeRole, platformRole, loading: orgLoading } = useOrg();
+  const { activeOrg, activeRole, platformRole, loading: orgLoading, loadError, platformLoadError, refresh } = useOrg();
   const [mfaPolicy, setMfaPolicy] = useState<{ orgId: string; required: boolean } | null>(null);
   useEffect(() => {
     if (!activeOrg?.id) return;
@@ -254,6 +257,7 @@ function InfluencerMarketingRoutes() {
 
   if (authLoading || orgLoading || (activeOrg && mfaPolicy?.orgId !== activeOrg.id)) return <AppLoader label="Verificando acceso a Influencers..." />;
   if (!user) return <AuthPage />;
+  if (loadError || (!activeOrg && platformLoadError)) return <AccessLoadError onRetry={refresh} />;
   if (!activeOrg || !activeRole) {
     return platformRole ? <Navigate to="/platform" replace /> : <ViewerGate />;
   }
@@ -289,7 +293,7 @@ function InfluencerMarketingRoutes() {
 function ProtectedRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
-  const { activeOrg, isPlatformAdmin } = useOrg();
+  const { activeOrg, isPlatformAdmin, loadError, platformLoadError, refresh } = useOrg();
   const { pathname } = useLocation();
   // Enforcement de 2FA por organización (settings.mfa_required).
   const [orgRequiresMfa, setOrgRequiresMfa] = useState(false);
@@ -303,6 +307,7 @@ function ProtectedRoutes() {
   // Root path shows landing page for unauthenticated visitors
   if (!user && pathname === '/') return <LandingPage />;
   if (!user) return <AuthPage />;
+  if (loadError || (!activeOrg && platformLoadError)) return <AccessLoadError onRetry={refresh} />;
   if (isViewer) {
     // El staff de plataforma ya no hereda rol de admin en el tenant. Si no tiene
     // membresía propia, su lugar es la superficie de plataforma, no el ViewerGate.
