@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import DataPagination from "@/components/shared/DataPagination";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -97,32 +98,64 @@ function Metric({ label, value, detail }: { label: string; value: ReactNode; det
 }
 
 function ProductMargins({ products, sku }: { products: ProfitProduct[]; sku: boolean }) {
-  return <div className="overflow-hidden rounded-lg border border-border bg-card">
+  return <div className="overflow-x-auto rounded-lg border border-border bg-card" tabIndex={0} role="region" aria-label="Desglose de margen por producto y canal">
     {sku && <p className="border-b border-border px-3 py-2 text-xs text-muted-foreground">SKU y nombre de variante del catálogo actual · Costos históricos de la venta</p>}
-    <table className="w-full table-fixed text-xs" aria-label={sku ? "Margen por SKU y canal" : "Margen por producto y canal"}>
+    <table className="w-full min-w-[480px] table-fixed text-xs xl:min-w-[1040px]" aria-label={sku ? "Margen por SKU y canal" : "Margen por producto y canal"}>
       <thead className="border-b border-border text-muted-foreground"><tr>
-        <th className="w-[45%] px-3 py-3 text-left sm:w-auto">{sku ? "SKU y canal" : "Producto y canal"}</th>
+        <th className="w-[45%] px-3 py-3 text-left sm:w-[38%] xl:w-[30%]">{sku ? "SKU y canal" : "Producto y canal"}</th>
         <th className="px-3 py-3 text-right">Ingresos</th>
-        <th className="hidden px-3 py-3 text-right lg:table-cell">Mercadería</th>
-        <th className="hidden px-3 py-3 text-right lg:table-cell">Comisión</th>
-        <th className="hidden px-3 py-3 text-right lg:table-cell">Envío real</th>
-        <th className="hidden px-3 py-3 text-right lg:table-cell">IVA</th>
+        <th className="hidden px-3 py-3 text-right xl:table-cell">Mercadería</th>
+        <th className="hidden px-3 py-3 text-right xl:table-cell">Comisión</th>
+        <th className="hidden px-3 py-3 text-right xl:table-cell">Envío real</th>
+        <th className="hidden px-3 py-3 text-right xl:table-cell">IVA</th>
         <th className="px-3 py-3 text-right">Contribución</th>
       </tr></thead>
       <tbody className="divide-y divide-border">{products.map(product => <tr key={`${product.productId}:${product.variantId || "base"}:${product.channel}`}>
         <td className="break-words px-3 py-3 align-top [overflow-wrap:anywhere]">
+          <div className="flex min-w-0 items-start gap-1"><div className="min-w-0 flex-1">
           <span className="line-clamp-2 font-medium" title={product.productName}>{product.productName}</span>
           {sku && <span className="mt-1 line-clamp-2 text-muted-foreground" title={`${product.variantName || "Sin variante identificada"} · ${product.sku || "Sin SKU registrado"}`}>
             {product.variantName || "Sin variante identificada"} · {product.sku || "Sin SKU registrado"}</span>}
-          <span className="mt-1 block text-muted-foreground">{PROFIT_CHANNELS[product.channel] || "Otro canal"} · {product.units} u.</span>
-          <span className={`mt-2 inline-flex items-start gap-1 ${product.contributionMarginARS != null && product.pendingCodes.length === 0 ? "text-emerald-700 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}>
-            {product.contributionMarginARS != null && product.pendingCodes.length === 0 ? <><CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Completo</> : <><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {profitPendingLabels(product).join(", ") || "Fuentes pendientes"}</>}
-          </span>
+          <span className="mt-1 line-clamp-2 text-muted-foreground">{PROFIT_CHANNELS[product.channel] || "Otro canal"} · {product.units} u.</span>
+          </div>
+          <ProductMarginStatus product={product} />
+          </div>
         </td>
-        <td className="break-words px-3 py-3 text-right align-top font-mono [overflow-wrap:anywhere]">{amount(product.revenueARS)}</td>
-        {[product.cogsARS, product.paymentFeeARS, product.shippingCostARS, product.taxARS].map((value, index) => <td key={index} className="hidden break-words px-3 py-3 text-right align-top font-mono lg:table-cell">{amount(value)}</td>)}
-        <td className="break-words px-3 py-3 text-right align-top font-mono font-semibold [overflow-wrap:anywhere]">{amount(product.contributionMarginARS)}</td>
+        <td className="overflow-hidden text-ellipsis whitespace-nowrap px-3 py-3 text-right align-top font-mono" title={formatARS(product.revenueARS)}>{amount(product.revenueARS)}</td>
+        {[product.cogsARS, product.paymentFeeARS, product.shippingCostARS, product.taxARS].map((value, index) => <td key={index} className="hidden overflow-hidden text-ellipsis whitespace-nowrap px-3 py-3 text-right align-top font-mono xl:table-cell" title={value == null ? undefined : formatARS(value)}>{amount(value)}</td>)}
+        <td className="overflow-hidden text-ellipsis whitespace-nowrap px-3 py-3 text-right align-top font-mono font-semibold" title={product.contributionMarginARS == null ? undefined : formatARS(product.contributionMarginARS)}>{amount(product.contributionMarginARS)}</td>
       </tr>)}</tbody>
     </table>
   </div>;
+}
+
+function ProductMarginStatus({ product }: { product: ProfitProduct }) {
+  const complete = product.contributionMarginARS != null && product.pendingCodes.length === 0;
+  const identity = [product.productName, product.variantName, product.sku].filter(Boolean).join(" · ");
+  const labels = profitPendingLabels(product);
+  const costs = [
+    { label: "Ingresos", value: product.revenueARS },
+    { label: "Mercadería", value: product.cogsARS }, { label: "Comisión de cobro", value: product.paymentFeeARS },
+    { label: "Envío real", value: product.shippingCostARS }, { label: "IVA", value: product.taxARS },
+    { label: "Contribución", value: product.contributionMarginARS },
+  ];
+  return <Popover>
+    <PopoverTrigger asChild>
+      <Button type="button" variant="ghost" size="icon" className={`h-11 w-11 shrink-0 ${complete ? "text-emerald-700 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}
+        aria-label={`${complete ? "Ver costos" : "Ver fuentes pendientes"} de ${identity}`} title={complete ? "Completo: ver desglose de margen" : "Pendiente: ver fuentes y costos"}>
+        {complete ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent align="start" collisionPadding={8} className="w-80 max-w-[calc(100vw-2rem)]" aria-label={complete ? "Desglose de margen" : "Fuentes pendientes"}>
+      <p className="text-sm font-semibold">{complete ? "Desglose de margen" : "Fuentes pendientes"}</p>
+      <p className="mt-1 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">{product.productName}</p>
+      {(product.variantName || product.sku) && <p className="mt-1 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">{[product.variantName, product.sku].filter(Boolean).join(" · ")}</p>}
+      {!complete && <ul className="mt-3 space-y-1 text-sm">{(labels.length ? labels : ["Fuentes pendientes de conciliar"]).map((label, index) => <li key={`${index}:${label}`} className="break-words">{label}</li>)}</ul>}
+      <dl className="mt-3 space-y-2 border-t border-border pt-3 text-xs">
+        {costs.map(({ label, value }) => <div key={label} className="flex min-w-0 justify-between gap-3">
+          <dt className="min-w-0 break-words">{label}</dt><dd className="min-w-0 break-words text-right font-mono [overflow-wrap:anywhere]">{amount(value)}</dd>
+        </div>)}
+      </dl>
+    </PopoverContent>
+  </Popover>;
 }

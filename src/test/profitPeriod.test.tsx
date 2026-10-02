@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { profitPeriodSchema, profitSourceError } from "@/lib/profitPeriod";
 import { useProfitPeriod } from "@/hooks/useProfitPeriod";
@@ -116,6 +116,25 @@ describe("Profit Foundation: period authority and recovery", () => {
     expect(screen.getByText("Rentabilidad sin acceso")).toBeInTheDocument();
     expect(state.rpc).not.toHaveBeenCalled();
   });
+  it("keeps pending reasons in an accessible detail without expanding every row", async () => {
+    render(<ChannelMarginTab enabled />);
+    const details = await screen.findByRole("button", { name: "Ver fuentes pendientes de Producto de prueba" });
+    expect(screen.queryByRole("dialog", { name: "Fuentes pendientes" })).not.toBeInTheDocument();
+    fireEvent.click(details);
+    await screen.findByRole("dialog", { name: "Fuentes pendientes" });
+    expect(screen.getByText("IVA", { selector: "li" })).toBeInTheDocument();
+    expect(screen.getByText("neteo de devolución", { selector: "li" })).toBeInTheDocument();
+  });
+  it("exposes measured costs and zero contribution in the complete row detail", async () => {
+    state.rpc.mockResolvedValue({ data: { ...fixture(), products: [{ ...fixture().products[0], cogsARS: 100, taxARS: 0, contributionMarginARS: 0, pendingCodes: [] }] }, error: null });
+    render(<ChannelMarginTab enabled />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ver costos de Producto de prueba" }));
+    const details = within(await screen.findByRole("dialog", { name: "Desglose de margen" }));
+    expect(details.getByText("Comisión de cobro", { selector: "dt" })).toBeInTheDocument();
+    expect(details.getByText("Contribución", { selector: "dt" })).toBeInTheDocument();
+    expect(details.queryByText("Pendiente")).not.toBeInTheDocument();
+    expect(details.getAllByText(/\$\s*0(?:,00)?$/)).toHaveLength(4);
+  });
   it("loads SKU groups with exact store/channel scope and hides old results immediately", async () => {
     const { result, rerender } = renderHook(input => useProfitPeriod(input), { initialProps: { ...props, storeId: "", channel: "", groupBy: "product" as "product" | "sku" } });
     await waitFor(() => expect(result.current.data).not.toBeNull());
@@ -161,6 +180,8 @@ describe("Profit Foundation: period authority and recovery", () => {
     await screen.findByRole("table", { name: "Margen por SKU y canal" });
     expect(screen.getByText("Talle S · REPETIDO")).toBeInTheDocument();
     expect(screen.getByText("Talle M · REPETIDO")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver fuentes pendientes de Producto de prueba · Talle S · REPETIDO" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver fuentes pendientes de Producto de prueba · Talle M · REPETIDO" })).toBeInTheDocument();
     fireEvent.keyDown(skuTab, { key: "End" });
     expect(screen.getByRole("tab", { name: "Operaciones" })).toHaveFocus();
   });

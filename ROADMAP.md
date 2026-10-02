@@ -112,7 +112,7 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-02: `npm run verify` pasa 3.561 tests en 401
+- Validación local del 2026-10-02: `npm run verify` pasa 3.563 tests en 401
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
@@ -159,6 +159,9 @@ sigue abierto como certificación operacional.
   acotada, contexto sin cotizaciones viejas y recuperación. Handler con CORS
   ante error y tasa ausente sin promesa de interés cero; seis escenarios de
   navegador interceptados no certifican tarjetas, TEA/CFT ni cobro externo.
+- Profit por SKU: filas acotadas, columnas e importes legibles y desglose
+  completo de costos accesible con teclado en móvil/escritorio. La geometría,
+  navegación y detalle se comprueban por separado sin aumentar sus límites.
 
 ## 5. Orden ejecutable
 

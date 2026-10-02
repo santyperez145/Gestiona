@@ -195,7 +195,7 @@ test("synthetic Profit source error is recoverable, not a zero or guessed margin
   await expect(page.getByText("27 operaciones · 1007 líneas", { exact: true })).toBeVisible();
 });
 
-test("synthetic Profit: scoped store/channel deep links preserve human labels and SKU mode", async ({ page }, testInfo) => {
+test("synthetic Profit: scoped store/channel deep links preserve human labels and SKU mode", async ({ page }) => {
   const calls = await mockProfit(page);
   await page.goto(`/profit?profit_mode=sku&profit_store=${inactiveId}&profit_channel=tienda_online&token=discard-me`);
   const section = page.getByRole("region", { name: "Rentabilidad por producto y canal" });
@@ -210,17 +210,6 @@ test("synthetic Profit: scoped store/channel deep links preserve human labels an
   await page.getByRole("option", { name: "Todos los canales", exact: true }).click();
   await expect(page).not.toHaveURL(/profit_channel=/);
   await expect(section.getByRole("table", { name: "Margen por SKU y canal" })).toBeVisible();
-  for (const width of testInfo.project.name === "mobile" ? [360, 390] : [768, 1024, 1280, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
-    expect(await section.evaluate(element => element.scrollWidth <= element.clientWidth), `SKU/filter overflow at ${width}`).toBe(true);
-    expect((await section.getByRole("table", { name: "Margen por SKU y canal" }).locator("tbody > tr").first().boundingBox())!.height,
-      `long name made SKU row unbounded at ${width}`).toBeLessThan(200);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `page overflow at ${width}`).toBe(true);
-    await page.screenshot({ path: testInfo.outputPath(`profit-sku-filters-${width}.png`), fullPage: true });
-  }
-  for (const theme of ["light", "dark"] as const) {
-    await setProfitTheme(page, theme); await assertProfitContrast(page, `SKU filters ${theme}`);
-  }
   await page.reload();
   await expect(section.getByRole("combobox", { name: "Tienda", exact: true })).toHaveText(/^Sucursal /);
   await expect(section.getByRole("tab", { name: "SKU y canal", exact: true })).toHaveAttribute("aria-selected", "true");
@@ -230,4 +219,57 @@ test("synthetic Profit: scoped store/channel deep links preserve human labels an
   await section.getByRole("button", { name: "Limpiar filtros", exact: true }).click();
   await expect(page).not.toHaveURL(/profit_(store|channel)=/);
   await expect(section.getByRole("table", { name: "Margen por SKU y canal" })).toBeVisible();
+});
+
+test("synthetic Profit: SKU geometry keeps amounts and headings readable across viewports", async ({ page }, testInfo) => {
+  await mockProfit(page);
+  await page.goto(`/profit?profit_mode=sku&profit_store=${storeId}`);
+  const section = page.getByRole("region", { name: "Rentabilidad por producto y canal" });
+  const table = section.getByRole("table", { name: "Margen por SKU y canal" });
+  await expect(table).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  for (const width of testInfo.project.name === "mobile" ? [360, 390] : [768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await table.getByRole("columnheader").evaluateAll(headers => headers.filter(header => header.scrollWidth > header.clientWidth).map(header => header.textContent)), `clipped column title at ${width}`).toEqual([]);
+    const row = table.locator("tbody > tr").first();
+    expect(await row.locator("td").nth(1).evaluate(cell => cell.scrollWidth <= cell.clientWidth), `clipped amount at ${width}`).toBe(true);
+    expect(await section.evaluate(element => element.scrollWidth <= element.clientWidth), `SKU/filter overflow at ${width}`).toBe(true);
+    expect((await row.boundingBox())!.height, `long name made SKU row unbounded at ${width}`).toBeLessThan(200);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `page overflow at ${width}`).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`profit-sku-filters-${width}.png`), fullPage: true });
+  }
+  for (const theme of ["light", "dark"] as const) {
+    await setProfitTheme(page, theme); await assertProfitContrast(page, `SKU filters ${theme}`);
+  }
+});
+
+test("synthetic Profit: cost details preserve unknowns, measured zero and keyboard access", async ({ page }, testInfo) => {
+  await mockProfit(page);
+  await page.setViewportSize({ width: testInfo.project.name === "mobile" ? 390 : 1024, height: 900 });
+  await page.goto("/profit?profit_mode=sku");
+  const section = page.getByRole("region", { name: "Rentabilidad por producto y canal" });
+  const pending = section.getByRole("button", { name: /^Ver fuentes pendientes de / }).first();
+  await expect(pending).toBeVisible();
+  expect((await pending.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  for (const theme of ["light", "dark"] as const) {
+    await setProfitTheme(page, theme);
+    await pending.focus(); await pending.press("Enter");
+    const details = page.getByRole("dialog", { name: "Fuentes pendientes", exact: true });
+    await expect(details).toBeVisible();
+    await expect(details.getByText("Talle 1 · SKU-COMPARTIDO", { exact: true })).toBeVisible();
+    await expect(details.getByRole("listitem")).toHaveText(["IVA", "neteo de devolución"]);
+    await expect(details.getByText("Comisión de cobro", { exact: true })).toBeVisible();
+    await expect(details.getByText(/\$\s*0(?:,00)?$/)).toHaveCount(2);
+    await expect(details.getByText("Pendiente", { exact: true })).toHaveCount(3);
+    await details.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined))));
+    const box = (await details.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    expect(box.y).toBeGreaterThanOrEqual(0); expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+    const violations = (await new AxeBuilder({ page }).include('[role="dialog"][aria-label="Fuentes pendientes"]')
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations
+      .filter(item => ["critical", "serious"].includes(item.impact));
+    expect(violations.map(item => item.id), `cost details ${theme}`).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`profit-cost-details-${theme}.png`) });
+    await page.keyboard.press("Escape"); await expect(details).toHaveCount(0); await expect(pending).toBeFocused();
+  }
 });
