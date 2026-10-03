@@ -219,7 +219,9 @@ Cada vista debe contemplar:
    nombra Supabase, configuración interna o documentación del equipo.
 4. INP/LCP/CLS de campo, presupuesto de assets y lazy boundaries. Productos,
    Analytics, Finance y comisiones de Platform deben ofrecer estado útil durante
-   sus consultas largas, nunca un canvas vacío ni un cero provisional.
+   sus consultas largas, nunca un canvas vacío ni un cero provisional. Dashboard
+   limita cada fuente inicial a 20 s y transforma el bloqueo en recuperación
+   explícita, conservando datos previos durante refresh.
 5. Navegación sin recarga y actualización PWA manual segura.
 6. Contraste claro/oscuro y textos largos reales.
 

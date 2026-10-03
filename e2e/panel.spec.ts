@@ -103,10 +103,13 @@ test("Capital real: canonical read, bounded layers and no business writes", asyn
 
 test.describe("dashboard", () => {
   test("cada tab por hash muestra sus datos y oculta sólo las otras vistas", async ({ page }) => {
+    // El panel lee la base remota real. Conserva un límite estricto, pero no
+    // confunde una latencia mayor a 10 s con una regresión de navegación.
+    test.setTimeout(45_000);
     await page.goto("/#dashboard-sales");
 
     const content = page.locator(".workspace-dashboard-content");
-    await expect(content).toHaveAttribute("data-dashboard-view", "sales");
+    await expect(content).toHaveAttribute("data-dashboard-view", "sales", { timeout: 25_000 });
     await expect(page.locator('[data-dashboard-section="sales"]')).toBeVisible();
     await expect(page.locator('[data-dashboard-section="overview"]')).toBeHidden();
     const viewTabs = page.getByRole("tablist", { name: "Vistas del dashboard" });

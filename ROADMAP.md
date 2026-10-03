@@ -150,6 +150,17 @@ sigue abierto como certificación operacional.
   drawer POS bajo avisos y selectores desactualizados; sin omitir el panel.
   Producción también pasó 90 escenarios públicos; los 2 omitidos requieren
   productos totalmente agotados. Esto no certifica proveedores ni todos los roles.
+- Resiliencia del dashboard 2026-10-02: el artefacto del run `37083651650`
+  confirmó sesión, shell y permisos correctos, con las seis lecturas de negocio
+  todavía pendientes al vencer el presupuesto E2E de 10 s. Cada fuente tiene
+  ahora un límite de 20 s y error recuperable, y la comprobación remota admite
+  25 s dentro de un test acotado a 45 s. Una latencia mayor continúa roja; no se
+  reemplaza por ceros ni por una espera infinita.
+- Dependencias 2026-10-02: producción conserva cero advisories desde nivel
+  moderado. `braces <=3.0.3`, transitiva y exclusiva del toolchain Tailwind/Sentry,
+  recibió el GHSA-vfj7-8cjw-p6xm sin release corregido. El gate no lo silencia:
+  acepta sólo esa cadena de desarrollo hasta el 2026-10-16, imprime la excepción
+  y bloquea cualquier hallazgo runtime, advisory adicional o revisión vencida.
 - La aplicación no recarga automáticamente al desplegar; la caché PWA no
   almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
 - Recuperación de lectura compartida: hasta tres intentos ante conexión

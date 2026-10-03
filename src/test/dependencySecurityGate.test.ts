@@ -7,6 +7,7 @@ const root = process.cwd();
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 const lock = JSON.parse(readFileSync(resolve(root, "package-lock.json"), "utf8"));
 const ci = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
+const dependencyAudit = readFileSync(resolve(root, "scripts/audit-dependencies.mjs"), "utf8");
 const app = readFileSync(resolve(root, "src/App.tsx"), "utf8");
 const appLayout = readFileSync(resolve(root, "src/components/AppLayout.tsx"), "utf8");
 
@@ -46,7 +47,13 @@ describe("dependencias sin alertas productivas conocidas", () => {
   });
 
   it("el audit moderado es bloqueante también en CI", () => {
-    expect(pkg.scripts["check:dependencies"]).toBe("npm audit --audit-level=moderate");
+    expect(pkg.scripts["check:dependencies"]).toBe("node scripts/audit-dependencies.mjs");
+    expect(dependencyAudit).toContain('["--omit=dev"]');
+    expect(dependencyAudit).toContain("GHSA-vfj7-8cjw-p6xm");
+    expect(dependencyAudit).toContain('REVIEW_BEFORE = "2026-10-16"');
+    expect(dependencyAudit).toContain("exceptionExpired || unexpected.length > 0");
+    expect(pkg.dependencies["tailwindcss-animate"]).toBeUndefined();
+    expect(pkg.devDependencies["tailwindcss-animate"]).toBe("^1.0.7");
     expect(ci).toContain("npm run verify -- --stage=security");
     expect(verificationPlan(['--stage=security']).some(step => step.args.includes('check:dependencies'))).toBe(true);
     expect(ci).not.toContain('continue-on-error: true');

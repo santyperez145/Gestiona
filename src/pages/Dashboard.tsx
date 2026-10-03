@@ -82,6 +82,20 @@ type DashboardData = {
 type DashboardSource = "productos" | "ventas" | "compras" | "deudas" | "ajustes" | "gastos";
 
 const OPTIONAL_DASHBOARD_SOURCES = new Set<DashboardSource>(["compras", "deudas", "gastos"]);
+const DASHBOARD_SOURCE_TIMEOUT_MS = 20_000;
+
+function dashboardSourceWithTimeout<T>(source: DashboardSource, request: Promise<T>): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`La fuente ${source} no respondio dentro del tiempo esperado.`));
+    }, DASHBOARD_SOURCE_TIMEOUT_MS);
+  });
+
+  return Promise.race([request, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
 
 function DashboardModuleFallback({ label = "Cargando panel" }: { label?: string }) {
   return (
@@ -473,7 +487,6 @@ export default function Dashboard() {
   const [activationError, setActivationError] = useState<string | null>(null);
   const [changingActivationGoal, setChangingActivationGoal] = useState(false);
   const [orderPulse, setOrderPulse] = useState({ despachar: 0, retirar: 0, pendientesPago: 0 });
-  const [loading, setLoading] = useState(true);
   const [activeDashboardSection, setActiveDashboardSection] = usePersistedState(
     orgViewKey("dashboard.section", activeOrg?.id),
     "dashboard-overview",
@@ -587,18 +600,17 @@ export default function Dashboard() {
     if (!user?.id || !activeOrg?.id) return;
     const request = ++loadRequestRef.current;
     const hasVisibleData = rawDataOrgIdRef.current === activeOrg.id && Boolean(rawDataRef.current);
-    setLoading(!hasVisibleData);
     setRefreshing(hasVisibleData);
     if (!hasVisibleData) setDashboardError(null);
 
     try {
       const results = await Promise.allSettled([
-        getProductsDB(user.id, activeOrg.id),
-        getSalesDB(user.id, activeOrg.id),
-        getPurchasesDB(user.id, activeOrg.id),
-        getDebtsDB(user.id, activeOrg.id),
-        getSettingsDB(user.id, activeOrg.id),
-        getExpensesDB(user.id, activeOrg.id),
+        dashboardSourceWithTimeout("productos", getProductsDB(user.id, activeOrg.id)),
+        dashboardSourceWithTimeout("ventas", getSalesDB(user.id, activeOrg.id)),
+        dashboardSourceWithTimeout("compras", getPurchasesDB(user.id, activeOrg.id)),
+        dashboardSourceWithTimeout("deudas", getDebtsDB(user.id, activeOrg.id)),
+        dashboardSourceWithTimeout("ajustes", getSettingsDB(user.id, activeOrg.id)),
+        dashboardSourceWithTimeout("gastos", getExpensesDB(user.id, activeOrg.id)),
       ]);
       if (request !== loadRequestRef.current) return;
 
@@ -652,7 +664,6 @@ export default function Dashboard() {
       setDashboardError("No pudimos conectar con los datos del negocio. Reintenta en unos segundos.");
     } finally {
       if (request === loadRequestRef.current) {
-        setLoading(false);
         setRefreshing(false);
       }
     }
@@ -666,7 +677,6 @@ export default function Dashboard() {
       setRawData(null);
       setDashboardError(null);
       setUnavailableSources([]);
-      setLoading(true);
       setRefreshing(false);
       setLastLoadedAt(null);
       return;

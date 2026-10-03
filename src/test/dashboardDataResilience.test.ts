@@ -30,6 +30,15 @@ describe("dashboard operativo", () => {
     expect(dashboard).toContain("previous?.purchases ?? []");
   });
 
+  it("una fuente remota no puede dejar el dashboard cargando para siempre", () => {
+    expect(dashboard).toContain("DASHBOARD_SOURCE_TIMEOUT_MS = 20_000");
+    expect(dashboard).toContain("dashboardSourceWithTimeout");
+    expect(dashboard).toContain("no respondio dentro del tiempo esperado");
+    for (const source of ["productos", "ventas", "compras", "deudas", "ajustes", "gastos"]) {
+      expect(dashboard).toContain(`dashboardSourceWithTimeout("${source}"`);
+    }
+  });
+
   it("no crea datos de muestra al abrir el panel", () => {
     expect(dashboard).not.toContain("seedProductsForUser");
   });
