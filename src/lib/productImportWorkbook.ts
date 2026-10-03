@@ -31,7 +31,9 @@ export function mapProductWorkbook(workbook: XLSX.WorkBook, filename: string, op
   const sheetName = options.sheetName || workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   if (!sheet?.["!ref"]) throw new Error("La hoja seleccionada está vacía.");
+  const loadedRange = XLSX.utils.decode_range(sheet["!ref"]);
   const range = XLSX.utils.decode_range(sheet["!fullref"] || sheet["!ref"]);
+  if (range.e.r > loadedRange.e.r) throw new Error("La hoja supera el área de lectura segura. No se puede importar una vista truncada del archivo.");
   if (range.e.c - range.s.c > 127 || range.e.r - range.s.r > PRODUCT_IMPORT_FILE_MAX_ROWS + 20) throw new Error("La hoja supera 50.000 productos o 128 columnas.");
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, defval: "", blankrows: true });
   const knownHeaders = new Set(Object.values(aliases).flat());
@@ -41,7 +43,7 @@ export function mapProductWorkbook(workbook: XLSX.WorkBook, filename: string, op
   const headers = matrix[headerIndex].map(cell => String(cell).trim());
   const counts = new Map<string, number>();
   headers.forEach(header => counts.set(header, (counts.get(header) || 0) + 1));
-  const columns = headers.map((header, index) => ({ id: String(index), label: (header || "Sin título") + ((counts.get(header) || 0) > 1 ? ` · columna ${XLSX.utils.encode_col(index)}` : "") }));
+  const columns = headers.map((header, index) => ({ id: String(index), label: (header || "Sin título") + ((counts.get(header) || 0) > 1 ? ` · columna ${XLSX.utils.encode_col(range.s.c + index)}` : "") }));
   const mapping = options.mapping || Object.fromEntries(Object.entries(aliases).map(([field, names]) => {
     let index = -1;
     for (const name of names) { index = headers.findIndex(header => normalizeImportHeader(header) === name); if (index >= 0) break; }
@@ -63,7 +65,7 @@ export function mapProductWorkbook(workbook: XLSX.WorkBook, filename: string, op
   const cellValue = (cells: unknown[], row: number, field: keyof ImportMapping) => {
     const index = Number(mapping[field]);
     if (mapping[field] === "" || !Number.isInteger(index) || !columns[index]) return undefined;
-    const cell = (sheet as XLSX.WorkSheet & { "!data"?: XLSX.CellObject[][] })["!data"]?.[row - 1]?.[index];
+    const cell = (sheet as XLSX.WorkSheet & { "!data"?: XLSX.CellObject[][] })["!data"]?.[row - 1]?.[range.s.c + index];
     const value = cells[index];
     if (identifiers.has(field) && cell?.t === "n" && typeof cell.z === "string" && /0{2,}/.test(cell.z)) return XLSX.utils.format_cell(cell);
     const text = String(value ?? "").trim();

@@ -36,6 +36,24 @@ describe("Excel legacy y mapeo de productos", () => {
     expect(mapped.parsed.products[0]).toMatchObject({ cost_usd: 100, sale_price_ars: 160 });
     expect(mapped.parsed.products[0]).not.toHaveProperty("cost_ars");
   });
+  it("conserva ceros y columnas físicas cuando la hoja empieza fuera de A1", () => {
+    const book = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([]);
+    XLSX.utils.sheet_add_aoa(sheet, [["Nombre", "SKU", "Costo ARS", "Precio", "Proveedor", "Proveedor"], ["ZZ Desplazado", 12, 100, 200, "ZZ Artículo", "ZZ Empresa"]], { origin: "B4" });
+    sheet.C5.z = "000000";
+    XLSX.utils.book_append_sheet(book, sheet, "Productos");
+    const result = mapProductWorkbook(readProductWorkbook(XLSX.write(book, { type: "array", bookType: "xlsx" })), "zz-offset.xlsx");
+    expect(result.parsed.products[0]).toMatchObject({ sku: "000012", cost_ars: 100, source_row: 5 });
+    expect(result.columns.slice(-2).map(column => column.label)).toEqual(["Proveedor · columna F", "Proveedor · columna G"]);
+  });
+  it("rechaza una lectura recortada aunque la hoja declare pocas filas de producto", () => {
+    const book = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([]);
+    XLSX.utils.sheet_add_aoa(sheet, [["Nombre", "SKU", "Costo ARS", "Precio"], ["ZZ Primera", "000001", 100, 200], ["ZZ Última", "000002", 100, 200]], { origin: "A50021" });
+    XLSX.utils.book_append_sheet(book, sheet, "Productos");
+    const loaded = readProductWorkbook(XLSX.write(book, { type: "array", bookType: "xlsx" }));
+    expect(() => mapProductWorkbook(loaded, "zz-truncated.xlsx")).toThrow("vista truncada");
+  });
   it("retiene stock fraccionario, códigos duplicados y valores cero para revisión", () => {
     const result = mapProductWorkbook(workbook([headers, sample, ["000001", "ZZ Otro", 1.5, 0, 0, "", "", "", "", "", "", "", "", "", "", "", 0]]), "zz.xls");
     expect(result.fractionalStock).toBe(1); expect(result.duplicateCodes).toBe(1);

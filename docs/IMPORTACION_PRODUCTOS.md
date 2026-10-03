@@ -29,7 +29,9 @@ La extensión está en `20261003000200_catalog_import_sessions.sql`.
 ## Semántica del origen
 
 Las celdas vacías no borran datos existentes. Los códigos de texto y formatos
-numéricos con ceros se conservan. Una fórmula no se ejecuta: sólo puede usarse
+numéricos con ceros se conservan, incluso en hojas que no empiezan en A1.
+Una lectura recortada por el límite físico de filas se rechaza, nunca se
+presenta como catálogo completo. Una fórmula no se ejecuta: sólo puede usarse
 su valor previamente calculado en el archivo, sujeto a validación.
 
 Para exportaciones de gestión con `CODIGO`, `DESCRIPCION`, `COSTO`, `VENTA`,

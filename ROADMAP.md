@@ -112,7 +112,7 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-03: `npm run verify` pasa 3.642 tests en 412
+- Validación local del 2026-10-03: `npm run verify` pasa 3.644 tests en 412
   archivos, funciones, lint sin errores, tipos y build. Runtime sin hallazgos;
   toolchain conserva la excepción temporal documentada más abajo.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
