@@ -112,7 +112,7 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-03: `npm run verify` pasa 3.580 tests en 404
+- Validación local del 2026-10-03: `npm run verify` pasa 3.581 tests en 404
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
@@ -136,20 +136,22 @@ sigue abierto como certificación operacional.
   28 pruebas de componente; retiro sintético con teclado/mouse, Axe y nombres
   largos en 360/390/768/1024/1280/1440 px. Critical E2E comprueba también la
   etiqueta inicial de tienda y sucursal; no cambia roles ni mueve dinero.
-- Auditoría de seguridad del 2026-10-01: 15 contratos de funciones expuestas
-  pendientes de revisar; no se silencian para mostrar cero.
+- Auditoría de seguridad del 2026-10-03: las 14 funciones efectivamente
+  pendientes se revisaron contra definición y ACL vinculadas; el newsletter
+  público quedó limitado, idempotente y sin enumeración de suscriptores. Los
+  cuatro auditores críticos quedan en cero y sólo permanecen los tres catálogos
+  públicos declarados. `00130` está aplicada y el gate reversible confirmó alta
+  repetida, baja no reactivada, ACL, auditorías y rollback sin residuos.
 - `npm run verify` unifica funciones, documentación, lint, TypeScript real,
   build, Vitest, dependencias y diff; CI usa el mismo plan por etapa.
 - `npm run verify:ci` agrega E2E autenticado y falla si faltan sus credenciales.
   Suites públicas no sustituyen el flujo autenticado.
 - Consulta GitHub del 2026-10-01: `main` no protegida. Falta configurar PR y
   checks requeridos; el auto-deploy de Vercel no depende hoy de CI completado.
-- CI de `c876ed57` pasó todos sus jobs, incluido Critical E2E autenticado:
-  [104 aprobados y 3 omitidos por datos](https://github.com/santyperez145/Gestiona/actions/runs/36913162530).
-  Se corrigieron los 19 fallos previos: ancho del newsletter, CTA de compra,
-  drawer POS bajo avisos y selectores desactualizados; sin omitir el panel.
-  Producción también pasó 90 escenarios públicos; los 2 omitidos requieren
-  productos totalmente agotados. Esto no certifica proveedores ni todos los roles.
+- CI de `633ad0ea` pasó build, dependencias, unit y Critical E2E autenticado:
+  [run 37107360871](https://github.com/santyperez145/Gestiona/actions/runs/37107360871).
+  Incluye recuperación cerrada de Platform en escritorio/móvil. El barrido no
+  certifica proveedores externos ni todos los roles productivos.
 - Resiliencia del dashboard 2026-10-02: el artefacto del run `37083651650`
   confirmó sesión, shell y permisos correctos, con las seis lecturas de negocio
   todavía pendientes al vencer el presupuesto E2E de 10 s. Cada fuente tiene

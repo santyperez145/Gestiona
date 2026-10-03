@@ -12,12 +12,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Mail, Loader2, Check } from "lucide-react";
 import { normalizarEmail } from "@/lib/couponRules";
 
-type Estado = "idle" | "enviando" | "suscrito" | "ya_suscrito" | "dado_de_baja" | "error";
+type Estado = "idle" | "enviando" | "procesado" | "error";
 
 const MENSAJES: Record<Exclude<Estado, "idle" | "enviando">, string> = {
-  suscrito: "¡Listo! Te avisamos de las novedades.",
-  ya_suscrito: "Ya estabas suscripto a este boletín.",
-  dado_de_baja: "Este email había sido dado de baja. Escribinos si querés volver a recibir novedades.",
+  procesado: "Listo. Si la dirección puede suscribirse, la solicitud quedó registrada.",
   error: "No pudimos guardar tu email. Revisalo e intentá de nuevo.",
 };
 
@@ -44,11 +42,11 @@ export default function StoreNewsletter({ slug, base }: { slug?: string | null; 
       setEstado("error");
       return;
     }
-    setEstado(respuesta.estado as Estado);
+    setEstado(respuesta.estado === "procesado" ? "procesado" : "error");
     setEmail("");
   };
 
-  const resuelto = estado === "suscrito" || estado === "ya_suscrito" || estado === "dado_de_baja";
+  const resuelto = estado === "procesado";
 
   return (
     <div className="storefront-newsletter min-w-0">

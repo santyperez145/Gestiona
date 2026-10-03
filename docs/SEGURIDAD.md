@@ -1,6 +1,6 @@
 # Seguridad y prevención de fraude
 
-**Estado:** canónico. **Corte:** 2026-10-01.
+**Estado:** canónico. **Corte:** 2026-10-03.
 
 Este documento define la línea base de seguridad de Nerqia. La arquitectura
 funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
@@ -59,10 +59,12 @@ El registro guarda nombre, firma, audiencia, motivo y hash del cuerpo. Si una
 función pública cambia, `audit_funciones_expuestas` vuelve a mostrarla hasta
 revisar el contrato. No se aceptan allowlists sin motivo o sin fecha.
 
-Corte 2026-10-01: resolvedor de checkout y sincronizador de consentimiento
-son internos, sin ejecución web; checkout/newsletter públicos se prueban con
-roles reales y rollback. Quedan 15 funciones en `audit_funciones_expuestas`
-para revisar guardas y contratos: no se consideran aprobadas por pasar tests.
+Corte 2026-10-03: las 14 funciones pendientes se revisaron contra su definición
+y ACL efectivas. `20261003000130` versiona sus contratos; el newsletter suma
+rate limit, inserción concurrente idempotente y respuesta indistinguible para no
+enumerar altas o bajas. La verificación vinculada exige cero filas en los cuatro
+auditores críticos y mantiene sólo los tres catálogos públicos declarados. La
+migración está aplicada y el escenario reversible pasó sin residuos.
 
 `20261001000300` elimina cinco RPC legacy de portal/ingresos/retiros por token,
 revoca ejecución web del helper interno de contratos y acceso anónimo a campañas.

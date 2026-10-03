@@ -122,7 +122,7 @@ acotada de PostgREST y sólo después muestra la pantalla de recuperación. La
 sesión abierta no se presenta como logout, aprobación pendiente ni ausencia de
 organización ni reconstruye autoridad desde preferencias del navegador. El gate
 de Platform sólo abandona ese estado tras agotar el presupuesto y reintentar.
-
+El newsletter confirma una solicitud sin revelar si ese email existía o fue baja.
 Los filtros globales de fecha conservan la misma selección en URL y ahora
 refrescan todas las métricas dependientes con un único criterio civil inclusivo.
 El período que se ve en el control es exactamente el período de las tarjetas,

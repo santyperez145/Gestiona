@@ -10,6 +10,10 @@ const sync = readFileSync(
   join(process.cwd(), 'supabase/migrations/20260925013100_newsletter_consent_sync.sql'),
   'utf8',
 );
+const securityClosure = readFileSync(
+  join(process.cwd(), 'supabase/migrations/20261003000130_security_function_contract_closure.sql'),
+  'utf8',
+);
 const layout = readFileSync(join(process.cwd(), 'src/storefront/StoreLayout.tsx'), 'utf8');
 const newsletter = readFileSync(join(process.cwd(), 'src/storefront/StoreNewsletter.tsx'), 'utf8');
 
@@ -37,7 +41,17 @@ describe('newsletter de la tienda (consentimiento en todo el sitio)', () => {
     expect(migration).toContain("IF v_existing.unsubscribed_at IS NOT NULL THEN");
     expect(migration).toContain("'dado_de_baja'");
     // El CRM con opt-out no se pisa desde el newsletter.
-    expect(migration).toContain('AND v_crm.marketing_opt_out_at IS NULL');
+    expect(securityClosure).toContain('AND v_crm.marketing_opt_out_at IS NULL');
+    expect(securityClosure).toContain('ON CONFLICT (store_id, email) DO NOTHING');
+    expect(securityClosure).toContain("'estado', 'procesado'");
+  });
+
+  it('limita abuso y no permite enumerar el estado previo de un email', () => {
+    expect(securityClosure).toContain("'store_newsletter', v_slug, 8, interval '15 minutes'");
+    expect(securityClosure).not.toContain("RETURN jsonb_build_object('ok', true, 'estado', 'dado_de_baja')");
+    expect(securityClosure).not.toContain("RETURN jsonb_build_object('ok', true, 'estado', 'ya_suscrito')");
+    expect(newsletter).toContain('Si la dirección puede suscribirse');
+    expect(newsletter).not.toContain('Ya estabas suscripto');
   });
 
   it('grants mínimos: anon/authenticated en la RPC, service_role en la sync', () => {
@@ -58,7 +72,7 @@ describe('newsletter de la tienda (consentimiento en todo el sitio)', () => {
     expect(layout).toContain('StoreNewsletter');
     expect(layout).toContain('store?.slug &&');
     expect(newsletter).toContain('register_store_newsletter');
-    expect(newsletter).toContain('Ya estabas suscripto');
+    expect(newsletter).toContain('Si la dirección puede suscribirse');
   });
 
   it('el formulario habla de la baja y enlaza la política de privacidad', () => {
