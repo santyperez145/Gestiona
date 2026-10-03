@@ -86,7 +86,7 @@ verde.
 | `/reset-password` | Corregido | Enlace ausente muestra estado inválido y título propio. |
 | `/privacidad` | OK | Documento carga; identidad legal sigue pendiente. |
 | `/terminos` | OK | Documento carga; identidad legal sigue pendiente. |
-| `/estado` | OK con incidencia | App y cron operativos; respaldos reportan verificación pendiente. |
+| `/estado` | OK | App y cron operativos; restore de datos observado dentro de RPO, con alcance explícito. |
 | `/caja/turno` | OK | Apertura/cierre e historial cargan. |
 | `/onboarding` | Corregido | Una organización configurada vuelve al inicio; no reescribe su blueprint. |
 
@@ -137,8 +137,11 @@ verde.
 
 - El comercio del corte tiene suscripción cancelada; Core conserva datos y
   comunica qué extras están apagados.
-- El estado público reporta snapshots pendientes de verificación. Debe cerrarse
-  con una corrida/restauración observada, no ocultando la incidencia.
+- Restore observado el 2026-10-03 sobre el snapshot privado v3 más reciente:
+  148 tablas y 80 filas, RTO técnico de datos 1.363,02 ms, RPO 19,1 h frente al
+  compromiso de 36 h y cero residuos. Esto cierra la incidencia de integridad y
+  restore por organización; no certifica reconstrucción completa de Supabase,
+  Auth, Storage, secretos, DNS ni proveedores.
 - Resend/Auth SMTP, Mercado Pago, ARCA, transportista y Meta requieren matrices
   reales de éxito, rechazo, timeout, replay y recuperación.
 - El siguiente barrido añade contratos de acción por página: cada CTA se

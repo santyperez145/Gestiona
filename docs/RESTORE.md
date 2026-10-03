@@ -1,6 +1,6 @@
 # Restore drill de snapshots por organización
 
-**Estado:** runbook vigente. **Corte:** 2026-09-04.
+**Estado:** runbook vigente. **Corte:** 2026-10-03.
 
 Un snapshot no se considera recuperable sólo porque exista o porque su hash sea
 correcto. Este runbook ensaya que el archivo privado todavía puede convertirse
@@ -52,6 +52,7 @@ contractual de recuperación completa.
 |---|---|---:|---:|---:|---:|
 | 2026-08-21 | v3 privado, hash verificado | 147 tablas / 63 filas | 937,22 ms | — | 0 |
 | 2026-08-25 | v3 privado, hash verificado | 148 tablas / 63 filas | 815,65 ms | 0,0 h | 0 |
+| 2026-10-03 | v3 privado, hash verificado | 148 tablas / 80 filas | 1.363,02 ms | 19,1 h | 0 |
 
 La evidencia no registra IDs, nombres de organizaciones, claves ni contenido de
 las filas. El drill debe repetirse después de ampliar el contrato de snapshots
@@ -81,7 +82,7 @@ el RPO.** Ahora son 20 h.
 | Frecuencia del backup | semanal (domingos) | diaria, 03:30 UTC |
 | Ventana de salteo | 6 días | 20 horas |
 | **RPO comprometido** | **~168 h**, no declarado | **36 h**, exigido |
-| RPO medido | 69,3 h | 0,0 h |
+| RPO medido | 69,3 h | 19,1 h al 2026-10-03 |
 
 El compromiso son 36 h —24 del cron más margen para una corrida que no salga— y
 `npm run drill:restore` **falla** si el snapshot verificado lo supera. Eso es lo

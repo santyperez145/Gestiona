@@ -1,5 +1,5 @@
-// @ts-ignore Deno resuelve el import remoto; Vitest usa la misma versión local.
-import { XMLParser, XMLValidator } from "https://esm.sh/fast-xml-parser@5.11.2";
+// @ts-ignore Deno resuelve npm:; Vitest enlaza la misma versión instalada.
+import { XMLParser, XMLValidator } from "npm:fast-xml-parser@5.11.2";
 
 export class ArcaReadError extends Error {
   constructor(public code: string, message: string) { super(message); }

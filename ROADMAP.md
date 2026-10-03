@@ -204,6 +204,15 @@ sigue abierto como certificación operacional.
   acotada, contexto sin cotizaciones viejas y recuperación. Handler con CORS
   ante error y tasa ausente sin promesa de interés cero; seis escenarios de
   navegador interceptados no certifican tarjetas, TEA/CFT ni cobro externo.
+- Continuidad de datos 2026-10-03: el snapshot privado v3 más reciente restauró
+  148 tablas y 80 filas contra el esquema vinculado en un sandbox transaccional;
+  RTO técnico 1.363,02 ms, RPO 19,1 h sobre compromiso de 36 h y cero residuos.
+  Cierra la incidencia de restore por organización, no el RTO contractual de
+  reconstrucción completa de Supabase, Auth, Storage, secretos, DNS y rails.
+- El gate posterior al pull volvió a ejecutar las suites ARCA en Vitest y Deno:
+  el parser XML usa el specifier `npm:` versionado en Edge y un resolver de test
+  exacto hacia la misma dependencia local. Así los rechazos SOAP y puntos CAE
+  no quedan sin ejecutar por incompatibilidad entre runtimes.
 - Profit por SKU: filas acotadas, columnas e importes legibles y desglose
   completo de costos accesible con teclado en móvil/escritorio. La geometría,
   navegación y detalle se comprueban por separado sin aumentar sus límites.

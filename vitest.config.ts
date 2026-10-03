@@ -1,9 +1,28 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, type Plugin } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
+const FAST_XML_DENO_IMPORT = "npm:fast-xml-parser@5.11.2";
+
+/**
+ * Edge Functions keep an explicit, versioned `npm:` import that Deno can deploy.
+ * Vite does not interpret that Deno specifier, so tests resolve this one audited
+ * package during the pre-resolution phase. Keeping the bridge exact avoids
+ * turning arbitrary Edge imports into local dependencies.
+ */
+function resolveDenoTestImports(): Plugin {
+  return {
+    name: "resolve-deno-test-imports",
+    enforce: "pre",
+    async resolveId(source, importer) {
+      if (source !== FAST_XML_DENO_IMPORT) return null;
+      return this.resolve("fast-xml-parser", importer, { skipSelf: true });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [resolveDenoTestImports(), react()],
   test: {
     environment: "jsdom",
     globals: true,
@@ -30,7 +49,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
-      "https://esm.sh/fast-xml-parser@5.11.2": "fast-xml-parser",
     },
   },
 });
