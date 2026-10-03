@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { cotizacionDe } from "@/lib/exchangeRate";
+import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
+import { productMatchesCode } from "@/lib/productCodes";
 import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
@@ -90,6 +91,8 @@ interface CartItem {
   brand: string;
   price: number;
   costUSD: number;
+  costARS?: number | null;
+  costCurrency?: string | null;
   exchangeRate: number;
   quantity: number;
   stock: number;
@@ -1542,7 +1545,13 @@ export default function POSPage() {
 
   // Barcode scanner
   const handleBarcode = useCallback((code: string) => {
-    const prod = products.find((p) => p.barcode === code || p.sku === code);
+    const matches = products.filter(p => productMatchesCode(p, code));
+    if (matches.length > 1) {
+      setSearch(code);
+      toast.info("El código corresponde a varios productos. Elegí el correcto antes de cobrar.");
+      return;
+    }
+    const prod = matches[0];
     if (prod) {
       addToCart(prod);
       toast.success(`Escaneado: ${prod.name}`);
@@ -1649,8 +1658,8 @@ export default function POSPage() {
     if (cat !== "all") list = list.filter((p) => p.category === cat);
     if (search) {
       // Exact barcode/SKU match takes priority
-      const exactBarcode = list.find(p => p.barcode === search.trim() || p.sku === search.trim());
-      if (exactBarcode) return [exactBarcode];
+      const exactBarcode = list.filter(p => productMatchesCode(p, search));
+      if (exactBarcode.length) return exactBarcode;
       if (FuseClass) {
         // Fuse.js fuzzy search — handles typos, partial matches, accent-insensitive
         const fuse = new FuseClass(list, {
@@ -1809,6 +1818,8 @@ export default function POSPage() {
         price,
         discountPrice: prod.discount_price_ars ? Number(prod.discount_price_ars) : null,
         costUSD: Number(prod.total_cost_usd) || 0,
+        costARS: prod.cost_ars,
+        costCurrency: prod.cost_currency,
         exchangeRate: cotizacionDe(settings) ?? 0,
         quantity: 1,
         stock: stockLimit,
@@ -1844,6 +1855,8 @@ export default function POSPage() {
             price,
             discountPrice: prod.discount_price_ars ? Number(prod.discount_price_ars) : null,
             costUSD: Number(prod.total_cost_usd) || 0,
+            costARS: prod.cost_ars,
+            costCurrency: prod.cost_currency,
             exchangeRate,
             quantity: 1,
             stock: prod.stock,
@@ -2366,9 +2379,9 @@ export default function POSPage() {
         // legítimo para el cajero y queda auditado contra el precio servidor.
         const finalUnitPrice = item.quantity > 0 ? adjustedTotal / item.quantity : 0;
 
-        const costARS = item.costUSD * item.exchangeRate;
-        const profitARS = adjustedTotal - costARS * item.quantity;
-        const profitUSD = item.exchangeRate > 0 ? profitARS / item.exchangeRate : 0;
+        const costARS = costoArsONull({ costUsd: item.costUSD, costArs: item.costARS, costCurrency: item.costCurrency }, cotizacionDe({ exchange_rate: item.exchangeRate }));
+        const profitARS = costARS === null ? null : adjustedTotal - costARS * item.quantity;
+        const profitUSD = profitARS !== null && item.exchangeRate > 0 ? profitARS / item.exchangeRate : null;
 
         const splitPayments = splitMode ? [
           { method: splitMethod1, amount: Math.round(adjustedTotal * (splitAmt1 / cartTotal)) },
@@ -2602,8 +2615,8 @@ export default function POSPage() {
             const unitP = priceFor(it);
             const isEditingPrice = editingPriceId === it.productId;
             const hasCustom = it.customPrice != null && it.customPrice > 0;
-            const costARS = it.costUSD * it.exchangeRate;
-            const marginPct = unitP > 0 && costARS > 0 ? ((unitP - costARS) / unitP) * 100 : null;
+            const costARS = costoArsONull({ costUsd: it.costUSD, costArs: it.costARS, costCurrency: it.costCurrency }, cotizacionDe({ exchange_rate: it.exchangeRate }));
+            const marginPct = unitP > 0 && costARS !== null && costARS > 0 ? ((unitP - costARS) / unitP) * 100 : null;
             const linePromo = promoFor(it);
             return (
               <div key={it.productId} className={`rounded-[10px] p-3 space-y-2 transition-colors ${hasCustom ? "bg-primary/8 border border-primary/20" : "bg-muted/40"}`}>
@@ -2871,6 +2884,8 @@ export default function POSPage() {
                           brand: prod.brand || "",
                           price: prod.sale_price_ars || 0,
                           costUSD: prod.total_cost_usd || 0,
+                          costARS: prod.cost_ars,
+                          costCurrency: prod.cost_currency,
                           exchangeRate: prod.exchange_rate || 0,
                           quantity: 1,
                           stock: prod.stock ?? 0,

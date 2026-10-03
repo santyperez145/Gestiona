@@ -10,8 +10,12 @@ const storefront = readFileSync(resolve(root, "src/pages/StorefrontPage.tsx"), "
 
 describe("autoridad de migración de catálogo", () => {
   it("usa un único staging server-side para todos los orígenes", () => {
-    expect(importer).toContain('rpc("stage_catalog_migration"');
-    expect(importer).toContain('rpc("apply_catalog_migration"');
+    const session = readFileSync(resolve(root, "src/lib/catalogImportSession.ts"), "utf8");
+    const sessionSql = readFileSync(resolve(root, "supabase/migrations/20261003000200_catalog_import_sessions.sql"), "utf8");
+    expect(session).toContain('rpc("stage_catalog_import_chunk"');
+    expect(session).toContain('rpc("apply_catalog_import_chunk"');
+    expect(sessionSql).toContain("public.stage_catalog_migration(");
+    expect(sessionSql).toContain("public.apply_catalog_migration(");
     expect(integrations).not.toContain("TiendanubeExcelImport");
     expect(integrations).toContain('/productos?importar=1');
   });

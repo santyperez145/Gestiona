@@ -83,9 +83,20 @@ export async function recordFinancialMovement(params: {
 // ========= PRODUCTS =========
 export async function getProductsDB(userId: string, organizationId?: string) {
   const orgId = await orgIdFor(userId, organizationId);
-  const { data, error } = await supabase.from('products').select('*').eq('org_id', orgId).order('name');
-  if (error) throw error;
-  return data || [];
+  const products: Database['public']['Tables']['products']['Row'][] = [];
+  let cursor: string | undefined;
+  // Keyset paging avoids PostgREST's 1,000-row cap and offset shifts on inserts.
+  while (true) {
+    let query = supabase.from('products').select('*').eq('org_id', orgId).order('id').limit(1000);
+    if (cursor) query = query.gt('id', cursor);
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data?.length) break;
+    products.push(...data);
+    cursor = data[data.length - 1].id;
+    if (data.length < 1000) break;
+  }
+  return products.sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
 /**

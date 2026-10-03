@@ -106,9 +106,10 @@ describe('contrato visual transversal de Gestión', () => {
     expect(products).not.toContain('className="bg-card border-border max-h-[90vh] overflow-y-auto">\n                  <DialogHeader><DialogTitle className="font-display">{editing');
 
     expect(importer).toContain('className="h-full overflow-y-auto overscroll-contain bg-card"');
-    expect(importer).toContain('Deslizá la vista previa horizontalmente');
+    expect(importer).toContain('max-h-[420px] overflow-auto border-y border-border');
     expect(importer).toContain('aria-label="Vista previa de productos importados"');
-    expect(importer).toContain('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end');
+    expect(importer).toContain('<Pagination page={page} total={rows.length}');
+    expect(importer).toContain('flex flex-wrap justify-between gap-2');
     expect(importer).not.toContain('max-h-[86vh]');
   });
 

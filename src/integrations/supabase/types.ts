@@ -5992,6 +5992,183 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_import_chunks: {
+        Row: {
+          batch_id: string
+          org_id: string
+          payload_hash: string
+          position: number
+          row_count: number
+          session_id: string
+        }
+        Insert: {
+          batch_id: string
+          org_id: string
+          payload_hash: string
+          position: number
+          row_count: number
+          session_id: string
+        }
+        Update: {
+          batch_id?: string
+          org_id?: string
+          payload_hash?: string
+          position?: number
+          row_count?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_import_chunks_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: true
+            referencedRelation: "product_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_chunks_session_id_org_id_fkey"
+            columns: ["session_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_import_sessions"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      catalog_import_sessions: {
+        Row: {
+          applied: number
+          approved_at: string | null
+          created_at: string
+          created_by: string
+          filename: string
+          id: string
+          options: Json
+          org_id: string
+          prepared: number
+          skip_invalid: boolean
+          source_format: string
+          source_rows: number
+          source_system: string
+          status: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          applied?: number
+          approved_at?: string | null
+          created_at?: string
+          created_by: string
+          filename: string
+          id: string
+          options: Json
+          org_id: string
+          prepared?: number
+          skip_invalid?: boolean
+          source_format: string
+          source_rows: number
+          source_system: string
+          status?: string
+          total: number
+          updated_at?: string
+        }
+        Update: {
+          applied?: number
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string
+          filename?: string
+          id?: string
+          options?: Json
+          org_id?: string
+          prepared?: number
+          skip_invalid?: boolean
+          source_format?: string
+          source_rows?: number
+          source_system?: string
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       catalog_import_identities: {
         Row: {
           created_at: string
@@ -33696,6 +33873,8 @@ export type Database = {
           org_id: string
           result_product_id: string | null
           row_number: number
+          session_id: string | null
+          session_position: number | null
           source_external_key: string | null
           source_path: string | null
           status: string
@@ -33717,6 +33896,8 @@ export type Database = {
           org_id: string
           result_product_id?: string | null
           row_number: number
+          session_id?: string | null
+          session_position?: number | null
           source_external_key?: string | null
           source_path?: string | null
           status?: string
@@ -33738,6 +33919,8 @@ export type Database = {
           org_id?: string
           result_product_id?: string | null
           row_number?: number
+          session_id?: string | null
+          session_position?: number | null
           source_external_key?: string | null
           source_path?: string | null
           status?: string
@@ -33902,6 +34085,13 @@ export type Database = {
             columns: ["result_product_id"]
             isOneToOne: false
             referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_import_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -34976,6 +35166,7 @@ export type Database = {
       products: {
         Row: {
           barcode: string | null
+          barcode_aliases: string[]
           brand: string
           category: string | null
           content_ml: number | null
@@ -35028,6 +35219,7 @@ export type Database = {
         }
         Insert: {
           barcode?: string | null
+          barcode_aliases?: string[]
           brand?: string
           category?: string | null
           content_ml?: number | null
@@ -35080,6 +35272,7 @@ export type Database = {
         }
         Update: {
           barcode?: string | null
+          barcode_aliases?: string[]
           brand?: string
           category?: string | null
           content_ml?: number | null
@@ -61886,6 +62079,33 @@ export type Database = {
         }
       }
       siguiente_numero_factura: { Args: { p_org: string }; Returns: string }
+      catalog_import_status: { Args: { p_session_id: string }; Returns: Json }
+      start_catalog_import: {
+        Args: {
+          p_filename: string
+          p_options: Json
+          p_org_id: string
+          p_session_id: string
+          p_source_format: string
+          p_source_rows: number
+          p_source_system: string
+          p_total: number
+        }
+        Returns: Json
+      }
+      stage_catalog_import_chunk: {
+        Args: { p_position: number; p_rows: Json; p_session_id: string }
+        Returns: Json
+      }
+      approve_catalog_import: {
+        Args: { p_session_id: string; p_skip_invalid?: boolean }
+        Returns: Json
+      }
+      apply_catalog_import_chunk: {
+        Args: { p_position: number; p_session_id: string }
+        Returns: Json
+      }
+      cancel_catalog_import: { Args: { p_session_id: string }; Returns: Json }
       stage_catalog_migration: {
         Args: {
           p_auto_fill_sale_price?: boolean

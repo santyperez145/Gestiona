@@ -17,6 +17,79 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";
 
+test("importador: lotes sintéticos, respuesta perdida y recuperación sin mutar producción", async ({ page }) => {
+  test.setTimeout(60_000);
+  let session: any;
+  let dropFirstResponse = true;
+  let failSecondChunk = true;
+  const positions: number[] = [];
+  const blockedWrites: string[] = [];
+  const records: any[] = [];
+  const chunks = new Map<number, number>();
+  const fulfill = (route: any, data: unknown) => route.fulfill({ contentType: "application/json", body: JSON.stringify(data) });
+  await page.route("**/rest/v1/rpc/*catalog_import*", async route => {
+    const name = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    const body = route.request().postDataJSON();
+    if (name === "start_catalog_import") {
+      session ||= { ok: true, id: body.p_session_id, org_id: body.p_org_id, filename: body.p_filename, options: body.p_options,
+        source_format: body.p_source_format, source_system: body.p_source_system, source_rows: 501, total: 501,
+        status: "preparing", prepared: 0, applied: 0, valid: 0, invalid: 0, creates: 0, updates: 0,
+        created: 0, updated: 0, stock_movements: 0, skipped: 0, images: 0, variants: 0,
+        variants_created: 0, variants_updated: 0, redirects: 0, reconciled: false };
+    } else if (name === "stage_catalog_import_chunk") {
+      expect(body.p_position).toBe(session.prepared);
+      chunks.set(body.p_position, body.p_rows.length);
+      records.push(...body.p_rows.map((normalized: any, index: number) => ({ id: `zz-${body.p_position + index}`, session_position: body.p_position + index, action: "create", normalized, validation_errors: [], validation_warnings: [], status: "staged" })));
+      session.prepared += body.p_rows.length; session.valid = session.prepared; session.creates = session.prepared;
+      if (session.prepared === session.total) session.status = "ready";
+    } else if (name === "approve_catalog_import") session.status = "applying";
+    else if (name === "apply_catalog_import_chunk") {
+      positions.push(body.p_position);
+      if (body.p_position === 250 && failSecondChunk) {
+        failSecondChunk = false;
+        return route.fulfill({ status: 503, contentType: "application/json", body: '{"message":"Synthetic unavailable response"}' });
+      }
+      expect(body.p_position).toBe(session.applied);
+      session.applied += chunks.get(body.p_position)!; session.created = session.applied;
+      if (session.applied === session.total) { session.status = "completed"; session.reconciled = true; }
+      if (body.p_position === 0 && dropFirstResponse) { dropFirstResponse = false; return route.abort("failed"); }
+    } else expect(name).toBe("catalog_import_status");
+    return fulfill(route, session);
+  });
+  for (const oldRpc of ["stage_catalog_migration", "apply_catalog_migration", "stage_product_import", "apply_product_import"]) {
+    await page.route(`**/rest/v1/rpc/${oldRpc}`, route => { blockedWrites.push(oldRpc); return route.abort(); });
+  }
+  await page.route("**/rest/v1/products?**", route => {
+    if (["GET", "HEAD"].includes(route.request().method())) return route.continue();
+    blockedWrites.push("products"); return route.abort();
+  });
+  await page.route("**/rest/v1/catalog_import_sessions?**", route => fulfill(route, session ? [session] : []));
+  await page.route("**/rest/v1/product_import_rows?**", route => {
+    const url = new URL(route.request().url()); const offset = Number(url.searchParams.get("offset") || 0);
+    return fulfill(route, records.slice(offset, offset + Number(url.searchParams.get("limit") || 50)));
+  });
+  await page.goto("/productos?importar=1");
+  const importer = page.getByRole("dialog", { name: "Importar catálogo" });
+  await expect(importer).toBeVisible();
+  const csv = ["Nombre,SKU,Costo ARS,Precio Venta ARS,Stock", ...Array.from({ length: 501 }, (_, i) => `ZZ Recuperación ${i + 1},${String(i + 1).padStart(6, "0")},100,200,2`)].join("\n");
+  await importer.locator('input[type="file"]').setInputFiles({ name: "zz-import-recovery.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+  await expect(importer.getByText("501 filas de origen agrupadas")).toBeVisible();
+  await expect(importer.getByRole("combobox", { name: "Moneda del costo de origen" })).toHaveText("Pesos argentinos (ARS)");
+  await importer.getByRole("button", { name: "Preparar y validar" }).click();
+  await expect(importer.getByText("Validación completa", { exact: true })).toBeVisible();
+  expect([...chunks.keys()]).toEqual([0,250,500]); expect(positions).toEqual([]);
+  await importer.getByRole("button", { name: "Aprobar 501 filas" }).click();
+  await expect(importer.getByText("No pudimos completar este paso")).toBeVisible();
+  await importer.getByRole("button", { name: "Reanudar aplicación" }).click();
+  await expect(importer.getByText("Este lote no pudo aplicarse.", { exact: false })).toBeVisible();
+  await importer.getByRole("button", { name: "Reanudar aplicación" }).click();
+  await expect(importer.getByText("Catálogo reconciliado", { exact: true })).toBeVisible();
+  expect(positions).toEqual([0,250,250,500]); expect(session.created).toBe(501); expect(blockedWrites).toEqual([]);
+  await page.goto("/productos?importar=1");
+  await page.getByRole("dialog", { name: "Importar catálogo" }).getByRole("button", { name: "Ver resultado" }).click();
+  await expect(page.getByText("Catálogo reconciliado", { exact: true })).toBeVisible();
+});
+
 // Sin credenciales no hay sesión que reusar y estos specs no pueden correr. Se
 // saltean enteros en vez de fallar: un test rojo por falta de configuración
 // enseña a ignorar los tests rojos.

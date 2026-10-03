@@ -1,4 +1,15 @@
 export const PRODUCT_IMPORT_MAX_ROWS = 5_000;
+export const PRODUCT_IMPORT_FILE_MAX_ROWS = 50_000;
+export const PRODUCT_IMPORT_CHUNK_SIZE = 250;
+export const PRODUCT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
+
+export const IMPORT_MAPPING_FIELDS = {
+  name: "Nombre del producto", sku: "Código / SKU", brand: "Marca", category: "Rubro / categoría",
+  cost: "Costo", sale: "Precio normal / lista", barcode: "Código de barras principal",
+  barcode2: "Código de barras adicional 1", barcode3: "Código de barras adicional 2",
+  stock: "Stock", description: "Descripción adicional", classification: "Clasificación",
+} as const;
+export type ImportMapping = Record<keyof typeof IMPORT_MAPPING_FIELDS, string>;
 
 export const PRODUCT_IMPORT_FIELDS = [
   "name",
@@ -8,6 +19,7 @@ export const PRODUCT_IMPORT_FIELDS = [
   "sku",
   "barcode",
   "cost_usd",
+  "cost_ars",
   "sale_price_ars",
   "discount_price_ars",
   "stock",
@@ -17,10 +29,27 @@ export const PRODUCT_IMPORT_FIELDS = [
 ] as const;
 
 export type ProductImportField = (typeof PRODUCT_IMPORT_FIELDS)[number];
-export type ProductImportPayloadRow = Record<string, string | number | null | string[]> & {
+export type ProductImportPayloadRow = Record<string, unknown> & {
   name: string;
   provided: string[];
 };
+
+/** Same byte budget as the RPC, with headroom for JSONB whitespace and escaping. */
+export function catalogImportChunks<T extends ProductImportPayloadRow>(rows: T[]) {
+  const chunks: { position: number; rows: T[] }[] = [];
+  let current: T[] = []; let bytes = 2; let position = 0;
+  const encoder = new TextEncoder();
+  for (const row of rows) {
+    const size = encoder.encode(JSON.stringify(row)).byteLength + 256;
+    if (size > 900_000) throw new Error("Un producto supera el tamaño permitido por lote; revisá sus variantes e imágenes.");
+    if (current.length && (current.length === PRODUCT_IMPORT_CHUNK_SIZE || bytes + size > 900_000)) {
+      chunks.push({ position, rows: current }); position += current.length; current = []; bytes = 2;
+    }
+    current.push(row); bytes += size;
+  }
+  if (current.length) chunks.push({ position, rows: current });
+  return chunks;
+}
 
 const COLUMN_ALIASES: Record<ProductImportField, string[]> = {
   name: ["nombre", "name", "producto", "product", "titulo", "título"],
@@ -30,6 +59,7 @@ const COLUMN_ALIASES: Record<ProductImportField, string[]> = {
   sku: ["sku", "codigo", "código", "code", "ref", "referencia"],
   barcode: ["codigo de barras", "código de barras", "barcode", "ean", "ean13", "gtin"],
   cost_usd: ["costo usd", "cost usd", "precio costo usd", "precio de costo usd", "costo en usd", "costo"],
+  cost_ars: ["costo ars", "costo en pesos", "costo pesos"],
   sale_price_ars: [
     "precio venta ars", "precio venta", "precio de venta", "sale price", "price",
     "precio ars", "precio", "pvp", "precio final",
@@ -46,6 +76,7 @@ const COLUMN_ALIASES: Record<ProductImportField, string[]> = {
 
 const NUMERIC_FIELDS = new Set<ProductImportField>([
   "cost_usd",
+  "cost_ars",
   "sale_price_ars",
   "discount_price_ars",
   "stock",
@@ -198,25 +229,29 @@ export function previewProductImportRow(
   params: ProductImportCalculationParams,
 ): ProductImportPreview {
   const cost = parseImportNumber(row.cost_usd);
+  const costARS = parseImportNumber(row.cost_ars);
+  const nativeARS = row.provided.includes("cost_ars");
   const importedPrice = parseImportNumber(row.sale_price_ars);
   const stock = parseImportNumber(row.stock);
   let price = importedPrice ?? 0;
-  if (params.autoFillSalePrice && price <= 0 && (cost ?? 0) > 0 && params.exchangeRate > 0) {
+  const effectiveCostARS = nativeARS ? costARS ?? 0 : (cost ?? 0) * params.exchangeRate;
+  if (params.autoFillSalePrice && price <= 0 && effectiveCostARS > 0) {
     price = Math.round(
-      (cost ?? 0) * params.exchangeRate
+      effectiveCostARS
       * (1 + params.defaultMarginPercent / 100),
     );
   }
 
-  const totalCostUSD = cost ?? 0;
-  const profitARS = price - totalCostUSD * params.exchangeRate;
+  const totalCostUSD = nativeARS ? (params.exchangeRate > 0 ? effectiveCostARS / params.exchangeRate : 0) : cost ?? 0;
+  const profitARS = price - effectiveCostARS;
   const issues: string[] = [];
   if (!row.name.trim()) issues.push("Falta el nombre");
-  if (row.provided.includes("cost_usd") && cost === null) issues.push("Costo inválido");
+  if (row.provided.includes("cost_usd") && (cost === null || cost < 0)) issues.push("Costo inválido");
+  if (nativeARS && (costARS === null || costARS < 0)) issues.push("Costo en ARS inválido");
   if (row.provided.includes("sale_price_ars") && importedPrice === null) issues.push("Precio inválido");
-  if (row.provided.includes("stock") && (stock === null || stock < 0 || !Number.isInteger(stock))) issues.push("Stock inválido");
+  if (row.provided.includes("stock") && (stock === null || stock < 0 || stock > 2147483647 || !Number.isInteger(stock))) issues.push("Stock inválido");
   if (price <= 0) issues.push("Falta el precio");
-  if ((cost ?? 0) === 0) issues.push("Margen incompleto: falta costo");
+  if (effectiveCostARS === 0) issues.push("Margen incompleto: falta costo");
 
   return {
     costUSD: cost ?? 0,

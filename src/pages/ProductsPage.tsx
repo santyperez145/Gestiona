@@ -498,8 +498,8 @@ export default function ProductsPage() {
     setLoadError(null);
     const since60 = new Date(); since60.setDate(since60.getDate() - 60);
     const results = await Promise.allSettled([
-      getProductsDB(user.id),
-      getSettingsDB(user.id),
+      getProductsDB(user.id, orgId),
+      getSettingsDB(user.id, orgId),
       getVariantsByUserDB(user.id),
       supabase.from('sales')
         .select('product_id, quantity, date')
@@ -709,6 +709,7 @@ export default function ProductsPage() {
       { name: 'brand', weight: 0.25 },
       { name: 'sku', weight: 0.1 },
       { name: 'barcode', weight: 0.1 },
+      { name: 'barcode_aliases', weight: 0.1 },
     ],
     // Umbral estricto: solo tolera errores de tipeo, no coincidencias sueltas.
     threshold: 0.3,
@@ -721,7 +722,7 @@ export default function ProductsPage() {
     if (!q || q.length < 2) return null;
     // 1) Coincidencia literal: TODOS los términos tienen que aparecer en el
     //    producto (nombre, marca, SKU o código). Ver src/lib/searchText.ts.
-    const literal = literalFilter(products, search, p => [p.name, p.brand, p.sku, p.barcode]);
+    const literal = literalFilter(products, search, p => [p.name, p.brand, p.sku, p.barcode, ...(p.barcode_aliases || [])]);
     if (literal.length > 0) return new Set(literal.map(p => p.id));
     // 2) Si no hubo ninguna, recién ahí buscamos difuso (tolera typos).
     return new Set(fuseIndex.search(q).map(r => r.item.id));

@@ -79,7 +79,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Dominio | Base implementada / comprobación interna | Próximo gate |
 |---|---|---|
 | Commerce | Storefront, variantes, carrito/checkout canónicos, pedidos, recuperación, SEO, temas/páginas, dominios y surtido multitienda. | Pago/fulfillment externo y conversión/performance de campo. |
-| Migración | Un staging/apply transaccional; variantes, clientes, imágenes, identidad externa y redirects. | Export real Shopify + Tiendanube, reconciliación y rollback; [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
+| Migración | Worker Excel/CSV, mapeo/moneda, hasta 50.000 filas; sesión reanudable por lotes sobre staging/apply existentes, Kardex, variantes, clientes, imágenes y redirects. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
 | Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo desde documento persistido. | ARCA A/B/C y NC, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
 | Finance | Inbox, aprobación versionada, comprometido/disponible, reembolsos/anticipos, dimensiones, conciliación CSV y export del ledger. | Documento y cierre reales; feeds de tarjetas externas y controles; [contrato](docs/FINANCE.md). |
@@ -112,7 +112,7 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-03: `npm run verify` pasa 3.619 tests en 407
+- Validación local del 2026-10-03: `npm run verify` pasa 3.642 tests en 412
   archivos, funciones, lint sin errores, tipos y build. Runtime sin hallazgos;
   toolchain conserva la excepción temporal documentada más abajo.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,

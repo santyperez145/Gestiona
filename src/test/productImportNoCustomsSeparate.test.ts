@@ -22,7 +22,7 @@ describe("C28.1: el 15% de aduana/pasero/impuestos ya no es un cálculo aparte",
     expect(productImportLib).not.toMatch(/params\.customsPercent/i);
     expect(productImportLib).not.toMatch(/customsPercent/i);
     // totalCostUSD debe ser igual al costo cargado, sin aduana aparte
-    expect(productImportLib).toContain("const totalCostUSD = cost ?? 0;");
+    expect(productImportLib).toContain(": cost ?? 0;");
   });
 
   it("el importador de facturas IA no calcula customsFee como porcentaje aparte del costo", () => {

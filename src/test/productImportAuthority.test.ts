@@ -8,14 +8,19 @@ const catalogMigration = readFileSync(resolve(root, "supabase/migrations/2026090
 const importer = readFileSync(resolve(root, "src/components/products/ProductsExcelImport.tsx"), "utf8");
 const catalogParser = readFileSync(resolve(root, "src/lib/catalogMigration.ts"), "utf8");
 const productsPage = readFileSync(resolve(root, "src/pages/ProductsPage.tsx"), "utf8");
+const session = readFileSync(resolve(root, "src/lib/catalogImportSession.ts"), "utf8");
+const sessionMigration = readFileSync(resolve(root, "supabase/migrations/20261003000200_catalog_import_sessions.sql"), "utf8");
 
 describe("autoridad de la importación de productos", () => {
   it("prepara y aplica el lote mediante RPC, nunca escribiendo products desde el navegador", () => {
-    expect(importer).toContain('rpc("stage_catalog_migration"');
-    expect(importer).toContain('rpc("apply_catalog_migration"');
+    expect(session).toContain('rpc("stage_catalog_import_chunk"');
+    expect(session).toContain('rpc("apply_catalog_import_chunk"');
+    expect(sessionMigration).toContain("public.stage_catalog_migration(");
+    expect(sessionMigration).toContain("public.apply_catalog_migration(");
     expect(catalogMigration).toContain("public.stage_product_import(");
     expect(catalogMigration).toContain("public.apply_product_import(");
     expect(importer).not.toMatch(/\.from\(["']products["']\)\s*\.(insert|update|upsert)/);
+    expect(session).not.toMatch(/\.from\(["']products["']\)\s*\.(insert|update|upsert)/);
   });
 
   it("ofrece copiar las imágenes externas al storage propio tras aplicar el lote", () => {
@@ -27,7 +32,7 @@ describe("autoridad de la importación de productos", () => {
     expect(edge).not.toContain('image_url = raw');
     // El navegador invoca la función con el batch ya aplicado.
     expect(importer).toContain('functions.invoke("copy-product-images"');
-    expect(importer).toContain("batch_id: stage.batch_id");
+    expect(importer).toContain("batch_id: chunk.batch_id");
     // Idempotente: una URL del storage propio no se vuelve a descargar.
     expect(edge).toContain('isOwnUrl');
     expect(edge).toContain('/storage/v1/object/public/product-images/');
@@ -57,7 +62,8 @@ describe("autoridad de la importación de productos", () => {
 
   it("bloquea filas inválidas salvo aprobación explícita", () => {
     expect(migration).toContain("v_batch.invalid_rows > 0 AND NOT p_skip_invalid");
-    expect(importer).toContain("Confirmá si querés omitir las filas inválidas");
+    expect(sessionMigration).toContain("Confirmá si querés omitir las filas inválidas");
+    expect(importer).toContain("Omitir {stage.invalid} filas inválidas");
   });
 
   it("reconcilia todas las filas válidas y hace idempotente el reintento", () => {

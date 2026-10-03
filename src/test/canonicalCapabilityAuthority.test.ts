@@ -12,8 +12,13 @@ describe("autoridad canónica de capacidades", () => {
 
     expect(page).toContain('import ProductsExcelImport from "@/components/products/ProductsExcelImport"');
     expect(page).toContain("<ProductsExcelImport");
-    expect(importer).toContain('supabase.rpc("stage_catalog_migration"');
-    expect(importer).toContain('supabase.rpc("apply_catalog_migration"');
+    const session = read("src/lib/catalogImportSession.ts");
+    const sessionSql = read("supabase/migrations/20261003000200_catalog_import_sessions.sql");
+    expect(importer).toContain("stageCatalogImportChunk");
+    expect(importer).toContain("applyCatalogImportChunk");
+    expect(session).toContain('supabase.rpc("stage_catalog_import_chunk"');
+    expect(sessionSql).toContain("public.stage_catalog_migration(");
+    expect(sessionSql).toContain("public.apply_catalog_migration(");
     expect(importer).not.toContain("setTimeout");
     expect(existsSync(resolve(root, "src/components/products/MigrationWizard.tsx"))).toBe(false);
   });

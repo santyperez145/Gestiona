@@ -32,6 +32,9 @@ export type CatalogMigrationProduct = ProductImportPayloadRow & {
   published?: boolean;
   maneja_stock?: boolean;
   variants?: CatalogMigrationVariant[];
+  barcode_aliases?: string[];
+  source_record?: string;
+  source_row?: number;
 };
 
 export type CatalogMigrationParseResult = {
@@ -178,7 +181,9 @@ function groupBy(rows: IndexedRow[], keyAliases: string[], nameAliases: string[]
   const groups = new Map<string, IndexedRow[]>();
   rows.forEach((row, index) => {
     const key = textValue(row, keyAliases) || textValue(row, nameAliases) || `fila-${index + 1}`;
-    groups.set(key, [...(groups.get(key) ?? []), row]);
+    const group = groups.get(key);
+    if (group) group.push(row);
+    else groups.set(key, [row]);
   });
   return groups;
 }
@@ -375,7 +380,7 @@ function parseTiendanube(rows: IndexedRow[]): CatalogMigrationProduct[] {
 }
 
 export function detectCatalogMigrationSource(rows: RawRow[], filename = ""): CatalogMigrationSource {
-  const headers = new Set(rows.flatMap(row => Object.keys(row).map(normalizeImportHeader)));
+  const headers = new Set(rows.slice(0, 100).flatMap(row => Object.keys(row).map(normalizeImportHeader)));
   if ((headers.has("url handle") || headers.has("handle")) && headers.has("title")) return "shopify";
   if (headers.has("identificador de url") || headers.has("nombre de propiedad 1")) return "tiendanube";
   if (normalizeImportHeader(filename).includes("empretienda")) return "empretienda";

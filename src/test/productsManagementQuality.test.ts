@@ -6,6 +6,7 @@ const root = process.cwd();
 const productsPage = readFileSync(resolve(root, "src/pages/ProductsPage.tsx"), "utf8");
 const productTable = readFileSync(resolve(root, "src/components/products/ProductTableOwn.tsx"), "utf8");
 const excelImport = readFileSync(resolve(root, "src/components/products/ProductsExcelImport.tsx"), "utf8");
+const importSql = readFileSync(resolve(root, "supabase/migrations/20261003000200_catalog_import_sessions.sql"), "utf8");
 
 describe("mejoras y correcciones en la gestión de productos", () => {
   it("conecta la edición inline de stock mediante el motor de Kardex (setStockAbsoluteDB)", () => {
@@ -37,10 +38,11 @@ describe("mejoras y correcciones en la gestión de productos", () => {
     expect(checkIdx).toBeLessThan(loopIdx);
   });
 
-  it("el importador de Excel pre-valida el límite del plan antes de aplicar el lote", () => {
-    // Evita transacciones abortadas a mitad de las inserciones
-    expect(excelImport).toContain("useEntitlements");
-    expect(excelImport).toContain("productLimit !== null && stage.creates > 0");
-    expect(excelImport).toContain("currentCount + stage.creates > productLimit");
+  it("el servidor valida el cupo de todo el archivo antes de aprobar el primer lote", () => {
+    const approval = importSql.slice(importSql.indexOf("CREATE OR REPLACE FUNCTION public.approve_catalog_import("), importSql.indexOf("CREATE OR REPLACE FUNCTION public.apply_catalog_import_chunk("));
+    expect(approval).toContain("public.organization_plan_limits(v_session.org_id)");
+    expect(approval).toContain("v_current + (v_status->>'creates')::int > v_max");
+    expect(approval.indexOf("El catálogo supera el límite")).toBeLessThan(approval.indexOf("SET status = 'applying'"));
+    expect(excelImport.indexOf("await approveCatalogImport(stage.id, skipInvalid)")).toBeLessThan(excelImport.indexOf("await applyCatalogImportChunk(next.id, previousApplied)"));
   });
 });
