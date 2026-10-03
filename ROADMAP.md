@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Estado:** canónico. **Revisión:** 2026-10-02. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-03. **Owner:** Producto / CTO.
 Este documento contiene decisiones activas y próximos cierres, no un diario.
 Git conserva la historia; los contratos de dominio viven en [el índice](docs/INDICE.md).
 
@@ -161,6 +161,13 @@ sigue abierto como certificación operacional.
   recibió el GHSA-vfj7-8cjw-p6xm sin release corregido. El gate no lo silencia:
   acepta sólo esa cadena de desarrollo hasta el 2026-10-16, imprime la excepción
   y bloquea cualquier hallazgo runtime, advisory adicional o revisión vencida.
+- Integridad fiscal 2026-10-03: `FECompUltimoAutorizado` ya no convierte un
+  rechazo SOAP o `CbteNro` ausente en cero. La carga de plataforma parsea el
+  X.509, verifica CRT/KEY, CUIT y vigencia, cifra ambos secretos y expone sólo
+  fecha/huella. Migraciones `20261003000100`/`00110` aplicadas; el legado quedó
+  recifrado y un trigger impide volver a persistir CRT/KEY en claro. Funciones desplegadas como
+  `afip-platform-cert` v21 y `afip-authorize` v65. Falta todavía cerrar la cola
+  de aceptación/subdelegación de cada comercio y certificar con identidad real.
 - La aplicación no recarga automáticamente al desplegar; la caché PWA no
   almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
 - Recuperación de lectura compartida: tres intentos ante conexión

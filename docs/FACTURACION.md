@@ -1,6 +1,6 @@
 # Facturación y autoridad fiscal
 
-**Estado:** vigente, 2026-10-02. **Responsable:** Business Core / integración ARCA.
+**Estado:** vigente, 2026-10-03. **Responsable:** Business Core / integración ARCA.
 Este contrato describe cálculo, persistencia y representación. Configuración
 general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LEGAL.md).
 
@@ -45,6 +45,15 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   ambiente, clase y certificado que ARCA validó. Un cambio concurrente invalida
   el resultado; sólo el backend puede confirmarlo. Certificado propio y
   representación delegada conservan diagnósticos separados.
+- La credencial de plataforma acepta el CRT emitido y la KEY usada para su CSR;
+  el CSR nunca se carga en Nerqia. Antes de persistir, la Edge parsea X.509,
+  comprueba vigencia, par RSA y CUIT del subject. Certificado y clave se cifran
+  con el envelope server-side; la UI sólo puede leer fechas y huella SHA-256.
+  `.crt` no demuestra ambiente: producción y homologación se seleccionan y
+  prueban por separado.
+- `FECompUltimoAutorizado` sólo devuelve cero cuando ARCA envía explícitamente
+  `CbteNro=0`. Faults, bloques `Errors/Err`, número ausente o inválido fallan;
+  un HTTP 200 de SOAP no se interpreta por sí solo como conexión válida.
 - A4 y 80 mm muestran neto/IVA para A y NC A, precios finales para B/C y sus NC,
   transparencia, identidad congelada, CAE/QR y referencia de la NC. Homologación
   se identifica explícitamente y no es un comprobante productivo.
@@ -64,6 +73,13 @@ Los tests de ticket incluyen un pedido con descuento, envío e IVA mixto.
 mixtas, redondeo, clase C, tasa invalida y permisos owner/viewer en rollback.
 `supabase/verificaciones/20261002_arca_connection_context.sql` prueba versionado,
 invalidación, ambiente y confirmación exclusiva del backend sin llamar a ARCA.
+Las pruebas puras `wsfeRespuesta` y `afipCertificate` cubren rechazo embebido,
+respuesta incompleta, cero legítimo, CRT/KEY distinto, vigencia y CUIT. La
+migraciones `20261003000100`/`00110` están aplicadas en la base vinculada y las funciones
+`afip-platform-cert` v21 y `afip-authorize` v65 quedaron desplegadas. Esto prueba
+el control interno. `00110` recifra la credencial legada y agrega un trigger
+que impide futuras escrituras en claro; no reemplaza una llamada con certificado
+productivo real ni valida retroactivamente la vigencia del PEM ya almacenado.
 El CAE de la fixture POS es
 **simulado sólo dentro del rollback**; no certifica emisión ni recepción real.
 
@@ -73,4 +89,6 @@ ARCA A/B/C y NC con identidad delegada, impresión física y entrega por correo.
 El cero supuesto de otros impuestos en las representaciones actuales no es una
 certificación de transparencia fiscal completa.
 
-Referencia oficial revisada el 2026-10-01: [manual WSFEv1 de ARCA](https://arca.gob.ar/ws/WSFEV1/documentos/manual-desarrollador-COMPG-v3-4-2.pdf).
+Referencias oficiales revisadas el 2026-10-03: [manual WSFEv1 de ARCA](https://arca.gob.ar/ws/WSFEV1/documentos/manual-desarrollador-COMPG-v3-4-2.pdf),
+[certificado de producción](https://arca.gob.ar/ws/WSAA/WSAA.ObtenerCertificado.pdf)
+y [delegación a terceros](https://www.arca.gob.ar/ws/WSAA/ADMINREL.DelegarWS.pdf).

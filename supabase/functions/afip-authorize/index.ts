@@ -39,6 +39,7 @@ import {
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
 import { invoiceIvaXml } from "../_shared/invoiceIva.ts";
+import { leerUltimoAutorizadoWsfe } from "../_shared/wsfeRespuesta.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -892,8 +893,7 @@ async function getUltimoAutorizado(
   );
 
   const xml = await wsfeCall(wsfeUrl, soap, "FECompUltimoAutorizado");
-  const nro = extractXml(xml, "CbteNro");
-  return nro ? parseInt(nro) : 0;
+  return leerUltimoAutorizadoWsfe(xml);
 }
 
 /**

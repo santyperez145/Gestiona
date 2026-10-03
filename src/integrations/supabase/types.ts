@@ -1536,6 +1536,9 @@ export type Database = {
       afip_platform_credentials: {
         Row: {
           certificate: string | null
+          certificate_expires_at: string | null
+          certificate_fingerprint_sha256: string | null
+          certificate_not_before: string | null
           cuit: string
           environment: string
           id: boolean
@@ -1548,6 +1551,9 @@ export type Database = {
         }
         Insert: {
           certificate?: string | null
+          certificate_expires_at?: string | null
+          certificate_fingerprint_sha256?: string | null
+          certificate_not_before?: string | null
           cuit: string
           environment?: string
           id?: boolean
@@ -1560,6 +1566,9 @@ export type Database = {
         }
         Update: {
           certificate?: string | null
+          certificate_expires_at?: string | null
+          certificate_fingerprint_sha256?: string | null
+          certificate_not_before?: string | null
           cuit?: string
           environment?: string
           id?: boolean
@@ -49688,6 +49697,10 @@ export type Database = {
       }
       afip_platform_status: {
         Row: {
+          certificate_expires_at: string | null
+          certificate_fingerprint_sha256: string | null
+          certificate_not_before: string | null
+          certificate_valid: boolean | null
           comercios_delegados: number | null
           configured: boolean | null
           cuit: string | null
@@ -49698,6 +49711,10 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          certificate_expires_at?: string | null
+          certificate_fingerprint_sha256?: string | null
+          certificate_not_before?: string | null
+          certificate_valid?: never
           comercios_delegados?: never
           configured?: never
           cuit?: string | null
@@ -49708,6 +49725,10 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          certificate_expires_at?: string | null
+          certificate_fingerprint_sha256?: string | null
+          certificate_not_before?: string | null
+          certificate_valid?: never
           comercios_delegados?: never
           configured?: never
           cuit?: string | null

@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-10-02. Este documento define la dirección visual y los próximos
+**Corte:** 2026-10-03. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -77,7 +77,9 @@ muestra un borrador no fiscal, evitando controles que prometan emisión ARCA.
 La conexión fiscal conserva el último diagnóstico sólo para la configuración
 que se probó; si cambia durante la espera, pide revisar y reintentar en vez de
 mostrar un éxito obsoleto.
-
+La credencial fiscal de Platform acepta CRT + KEY o PEM pegado, aclara que el
+CSR va a ARCA, valida el par y muestra vencimiento/huella sin devolver secretos.
+La guía separará delegación del comercio y aceptación/computador por Nerqia.
 El corte productivo 2026-09-05 recorrió 93 contextos de ruta sin overflow
 horizontal ni errores JavaScript propios. Corrigió `NaNd` en Productos, títulos
 genéricos en superficies aisladas, el título semántico del checkout vacío,

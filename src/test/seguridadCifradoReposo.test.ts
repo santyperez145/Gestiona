@@ -13,6 +13,8 @@ const smtpEdge = leer("supabase/functions/test-smtp/index.ts");
 const webhook = leer("supabase/functions/_shared/outboundWebhook.ts");
 const afipCreed = leer("supabase/functions/_shared/afipCredenciales.ts");
 const afipEdge = leer("supabase/functions/afip-credentials/index.ts");
+const afipPlatformEdge = leer("supabase/functions/afip-platform-cert/index.ts");
+const afipPlatformGuard = leer("supabase/migrations/20261003000110_arca_platform_credentials_encryption_guard.sql");
 
 describe("endurecimiento de superficie (anon ≠ creador)", () => {
   it("revoca anon de las funciones de creador y negocio", () => {
@@ -81,12 +83,23 @@ describe("cifrado en reposo de secretos por tenant", () => {
     expect(smtpEdge).toContain("password: await cifrarSecreto(admin, pass)");
     expect(afipEdge).toContain("certificate: await cifrarSecreto(admin, certificate.trim())");
     expect(afipEdge).toContain("private_key: await cifrarSecreto(admin, privateKey.trim())");
+    expect(afipPlatformEdge).toContain("certificate: encryptedCertificate");
+    expect(afipPlatformEdge).toContain("private_key: encryptedPrivateKey");
+    expect(afipPlatformEdge).toContain("cifrarSecreto(admin, certificate.trim())");
   });
 
   it("el helper es transparente con el legado, como el propio cifrado", () => {
     expect(secretos).toContain('if (!valor.startsWith("nerqia:v1:")) return valor;');
     expect(secretos).toContain('rpc("secret_decrypt"');
     expect(secretos).toContain('rpc("secret_encrypt"');
+  });
+
+  it("la base re-cifra el legado fiscal y no admite nuevas escrituras en claro", () => {
+    expect(afipPlatformGuard).toContain("BEFORE INSERT OR UPDATE OF certificate, private_key");
+    expect(afipPlatformGuard).toContain("NEW.certificate := public.secret_encrypt(NEW.certificate)");
+    expect(afipPlatformGuard).toContain("NEW.private_key := public.secret_encrypt(NEW.private_key)");
+    expect(afipPlatformGuard).toContain("Quedaron credenciales fiscales de plataforma sin cifrar");
+    expect(afipPlatformGuard).toContain("FROM PUBLIC, anon, authenticated");
   });
 
   it("los generadores de secretos de webhook persisten cifrado", () => {

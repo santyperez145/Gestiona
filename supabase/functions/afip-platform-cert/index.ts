@@ -22,6 +22,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireUser } from "../_shared/requireUser.ts";
 import { requireEnv } from "../_shared/env.ts";
 import { esPem, ERROR_CERT, ERROR_CLAVE } from "../_shared/pem.ts";
+import { cifrarSecreto } from "../_shared/secretos.ts";
+import { validateAfipCertificateMetadata } from "../_shared/afipCertificate.ts";
+// @ts-ignore node-forge no publica tipos ESM compatibles con Deno.
+import forge from "https://esm.sh/node-forge@1.3.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,6 +70,9 @@ Deno.serve(async (req) => {
         .from("afip_platform_credentials")
         .update({
           certificate: null, private_key: null,
+          certificate_not_before: null,
+          certificate_expires_at: null,
+          certificate_fingerprint_sha256: null,
           ta_token: null, ta_sign: null, ta_expires_at: null,
           updated_at: new Date().toISOString(),
         })
@@ -88,14 +95,44 @@ Deno.serve(async (req) => {
       return json({ error: ERROR_CLAVE }, 400);
     }
 
+    let certificateMetadata;
+    try {
+      const parsedCertificate = forge.pki.certificateFromPem(certificate.trim());
+      const parsedPrivateKey = forge.pki.privateKeyFromPem(privateKey.trim());
+      const publicKey = parsedCertificate.publicKey;
+      const digest = forge.md.sha256.create();
+      digest.update(forge.asn1.toDer(forge.pki.certificateToAsn1(parsedCertificate)).getBytes());
+      certificateMetadata = validateAfipCertificateMetadata({
+        notBefore: parsedCertificate.validity.notBefore,
+        notAfter: parsedCertificate.validity.notAfter,
+        subjectSerialNumber: parsedCertificate.subject.getField("serialNumber")?.value ?? null,
+        certificateModulus: publicKey.n.toString(16),
+        certificateExponent: publicKey.e.toString(16),
+        privateKeyModulus: parsedPrivateKey.n.toString(16),
+        privateKeyExponent: parsedPrivateKey.e.toString(16),
+        fingerprintSha256: digest.digest().toHex(),
+      }, cuitLimpio);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "No se pudo leer el certificado o la clave privada";
+      return json({ error: detail }, 400);
+    }
+
+    const [encryptedCertificate, encryptedPrivateKey] = await Promise.all([
+      cifrarSecreto(admin, certificate.trim()),
+      cifrarSecreto(admin, privateKey.trim()),
+    ]);
+
     const { error } = await admin
       .from("afip_platform_credentials")
       .upsert({
         id: true,
         cuit: cuitLimpio,
         razon_social: typeof razonSocial === "string" && razonSocial.trim() ? razonSocial.trim() : null,
-        certificate: certificate.trim(),
-        private_key: privateKey.trim(),
+        certificate: encryptedCertificate,
+        private_key: encryptedPrivateKey,
+        certificate_not_before: certificateMetadata.notBefore,
+        certificate_expires_at: certificateMetadata.expiresAt,
+        certificate_fingerprint_sha256: certificateMetadata.fingerprintSha256,
         environment,
         // Cambiar el certificado invalida el ticket anterior: se firmó con el
         // que ya no está. Dejarlo haría que la próxima factura use un TA que

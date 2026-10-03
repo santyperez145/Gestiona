@@ -39,6 +39,10 @@ interface Estado {
   ticket_vigente: boolean;
   updated_at: string | null;
   comercios_delegados: number;
+  certificate_not_before: string | null;
+  certificate_expires_at: string | null;
+  certificate_fingerprint_sha256: string | null;
+  certificate_valid: boolean | null;
 }
 
 export default function PlatformAfipPage() {
@@ -55,6 +59,22 @@ export default function PlatformAfipPage() {
   const [environment, setEnvironment] = useState('homologacion');
   const [certificate, setCertificate] = useState('');
   const [privateKey, setPrivateKey] = useState('');
+
+  const leerArchivoPem = async (file: File | undefined, destino: 'certificate' | 'privateKey') => {
+    if (!file) return;
+    if (file.size > 128 * 1024) {
+      toast.error('El archivo supera 128 KB y no parece un PEM válido');
+      return;
+    }
+    try {
+      const content = await file.text();
+      if (destino === 'certificate') setCertificate(content);
+      else setPrivateKey(content);
+      toast.success(`${file.name} cargado para validar`);
+    } catch {
+      toast.error(`No se pudo leer ${file.name}`);
+    }
+  };
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -142,7 +162,9 @@ export default function PlatformAfipPage() {
           value={listo ? 'Cargado' : 'Falta'}
           icon={listo ? ShieldCheck : ShieldAlert}
           color={listo ? 'success' : 'destructive'}
-          sub={estado?.environment === 'produccion' ? 'Ambiente de producción' : 'Ambiente de homologación'}
+          sub={estado?.certificate_expires_at
+            ? `Vence ${new Date(estado.certificate_expires_at).toLocaleDateString('es-AR')}`
+            : estado?.environment === 'produccion' ? 'Producción · vigencia sin registrar' : 'Homologación · vigencia sin registrar'}
         />
         <KPICard
           label="Ticket de acceso"
@@ -174,6 +196,11 @@ export default function PlatformAfipPage() {
             </p>
             <p className="text-muted-foreground">
               Al comercio sólo le pedimos CUIT, razón social y domicilio. No sube ninguna clave.
+            </p>
+            <p className="text-muted-foreground">
+              El <strong>CSR se sube a ARCA</strong>. Acá se carga el <strong>CRT emitido</strong>
+              junto con la misma <strong>KEY privada</strong> usada para generar ese CSR. La extensión
+              no distingue homologación de producción; elegí el ambiente real del certificado.
             </p>
             <a
               className="inline-flex items-center gap-1 text-primary hover:underline"
@@ -218,6 +245,11 @@ export default function PlatformAfipPage() {
 
           <div className="space-y-2">
             <Label htmlFor="pf-cert">Certificado (.crt en PEM)</Label>
+            <Input
+              type="file" accept=".crt,.cer,.pem,text/plain,application/x-x509-ca-cert"
+              aria-label="Seleccionar certificado CRT"
+              onChange={(event) => void leerArchivoPem(event.target.files?.[0], 'certificate')}
+            />
             <Textarea
               id="pf-cert" rows={5} value={certificate}
               onChange={(e) => setCertificate(e.target.value)}
@@ -228,6 +260,11 @@ export default function PlatformAfipPage() {
 
           <div className="space-y-2">
             <Label htmlFor="pf-key">Clave privada (.key en PEM)</Label>
+            <Input
+              type="file" accept=".key,.pem,text/plain"
+              aria-label="Seleccionar clave privada KEY"
+              onChange={(event) => void leerArchivoPem(event.target.files?.[0], 'privateKey')}
+            />
             <Textarea
               id="pf-key" rows={5} value={privateKey}
               onChange={(e) => setPrivateKey(e.target.value)}
@@ -235,8 +272,9 @@ export default function PlatformAfipPage() {
               className="font-mono text-xs"
             />
             <p className="text-xs text-muted-foreground">
-              Entra y no vuelve: se guarda en una tabla sin políticas de lectura. Ni siquiera
-              esta pantalla puede mostrártela después.
+              Entra y no vuelve: el servidor comprueba que CRT y KEY forman el mismo par,
+              valida CUIT y vigencia, y los cifra antes de guardarlos. Ni siquiera esta pantalla
+              puede mostrarlos después.
             </p>
           </div>
 
@@ -253,6 +291,11 @@ export default function PlatformAfipPage() {
             {estado?.updated_at && (
               <Badge variant="secondary">
                 Actualizado {new Date(estado.updated_at).toLocaleDateString('es-AR')}
+              </Badge>
+            )}
+            {estado?.certificate_fingerprint_sha256 && (
+              <Badge variant="outline" title={estado.certificate_fingerprint_sha256}>
+                SHA-256 …{estado.certificate_fingerprint_sha256.slice(-12)}
               </Badge>
             )}
           </div>
