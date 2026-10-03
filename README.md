@@ -147,8 +147,11 @@ omite autenticación silenciosamente. `verify` no certifica por sí solo el pane
 Cada push a `main` inicia un deploy en Vercel. El dominio canónico es
 `nerqia.app`; `www.nerqia.app` redirige al apex. Supabase usa ese origen y
 los dominios permitidos declarados en `supabase/config.toml`.
-Al 2026-10-01, GitHub informa `main` sin protección. Requerir CI/PR y coordinar
-la promoción sigue pendiente: un auto-deploy no demuestra que CI terminó verde.
+Desde el 2026-10-03, `main` exige CI, Supabase Preview y Vercel, historial lineal
+y conversaciones resueltas; el owner conserva el bypass del flujo directo.
+La recuperación manual valida un deploy conocido, exige aprobación/confirmación
+y verifica las superficies públicas; ver [runbook](docs/RELEASE_RECOVERY.md).
+El auto-deploy sigue activo, por lo que un push no sustituye la revisión del SHA.
 
 Las Edge Functions se publican con:
 

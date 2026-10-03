@@ -213,6 +213,10 @@ sigue abierto como certificación operacional.
   el parser XML usa el specifier `npm:` versionado en Edge y un resolver de test
   exacto hacia la misma dependencia local. Así los rechazos SOAP y puntos CAE
   no quedan sin ejecutar por incompatibilidad entre runtimes.
+- Release recovery 2026-10-03: workflow manual con environment dedicado,
+  confirmación por operación, Vercel CLI fijado, validación previa de proyecto,
+  deploy `READY`/producción y comprobación posterior de home, estado y sitemap.
+  No se provocó un rollback real; reviewers, secreto y game day son gates externos.
 - Profit por SKU: filas acotadas, columnas e importes legibles y desglose
   completo de costos accesible con teclado en móvil/escritorio. La geometría,
   navegación y detalle se comprueban por separado sin aumentar sus límites.
@@ -224,8 +228,10 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
 
 ### P0 — Seguridad, release y operación confiable
 
-1. Mantener Critical E2E remoto verde y la protección real de `main`; definir
-   promoción/rollback sin cortar el deploy automático vigente.
+1. Mantener Critical E2E remoto verde y la protección real de `main`. Rollback
+   y recuperación de auto-asignación ya tienen workflow manual con deploy
+   inspeccionado, confirmación y smoke público; falta configurar reviewers/token
+   del environment y ejecutar un game day autorizado. El auto-deploy continúa.
 2. Revisar funciones expuestas pendientes, permisos RPC/RLS, cron, secretos,
    archivo/libro de migraciones y restauración reproducible.
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales

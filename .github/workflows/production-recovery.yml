@@ -1,0 +1,62 @@
+name: Production Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Acción sobre producción"
+        required: true
+        type: choice
+        options:
+          - rollback
+          - promote
+      deployment_url:
+        description: "URL inmutable del deploy nerqia-*.vercel.app"
+        required: true
+        type: string
+      confirmation:
+        description: "ROLLBACK NERQIA o PROMOTE NERQIA"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nerqia-production-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    name: Validate, recover and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-recovery
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      RECOVERY_OPERATION: ${{ inputs.operation }}
+      RECOVERY_DEPLOYMENT_URL: ${{ inputs.deployment_url }}
+      RECOVERY_CONFIRMATION: ${{ inputs.confirmation }}
+
+    steps:
+      - name: Checkout the runbook version
+        uses: actions/checkout@v7
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Require the protected credential
+        shell: bash
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error title=Recovery sin configurar::Falta VERCEL_TOKEN en el environment production-recovery"
+            exit 1
+          fi
+
+      - name: Install audited Vercel CLI version
+        run: npm install --global vercel@59.10.0
+
+      - name: Apply recovery and verify public surfaces
+        run: node scripts/vercel-production-recovery.mjs

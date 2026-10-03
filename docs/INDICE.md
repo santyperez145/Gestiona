@@ -1,6 +1,6 @@
 # Índice de documentación
 
-**Estado:** canónico. **Revisión:** 2026-10-01. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-03. **Owner:** Producto / CTO.
 
 Este índice enumera los documentos vigentes. ROADMAP describe presente y futuro;
 Git conserva auditorías, evidencia e incidentes cerrados. No se versionan dumps
@@ -78,6 +78,7 @@ los reemplaza con otro ADR.
 - [Legal](LEGAL.md): normativa argentina y datos pendientes del comercio.
 - [Soporte diagnóstico](SOPORTE_DIAGNOSTICO.md): triage y operación.
 - [Restore](RESTORE.md): recuperación y drills.
+- [Release recovery](RELEASE_RECOVERY.md): rollback/promoción protegidos y límites.
 
 ## Política documental
 
