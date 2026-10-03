@@ -29,6 +29,7 @@ import KPICard from '@/components/shared/KPICard';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import FilePicker from "@/components/shared/FilePicker";
 
 interface Estado {
   cuit: string | null;
@@ -70,6 +71,9 @@ export default function PlatformAfipPage() {
   const [guardando, setGuardando] = useState(false);
   const [solicitudes, setSolicitudes] = useState<SolicitudDelegacion[]>([]);
   const [verificandoOrg, setVerificandoOrg] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const [verificationErrors, setVerificationErrors] = useState<Record<string, string>>({});
 
   const [cuit, setCuit] = useState('');
   const [razonSocial, setRazonSocial] = useState('');
@@ -95,37 +99,41 @@ export default function PlatformAfipPage() {
 
   const cargar = useCallback(async () => {
     setCargando(true);
-    const [statusResult, queueResult] = await Promise.all([
-      supabase.from('afip_platform_status').select('*').maybeSingle(),
-      supabase
-        .from('platform_afip_delegation_queue')
-        .select('*')
-        .order('delegacion_solicitada_at', { ascending: false }),
-    ]);
-    const { data, error } = statusResult;
-
-    // ⚠️ No se traga el error: "no tengo permiso" y "no hay nada cargado" son
-    // problemas opuestos y muestran la misma pantalla vacía si se confunden.
-    if (error && error.code !== 'PGRST116') {
-      toast.error('No se pudo leer el estado de AFIP: ' + error.message);
+    setStatusError(null);
+    setQueueError(null);
+    try {
+      const [statusResult, queueResult] = await Promise.all([
+        supabase.from('afip_platform_status').select('*').maybeSingle(),
+        supabase.from('platform_afip_delegation_queue').select('*')
+          .order('delegacion_solicitada_at', { ascending: false }),
+      ]);
+      const { data, error } = statusResult;
+      if (error) {
+        console.error('[ARCA Platform] status read failed', { code: error.code });
+        setStatusError('No pudimos actualizar el estado del certificado. Reintentá sin reemplazarlo.');
+      }
+      if (queueResult.error) {
+        console.error('[ARCA Platform] queue read failed', { code: queueResult.error.code });
+        setQueueError('No pudimos actualizar las solicitudes. Reintentá; este error no significa que la cola esté vacía.');
+      } else {
+        setSolicitudes((queueResult.data || []) as SolicitudDelegacion[]);
+      }
+      if (!error) {
+        const e = (data ?? null) as Estado | null;
+        setEstado(e);
+        if (e) {
+          setCuit(e.cuit ?? '');
+          setRazonSocial(e.razon_social ?? '');
+          setEnvironment(e.environment ?? 'homologacion');
+        }
+      }
+    } catch {
+      console.error('[ARCA Platform] fiscal reads unavailable');
+      setStatusError('No pudimos consultar el estado fiscal. Reintentá sin cambiar el certificado.');
+      setQueueError('No pudimos consultar las solicitudes. Volvé a intentar.');
+    } finally {
       setCargando(false);
-      return;
     }
-    if (queueResult.error) {
-      toast.error('No se pudo leer la cola de activaciones: ' + queueResult.error.message);
-      setSolicitudes([]);
-    } else {
-      setSolicitudes((queueResult.data || []) as SolicitudDelegacion[]);
-    }
-
-    const e = (data ?? null) as Estado | null;
-    setEstado(e);
-    if (e) {
-      setCuit(e.cuit ?? '');
-      setRazonSocial(e.razon_social ?? '');
-      setEnvironment(e.environment ?? 'homologacion');
-    }
-    setCargando(false);
   }, []);
 
   useEffect(() => { if (isSuperadmin) void cargar(); }, [isSuperadmin, cargar]);
@@ -171,19 +179,28 @@ export default function PlatformAfipPage() {
   };
 
   const verificarDelegacion = async (solicitud: SolicitudDelegacion) => {
+    if (!isSuperadmin || verificandoOrg) return;
     setVerificandoOrg(solicitud.org_id);
-    const { data, error } = await supabase.functions.invoke('afip-authorize', {
-      body: { action: 'verificar_delegacion', org_id: solicitud.org_id },
-    });
-    setVerificandoOrg(null);
-    if (error || !(data as { ok?: boolean } | null)?.ok) {
-      const detalle = await mensajeDeEdgeFunction(error, data, 'platform');
-      toast.error(detalle || 'ARCA todavía no aceptó la conexión');
+    setVerificationErrors(previous => ({ ...previous, [solicitud.org_id]: '' }));
+    try {
+      const { data, error } = await supabase.functions.invoke('afip-authorize', {
+        body: { action: 'verificar_delegacion', org_id: solicitud.org_id },
+      });
+      if (error || !(data as { ok?: boolean } | null)?.ok) {
+        const detalle = await mensajeDeEdgeFunction(error, data);
+        setVerificationErrors(previous => ({ ...previous, [solicitud.org_id]: detalle || 'ARCA todavía no aceptó la conexión' }));
+        toast.error(detalle || 'ARCA todavía no aceptó la conexión');
+        await cargar();
+        return;
+      }
+      toast.success(`Conexión de ${solicitud.organization_name} verificada en ${solicitud.environment === 'produccion' ? 'producción' : 'homologación (sin valor fiscal)'}`);
       await cargar();
-      return;
+    } catch {
+      console.error('[ARCA Platform] verification request unavailable');
+      setVerificationErrors(previous => ({ ...previous, [solicitud.org_id]: 'No pudimos consultar ARCA. La solicitud se conserva; reintentá en unos minutos.' }));
+    } finally {
+      setVerificandoOrg(null);
     }
-    toast.success(`${solicitud.organization_name} quedó habilitada para facturar`);
-    await cargar();
   };
 
   if (accessLoading) return null;
@@ -194,7 +211,8 @@ export default function PlatformAfipPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="AFIP de la plataforma"
+        title="ARCA de la plataforma"
+        eyebrow="Nerqia · Plataforma"
         description="Un solo certificado para emitir en nombre de los comercios que delegan el servicio."
         icon={FileText}
       />
@@ -202,7 +220,7 @@ export default function PlatformAfipPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KPICard
           label="Certificado"
-          value={listo ? 'Cargado' : 'Falta'}
+          value={cargando ? '…' : statusError ? 'Sin actualizar' : listo ? 'Cargado' : 'Falta'}
           icon={listo ? ShieldCheck : ShieldAlert}
           color={listo ? 'success' : 'destructive'}
           sub={estado?.certificate_expires_at
@@ -211,7 +229,7 @@ export default function PlatformAfipPage() {
         />
         <KPICard
           label="Ticket de acceso"
-          value={estado?.ticket_vigente ? 'Vigente' : 'Sin ticket'}
+          value={cargando ? '…' : statusError ? 'Sin actualizar' : estado?.ticket_vigente ? 'Vigente' : 'Sin ticket'}
           icon={KeyRound}
           color={estado?.ticket_vigente ? 'success' : 'primary'}
           sub={estado?.ta_expires_at
@@ -220,21 +238,22 @@ export default function PlatformAfipPage() {
         />
         <KPICard
           label="Comercios delegados"
-          value={String(estado?.comercios_delegados ?? 0)}
+          value={cargando ? '…' : statusError ? 'Sin actualizar' : String(estado?.comercios_delegados ?? 0)}
           icon={Building2}
           color="blue"
           sub="Facturan con este certificado"
         />
         <KPICard
           label="Activaciones pendientes"
-          value={String(solicitudes.filter(item => item.estado !== 'verificada').length)}
+          value={cargando ? '…' : queueError ? 'Sin actualizar' : String(solicitudes.filter(item => item.estado !== 'verificada').length)}
           icon={Clock}
           color="primary"
           sub="Requieren aceptación y prueba"
         />
       </div>
 
-      <section className="rounded-lg border border-border bg-card">
+      {statusError && <p role="alert" className="text-sm text-destructive">{statusError}</p>}
+      <section aria-label="Activaciones fiscales" className="rounded-lg border border-border bg-card">
         <div className="flex flex-col gap-2 border-b border-border p-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="font-semibold">Activaciones solicitadas</h2>
@@ -249,7 +268,8 @@ export default function PlatformAfipPage() {
             Actualizar
           </Button>
         </div>
-        {solicitudes.length === 0 ? (
+        {queueError && <p role="alert" className="p-4 text-sm text-destructive">{queueError}</p>}
+        {cargando && solicitudes.length === 0 ? <p role="status" className="p-4 text-sm text-muted-foreground">Consultando solicitudes…</p> : !queueError && solicitudes.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">No hay solicitudes de activación.</p>
         ) : (
           <div className="divide-y divide-border">
@@ -260,12 +280,12 @@ export default function PlatformAfipPage() {
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium">{solicitud.organization_name}</p>
-                      <Badge variant={solicitud.estado === 'verificada' ? 'secondary' : 'outline'}>
+                      <Badge variant="outline" className={solicitud.estado === 'verificada' ? 'border-emerald-600/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200' : undefined}>
                         {solicitud.estado === 'verificada' ? 'Verificada'
                           : solicitud.estado === 'requiere_correccion' ? 'Requiere corrección'
                             : 'Pendiente'}
                       </Badge>
-                      <Badge variant="outline">{solicitud.environment}</Badge>
+                      <Badge variant="outline">{solicitud.environment === 'produccion' ? 'Producción' : 'Homologación'}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       CUIT {solicitud.cuit || 'sin informar'} · Punto de venta {solicitud.punto_venta || '—'} ·
@@ -274,6 +294,7 @@ export default function PlatformAfipPage() {
                     {solicitud.last_error && solicitud.estado !== 'verificada' && (
                       <p className="max-w-3xl text-xs text-destructive">ARCA: {solicitud.last_error}</p>
                     )}
+                    {verificationErrors[solicitud.org_id] && <p role="alert" className="max-w-3xl text-sm text-destructive break-words">{verificationErrors[solicitud.org_id]}</p>}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
                     <Button asChild variant="outline" size="sm">
@@ -345,9 +366,9 @@ export default function PlatformAfipPage() {
               <Input id="pf-rs" value={razonSocial} onChange={(e) => setRazonSocial(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Ambiente</Label>
+              <Label htmlFor="pf-environment">Ambiente</Label>
               <Select value={environment} onValueChange={setEnvironment}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pf-environment"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="homologacion">Homologación (pruebas)</SelectItem>
                   <SelectItem value="produccion">Producción (facturas reales)</SelectItem>
@@ -358,10 +379,10 @@ export default function PlatformAfipPage() {
 
           <div className="space-y-2">
             <Label htmlFor="pf-cert">Certificado (.crt en PEM)</Label>
-            <Input
-              type="file" accept=".crt,.cer,.pem,text/plain,application/x-x509-ca-cert"
-              aria-label="Seleccionar certificado CRT"
-              onChange={(event) => void leerArchivoPem(event.target.files?.[0], 'certificate')}
+            <FilePicker
+              mode="button" accept=".crt,.cer,.pem,text/plain,application/x-x509-ca-cert"
+              title="Seleccionar certificado CRT" disabled={guardando}
+              onFile={(file) => leerArchivoPem(file, 'certificate')}
             />
             <Textarea
               id="pf-cert" rows={5} value={certificate}
@@ -373,10 +394,10 @@ export default function PlatformAfipPage() {
 
           <div className="space-y-2">
             <Label htmlFor="pf-key">Clave privada (.key en PEM)</Label>
-            <Input
-              type="file" accept=".key,.pem,text/plain"
-              aria-label="Seleccionar clave privada KEY"
-              onChange={(event) => void leerArchivoPem(event.target.files?.[0], 'privateKey')}
+            <FilePicker
+              mode="button" accept=".key,.pem,text/plain"
+              title="Seleccionar clave privada KEY" disabled={guardando}
+              onFile={(file) => leerArchivoPem(file, 'privateKey')}
             />
             <Textarea
               id="pf-key" rows={5} value={privateKey}

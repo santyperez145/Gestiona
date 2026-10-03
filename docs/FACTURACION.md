@@ -56,7 +56,9 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   un HTTP 200 de SOAP no se interpreta por sí solo como conexión válida.
 - La conexión delegada tiene dos autoridades visibles: el comercio designa a
   Nerqia y solicita activación; Platform acepta la designación, asocia el
-  computador fiscal y ejecuta `FECompUltimoAutorizado`. La solicitud no puede
+  computador fiscal y consulta el punto de venta CAE activo con
+  `FEParamGetPtosVenta`, seguido de `FECompUltimoAutorizado` con la clase del
+  emisor. La solicitud no puede
   marcarse verificada desde el navegador. Pendiente, corrección y verificada
   quedan separados y auditados; cambiar CUIT/ambiente/punto invalida el ciclo.
 - A4 y 80 mm muestran neto/IVA para A y NC A, precios finales para B/C y sus NC,
@@ -82,15 +84,29 @@ invalidación, ambiente y confirmación exclusiva del backend sin llamar a ARCA.
 solicitud, idempotencia, handoff visible, cola de staff, revisión, corrección,
 reintento, invalidación y navegador sin autoridad de confirmación.
 Las pruebas puras `wsfeRespuesta` y `afipCertificate` cubren rechazo embebido,
-respuesta incompleta, cero legítimo, CRT/KEY distinto, vigencia y CUIT. La
+respuesta incompleta, cero legítimo, CRT/KEY distinto, vigencia y CUIT. Las
 migraciones `20261003000100`/`00110`/`00120` están aplicadas en la base vinculada y las funciones
-`afip-platform-cert` v21 y `afip-authorize` v66 quedaron desplegadas. Esto prueba
+`afip-platform-cert` v21 y `afip-authorize` v67 quedaron desplegadas. Esto prueba
 el control interno. `00110` recifra la credencial legada y agrega un trigger
 que impide futuras escrituras en claro; no reemplaza una llamada con certificado
 productivo real ni valida retroactivamente la vigencia del PEM ya almacenado.
 `00120` agrega la solicitud idempotente, cola de Platform y confirmación sólo
 backend; la cola productiva tenía cero solicitudes al verificarla, por lo que
 todavía no prueba una aceptación real de un comercio.
+La lectura WSFE usa XML estructurado, valida el envelope/operación y rechaza
+DTD, entidades, payloads mayores a 1 MB, números ausentes/fuera de rango y
+puntos bloqueados, dados de baja o CAEA. Una caída transitoria no revoca una
+conexión comprobada; los diagnósticos no exponen SOAP ni secretos. Comercio
+respeta `invoices.edit` y la revisión fiscal exige superadmin, sin concederle
+membresía del tenant. Soporte/Finance no pueden confirmar solicitudes. La cola
+distingue error de lectura de vacío y conserva el reintento.
+Verificación del 2026-10-03: 3.619 tests internos en 407 archivos; ocho casos
+Playwright en escritorio/móvil con red fiscal interceptada, permisos, errores,
+reintento y Axe. Capturas en seis anchos y menú móvil de Platform sin apilar
+grupos. Las verificaciones SQL de contexto y cola se repitieron sobre la base
+vinculada con rollback y cero organizaciones fixture restantes. Al 2026-10-03,
+las 661 migraciones están alineadas; OPTIONS público pasa y POST sin sesión devuelve
+401 en v67. Estos controles no llaman a ARCA ni emiten comprobantes reales.
 El CAE de la fixture POS es
 **simulado sólo dentro del rollback**; no certifica emisión ni recepción real.
 
@@ -100,6 +116,24 @@ ARCA A/B/C y NC con identidad delegada, impresión física y entrega por correo.
 El cero supuesto de otros impuestos en las representaciones actuales no es una
 certificación de transparencia fiscal completa.
 
-Referencias oficiales revisadas el 2026-10-03: [manual WSFEv1 de ARCA](https://arca.gob.ar/ws/WSFEV1/documentos/manual-desarrollador-COMPG-v3-4-2.pdf),
+## Decisión técnica y próximo cierre
+
+Owner: integración ARCA. `fast-xml-parser` 5.11.2 reemplaza extracción regex
+para las lecturas de conexión en la autoridad existente `wsfeRespuesta`; no
+crea otro servicio ni entra en el bundle del navegador. Puntaje según el
+estándar: gap 10×3, UX 8×2, seguridad 9×2, rendimiento 9, mantenimiento 9,
+salida 9 = 91/100. Benchmark local del 2026-10-03: validar y parsear 10.000
+envelopes de 182 bytes tomó 207 ms; no mide la latencia externa. Parser fijado
+en Edge y npm; pruebas usan la misma versión mediante alias exclusivo de Vitest.
+Éxito: resultado íntegro y punto CAE activo antes de confirmar. Reversa: volver
+al release fiscal anterior, conservando versionado y sin habilitar aceptación
+implícita de respuestas incompletas.
+
+Siguiente cierre: unificar lectura/estado de la guía y formulario, validación
+inline/dirty state y navegación breve. Después, aceptación real autorizada y
+certificación A/B/C/NC, impresión y entrega. No declarar esos gates completos
+con red interceptada o fixtures.
+
+Referencias oficiales revisadas el 2026-10-03: [manual WSFEv1 4.1 de ARCA](https://www.arca.gob.ar/ws/documentacion/manuales/manual-desarrollador-ARCA-COMPG-v4-1.pdf),
 [certificado de producción](https://arca.gob.ar/ws/WSAA/WSAA.ObtenerCertificado.pdf)
 y [delegación a terceros](https://www.arca.gob.ar/ws/WSAA/ADMINREL.DelegarWS.pdf).

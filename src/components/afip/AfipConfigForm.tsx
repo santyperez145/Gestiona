@@ -36,10 +36,11 @@ import { FileCheck, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { mensajeIdentidadFiscalFaltante } from "@/lib/fiscalIdentity";
 
 interface Props {
+  canEdit: boolean;
   onSaved?: () => void | Promise<void>;
 }
 
-export default function AfipConfigForm({ onSaved }: Props) {
+export default function AfipConfigForm({ canEdit, onSaved }: Props) {
   const { activeOrg } = useOrg();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -152,6 +153,7 @@ export default function AfipConfigForm({ onSaved }: Props) {
   };
 
   const handleSave = async () => {
+    if (!canEdit || saving) return;
     const identidad = mensajeIdentidadFiscalFaltante({ razonSocial, domicilio });
     if (identidad) {
       toast.error(identidad);
@@ -184,15 +186,15 @@ export default function AfipConfigForm({ onSaved }: Props) {
     || (environment === "produccion" && (!ingresosBrutos.trim() || !inicioActividades));
 
   return (
-    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+    <section aria-label="Datos fiscales" className="bg-card border border-border/60 rounded-lg p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <FileCheck className="w-4 h-4 text-primary" />ARCA — Facturación electrónica
         </h2>
         {isConfigured && (
           <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-[5px] font-medium ${
-            taStatus === "valid" ? "bg-green-500/10 text-green-400" :
-            taStatus === "expired" ? "bg-yellow-500/10 text-yellow-400" :
+            taStatus === "valid" ? "bg-green-500/10 text-green-700 dark:text-green-300" :
+            taStatus === "expired" ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300" :
             "bg-muted text-muted-foreground"
           }`}>
             {taStatus === "valid" ? <><CheckCircle2 className="w-3 h-3" />TA activo</> :
@@ -217,27 +219,28 @@ export default function AfipConfigForm({ onSaved }: Props) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {!canEdit && <p className="text-xs text-muted-foreground">Solo lectura: necesitás permiso de edición de facturación para modificar o verificar la conexión.</p>}
+      <fieldset disabled={!canEdit || saving} className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">CUIT del emisor</label>
-          <Input value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
+          <label htmlFor="arca-cuit" className="text-xs text-muted-foreground mb-1 block">CUIT del emisor</label>
+          <Input id="arca-cuit" value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Razón social</label>
-          <Input value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Tal cual figura en ARCA" className="bg-muted border-border" required />
+          <label htmlFor="arca-name" className="text-xs text-muted-foreground mb-1 block">Razón social</label>
+          <Input id="arca-name" value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Tal cual figura en ARCA" className="bg-muted border-border" required />
         </div>
         <div className="md:col-span-2">
-          <label className="text-xs text-muted-foreground mb-1 block">Domicilio fiscal</label>
-          <Input value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Calle, número, localidad — el de ARCA, no el de retiro" className="bg-muted border-border" required />
+          <label htmlFor="arca-address" className="text-xs text-muted-foreground mb-1 block">Domicilio fiscal</label>
+          <Input id="arca-address" value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Calle, número, localidad — el de ARCA, no el de retiro" className="bg-muted border-border" required />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Punto de venta</label>
-          <Input type="number" min="1" max="99999" value={puntoVenta} onChange={e => setPuntoVenta(e.target.value)} className="bg-muted border-border" />
+          <label htmlFor="arca-point" className="text-xs text-muted-foreground mb-1 block">Punto de venta</label>
+          <Input id="arca-point" type="number" min="1" max="99999" value={puntoVenta} onChange={e => setPuntoVenta(e.target.value)} className="bg-muted border-border" />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Tipo de emisor</label>
+          <label htmlFor="arca-issuer" className="text-xs text-muted-foreground mb-1 block">Tipo de emisor</label>
           <Select value={tipoEmisor} onValueChange={setTipoEmisor}>
-            <SelectTrigger className="bg-muted border-border">
+            <SelectTrigger id="arca-issuer" className="bg-muted border-border">
               <SelectValue placeholder="Elegí tu condición" />
             </SelectTrigger>
             <SelectContent>
@@ -248,8 +251,9 @@ export default function AfipConfigForm({ onSaved }: Props) {
           </Select>
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Ingresos Brutos</label>
+          <label htmlFor="arca-gross-income" className="text-xs text-muted-foreground mb-1 block">Ingresos Brutos</label>
           <Input
+            id="arca-gross-income"
             value={ingresosBrutos}
             onChange={e => setIngresosBrutos(e.target.value)}
             placeholder="Número, Convenio Multilateral o No inscripto"
@@ -258,8 +262,9 @@ export default function AfipConfigForm({ onSaved }: Props) {
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Inicio de actividades</label>
+          <label htmlFor="arca-start-date" className="text-xs text-muted-foreground mb-1 block">Inicio de actividades</label>
           <Input
+            id="arca-start-date"
             type="date"
             max={new Date().toISOString().slice(0, 10)}
             value={inicioActividades}
@@ -269,12 +274,12 @@ export default function AfipConfigForm({ onSaved }: Props) {
           />
         </div>
         <div className="md:col-span-2">
-          <label className="text-xs text-muted-foreground mb-1 block">Ambiente</label>
+          <label htmlFor="arca-environment" className="text-xs text-muted-foreground mb-1 block">Ambiente</label>
           <Select value={environment} onValueChange={setEnvironment}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="arca-environment" className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="homologacion">🧪 Homologación (pruebas)</SelectItem>
-              <SelectItem value="produccion">🚀 Producción (facturas reales)</SelectItem>
+              <SelectItem value="homologacion">Homologación (pruebas)</SelectItem>
+              <SelectItem value="produccion">Producción (facturas reales)</SelectItem>
             </SelectContent>
           </Select>
           {environment === "produccion" && (
@@ -284,7 +289,7 @@ export default function AfipConfigForm({ onSaved }: Props) {
             </p>
           )}
         </div>
-      </div>
+      </fieldset>
 
       {/* ── De qué certificado se factura: información, no una decisión ──
           Antes ofrecía un «prefiero usar mi propio certificado». Elegir
@@ -307,7 +312,7 @@ export default function AfipConfigForm({ onSaved }: Props) {
             contradiciéndose, que es justo lo que pasó. */}
         <p className="text-[11px] text-muted-foreground">
           No tenés que generar ninguna clave ni subir ningún archivo, y la
-          la activación y su estado se gestionan en la guía de arriba.
+          activación y su estado se gestionan en la guía de arriba.
         </p>
         {!plataformaLista && (
           <p className="text-[11px] text-destructive">
@@ -322,11 +327,11 @@ export default function AfipConfigForm({ onSaved }: Props) {
           que genere una clave con openssl es donde abandona. */}
 
       <div className="flex gap-2 pt-1">
-        <Button onClick={handleSave} disabled={saving || identidadIncompleta} className="gradient-gold text-primary-foreground font-semibold">
+        <Button onClick={handleSave} disabled={!canEdit || saving || identidadIncompleta} className="gradient-gold text-primary-foreground font-semibold">
           {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar datos fiscales"}
         </Button>
       </div>
-    </div>
+    </section>
   );
 }
 

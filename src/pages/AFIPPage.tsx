@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -10,6 +10,7 @@ import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import KPICard from "@/components/shared/KPICard";
 import { fechaFiscalArgentina } from "@/lib/arcaInvoice";
+import { useModulePermissions } from "@/lib/usePermissions";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -44,9 +45,8 @@ interface AfipConnectionStatus {
   last_error: string | null;
   delegacion_solicitada_at: string | null;
   delegacion_revisada_at: string | null;
-  // `delegacion_verificada` existe en la vista pero esta pantalla no la usa.
-  // Se saca de acá a propósito: un campo declarado y nunca pedido es
-  // exactamente cómo empezó el bug del CUIT vacío.
+  delegacion_verificada: boolean | null;
+  plataforma_ambiente: string | null;
 }
 
 interface FiscalInvoice {
@@ -85,24 +85,30 @@ function formatDate(value: string | null) {
 
 function invoiceStatus(invoice: FiscalInvoice) {
   if (invoice.cae && invoice.afip_status === "authorized") {
-    return { label: "CAE autorizado", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" };
+    return { label: "CAE autorizado", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20" };
   }
   if (ERROR_STATES.has(invoice.afip_status || "")) {
-    return { label: "Requiere atención", className: "bg-red-500/15 text-red-400 border-red-500/20" };
+    return { label: "Requiere atención", className: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/20" };
   }
-  return { label: "Pendiente de autorizar", className: "bg-amber-500/15 text-amber-400 border-amber-500/20" };
+  return { label: "Pendiente de autorizar", className: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20" };
 }
 
 export default function AFIPPage() {
   usePageTitle("ARCA / Facturación electrónica");
-  const { orgId } = useOrganization();
+  const { orgId, role } = useOrganization();
+  const permissions = useModulePermissions("invoices");
+  const canEdit = !permissions.loading && permissions.canEdit && (role === "owner" || role === "admin");
   const [connection, setConnection] = useState<AfipConnectionStatus | null>(null);
   const [invoices, setInvoices] = useState<FiscalInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
+  const context = useRef({ orgId, active: true, request: 0 }).current;
+  context.orgId = orgId;
+  useEffect(() => { context.active = true; return () => { context.active = false; }; }, [context]);
 
   const load = useCallback(async () => {
+    const request = ++context.request;
     if (!orgId) {
       setConnection(null);
       setInvoices([]);
@@ -125,7 +131,7 @@ export default function AFIPPage() {
         // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
         // una columna que no existe— y con `strictNullChecks: false` el cast a
         // la interface hace que TypeScript crea que el campo está.
-        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at")
+        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
@@ -136,24 +142,29 @@ export default function AFIPPage() {
         .order("issue_date", { ascending: false })
         .limit(50),
     ]);
+    if (!context.active || context.orgId !== orgId || context.request !== request) return;
 
     if (connectionResult.error) {
+      console.error("[ARCA] status read failed", { code: connectionResult.error.code });
       setConnection(null);
-      setConnectionError(connectionResult.error.message);
+      setConnectionError("No pudimos leer el estado fiscal. Actualizá el estado o reintentá en unos minutos.");
     } else {
       setConnection(connectionResult.data as AfipConnectionStatus | null);
     }
 
     if (invoicesResult.error) {
+      console.error("[ARCA] fiscal invoices read failed", { code: invoicesResult.error.code });
       setInvoices([]);
-      setInvoicesError(invoicesResult.error.message);
+      setInvoicesError("La consulta no está disponible ahora. Reintentá sin modificar tus comprobantes.");
     } else {
       setInvoices((invoicesResult.data || []) as FiscalInvoice[]);
     }
     setLoading(false);
-  }, [orgId]);
+  }, [orgId, context]);
 
   useEffect(() => {
+    setConnection(null);
+    setInvoices([]);
     void load();
   }, [load]);
 
@@ -174,7 +185,7 @@ export default function AFIPPage() {
       return {
         title: "No se pudo verificar la conexión fiscal",
         detail: connectionError,
-        className: "bg-red-500/5 border-red-500/20 text-red-300",
+        className: "bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300",
         icon: XCircle,
       };
     }
@@ -182,7 +193,15 @@ export default function AFIPPage() {
       return {
         title: "Falta configurar los datos fiscales",
         detail: "Cargá CUIT, razón social, domicilio fiscal, punto de venta y condición del emisor.",
-        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
+        icon: AlertTriangle,
+      };
+    }
+    if (connection.motivo === "falta_ambiente") {
+      return {
+        title: "El ambiente elegido no está disponible",
+        detail: `El certificado disponible es de ${connection.plataforma_ambiente === "produccion" ? "producción" : "homologación"}. Revisá el ambiente fiscal o contactá a soporte para habilitar el correcto. No se emitió ningún comprobante.`,
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
         icon: AlertTriangle,
       };
     }
@@ -198,7 +217,7 @@ export default function AFIPPage() {
         detail: delegado
           ? "Tus datos fiscales están guardados. Falta que la plataforma cargue su certificado de ARCA; no hay nada que puedas hacer de tu lado."
           : "Los datos fiscales están guardados, pero todavía no hay certificado y clave privada en el almacén seguro.",
-        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
         icon: AlertTriangle,
       };
     }
@@ -208,7 +227,7 @@ export default function AFIPPage() {
       return {
         title: "Falta el domicilio fiscal",
         detail: "Va impreso en la factura y en los términos de la tienda. Completalo en el formulario de abajo.",
-        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
         icon: AlertTriangle,
       };
     }
@@ -216,7 +235,7 @@ export default function AFIPPage() {
       return {
         title: "Falta declarar Ingresos Brutos",
         detail: "Informá el número, Convenio Multilateral o la condición de no inscripto. Es un dato visible del comprobante.",
-        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
         icon: AlertTriangle,
       };
     }
@@ -224,7 +243,7 @@ export default function AFIPPage() {
       return {
         title: "Falta el inicio de actividades",
         detail: "Completá la fecha declarada para que la representación de la factura tenga la identidad fiscal completa.",
-        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
         icon: AlertTriangle,
       };
     }
@@ -232,7 +251,7 @@ export default function AFIPPage() {
       return {
         title: "Falta delegar Facturación Electrónica",
         detail: "Completá la designación en ARCA y solicitá la activación desde la guía de arriba.",
-        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
         icon: AlertTriangle,
       };
     }
@@ -240,7 +259,7 @@ export default function AFIPPage() {
       return {
         title: "Activación fiscal en revisión",
         detail: "Nerqia debe aceptar la designación, asociar el computador fiscal y verificarla con ARCA.",
-        className: "bg-blue-500/5 border-blue-500/20 text-blue-200",
+        className: "bg-blue-500/5 border-blue-500/20 text-blue-700 dark:text-blue-300",
         icon: Clock,
       };
     }
@@ -248,22 +267,22 @@ export default function AFIPPage() {
       return {
         title: "La designación necesita una corrección",
         detail: connection.last_error || "ARCA todavía no aceptó la conexión. Revisá el servicio delegado y el punto de venta.",
-        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
         icon: AlertTriangle,
       };
     }
-    if (!connection.ticket_vigente) {
+    if (!connection.delegacion_verificada) {
       return {
-        title: "Listo para emitir; conexión pendiente de prueba",
-        detail: "Desde Ajustes podés pedir un Ticket de Acceso real a WSAA. No se emite ningún comprobante durante esa prueba.",
-        className: "bg-blue-500/5 border-blue-500/20 text-blue-200",
+        title: "Conexión pendiente de verificación",
+        detail: "Verificá el CUIT y el punto de venta con ARCA desde esta pantalla. Un Ticket de Acceso vigente no confirma la habilitación del comercio; la consulta no emite facturas.",
+        className: "bg-blue-500/5 border-blue-500/20 text-blue-700 dark:text-blue-300",
         icon: Clock,
       };
     }
     return {
-        title: "Conexión ARCA verificada",
-      detail: `WSAA respondió para ${connection.environment === "produccion" ? "producción" : "homologación"}. El Ticket de Acceso vence ${formatDate(connection.ta_expires_at)}.`,
-      className: "bg-emerald-500/5 border-emerald-500/20 text-emerald-200",
+      title: "Conexión ARCA verificada",
+      detail: `ARCA confirmó el CUIT y el punto de venta para ${connection.environment === "produccion" ? "producción; cada comprobante requiere su propio CAE" : "homologación; las pruebas no tienen valor fiscal"}.`,
+      className: "bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300",
       icon: CheckCircle2,
     };
   })();
@@ -289,7 +308,7 @@ export default function AFIPPage() {
       {/* C14b — la guía de conexión va primero. Un comercio que no puede
           emitir no necesita ver estadísticas de comprobantes: necesita saber
           qué tocar para poder emitir. */}
-      <ConectarAfip
+      {loading ? <p role="status" className="text-sm text-muted-foreground">Consultando estado fiscal…</p> : !connectionError && <ConectarAfip
         orgId={orgId}
         motivo={connection?.motivo ?? null}
         plataformaCuit={connection?.plataforma_cuit ?? null}
@@ -297,12 +316,13 @@ export default function AFIPPage() {
         cuitDelComercio={connection?.cuit ?? null}
         ambiente={connection?.environment ?? null}
         ultimoDiagnostico={connection?.last_error ?? null}
+        canVerify={canEdit}
         onVerificado={load}
-      />
+      />}
 
       {/* La configuración fiscal, en la página que se llama AFIP. Antes vivía
           en Ajustes → Sistema, a dos clics de acá. */}
-      <AfipConfigForm onSaved={load} />
+      <AfipConfigForm canEdit={canEdit} onSaved={load} />
 
       <div className={`rounded-xl border p-4 ${readiness.className}`}>
         <div className="flex gap-3">

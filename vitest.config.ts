@@ -28,6 +28,9 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: { "@": path.resolve(import.meta.dirname, "./src") },
+    alias: {
+      "@": path.resolve(import.meta.dirname, "./src"),
+      "https://esm.sh/fast-xml-parser@5.11.2": "fast-xml-parser",
+    },
   },
 });

@@ -38,6 +38,7 @@ export type MotivoAfip =
   | "falta_datos_fiscales"
   | "falta_certificado_propio"
   | "falta_plataforma"
+  | "falta_ambiente"
   /**
    * El CUIT del comercio ES el de la plataforma: el certificado ya pertenece a
    * ese CUIT y ARCA acepta la llamada sin ninguna delegación. Pedirle el
@@ -59,6 +60,7 @@ interface Props {
   cuitDelComercio: string | null;
   ambiente: string | null;
   ultimoDiagnostico?: string | null;
+  canVerify: boolean;
   /** Para reconsultar el estado después de verificar. */
   onVerificado: () => void;
 }
@@ -72,11 +74,17 @@ function formatearCuit(cuit: string | null): string {
 
 export default function ConectarAfip({
   orgId, motivo, plataformaCuit, plataformaRazonSocial, cuitDelComercio, ambiente,
-  ultimoDiagnostico, onVerificado,
+  ultimoDiagnostico, onVerificado, canVerify,
 }: Props) {
   const [verificando, setVerificando] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
   const [ultimoError, setUltimoError] = useState<string | null>(null);
+  const scope = JSON.stringify([orgId, cuitDelComercio, ambiente]);
+  const currentScope = useRef(scope);
+  currentScope.current = scope;
+  const requestId = useRef(0);
+  const lifecycle = useRef({ active: true }).current;
+  useEffect(() => { lifecycle.active = true; return () => { lifecycle.active = false; }; }, [lifecycle]);
 
   const copiar = async (texto: string) => {
     try {
@@ -91,19 +99,26 @@ export default function ConectarAfip({
   };
 
   const verificar = useCallback(async (silencioso = false) => {
+    if (!orgId || !canVerify) return;
+    const startedScope = scope;
+    const id = ++requestId.current;
     setVerificando(true);
+    setUltimoError(null);
     // La verificación la hace el backend contra ARCA: pide un Ticket de Acceso
     // con el certificado de la plataforma y consulta el último comprobante
     // autorizado con el CUIT del comercio. Si ARCA responde, la delegación
     // existe; si no, dice exactamente qué contestó.
+    try {
     const { data, error } = await supabase.functions.invoke("afip-authorize", {
       body: { action: "verificar_delegacion", org_id: orgId },
     });
-    setVerificando(false);
+    if (!lifecycle.active || currentScope.current !== startedScope || requestId.current !== id) return;
 
     const r = data as { ok?: boolean } | null;
     if (r?.ok) {
-      toast.success("Conexión con ARCA verificada. Ya podés emitir facturas.");
+      toast.success(ambiente === "homologacion"
+        ? "Conexión de prueba verificada. Los comprobantes no tienen valor fiscal."
+        : "Conexión con ARCA verificada. Cada comprobante necesita su CAE.");
       onVerificado();
       return;
     }
@@ -112,12 +127,20 @@ export default function ConectarAfip({
     // `functions.invoke` es SIEMPRE «Edge Function returned a non-2xx status
     // code». El motivo real de ARCA viaja en el cuerpo y quedaba invisible.
     const detalle = await mensajeDeEdgeFunction(error, data);
-    console.error("[afip] verificar_delegacion falló:", detalle, { data, error });
+    if (!lifecycle.active || currentScope.current !== startedScope || requestId.current !== id) return;
+    console.error("[ARCA] verification failed", { code: (data as { code?: string } | null)?.code || "request_failed" });
     setUltimoError(detalle);
     // En la verificación automática no se tira un toast rojo: el comercio no
     // apretó nada. El motivo queda en la tarjeta, que es donde lo va a mirar.
     if (!silencioso) toast.error(detalle || "ARCA todavía no reconoce la conexión");
-  }, [orgId, onVerificado]);
+    } catch {
+      if (!lifecycle.active || currentScope.current !== startedScope || requestId.current !== id) return;
+      console.error("[ARCA] verification request failed");
+      setUltimoError("No pudimos consultar ARCA. Tus datos se conservan; reintentá en unos minutos.");
+    } finally {
+      if (lifecycle.active && currentScope.current === startedScope && requestId.current === id) setVerificando(false);
+    }
+  }, [orgId, onVerificado, canVerify, scope, lifecycle, ambiente]);
 
   /**
    * Verificación automática — el paso que la app puede hacer sola.
@@ -133,26 +156,40 @@ export default function ConectarAfip({
    */
   const yaIntento = useRef(false);
   useEffect(() => {
-    if (motivo !== "sin_delegacion_necesaria" || !orgId || yaIntento.current) return;
+    yaIntento.current = false;
+    setVerificando(false);
+    setSolicitando(false);
+    setUltimoError(null);
+  }, [scope]);
+  useEffect(() => {
+    if (motivo !== "sin_delegacion_necesaria" || !orgId || !canVerify || yaIntento.current) return;
     yaIntento.current = true;
     void verificar(true);
-  }, [motivo, orgId, verificar]);
+  }, [motivo, orgId, verificar, canVerify]);
 
   const solicitarActivacion = async () => {
-    if (!orgId) return;
+    if (!orgId || !canVerify || solicitando) return;
+    const startedScope = scope;
+    const id = ++requestId.current;
     setSolicitando(true);
-    const { data, error } = await supabase.rpc("afip_solicitar_revision_delegacion", {
-      p_org: orgId,
-    });
-    setSolicitando(false);
-    if (error || !(data as { ok?: boolean } | null)?.ok) {
-      const detalle = error?.message?.replace(/^.*?:\s*/, "")
-        || "No se pudo solicitar la activación fiscal";
-      toast.error(detalle);
-      return;
+    setUltimoError(null);
+    try {
+      const { data, error } = await supabase.rpc("afip_solicitar_revision_delegacion", { p_org: orgId });
+      if (!lifecycle.active || currentScope.current !== startedScope || requestId.current !== id) return;
+      if (error || !(data as { ok?: boolean } | null)?.ok) {
+        console.error("[ARCA] activation request failed", { code: error?.code || "request_failed" });
+        setUltimoError("No pudimos confirmar la solicitud. Tus datos se conservan; actualizá el estado o reintentá en unos minutos.");
+        return;
+      }
+      toast.success("Solicitud enviada. Nerqia va a aceptar la designación y verificarla con ARCA.");
+      onVerificado();
+    } catch {
+      if (!lifecycle.active || currentScope.current !== startedScope || requestId.current !== id) return;
+      console.error("[ARCA] activation request unavailable");
+      setUltimoError("No pudimos consultar el servicio. Tus datos se conservan; reintentá en unos minutos.");
+    } finally {
+      if (lifecycle.active && currentScope.current === startedScope && requestId.current === id) setSolicitando(false);
     }
-    toast.success("Solicitud enviada. Nerqia va a aceptar la designación y verificarla con ARCA.");
-    onVerificado();
   };
 
   if (motivo === "listo") {
@@ -202,7 +239,7 @@ export default function ConectarAfip({
           )}
           {!verificando && (
             <Button size="sm" variant="outline" className="mt-2"
-                    onClick={() => verificar()} disabled={!orgId}>
+                    onClick={() => verificar()} disabled={!orgId || !canVerify}>
               Reintentar ahora
             </Button>
           )}
@@ -213,16 +250,16 @@ export default function ConectarAfip({
 
   // Este caso no lo puede resolver el comercio, y decirle "configurá AFIP"
   // sería mandarlo a un trámite que no le toca.
-  if (motivo === "falta_plataforma") {
+  if (motivo === "falta_plataforma" || motivo === "falta_ambiente") {
     return (
       <Card className="p-4 flex items-start gap-3 border-amber-500/40 bg-amber-500/5">
         <Clock className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
         <div className="text-sm">
-          <p className="font-medium">Todavía no podés facturar, y no es algo tuyo</p>
+          <p className="font-medium">{motivo === "falta_ambiente" ? "Revisá el ambiente fiscal" : "Certificado pendiente de Nerqia"}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Falta que la plataforma cargue su certificado de ARCA. Tus datos
-            fiscales ya están guardados; cuando esté listo, vas a poder delegar
-            el servicio y emitir. No hay nada que puedas hacer de tu lado.
+            {motivo === "falta_ambiente"
+              ? "El ambiente fiscal y el certificado disponible no coinciden. Revisá la elección en los datos fiscales o solicitá a soporte que habilite el ambiente necesario. La conexión no cambia de ambiente por su cuenta."
+              : "Nerqia debe habilitar el certificado de ARCA. Tus datos fiscales se conservan; no generes ni subas claves privadas."}
           </p>
         </div>
       </Card>
@@ -279,10 +316,11 @@ export default function ConectarAfip({
             )}
           </div>
         </div>
-        <Button size="sm" onClick={() => void solicitarActivacion()} disabled={solicitando || !orgId}>
+        <Button size="sm" onClick={() => void solicitarActivacion()} disabled={!canVerify || solicitando || !orgId}>
           {solicitando && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
           Volver a solicitar revisión
         </Button>
+        {ultimoError && <p role="alert" className="text-sm text-destructive break-words">{ultimoError}</p>}
       </Card>
     );
   }
@@ -309,7 +347,7 @@ export default function ConectarAfip({
             {formatearCuit(plataformaCuit)}
           </code>
           {plataformaCuit && (
-            <Button size="sm" variant="ghost" onClick={() => copiar(formatearCuit(plataformaCuit))}>
+            <Button size="sm" variant="ghost" aria-label="Copiar CUIT de Nerqia" title="Copiar CUIT de Nerqia" onClick={() => copiar(formatearCuit(plataformaCuit))}>
               <Copy className="w-3.5 h-3.5" />
             </Button>
           )}
@@ -334,6 +372,12 @@ export default function ConectarAfip({
           habilita a emitir con tu CUIT, nada más.
         </Paso>
       </ol>
+      <p className="text-xs text-muted-foreground">
+        En producción, habilitá un punto de venta para Factura electrónica por Web Services
+        en Administración de puntos de venta y domicilios. Debe ser distinto al de
+        otros sistemas de emisión. En homologación, las autorizaciones de prueba
+        se gestionan por WSASS: delegar en producción no habilita ese ambiente.
+      </p>
 
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button asChild variant="outline" size="sm">
@@ -342,7 +386,7 @@ export default function ConectarAfip({
             Abrir ARCA <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
           </a>
         </Button>
-        <Button size="sm" onClick={() => void solicitarActivacion()} disabled={solicitando || !plataformaCuit || !orgId}>
+        <Button size="sm" onClick={() => void solicitarActivacion()} disabled={!canVerify || solicitando || !plataformaCuit || !orgId}>
           {solicitando ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
           Ya delegué · solicitar activación
         </Button>
@@ -350,6 +394,7 @@ export default function ConectarAfip({
           <Badge variant="outline" className="text-[10px]">ambiente de prueba</Badge>
         )}
       </div>
+      {ultimoError && <p role="alert" className="text-sm text-destructive break-words">{ultimoError}</p>}
 
       <p className="text-[11px] text-muted-foreground">
         La solicitud no marca la conexión como lista. Nerqia debe aceptar tu

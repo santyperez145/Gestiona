@@ -94,10 +94,11 @@ describe("conexión guiada a AFIP", () => {
     expect(bloque).toContain("taVigente");
   });
 
-  it("devuelve lo que dijo ARCA, no un error genérico", () => {
-    // "El CUIT no está autorizado" y "el punto de venta no existe" mandan a
-    // lugares distintos.
-    expect(fn).toContain("return ok({ ok: false, error: detalle })");
+  it("devuelve diagnóstico accionable sin SOAP ni detalles internos", () => {
+    expect(fn).toContain("return ok({ ok: false, code, error: detalle })");
+    expect(fn).toContain('code === "point_not_enabled"');
+    expect(fn).toContain("assertEnabledPoint(points, cred.punto_venta)");
+    expect(fn).toContain("leerUltimoAutorizadoWsfe(xml)");
   });
 
   it("la verificación de terceros la ejecuta Platform, no el solicitante", () => {

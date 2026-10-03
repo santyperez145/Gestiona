@@ -52,6 +52,8 @@ export default function FilePicker({
     <input
       ref={inputRef}
       type="file"
+      aria-label={title}
+      aria-hidden="true"
       accept={accept}
       className="sr-only"
       tabIndex={-1}

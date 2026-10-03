@@ -6519,6 +6519,25 @@
     text-transform: uppercase;
   }
 
+  @media (max-width: 767px) {
+    .platform-sidebar__label,
+    .platform-sidebar__group-label {
+      display: none;
+    }
+
+    .platform-sidebar__group {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+    }
+
+    .platform-sidebar__group + .platform-sidebar__group {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+  }
+
   @keyframes workspace-view-in {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }

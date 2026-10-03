@@ -112,8 +112,9 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-03: `npm run verify` pasa 3.581 tests en 404
-  archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
+- Validación local del 2026-10-03: `npm run verify` pasa 3.619 tests en 407
+  archivos, funciones, lint sin errores, tipos y build. Runtime sin hallazgos;
+  toolchain conserva la excepción temporal documentada más abajo.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
 - Lote fiscal 2026-10-02: 13 escenarios SQL reversibles verdes sobre la base
@@ -175,6 +176,11 @@ sigue abierto como certificación operacional.
   computador y recién entonces prueba WSFE. `00120` está aplicada con permisos
   separados; nueve escenarios SQL reversibles pasan y la cola real tiene cero
   solicitudes. Falta certificar una identidad real.
+- Conexión fiscal: XML estructurado, punto de venta CAE activo, clase del emisor
+  y confirmación de versión; una caída no revoca una conexión comprobada.
+  Comercio solicita con `invoices.edit`; superadmin revisa sin membresía del
+  tenant. Cola y formulario conservan permisos, diagnóstico y recuperación;
+  la lectura y las pruebas internas no certifican una emisión productiva.
 - La aplicación no recarga automáticamente al desplegar; la caché PWA no
   almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
 - Recuperación de lectura compartida: tres intentos ante conexión

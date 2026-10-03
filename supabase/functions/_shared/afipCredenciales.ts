@@ -101,6 +101,10 @@ export async function resolverCredencialesAfip(supabase: any, orgId: string): Pr
     return { error: "La plataforma todavía no tiene cargado su certificado de AFIP. No es un problema de tu configuración." };
   }
 
+  if (plat.environment !== org.environment) {
+    return { error: "El ambiente fiscal elegido no coincide con el certificado disponible en Nerqia. No se emitió ningún comprobante." };
+  }
+
   return {
     cred: {
       cuit: String(org.cuit),

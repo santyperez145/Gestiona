@@ -39,7 +39,7 @@ import {
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
 import { invoiceIvaXml } from "../_shared/invoiceIva.ts";
-import { leerUltimoAutorizadoWsfe } from "../_shared/wsfeRespuesta.ts";
+import { ArcaReadError, assertEnabledPoint, leerUltimoAutorizadoWsfe } from "../_shared/wsfeRespuesta.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -142,14 +142,14 @@ async function confirmarContextoFiscal(
     p_detalle: detalle,
     p_revisor: revisor,
   });
-  if (error) console.error("afip_confirmar_contexto falló:", error);
+  if (error) console.error("[ARCA] connection result persistence failed", { code: error.code });
   const result = data && typeof data === "object"
     ? data as { ok?: boolean; code?: string }
     : null;
   return {
     ok: result?.ok === true,
     code: result?.code ?? null,
-    error: error?.message ?? null,
+    error: error ? "No pudimos guardar la verificación. Reintentá sin modificar tus datos." : null,
   };
 }
 
@@ -295,21 +295,30 @@ Deno.serve(async (req) => {
     if (body.action === "verificar_delegacion") {
       if (!body.org_id) return err("org_id required");
 
-      const [{ data: membership }, { data: platformAdmin }] = await Promise.all([
+      const [{ data: membership }, { data: platformStaff }] = await Promise.all([
         supabase
           .from("memberships").select("role")
           .eq("org_id", body.org_id).eq("user_id", actorId)
           .in("role", ["owner", "admin"]).maybeSingle(),
         supabase
-          .from("platform_admins").select("user_id")
+          .from("platform_admins").select("user_id,role")
           .eq("user_id", actorId).maybeSingle(),
       ]);
+      const platformAdmin = platformStaff?.role === "superadmin" ? platformStaff : null;
       if (!membership && !platformAdmin) {
         return err("No tenés permiso para verificar esta conexión fiscal", 403);
       }
 
+      if (!platformAdmin) {
+        const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+        });
+        const permission = await userClient.rpc("has_permission", { p_org_id: body.org_id, p_module: "invoices", p_action: "edit" });
+        if (permission.error || permission.data !== true) return err("No tenés permiso para configurar la facturación", 403);
+      }
+
       const resuelto = await resolverCredencialesAfip(supabase, body.org_id);
-      if (resuelto.error) return err(resuelto.error);
+      if (resuelto.error) return ok({ ok: false, code: "configuration_required", error: "No pudimos usar la configuración fiscal. Revisá los datos y el ambiente disponible en Nerqia." });
       const cred = resuelto.cred;
       if (!cred) return err("No se pudo resolver la credencial de ARCA");
 
@@ -345,60 +354,30 @@ Deno.serve(async (req) => {
       // viva, y con certificado compartido eso choca apenas haya dos comercios
       // verificando el mismo día.
       // El reuso y el candado los resuelve `ticketCompartido`.
-      const ta1 = await ticketCompartido(cred, body.org_id, wsaaUrl);
-      const token = ta1.token, sign = ta1.sign;
-
       try {
-        // Tipo 11 (Factura C) alcanza: lo que se prueba es que ARCA acepte el
-        // CUIT, no el tipo de comprobante.
+        const ta1 = await ticketCompartido(cred, body.org_id, wsaaUrl);
+        const token = ta1.token, sign = ta1.sign;
+        const points = await wsfeCall(wsfeUrl, wsfeSoap("FEParamGetPtosVenta", "", { token, sign, cuit: cred.cuit }), "FEParamGetPtosVenta");
+        assertEnabledPoint(points, cred.punto_venta);
         await getUltimoAutorizado(
-          wsfeUrl, token!, sign!, cred.cuit, cred.punto_venta ?? 1, 11);
+          wsfeUrl, token, sign, cred.cuit, cred.punto_venta, defaultTipoCbte(cred.tipo_emisor ?? ""));
       } catch (e) {
-        const detalle = e instanceof Error ? e.message : String(e);
-        const confirmado = await confirmarContextoFiscal(
-          body.org_id,
-          cred.conexion_version,
-          cred.environment,
-          false,
-          detalle,
-          platformAdmin ? actorId : null,
-        );
-        if (confirmado.error) {
-          return ok({
-            ok: false,
-            error: "ARCA rechazó la conexión y Nerqia no pudo guardar el diagnóstico: "
-              + confirmado.error,
-          });
+        const code = e instanceof ArcaReadError ? e.code : "provider_unavailable";
+        const detalle = e instanceof ArcaReadError ? e.message : "No pudimos consultar ARCA ahora. Tus datos se conservan; reintentá en unos minutos.";
+        console.error("[ARCA] read-only verification failed", { code });
+        if (code === "provider_rejected" || code === "point_not_enabled") {
+          const confirmed = await confirmarContextoFiscal(body.org_id, cred.conexion_version, cred.environment, false, detalle, platformAdmin ? actorId : null);
+          if (confirmed.error || !confirmed.ok) return ok({ ok: false, code: confirmed.code || "persistence_failed",
+            error: confirmed.error || "La configuración fiscal cambió durante la consulta. Actualizá el estado y volvé a verificar." });
         }
-        if (!confirmado.ok) {
-          return ok({
-            ok: false,
-            error: "La configuración fiscal cambió durante la verificación. Revisala y volvé a intentar.",
-            code: confirmado.code,
-          });
-        }
-        // Se devuelve lo que dijo ARCA, no un genérico. "El CUIT no está
-        // autorizado" y "el punto de venta no existe" mandan a lugares
-        // distintos, y confundirlos hace perder una tarde.
-        return ok({ ok: false, error: detalle });
+        return ok({ ok: false, code, error: detalle });
       }
 
-      // ⚠️ Este resultado SÍ se mira y queda ligado a conexion_version. Si el
-      // comercio cambió CUIT, ambiente, certificado o punto de venta mientras
-      // ARCA respondía, el resultado viejo no puede marcar lo nuevo como listo.
-      const marcado = await confirmarContextoFiscal(
-        body.org_id,
-        cred.conexion_version,
-        cred.environment,
-        true,
-        null,
-        platformAdmin ? actorId : null,
-      );
+      const marcado = await confirmarContextoFiscal(body.org_id, cred.conexion_version, cred.environment, true, null, platformAdmin ? actorId : null);
       if (marcado.error) {
         return ok({
           ok: false,
-          error: "ARCA aceptó la conexión pero no se pudo guardar el resultado: "
-            + marcado.error + ". Es un problema del lado de Nerqia.",
+          code: "persistence_failed", error: marcado.error,
         });
       }
       if (!marcado.ok) {
@@ -408,7 +387,7 @@ Deno.serve(async (req) => {
           code: marcado.code,
         });
       }
-      return ok({ ok: true, environment: isProd ? "produccion" : "homologacion" });
+      return ok({ ok: true, environment: isProd ? "produccion" : "homologacion", punto_venta: cred.punto_venta });
     }
 
     if (body.action === "test_connection") {

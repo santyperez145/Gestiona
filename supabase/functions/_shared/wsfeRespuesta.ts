@@ -1,45 +1,39 @@
-import { extraerXml } from "./wsaaRespuesta.ts";
+// @ts-ignore Deno resuelve el import remoto; Vitest usa la misma versión local.
+import { XMLParser, XMLValidator } from "https://esm.sh/fast-xml-parser@5.11.2";
 
-function bloquesXml(xml: string, tag: string): string[] {
-  const pattern = new RegExp(
-    `<(?:[^:>\\s]+:)?${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[^:>\\s]+:)?${tag}>`,
-    "gi",
-  );
-  return [...xml.matchAll(pattern)].map((match) => match[1]);
+export class ArcaReadError extends Error {
+  constructor(public code: string, message: string) { super(message); }
 }
 
-/**
- * Errores de negocio de WSFE. Un HTTP 200 no implica que la operación haya
- * sido aceptada: ARCA informa varios rechazos dentro de `<Errors><Err>`.
- */
-export function erroresWsfe(xml: string): string[] {
-  const fault = extraerXml(xml, "faultstring");
-  if (fault) return [fault];
-
-  return bloquesXml(xml, "Err").slice(0, 5).map((bloque) => {
-    const code = extraerXml(bloque, "Code");
-    const message = extraerXml(bloque, "Msg");
-    if (code && message) return `${message} (código ${code})`;
-    return message || (code ? `ARCA respondió con el código ${code}` : "ARCA rechazó la consulta");
-  });
+function result(xml: string, operation: string): Record<string, unknown> {
+  if (xml.length > 1_000_000 || /<!DOCTYPE|<!ENTITY/i.test(xml) || XMLValidator.validate(xml) !== true) {
+    throw new ArcaReadError("invalid_response", "ARCA devolvió una respuesta que no pudimos validar. Reintentá la consulta.");
+  }
+  const parsed = new XMLParser({ removeNSPrefix: true, parseTagValue: false, processEntities: false }).parse(xml);
+  const body = parsed?.Envelope?.Body;
+  const value = body?.[`${operation}Response`]?.[`${operation}Result`];
+  if (body?.Fault || value?.Errors) {
+    throw new ArcaReadError("provider_rejected", "ARCA rechazó la consulta. Revisá la delegación y el punto de venta de Web Services.");
+  }
+  if (!value || typeof value !== "object") throw new ArcaReadError("invalid_response", "No pudimos confirmar la respuesta de ARCA. Reintentá la consulta.");
+  return value;
 }
 
-/**
- * Lee FECompUltimoAutorizado sin convertir una respuesta incompleta o un
- * rechazo embebido en un falso número cero. Cero sólo es válido cuando ARCA
- * envió explícitamente `<CbteNro>0</CbteNro>`.
- */
+/** Cero sólo es válido cuando viene explícitamente en un resultado WSFE válido. */
 export function leerUltimoAutorizadoWsfe(xml: string): number {
-  const errors = erroresWsfe(xml);
-  if (errors.length) throw new Error(`ARCA rechazó la consulta: ${errors.join(" · ")}`);
+  const value = result(xml, "FECompUltimoAutorizado").CbteNro;
+  if (typeof value !== "string" || !/^\d{1,8}$/.test(value)) {
+    throw new ArcaReadError("invalid_response", "ARCA no confirmó el último número de comprobante. Reintentá la consulta.");
+  }
+  return Number(value);
+}
 
-  const raw = extraerXml(xml, "CbteNro");
-  if (raw === null || !/^\d+$/.test(raw)) {
-    throw new Error("ARCA respondió sin un número de comprobante autorizado válido");
+export function assertEnabledPoint(xml: string, number: number): void {
+  const response = result(xml, "FEParamGetPtosVenta");
+  const records = (response.ResultGet as { PtoVenta?: unknown })?.PtoVenta;
+  const points = Array.isArray(records) ? records : records ? [records] : [];
+  const point = points.find(value => Number(value.Nro) === number);
+  if (!point || point.EmisionTipo !== "CAE" || point.Bloqueado !== "N" || (point.FchBaja && point.FchBaja !== "NULL")) {
+    throw new ArcaReadError("point_not_enabled", "El punto de venta no está habilitado para emitir con CAE. Revisá su alta, sistema y estado en ARCA.");
   }
-  const number = Number(raw);
-  if (!Number.isSafeInteger(number) || number < 0) {
-    throw new Error("ARCA devolvió un número de comprobante fuera de rango");
-  }
-  return number;
 }
