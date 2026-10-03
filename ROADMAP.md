@@ -112,7 +112,7 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-02: `npm run verify` pasa 3.570 tests en 402
+- Validación local del 2026-10-03: `npm run verify` pasa 3.580 tests en 404
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
@@ -166,8 +166,11 @@ sigue abierto como certificación operacional.
   X.509, verifica CRT/KEY, CUIT y vigencia, cifra ambos secretos y expone sólo
   fecha/huella. Migraciones `20261003000100`/`00110` aplicadas; el legado quedó
   recifrado y un trigger impide volver a persistir CRT/KEY en claro. Funciones desplegadas como
-  `afip-platform-cert` v21 y `afip-authorize` v65. Falta todavía cerrar la cola
-  de aceptación/subdelegación de cada comercio y certificar con identidad real.
+  `afip-platform-cert` v21 y `afip-authorize` v66. El comercio ahora solicita
+  activación sin autoverificarse; Platform tiene cola, acepta/asocia el
+  computador y recién entonces prueba WSFE. `00120` está aplicada con permisos
+  separados; nueve escenarios SQL reversibles pasan y la cola real tiene cero
+  solicitudes. Falta certificar una identidad real.
 - La aplicación no recarga automáticamente al desplegar; la caché PWA no
   almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
 - Recuperación de lectura compartida: tres intentos ante conexión
@@ -235,7 +238,8 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    y recalcula neto/IVA/total server-side; C fuerza cero y el borrador no fiscal
    no inventa impuestos. La prueba ARCA queda ligada a la versión exacta del
    CUIT/ambiente/punto/certificado y no acepta un resultado concurrente viejo.
-   Falta certificación externa y operación física.
+   Solicitud y aceptación de terceros ya tienen estados/cola separados; falta
+   certificación externa, una aceptación real y operación física.
 
 ### P2 — Finance operacional y Growth CRM
 

@@ -33,14 +33,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileCheck, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
-import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { mensajeIdentidadFiscalFaltante } from "@/lib/fiscalIdentity";
 
-export default function AfipConfigForm() {
+interface Props {
+  onSaved?: () => void | Promise<void>;
+}
+
+export default function AfipConfigForm({ onSaved }: Props) {
   const { activeOrg } = useOrg();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
 
   const [cuit, setCuit] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
@@ -159,93 +161,16 @@ export default function AfipConfigForm() {
     try {
       await doSave();
 
-      // ── La conexión se hace sola ────────────────────────────────────────
-      // Guardar los datos fiscales y después pedirle al comercio que aprete
-      // "Probar conexión" es hacerle a él un paso que la app puede hacer.
-      //
-      // ⚠️ Si falla, NO se convierte en error de guardado: los datos fiscales
-      // quedaron bien guardados. Decir "no se pudo guardar" mandaría al
-      // comercio a corregir un formulario que está correcto.
-      //
-      // ⚠️ Va `verificar_delegacion` y NO `test_connection`, por dos razones
-      // que costaron un reporte de «me dice eso todavía»:
-      //
-      //  1. `test_connection` prueba el CERTIFICADO —que WSAA entregue un
-      //     Ticket de Acceso—, y eso no dice nada sobre si este comercio puede
-      //     emitir. `verificar_delegacion` consulta `FECompUltimoAutorizado`
-      //     con el CUIT del comercio: es de sólo lectura y es lo que falla si
-      //     ARCA no lo reconoce.
-      //  2. `test_connection` devuelve sus fallos con status 400, y
-      //     `functions.invoke` **no expone el cuerpo** en un no-2xx: llega un
-      //     "non-2xx status code" genérico y el motivo real de ARCA se pierde.
-      //     `verificar_delegacion` responde 200 con `{ ok:false, error }`
-      //     justamente para que se pueda leer y mostrar.
-      if (plataformaLista) {
-        const resp = await supabase.functions.invoke("afip-authorize", {
-          body: { action: "verificar_delegacion", org_id: activeOrg!.id },
-        });
-        const r = resp.data as { ok?: boolean; error?: string } | null;
-
-        if (r?.ok) {
-          setTaStatus("valid");
-          toast.success("Datos guardados y conexión con ARCA verificada");
-        } else {
-          toast.success("Datos fiscales guardados");
-          // Lo que contestó ARCA, textual. "El CUIT no está autorizado" y "el
-          // punto de venta no existe" mandan a lugares distintos, y taparlos
-          // con un mensaje fijo hace perder una tarde.
-          const detalle = await mensajeDeEdgeFunction(resp.error, resp.data);
-          console.error("[afip] verificar_delegacion falló:", detalle, resp);
-          toast.warning(`No se pudo verificar con ARCA — ${detalle}`);
-        }
-      } else {
-        toast.success("Datos fiscales guardados");
+      toast.success("Datos fiscales guardados");
+      if (!plataformaLista) {
         toast.warning("La plataforma todavía no cargó su certificado; no es algo de tu lado.");
       }
-
       await refreshConnectionStatus();
+      await onSaved?.();
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleTestConnection = async () => {
-    if (!activeOrg) return;
-    if (!cuit) {
-      toast.error("Completá el CUIT antes de probar");
-      return;
-    }
-    if (!plataformaLista) {
-      toast.error("La plataforma todavía no cargó su certificado de ARCA. No es un problema de tu configuración.");
-      return;
-    }
-    setTesting(true);
-    try {
-      await doSave();
-      // Igual que al guardar: lo que le importa al comercio es «¿puedo
-      // facturar?», y eso lo contesta `verificar_delegacion` consultando
-      // `FECompUltimoAutorizado`. `test_connection` sólo prueba que WSAA
-      // entregue un Ticket de Acceso, que es un diagnóstico de la plataforma.
-      const resp = await supabase.functions.invoke("afip-authorize", {
-        body: { action: "verificar_delegacion", org_id: activeOrg.id },
-      });
-      const errMsg = (resp.data as { ok?: boolean } | null)?.ok
-        ? ""
-        : await mensajeDeEdgeFunction(resp.error, resp.data);
-      if (errMsg) {
-        console.error("[afip] verificar_delegacion falló:", errMsg, resp);
-        toast.error("ARCA respondió: " + errMsg);
-      } else {
-        toast.success("Conexión con ARCA verificada correctamente");
-        setTaStatus("valid");
-        await refreshConnectionStatus();
-      }
-    } catch (e: any) {
-      toast.error("Error al probar: " + e.message);
-    } finally {
-      setTesting(false);
     }
   };
 
@@ -254,7 +179,6 @@ export default function AfipConfigForm() {
   // ⚠️ Configurado = datos fiscales + certificado DE LA PLATAFORMA. El
   //    comercio ya no sube el suyo, así que su estado no entra acá.
   const isConfigured = !!(cuit && plataformaLista);
-  const canTestConnection = !!(cuit && plataformaLista);
   const identidadIncompleta = !!mensajeIdentidadFiscalFaltante({ razonSocial, domicilio })
     || !tipoEmisor
     || (environment === "produccion" && (!ingresosBrutos.trim() || !inicioActividades));
@@ -383,7 +307,7 @@ export default function AfipConfigForm() {
             contradiciéndose, que es justo lo que pasó. */}
         <p className="text-[11px] text-muted-foreground">
           No tenés que generar ninguna clave ni subir ningún archivo, y la
-          conexión se verifica sola al guardar.
+          la activación y su estado se gestionan en la guía de arriba.
         </p>
         {!plataformaLista && (
           <p className="text-[11px] text-destructive">
@@ -401,11 +325,6 @@ export default function AfipConfigForm() {
         <Button onClick={handleSave} disabled={saving || identidadIncompleta} className="gradient-gold text-primary-foreground font-semibold">
           {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar datos fiscales"}
         </Button>
-        {canTestConnection && (
-          <Button onClick={handleTestConnection} disabled={testing || identidadIncompleta} variant="outline">
-            {testing ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Verificando…</> : "Verificar conexión"}
-          </Button>
-        )}
       </div>
     </div>
   );

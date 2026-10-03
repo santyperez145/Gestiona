@@ -19,10 +19,9 @@
  * Mostrar un genérico "AFIP no configurado" manda al comercio a un trámite que
  * a veces no le toca — y eso quema la confianza en el panel.
  *
- * **No hay botón de "ya delegué".** La única prueba de que la delegación
- * funciona es que ARCA acepte una emisión. Un checkbox de autodeclaración haría
- * que el panel diga "listo" y la primera factura falle, que es peor que decir
- * "todavía no".
+ * **El comercio solicita; Platform confirma.** La designación a un tercero no
+ * queda operativa hasta que Nerqia la acepta y asocia su computador fiscal.
+ * Ningún botón del comercio puede autodeclarar el circuito como verificado.
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +47,8 @@ export type MotivoAfip =
    */
   | "sin_delegacion_necesaria"
   | "falta_delegar"
+  | "esperando_plataforma"
+  | "requiere_correccion"
   | "listo";
 
 interface Props {
@@ -57,6 +58,7 @@ interface Props {
   plataformaRazonSocial: string | null;
   cuitDelComercio: string | null;
   ambiente: string | null;
+  ultimoDiagnostico?: string | null;
   /** Para reconsultar el estado después de verificar. */
   onVerificado: () => void;
 }
@@ -70,9 +72,10 @@ function formatearCuit(cuit: string | null): string {
 
 export default function ConectarAfip({
   orgId, motivo, plataformaCuit, plataformaRazonSocial, cuitDelComercio, ambiente,
-  onVerificado,
+  ultimoDiagnostico, onVerificado,
 }: Props) {
   const [verificando, setVerificando] = useState(false);
+  const [solicitando, setSolicitando] = useState(false);
   const [ultimoError, setUltimoError] = useState<string | null>(null);
 
   const copiar = async (texto: string) => {
@@ -134,6 +137,23 @@ export default function ConectarAfip({
     yaIntento.current = true;
     void verificar(true);
   }, [motivo, orgId, verificar]);
+
+  const solicitarActivacion = async () => {
+    if (!orgId) return;
+    setSolicitando(true);
+    const { data, error } = await supabase.rpc("afip_solicitar_revision_delegacion", {
+      p_org: orgId,
+    });
+    setSolicitando(false);
+    if (error || !(data as { ok?: boolean } | null)?.ok) {
+      const detalle = error?.message?.replace(/^.*?:\s*/, "")
+        || "No se pudo solicitar la activación fiscal";
+      toast.error(detalle);
+      return;
+    }
+    toast.success("Solicitud enviada. Nerqia va a aceptar la designación y verificarla con ARCA.");
+    onVerificado();
+  };
 
   if (motivo === "listo") {
     return (
@@ -224,13 +244,56 @@ export default function ConectarAfip({
     );
   }
 
+  if (motivo === "esperando_plataforma") {
+    return (
+      <Card className="p-4 flex items-start gap-3 border-blue-500/35 bg-blue-500/5">
+        <Clock className="w-4 h-4 mt-0.5 text-blue-600 shrink-0" />
+        <div className="text-sm">
+          <p className="font-medium">Activación solicitada a Nerqia</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Ya recibimos tu aviso. El equipo debe aceptar la designación en ARCA,
+            asociar el computador fiscal y comprobar el acceso con tu CUIT. No
+            tenés que subir certificados ni repetir la solicitud.
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (motivo === "requiere_correccion") {
+    return (
+      <Card className="p-4 space-y-3 border-amber-500/40 bg-amber-500/5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
+          <div className="text-sm">
+            <p className="font-medium">ARCA todavía no aceptó la conexión</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Revisá que hayas designado Facturación Electrónica (wsfe) al CUIT
+              {plataformaCuit ? ` ${formatearCuit(plataformaCuit)}` : " de Nerqia"}
+              y que el punto de venta sea para Web Services. Después volvé a solicitarla.
+            </p>
+            {ultimoDiagnostico && (
+              <p className="mt-2 rounded-md border border-amber-500/20 bg-background/60 p-2 text-[11px] text-muted-foreground">
+                ARCA informó: {ultimoDiagnostico}
+              </p>
+            )}
+          </div>
+        </div>
+        <Button size="sm" onClick={() => void solicitarActivacion()} disabled={solicitando || !orgId}>
+          {solicitando && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
+          Volver a solicitar revisión
+        </Button>
+      </Card>
+    );
+  }
+
   // falta_delegar — el caso principal: hay que guiarlo.
   return (
     <Card className="p-4 space-y-4">
       <div className="flex items-start gap-3">
         <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium text-sm">Conectá ARCA en 3 pasos</p>
+          <p className="font-medium text-sm">Delegá el servicio y pedí la activación</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             No vas a subir ningún certificado ni clave privada. Le das permiso a
             nuestro CUIT para emitir facturas <strong>a tu nombre</strong>, y lo
@@ -279,9 +342,9 @@ export default function ConectarAfip({
             Abrir ARCA <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
           </a>
         </Button>
-        <Button size="sm" onClick={() => verificar()} disabled={verificando || !plataformaCuit || !orgId}>
-          {verificando ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
-          Ya lo hice, verificar
+        <Button size="sm" onClick={() => void solicitarActivacion()} disabled={solicitando || !plataformaCuit || !orgId}>
+          {solicitando ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
+          Ya delegué · solicitar activación
         </Button>
         {ambiente === "homologacion" && (
           <Badge variant="outline" className="text-[10px]">ambiente de prueba</Badge>
@@ -289,9 +352,9 @@ export default function ConectarAfip({
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        El botón no marca nada por sí solo: le pregunta a ARCA. Si todavía no
-        procesó la delegación —a veces demora unos minutos— te lo va a decir en
-        vez de dar por buena una conexión que no funciona.
+        La solicitud no marca la conexión como lista. Nerqia debe aceptar tu
+        designación, asociar su computador fiscal y recién entonces verificar
+        el acceso de sólo lectura contra ARCA.
       </p>
     </Card>
   );

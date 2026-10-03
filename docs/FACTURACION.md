@@ -54,6 +54,11 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
 - `FECompUltimoAutorizado` sólo devuelve cero cuando ARCA envía explícitamente
   `CbteNro=0`. Faults, bloques `Errors/Err`, número ausente o inválido fallan;
   un HTTP 200 de SOAP no se interpreta por sí solo como conexión válida.
+- La conexión delegada tiene dos autoridades visibles: el comercio designa a
+  Nerqia y solicita activación; Platform acepta la designación, asocia el
+  computador fiscal y ejecuta `FECompUltimoAutorizado`. La solicitud no puede
+  marcarse verificada desde el navegador. Pendiente, corrección y verificada
+  quedan separados y auditados; cambiar CUIT/ambiente/punto invalida el ciclo.
 - A4 y 80 mm muestran neto/IVA para A y NC A, precios finales para B/C y sus NC,
   transparencia, identidad congelada, CAE/QR y referencia de la NC. Homologación
   se identifica explícitamente y no es un comprobante productivo.
@@ -73,13 +78,19 @@ Los tests de ticket incluyen un pedido con descuento, envío e IVA mixto.
 mixtas, redondeo, clase C, tasa invalida y permisos owner/viewer en rollback.
 `supabase/verificaciones/20261002_arca_connection_context.sql` prueba versionado,
 invalidación, ambiente y confirmación exclusiva del backend sin llamar a ARCA.
+`20261003_arca_delegation_activation_queue.sql` suma nueve escenarios reversibles:
+solicitud, idempotencia, handoff visible, cola de staff, revisión, corrección,
+reintento, invalidación y navegador sin autoridad de confirmación.
 Las pruebas puras `wsfeRespuesta` y `afipCertificate` cubren rechazo embebido,
 respuesta incompleta, cero legítimo, CRT/KEY distinto, vigencia y CUIT. La
-migraciones `20261003000100`/`00110` están aplicadas en la base vinculada y las funciones
-`afip-platform-cert` v21 y `afip-authorize` v65 quedaron desplegadas. Esto prueba
+migraciones `20261003000100`/`00110`/`00120` están aplicadas en la base vinculada y las funciones
+`afip-platform-cert` v21 y `afip-authorize` v66 quedaron desplegadas. Esto prueba
 el control interno. `00110` recifra la credencial legada y agrega un trigger
 que impide futuras escrituras en claro; no reemplaza una llamada con certificado
 productivo real ni valida retroactivamente la vigencia del PEM ya almacenado.
+`00120` agrega la solicitud idempotente, cola de Platform y confirmación sólo
+backend; la cola productiva tenía cero solicitudes al verificarla, por lo que
+todavía no prueba una aceptación real de un comercio.
 El CAE de la fixture POS es
 **simulado sólo dentro del rollback**; no certifica emisión ni recepción real.
 

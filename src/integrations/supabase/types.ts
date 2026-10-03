@@ -1360,6 +1360,10 @@ export type Database = {
           cuit: string | null
           delegacion_verificada: boolean
           delegacion_verificada_at: string | null
+          delegacion_solicitada_at: string | null
+          delegacion_solicitada_por: string | null
+          delegacion_revisada_at: string | null
+          delegacion_revisada_por: string | null
           domicilio: string | null
           environment: string
           ingresos_brutos: string | null
@@ -1382,6 +1386,10 @@ export type Database = {
           cuit?: string | null
           delegacion_verificada?: boolean
           delegacion_verificada_at?: string | null
+          delegacion_solicitada_at?: string | null
+          delegacion_solicitada_por?: string | null
+          delegacion_revisada_at?: string | null
+          delegacion_revisada_por?: string | null
           domicilio?: string | null
           environment?: string
           ingresos_brutos?: string | null
@@ -1404,6 +1412,10 @@ export type Database = {
           cuit?: string | null
           delegacion_verificada?: boolean
           delegacion_verificada_at?: string | null
+          delegacion_solicitada_at?: string | null
+          delegacion_solicitada_por?: string | null
+          delegacion_revisada_at?: string | null
+          delegacion_revisada_por?: string | null
           domicilio?: string | null
           environment?: string
           ingresos_brutos?: string | null
@@ -49549,6 +49561,8 @@ export type Database = {
           cuit: string | null
           delegacion_verificada: boolean | null
           delegacion_verificada_at: string | null
+          delegacion_solicitada_at: string | null
+          delegacion_revisada_at: string | null
           domicilio: string | null
           environment: string | null
           ingresos_brutos: string | null
@@ -49573,6 +49587,8 @@ export type Database = {
           cuit?: string | null
           delegacion_verificada?: boolean | null
           delegacion_verificada_at?: string | null
+          delegacion_solicitada_at?: string | null
+          delegacion_revisada_at?: string | null
           domicilio?: string | null
           environment?: string | null
           ingresos_brutos?: string | null
@@ -49597,6 +49613,8 @@ export type Database = {
           cuit?: string | null
           delegacion_verificada?: boolean | null
           delegacion_verificada_at?: string | null
+          delegacion_solicitada_at?: string | null
+          delegacion_revisada_at?: string | null
           domicilio?: string | null
           environment?: string | null
           ingresos_brutos?: string | null
@@ -49694,6 +49712,51 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      platform_afip_delegation_queue: {
+        Row: {
+          cuit: string | null
+          delegacion_revisada_at: string | null
+          delegacion_solicitada_at: string | null
+          delegacion_verificada: boolean | null
+          delegacion_verificada_at: string | null
+          environment: string | null
+          estado: string | null
+          last_error: string | null
+          org_id: string | null
+          organization_name: string | null
+          punto_venta: number | null
+          razon_social: string | null
+        }
+        Insert: {
+          cuit?: string | null
+          delegacion_revisada_at?: string | null
+          delegacion_solicitada_at?: string | null
+          delegacion_verificada?: boolean | null
+          delegacion_verificada_at?: string | null
+          environment?: string | null
+          estado?: never
+          last_error?: string | null
+          org_id?: string | null
+          organization_name?: string | null
+          punto_venta?: number | null
+          razon_social?: string | null
+        }
+        Update: {
+          cuit?: string | null
+          delegacion_revisada_at?: string | null
+          delegacion_solicitada_at?: string | null
+          delegacion_verificada?: boolean | null
+          delegacion_verificada_at?: string | null
+          environment?: string | null
+          estado?: never
+          last_error?: string | null
+          org_id?: string | null
+          organization_name?: string | null
+          punto_venta?: number | null
+          razon_social?: string | null
+        }
+        Relationships: []
       }
       afip_platform_status: {
         Row: {
@@ -58051,6 +58114,7 @@ export type Database = {
           p_environment: string
           p_ok: boolean
           p_org: string
+          p_revisor?: string
           p_version: number
         }
         Returns: Json
@@ -58058,6 +58122,10 @@ export type Database = {
       afip_marcar_delegacion: {
         Args: { p_detalle?: string; p_ok: boolean; p_org: string }
         Returns: undefined
+      }
+      afip_solicitar_revision_delegacion: {
+        Args: { p_org: string }
+        Returns: Json
       }
       afip_ta_lease_soltar: { Args: { p_clave: string }; Returns: undefined }
       afip_ta_lease_tomar: {

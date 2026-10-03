@@ -132,6 +132,7 @@ async function confirmarContextoFiscal(
   environment: string,
   okDelegacion: boolean,
   detalle: string | null,
+  revisor: string | null = null,
 ) {
   const { data, error } = await supabase.rpc("afip_confirmar_contexto", {
     p_org: orgId,
@@ -139,6 +140,7 @@ async function confirmarContextoFiscal(
     p_environment: environment,
     p_ok: okDelegacion,
     p_detalle: detalle,
+    p_revisor: revisor,
   });
   if (error) console.error("afip_confirmar_contexto falló:", error);
   const result = data && typeof data === "object"
@@ -293,16 +295,43 @@ Deno.serve(async (req) => {
     if (body.action === "verificar_delegacion") {
       if (!body.org_id) return err("org_id required");
 
-      const { data: membership } = await supabase
-        .from("memberships").select("role")
-        .eq("org_id", body.org_id).eq("user_id", actorId)
-        .in("role", ["owner", "admin"]).maybeSingle();
-      if (!membership) return err("Sólo el dueño o un administrador pueden verificar", 403);
+      const [{ data: membership }, { data: platformAdmin }] = await Promise.all([
+        supabase
+          .from("memberships").select("role")
+          .eq("org_id", body.org_id).eq("user_id", actorId)
+          .in("role", ["owner", "admin"]).maybeSingle(),
+        supabase
+          .from("platform_admins").select("user_id")
+          .eq("user_id", actorId).maybeSingle(),
+      ]);
+      if (!membership && !platformAdmin) {
+        return err("No tenés permiso para verificar esta conexión fiscal", 403);
+      }
 
       const resuelto = await resolverCredencialesAfip(supabase, body.org_id);
       if (resuelto.error) return err(resuelto.error);
       const cred = resuelto.cred;
       if (!cred) return err("No se pudo resolver la credencial de ARCA");
+
+      // La guía oficial separa dos actos: el comercio designa al tercero y el
+      // tercero acepta la designación/asocia su computador fiscal. Por eso un
+      // comercio delegado solicita la activación, pero no confirma su propia
+      // solicitud. La única excepción es identidad propia: certificado y CUIT
+      // emisor pertenecen al mismo contribuyente y no existe tercero a aceptar.
+      if (!platformAdmin && cred.modo !== "propio") {
+        const { data: platformCredential } = await supabase
+          .from("afip_platform_credentials")
+          .select("cuit")
+          .eq("environment", cred.environment)
+          .maybeSingle();
+        const digits = (value: unknown) => String(value ?? "").replace(/\D/g, "");
+        if (!platformCredential?.cuit || digits(platformCredential.cuit) !== digits(cred.cuit)) {
+          return err(
+            "Después de delegar, solicitá la activación. Nerqia debe aceptar la designación y asociar el computador fiscal antes de verificar.",
+            403,
+          );
+        }
+      }
 
       const isProd = cred.environment === "produccion";
       const wsaaUrl = isProd
@@ -332,6 +361,7 @@ Deno.serve(async (req) => {
           cred.environment,
           false,
           detalle,
+          platformAdmin ? actorId : null,
         );
         if (confirmado.error) {
           return ok({
@@ -362,6 +392,7 @@ Deno.serve(async (req) => {
         cred.environment,
         true,
         null,
+        platformAdmin ? actorId : null,
       );
       if (marcado.error) {
         return ok({

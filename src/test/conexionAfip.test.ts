@@ -8,8 +8,10 @@ const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 const migracion = leer("supabase/migrations/20260821000020_afip_delegacion_guiada.sql");
 const autorizacionFiscal = leer("supabase/migrations/20260828000150_anon_no_verifica_una_delegacion_fiscal.sql");
 const contextoFiscal = leer("supabase/migrations/20261002000400_arca_connection_context_runtime.sql");
+const activacionFiscal = leer("supabase/migrations/20261003000120_arca_delegation_activation_queue.sql");
 const fn = leer("supabase/functions/afip-authorize/index.ts");
 const ui = leer("src/components/afip/ConectarAfip.tsx");
+const platformUi = leer("src/pages/PlatformAfipPage.tsx");
 
 /**
  * C14b — guarda de la conexión guiada a AFIP.
@@ -98,9 +100,28 @@ describe("conexión guiada a AFIP", () => {
     expect(fn).toContain("return ok({ ok: false, error: detalle })");
   });
 
-  it("sólo el dueño o un admin pueden verificar", () => {
+  it("la verificación de terceros la ejecuta Platform, no el solicitante", () => {
     const bloque = fn.slice(fn.indexOf('body.action === "verificar_delegacion"'));
+    expect(bloque).toContain('.from("platform_admins")');
     expect(bloque).toContain('.in("role", ["owner", "admin"])');
+    expect(bloque).toContain("Nerqia debe aceptar la designación");
+    expect(ui).toContain('afip_solicitar_revision_delegacion');
+    expect(ui).not.toContain('Ya lo hice, verificar');
+  });
+
+  it("mantiene una cola auditable y estados distintos para comercio y staff", () => {
+    expect(activacionFiscal).toContain("delegacion_solicitada_at");
+    expect(activacionFiscal).toContain("delegacion_revisada_at");
+    expect(activacionFiscal).toContain("platform_afip_delegation_queue");
+    expect(activacionFiscal).toContain("esperando_plataforma");
+    expect(activacionFiscal).toContain("requiere_correccion");
+    expect(activacionFiscal).toContain("afip_solicitar_revision_delegacion");
+    expect(activacionFiscal).toContain("exigir_permiso");
+    expect(activacionFiscal).toContain("'invoices', 'edit'");
+    expect(ui).toContain("Activación solicitada a Nerqia");
+    expect(platformUi).toContain("Activaciones solicitadas");
+    expect(platformUi).toContain("Verificar con ARCA");
+    expect(platformUi).toContain("autorizá el computador fiscal");
   });
 
   it("no guarda una verificación contra una configuración fiscal vieja", () => {

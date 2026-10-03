@@ -82,7 +82,7 @@ BEGIN
     'browser_cannot_confirm',
     NOT has_function_privilege(
       'authenticated',
-      'public.afip_confirmar_contexto(uuid,bigint,text,boolean,text)',
+      'public.afip_confirmar_contexto(uuid,bigint,text,boolean,text,uuid)',
       'EXECUTE'
     )
   );

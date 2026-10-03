@@ -41,6 +41,9 @@ interface AfipConnectionStatus {
   plataforma_razon_social: string | null;
   /** Por qué no puede emitir, para no mandar al comercio a un trámite ajeno. */
   motivo: MotivoAfip | null;
+  last_error: string | null;
+  delegacion_solicitada_at: string | null;
+  delegacion_revisada_at: string | null;
   // `delegacion_verificada` existe en la vista pero esta pantalla no la usa.
   // Se saca de acá a propósito: un campo declarado y nunca pedido es
   // exactamente cómo empezó el bug del CUIT vacío.
@@ -122,7 +125,7 @@ export default function AFIPPage() {
         // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
         // una columna que no existe— y con `strictNullChecks: false` el cast a
         // la interface hace que TypeScript crea que el campo está.
-        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo")
+        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
@@ -225,6 +228,30 @@ export default function AFIPPage() {
         icon: AlertTriangle,
       };
     }
+    if (connection.motivo === "falta_delegar") {
+      return {
+        title: "Falta delegar Facturación Electrónica",
+        detail: "Completá la designación en ARCA y solicitá la activación desde la guía de arriba.",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        icon: AlertTriangle,
+      };
+    }
+    if (connection.motivo === "esperando_plataforma") {
+      return {
+        title: "Activación fiscal en revisión",
+        detail: "Nerqia debe aceptar la designación, asociar el computador fiscal y verificarla con ARCA.",
+        className: "bg-blue-500/5 border-blue-500/20 text-blue-200",
+        icon: Clock,
+      };
+    }
+    if (connection.motivo === "requiere_correccion") {
+      return {
+        title: "La designación necesita una corrección",
+        detail: connection.last_error || "ARCA todavía no aceptó la conexión. Revisá el servicio delegado y el punto de venta.",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        icon: AlertTriangle,
+      };
+    }
     if (!connection.ticket_vigente) {
       return {
         title: "Listo para emitir; conexión pendiente de prueba",
@@ -269,12 +296,13 @@ export default function AFIPPage() {
         plataformaRazonSocial={connection?.plataforma_razon_social ?? null}
         cuitDelComercio={connection?.cuit ?? null}
         ambiente={connection?.environment ?? null}
+        ultimoDiagnostico={connection?.last_error ?? null}
         onVerificado={load}
       />
 
       {/* La configuración fiscal, en la página que se llama AFIP. Antes vivía
           en Ajustes → Sistema, a dos clics de acá. */}
-      <AfipConfigForm />
+      <AfipConfigForm onSaved={load} />
 
       <div className={`rounded-xl border p-4 ${readiness.className}`}>
         <div className="flex gap-3">

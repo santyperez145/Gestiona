@@ -16,7 +16,7 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   FileText, ShieldCheck, ShieldAlert, Loader2, Save, Trash2, Info,
-  Building2, KeyRound, ExternalLink,
+  Building2, KeyRound, ExternalLink, Clock, RefreshCw, CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,21 @@ interface Estado {
   certificate_valid: boolean | null;
 }
 
+interface SolicitudDelegacion {
+  org_id: string;
+  organization_name: string;
+  cuit: string | null;
+  razon_social: string | null;
+  punto_venta: number | null;
+  environment: string | null;
+  delegacion_solicitada_at: string;
+  delegacion_revisada_at: string | null;
+  delegacion_verificada: boolean | null;
+  delegacion_verificada_at: string | null;
+  last_error: string | null;
+  estado: 'pendiente' | 'requiere_correccion' | 'verificada';
+}
+
 export default function PlatformAfipPage() {
   usePageTitle('AFIP · Plataforma');
   const { isSuperadmin, loading: accessLoading } = usePlatformAccess();
@@ -53,6 +68,8 @@ export default function PlatformAfipPage() {
   const [estado, setEstado] = useState<Estado | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [solicitudes, setSolicitudes] = useState<SolicitudDelegacion[]>([]);
+  const [verificandoOrg, setVerificandoOrg] = useState<string | null>(null);
 
   const [cuit, setCuit] = useState('');
   const [razonSocial, setRazonSocial] = useState('');
@@ -78,10 +95,14 @@ export default function PlatformAfipPage() {
 
   const cargar = useCallback(async () => {
     setCargando(true);
-    const { data, error } = await supabase
-      .from('afip_platform_status')
-      .select('*')
-      .maybeSingle();
+    const [statusResult, queueResult] = await Promise.all([
+      supabase.from('afip_platform_status').select('*').maybeSingle(),
+      supabase
+        .from('platform_afip_delegation_queue')
+        .select('*')
+        .order('delegacion_solicitada_at', { ascending: false }),
+    ]);
+    const { data, error } = statusResult;
 
     // ⚠️ No se traga el error: "no tengo permiso" y "no hay nada cargado" son
     // problemas opuestos y muestran la misma pantalla vacía si se confunden.
@@ -89,6 +110,12 @@ export default function PlatformAfipPage() {
       toast.error('No se pudo leer el estado de AFIP: ' + error.message);
       setCargando(false);
       return;
+    }
+    if (queueResult.error) {
+      toast.error('No se pudo leer la cola de activaciones: ' + queueResult.error.message);
+      setSolicitudes([]);
+    } else {
+      setSolicitudes((queueResult.data || []) as SolicitudDelegacion[]);
     }
 
     const e = (data ?? null) as Estado | null;
@@ -143,6 +170,22 @@ export default function PlatformAfipPage() {
     void cargar();
   };
 
+  const verificarDelegacion = async (solicitud: SolicitudDelegacion) => {
+    setVerificandoOrg(solicitud.org_id);
+    const { data, error } = await supabase.functions.invoke('afip-authorize', {
+      body: { action: 'verificar_delegacion', org_id: solicitud.org_id },
+    });
+    setVerificandoOrg(null);
+    if (error || !(data as { ok?: boolean } | null)?.ok) {
+      const detalle = await mensajeDeEdgeFunction(error, data, 'platform');
+      toast.error(detalle || 'ARCA todavía no aceptó la conexión');
+      await cargar();
+      return;
+    }
+    toast.success(`${solicitud.organization_name} quedó habilitada para facturar`);
+    await cargar();
+  };
+
   if (accessLoading) return null;
   if (!isSuperadmin) return <Navigate to="/platform" replace />;
 
@@ -156,7 +199,7 @@ export default function PlatformAfipPage() {
         icon={FileText}
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KPICard
           label="Certificado"
           value={listo ? 'Cargado' : 'Falta'}
@@ -182,7 +225,77 @@ export default function PlatformAfipPage() {
           color="blue"
           sub="Facturan con este certificado"
         />
+        <KPICard
+          label="Activaciones pendientes"
+          value={String(solicitudes.filter(item => item.estado !== 'verificada').length)}
+          icon={Clock}
+          color="primary"
+          sub="Requieren aceptación y prueba"
+        />
       </div>
+
+      <section className="rounded-lg border border-border bg-card">
+        <div className="flex flex-col gap-2 border-b border-border p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-semibold">Activaciones solicitadas</h2>
+            <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
+              Para cada comercio: aceptá la designación en Administrador de Relaciones,
+              autorizá el computador fiscal correspondiente al alias del certificado y
+              recién después ejecutá la verificación de sólo lectura.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => void cargar()} disabled={cargando}>
+            <RefreshCw className={`mr-2 h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        </div>
+        {solicitudes.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">No hay solicitudes de activación.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {solicitudes.map((solicitud) => {
+              const verificando = verificandoOrg === solicitud.org_id;
+              return (
+                <div key={solicitud.org_id} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{solicitud.organization_name}</p>
+                      <Badge variant={solicitud.estado === 'verificada' ? 'secondary' : 'outline'}>
+                        {solicitud.estado === 'verificada' ? 'Verificada'
+                          : solicitud.estado === 'requiere_correccion' ? 'Requiere corrección'
+                            : 'Pendiente'}
+                      </Badge>
+                      <Badge variant="outline">{solicitud.environment}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      CUIT {solicitud.cuit || 'sin informar'} · Punto de venta {solicitud.punto_venta || '—'} ·
+                      solicitada {new Date(solicitud.delegacion_solicitada_at).toLocaleString('es-AR')}
+                    </p>
+                    {solicitud.last_error && solicitud.estado !== 'verificada' && (
+                      <p className="max-w-3xl text-xs text-destructive">ARCA: {solicitud.last_error}</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button asChild variant="outline" size="sm">
+                      <a href="https://auth.afip.gob.ar/contribuyente_/login.xhtml" target="_blank" rel="noreferrer">
+                        Abrir ARCA <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                    {solicitud.estado !== 'verificada' && (
+                      <Button size="sm" onClick={() => void verificarDelegacion(solicitud)} disabled={!!verificandoOrg}>
+                        {verificando
+                          ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                          : <CheckCircle2 className="mr-2 h-3.5 w-3.5" />}
+                        Verificar con ARCA
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
         <div className="flex items-start gap-3">
