@@ -186,7 +186,10 @@ sigue abierto como certificación operacional.
   servicio recuperado. Tenant y staff usan ahora cuatro intentos acotados en
   este límite de seguridad, sin autorizar preferencias locales ni roles viejos;
   lecturas ordinarias conservan el presupuesto de tres. El estado final sigue
-  siendo error recuperable si el proveedor no vuelve.
+  siendo error recuperable si el proveedor no vuelve. El gate sintético de
+  Platform mantiene ahora el proveedor caído más allá de todo ese presupuesto y
+  sólo restablece el backend antes del reintento explícito, evitando falsos
+  verdes cuando cambie el número interno de intentos.
 - Cuotas públicas: elegibilidad de Nerqia Pay/alias y ARS, centavos, caché
   acotada, contexto sin cotizaciones viejas y recuperación. Handler con CORS
   ante error y tasa ausente sin promesa de interés cero; seis escenarios de

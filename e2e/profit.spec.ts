@@ -176,10 +176,14 @@ test('synthetic membership failure offers recovery instead of pending approval o
 });
 
 test('synthetic Platform role failure remains closed and allows explicit retry', async ({ page }) => {
-  const failures = { platform: 3 };
+  // Keep the provider unavailable beyond the whole bounded retry budget. This
+  // proves that access stays closed instead of coupling the test to a specific
+  // number of automatic recovery attempts.
+  const failures = { platform: 100 };
   await mockProfit(page, false, failures);
   await page.goto('/platform');
   await expect(page.getByText('No pudimos verificar tu acceso', { exact: true })).toBeVisible();
+  failures.platform = 0;
   await page.getByRole('button', { name: 'Volver a intentar', exact: true }).click();
   // The valid tenant is not staff. Recovery must return to its surface, not grant Platform.
   await expect(page).not.toHaveURL(/\/platform/);
