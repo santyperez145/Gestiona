@@ -8,6 +8,11 @@ producción o para promover el deploy elegido y reactivar la asignación automá
 
 ## Preparación única
 
+Estado verificado el 2026-10-03: el environment `production-recovery` existe,
+acepta sólo ramas protegidas y exige aprobación de `santyperez145`. Como el repo
+tiene un único colaborador, `prevent_self_review` permanece desactivado. Agregar
+un segundo responsable y activarlo es un gate organizacional, no uno de código.
+
 En GitHub, crear o revisar el environment `production-recovery`:
 
 1. exigir al menos un reviewer distinto de quien dispara la acción;
@@ -48,9 +53,10 @@ deploy elegido, impacto y reconciliación de efectos externos.
 ## Gate pendiente
 
 El mecanismo queda implementado y probado por contrato, pero no se ejecutó un
-rollback productivo sólo para generar evidencia. Falta configurar reviewers y
-el secreto del environment en GitHub, y realizar un game day autorizado con un
-deploy sin cambios de esquema ni transacciones externas.
+rollback productivo sólo para generar evidencia. Falta cargar un `VERCEL_TOKEN`
+dedicado y revocable, sumar un segundo revisor para impedir autoaprobación y
+realizar un game day autorizado con un deploy sin cambios de esquema ni
+transacciones externas. La sesión personal local no se reutiliza como secreto CI.
 
 Referencias oficiales consultadas el 2026-10-03:
 [Vercel CLI rollback](https://vercel.com/docs/cli/rollback),
