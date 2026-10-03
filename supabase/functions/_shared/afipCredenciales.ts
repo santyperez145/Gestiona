@@ -39,6 +39,8 @@ export type CredencialesAfip = {
   punto_venta: number;
   tipo_emisor: string | null;
   modo: ModoAfip;
+  /** Version de la identidad/configuracion que se verifico contra ARCA. */
+  conexion_version: number;
   ta_token: string | null;
   ta_sign: string | null;
   ta_expires_at: string | null;
@@ -79,6 +81,7 @@ export async function resolverCredencialesAfip(supabase: any, orgId: string): Pr
         punto_venta: org.punto_venta || 1,
         tipo_emisor: org.tipo_emisor ?? null,
         modo,
+        conexion_version: Number(org.conexion_version ?? 0),
         ta_token: org.ta_token ?? null,
         ta_sign: org.ta_sign ?? null,
         ta_expires_at: org.ta_expires_at ?? null,
@@ -107,6 +110,7 @@ export async function resolverCredencialesAfip(supabase: any, orgId: string): Pr
       punto_venta: org.punto_venta || 1,
       tipo_emisor: org.tipo_emisor ?? null,
       modo,
+      conexion_version: Number(org.conexion_version ?? 0),
       ta_token: plat.ta_token ?? null,
       ta_sign: plat.ta_sign ?? null,
       ta_expires_at: plat.ta_expires_at ?? null,

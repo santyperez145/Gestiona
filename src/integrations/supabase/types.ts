@@ -1356,6 +1356,7 @@ export type Database = {
       afip_credentials: {
         Row: {
           certificate: string | null
+          conexion_version: number
           cuit: string | null
           delegacion_verificada: boolean
           delegacion_verificada_at: string | null
@@ -1377,6 +1378,7 @@ export type Database = {
         }
         Insert: {
           certificate?: string | null
+          conexion_version?: number
           cuit?: string | null
           delegacion_verificada?: boolean
           delegacion_verificada_at?: string | null
@@ -1398,6 +1400,7 @@ export type Database = {
         }
         Update: {
           certificate?: string | null
+          conexion_version?: number
           cuit?: string | null
           delegacion_verificada?: boolean
           delegacion_verificada_at?: string | null
@@ -49533,6 +49536,7 @@ export type Database = {
       afip_connection_status: {
         Row: {
           configured: boolean | null
+          conexion_version: number | null
           cuit: string | null
           delegacion_verificada: boolean | null
           delegacion_verificada_at: string | null
@@ -49545,6 +49549,7 @@ export type Database = {
           motivo: string | null
           org_id: string | null
           plataforma_cuit: string | null
+          plataforma_ambiente: string | null
           plataforma_lista: boolean | null
           plataforma_razon_social: string | null
           punto_venta: number | null
@@ -49555,6 +49560,7 @@ export type Database = {
         }
         Insert: {
           configured?: never
+          conexion_version?: number | null
           cuit?: string | null
           delegacion_verificada?: boolean | null
           delegacion_verificada_at?: string | null
@@ -49567,6 +49573,7 @@ export type Database = {
           motivo?: never
           org_id?: string | null
           plataforma_cuit?: never
+          plataforma_ambiente?: never
           plataforma_lista?: never
           plataforma_razon_social?: never
           punto_venta?: number | null
@@ -49577,6 +49584,7 @@ export type Database = {
         }
         Update: {
           configured?: never
+          conexion_version?: number | null
           cuit?: string | null
           delegacion_verificada?: boolean | null
           delegacion_verificada_at?: string | null
@@ -49589,6 +49597,7 @@ export type Database = {
           motivo?: never
           org_id?: string | null
           plataforma_cuit?: never
+          plataforma_ambiente?: never
           plataforma_lista?: never
           plataforma_razon_social?: never
           punto_venta?: number | null
@@ -58012,6 +58021,16 @@ export type Database = {
           p_invoice_id: string
           p_numero_afip?: number
           p_status: string
+        }
+        Returns: Json
+      }
+      afip_confirmar_contexto: {
+        Args: {
+          p_detalle?: string
+          p_environment: string
+          p_ok: boolean
+          p_org: string
+          p_version: number
         }
         Returns: Json
       }

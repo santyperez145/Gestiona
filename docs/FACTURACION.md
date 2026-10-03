@@ -1,6 +1,6 @@
 # Facturación y autoridad fiscal
 
-**Estado:** vigente, 2026-10-01. **Responsable:** Business Core / integración ARCA.
+**Estado:** vigente, 2026-10-02. **Responsable:** Business Core / integración ARCA.
 Este contrato describe cálculo, persistencia y representación. Configuración
 general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LEGAL.md).
 
@@ -31,12 +31,20 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
 - Nuevos renglones POS almacenan neto, tasa e IVA. WSFE agrupa cada tasa con su
   Id oficial y verifica neto + IVA = total. `tax_pct = 0` en una cabecera mixta
   no significa IVA cero: la autoridad es el desglose de renglones.
+- Las facturas manuales A/B permiten una alicuota admitida por renglon. La UI
+  anticipa neto, IVA agrupado y total, pero `crear_factura_manual` recalcula y
+  persiste cada importe en la base. La clase C fuerza IVA cero y un borrador no
+  fiscal no recibe datos fiscales inventados.
 - Las NC reservan saldo e IVA por alícuota, incluyendo borradores previos. Una
   NC completa cierra exactamente los importes restantes. No mueve inventario
   ni acredita dinero: esos hechos tienen autoridad en Devoluciones y Pay.
 - ARCA toma una nueva lectura después de reservar. Cabecera y renglones se
   congelan durante `processing`; con CAE no se editan ni eliminan. Rechazos
   permiten corregir; una respuesta incierta mantiene la reserva para conciliar.
+- La prueba de representación guarda la versión exacta de CUIT, punto de venta,
+  ambiente, clase y certificado que ARCA validó. Un cambio concurrente invalida
+  el resultado; sólo el backend puede confirmarlo. Certificado propio y
+  representación delegada conservan diagnósticos separados.
 - A4 y 80 mm muestran neto/IVA para A y NC A, precios finales para B/C y sus NC,
   transparencia, identidad congelada, CAE/QR y referencia de la NC. Homologación
   se identifica explícitamente y no es un comprobante productivo.
@@ -52,11 +60,15 @@ anónimo e idempotente, descuento/envío, tasas originales, facturas A/B/C,
 históricos, cambio de emisor, importes inválidos e inmutabilidad con roles
 reales. Las fixtures se revierten; no llaman proveedores ni envían correos.
 Los tests de ticket incluyen un pedido con descuento, envío e IVA mixto.
+`supabase/verificaciones/20261002_manual_invoice_line_tax.sql` cubre alicuotas
+mixtas, redondeo, clase C, tasa invalida y permisos owner/viewer en rollback.
+`supabase/verificaciones/20261002_arca_connection_context.sql` prueba versionado,
+invalidación, ambiente y confirmación exclusiva del backend sin llamar a ARCA.
 El CAE de la fixture POS es
 **simulado sólo dentro del rollback**; no certifica emisión ni recepción real.
 
 Siguen pendientes la revisión explícita de pedidos históricos/correcciones,
-alícuotas por renglón en la factura manual, otros tributos reales, certificación
+otros tributos reales, certificación
 ARCA A/B/C y NC con identidad delegada, impresión física y entrega por correo.
 El cero supuesto de otros impuestos en las representaciones actuales no es una
 certificación de transparencia fiscal completa.

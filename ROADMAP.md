@@ -112,10 +112,14 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-02: `npm run verify` pasa 3.563 tests en 401
+- Validación local del 2026-10-02: `npm run verify` pasa 3.570 tests en 402
   archivos, funciones, lint sin errores, tipos, build y auditoría sin hallazgos.
   El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
   portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
+- Lote fiscal 2026-10-02: 13 escenarios SQL reversibles verdes sobre la base
+  vinculada (contexto ARCA versionado, ambiente, permisos, IVA manual mixto,
+  clase C y tasa inválida). `afip-authorize` desplegada con confirmación
+  server-side; esto no sustituye una emisión/recepción certificada ante ARCA.
 - Profit Foundation: SQL reversible con cuatro roles, overrides y dos tenants;
   1.007 líneas sin truncar, detalle disjunto y cero restos. UI sintética con
   SKU duplicado, tienda inactiva, costos históricos inmutables y filtros;
@@ -202,6 +206,11 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    Web Services con guía contextual, validación y diagnóstico. Completar
    factura/ticket y nota de crédito desde POS y ventas, impresión y recepción,
    sin anunciar autorización productiva hasta obtener y conciliar el CAE real.
+   La factura manual ya acepta IVA por renglón A/B, agrupa alicuotas en pantalla
+   y recalcula neto/IVA/total server-side; C fuerza cero y el borrador no fiscal
+   no inventa impuestos. La prueba ARCA queda ligada a la versión exacta del
+   CUIT/ambiente/punto/certificado y no acepta un resultado concurrente viejo.
+   Falta certificación externa y operación física.
 
 ### P2 — Finance operacional y Growth CRM
 

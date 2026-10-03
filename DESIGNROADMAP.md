@@ -70,6 +70,14 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 | Finance | Trabajo de gasto, documentos y aprobación; no espejo de Business. | Layout/entitlement e Inbox técnico. | Primer documento real y políticas preventivas. |
 | Platform | Control plane violeta, colas y Merchant 360. | Shell, MFA, áreas operativas; Mensajería separa diagnóstico de staff, acción del comercio y copy del comprador, con alertas persistentes en campañas/SMTP/equipo. | Completar matriz visual autenticada y estados reales de webhook/Auth SMTP. |
 
+Facturación manual mantiene la gramática Business: selector de IVA por renglón,
+predeterminado que sólo actualiza líneas no personalizadas y resumen agrupado
+por alícuota antes del total. En C se muestra cero; sin identidad fiscal se
+muestra un borrador no fiscal, evitando controles que prometan emisión ARCA.
+La conexión fiscal conserva el último diagnóstico sólo para la configuración
+que se probó; si cambia durante la espera, pide revisar y reintentar en vez de
+mostrar un éxito obsoleto.
+
 El corte productivo 2026-09-05 recorrió 93 contextos de ruta sin overflow
 horizontal ni errores JavaScript propios. Corrigió `NaNd` en Productos, títulos
 genéricos en superficies aisladas, el título semántico del checkout vacío,

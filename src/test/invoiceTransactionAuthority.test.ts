@@ -7,6 +7,7 @@ const migration = read("supabase/migrations/20260930000200_invoice_transaction_a
 const saleMigration = read("supabase/migrations/20260930000210_single_sale_invoice_authority.sql");
 const manualGuard = read("supabase/migrations/20260930000220_manual_invoice_sale_guard.sql");
 const ivaGuard = read("supabase/migrations/20260930000230_invoice_iva_aliquot_guard.sql");
+const manualLineTax = read("supabase/migrations/20261002000500_manual_invoice_line_tax.sql");
 const page = read("src/pages/InvoicesPage.tsx");
 
 describe("autoridad transaccional de facturación", () => {
@@ -60,7 +61,16 @@ describe("autoridad transaccional de facturación", () => {
   it("limita las alicuotas fiscales en UI y base", () => {
     expect(ivaGuard).toContain("NOT IN (0, 2.5, 5, 10.5, 21, 27)");
     expect(ivaGuard).toContain("CREATE TRIGGER trg_validar_alicuota_factura");
-    expect(page).toContain("[0, 2.5, 5, 10.5, 21, 27].map");
+    expect(page).toContain("INVOICE_TAX_RATES.map");
+  });
+
+  it("recalcula y persiste la alicuota de cada renglon manual", () => {
+    expect(manualLineTax).toContain("v_item->>'tax_rate'");
+    expect(manualLineTax).toContain("v_line_tax_amount := public.redondear_moneda");
+    expect(manualLineTax).toContain("tax_rate, tax_amount");
+    expect(manualLineTax).toContain("PERFORM public.invoice_iva_groups(v_invoice_id)");
+    expect(page).toContain('aria-label={`IVA del ítem ${i + 1}`}');
+    expect(page).toContain("manualTaxSummary.groups.map");
   });
 
   it("no confunde una consulta ARCA pendiente o fallida con una desconexion real", () => {

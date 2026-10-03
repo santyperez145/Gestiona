@@ -7,6 +7,7 @@ const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
 const migracion = leer("supabase/migrations/20260821000020_afip_delegacion_guiada.sql");
 const autorizacionFiscal = leer("supabase/migrations/20260828000150_anon_no_verifica_una_delegacion_fiscal.sql");
+const contextoFiscal = leer("supabase/migrations/20261002000400_arca_connection_context_runtime.sql");
 const fn = leer("supabase/functions/afip-authorize/index.ts");
 const ui = leer("src/components/afip/ConectarAfip.tsx");
 
@@ -100,6 +101,17 @@ describe("conexión guiada a AFIP", () => {
   it("sólo el dueño o un admin pueden verificar", () => {
     const bloque = fn.slice(fn.indexOf('body.action === "verificar_delegacion"'));
     expect(bloque).toContain('.in("role", ["owner", "admin"])');
+  });
+
+  it("no guarda una verificación contra una configuración fiscal vieja", () => {
+    expect(fn).toContain('supabase.rpc("afip_confirmar_contexto"');
+    expect(fn).toContain("cred.conexion_version");
+    expect(fn).toContain("La configuración fiscal cambió");
+    expect(contextoFiscal).toContain("v_config.conexion_version <> p_version");
+    expect(contextoFiscal).toContain("'configuration_changed'");
+    expect(contextoFiscal).toContain("NEW.certificate, NEW.private_key");
+    expect(contextoFiscal).toContain("v_config.modo <> 'propio'");
+    expect(contextoFiscal).toContain("FROM PUBLIC, anon, authenticated");
   });
 
   it("la pantalla aclara que no se sube ningún certificado", () => {

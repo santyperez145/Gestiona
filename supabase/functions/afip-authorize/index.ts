@@ -116,7 +116,8 @@ async function ticketCompartido(
 }
 
 /**
- * Deja constancia de la verificación, y **avisa si no pudo**.
+ * Deja constancia de la verificación sólo si la identidad fiscal sigue siendo
+ * la misma que se leyó antes de llamar a ARCA, y **avisa si no pudo**.
  *
  * Un `supabase.rpc()` que no mira `.error` convierte «no se guardó» en «listo».
  * Es la regla de CONTRIBUTING.md —no tragarse errores— y acá costó una tarde:
@@ -124,12 +125,29 @@ async function ticketCompartido(
  * `verificar_delegacion` respondía `ok: true` sobre un UPDATE que había
  * fallado.
  */
-async function marcarDelegacion(orgId: string, okDelegacion: boolean, detalle: string | null) {
-  const { error } = await supabase.rpc("afip_marcar_delegacion", {
-    p_org: orgId, p_ok: okDelegacion, p_detalle: detalle,
+async function confirmarContextoFiscal(
+  orgId: string,
+  version: number,
+  environment: string,
+  okDelegacion: boolean,
+  detalle: string | null,
+) {
+  const { data, error } = await supabase.rpc("afip_confirmar_contexto", {
+    p_org: orgId,
+    p_version: version,
+    p_environment: environment,
+    p_ok: okDelegacion,
+    p_detalle: detalle,
   });
-  if (error) console.error("afip_marcar_delegacion falló:", error);
-  return { error: error?.message ?? null };
+  if (error) console.error("afip_confirmar_contexto falló:", error);
+  const result = data && typeof data === "object"
+    ? data as { ok?: boolean; code?: string }
+    : null;
+  return {
+    ok: result?.ok === true,
+    code: result?.code ?? null,
+    error: error?.message ?? null,
+  };
 }
 
 /**
@@ -307,24 +325,55 @@ Deno.serve(async (req) => {
           wsfeUrl, token!, sign!, cred.cuit, cred.punto_venta ?? 1, 11);
       } catch (e) {
         const detalle = e instanceof Error ? e.message : String(e);
-        await marcarDelegacion(body.org_id, false, detalle);
+        const confirmado = await confirmarContextoFiscal(
+          body.org_id,
+          cred.conexion_version,
+          cred.environment,
+          false,
+          detalle,
+        );
+        if (confirmado.error) {
+          return ok({
+            ok: false,
+            error: "ARCA rechazó la conexión y Nerqia no pudo guardar el diagnóstico: "
+              + confirmado.error,
+          });
+        }
+        if (!confirmado.ok) {
+          return ok({
+            ok: false,
+            error: "La configuración fiscal cambió durante la verificación. Revisala y volvé a intentar.",
+            code: confirmado.code,
+          });
+        }
         // Se devuelve lo que dijo ARCA, no un genérico. "El CUIT no está
         // autorizado" y "el punto de venta no existe" mandan a lugares
         // distintos, y confundirlos hace perder una tarde.
         return ok({ ok: false, error: detalle });
       }
 
-      // ⚠️ Este resultado SÍ se mira. Antes era un `rpc` sin `.error`, y la
-      // función escribía una columna que no existía: el UPDATE fallaba con
-      // 42703, el fallo se tragaba y esto devolvía `ok: true` igual. ARCA había
-      // aceptado de verdad, pero el panel seguía diciendo «falta conectar»
-      // después de recargar, porque no había quedado constancia de nada.
-      const marcado = await marcarDelegacion(body.org_id, true, null);
+      // ⚠️ Este resultado SÍ se mira y queda ligado a conexion_version. Si el
+      // comercio cambió CUIT, ambiente, certificado o punto de venta mientras
+      // ARCA respondía, el resultado viejo no puede marcar lo nuevo como listo.
+      const marcado = await confirmarContextoFiscal(
+        body.org_id,
+        cred.conexion_version,
+        cred.environment,
+        true,
+        null,
+      );
       if (marcado.error) {
         return ok({
           ok: false,
           error: "ARCA aceptó la conexión pero no se pudo guardar el resultado: "
             + marcado.error + ". Es un problema del lado de Nerqia.",
+        });
+      }
+      if (!marcado.ok) {
+        return ok({
+          ok: false,
+          error: "La configuración fiscal cambió mientras ARCA respondía. Revisala y volvé a verificar.",
+          code: marcado.code,
         });
       }
       return ok({ ok: true, environment: isProd ? "produccion" : "homologacion" });

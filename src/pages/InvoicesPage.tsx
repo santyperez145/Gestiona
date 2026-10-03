@@ -44,6 +44,11 @@ const fmtARS = (n: number) =>
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import {
+  INVOICE_TAX_RATES,
+  manualInvoiceTaxSummary,
+  updateDefaultInvoiceTaxRate,
+} from "@/lib/manualInvoiceTax";
 
 import { plural } from "@/lib/plural";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
@@ -130,7 +135,9 @@ const EMPTY_FORM = {
   due_date: "", notes: "", tax_pct: "21", receiver_condition: "consumidor_final" as CondicionIva,
 };
 
-function emptyItem(): InvoiceItem { return { description: "", quantity: 1, unit_price: 0, total: 0 }; }
+function emptyItem(taxRate = 21): InvoiceItem {
+  return { description: "", quantity: 1, unit_price: 0, total: 0, tax_rate: taxRate };
+}
 
 // ─────────────────────────────────────────────────────────────
 // PDF generator — includes AFIP data when authorized
@@ -702,15 +709,18 @@ export default function InvoicesPage() {
   const recalcItems = (newItems: InvoiceItem[]) =>
     newItems.map((it) => ({ ...it, total: it.quantity * it.unit_price }));
 
-  const subtotal = items.reduce((s, it) => s + it.quantity * it.unit_price, 0);
   const afipSettingsReady = !afipSettingsLoading && !afipSettingsError && afipSettingsOrgId === afipOrgId;
   const afipConfigured = afipSettingsReady && !!afipSettings?.afip_cuit;
   const suggestedVoucher = afipConfigured && afipSettings?.afip_tipo_emisor
     ? tipoDeComprobante(afipSettings.afip_tipo_emisor, form.receiver_condition)
     : null;
   const effectiveTaxPct = !afipConfigured || suggestedVoucher?.letra === "C" ? 0 : Number(form.tax_pct);
-  const taxAmt = subtotal * (effectiveTaxPct / 100);
-  const total = subtotal + taxAmt;
+  const manualTaxSummary = manualInvoiceTaxSummary(items, {
+    fiscalEnabled: afipConfigured,
+    classC: suggestedVoucher?.letra === "C",
+    defaultRate: effectiveTaxPct,
+  });
+  const { subtotal, total } = manualTaxSummary;
 
   const handleSave = async () => {
     if (!activeOrg || !user || sourceSaleLoading) return;
@@ -755,6 +765,11 @@ export default function InvoicesPage() {
               description: item.description,
               quantity: item.quantity,
               unit_price: item.unit_price,
+              tax_rate: afipConfigured
+                ? suggestedVoucher?.letra === "C"
+                  ? 0
+                  : Number(item.tax_rate ?? effectiveTaxPct)
+                : null,
             })),
             p_fiscal: fiscalPayload,
             p_sale_id: null,
@@ -987,15 +1002,23 @@ export default function InvoicesPage() {
               <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
             </div>
             <div>
-              <Label className="text-xs">IVA sobre precio neto</Label>
+              <Label className="text-xs">IVA predeterminado para nuevos ítems</Label>
               <Select
                 value={String(effectiveTaxPct)}
                 disabled={!afipConfigured || suggestedVoucher?.letra === "C"}
-                onValueChange={(value) => setForm({ ...form, tax_pct: value })}
+                onValueChange={(value) => {
+                  const nextRate = Number(value);
+                  setItems((current) => recalcItems(updateDefaultInvoiceTaxRate(
+                    current,
+                    Number(form.tax_pct),
+                    nextRate,
+                  )));
+                  setForm({ ...form, tax_pct: value });
+                }}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {[0, 2.5, 5, 10.5, 21, 27].map((rate) => (
+                  {INVOICE_TAX_RATES.map((rate) => (
                     <SelectItem key={rate} value={String(rate)}>{rate}%</SelectItem>
                   ))}
                 </SelectContent>
@@ -1030,22 +1053,24 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between mb-2">
               <Label className="text-xs">{sourceSaleGrossTotal === null ? "Ítems" : "Ítems de la venta registrada"}</Label>
               {sourceSaleGrossTotal === null && (
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setItems([...items, emptyItem()])}>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setItems([...items, emptyItem(effectiveTaxPct)])}>
                   <Plus className="w-3 h-3 mr-1" />Agregar ítem
                 </Button>
               )}
             </div>
             <div className="space-y-2 pb-12">
               <div className="hidden md:grid grid-cols-12 gap-2 text-[10px] text-muted-foreground uppercase px-1">
-                <div className="col-span-6">Descripción</div>
-                <div className="col-span-2 text-right">Cant.</div>
+                <div className="col-span-4">Descripción</div>
+                <div className="col-span-1 text-right">Cant.</div>
                 <div className="col-span-2 text-right">Precio unit.</div>
-                <div className="col-span-2 text-right">Total</div>
+                <div className="col-span-2 text-right">IVA</div>
+                <div className="col-span-2 text-right">Neto</div>
+                <div className="col-span-1" />
               </div>
               {items.map((it, i) => (
                 <div key={i} className="grid grid-cols-2 gap-2 items-center md:grid-cols-12">
                   <Input
-                    className="col-span-2 h-8 text-xs md:col-span-6"
+                    className="col-span-2 h-8 text-xs md:col-span-4"
                     aria-label={`Descripción del ítem ${i + 1}`}
                     placeholder="Descripción del producto/servicio"
                     value={it.description}
@@ -1056,7 +1081,7 @@ export default function InvoicesPage() {
                     }}
                   />
                   <Input
-                    className="col-span-1 h-8 text-xs text-right md:col-span-2"
+                    className="col-span-1 h-8 text-xs text-right md:col-span-1"
                     aria-label={`Cantidad del ítem ${i + 1}`}
                     type="number" min={1} step={1}
                     value={it.quantity}
@@ -1077,7 +1102,30 @@ export default function InvoicesPage() {
                       setItems(recalcItems(n));
                     }}
                   />
-                  <div className="col-span-1 text-right text-xs font-mono text-muted-foreground md:col-span-1">
+                  {sourceSaleGrossTotal === null && afipConfigured && suggestedVoucher?.letra !== "C" ? (
+                    <Select
+                      value={String(it.tax_rate ?? effectiveTaxPct)}
+                      onValueChange={(value) => {
+                        const next = [...items];
+                        next[i] = { ...it, tax_rate: Number(value) };
+                        setItems(recalcItems(next));
+                      }}
+                    >
+                      <SelectTrigger className="col-span-1 h-8 text-xs md:col-span-2" aria-label={`IVA del ítem ${i + 1}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INVOICE_TAX_RATES.map((rate) => (
+                          <SelectItem key={rate} value={String(rate)}>{rate}%</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="col-span-1 text-right text-xs text-muted-foreground md:col-span-2">
+                      {afipConfigured ? "0%" : "—"}
+                    </div>
+                  )}
+                  <div className="col-span-1 text-right text-xs font-mono text-muted-foreground md:col-span-2">
                     {formatARS(it.quantity * it.unit_price)}
                   </div>
                   {sourceSaleGrossTotal === null && (
@@ -1099,12 +1147,14 @@ export default function InvoicesPage() {
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="font-mono">{formatARS(subtotal)}</span>
                   </div>
-                  {effectiveTaxPct > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">IVA ({effectiveTaxPct}%)</span>
-                      <span className="font-mono">{formatARS(taxAmt)}</span>
-                    </div>
-                  )}
+                  {manualTaxSummary.groups.map((group) => (
+                    group.amount > 0 ? (
+                      <div key={group.rate} className="flex justify-between">
+                        <span className="text-muted-foreground">IVA ({group.rate}%)</span>
+                        <span className="font-mono">{formatARS(group.amount)}</span>
+                      </div>
+                    ) : null
+                  ))}
                 </>
               ) : null}
               <div className="flex justify-between border-t border-border pt-1 font-bold text-primary">
