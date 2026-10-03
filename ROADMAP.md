@@ -146,8 +146,10 @@ sigue abierto como certificación operacional.
   build, Vitest, dependencias y diff; CI usa el mismo plan por etapa.
 - `npm run verify:ci` agrega E2E autenticado y falla si faltan sus credenciales.
   Suites públicas no sustituyen el flujo autenticado.
-- Consulta GitHub del 2026-10-01: `main` no protegida. Falta configurar PR y
-  checks requeridos; el auto-deploy de Vercel no depende hoy de CI completado.
+- Protección GitHub 2026-10-03: `main` exige los cuatro jobs CI, Supabase
+  Preview y Vercel, historial lineal y conversaciones resueltas; bloquea force
+  push y borrado. El owner conserva bypass para el flujo directo solicitado.
+  Falta separar promoción/rollback porque Vercel aún despliega cada push.
 - CI de `633ad0ea` pasó build, dependencias, unit y Critical E2E autenticado:
   [run 37107360871](https://github.com/santyperez145/Gestiona/actions/runs/37107360871).
   Incluye recuperación cerrada de Platform en escritorio/móvil. El barrido no
@@ -207,8 +209,8 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
 
 ### P0 — Seguridad, release y operación confiable
 
-1. Mantener Critical E2E remoto verde, proteger `main`, requerir los checks CI y definir
-   promoción/rollback: configuración real, no sólo YAML; sin cortar el deploy.
+1. Mantener Critical E2E remoto verde y la protección real de `main`; definir
+   promoción/rollback sin cortar el deploy automático vigente.
 2. Revisar funciones expuestas pendientes, permisos RPC/RLS, cron, secretos,
    archivo/libro de migraciones y restauración reproducible.
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
