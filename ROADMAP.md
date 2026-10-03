@@ -163,13 +163,20 @@ sigue abierto como certificación operacional.
   y bloquea cualquier hallazgo runtime, advisory adicional o revisión vencida.
 - La aplicación no recarga automáticamente al desplegar; la caché PWA no
   almacena REST privado ni archivos firmados. Mantener aislamiento al logout.
-- Recuperación de lectura compartida: hasta tres intentos ante conexión
+- Recuperación de lectura compartida: tres intentos ante conexión
   transitoria, incluido `PGRST002`; permisos/esquema/validación no se repiten.
   Acceso a tenant y staff tienen errores independientes y recuperación explícita;
   una caída no se presenta como aprobación pendiente ni habilita roles previos.
   El gate remoto detectó este incidente y la corrección `ced9f641` pasó CI,
   incluido panel autenticado, y el barrido de producción. Exigir los mismos
   gates en cada SHA; no inferir que la recuperación elimina caídas del proveedor.
+- Bootstrap de acceso 2026-10-02: el run `37085137191` probó una indisponibilidad
+  real más larga: tres lecturas consecutivas de membresía devolvieron `503
+  PGRST002`, mientras la cuarta consulta paralela de staff ya encontraba el
+  servicio recuperado. Tenant y staff usan ahora cuatro intentos acotados en
+  este límite de seguridad, sin autorizar preferencias locales ni roles viejos;
+  lecturas ordinarias conservan el presupuesto de tres. El estado final sigue
+  siendo error recuperable si el proveedor no vuelve.
 - Cuotas públicas: elegibilidad de Nerqia Pay/alias y ARS, centavos, caché
   acotada, contexto sin cotizaciones viejas y recuperación. Handler con CORS
   ante error y tasa ausente sin promesa de interés cero; seis escenarios de

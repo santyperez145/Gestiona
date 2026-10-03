@@ -39,11 +39,22 @@ describe('session-scoped access recovery', () => {
     expect(getActiveOrgId()).toBe('org-one');
     expect(getActiveRole()).toBe('owner');
   });
+  it('recovers when PostgREST returns three consecutive transient outages', async () => {
+    let membershipAttempts = 0;
+    state.query.mockImplementation((table: string) => Promise.resolve(table === 'memberships' && ++membershipAttempts <= 3
+      ? outage
+      : ok(table === 'memberships' ? [membership()] : null)));
+    render(<OrgProvider><Probe /></OrgProvider>);
+    await screen.findByText('org-one', {}, { timeout: 4_000 });
+    expect(membershipAttempts).toBe(4);
+    expect(context.loadError).toBe(false);
+    expect(getActiveOrgId()).toBe('org-one');
+  });
   it('does not confuse persistent outage with pending approval and manually recovers', async () => {
     state.query.mockImplementation((table: string) => Promise.resolve(table === 'memberships' ? outage : ok(null)));
     render(<OrgProvider><Probe /></OrgProvider>);
-    await screen.findByText('load-error');
-    expect(state.query.mock.calls.filter(([table]) => table === 'memberships')).toHaveLength(3);
+    await screen.findByText('load-error', {}, { timeout: 3_000 });
+    expect(state.query.mock.calls.filter(([table]) => table === 'memberships')).toHaveLength(4);
     expect(context.activeOrg).toBeNull();
     expect(getActiveOrgId()).toBeNull();
     state.query.mockImplementation((table: string) => Promise.resolve(ok(table === 'memberships' ? [membership()] : null)));

@@ -48,6 +48,13 @@ interface OrgContextValue {
 const OrgContext = createContext<OrgContextValue | undefined>(undefined);
 
 const ACTIVE_ORG_KEY = 'gestiona.activeOrgId';
+// PostgREST can briefly return PGRST002 while its database connection/schema
+// cache recovers. Access bootstrap is a read-only security boundary, so it may
+// wait one attempt longer than ordinary page reads without reusing stale roles.
+const ACCESS_READ_RETRY_OPTIONS = {
+  delaysMs: [150, 450, 900] as const,
+  maxAttempts: 4,
+};
 
 // Global accessor used by non-React code (supabaseStore, etc.)
 let _activeOrgId: string | null = null;
@@ -98,9 +105,9 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     // Independent authorities load together. Failure of one never grants the other.
     const [membershipResult, platformResult] = await Promise.allSettled([
       retryRead(() => supabase.from('memberships')
-        .select('org_id, role, organization:organizations(*)').eq('user_id', userId)),
+        .select('org_id, role, organization:organizations(*)').eq('user_id', userId), ACCESS_READ_RETRY_OPTIONS),
       retryRead(() => supabase.from('platform_admins')
-        .select('user_id, role').eq('user_id', userId).maybeSingle()),
+        .select('user_id, role').eq('user_id', userId).maybeSingle(), ACCESS_READ_RETRY_OPTIONS),
     ]);
     if (!isCurrent()) return;
     const membershipError = membershipResult.status === 'rejected' ? membershipResult.reason : membershipResult.value.error;

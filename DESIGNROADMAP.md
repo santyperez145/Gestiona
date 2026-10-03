@@ -116,6 +116,11 @@ o una sucursal particular: valida el catálogo y la orientación operativa que
 corresponden a la organización real en 360, 768, 1024, 1092, 1280 y 1440 px.
 Los fallos visuales del CI conservan captura y trace durante siete días.
 
+El acceso autenticado conserva el loader durante una recuperación transitoria
+acotada de PostgREST y sólo después muestra la pantalla de recuperación. La
+sesión abierta no se presenta como logout, aprobación pendiente ni ausencia de
+organización; tampoco se reconstruye autoridad desde preferencias del navegador.
+
 Los filtros globales de fecha conservan la misma selección en URL y ahora
 refrescan todas las métricas dependientes con un único criterio civil inclusivo.
 El período que se ve en el control es exactamente el período de las tarjetas,
