@@ -165,6 +165,16 @@ desde Plataforma → Mensajería; crear en Resend el webhook
 `https://hummeopatkniwkyrrhwc.supabase.co/functions/v1/resend-webhook`, guardar
 su firma como `RESEND_WEBHOOK_SECRET`; y configurar Authentication → SMTP con
 `smtp.resend.com`, usuario `resend`, puerto `465` o `587` y una API key dedicada.
+La plantilla de confirmación de alta está versionada en
+`supabase/templates/confirmation.html` y se usa localmente desde
+`supabase/config.toml`. El proyecto alojado **no** adopta ese archivo con un
+push del frontend ni con `config push`: se publica en Authentication → Email
+Templates o con `node scripts/apply-auth-email-template.mjs --apply`.
+Ese aplicador exige un token de Management API en `SUPABASE_ACCESS_TOKEN`; si
+el remitente Auth todavía no es `noreply@nerqia.app` por Resend, exige además
+`NERQIA_AUTH_SMTP_KEY` (API key exclusiva de envío de Auth). Lee la
+configuración antes y después, y no imprime secretos. Sin `--apply` sólo valida
+el archivo local. No pasar claves como argumentos ni guardarlas en Git.
 La matriz de aceptación debe observar recepción, demora/fallo, rebote, queja,
 supresión, reset de contraseña, magic link e invitación. Ninguno se declara
 productivo por DNS o por un deploy solamente.

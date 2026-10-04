@@ -36,6 +36,26 @@ funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
 Los tokens públicos son capacidades revocables y de alta entropía. No
 reemplazan autenticación para stock, costo, pagos acreditados o configuración.
 
+## Segundo factor y dispositivos
+
+El TOTP verifica una **sesión**, no todos los futuros inicios del navegador.
+Supabase conserva la sesión AAL2 en `localStorage` y renueva sus tokens; una
+recarga o reapertura del mismo origen no debe pedir otro código mientras la
+sesión siga vigente. Un logout revoca esa sesión; el login siguiente arranca
+en AAL1. Nunca se almacena el TOTP ni su secreto para repetirlo en segundo
+plano. Desde 2026-10-04, error de lectura AAL/factores = panel cerrado con
+reintento; el alta obligatoria del factor ocurre dentro del gate.
+
+Recordar un dispositivo siete días **después** de logout está pendiente. Para
+habilitarlo se exige consentimiento opt-in, credencial aleatoria de alta
+entropía custodiada en el dispositivo, hash y vencimiento absolutos en servidor,
+rotación/revocación por usuario y por factor, límite de dispositivos, evento
+auditable, prueba de reuso/robo, y una política de autorización uniforme para
+RLS y Edge Functions. El JWT de una sesión nueva seguirá en AAL1 hasta que
+Supabase verifique un factor; por eso omitir sólo la pantalla con una marca
+local dejaría Platform y Finance con un bypass visible y no es aceptable.
+Acciones sensibles deberán seguir requiriendo un AAL2 fresco.
+
 ## Base de datos
 
 ### RLS

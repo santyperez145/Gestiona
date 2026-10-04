@@ -16,7 +16,7 @@ interface AuthContextType {
   /** `accountType` viaja en el metadata y decide qué provisiona el trigger:
    * undefined → negocio (org + trial); 'creator' → sin org (portal de creador);
    * 'store_customer' → comprador de tienda. */
-  signUp: (email: string, password: string, name?: string, accountType?: 'creator' | 'store_customer') => Promise<void>;
+  signUp: (email: string, password: string, name?: string, accountType?: 'creator' | 'store_customer') => Promise<{ needsConfirmation: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
   /** Magic link o código por email. No crea cuenta nueva (login). */
   signInWithEmailOtp: (email: string) => Promise<void>;
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, name?: string, accountType?: 'creator' | 'store_customer') => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -112,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     if (error) throw error;
+    return { needsConfirmation: !data.session };
   };
 
   const signIn = async (email: string, password: string) => {

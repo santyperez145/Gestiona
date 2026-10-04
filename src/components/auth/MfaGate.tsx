@@ -16,11 +16,11 @@
  * configurarlo antes de poder seguir.
  */
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ShieldCheck, Loader2, LogOut, AlertTriangle } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { decideMfaState, type MfaDecision } from "@/lib/mfaGate";
 import BrandLogo from "@/components/shared/BrandLogo";
@@ -40,26 +40,32 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   const [code, setCode] = useState("");
   const [factorId, setFactorId] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const navigate = useNavigate();
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollment, setEnrollment] = useState<{ factorId: string; uri: string; secret: string } | null>(null);
+  const [enrollmentCode, setEnrollmentCode] = useState("");
 
   const check = useCallback(async () => {
     try {
-      const [{ data: aal, error: aalErr }, { data: factors }] = await Promise.all([
+      const [{ data: aal, error: aalErr }, { data: factors, error: factorsErr }] = await Promise.all([
         supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
         supabase.auth.mfa.listFactors(),
       ]);
 
+      if (aalErr || factorsErr) {
+        setState("unavailable");
+        return;
+      }
       const { decision, factorId: fid } = decideMfaState(
-        aalErr ? null : (aal ?? null),
+        aal ?? null,
         (factors?.totp ?? []).map(f => ({ id: f.id, status: f.status })),
         { isAdmin, orgRequiresMfa },
       );
 
-      if (fid) setFactorId(fid);
+      setFactorId(fid ?? null);
       setState(decision);
     } catch {
-      // Un fallo de red no debe dejar al dueño afuera de su propio negocio.
-      setState("ok");
+      // El acceso no se abre si no pudimos comprobar el segundo factor.
+      setState("unavailable");
     }
   }, [isAdmin, orgRequiresMfa]);
 
@@ -68,14 +74,71 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   const verify = async () => {
     if (!factorId || code.length !== 6) return;
     setVerifying(true);
-    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
-    setVerifying(false);
-    if (error) {
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
+      if (error) throw error;
+      await check();
+    } catch {
       toast.error("Código incorrecto o vencido");
       setCode("");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const startEnrollment = async () => {
+    setEnrolling(true);
+    try {
+      const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
+      if (listError) throw listError;
+      // Un enrolamiento abandonado no protege la cuenta y puede impedir
+      // registrar otro factor con el mismo nombre.
+      for (const factor of factors?.totp ?? []) {
+        if (factor.status === "verified") continue;
+        const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+        if (error) throw error;
+      }
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
+      if (error || !data) throw error ?? new Error("MFA enrollment failed");
+      setEnrollment({ factorId: data.id, uri: data.totp.uri, secret: data.totp.secret });
+      setEnrollmentCode("");
+    } catch {
+      toast.error("No pudimos iniciar la verificación. Reintentá.");
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  const finishEnrollment = async () => {
+    if (!enrollment || enrollmentCode.length !== 6) return;
+    setVerifying(true);
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: enrollment.factorId,
+        code: enrollmentCode,
+      });
+      if (error) throw error;
+      setEnrollment(null);
+      setEnrollmentCode("");
+      await check();
+    } catch {
+      toast.error("El código no es válido o venció. Revisá tu app de autenticación.");
+      setEnrollmentCode("");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const cancelEnrollment = async () => {
+    if (!enrollment) return;
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: enrollment.factorId });
+    if (error) {
+      toast.error("No pudimos cancelar el registro. Reintentá.");
       return;
     }
-    setState("ok");
+    setEnrollment(null);
+    setEnrollmentCode("");
+    await check();
   };
 
   if (state === "checking") {
@@ -117,7 +180,7 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
               Verificar
             </Button>
           </>
-        ) : (
+        ) : state === "needs_enrollment" ? (
           <>
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -127,8 +190,47 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
               Esta organización exige verificación en dos pasos a sus administradores.
               Configurá tu app de autenticación para continuar.
             </p>
-            <Button className="w-full" onClick={() => { setState("ok"); navigate("/perfil"); }}>
-              Configurar ahora
+            {enrollment ? (
+              <div className="space-y-3">
+                <div className="flex justify-center rounded-lg bg-white p-3">
+                  <QRCodeSVG value={enrollment.uri} size={176} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Escaneá el QR o ingresá esta clave en tu app: <code className="break-all">{enrollment.secret}</code>
+                </p>
+                <Input
+                  value={enrollmentCode}
+                  onChange={e => setEnrollmentCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onKeyDown={e => e.key === "Enter" && void finishEnrollment()}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="Código de 6 dígitos"
+                  aria-label="Código de la app de autenticación"
+                />
+                <Button className="w-full" onClick={() => void finishEnrollment()} disabled={verifying || enrollmentCode.length !== 6}>
+                  {verifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Activar verificación
+                </Button>
+                <Button className="w-full" variant="ghost" onClick={() => void cancelEnrollment()} disabled={verifying}>
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <Button className="w-full" onClick={() => void startEnrollment()} disabled={enrolling}>
+                {enrolling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Configurar ahora
+              </Button>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <h1 className="text-base font-semibold">No pudimos verificar tu acceso</h1>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              No se pudo comprobar el estado de seguridad de tu sesión. Reintentá cuando vuelva la conexión.
+            </p>
+            <Button className="w-full" onClick={() => { setState("checking"); void check(); }}>
+              Reintentar verificación
             </Button>
           </>
         )}

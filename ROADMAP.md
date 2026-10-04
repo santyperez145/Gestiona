@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Estado:** canónico. **Revisión:** 2026-10-03. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-04. **Owner:** Producto / CTO.
 Este documento contiene decisiones activas y próximos cierres, no un diario.
 Git conserva la historia; los contratos de dominio viven en [el índice](docs/INDICE.md).
 
@@ -87,8 +87,15 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
 | Creators | Portal autenticado, identidad/canjes, contratos, chat, evidencia privada y liquidación interna. | Payout acreditado, escaneo y social OAuth; expansión pausada; [contrato](docs/INFLUENCERS.md). |
 | Pay | OAuth, checkout, webhook, manual, refund, comisión y settlement idempotentes. | Certificación por proveedor/destino; cuenta cargada no garantiza rail disponible. |
-| Correo | Remitentes por propósito, baja, consentimiento, ledger de entrega e idempotencia; envío de las 08:00 retirado. | Auth SMTP/webhook y entrega/rebote/queja reales; [marketing](docs/EMAIL_MARKETING.md). |
-| Platform | MFA, alta, Merchant 360, integraciones, soporte, riesgo y billing MP firmado. | SLO, economía real y operación autorizada. |
+| Correo | Remitentes por propósito, baja, consentimiento, ledger de entrega e idempotencia; plantilla de confirmación Nerqia para negocio/creador/comprador versionada y aplicador de Auth alojado con lectura posterior. | Publicar plantilla y Auth SMTP Resend en proyecto alojado, luego alta/entrega/enlace/rebote reales; [configuración](docs/CONFIGURACION.md), [marketing](docs/EMAIL_MARKETING.md). |
+| Platform | MFA, alta, Merchant 360, integraciones, soporte, riesgo y billing MP firmado; gate ahora falla cerrado ante error de consulta y enrola sin abrir el panel. | Autoridad MFA en servidor/RLS, dispositivo confiable revocable por 7 días tras logout y SLO/operación autorizada; [seguridad](docs/SEGURIDAD.md). |
+
+El pedido de «recordar OTP durante siete días incluso después de cerrar sesión»
+no se declara entregado. La sesión AAL2 existente ya persiste entre recargas,
+pero un nuevo login después de logout empieza en AAL1. El próximo corte exige
+un dispositivo confiable opt-in con credencial aleatoria hasheada, vencimiento y
+revocación en servidor, pruebas de robo/rotación y autorización coherente en
+RLS y Edge; una bandera del navegador o conservar el TOTP no son sustitutos.
 
 ### Evidencia Finance corregida
 

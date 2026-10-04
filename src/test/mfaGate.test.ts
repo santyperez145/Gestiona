@@ -24,13 +24,13 @@ describe("decideMfaState", () => {
     expect(r.decision).toBe("ok");
   });
 
-  it("ignora factores a medio enrolar (unverified)", () => {
+  it("no confunde un factor a medio enrolar con una verificación válida", () => {
     const r = decideMfaState(
       { currentLevel: "aal1", nextLevel: "aal2" },
       [{ id: "f1", status: "unverified" }],
       vendedor,
     );
-    expect(r.decision).toBe("ok");
+    expect(r.decision).toBe("unavailable");
   });
 
   it("exige enrolamiento al admin cuando la org lo requiere y no tiene factor", () => {
@@ -60,9 +60,27 @@ describe("decideMfaState", () => {
     expect(r.decision).toBe("ok");
   });
 
-  it("no deja al usuario afuera si no se pudo leer el nivel AAL", () => {
+  it("bloquea el acceso si no se pudo leer el nivel AAL", () => {
     const r = decideMfaState(null, [], { isAdmin: true, orgRequiresMfa: true });
-    expect(r.decision).toBe("ok");
+    expect(r.decision).toBe("unavailable");
+  });
+
+  it("bloquea niveles desconocidos y factores faltantes antes de entrar", () => {
+    expect(decideMfaState(
+      { currentLevel: "unexpected", nextLevel: "aal2" },
+      [{ id: "f1", status: "verified" }],
+      admin,
+    ).decision).toBe("unavailable");
+    expect(decideMfaState(
+      { currentLevel: "aal1", nextLevel: "aal2" },
+      [],
+      admin,
+    ).decision).toBe("unavailable");
+    expect(decideMfaState(
+      { currentLevel: "aal2", nextLevel: "aal2" },
+      [],
+      admin,
+    ).decision).toBe("unavailable");
   });
 
   it("el código tiene prioridad sobre el enrolamiento: sesión a medio verificar", () => {

@@ -98,11 +98,13 @@ export default function AuthPage() {
         if (passwordError) { toast.error(passwordError); setLoading(false); return; }
         // El rol vive desde el signup: 'creator' no provisiona organización
         // (paridad Go-Marz) y manda al portal de creador; undefined = negocio.
-        await signUp(email, password, name, role === 'creator' ? 'creator' : undefined);
-        if (role === 'creator') {
+        const { needsConfirmation } = await signUp(email, password, name, role === 'creator' ? 'creator' : undefined);
+        if (needsConfirmation) {
+          toast.success('Te enviamos un correo para confirmar tu cuenta.');
+        } else if (role === 'creator') {
           toast.success('¡Cuenta de creador creada! Completá tu perfil para recibir campañas.');
         } else {
-          toast.success('Cuenta creada. Revisá tu email para confirmar.');
+          toast.success('¡Cuenta creada! Ya podés preparar tu tienda.');
         }
       }
     } catch (err: any) {

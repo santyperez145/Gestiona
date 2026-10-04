@@ -29,6 +29,12 @@ max_frequency = "1m0s"
 otp_length = 8
 otp_expiry = 3600
 
+# Esta plantilla rige el entorno local/self-hosted. En el proyecto Supabase
+# alojado se publica mediante Authentication > Email Templates o Management API.
+[auth.email.template.confirmation]
+subject = "Confirmá tu correo · Nerqia"
+content_path = "./supabase/templates/confirmation.html"
+
 [storage.vector]
 enabled = false
 
