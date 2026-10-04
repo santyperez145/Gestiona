@@ -14,7 +14,7 @@ async function mockFiscal(page: Page, options: { writable?: boolean; staff?: boo
     app_metadata: { provider: "email", providers: ["email"] }, user_metadata: { full_name: "Prueba fiscal" }, identities: [],
     factors: options.staff ? [{ id: "00000000-0000-4000-8000-000000000003", factor_type: "totp", status: "verified" }] : [] };
   const token = [Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url"),
-    Buffer.from(JSON.stringify({ sub: userId, role: "authenticated", exp: expires, aal: options.staff ? "aal2" : "aal1" })).toString("base64url"), "synthetic-ui-only"].join(".");
+    Buffer.from(JSON.stringify({ sub: userId, role: "authenticated", exp: expires, aal: options.staff ? "aal2" : "aal1" })).toString("base64url"), Buffer.from("synthetic-ui-only").toString("base64url")].join(".");
   await page.addInitScript(({ storageKey, session, orgId }) => {
     localStorage.setItem(storageKey, JSON.stringify(session)); localStorage.setItem("gestiona.activeOrgId", orgId);
   }, { storageKey, orgId, session: { access_token: token, refresh_token: "synthetic-ui-only", token_type: "bearer", expires_at: expires, expires_in: 3600, user } });

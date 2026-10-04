@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-10-03. Este documento define la dirección visual y los próximos
+**Corte:** 2026-10-04. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -63,7 +63,7 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 
 | Superficie | Dirección | Estado 2026-09-04 | Próximo cierre |
 |---|---|---|---|
-| Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada y validada en 360/768/1024/1280×720/1440. | Conversión real y copy basado en evidencia. |
+| Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada/responsive; ambas homes siguen visibles en Google el 2026-10-04. Sitemap de plataforma mal enrutado sólo para bots, sin cambio de interfaz humana. | Verificar routing XML publicado y Search Console; conversión real. [Evidencia](docs/SEO_INDEXACION.md). |
 | Business | Workspace claro, rail persistente, topbar, tabs y tablas densas. | Shell y primitives transversales; páginas críticas migradas. | Eliminar CSS heredado y cerrar estados restantes. |
 | Commerce admin | Configuración, rendimiento, voz, catálogo, páginas, diseño, pagos/envíos. | Selector de tienda compartido con Pedidos; datos reales en producción. | Surtido multi-tienda y responsive autenticado. |
 | Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema, favicon/Apple icon/color de navegador, navegación SPA con inicio arriba y restauración al volver, variantes, carrito, checkout, SEO y resiliencia. | Performance de campo y test con compradores. |
@@ -256,5 +256,4 @@ jerarquía; nunca se copian marca, assets ni contenido. La implementación sigue
 [INTERFAZ.md](docs/INTERFAZ.md) y
 [ESTANDAR_EXPERIENCIA_COMPETITIVA.md](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
 
-Este archivo se actualiza sólo cuando cambia la dirección, el estado de una
-superficie o el orden de trabajo. La evidencia histórica se conserva en Git.
+Actualizar sólo ante cambios de dirección, superficie o prioridad; Git conserva la evidencia histórica.

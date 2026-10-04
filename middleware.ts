@@ -14,9 +14,17 @@ import { isValidStoreSubdomain, normalizeHostname, storeSlugFromHostname } from 
 import { STOREFRONT_CRAWLER_UA } from './src/lib/storefrontSeo.js';
 
 const CRAWLER = new RegExp(`(?:${STOREFRONT_CRAWLER_UA})`, 'i');
+// Machine-readable documents must reach their XML/text handlers unchanged,
+// including the legacy /tienda/:slug endpoints that still match middleware.
+const CRAWLER_DOCUMENT = /(?:^|\/)(?:robots\.txt|sitemap(?:-platform)?\.xml|feed\.xml)$/i;
+
+function isCrawlerPage(request: Request): boolean {
+  return CRAWLER.test(request.headers.get('user-agent') ?? '')
+    && !CRAWLER_DOCUMENT.test(new URL(request.url).pathname);
+}
 
 export function storefrontCrawlerTarget(request: Request): URL | null {
-  if (!CRAWLER.test(request.headers.get('user-agent') ?? '')) return null;
+  if (!isCrawlerPage(request)) return null;
 
   const source = new URL(request.url);
   const slug = storeSlugFromHostname(source.hostname);
@@ -36,7 +44,7 @@ export function storefrontCrawlerTarget(request: Request): URL | null {
 
 /** La plataforma también necesita HTML antes del index vacío de la SPA. */
 export function platformCrawlerTarget(request: Request): URL | null {
-  if (!CRAWLER.test(request.headers.get('user-agent') ?? '')) return null;
+  if (!isCrawlerPage(request)) return null;
   const source = new URL(request.url);
   const host = normalizeHostname(source.hostname);
   if (host !== BRAND_DOMAIN && host !== `www.${BRAND_DOMAIN}`) return null;
@@ -55,6 +63,6 @@ export default function middleware(request: Request): Response {
 export const config = {
   runtime: 'nodejs',
   matcher: [
-    '/((?!api/|assets/|brand/|developer/|robots\\.txt|sitemap\\.xml|feed\\.xml|sw\\.js|registerSW\\.js|manifest\\.webmanifest|favicon\\.ico).*)',
+    '/((?!api/|assets/|brand/|developer/|robots\\.txt|sitemap(?:-platform)?\\.xml|feed\\.xml|sw\\.js|registerSW\\.js|manifest\\.webmanifest|favicon\\.ico).*)',
   ],
 };

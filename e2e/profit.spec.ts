@@ -46,7 +46,7 @@ async function mockProfit(page: Page, failFirst = false, failures: { memberships
   const user = { id: userId, email: "zz-profit@invalid.test", aud: "authenticated", role: "authenticated", created_at: "2026-10-02T00:00:00Z",
     app_metadata: { provider: "email", providers: ["email"] }, user_metadata: { full_name: "Prueba Profit" }, identities: [], factors: [] };
   const token = [Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url"),
-    Buffer.from(JSON.stringify({ sub: userId, role: "authenticated", exp: expires, aal: "aal1" })).toString("base64url"), "synthetic-ui-only"].join(".");
+    Buffer.from(JSON.stringify({ sub: userId, role: "authenticated", exp: expires, aal: "aal1" })).toString("base64url"), Buffer.from("synthetic-ui-only").toString("base64url")].join(".");
   await page.addInitScript(({ storageKey, session, orgId }) => {
     localStorage.setItem(storageKey, JSON.stringify(session)); localStorage.setItem("gestiona.activeOrgId", orgId);
   }, { storageKey, orgId, session: { access_token: token, refresh_token: "synthetic-ui-only", token_type: "bearer", expires_at: expires, expires_in: 3600, user } });
