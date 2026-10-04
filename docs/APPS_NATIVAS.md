@@ -1,7 +1,7 @@
 # Apps nativas de Nerqia
 
 **Estado:** arquitectura implementada; distribución no certificada.
-**Revisión:** 2026-10-03. **Owner:** Producto / Ingeniería.
+**Revisión:** 2026-10-04. **Owner:** Producto / Ingeniería.
 
 ## 1. Decisión
 
@@ -28,6 +28,8 @@ un shell nuevo con caché web anterior.
 - allowlist estricta de callback y destinos internos, más mensajes de cliente;
 - permisos Tauri mínimos: eventos, lectura de deep link y apertura acotada a
   endpoints HTTPS de Supabase;
+- cámara de códigos con plugin oficial sólo en Android/iOS, permiso solicitado
+  en contexto y fallback web/manual; no se concede cámara a desktop;
 - scripts reproducibles para desarrollo, Windows y Android;
 - tests unitarios del límite de confianza y build frontend nativo sin PWA.
 
@@ -53,7 +55,7 @@ Functions. Tokens privados de firma y publicación pertenecen a CI/environments.
 |---|---|---|---|
 | Web/PWA | Operativo | Build/CI y producción | Gates normales de release. |
 | Windows | Shell y auth implementados | run `37171776139` compiló NSIS y preservó artefacto QA `11291009728` (4.844.062 bytes comprimidos); local sin MSVC | Certificado, instalador firmado, SmartScreen y prueba en equipo limpio. |
-| Android | Configuración/íconos/scripts | Android SDK detectado; CI prepara JDK/NDK y compila APK arm64 debug. El gate inicial detectó y corrigió el contrato `npm run tauri`; el artefacto aún requiere un run verde. | Keystore, AAB release firmado, OAuth redirect permitido y device test. |
+| Android | Shell, auth y scanner implementados | run `37172512147` compiló APK arm64 debug y preservó artefacto `11292410489` (42.992.789 bytes comprimidos) | Keystore, AAB release firmado, OAuth redirect permitido y device test de auth/cámara/POS. |
 | macOS/iOS | Configuración portable | íconos y código común presentes | runner macOS, Xcode, Apple Developer, signing/notarización, universal/deep link y device test. |
 
 Un `.exe`, APK o AAB sin firma sirve como artefacto de ingeniería; no es una
@@ -82,15 +84,14 @@ npm run native:android:build
 
 ## 6. Siguiente cierre
 
-1. certificar los builds NSIS y APK debug en CI, sólo como artefactos QA;
-2. configurar redirect nativo en Supabase y probar Google/magic/recovery;
-3. adaptar navegación externa, impresión, descargas, cámara y códigos de barra
-   por capacidad, sin permisos globales;
-4. inicializar Android y probar POS/stock en un dispositivo real;
-5. habilitar actualización firmada recién con canal, manifiesto y rollback;
-6. firmar, instalar en equipo limpio, validar desinstalación y recién publicar.
+1. configurar redirect nativo en Supabase y probar Google/magic/recovery;
+2. adaptar navegación externa, impresión y descargas por capacidad;
+3. firmar AAB Android y probar auth, cámara, POS/stock en dispositivo real;
+4. habilitar actualización firmada recién con canal, manifiesto y rollback;
+5. firmar, instalar en equipo limpio, validar desinstalación y recién publicar.
 
 Fuentes de implementación: [Tauri 2](https://v2.tauri.app/start/),
 [prerrequisitos](https://v2.tauri.app/start/prerequisites/),
 [deep links](https://v2.tauri.app/plugin/deep-linking/) y
-[deep linking nativo de Supabase](https://supabase.com/docs/guides/auth/native-mobile-deep-linking).
+[deep linking nativo de Supabase](https://supabase.com/docs/guides/auth/native-mobile-deep-linking),
+[scanner oficial](https://v2.tauri.app/plugin/barcode-scanner/).

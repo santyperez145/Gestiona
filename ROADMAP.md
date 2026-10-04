@@ -227,15 +227,17 @@ sigue abierto como certificación operacional.
   pasa. La PC carece de MSVC y el instalador autorizado terminó `1602`, por lo
   que todavía no existe instalador local certificado. Android/iOS, firma,
   stores y redirect Supabase son gates explícitos en `docs/APPS_NATIVAS.md`.
-  El workflow nativo prepara además JDK 21, Android 36, NDK 27 y compila un APK
-  arm64 debug; hasta ver el run verde sigue siendo infraestructura pendiente,
-  no una release Android ni evidencia de firma/Play/device.
+  El workflow nativo prepara además JDK 21, Android 36 y NDK 27. El run
+  `37172512147` compiló Windows y un APK arm64 debug, y publicó el artefacto
+  Android `11292410489` (42.992.789 bytes comprimidos, retención 7 días).
+  Sigue siendo QA: no demuestra firma release, Play ni prueba en dispositivo.
   Windows CI `37171776139` ya compiló NSIS y subió el artefacto QA unsigned
   `11291009728`; demuestra compilación/packaging, no firma ni distribución.
   El primer gate Android expuso que el Gradle generado invoca
   `npm run tauri`; el script canónico quedó incorporado para que la compilación
-  Rust/Gradle no dependa de un binario global. El APK continúa pendiente hasta
-  que el CI corregido publique un artefacto verificable.
+  Rust/Gradle no dependa de un binario global. El lector de productos usa ahora
+  el plugin móvil oficial de Tauri en Android/iOS, permisos acotados y mensajes
+  de cliente; web conserva BarcodeDetector y todos mantienen entrada manual.
 - Profit por SKU: filas acotadas, columnas e importes legibles y desglose
   completo de costos accesible con teclado en móvil/escritorio. La geometría,
   navegación y detalle se comprueban por separado sin aumentar sus límites.

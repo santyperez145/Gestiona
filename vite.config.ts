@@ -27,6 +27,9 @@ export default defineConfig(() => {
   // web no tiene sentido sobre el protocolo nativo y puede servir otro shell.
   const nativeBuild = Boolean(process.env.TAURI_ENV_PLATFORM);
   return ({
+  define: {
+    __NERQIA_NATIVE_PLATFORM__: JSON.stringify(process.env.TAURI_ENV_PLATFORM ?? null),
+  },
   server: {
     host: "::",
     port: 8080,

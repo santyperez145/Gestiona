@@ -1,8 +1,8 @@
 /**
  * BarcodeScanModal — Camera barcode scanner modal.
  *
- * Uses useBarcodeScan (BarcodeDetector API). If unsupported, falls back to a
- * simple manual text input field.
+ * Usa el escáner oficial del dispositivo en Tauri mobile, BarcodeDetector en
+ * web y entrada manual cuando no hay cámara compatible.
  *
  * Props:
  *   open      — controlled open state
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScanLine, Camera, CameraOff, Loader2, Keyboard } from "lucide-react";
-import { useBarcodeScan, barcodeScanSupported } from "@/hooks/useBarcodeScan";
+import { useBarcodeScan } from "@/hooks/useBarcodeScan";
 import { toast } from "sonner";
 
 interface Props {
@@ -28,7 +28,7 @@ interface Props {
 export default function BarcodeScanModal({ open, onClose, onDetect, title = "Escanear código" }: Props) {
   const manualRef = useRef<HTMLInputElement>(null);
 
-  const { videoRef, scanning, start, stop, error, supported } = useBarcodeScan({
+  const { videoRef, scanning, start, stop, error, supported, native } = useBarcodeScan({
     onDetect: (code) => {
       toast.success(`Código detectado: ${code}`, { duration: 2000 });
       onDetect(code);
@@ -83,13 +83,20 @@ export default function BarcodeScanModal({ open, onClose, onDetect, title = "Esc
           <div className="space-y-4">
             {/* Camera viewfinder */}
             <div className="relative aspect-video rounded-lg overflow-hidden bg-black/80 border border-border/40">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                playsInline
-              />
+              {native ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                  <Camera className="h-9 w-9 text-primary" />
+                  <p className="text-sm text-white">La cámara segura del dispositivo se abre para leer el código.</p>
+                </div>
+              ) : (
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                  playsInline
+                />
+              )}
               {/* Scanning overlay */}
               {scanning && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -104,7 +111,7 @@ export default function BarcodeScanModal({ open, onClose, onDetect, title = "Esc
                   </div>
                 </div>
               )}
-              {!scanning && !error && (
+              {!native && !scanning && !error && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
                 </div>
@@ -122,7 +129,7 @@ export default function BarcodeScanModal({ open, onClose, onDetect, title = "Esc
               {scanning ? (
                 <>
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Escaneando — apunta la cámara al código de barras
+                  Escaneando — apuntá la cámara al código de barras
                 </>
               ) : (
                 <>
