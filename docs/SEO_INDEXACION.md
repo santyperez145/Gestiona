@@ -84,8 +84,19 @@ de Google, sin interpretar una consulta vacía como desindexación.
 Puerta local 2026-10-04: 3.665 tests/418 archivos, tipos, lint focalizado, build/PWA y 38
 E2E sintéticos verdes. Se corrigió la firma base64url de sus fixtures, sin
 relajar MFA ni usar cuentas reales; roadmaps dentro de su presupuesto.
-Estado: corrección verificada localmente. Cierre pendiente: XML de Googlebot
-tras deploy y aceptación actual en Search Console cuando haya sesión.
+Publicación: [PR 13](https://github.com/santyperez145/Gestiona/pull/13) integrado
+con checks requeridos aprobados; `a4f2f9bb` quedó exitoso en Vercel producción
+(deployment GitHub `6843723198`, URL inmutable
+`nerqia-c9zfc99n3-santyperez145sgmailcoms-projects.vercel.app`). Verificación
+externa del 2026-10-04 tras el deploy: Googlebot recibe 200 `application/xml`
+en `/sitemap-platform.xml`, con las tres URLs canónicas y sin `X-Robots-Tag`.
+Matriz externa 16:43 UTC: cinco endpoints × Mozilla/Googlebot dieron XML 200
+(índice raíz, sitemap plataforma, sitemap Exentry y sitemap/feed heredados).
+Homes para Googlebot y robots siguieron correctos; no se recertificó en esta
+revisión el DOM humano hidratado ni el informe de resultados enriquecidos.
+Estado: fallo de routing corregido y verificado en producción. Aceptación y
+cobertura actuales en Search Console continúan pendientes de una sesión;
+accesibilidad del XML no se presenta como nueva indexación ni aceptación.
 
 Fuentes oficiales:
 

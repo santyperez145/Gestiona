@@ -78,7 +78,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 
 | Dominio | Base implementada / comprobación interna | Próximo gate |
 |---|---|---|
-| Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; 2026-10-04: Google muestra ambas homes, pero el sitemap de plataforma entrega HTML a bots; corrección de routing en validación. | Verificar XML publicado y aceptación en Search Console; luego pago/fulfillment y conversión de campo. [Evidencia SEO](docs/SEO_INDEXACION.md). |
+| Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; 2026-10-04: ambas homes siguen en Google y el sitemap XML para bots quedó corregido/verificado en producción (`a4f2f9bb`). | Aceptación/cobertura actual en Search Console; pago/fulfillment y conversión de campo. [Evidencia SEO](docs/SEO_INDEXACION.md). |
 | Migración | Worker Excel/CSV, mapeo/moneda, hasta 50.000 filas; sesión reanudable por lotes sobre staging/apply existentes, Kardex, variantes, clientes, imágenes y redirects. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
 | Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo desde documento persistido. | ARCA A/B/C y NC, impresión y recepción reales; [contrato](docs/FACTURACION.md). |

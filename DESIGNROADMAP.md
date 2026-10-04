@@ -63,7 +63,7 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 
 | Superficie | Dirección | Estado 2026-09-04 | Próximo cierre |
 |---|---|---|---|
-| Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada/responsive; ambas homes siguen visibles en Google el 2026-10-04. Sitemap de plataforma mal enrutado sólo para bots, sin cambio de interfaz humana. | Verificar routing XML publicado y Search Console; conversión real. [Evidencia](docs/SEO_INDEXACION.md). |
+| Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada/responsive; ambas homes visibles en Google el 2026-10-04 y routing XML corregido/verificado en producción, sin cambiar la interfaz humana. | Cobertura actual en Search Console; conversión real. [Evidencia](docs/SEO_INDEXACION.md). |
 | Business | Workspace claro, rail persistente, topbar, tabs y tablas densas. | Shell y primitives transversales; páginas críticas migradas. | Eliminar CSS heredado y cerrar estados restantes. |
 | Commerce admin | Configuración, rendimiento, voz, catálogo, páginas, diseño, pagos/envíos. | Selector de tienda compartido con Pedidos; datos reales en producción. | Surtido multi-tienda y responsive autenticado. |
 | Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema, favicon/Apple icon/color de navegador, navegación SPA con inicio arriba y restauración al volver, variantes, carrito, checkout, SEO y resiliencia. | Performance de campo y test con compradores. |
