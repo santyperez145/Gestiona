@@ -53,7 +53,7 @@ Functions. Tokens privados de firma y publicación pertenecen a CI/environments.
 |---|---|---|---|
 | Web/PWA | Operativo | Build/CI y producción | Gates normales de release. |
 | Windows | Shell y auth implementados | run `37171776139` compiló NSIS y preservó artefacto QA `11291009728` (4.844.062 bytes comprimidos); local sin MSVC | Certificado, instalador firmado, SmartScreen y prueba en equipo limpio. |
-| Android | Configuración/íconos/scripts | Android SDK detectado; CI prepara JDK/NDK y compila APK arm64 debug; evidencia pendiente del run | Keystore, AAB release firmado, OAuth redirect permitido y device test. |
+| Android | Configuración/íconos/scripts | Android SDK detectado; CI prepara JDK/NDK y compila APK arm64 debug. El gate inicial detectó y corrigió el contrato `npm run tauri`; el artefacto aún requiere un run verde. | Keystore, AAB release firmado, OAuth redirect permitido y device test. |
 | macOS/iOS | Configuración portable | íconos y código común presentes | runner macOS, Xcode, Apple Developer, signing/notarización, universal/deep link y device test. |
 
 Un `.exe`, APK o AAB sin firma sirve como artefacto de ingeniería; no es una

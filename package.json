@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "tauri": "tauri",
     "native:dev": "tauri dev",
     "native:build:windows": "tauri build --bundles nsis",
     "native:android:init": "tauri android init",

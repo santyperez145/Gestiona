@@ -232,6 +232,10 @@ sigue abierto como certificación operacional.
   no una release Android ni evidencia de firma/Play/device.
   Windows CI `37171776139` ya compiló NSIS y subió el artefacto QA unsigned
   `11291009728`; demuestra compilación/packaging, no firma ni distribución.
+  El primer gate Android expuso que el Gradle generado invoca
+  `npm run tauri`; el script canónico quedó incorporado para que la compilación
+  Rust/Gradle no dependa de un binario global. El APK continúa pendiente hasta
+  que el CI corregido publique un artefacto verificable.
 - Profit por SKU: filas acotadas, columnas e importes legibles y desglose
   completo de costos accesible con teclado en móvil/escritorio. La geometría,
   navegación y detalle se comprueban por separado sin aumentar sus límites.
