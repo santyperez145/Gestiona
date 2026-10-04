@@ -54,8 +54,8 @@ Functions. Tokens privados de firma y publicación pertenecen a CI/environments.
 | Canal | Código | Evidencia actual | Gate para distribuir |
 |---|---|---|---|
 | Web/PWA | Operativo | Build/CI y producción | Gates normales de release. |
-| Windows | Shell y auth implementados | run `37171776139` compiló NSIS y preservó artefacto QA `11291009728` (4.844.062 bytes comprimidos); local sin MSVC | Certificado, instalador firmado, SmartScreen y prueba en equipo limpio. |
-| Android | Shell, auth y scanner implementados | run `37172512147` compiló APK arm64 debug y preservó artefacto `11292410489` (42.992.789 bytes comprimidos) | Keystore, AAB release firmado, OAuth redirect permitido y device test de auth/cámara/POS. |
+| Windows | Shell y auth implementados | run `37175058583` compiló NSIS y preservó artefacto QA `11292861748` (4.844.069 bytes comprimidos); local sin MSVC | Certificado, instalador firmado, SmartScreen y prueba en equipo limpio. |
+| Android | Shell, auth y scanner implementados | run `37175058583` compiló el APK arm64 con scanner y preservó artefacto `11293665071` (44.725.668 bytes comprimidos) | Keystore, AAB release firmado, OAuth redirect permitido y device test de auth/cámara/POS. |
 | macOS/iOS | Configuración portable | íconos y código común presentes | runner macOS, Xcode, Apple Developer, signing/notarización, universal/deep link y device test. |
 
 Un `.exe`, APK o AAB sin firma sirve como artefacto de ingeniería; no es una

@@ -238,6 +238,8 @@ sigue abierto como certificación operacional.
   Rust/Gradle no dependa de un binario global. El lector de productos usa ahora
   el plugin móvil oficial de Tauri en Android/iOS, permisos acotados y mensajes
   de cliente; web conserva BarcodeDetector y todos mantienen entrada manual.
+  El run nativo `37175058583` compiló ese código y publicó el APK QA
+  `11293665071` (44.725.668 bytes comprimidos, retención 7 días).
 - Profit por SKU: filas acotadas, columnas e importes legibles y desglose
   completo de costos accesible con teclado en móvil/escritorio. La geometría,
   navegación y detalle se comprueban por separado sin aumentar sus límites.
