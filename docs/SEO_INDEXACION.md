@@ -81,7 +81,7 @@ de Google, sin interpretar una consulta vacía como desindexación.
 - Search Console mostró la página de acceso, sin sesión disponible; no se
   revalidaron aceptación, cobertura, consultas, acciones manuales ni seguridad.
 
-Puerta local: 3.665 tests/418 archivos, tipos, lint focalizado, build/PWA y 38
+Puerta local 2026-10-04: 3.665 tests/418 archivos, tipos, lint focalizado, build/PWA y 38
 E2E sintéticos verdes. Se corrigió la firma base64url de sus fixtures, sin
 relajar MFA ni usar cuentas reales; roadmaps dentro de su presupuesto.
 Estado: corrección verificada localmente. Cierre pendiente: XML de Googlebot
