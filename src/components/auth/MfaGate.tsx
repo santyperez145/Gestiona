@@ -15,7 +15,7 @@
  * está activo y el usuario es admin/owner **sin** ningún factor, se lo manda a
  * configurarlo antes de poder seguir.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { decideMfaState, type MfaDecision } from "@/lib/mfaGate";
 import BrandLogo from "@/components/shared/BrandLogo";
+import { Checkbox } from "@/components/ui/checkbox";
+import { canRememberDevice, trustedDeviceCommand } from "@/lib/trustedDevice";
 
 type GateState = "checking" | MfaDecision;
 
@@ -43,14 +45,21 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   const [enrolling, setEnrolling] = useState(false);
   const [enrollment, setEnrollment] = useState<{ factorId: string; uri: string; secret: string } | null>(null);
   const [enrollmentCode, setEnrollmentCode] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [trustError, setTrustError] = useState("");
+  const [trustExpiresAt, setTrustExpiresAt] = useState<string | null>(null);
+  const generation = useRef(0);
+  const authOperation = useRef(false);
+  const observedSession = useRef<string | null>(null);
 
   const check = useCallback(async () => {
+    const requestId = ++generation.current;
     try {
       const [{ data: aal, error: aalErr }, { data: factors, error: factorsErr }] = await Promise.all([
         supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
         supabase.auth.mfa.listFactors(),
       ]);
-
+      if (requestId !== generation.current) return;
       if (aalErr || factorsErr) {
         setState("unavailable");
         return;
@@ -60,29 +69,98 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
         (factors?.totp ?? []).map(f => ({ id: f.id, status: f.status })),
         { isAdmin, orgRequiresMfa },
       );
-
+      let rememberedUntil: string | null = null;
+      if (decision === "needs_code" && canRememberDevice()) {
+        try {
+          const remembered = await trustedDeviceCommand("redeem");
+          if (requestId !== generation.current) return;
+          if (remembered.trusted && remembered.expiresAt && Date.parse(remembered.expiresAt) > Date.now()) {
+            rememberedUntil = remembered.expiresAt;
+          }
+          setTrustError("");
+        } catch (error) {
+          // Device-service failure never opens access; real TOTP remains available.
+          if (requestId !== generation.current) return;
+          setTrustError(error instanceof Error ? error.message : "No pudimos comprobar este dispositivo. Ingresá el código.");
+        }
+      }
+      setTrustExpiresAt(rememberedUntil);
       setFactorId(fid ?? null);
-      setState(decision);
+      setState(rememberedUntil ? "ok" : decision);
     } catch {
       // El acceso no se abre si no pudimos comprobar el segundo factor.
-      setState("unavailable");
+      if (requestId === generation.current) setState("unavailable");
     }
   }, [isAdmin, orgRequiresMfa]);
 
-  useEffect(() => { check(); }, [check]);
+  useEffect(() => {
+    void check();
+    // Defer SDK calls until its synchronous auth notification has released its lock.
+    const listener = supabase.auth.onAuthStateChange?.((_event, session) => {
+      // This key only detects UI transitions. SDK/Edge/SQL remain the authority.
+      let sessionKey = session?.user.id ?? "signed-out";
+      try {
+        const payload = session?.access_token.split(".")[1];
+        if (payload) sessionKey += `:${JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))).session_id ?? ""}`;
+      } catch { sessionKey += ":unknown"; }
+      const changedSession = observedSession.current !== sessionKey;
+      observedSession.current = sessionKey;
+      if (!authOperation.current) {
+        // An elevation/refresh in the SAME session must not unmount an active
+        // security modal or discard unsaved forms. A new identity/session does.
+        if (changedSession) {
+          setState("checking");
+          setTrustExpiresAt(null);
+        }
+        queueMicrotask(() => { void check(); });
+      }
+    });
+    const recheck = () => { if (!authOperation.current) void check(); };
+    window.addEventListener("focus", recheck);
+    window.addEventListener("nerqia:trusted-device-changed", recheck);
+    return () => {
+      // This counter invalidates requests; it is not a DOM ref.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++generation.current;
+      listener?.data.subscription.unsubscribe();
+      window.removeEventListener("focus", recheck);
+      window.removeEventListener("nerqia:trusted-device-changed", recheck);
+    };
+  }, [check]);
+
+  useEffect(() => {
+    if (!trustExpiresAt) return;
+    const delay = Math.max(0, Date.parse(trustExpiresAt) - Date.now());
+    const timer = window.setTimeout(() => { setState("checking"); void check(); }, delay);
+    return () => window.clearTimeout(timer);
+  }, [trustExpiresAt, check]);
+
+  const rememberVerifiedDevice = async () => {
+    if (!remember) return;
+    try {
+      await trustedDeviceCommand("register");
+      toast.success("Este navegador quedó recordado por 7 días, incluso si cerrás sesión.");
+      setTrustError("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "El acceso es válido, pero no pudimos recordar el navegador.");
+    }
+  };
 
   const verify = async () => {
     if (!factorId || code.length !== 6) return;
     setVerifying(true);
+    authOperation.current = true;
     try {
       const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
       if (error) throw error;
+      await rememberVerifiedDevice();
       await check();
     } catch {
       toast.error("Código incorrecto o vencido");
       setCode("");
     } finally {
       setVerifying(false);
+      authOperation.current = false;
     }
   };
 
@@ -112,12 +190,14 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   const finishEnrollment = async () => {
     if (!enrollment || enrollmentCode.length !== 6) return;
     setVerifying(true);
+    authOperation.current = true;
     try {
       const { error } = await supabase.auth.mfa.challengeAndVerify({
         factorId: enrollment.factorId,
         code: enrollmentCode,
       });
       if (error) throw error;
+      await rememberVerifiedDevice();
       setEnrollment(null);
       setEnrollmentCode("");
       await check();
@@ -126,6 +206,7 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
       setEnrollmentCode("");
     } finally {
       setVerifying(false);
+      authOperation.current = false;
     }
   };
 
@@ -152,6 +233,15 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   if (state === "ok") return <>{children}</>;
 
   const signOut = () => supabase.auth.signOut();
+  const rememberControl = canRememberDevice() ? (
+    <div className="space-y-1.5">
+      <label className="flex items-start gap-2 text-sm cursor-pointer">
+        <Checkbox checked={remember} onCheckedChange={value => setRemember(value === true)} disabled={verifying} className="mt-0.5" />
+        Recordar este navegador durante 7 días
+      </label>
+      <p className="text-xs text-muted-foreground">También después de cerrar sesión. No lo actives en equipos compartidos.</p>
+    </div>
+  ) : null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -172,9 +262,13 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
               onKeyDown={e => e.key === "Enter" && verify()}
               placeholder="000000"
               inputMode="numeric"
+              autoComplete="one-time-code"
+              aria-label="Código de verificación"
               autoFocus
               className="text-center text-2xl tracking-[0.4em] font-mono h-12"
             />
+            {trustError && <p role="status" className="text-xs text-muted-foreground">{trustError}</p>}
+            {rememberControl}
             <Button onClick={verify} disabled={verifying || code.length !== 6} className="w-full">
               {verifying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
               Verificar
@@ -207,6 +301,7 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
                   placeholder="Código de 6 dígitos"
                   aria-label="Código de la app de autenticación"
                 />
+                {rememberControl}
                 <Button className="w-full" onClick={() => void finishEnrollment()} disabled={verifying || enrollmentCode.length !== 6}>
                   {verifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Activar verificación
                 </Button>

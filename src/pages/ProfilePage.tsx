@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
@@ -12,7 +15,9 @@ import { User, Lock, Building2, Camera, Save, Crown, ShieldCheck, Mail, Smartpho
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { QRCodeSVG } from 'qrcode.react';
 import PageHeader from '@/components/shared/PageHeader';
+import TrustedDevicesSection from '@/components/auth/TrustedDevicesSection';
 import { authErrorForCustomer, checkPassword, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
+import { getOptionalEnv } from '@/lib/env';
 
 // ─── MFA types ────────────────────────────────────────────────────────────────
 interface MfaFactor {
@@ -37,6 +42,8 @@ export default function ProfilePage() {
   usePageTitle("Mi Perfil");
   const { user } = useAuth();
   const { memberships, isPlatformAdmin } = useOrg();
+  const currentProfileUser = useRef(user);
+  currentProfileUser.current = user;
 
   const [name, setName] = useState(user?.user_metadata?.full_name || user?.user_metadata?.name || '');
   const [savingProfile, setSavingProfile] = useState(false);
@@ -57,6 +64,7 @@ export default function ProfilePage() {
   // ── MFA state ─────────────────────────────────────────────────────────────
   const [mfaFactors, setMfaFactors] = useState<MfaFactor[]>([]);
   const [mfaLoading, setMfaLoading] = useState(true);
+  const [mfaLoadError, setMfaLoadError] = useState(false);
   // Enrollment flow
   const [enrolling, setEnrolling] = useState(false);
   const [enrollData, setEnrollData] = useState<{ factorId: string; qrUri: string; secret: string } | null>(null);
@@ -64,6 +72,21 @@ export default function ProfilePage() {
   const [verifying, setVerifying] = useState(false);
   // Unenroll
   const [unenrolling, setUnenrolling] = useState<string | null>(null);
+  const [securityPrompt, setSecurityPrompt] = useState<{ factorId: string; action: string } | null>(null);
+  const [securityCode, setSecurityCode] = useState('');
+  const [securityError, setSecurityError] = useState('');
+  const [securityVerifying, setSecurityVerifying] = useState(false);
+  const securityPromptResolver = useRef<((verified: boolean) => void) | null>(null);
+
+  useEffect(() => {
+    const account = currentProfileUser.current;
+    setName(account?.user_metadata?.full_name || account?.user_metadata?.name || '');
+    setAvatarUrl(account?.user_metadata?.avatar_url || null);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setNewEmail('');
+  }, [user?.id]);
 
   const initials = (name || user?.email || '?')
     .split(' ')
@@ -75,12 +98,105 @@ export default function ProfilePage() {
   // ── Load MFA factors ───────────────────────────────────────────────────────
   const loadMfaFactors = useCallback(async () => {
     setMfaLoading(true);
-    const { data } = await supabase.auth.mfa.listFactors();
-    setMfaFactors((data?.all ?? []) as MfaFactor[]);
-    setMfaLoading(false);
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error || !data) throw error ?? new Error('MFA unavailable');
+      setMfaFactors(data.all as MfaFactor[]);
+      setMfaLoadError(false);
+    } catch {
+      setMfaLoadError(true);
+    } finally {
+      setMfaLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadMfaFactors(); }, [loadMfaFactors]);
+
+  useEffect(() => () => {
+    securityPromptResolver.current?.(false);
+    securityPromptResolver.current = null;
+  }, []);
+
+  const finishSecurityPrompt = (verified: boolean) => {
+    securityPromptResolver.current?.(verified);
+    securityPromptResolver.current = null;
+    setSecurityPrompt(null);
+    setSecurityCode('');
+    setSecurityError('');
+  };
+
+  useEffect(() => {
+    const resolve = securityPromptResolver.current;
+    if (!resolve) return;
+    securityPromptResolver.current = null;
+    resolve(false);
+    setSecurityPrompt(null);
+    setSecurityCode('');
+    setSecurityError('');
+  }, [user?.id]);
+
+  const hasFreshTotp = (methods: Array<string | { method: string; timestamp: number }> | undefined) => {
+    const now = Date.now();
+    return methods?.some(entry => {
+      if (typeof entry === 'string') return false;
+      if (entry.method !== 'totp' && entry.method !== 'mfa/totp') return false;
+      const age = now - entry.timestamp * 1000;
+      return Number.isFinite(age) && age >= -30_000 && age <= 5 * 60_000;
+    }) ?? false;
+  };
+
+  const sameSignedInUser = async (expectedUserId: string | undefined): Promise<boolean> => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !expectedUserId || data.session?.user.id !== expectedUserId) {
+      toast.error('La sesión cambió. Volvé a iniciar sesión antes de modificar la seguridad de tu cuenta.');
+      return false;
+    }
+    return true;
+  };
+
+  const requireRecentMfa = async (action = 'continuar'): Promise<boolean> => {
+    if (securityPromptResolver.current) return false;
+    try {
+      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+      if (factorsError || !factors) throw new Error('MFA factors unavailable');
+      const verified = factors.totp.find(factor => factor.status === 'verified');
+      if (!verified) return true; // Las cuentas sin 2FA usan el control de contraseña de Auth.
+
+      const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (assuranceError || !assurance) throw new Error('MFA assurance unavailable');
+      if (assurance.currentLevel === 'aal2' && hasFreshTotp(assurance.currentAuthenticationMethods)) return true;
+
+      return await new Promise<boolean>(resolve => {
+        securityPromptResolver.current = resolve;
+        setSecurityCode('');
+        setSecurityError('');
+        setSecurityPrompt({ factorId: verified.id, action });
+      });
+    } catch {
+      toast.error('No pudimos comprobar la seguridad de tu cuenta. Reintentá.');
+      return false;
+    }
+  };
+
+  const verifySensitiveAction = async () => {
+    if (!securityPrompt || securityCode.length !== 6 || securityVerifying) return;
+    setSecurityVerifying(true);
+    setSecurityError('');
+    try {
+      const { data: verified, error } = await supabase.auth.mfa.challengeAndVerify({ factorId: securityPrompt.factorId, code: securityCode });
+      if (error || !verified?.access_token) throw error ?? new Error('MFA verification unavailable');
+      const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel(verified.access_token);
+      if (assuranceError || assurance?.currentLevel !== 'aal2') {
+        throw new Error('Fresh MFA proof unavailable');
+      }
+      finishSecurityPrompt(true);
+    } catch {
+      setSecurityCode('');
+      setSecurityError('El código no es válido o venció. Revisá tu app de autenticación e intentá otra vez.');
+    } finally {
+      setSecurityVerifying(false);
+    }
+  };
 
   /**
    * Borra los factores TOTP que quedaron a medio activar.
@@ -109,7 +225,7 @@ export default function ProfilePage() {
     await limpiarFactoresAMedias();
     const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator App' });
     setEnrolling(false);
-    if (error || !data) { toast.error(error?.message ?? 'Error al iniciar MFA'); return; }
+    if (error || !data) { toast.error('No pudimos iniciar 2FA. Reintentá.'); return; }
     setEnrollData({
       factorId: data.id,
       // `uri`, no `qr_code`: éste último ya viene dibujado como SVG, y pedirle
@@ -142,7 +258,7 @@ export default function ProfilePage() {
       code:     totpCode,
     });
     setVerifying(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error('El código no es válido o venció. Revisá tu app de autenticación.'); return; }
     toast.success('Autenticación de dos factores activada ✓');
     setEnrollData(null);
     setTotpCode('');
@@ -151,10 +267,13 @@ export default function ProfilePage() {
 
   // ── Unenroll (disable) MFA ─────────────────────────────────────────────────
   const handleUnenrollMfa = async (factorId: string) => {
+    const expectedUserId = user?.id;
+    if (!(await requireRecentMfa('desactivar la verificación en dos pasos'))) return;
+    if (!(await sameSignedInUser(expectedUserId))) return;
     setUnenrolling(factorId);
     const { error } = await supabase.auth.mfa.unenroll({ factorId });
     setUnenrolling(null);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error('No pudimos desactivar 2FA. Reintentá.'); return; }
     toast.success('MFA desactivado');
     await loadMfaFactors();
   };
@@ -173,6 +292,7 @@ export default function ProfilePage() {
   // ── Change password ───────────────────────────────────────────────────────
 
   const handleChangePassword = async () => {
+    const expectedUserId = user?.id;
     if (!newPassword || newPassword !== confirmPassword) {
       toast.error('Las contraseñas no coinciden');
       return;
@@ -187,37 +307,50 @@ export default function ProfilePage() {
       return;
     }
     setSavingPassword(true);
-    // Una sesión abierta no demuestra que quien está frente a la pantalla
-    // conoce la clave. Reautenticamos antes de mutar la credencial.
-    const { error: reauthError } = await supabase.auth.signInWithPassword({
-      email: user?.email ?? '',
-      password: currentPassword,
-    });
-    if (reauthError) {
-      console.error('profile-password-reauth:', reauthError);
-      toast.error(authErrorForCustomer(reauthError, 'La contraseña actual no es correcta.'));
+    // Este cliente efímero no toca la sesión principal ni su storage.
+    const authUrl = getOptionalEnv('VITE_SUPABASE_URL');
+    const authKey = getOptionalEnv('VITE_SUPABASE_ANON_KEY') ?? getOptionalEnv('VITE_SUPABASE_PUBLISHABLE_KEY');
+    if (!authUrl || !authKey) {
+      toast.error('No pudimos conectar con el servicio de acceso. Reintentá más tarde.');
       setSavingPassword(false);
       return;
     }
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      console.error('profile-password-change:', error);
-      toast.error(authErrorForCustomer(error, 'No pudimos actualizar la contraseña. Intentá nuevamente.'));
-    }
-    else {
+    const passwordCheckClient = createClient(authUrl, authKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+    try {
+      const { data, error: reauthError } = await passwordCheckClient.auth.signInWithPassword({
+        email: user?.email ?? '', password: currentPassword,
+      });
+      if (reauthError || !data.user || data.user.id !== expectedUserId) {
+        toast.error(authErrorForCustomer(reauthError, 'La contraseña actual no es correcta.'));
+        return;
+      }
+      if (!(await requireRecentMfa('actualizar tu contraseña'))) return;
+      if (!(await sameSignedInUser(expectedUserId))) return;
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast.error(authErrorForCustomer(error, 'No pudimos actualizar la contraseña. Intentá nuevamente.'));
+        return;
+      }
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
-      if (signOutError) console.error('profile-password session cleanup:', signOutError);
-      toast.success('Contraseña actualizada');
+      if (signOutError) toast.error('Contraseña actualizada, pero no pudimos cerrar las otras sesiones. Hacelo desde seguridad.');
+      else toast.success('Contraseña actualizada y otras sesiones cerradas.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+    } catch {
+      toast.error('No pudimos actualizar la contraseña. Revisá la conexión y reintentá.');
+    } finally {
+      await passwordCheckClient.auth.signOut({ scope: 'local' }).catch(() => undefined);
+      setSavingPassword(false);
     }
-    setSavingPassword(false);
   };
 
   // ── Change email ──────────────────────────────────────────────────────────
 
   const handleChangeEmail = async () => {
+    const expectedUserId = user?.id;
     const trimmed = newEmail.trim().toLowerCase();
     if (!trimmed || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) {
       toast.error('Ingresá un email válido');
@@ -225,13 +358,20 @@ export default function ProfilePage() {
     }
     if (trimmed === user?.email) { toast.error('Es el mismo email actual'); return; }
     setSavingEmail(true);
-    const { error } = await supabase.auth.updateUser({ email: trimmed });
-    if (error) toast.error(error.message);
-    else {
-      toast.success('Confirmación enviada — revisá tu nuevo email para verificar el cambio');
-      setNewEmail('');
+    try {
+      if (!(await requireRecentMfa('cambiar tu email'))) return;
+      if (!(await sameSignedInUser(expectedUserId))) return;
+      const { error } = await supabase.auth.updateUser({ email: trimmed });
+      if (error) toast.error(authErrorForCustomer(error, 'No pudimos solicitar el cambio de email. Reintentá.'));
+      else {
+        toast.success('Confirmación enviada. Revisá tu correo para verificar el cambio.');
+        setNewEmail('');
+      }
+    } catch {
+      toast.error('No pudimos solicitar el cambio de email. Reintentá.');
+    } finally {
+      setSavingEmail(false);
     }
-    setSavingEmail(false);
   };
 
   // ── Upload avatar ─────────────────────────────────────────────────────────
@@ -466,6 +606,11 @@ export default function ProfilePage() {
 
         {mfaLoading ? (
           <p className="text-xs text-muted-foreground animate-pulse">Cargando factores...</p>
+        ) : mfaLoadError ? (
+          <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+            No pudimos cargar tu configuración de 2FA.
+            <Button type="button" size="sm" variant="outline" onClick={() => void loadMfaFactors()}>Reintentar</Button>
+          </div>
         ) : (
           <>
             {/* Active factors */}
@@ -574,6 +719,12 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {!mfaLoading && !mfaLoadError && <TrustedDevicesSection
+        userId={user?.id}
+        hasVerifiedMfa={mfaFactors.some(factor => factor.status === 'verified')}
+        onRequireFreshMfa={() => requireRecentMfa('recordar este navegador')}
+      />}
+
       {/* Account info */}
       <div className="relative space-y-3 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
@@ -597,6 +748,37 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={securityPrompt !== null} onOpenChange={open => { if (!open && !securityVerifying) finishSecurityPrompt(false); }}>
+        <DialogContent size="sm" hideClose>
+          <DialogHeader>
+            <DialogTitle>Confirmá tu identidad</DialogTitle>
+            <DialogDescription>Para {securityPrompt?.action}, ingresá un código nuevo de tu app de autenticación.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="profile-security-code">Código de seis dígitos</Label>
+            <InputOTP
+              id="profile-security-code"
+              maxLength={6}
+              value={securityCode}
+              onChange={value => setSecurityCode(value.replace(/\D/g, '').slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void verifySensitiveAction(); } }}
+            >
+              <InputOTPGroup>{Array.from({ length: 6 }, (_, index) => <InputOTPSlot key={index} index={index} />)}</InputOTPGroup>
+            </InputOTP>
+            {securityError && <p role="alert" className="text-sm text-destructive">{securityError}</p>}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={securityVerifying} onClick={() => finishSecurityPrompt(false)}>Cancelar</Button>
+            <Button type="button" disabled={securityVerifying || securityCode.length !== 6} onClick={() => void verifySensitiveAction()}>
+              {securityVerifying ? 'Verificando...' : 'Verificar y continuar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

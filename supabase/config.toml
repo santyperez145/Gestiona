@@ -75,6 +75,10 @@ verify_jwt = false
 [functions.send-email-campaign]
 verify_jwt = false
 
+# Valida la firma contra Auth y la sesión en SQL; sólo transporte del proxy.
+[functions.trusted-device]
+verify_jwt = false
+
 # Cron schedules — run via pg_cron or Supabase Dashboard > Edge Functions > Schedules
 # auto-recurring-expenses: "0 3 1 * *"   (1st of each month at 3 AM UTC)
 # weekly-backup: "30 3 * * 0" (domingos 03:30 UTC), sólo si existe

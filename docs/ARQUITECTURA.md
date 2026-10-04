@@ -154,7 +154,8 @@ profundidad:
   devuelven;
 - API keys emitidas server-side, visibles una vez, almacenadas como hash,
   revocables y con scopes;
-- MFA obligatorio en Platform;
+- MFA obligatorio en Platform; acceso recordado web opt-in por siete días con
+  cookie host-only HttpOnly, hash privado y grants por sesión, sin falsear AAL2;
 - buckets privados, paths asignados por servidor, MIME/tamaño real, hash,
   cuarentena y URLs firmadas breves;
 - idempotencia reservada sólo después de validar el request;
