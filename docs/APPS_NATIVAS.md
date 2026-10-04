@@ -1,6 +1,6 @@
 # Apps nativas de Nerqia
 
-**Estado:** arquitectura implementada; distribución no certificada.  
+**Estado:** arquitectura implementada; distribución no certificada.
 **Revisión:** 2026-10-03. **Owner:** Producto / Ingeniería.
 
 ## 1. Decisión
@@ -94,4 +94,3 @@ Fuentes de implementación: [Tauri 2](https://v2.tauri.app/start/),
 [prerrequisitos](https://v2.tauri.app/start/prerequisites/),
 [deep links](https://v2.tauri.app/plugin/deep-linking/) y
 [deep linking nativo de Supabase](https://supabase.com/docs/guides/auth/native-mobile-deep-linking).
-
