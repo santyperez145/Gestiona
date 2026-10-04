@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import middleware, { storefrontCrawlerTarget } from '../../middleware';
+import middleware, { config, platformCrawlerTarget, storefrontCrawlerTarget } from '../../middleware';
+import platformSitemap from '../../api/platform-sitemap';
 import { STOREFRONT_CRAWLER_UA } from '@/lib/storefrontSeo';
 
 function request(url: string, userAgent: string) {
@@ -62,5 +63,32 @@ describe('Routing Middleware SEO del storefront', () => {
         token,
       ).not.toBeNull();
     }
+  });
+
+  it('deja los sitemaps y feeds en su handler de documentos, también en rutas heredadas', async () => {
+    const documents = [
+      'https://nerqia.app/sitemap-platform.xml?audit=1',
+      'https://nerqia.app/sitemap.xml',
+      'https://nerqia.app/robots.txt',
+      'https://exentryimports.nerqia.app/sitemap.xml',
+      'https://tienda.marca.com/feed.xml',
+      'https://nerqia.app/tienda/exentryimports/sitemap.xml',
+      'https://nerqia.app/tienda/exentryimports/feed.xml',
+    ];
+    for (const url of documents) {
+      const bot = request(url, 'Googlebot/2.1');
+      expect(storefrontCrawlerTarget(bot), url).toBeNull();
+      expect(platformCrawlerTarget(bot), url).toBeNull();
+      expect(middleware(bot).headers.get('x-middleware-next'), url).toBe('1');
+    }
+    const matcher = new RegExp(`^${config.matcher[0]}$`);
+    expect(matcher.test('/sitemap-platform.xml')).toBe(false);
+    expect(matcher.test('/precios')).toBe(true);
+    expect(platformCrawlerTarget(request('https://nerqia.app/precios', 'Googlebot'))?.pathname)
+      .toBe('/api/platform-seo');
+
+    const xml = platformSitemap();
+    expect(xml.headers.get('Content-Type')).toContain('application/xml');
+    expect(await xml.text()).toContain('<loc>https://nerqia.app/precios</loc>');
   });
 });

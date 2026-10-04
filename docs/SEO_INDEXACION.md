@@ -1,6 +1,6 @@
 # SEO e indexación de Nerqia y sus tiendas
 
-Última revisión: **2026-09-04**.
+Última revisión: **2026-10-04**.
 
 ## Objetivo y límite honesto
 
@@ -61,6 +61,31 @@ impresiones siguen pendientes de evidencia posterior.
 Estado: **descubrimiento e indexación de las dos homes cerrados con evidencia
 externa**. Continúan abiertos la cobertura del resto del catálogo, las primeras
 impresiones/consultas y la conversión orgánica.
+
+### Incidencia de rastreo del 2026-10-04
+
+Comprobación 16:21 UTC: Google Search (`site:nerqia.app`) sigue mostrando
+ambas homes. No se observó indexación adicional ni una posición garantizada.
+El buscador integrado no devolvió resultados; se contrastó con la página real
+de Google, sin interpretar una consulta vacía como desindexación.
+
+- Raíz `/sitemap.xml`: 200 `application/xml`, índice válido con dos hijos.
+- Exentry `/sitemap.xml`: 200 XML válido, 73 URLs sin duplicados; ambas homes y
+  robots siguen accesibles, con canonical propio y JSON-LD parseable.
+- **Fallo confirmado dos veces:** `/sitemap-platform.xml` responde a Googlebot
+  200 `text/html` (347 bytes), `noindex,nofollow` y «Acceso privado»; para
+  Mozilla devuelve 200 XML (254 bytes, home/precios/estado).
+- Causa: el matcher excluía `sitemap.xml` pero interceptaba el sitemap hijo
+  antes de su handler XML. Corrección: excluir el hijo y dejar pasar documentos
+  XML/texto también en rutas de tienda heredadas; regresión focalizada.
+- Search Console mostró la página de acceso, sin sesión disponible; no se
+  revalidaron aceptación, cobertura, consultas, acciones manuales ni seguridad.
+
+Puerta local 2026-10-04: 3.665 tests/418 archivos, tipos, lint focalizado, build/PWA y 38
+E2E sintéticos verdes. Se corrigió la firma base64url de sus fixtures, sin
+relajar MFA ni usar cuentas reales; roadmaps dentro de su presupuesto.
+Estado: corrección verificada localmente. Cierre pendiente: XML de Googlebot
+tras deploy y aceptación actual en Search Console cuando haya sesión.
 
 Fuentes oficiales:
 
