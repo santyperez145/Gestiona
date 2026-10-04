@@ -34,6 +34,7 @@ experiencia sin duplicar productos, clientes, stock o costos.
 - Vitest y Playwright para verificación;
 - Sentry opcional para observabilidad;
 - Anthropic como proveedor actual de funciones del Business Copilot.
+- Tauri 2 para el shell compartido de Windows, Android, macOS e iOS.
 
 La arquitectura vigente está en
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). El producto y el siguiente trabajo
@@ -75,7 +76,13 @@ npm run build            # bundle de producción + PWA
 npm run test:e2e         # Playwright local
 npm run check:enlaces    # enlaces internos de documentación
 npm run check:conteos    # cifras documentadas con fecha/comando
+npm run native:info      # diagnóstico de toolchains Tauri
+npm run native:dev       # cliente desktop de desarrollo
+npm run native:build:windows # instalador NSIS (requiere MSVC)
 ```
+
+Las apps nativas, sus límites de firma y su estado verificable se describen en
+[docs/APPS_NATIVAS.md](docs/APPS_NATIVAS.md). Un build sin firma no se publica.
 
 Antes de un commit:
 

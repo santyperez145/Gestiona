@@ -21,5 +21,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // PKCE evita entregar tokens en la URL y permite completar OAuth, magic
+    // links y recuperación desde los deep links firmados de desktop/mobile.
+    flowType: 'pkce',
+    detectSessionInUrl: true,
   }
 });

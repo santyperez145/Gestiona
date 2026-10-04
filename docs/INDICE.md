@@ -79,6 +79,7 @@ los reemplaza con otro ADR.
 - [Soporte diagnóstico](SOPORTE_DIAGNOSTICO.md): triage y operación.
 - [Restore](RESTORE.md): recuperación y drills.
 - [Release recovery](RELEASE_RECOVERY.md): rollback/promoción protegidos y límites.
+- [Apps nativas](APPS_NATIVAS.md): Tauri, auth/deep links, toolchains, firma y distribución.
 
 ## Política documental
 

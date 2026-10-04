@@ -1,6 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  authRedirectTo,
+  completeNativeAuthCallback,
+  listenForNativeAuthCallbacks,
+  NativeAuthCallbackError,
+} from '@/lib/nativeRuntime';
 
 interface AuthContextType {
   user: User | null;
@@ -25,11 +31,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /** Destino tras magic link / OAuth. Debe estar en Redirect URLs de Supabase Auth. */
 export function authEmailRedirectTo(): string {
-  return `${window.location.origin}/`;
+  return authRedirectTo('/');
 }
 
 function authPasswordRedirectTo(): string {
-  return `${window.location.origin}/reset-password`;
+  return authRedirectTo('/reset-password');
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -39,6 +45,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   useEffect(() => {
+    let stopNativeListener: (() => void) | undefined;
+    let active = true;
+
+    const moveTo = (path: string) => {
+      window.history.replaceState({}, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
+    void listenForNativeAuthCallbacks(async (url) => {
+      try {
+        const callback = await completeNativeAuthCallback(url, supabase);
+        if (!active) return;
+        if (callback.recovery) setPasswordRecovery(true);
+        moveTo(callback.destination);
+      } catch (error) {
+        console.error('native-auth-callback:', error);
+        if (!active) return;
+        const code = error instanceof NativeAuthCallbackError ? error.customerCode : 'session';
+        moveTo(`/login?native_error=${encodeURIComponent(code)}`);
+      }
+    }).then((unlisten) => {
+      if (active) stopNativeListener = unlisten;
+      else unlisten();
+    });
+
     // Initial session load
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -61,7 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      stopNativeListener?.();
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, name?: string, accountType?: 'creator' | 'store_customer') => {

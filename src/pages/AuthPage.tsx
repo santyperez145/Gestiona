@@ -8,6 +8,12 @@ import { ArrowLeft, ArrowRight, Check, CircleDollarSign, Mail, PackageCheck, Shi
 import BrandLogo from '@/components/shared/BrandLogo';
 import { authErrorForCustomer, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import {
+  authRedirectTo,
+  isNativeRuntime,
+  nativeAuthCustomerMessage,
+  openNativeAuthUrl,
+} from '@/lib/nativeRuntime';
 
 const SHOWCASE_ITEMS = [
   { icon: Store, title: 'Tienda online lista', description: 'Catálogo, checkout, pagos y dominio en un solo lugar.' },
@@ -53,6 +59,13 @@ export default function AuthPage() {
   useEffect(() => {
     if (user) navigate('/', { replace: true });
   }, [user, navigate]);
+
+  useEffect(() => {
+    const nativeError = searchParams.get('native_error');
+    if (!nativeError) return;
+    toast.error(nativeAuthCustomerMessage(nativeError));
+    navigate('/login', { replace: true });
+  }, [navigate, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,13 +121,16 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const native = isNativeRuntime();
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: authRedirectTo('/'),
+          skipBrowserRedirect: native,
           queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       });
+      if (!error && native && data.url) await openNativeAuthUrl(data.url);
       if (error) {
         if (/provider.*not enabled|unsupported provider/i.test(error.message)) {
           toast.error('El acceso con Google no está disponible por el momento. Podés ingresar con email.');

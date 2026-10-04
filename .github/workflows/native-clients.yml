@@ -1,0 +1,86 @@
+name: Native clients
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "src-tauri/**"
+      - "src/lib/nativeRuntime.ts"
+      - "src/lib/auth.tsx"
+      - "src/integrations/supabase/client.ts"
+      - "src/pages/AuthPage.tsx"
+      - "src/main.tsx"
+      - "vite.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/native-clients.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "src-tauri/**"
+      - "src/lib/nativeRuntime.ts"
+      - "src/lib/auth.tsx"
+      - "src/integrations/supabase/client.ts"
+      - "src/pages/AuthPage.tsx"
+      - "src/main.tsx"
+      - "vite.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/native-clients.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows NSIS (unsigned QA)
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Use stable Rust MSVC
+        shell: pwsh
+        run: |
+          rustup set auto-self-update disable
+          rustup update stable --no-self-update
+          rustup default stable-x86_64-pc-windows-msvc
+          rustc --version
+          cargo --version
+
+      - name: Inspect native toolchain
+        run: npm run native:info
+
+      - name: Build NSIS installer
+        run: npm run native:build:windows
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'placeholder-key' }}
+          VITE_APP_VERSION: ${{ github.sha }}
+
+      # No se distribuye al cliente: confirma compilación/packaging pero carece
+      # de certificado Authenticode y reputación SmartScreen.
+      - name: Upload unsigned QA installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: nerqia-windows-unsigned-${{ github.sha }}
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 7
+

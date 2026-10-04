@@ -22,7 +22,11 @@ const esPaquete = (id: string, ...paquetes: string[]) =>
   );
 
 // https://vitejs.dev/config/
-export default defineConfig(() => ({
+export default defineConfig(() => {
+  // Tauri empaqueta assets versionados dentro del binario. Un service worker
+  // web no tiene sentido sobre el protocolo nativo y puede servir otro shell.
+  const nativeBuild = Boolean(process.env.TAURI_ENV_PLATFORM);
+  return ({
   server: {
     host: "::",
     port: 8080,
@@ -32,7 +36,7 @@ export default defineConfig(() => ({
   },
   plugins: [
     react(),
-    VitePWA({
+    !nativeBuild && VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
@@ -205,4 +209,5 @@ export default defineConfig(() => ({
     },
     chunkSizeWarningLimit: 1500,
   },
-}));
+  });
+});

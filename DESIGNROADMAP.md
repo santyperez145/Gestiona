@@ -230,7 +230,7 @@ Cada vista debe contemplar:
    limita cada fuente inicial a 20 s y transforma el bloqueo en recuperación
    explícita, conservando datos previos durante refresh.
 5. Navegación sin recarga y actualización PWA manual segura.
-6. Contraste claro/oscuro y textos largos reales.
+6. Contraste y textos reales; shell nativo con jerarquía web, safe areas, teclado, permisos contextuales y retorno externo, sin chrome WebView ni rutas duplicadas.
 
 ## 9. Definition of Done visual
 

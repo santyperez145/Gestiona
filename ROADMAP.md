@@ -219,6 +219,14 @@ sigue abierto como certificación operacional.
   GitHub ya limita el environment a ramas protegidas y exige aprobación del
   único owner. No se provocó un rollback real: faltan token dedicado, segundo
   revisor con autoaprobación bloqueada y game day autorizado.
+- Apps nativas 2026-10-03: Tauri 2 reutiliza el frontend/Graph sin un segundo
+  producto, empaqueta assets locales, desactiva PWA dentro del binario y registra
+  marca/protocolo/instancia única. Google OAuth sale al navegador del sistema;
+  PKCE, magic link y recuperación vuelven por `nerqia://auth/callback` con
+  allowlist y tests. Rust/WebView2 están validados; el build frontend nativo
+  pasa. La PC carece de MSVC y el instalador autorizado terminó `1602`, por lo
+  que todavía no existe instalador local certificado. Android/iOS, firma,
+  stores y redirect Supabase son gates explícitos en `docs/APPS_NATIVAS.md`.
 - Profit por SKU: filas acotadas, columnas e importes legibles y desglose
   completo de costos accesible con teclado en móvil/escritorio. La geometría,
   navegación y detalle se comprueban por separado sin aumentar sus límites.
@@ -271,6 +279,11 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    CUIT/ambiente/punto/certificado y no acepta un resultado concurrente viejo.
    Solicitud y aceptación de terceros ya tienen estados/cola separados; falta
    certificación externa, una aceptación real y operación física.
+7. Canales nativos: compilar Windows en CI, habilitar redirect Supabase y
+   certificar auth en instalador; después Android real. Navegación externa,
+   impresión, descargas, cámara y scanner se migran por capacidad mínima antes
+   de publicar. Firma Windows/Android y Apple runner/cuenta son gates, no tareas
+   que se marquen completas por generar íconos o un binario unsigned.
 
 ### P2 — Finance operacional y Growth CRM
 

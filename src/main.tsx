@@ -5,10 +5,11 @@ import { initSentry } from "./lib/sentry";
 import { validateEnv } from "./lib/env";
 import { announceUpdateAvailable, setupServiceWorkerUpdates } from "./lib/swUpdate";
 import { isStaleBuildError } from "./lib/staleBuildRecovery";
+import { isNativeRuntime } from "./lib/nativeRuntime";
 
 validateEnv();
 initSentry();
-setupServiceWorkerUpdates();
+if (!isNativeRuntime()) setupServiceWorkerUpdates();
 
 // Cuando Vite despliega, los hashes anteriores desaparecen. Conservamos la
 // pantalla actual y ofrecemos la actualización; nunca interrumpimos el trabajo.
