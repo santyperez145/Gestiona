@@ -221,9 +221,9 @@ Cada vista debe contemplar:
 
 1. WCAG 2.2 AA, teclado, foco y lector.
 2. 360/390/768/1024/1280×720/1440 sin overflow ni solapamientos.
-3. Identidad: alta, acceso, “me olvidé”, recuperación y cambio de clave comparten
-   validación, estados válidos/expirados y lenguaje de cliente; ningún mensaje
-   nombra Supabase, configuración interna o documentación del equipo.
+3. Identidad: panel y tienda comparten alta, acceso, “me olvidé”, recuperación,
+   política de clave, estados válidos/expirados y lenguaje de cliente; ningún
+   mensaje nombra proveedor, configuración interna o documentación del equipo.
 4. INP/LCP/CLS de campo, presupuesto de assets y lazy boundaries. Productos,
    Analytics, Finance y comisiones de Platform deben ofrecer estado útil durante
    sus consultas largas, nunca un canvas vacío ni un cero provisional. Dashboard

@@ -35,9 +35,13 @@ describe("cuenta opcional en checkout", () => {
     const corta = checkoutDebeIntentarCuenta({
       yaTieneCuenta: false, quiereCuenta: true, password: "123",
     });
-    expect("error" in corta && corta.error).toMatch(/6 caracteres/);
+    expect("error" in corta && corta.error).toMatch(/10 caracteres/);
+    const debil = checkoutDebeIntentarCuenta({
+      yaTieneCuenta: false, quiereCuenta: true, password: "abcdefghij",
+    });
+    expect("error" in debil && debil.error).toMatch(/mayúsculas/);
     expect(checkoutDebeIntentarCuenta({
-      yaTieneCuenta: false, quiereCuenta: true, password: "secret1",
+      yaTieneCuenta: false, quiereCuenta: true, password: "ClaveTienda1",
     })).toEqual({ intentar: true });
   });
 

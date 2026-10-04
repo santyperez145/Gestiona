@@ -13,12 +13,17 @@ import {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
+import {
+  authErrorForCustomer,
+  MIN_PASSWORD_LENGTH,
+  passwordValidationMessage,
+} from "@/lib/passwordSecurity";
 
 function customerAuthError(error: { message?: string; status?: number } | null, action: "signup" | "signin" | "otp" | "verify" | "reset") {
   const detail = String(error?.message ?? "");
   if (/invalid login|invalid credentials/i.test(detail)) return "Email o contraseña incorrectos";
   if (/already registered|already exists|user.*exists/i.test(detail)) return "Ya existe una cuenta con ese email. Iniciá sesión o recuperá tu contraseña.";
-  if (/password/i.test(detail) && /short|least|weak/i.test(detail)) return "La contraseña debe tener al menos 8 caracteres.";
+  if (/password/i.test(detail) && /short|least|weak/i.test(detail)) return `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres, con mayúscula, minúscula y número.`;
   if (/expired|invalid.*otp|token.*invalid/i.test(detail)) return "El código venció o no es válido. Pedí uno nuevo.";
   if (error?.status === 429 || /rate limit|too many/i.test(detail)) return "Hiciste varios intentos seguidos. Esperá un minuto y volvé a probar.";
   if (action === "signin") return "No pudimos iniciar sesión. Revisá tus datos e intentá nuevamente.";
@@ -41,6 +46,7 @@ interface Ctx {
   loading: boolean;
   session: Session | null;
   customer: StoreCustomer | null;
+  passwordRecovery: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string; needsConfirm?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   /** Magic link / código. shouldCreateUser true + account_type store_customer. */
@@ -48,12 +54,13 @@ interface Ctx {
   verifyEmailOtp: (email: string, token: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
+  updatePassword: (password: string) => Promise<{ error?: string }>;
   refresh: () => Promise<void>;
 }
 
 const StoreAuthContext = createContext<Ctx | null>(null);
 
-function storeAccountRedirect(slug: string, basePath?: string): string {
+function storeAccountRedirect(slug: string, basePath?: string, destination = "cuenta"): string {
   const base = basePath ?? `/tienda/${encodeURIComponent(slug)}`;
   // Supabase exige callbacks declarados. Un dominio del comercio es dinámico,
   // así que email de alta/reset vuelve al subdominio canónico ya allowlisteado;
@@ -61,13 +68,14 @@ function storeAccountRedirect(slug: string, basePath?: string): string {
   const origin = isPotentialCustomStoreHostname(window.location.hostname)
     ? `https://${encodeURIComponent(slug)}.${BRAND_DOMAIN}`
     : window.location.origin;
-  return `${origin}${base}/cuenta`;
+  return `${origin}${base}/${destination}`;
 }
 
 export function StoreAuthProvider({ slug, basePath, children }: { slug: string; basePath?: string; children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [customer, setCustomer] = useState<StoreCustomer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -109,7 +117,8 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
 
   useEffect(() => {
     refresh();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
       setSession(s);
       if (!s) setCustomer(null);
       else refresh();
@@ -118,9 +127,11 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
   }, [refresh]);
 
   const value = useMemo<Ctx>(() => ({
-    loading, session, customer,
+    loading, session, customer, passwordRecovery,
 
     signUp: async (email, password, name) => {
+      const passwordError = passwordValidationMessage(password);
+      if (passwordError) return { error: passwordError };
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -184,17 +195,29 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
       await supabase.auth.signOut();
       setCustomer(null);
       setSession(null);
+      setPasswordRecovery(false);
     },
 
     resetPassword: async (email) => {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: storeAccountRedirect(slug, basePath),
+        redirectTo: storeAccountRedirect(slug, basePath, "recuperar-clave"),
       });
       return error ? { error: customerAuthError(error, "reset") } : {};
     },
 
+    updatePassword: async (password) => {
+      const passwordError = passwordValidationMessage(password);
+      if (passwordError) return { error: passwordError };
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) return { error: authErrorForCustomer(error, "No pudimos actualizar la contraseña. Solicitá un enlace nuevo e intentá otra vez.") };
+      const { error: cleanupError } = await supabase.auth.signOut({ scope: "others" });
+      if (cleanupError) console.error("store-password-recovery session cleanup:", cleanupError);
+      setPasswordRecovery(false);
+      return {};
+    },
+
     refresh,
-  }), [loading, session, customer, slug, basePath, refresh]);
+  }), [loading, session, customer, passwordRecovery, slug, basePath, refresh]);
 
   return <StoreAuthContext.Provider value={value}>{children}</StoreAuthContext.Provider>;
 }

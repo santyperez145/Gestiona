@@ -190,6 +190,7 @@ sigue abierto como certificación operacional.
   El gate remoto detectó este incidente y la corrección `ced9f641` pasó CI,
   incluido panel autenticado, y el barrido de producción. Exigir los mismos
   gates en cada SHA; no inferir que la recuperación elimina caídas del proveedor.
+- Identidad Commerce: cuenta/checkout comparten política del Core; login admite claves previas y recovery vuelve a la tienda, exige sesión segura, actualiza y cierra las demás sesiones.
 - Bootstrap de acceso 2026-10-02: el run `37085137191` probó una indisponibilidad
   real más larga: tres lecturas consecutivas de membresía devolvieron `503
   PGRST002`, mientras la cuarta consulta paralela de staff ya encontraba el

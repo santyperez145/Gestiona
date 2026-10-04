@@ -9,6 +9,7 @@ import { retryPublicRead } from "@/lib/publicDataSource";
 import { storeOrderPaymentLabel } from "@/lib/storeOrderPayment";
 import { productIdsFromStoreOrders, suggestionsFromOrderSeeds } from "@/lib/relatedProducts";
 import { Loader2, LogOut, Package, MailCheck, Heart } from "lucide-react";
+import { checkPassword, MIN_PASSWORD_LENGTH, passwordValidationMessage } from "@/lib/passwordSecurity";
 
 interface Pedido {
   order_number: string;
@@ -45,6 +46,7 @@ export default function StoreAccount() {
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const passwordCheck = checkPassword(form.password);
 
   const deseos = useWishlist();
   // Los deseos son ids: se cruzan con el catálogo ya cargado en vez de pedir
@@ -124,6 +126,15 @@ export default function StoreAccount() {
       return;
     }
 
+    if (modo === "registro") {
+      const passwordError = passwordValidationMessage(form.password);
+      if (passwordError) {
+        setEnviando(false);
+        setError(passwordError);
+        return;
+      }
+    }
+
     const res = modo === "login"
       ? await signIn(form.email, form.password)
       : await signUp(form.email, form.password, form.name);
@@ -184,11 +195,19 @@ export default function StoreAccount() {
             <label className="block">
               <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Contraseña</span>
               <input
-                required type="password" minLength={6}
+                required type="password" minLength={modo === "registro" ? MIN_PASSWORD_LENGTH : undefined}
                 autoComplete={modo === "login" ? "current-password" : "new-password"}
                 value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                 className={input} style={inputStyle}
               />
+              {modo === "registro" && (
+                <span className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]" aria-live="polite" style={{ color: "hsl(var(--st-muted))" }}>
+                  <span className={passwordCheck.checks.length ? "text-emerald-600" : ""}>• {MIN_PASSWORD_LENGTH}+ caracteres</span>
+                  <span className={passwordCheck.checks.uppercase ? "text-emerald-600" : ""}>• Una mayúscula</span>
+                  <span className={passwordCheck.checks.lowercase ? "text-emerald-600" : ""}>• Una minúscula</span>
+                  <span className={passwordCheck.checks.number ? "text-emerald-600" : ""}>• Un número</span>
+                </span>
+              )}
             </label>
           )}
           {modo === "otp" && otpSent && (

@@ -18,6 +18,7 @@ import { avisoCheckoutMedioPago, etiquetaMedioCheckout } from "@/lib/storeOrderB
 import { leerProvinciaCarrito, guardarProvinciaCarrito } from "@/lib/storeCartProvince";
 import { cartShippingCellText, checkoutShippingDisplay } from "@/lib/storeCartShipping";
 import { checkoutDebeIntentarCuenta } from "@/lib/storeCheckoutAccount";
+import { checkPassword, MIN_PASSWORD_LENGTH } from "@/lib/passwordSecurity";
 import { notesWithStoreReferral, readStoreReferral } from "@/lib/storeReferral";
 import { mensajeDeEdgeFunction, mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 import {
@@ -129,6 +130,7 @@ export default function StoreCheckout() {
   const [aceptaMarketing, setAceptaMarketing] = useState(false);
   const [crearCuenta, setCrearCuenta] = useState(false);
   const [passwordCuenta, setPasswordCuenta] = useState("");
+  const passwordCuentaCheck = checkPassword(passwordCuenta);
 
   // Si la pestaña se recargó entre crear la orden y navegar, no se vuelve a
   // ejecutar el checkout. El pedido ya confirmado es el único destino válido.
@@ -927,16 +929,22 @@ export default function StoreCheckout() {
               </label>
               {crearCuenta && (
                 <label className="block">
-                  <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Contraseña (mínimo 6 caracteres)</span>
+                  <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Contraseña segura</span>
                   <input
                     type="password"
-                    minLength={6}
+                    minLength={MIN_PASSWORD_LENGTH}
                     autoComplete="new-password"
                     value={passwordCuenta}
                     onChange={e => setPasswordCuenta(e.target.value)}
                     className={input}
                     style={inputStyle}
                   />
+                  <span className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]" aria-live="polite" style={{ color: "hsl(var(--st-muted))" }}>
+                    <span className={passwordCuentaCheck.checks.length ? "text-emerald-600" : ""}>• {MIN_PASSWORD_LENGTH}+ caracteres</span>
+                    <span className={passwordCuentaCheck.checks.uppercase ? "text-emerald-600" : ""}>• Una mayúscula</span>
+                    <span className={passwordCuentaCheck.checks.lowercase ? "text-emerald-600" : ""}>• Una minúscula</span>
+                    <span className={passwordCuentaCheck.checks.number ? "text-emerald-600" : ""}>• Un número</span>
+                  </span>
                 </label>
               )}
             </div>

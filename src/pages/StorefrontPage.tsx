@@ -21,6 +21,7 @@ import StoreCheckout from "@/storefront/StoreCheckout";
 import StorePage from "@/storefront/StorePage";
 import StoreOrder from "@/storefront/StoreOrder";
 import StoreAccount from "@/storefront/StoreAccount";
+import StorePasswordRecovery from "@/storefront/StorePasswordRecovery";
 import StoreCartRecovery from "@/storefront/StoreCartRecovery";
 import StoreCart from "@/storefront/StoreCart";
 import StoreArrepentimiento from "@/storefront/StoreArrepentimiento";
@@ -51,6 +52,7 @@ function tituloPrivadoDeRuta(pathname: string): string | null {
   if (pathname.includes("/checkout")) return "Checkout";
   if (pathname.includes("/carrito") && !pathname.includes("/carrito/")) return "Carrito";
   if (pathname.includes("/cuenta")) return "Mi cuenta";
+  if (pathname.includes("/recuperar-clave")) return "Recuperar contraseña";
   if (pathname.includes("/seguimiento")) return "Consultar pedido";
   if (pathname.includes("/orden/")) return "Pedido";
   return null;
@@ -243,6 +245,7 @@ function StoreShell({ expectedSlug, previewMode }: { expectedSlug: string; previ
         <Route path="orden/:orderNumber" element={<StoreOrder />} />
         <Route path="seguimiento" element={<StoreOrderLookup />} />
         <Route path="cuenta" element={<StoreAccount />} />
+        <Route path="recuperar-clave" element={<StorePasswordRecovery />} />
         <Route path="carrito/:token" element={<StoreCartRecovery />} />
         <Route path="pagina/:pageSlug" element={<StorePage />} />
         {/* Res. 424/2020: el botón de arrepentimiento va accesible desde la
