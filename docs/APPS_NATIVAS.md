@@ -52,8 +52,8 @@ Functions. Tokens privados de firma y publicación pertenecen a CI/environments.
 | Canal | Código | Evidencia actual | Gate para distribuir |
 |---|---|---|---|
 | Web/PWA | Operativo | Build/CI y producción | Gates normales de release. |
-| Windows | Shell y auth implementados | assets nativos compilan; Rust instalado; `cargo check` bloqueado localmente por falta de MSVC | CI Windows verde, certificado de firma, instalador firmado, SmartScreen y prueba en equipo limpio. |
-| Android | Configuración/íconos/scripts | Android SDK detectado; proyecto Gradle todavía no inicializado | JDK 17+, NDK, `tauri android init`, keystore, AAB firmado, OAuth redirect permitido y device test. |
+| Windows | Shell y auth implementados | run `37171776139` compiló NSIS y preservó artefacto QA `11291009728` (4.844.062 bytes comprimidos); local sin MSVC | Certificado, instalador firmado, SmartScreen y prueba en equipo limpio. |
+| Android | Configuración/íconos/scripts | Android SDK detectado; CI prepara JDK/NDK y compila APK arm64 debug; evidencia pendiente del run | Keystore, AAB release firmado, OAuth redirect permitido y device test. |
 | macOS/iOS | Configuración portable | íconos y código común presentes | runner macOS, Xcode, Apple Developer, signing/notarización, universal/deep link y device test. |
 
 Un `.exe`, APK o AAB sin firma sirve como artefacto de ingeniería; no es una
@@ -82,7 +82,7 @@ npm run native:android:build
 
 ## 6. Siguiente cierre
 
-1. compilar NSIS en Windows CI y conservar artefacto **unsigned** sólo para QA;
+1. certificar los builds NSIS y APK debug en CI, sólo como artefactos QA;
 2. configurar redirect nativo en Supabase y probar Google/magic/recovery;
 3. adaptar navegación externa, impresión, descargas, cámara y códigos de barra
    por capacidad, sin permisos globales;

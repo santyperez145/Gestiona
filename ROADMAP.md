@@ -227,6 +227,11 @@ sigue abierto como certificación operacional.
   pasa. La PC carece de MSVC y el instalador autorizado terminó `1602`, por lo
   que todavía no existe instalador local certificado. Android/iOS, firma,
   stores y redirect Supabase son gates explícitos en `docs/APPS_NATIVAS.md`.
+  El workflow nativo prepara además JDK 21, Android 36, NDK 27 y compila un APK
+  arm64 debug; hasta ver el run verde sigue siendo infraestructura pendiente,
+  no una release Android ni evidencia de firma/Play/device.
+  Windows CI `37171776139` ya compiló NSIS y subió el artefacto QA unsigned
+  `11291009728`; demuestra compilación/packaging, no firma ni distribución.
 - Profit por SKU: filas acotadas, columnas e importes legibles y desglose
   completo de costos accesible con teclado en móvil/escritorio. La geometría,
   navegación y detalle se comprueban por separado sin aumentar sus límites.
