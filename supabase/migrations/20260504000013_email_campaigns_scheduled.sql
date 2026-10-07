@@ -3,7 +3,10 @@ ALTER TABLE public.email_campaigns
   ADD COLUMN IF NOT EXISTS scheduled_at timestamptz;
 
 -- Cron: check every hour for campaigns scheduled to send
-SELECT cron.schedule(
+DO $schedule$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'send-scheduled-campaigns') THEN
+    PERFORM cron.schedule(
   'send-scheduled-campaigns',
   '0 * * * *',
   $$
@@ -16,4 +19,7 @@ SELECT cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) ON CONFLICT (jobname) DO UPDATE SET schedule = EXCLUDED.schedule;
+    );
+  END IF;
+END
+$schedule$;

@@ -8,7 +8,10 @@ COMMENT ON COLUMN settings.whatsapp_digest_enabled IS
   'When true, a daily WhatsApp message is sent to whatsapp_number via Evolution API summarising the day''s sales KPIs.';
 
 -- Daily WhatsApp digest cron — 20:00 UTC (17:00 Buenos Aires time)
-SELECT cron.schedule(
+DO $schedule$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'daily-whatsapp-digest') THEN
+    PERFORM cron.schedule(
   'daily-whatsapp-digest',
   '0 20 * * *',
   $$
@@ -22,4 +25,7 @@ SELECT cron.schedule(
   );
   $$
 )
-ON CONFLICT (jobname) DO UPDATE SET schedule = EXCLUDED.schedule;
+    );
+  END IF;
+END
+$schedule$;

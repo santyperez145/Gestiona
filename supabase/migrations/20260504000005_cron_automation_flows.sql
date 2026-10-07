@@ -1,5 +1,8 @@
 -- Daily automation flows runner via pg_cron (runs at 11:00 AM UTC)
-select cron.schedule(
+DO $schedule$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'run-automation-flows-daily') THEN
+    PERFORM cron.schedule(
   'run-automation-flows-daily',
   '0 11 * * *',
   $$
@@ -12,4 +15,7 @@ select cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) on conflict (jobname) do update set schedule = excluded.schedule;
+    );
+  END IF;
+END
+$schedule$;

@@ -4,7 +4,10 @@ alter table public.settings
   add column if not exists daily_margin_alert_threshold numeric default 0;
 
 -- Schedule daily KPI alert at 9 AM UTC (6 AM Argentina)
-select cron.schedule(
+DO $schedule$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'daily-kpi-alert') THEN
+    PERFORM cron.schedule(
   'daily-kpi-alert',
   '0 9 * * *',
   $$
@@ -17,4 +20,7 @@ select cron.schedule(
     body := '{}'::jsonb
   ) as request_id;
   $$
-) on conflict (jobname) do update set schedule = '0 9 * * *';
+    );
+  END IF;
+END
+$schedule$;
