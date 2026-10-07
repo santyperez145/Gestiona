@@ -10,6 +10,7 @@
  *   SUPABASE_URL=https://hummeopatkniwkyrrhwc.supabase.co
  *   SUPABASE_SERVICE_ROLE_KEY=...    # server-side test runner only
  *   SUPABASE_ANON_KEY=...
+ *   NERQIA_TRUST_PROXY_SECRET=...   # required for direct Edge drill only
  * Optional after first-party deployment: NERQIA_AUTH_PROXY_ORIGIN=https://nerqia.app
  */
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
@@ -106,12 +107,16 @@ function preflight() {
     'anon_key_required');
   requireStep(!env.NERQIA_AUTH_PROXY_ORIGIN || env.NERQIA_AUTH_PROXY_ORIGIN === PROXY_ORIGIN,
     'proxy_scope');
-  return {
+  const config = {
     url: SUPABASE_ORIGIN,
     adminKey: env.SUPABASE_SERVICE_ROLE_KEY,
     anonKey: env.SUPABASE_ANON_KEY,
     proxy: env.NERQIA_AUTH_PROXY_ORIGIN === PROXY_ORIGIN,
+    proxySecret: env.NERQIA_TRUST_PROXY_SECRET,
   };
+  requireStep(config.proxy || (typeof config.proxySecret === 'string' && config.proxySecret.length >= 32),
+    'proxy_secret_required');
+  return config;
 }
 
 class Transport {
@@ -150,7 +155,7 @@ class Transport {
       'Content-Type': 'application/json',
       ...(proxy
         ? { Origin: PROXY_ORIGIN, 'Sec-Fetch-Site': 'same-origin', ...(this.cookie ? { Cookie: this.cookie } : {}) }
-        : { apikey: this.config.anonKey }),
+        : { apikey: this.config.anonKey, 'X-Nerqia-Trust-Proxy': this.config.proxySecret }),
     };
     const body = proxy
       ? { action, ...(extra.deviceId ? { deviceId: extra.deviceId } : {}) }

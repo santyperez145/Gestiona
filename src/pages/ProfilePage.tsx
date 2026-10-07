@@ -65,6 +65,7 @@ export default function ProfilePage() {
   const [mfaFactors, setMfaFactors] = useState<MfaFactor[]>([]);
   const [mfaLoading, setMfaLoading] = useState(true);
   const [mfaLoadError, setMfaLoadError] = useState(false);
+  const mfaRequestGeneration = useRef(0);
   // Enrollment flow
   const [enrolling, setEnrolling] = useState(false);
   const [enrollData, setEnrollData] = useState<{ factorId: string; qrUri: string; secret: string } | null>(null);
@@ -97,20 +98,34 @@ export default function ProfilePage() {
 
   // ── Load MFA factors ───────────────────────────────────────────────────────
   const loadMfaFactors = useCallback(async () => {
+    const requestedUserId = user?.id;
+    const generation = ++mfaRequestGeneration.current;
+    if (!requestedUserId) {
+      setMfaFactors([]);
+      setMfaLoadError(false);
+      setMfaLoading(false);
+      return;
+    }
     setMfaLoading(true);
     try {
       const { data, error } = await supabase.auth.mfa.listFactors();
       if (error || !data) throw error ?? new Error('MFA unavailable');
+      if (generation !== mfaRequestGeneration.current || currentProfileUser.current?.id !== requestedUserId) return;
       setMfaFactors(data.all as MfaFactor[]);
       setMfaLoadError(false);
     } catch {
-      setMfaLoadError(true);
+      if (generation === mfaRequestGeneration.current && currentProfileUser.current?.id === requestedUserId) setMfaLoadError(true);
     } finally {
-      setMfaLoading(false);
+      if (generation === mfaRequestGeneration.current && currentProfileUser.current?.id === requestedUserId) setMfaLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
-  useEffect(() => { loadMfaFactors(); }, [loadMfaFactors]);
+  useEffect(() => {
+    setMfaFactors([]);
+    setMfaLoadError(false);
+    void loadMfaFactors();
+    return () => { mfaRequestGeneration.current += 1; };
+  }, [loadMfaFactors]);
 
   useEffect(() => () => {
     securityPromptResolver.current?.(false);

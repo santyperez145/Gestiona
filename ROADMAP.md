@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Estado:** canónico. **Revisión:** 2026-10-04. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-07. **Owner:** Producto / CTO.
 Este documento contiene decisiones activas y próximos cierres, no un diario.
 Git conserva la historia; los contratos de dominio viven en [el índice](docs/INDICE.md).
 
@@ -87,8 +87,8 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
 | Creators | Portal autenticado, identidad/canjes, contratos, chat, evidencia privada y liquidación interna. | Payout acreditado, escaneo y social OAuth; expansión pausada; [contrato](docs/INFLUENCERS.md). |
 | Pay | OAuth, checkout, webhook, manual, refund, comisión y settlement idempotentes. | Certificación por proveedor/destino; cuenta cargada no garantiza rail disponible. |
-| Correo | Remitentes por propósito, baja, consentimiento, ledger de entrega e idempotencia; confirmación Nerqia para negocio/creador/comprador publicada en Auth alojado y verificada por lectura posterior (2026-10-04). | Auth SMTP Resend y remitente `noreply@nerqia.app`; luego alta/entrega/enlace/rebote reales; [configuración](docs/CONFIGURACION.md), [marketing](docs/EMAIL_MARKETING.md). |
-| Platform | MFA, alta, Merchant 360, integraciones, soporte, riesgo y billing MP firmado; acceso recordado opt-in por 7 días tras logout, cookie HttpOnly y grant propio; Auth real TOTP→logout→nuevo login, vencimiento fijo y revocación comprobados el 2026-10-04; perfil con step-up y dispositivos. | Extender la autoridad MFA uniformemente a RLS/Edge existentes sin romper bootstrap; SLO/operación autorizada; [seguridad](docs/SEGURIDAD.md). |
+| Correo | Remitentes por propósito, baja, consentimiento, ledger de entrega e idempotencia; confirmación Nerqia para negocio/creador/comprador publicada en Auth alojado y verificada por lectura posterior (2026-10-04). | Auth SMTP Resend (falta clave dedicada del dueño) y remitente `noreply@nerqia.app`; luego alta/entrega/enlace/rebote reales; [configuración](docs/CONFIGURACION.md), [marketing](docs/EMAIL_MARKETING.md). |
+| Platform | MFA, alta, Merchant 360, integraciones, soporte, riesgo y billing MP firmado; acceso recordado opt-in por 7 días tras logout, cookie HttpOnly y grant propio; Auth real TOTP→logout→nuevo login, vencimiento fijo y revocación comprobados el 2026-10-04; perfil y Seguridad de mi cuenta con administración de dispositivos. | Configurar secreto interno Vercel↔Edge en ambos entornos; extender autoridad MFA uniformemente a RLS/Edge sin romper bootstrap; SLO/operación autorizada; [seguridad](docs/SEGURIDAD.md). |
 
 ### Evidencia Finance corregida
 

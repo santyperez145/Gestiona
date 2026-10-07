@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-10-04. Este documento define la dirección visual y los próximos
+**Corte:** 2026-10-07. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -67,7 +67,7 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 | Business | Workspace claro, rail persistente, topbar, tabs y tablas densas. | Shell y primitives transversales; páginas críticas migradas. | Eliminar CSS heredado y cerrar estados restantes. |
 | Commerce admin | Configuración, rendimiento, voz, catálogo, páginas, diseño, pagos/envíos. | Selector de tienda compartido con Pedidos; datos reales en producción. | Surtido multi-tienda y responsive autenticado. |
 | Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema, favicon/Apple icon/color de navegador, navegación SPA con inicio arriba y restauración al volver, variantes, carrito, checkout, SEO y resiliencia. | Performance de campo y test con compradores. |
-| Acceso y correo | Identidad Nerqia clara en el alta y seguridad sin jerga del proveedor. | Confirmación propia por audiencia publicada en Auth alojado; gate con enrolamiento, opt-in «Recordar este navegador durante 7 días» y recuperación por TOTP; perfil lista, olvida y revoca dispositivos con confirmación y vencimiento visible. | Remitente Auth SMTP y entrega real; matriz visual autenticada y enforcement MFA transversal. |
+| Acceso y correo | Identidad Nerqia clara en el alta y seguridad sin jerga del proveedor. | Confirmación propia por audiencia publicada en Auth alojado; gate con enrolamiento, opt-in «Recordar este navegador durante 7 días» y recuperación por TOTP; Perfil y Plataforma permiten revisar/revocar dispositivos con confirmación y vencimiento visible. | Remitente Auth SMTP (requiere clave Resend dedicada) y entrega real; matriz visual autenticada y enforcement MFA transversal. |
 | Finance | Trabajo de gasto, documentos y aprobación; no espejo de Business. | Layout/entitlement e Inbox técnico. | Primer documento real y políticas preventivas. |
 | Platform | Control plane violeta, colas y Merchant 360. | Shell, MFA, áreas operativas; Mensajería separa diagnóstico de staff, acción del comercio y copy del comprador, con alertas persistentes en campañas/SMTP/equipo. | Completar matriz visual autenticada y estados reales de webhook/Auth SMTP. |
 

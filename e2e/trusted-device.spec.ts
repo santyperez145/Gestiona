@@ -144,7 +144,10 @@ test("synthetic remembered browser: opt-in after TOTP and new password session w
   await page.getByRole("button", { name: "Entrar a Nerqia" }).click();
   await expect.poll(() => state.passwordCalls).toBe(1);
   await expect(page.getByRole("button", { name: "Entrar a Nerqia" })).toHaveCount(0);
-  await page.goto("/platform/afip");
+  // Login navigates through the SPA into the platform home. Follow its AFIP
+  // link instead of hard-reloading mid-auth; the browser must not abort the
+  // session's in-flight user refresh while the remembered grant is redeemed.
+  await page.getByRole("link", { name: "AFIP", exact: true }).click();
   await expect(page.getByRole("heading", { name: "ARCA de la plataforma" })).toBeVisible();
   await expect(gate).toHaveCount(0);
   expect(state.passwordCalls).toBe(1);

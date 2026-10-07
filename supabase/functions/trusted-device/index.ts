@@ -23,6 +23,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // This is a backend-to-backend transport. Only the first-party proxy may
   // deliver credentials to a cookie; no browser CORS or readable secret API.
   if (req.headers.has("Origin")) return failure("ORIGIN_NOT_ALLOWED", "Usá el acceso de Nerqia para continuar.", 403);
+  const expectedProxySecret = Deno.env.get("NERQIA_TRUST_PROXY_SECRET") ?? "";
+  const suppliedProxySecret = req.headers.get("X-Nerqia-Trust-Proxy") ?? "";
+  if (!expectedProxySecret || suppliedProxySecret.length !== expectedProxySecret.length) {
+    return failure("ORIGIN_NOT_ALLOWED", "Usá el acceso de Nerqia para continuar.", 403);
+  }
+  let secretDifference = 0;
+  for (let i = 0; i < expectedProxySecret.length; i++) {
+    secretDifference |= expectedProxySecret.charCodeAt(i) ^ suppliedProxySecret.charCodeAt(i);
+  }
+  if (secretDifference !== 0) return failure("ORIGIN_NOT_ALLOWED", "Usá el acceso de Nerqia para continuar.", 403);
   if (req.method !== "POST") return failure("INVALID_REQUEST", "Esta operación requiere una solicitud de acceso válida.", 405);
   if (!(req.headers.get("Content-Type") ?? "").toLowerCase().startsWith("application/json")) {
     return failure("INVALID_REQUEST", "La solicitud de acceso no tiene un formato válido.", 415);

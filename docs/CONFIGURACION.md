@@ -181,6 +181,11 @@ El 2026-10-04 se publicó esta plantilla en el proyecto
 `smtp_host` y `smtp_admin_email` seguían vacíos. Por lo tanto el correo ya
 tiene contenido personalizado, pero **el remitente y la entrega a usuarios
 reales siguen pendientes de Auth SMTP**.
+Para el acceso recordado, configurar además el mismo secreto aleatorio de al
+menos 32 bytes como `NERQIA_TRUST_PROXY_SECRET` en Vercel (Preview y Production)
+y en los secretos de Supabase Edge. El proxy `/api/trusted-device` lo envía
+server-to-server; nunca debe empezar con `VITE_`, exponerse al cliente ni
+guardarse en Git. Sin ambas copias, el endpoint debe fallar cerrado.
 La matriz de aceptación debe observar recepción, demora/fallo, rebote, queja,
 supresión, reset de contraseña, magic link e invitación. Ninguno se declara
 productivo por DNS o por un deploy solamente.

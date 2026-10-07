@@ -780,6 +780,7 @@ Deno.serve(async (req) => {
         "ANTHROPIC_API_KEY", "EXPENSE_RECEIPT_EXTRACTION_ENABLED",
         // Correo
         "RESEND_API_KEY", "FROM_EMAIL", "SMTP_PASSWORD", "RESEND_WEBHOOK_SECRET",
+        "NERQIA_TRUST_PROXY_SECRET",
         // Cobros y suscripciones
         "MP_APP_ID", "MP_APP_SECRET", "MP_WEBHOOK_SECRET", "MP_PLATFORM_ACCESS_TOKEN",
         // Pagos automáticos a creadores (Mercado Pago Payouts)

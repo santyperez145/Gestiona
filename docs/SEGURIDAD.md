@@ -1,6 +1,6 @@
 # Seguridad y prevención de fraude
 
-**Estado:** canónico. **Corte:** 2026-10-04.
+**Estado:** canónico. **Corte:** 2026-10-07.
 
 Este documento define la línea base de seguridad de Nerqia. La arquitectura
 funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
@@ -54,10 +54,15 @@ El acceso recordado es opt-in durante siete días **también después de logout*
    Domain**. Nunca se comparte con tiendas ni se entrega en JSON o JS storage.
 3. La Edge `trusted-device` valida el JWT con Auth y pasa sólo su hash SHA-256
    y claims verificados a `trusted_device_command`, exclusivo de service_role.
+   Sólo acepta este transporte desde el proxy first-party autenticado por
+   `NERQIA_TRUST_PROXY_SECRET`; no entrega credenciales a llamadas directas.
+   El mismo secreto se guarda como variable privada en Vercel y secreto de
+   Supabase Edge, nunca en el bundle del navegador.
 4. Cada login nuevo sigue requiriendo contraseña. La base comprueba usuario,
    sesión Auth viva y credential; registra un grant para ese `session_id`, con
    el vencimiento original. No se extiende por actividad ni por otro login.
-5. El perfil permite olvidar este navegador o revocar dispositivos propios.
+5. Perfil y Seguridad de mi cuenta en Plataforma permiten olvidar este
+   navegador o revocar dispositivos propios, también al staff sin organización.
    Cambiar contraseña, email o factores verificados invalida la huella privada
    y los grants existentes; no depende del formulario que haga el cambio.
 
@@ -70,6 +75,12 @@ continúa con TOTP, sin prometer persistencia de una cookie entre protocolos.
 Un fallo del servicio ofrece TOTP normal y nunca abre el gate. El perfil exige
 TOTP real de los últimos cinco minutos para cambios de seguridad; la contraseña
 actual se comprueba con una sesión aislada sin reemplazar la sesión principal.
+
+El grant que consulta `get_session_mfa_status` sólo se crea en el servidor
+después de canjear la cookie HttpOnly y se liga al `session_id` Auth vivo,
+dispositivo, huella privada y vencimiento. La función no recibe la cookie en
+cada consulta RLS; por eso el contrato no equivale a enforcement global hasta
+integrarlo y probarlo en todos sus consumidores.
 
 **Límite vigente:** este slice valida server-side el dispositivo y su grant,
 pero no transforma las policies tenant, Storage/Realtime ni todas las Edge

@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import handler, { allowedTrustOrigin, publicTrustResult, readTrustCookie, trustCookie, TRUST_COOKIE } from "../../api/trusted-device";
+import handler, { allowedTrustOrigin, publicTrustResult, readTrustCookie, trustCookie, trustedProxyRequest, TRUST_COOKIE } from "../../api/trusted-device";
 
 const token = "a".repeat(43);
 const deviceId = "11111111-1111-4111-8111-111111111111";
@@ -9,7 +9,7 @@ const request = (body = { action: "register" }, overrides: Record<string, string
   new Request(`https://${host}/api/trusted-device`, {
     method: "POST", headers: {
       Origin: `https://${host}`, "Sec-Fetch-Site": "same-origin", "Content-Type": "application/json",
-      Authorization: "Bearer signed.user.jwt", ...overrides,
+      Authorization: "Bearer signed.user.jwt", "X-Nerqia-Trust-Proxy": "proxy-secret-for-tests-only", ...overrides,
     }, body: JSON.stringify(body),
   });
 
@@ -18,6 +18,7 @@ describe("first-party trusted device proxy", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VITE_SUPABASE_URL", "https://hummeopatkniwkyrrhwc.supabase.co");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon");
+    vi.stubEnv("NERQIA_TRUST_PROXY_SECRET", "proxy-secret-for-tests-only");
     vi.stubGlobal("fetch", vi.fn());
   });
   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
@@ -29,6 +30,16 @@ describe("first-party trusted device proxy", () => {
     const response = await handler(request(undefined, { Origin: "https://attacker.test" }));
     expect(response.status).toBe(403);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("requires the private server-to-server key before returning a device credential", async () => {
+    const unauthenticatedProxy = request(undefined, { "X-Nerqia-Trust-Proxy": "" });
+    expect(trustedProxyRequest(unauthenticatedProxy)).toBe(false);
+    const response = await handler(unauthenticatedProxy);
+    expect(response.status).toBe(503);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(trustedProxyRequest(request(undefined, { "X-Nerqia-Trust-Proxy": "wrong" }))).toBe(false);
+    expect(trustedProxyRequest(request(undefined, { "X-Nerqia-Trust-Proxy": "proxy-secret-for-tests-only" }))).toBe(true);
   });
 
   it("creates a host-only secure cookie, never a JSON/storage secret", async () => {
@@ -44,6 +55,7 @@ describe("first-party trusted device proxy", () => {
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
     const [, options] = vi.mocked(fetch).mock.calls[0];
     expect(options!.headers).not.toHaveProperty("Origin");
+    expect(options!.headers).toHaveProperty("X-Nerqia-Trust-Proxy", "proxy-secret-for-tests-only");
   });
 
   it("redeems only the HttpOnly cookie, ignores a browser-supplied token", async () => {

@@ -17,6 +17,7 @@ interface Props {
   userId: string | undefined;
   hasVerifiedMfa: boolean;
   onRequireFreshMfa: () => Promise<boolean>;
+  allowRemember?: boolean;
 }
 
 function dateLabel(value: string | undefined): string {
@@ -29,7 +30,7 @@ function safeError(error: unknown, fallback: string): string {
   return error instanceof TrustedDeviceError ? error.message : fallback;
 }
 
-export default function TrustedDevicesSection({ userId, hasVerifiedMfa, onRequireFreshMfa }: Props) {
+export default function TrustedDevicesSection({ userId, hasVerifiedMfa, onRequireFreshMfa, allowRemember = true }: Props) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [currentDeviceId, setCurrentDeviceId] = useState<string>();
   const [trusted, setTrusted] = useState(false);
@@ -155,7 +156,7 @@ export default function TrustedDevicesSection({ userId, hasVerifiedMfa, onRequir
 
       {!canRememberDevice() && <p className="text-xs text-muted-foreground">El acceso recordado está disponible en el navegador web.</p>}
       {canRememberDevice() && !hasVerifiedMfa && <p className="text-xs text-muted-foreground">Activá 2FA para poder recordar este navegador.</p>}
-      {canRememberDevice() && hasVerifiedMfa && !trusted && (
+      {allowRemember && canRememberDevice() && hasVerifiedMfa && !trusted && (
         <Button type="button" size="sm" onClick={() => void remember()} disabled={busy !== undefined || loading}>
           {busy === 'register' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
           Recordar este navegador por 7 días

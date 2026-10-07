@@ -45,6 +45,14 @@ export function allowedTrustOrigin(request: Request): boolean {
     && !["cross-site", "same-site"].includes(request.headers.get("Sec-Fetch-Site") ?? "");
 }
 
+export function trustedProxyRequest(request: Request, secret = process.env.NERQIA_TRUST_PROXY_SECRET ?? ""): boolean {
+  const supplied = request.headers.get("X-Nerqia-Trust-Proxy") ?? "";
+  if (!secret || supplied.length !== secret.length) return false;
+  let difference = 0;
+  for (let i = 0; i < secret.length; i++) difference |= secret.charCodeAt(i) ^ supplied.charCodeAt(i);
+  return difference === 0;
+}
+
 /** Whitelist the response rather than spreading upstream JSON (which can contain token). */
 export function publicTrustResult(data: Record<string, unknown>) {
   return {
@@ -64,6 +72,7 @@ export function publicTrustResult(data: Record<string, unknown>) {
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return reply({ code: "METHOD_NOT_ALLOWED" }, 405);
   if (!allowedTrustOrigin(request)) return reply({ code: "ORIGIN_NOT_ALLOWED" }, 403);
+  if (!trustedProxyRequest(request)) return reply({ code: "TRUST_UNAVAILABLE" }, 503);
   const authorization = request.headers.get("Authorization") ?? "";
   if (!/^Bearer [A-Za-z0-9_.-]+$/.test(authorization) || authorization.length > 12000) {
     return reply({ code: "AUTH_REQUIRED" }, 401);
@@ -85,7 +94,12 @@ export default async function handler(request: Request): Promise<Response> {
   try {
     const upstream = await fetch(`${supabaseUrl.replace(/\/$/, "")}/functions/v1/trusted-device`, {
       method: "POST",
-      headers: { Authorization: authorization, apikey: supabaseKey, "Content-Type": "application/json" },
+      headers: {
+        Authorization: authorization,
+        apikey: supabaseKey,
+        "Content-Type": "application/json",
+        "X-Nerqia-Trust-Proxy": process.env.NERQIA_TRUST_PROXY_SECRET ?? "",
+      },
       body: JSON.stringify({ action: body.action, deviceId: body.deviceId, token, label: "Navegador recordado" }),
       signal: AbortSignal.timeout(12000),
       redirect: "error",
