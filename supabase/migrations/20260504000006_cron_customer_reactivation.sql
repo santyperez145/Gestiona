@@ -1,8 +1,11 @@
 -- Daily customer reactivation alerts via pg_cron (runs at 10:00 AM UTC)
-select cron.schedule(
-  'customer-reactivation-daily',
-  '0 10 * * *',
-  $$
+do $schedule$
+begin
+  if not exists (select 1 from cron.job where jobname = 'customer-reactivation-daily') then
+    perform cron.schedule(
+      'customer-reactivation-daily',
+      '0 10 * * *',
+      $job$
   select net.http_post(
     url := current_setting('app.supabase_url') || '/functions/v1/customer-reactivation-alerts',
     headers := jsonb_build_object(
@@ -11,5 +14,8 @@ select cron.schedule(
     ),
     body := '{}'::jsonb
   );
-  $$
-) on conflict (jobname) do update set schedule = excluded.schedule;
+      $job$
+    );
+  end if;
+end
+$schedule$;
