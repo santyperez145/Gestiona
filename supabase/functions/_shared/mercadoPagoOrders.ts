@@ -21,6 +21,46 @@ const cleanText = (value: unknown, max = 250): string | null => {
   return clean ? clean.slice(0, max) : null;
 };
 
+/** Amounts requested are not proof of amounts paid. QR supports one payment. */
+export function mercadoPagoQrEvidence(order: JsonRecord) {
+  const payments = asRecord(order.transactions).payments;
+  const list = Array.isArray(payments) ? payments : [];
+  const payment = asRecord(list[0]);
+  const amount = (value: unknown): number | null => {
+    if ((typeof value !== "string" && typeof value !== "number")
+      || !/^\d{1,16}(\.\d{1,2})?$/.test(String(value))) return null;
+    const parsed = Number(value);
+    return Number.isSafeInteger(Math.round(parsed * 100)) && parsed > 0 ? parsed : null;
+  };
+  const gross = amount(order.total_amount);
+  const paid = amount(order.total_paid_amount);
+  const paymentAmount = amount(payment.amount);
+  const paymentPaid = amount(payment.paid_amount);
+  const currency = cleanText(order.currency ?? order.currency_id, 8);
+  const paymentReference = cleanText(asRecord(payment.reference).id ?? payment.reference_id, 180);
+  const valid = order.type === "qr" && list.length === 1
+    && order.status === "processed" && ["processed", "accredited"].includes(String(order.status_detail))
+    && payment.status === "processed" && payment.status_detail === "accredited"
+    && !!cleanText(payment.id, 180) && currency === "ARS"
+    && gross !== null && paid === gross && paymentAmount === gross && paymentPaid === gross;
+  return {
+    valid, payment, paid, paymentReference,
+    raw: {
+      provider_evidence_version: 1,
+      provider_order_type: cleanText(order.type, 30),
+      provider_currency: currency,
+      provider_merchant_id: cleanText(order.user_id, 180),
+      external_reference: cleanText(order.external_reference, 180),
+      order_total_amount: gross,
+      order_paid_amount: paid,
+      payment_count: list.length,
+      payment_amount: paymentAmount,
+      payment_paid_amount: paymentPaid,
+      ...(typeof order.live_mode === "boolean" ? { provider_live_mode: order.live_mode } : {}),
+    },
+  };
+}
+
 export class MercadoPagoOrderError extends Error {
   constructor(
     message: string,
@@ -54,13 +94,14 @@ export async function fetchMercadoPagoOrder(
 async function fetchPaymentNet(
   accessToken: string,
   payment: JsonRecord,
+  order: JsonRecord,
 ): Promise<{ net: number | null; source: string }> {
   const embeddedDetails = asRecord(payment.transaction_details);
   const embeddedNet = asNumber(embeddedDetails.net_received_amount ?? payment.net_received_amount);
   if (embeddedNet !== null) return { net: embeddedNet, source: "orders_api" };
 
   const paymentReference = cleanText(
-    payment.reference_id ?? payment.payment_id ?? payment.mp_payment_id,
+    asRecord(payment.reference).id ?? payment.reference_id ?? payment.payment_id ?? payment.mp_payment_id,
     180,
   );
   if (!paymentReference) return { net: null, source: "pending" };
@@ -75,6 +116,12 @@ async function fetchPaymentNet(
     );
     const payload = asRecord(await response.json().catch(() => ({})));
     if (!response.ok) return { net: null, source: `payments_api_${response.status}` };
+    if (String(payload.id) !== paymentReference || payload.status !== "approved"
+      || payload.currency_id !== (order.currency ?? order.currency_id)
+      || asNumber(payload.transaction_amount) !== asNumber(order.total_paid_amount)
+      || String(payload.collector_id) !== String(order.user_id)) {
+      return { net: null, source: "payments_api_evidence_mismatch" };
+    }
     const details = asRecord(payload.transaction_details);
     return {
       net: asNumber(details.net_received_amount ?? payload.net_received_amount),
@@ -101,24 +148,24 @@ export async function reconcileMercadoPagoPosQrOrder(
   const status = cleanText(order.status, 80)?.toLowerCase();
   if (!orderId || !status) throw new Error("La respuesta de Mercado Pago no identifica order y estado");
 
-  const transactions = asRecord(order.transactions);
-  const payments = Array.isArray(transactions.payments) ? transactions.payments : [];
-  const payment = asRecord(payments[0]);
+  const evidence = mercadoPagoQrEvidence(order);
+  const payment = evidence.payment;
   const paymentId = cleanText(
-    payment.reference_id ?? payment.id ?? order.provider_payment_id,
+    evidence.paymentReference ?? payment.id,
     250,
   );
-  const gross = asNumber(order.total_amount ?? payment.amount);
-  const settlement = status === "processed"
-    ? await fetchPaymentNet(accessToken, payment)
+  const gross = evidence.paid;
+  const settlement = evidence.valid
+    ? await fetchPaymentNet(accessToken, payment, order)
     : { net: null, source: "not_processed" };
 
   const raw = {
     source: "mercadopago_orders_api",
+    ...evidence.raw,
     order_status: status,
     order_status_detail: cleanText(order.status_detail, 120),
     payment_transaction_id: cleanText(payment.id, 180),
-    payment_reference_id: cleanText(payment.reference_id, 180),
+    payment_reference_id: evidence.paymentReference,
     payment_status: cleanText(payment.status, 80),
     payment_status_detail: cleanText(payment.status_detail, 120),
     settlement_source: settlement.source,

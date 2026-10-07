@@ -1,7 +1,7 @@
 # Nerqia Profit
 
 **Estado:** canónico; Foundation en Analytics, suite completa pendiente.
-**Revisión:** 2026-10-02. **Owner:** Producto / Datos.
+**Revisión:** 2026-10-07. **Owner:** Producto / Datos.
 Decisión: [ADR 004](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md).
 
 ## Propósito y límite
@@ -190,6 +190,20 @@ Sumar conversiones autodeclaradas de varias redes no produce ventas canónicas.
 Cambios antes/después se muestran como observados, no experimentos causales.
 
 ## Producto por fases
+
+Contraste público actualizado 2026-10-07: [Escalafy](https://www.escalafy.com/)
+anuncia costos de producto/fees/envíos/descuentos, rentabilidad multicanal,
+Meta/Google/TikTok, pixel/email, recomendaciones y API/MCP. Nerqia tiene
+Foundation producto/SKU/canal/tienda y cobertura, no esa suite certificada.
+Paridad requiere estas puertas, en orden:
+
+| Capacidad | Cierre necesario |
+|---|---|
+| Rentabilidad completa | Conciliar ingreso neto, devoluciones, costo histórico, fees, logística y tratamiento fiscal; ausente sigue parcial. |
+| Multicanal | Identidad de pedidos/SKU y revisiones importadas sin duplicar POS/Commerce; conciliación con origen. |
+| Campañas/cohortes | OAuth read-only, gasto con moneda/fecha/revisión, consentimiento, atribución y población sin atribuir visibles. |
+| Recomendaciones | Propuestas shadow, explicación y aprobación; medir outcome, no cambiar precios/presupuestos por un prompt. |
+| API/MCP | Scopes por tenant, límites, auditoría y mismos facts; no otra contabilidad. |
 
 1. **P1:** orden/producto/canal con fuentes actuales, cobertura y faltantes;
    distinguir disponibilidad de datos de rentabilidad y mantener un solo detalle.

@@ -524,7 +524,7 @@ Deno.serve(async (req) => {
         .eq("org_id", orgId)
         .eq("created_by", auth.user.id)
         .gte("created_at", since)
-        .or("state.in.(preparing,pending,accredited,finalizing),and(state.eq.completed,cashier_acknowledged_at.is.null)")
+        .or("state.in.(preparing,pending,accredited,finalizing,manual_review),and(state.eq.completed,cashier_acknowledged_at.is.null)")
         .order("created_at", { ascending: false })
         .limit(12);
       if (candidatesError) throw candidatesError;
@@ -555,7 +555,7 @@ Deno.serve(async (req) => {
         }
         session ??= await readAdminSession(admin, sessionId);
         if (session && (
-          session.state === "completed"
+          session.state === "completed" || session.state === "manual_review"
           || !TERMINAL_STATES.has(String(session.state))
         )) sessions.push(session);
       }
@@ -595,7 +595,10 @@ Deno.serve(async (req) => {
         return json({ error: "No tenés permiso para operar este cobro" }, 403);
       }
       const providerOrderId = cleanText(session.provider_order_id, 180);
-      if (TERMINAL_STATES.has(String(session.state))) {
+      if (session.state === "manual_review" && action === "cancel") {
+        return json({ error: "El cobro necesita revisión. Consultá el mismo intento antes de volver a cobrar.", session }, 409);
+      }
+      if (TERMINAL_STATES.has(String(session.state)) && session.state !== "manual_review") {
         return json({ ok: session.state === "completed", session });
       }
 

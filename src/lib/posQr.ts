@@ -75,7 +75,9 @@ export function posQrFailureCopy(session: PosQrSession | null | undefined): stri
   switch (session?.state) {
     case "expired": return "El QR venció y la reserva de stock fue liberada.";
     case "cancelled": return "El cobro fue cancelado y no se registró ninguna venta.";
-    case "manual_review": return "Mercado Pago informó un importe distinto. La venta no se cerró y requiere revisión.";
+    case "manual_review": return session.failure_reason
+      ? `${session.failure_reason}. No vuelvas a cobrar: consultá el mismo intento o revisalo en Mercado Pago.`
+      : "Mercado Pago informó un importe distinto o datos de pago incompletos. La venta no se cerró y requiere revisión.";
     case "refunded": return "Mercado Pago informó que el cobro fue reintegrado.";
     case "failed": return session.failure_reason || "Mercado Pago no pudo preparar este cobro.";
     default: return "No se pudo continuar con el cobro QR.";

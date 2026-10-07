@@ -134,7 +134,7 @@ export function PosQrCheckoutDialog({
   return (
     <Dialog open onOpenChange={(open) => { if (!open && !isBusy) onCancel(); }}>
       <DialogContent size="md" className="overflow-hidden border-primary/20 p-0">
-        <div className="bg-gradient-to-br from-sky-500/10 via-background to-primary/10 px-6 pt-6 pb-4">
+        <div className="border-b bg-muted/30 px-6 pt-6 pb-4">
           <DialogHeader>
             <div className="mb-2 flex items-center justify-between gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-500 ring-1 ring-sky-500/20">
@@ -275,7 +275,10 @@ export function PosQrCheckoutDialog({
           ) : phase === "pending" ? (
             <Button variant="outline" onClick={onCancel} className="w-full">Cancelar cobro</Button>
           ) : phase === "error" && requiresManualReview ? (
-            <Button variant="outline" onClick={onCancel} className="w-full">Cerrar para revisar</Button>
+            <>
+              <Button variant="outline" onClick={onCancel}>Cerrar para revisar</Button>
+              <Button onClick={onRetry} className="gap-2"><RefreshCw className="h-4 w-4" />Consultar el mismo cobro</Button>
+            </>
           ) : phase === "error" ? (
             <>
               <Button variant="ghost" onClick={onChooseOtherMethod}>Cambiar medio</Button>

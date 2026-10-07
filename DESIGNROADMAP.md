@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-10-04. Este documento define la dirección visual y los próximos
+**Corte:** 2026-10-07. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -81,43 +81,24 @@ mostrar un éxito obsoleto.
 La credencial fiscal de Platform acepta CRT + KEY o PEM pegado, aclara que el
 CSR va a ARCA, valida el par y muestra vencimiento/huella sin devolver secretos.
 La guía separa delegación/solicitud del comercio y aceptación/computador por Nerqia.
-El corte productivo 2026-09-05 recorrió 93 contextos de ruta sin overflow
-horizontal ni errores JavaScript propios. Corrigió `NaNd` en Productos, títulos
-genéricos en superficies aisladas, el título semántico del checkout vacío,
-reentrada al onboarding y ceros transitorios en Platform. La matriz y sus gates
-están en [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md).
+Los cortes de septiembre comprobaron 93 contextos de ruta y 70 escenarios
+públicos responsive; corrigieron títulos, `NaNd`, ceros transitorios y onboarding.
+Proveedores/Pagos tienen tabla, filtros y recuperación; pagos simples/masivos
+conservan intento, progreso y mensajes sanitizados sin duplicar ante retries.
+Alcance y gates en [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md).
 
-El corte 2026-09-06 agregó evidencia responsive automatizada sobre landing,
-storefront, acceso y checkout (70 casos públicos verdes) y reemplazó el vacío
-visual de Proveedores/Pagos por una superficie operativa con KPIs, filtros,
-tabla, carga, vacío y error recuperable.
-
-El mismo flujo ahora conserva el intento durante un retry y traduce las
-validaciones transaccionales del servidor a mensajes accionables. Pago simple y
-masivo comparten el mismo lenguaje, progreso y recuperación sin exponer
-detalles internos ni permitir duplicados por doble clic, timeout o reconexión.
-
-La automatización visual también sigue la IA consolidada: la cola de Pedidos se
-audita como página propia y el editor de Tienda conserva únicamente publicación,
-catálogo visible, contenido, diseño, pagos y envíos. Esto evita que un test viejo
-obligue a reconstruir duplicaciones que el producto ya retiró.
+Pedidos conserva su cola; Tienda sólo publicación, catálogo visible, contenido,
+diseño, pagos/envíos. El gate no reconstruye páginas duplicadas retiradas.
 
 El editor de automatizaciones suma una prueba segura visible: distingue probar
 de ejecutar, presenta impacto y ejemplos en un modal legible, explica qué no se
 modificó y mantiene los flujos nuevos pausados hasta la activación consciente.
 La ejecución comunica por separado éxito, ausencia de acciones y fallo real.
 
-El POS conserva el buscador montado detrás del prompt opcional de vendedor. El
-contrato visual reconoce esa superposición deliberada y valida primero la
-superficie o el guard de permisos, luego resuelve el prompt; así una pantalla
-válida no aparece rota sólo porque dos elementos accesibles coexisten.
-
-El carrito móvil expone un único cierre accesible dentro de su encabezado,
-fuera del área que pueden cubrir avisos globales, y la
-barra de categorías tiene nombre semántico. La matriz ya no depende de un rubro
-o una sucursal particular: valida el catálogo y la orientación operativa que
-corresponden a la organización real en 360, 768, 1024, 1092, 1280 y 1440 px.
-Los fallos visuales del CI conservan captura y trace durante siete días.
+POS conserva buscador detrás del prompt opcional de vendedor; el gate distingue
+la superposición del error. Carrito móvil con cierre accesible en encabezado y
+categorías nombradas; matriz independiente de rubro/sucursal en 360/768/1024/
+1092/1280/1440 px. CI conserva captura/trace de fallos siete días.
 El acceso autenticado conserva el loader durante una recuperación transitoria
 acotada de PostgREST y sólo después muestra la pantalla de recuperación. La
 sesión abierta no se presenta como logout, aprobación pendiente ni ausencia de
@@ -195,6 +176,14 @@ Cada vista debe contemplar:
 
 ### D2 — Business
 
+POS, corte 2026-10-07: revisión QR explica el motivo y permite consultar el mismo
+cobro; no invita a cambiar el medio y duplicar dinero. Preferencia de impresión
+como switch accesible por usuario/dispositivo, ticket persistido y reimpresión
+del cobro recuperado. Ticket comercial, deuda/offline y factura ARCA se distinguen.
+Se retiró el gradiente decorativo del diálogo QR. Gate abierto: scanner, teclado,
+impresora real y recorrido de ferretería, no sólo screenshots de una venta simulada.
+La matriz funcional y el orden de cierre viven en [POS](docs/POS_OPERACION.md).
+
 1. Auditar páginas que todavía usan cards largas o tabs locales no persistidas.
 2. Converger filtros, columnas, bulk y detalle en índices de alto uso.
 3. Retirar estilos heredados únicamente después de screenshots de regresión.
@@ -232,6 +221,17 @@ Cada vista debe contemplar:
    explícita, conservando datos previos durante refresh.
 5. Navegación sin recarga y actualización PWA manual segura.
 6. Contraste y textos reales; shell nativo con jerarquía web, safe areas, teclado, permisos contextuales y retorno externo, sin chrome WebView ni rutas duplicadas. El scanner móvil abre la cámara del sistema sólo al solicitarlo, explica el permiso y conserva carga manual.
+
+### D6 — Paridad operacional, no clonación
+
+1. Commerce: recorrer home, colección, búsqueda/filtros, producto/variantes,
+   carrito, checkout, seguimiento, cuenta y devolución en ambos temas y móvil;
+   cada pantalla necesita error/recuperación, datos propios y cierre del trabajo.
+2. Profit/Escalafy: una vista de contribución con cobertura y fuentes; después
+   campaña/cohorte/Ads. No mostrar ROAS ni utilidad neta cuando faltan hechos.
+3. Creators/GoMarz: brief, selección, colaboración, revisión/versiones, derechos,
+   publicación y liquidación en sus rutas existentes. La marca y el creador ven
+   únicamente sus acciones/datos; ningún estado de seguimiento simula un payout.
 
 ## 9. Definition of Done visual
 

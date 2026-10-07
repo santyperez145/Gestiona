@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Estado:** canónico. **Revisión:** 2026-10-04. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-07. **Owner:** Producto / CTO.
 Este documento contiene decisiones activas y próximos cierres, no un diario.
 Git conserva la historia; los contratos de dominio viven en [el índice](docs/INDICE.md).
 
@@ -28,7 +28,11 @@ investigación y tecnología. La marca y experiencia final son propias.
   Gateway y Page/Theme Engine; no motores separados por producto.
 - Las rutas actuales siguen vigentes hasta una migración funcional con aliases.
   No se anuncian pantallas planeadas como capacidades disponibles.
-- Creators mantiene seguridad, soporte y certificación; se pausa su expansión.
+- La ferretería es el piloto operacional de Business/POS, no un ERP nuevo.
+  Stock, clientes, caja, fiscal y margen conservan sus autoridades compartidas.
+- Por decisión del dueño del 2026-10-07, Creators vuelve al backlog de expansión
+  GoMarz-class después del gate operacional POS/Commerce; no desplaza incidentes
+  ni habilita custodia/payouts sin contrato.
 - Ads empieza con importación read-only; campañas, precios y dinero necesitan
   autoridad, política y aprobación antes de ejecutar.
 - Comercio gratuito, standalone Profit, add-ons y Consulting son hipótesis de
@@ -37,7 +41,8 @@ investigación y tecnología. La marca y experiencia final son propias.
 - No se reescribe el stack por reputación; separar servicios/SSR requiere SLO
   o problema medido, owner, operación y costo de salida.
 
-Decisión vigente: [ADR 004](docs/ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md).
+Decisión vigente: [ADR 004](docs/ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md),
+con secuencia actualizada por [ADR 005](docs/ADR_005_POS_PILOT_AND_CREATORS_SEQUENCE.md).
 Actualiza parcialmente [ADR 002](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md);
 no revierte multitienda, dominios ni temas ya implementados.
 
@@ -85,7 +90,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Finance | Inbox, aprobación versionada, comprometido/disponible, reembolsos/anticipos, dimensiones, conciliación CSV y export del ledger. | Documento y cierre reales; feeds de tarjetas externas y controles; [contrato](docs/FINANCE.md). |
 | Profit | Hechos por producto/SKU/canal/tienda; capital FIFO registrado en Kardex, capas/rotación, export y cierres org/día. Agregados completos, permisos y detalle paginado. | Adquisiciones/retornos con costo completo, conciliación física, primera operación explicable y decisión adoptada; Ads después. |
 | Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
-| Creators | Portal autenticado, identidad/canjes, contratos, chat, evidencia privada y liquidación interna. | Payout acreditado, escaneo y social OAuth; expansión pausada; [contrato](docs/INFLUENCERS.md). |
+| Creators | Portal autenticado, identidad/canjes, contratos, chat, evidencia privada y liquidación interna. | Payout acreditado, escaneo y social OAuth; expansión secuenciada después de POS/Commerce; [contrato](docs/INFLUENCERS.md). |
 | Pay | OAuth, checkout, webhook, manual, refund, comisión y settlement idempotentes. | Certificación por proveedor/destino; cuenta cargada no garantiza rail disponible. |
 | Correo | Remitentes por propósito, baja, consentimiento, ledger de entrega e idempotencia; plantilla de confirmación Nerqia para negocio/creador/comprador versionada y aplicador de Auth alojado con lectura posterior. | Publicar plantilla y Auth SMTP Resend en proyecto alojado, luego alta/entrega/enlace/rebote reales; [configuración](docs/CONFIGURACION.md), [marketing](docs/EMAIL_MARKETING.md). |
 | Platform | MFA, alta, Merchant 360, integraciones, soporte, riesgo y billing MP firmado; gate ahora falla cerrado ante error de consulta y enrola sin abrir el panel. | Autoridad MFA en servidor/RLS, dispositivo confiable revocable por 7 días tras logout y SLO/operación autorizada; [seguridad](docs/SEGURIDAD.md). |
@@ -112,11 +117,18 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- Validación local del 2026-10-03: `npm run verify` pasa 3.644 tests en 412
+- POS 2026-10-07: evidencia QR completa, revisión sin recobro, ticket persistido
+  de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
+  idempotencia/refund y cero restos; no certifica dinero/hardware/ARCA reales.
+  Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
+- Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
+  corrigen los dos advisories nuevos detectados por el gate. No se amplía la
+  excepción `braces` existente ni se introduce una migración de framework.
+- Validación local del 2026-10-07: `npm run verify` pasa 3.709 tests en 420
   archivos, funciones, lint sin errores, tipos y build. Runtime sin hallazgos;
   toolchain conserva la excepción temporal documentada más abajo.
-  El barrido público cubre landing, catálogo, compra, postcompra, accesibilidad,
-  portal sintético y privacidad PWA. No certifica pagos externos ni todos los roles.
+  POS agrega ocho E2E sintéticos desktop/móvil con impresión y accesibilidad.
+  El barrido público no certifica pagos externos, hardware ni todos los roles.
 - Lote fiscal 2026-10-02: 13 escenarios SQL reversibles verdes sobre la base
   vinculada (contexto ARCA versionado, ambiente, permisos, IVA manual mixto,
   clase C y tasa inválida). `afip-authorize` desplegada con confirmación
@@ -132,11 +144,8 @@ sigue abierto como certificación operacional.
   transferencias, negativos, variantes y cierres idempotentes. UI con tabs
   Radix, tres paginaciones, exports de cada vista, recuperación, URL state y
   Axe en claro/oscuro en seis anchos; no certifica landed cost ni inventario físico.
-- Select compartido: etiquetas iniciales/compuestas y asíncronas, cambios de
-  contexto, opciones retiradas/deshabilitadas, foco y Escape dentro de modales.
-  28 pruebas de componente; retiro sintético con teclado/mouse, Axe y nombres
-  largos en 360/390/768/1024/1280/1440 px. Critical E2E comprueba también la
-  etiqueta inicial de tienda y sucursal; no cambia roles ni mueve dinero.
+- Select compartido: 28 pruebas, teclado/Axe y seis anchos; etiquetas asíncronas,
+  opciones retiradas, foco/Escape y contexto sin seleccionar otra identidad.
 - Auditoría de seguridad del 2026-10-03: las 14 funciones efectivamente
   pendientes se revisaron contra definición y ACL vinculadas; el newsletter
   público quedó limitado, idempotente y sin enumeración de suscriptores. Los
@@ -191,16 +200,10 @@ sigue abierto como certificación operacional.
   incluido panel autenticado, y el barrido de producción. Exigir los mismos
   gates en cada SHA; no inferir que la recuperación elimina caídas del proveedor.
 - Identidad Commerce: cuenta/checkout comparten política del Core; login admite claves previas y recovery vuelve a la tienda, exige sesión segura, actualiza y cierra las demás sesiones.
-- Bootstrap de acceso 2026-10-02: el run `37085137191` probó una indisponibilidad
-  real más larga: tres lecturas consecutivas de membresía devolvieron `503
-  PGRST002`, mientras la cuarta consulta paralela de staff ya encontraba el
-  servicio recuperado. Tenant y staff usan ahora cuatro intentos acotados en
-  este límite de seguridad, sin autorizar preferencias locales ni roles viejos;
-  lecturas ordinarias conservan el presupuesto de tres. El estado final sigue
-  siendo error recuperable si el proveedor no vuelve. El gate sintético de
-  Platform mantiene ahora el proveedor caído más allá de todo ese presupuesto y
-  sólo restablece el backend antes del reintento explícito, evitando falsos
-  verdes cuando cambie el número interno de intentos.
+- Bootstrap 2026-10-02 (`37085137191`): tenant/staff admiten cuatro intentos
+  acotados ante `503 PGRST002`; lecturas ordinarias tres. No autorizan roles
+  locales/viejos. El gate sostiene la caída hasta agotar el presupuesto y sólo
+  restablece el proveedor ante reintento explícito; error final recuperable.
 - Cuotas públicas: elegibilidad de Nerqia Pay/alias y ARS, centavos, caché
   acotada, contexto sin cotizaciones viejas y recuperación. Handler con CORS
   ante error y tasa ausente sin promesa de interés cero; seis escenarios de
@@ -220,27 +223,11 @@ sigue abierto como certificación operacional.
   GitHub ya limita el environment a ramas protegidas y exige aprobación del
   único owner. No se provocó un rollback real: faltan token dedicado, segundo
   revisor con autoaprobación bloqueada y game day autorizado.
-- Apps nativas 2026-10-03: Tauri 2 reutiliza el frontend/Graph sin un segundo
-  producto, empaqueta assets locales, desactiva PWA dentro del binario y registra
-  marca/protocolo/instancia única. Google OAuth sale al navegador del sistema;
-  PKCE, magic link y recuperación vuelven por `nerqia://auth/callback` con
-  allowlist y tests. Rust/WebView2 están validados; el build frontend nativo
-  pasa. La PC carece de MSVC y el instalador autorizado terminó `1602`, por lo
-  que todavía no existe instalador local certificado. Android/iOS, firma,
-  stores y redirect Supabase son gates explícitos en `docs/APPS_NATIVAS.md`.
-  El workflow nativo prepara además JDK 21, Android 36 y NDK 27. El run
-  `37172512147` compiló Windows y un APK arm64 debug, y publicó el artefacto
-  Android `11292410489` (42.992.789 bytes comprimidos, retención 7 días).
-  Sigue siendo QA: no demuestra firma release, Play ni prueba en dispositivo.
-  Windows CI `37171776139` ya compiló NSIS y subió el artefacto QA unsigned
-  `11291009728`; demuestra compilación/packaging, no firma ni distribución.
-  El primer gate Android expuso que el Gradle generado invoca
-  `npm run tauri`; el script canónico quedó incorporado para que la compilación
-  Rust/Gradle no dependa de un binario global. El lector de productos usa ahora
-  el plugin móvil oficial de Tauri en Android/iOS, permisos acotados y mensajes
-  de cliente; web conserva BarcodeDetector y todos mantienen entrada manual.
-  El run nativo `37175058583` compiló ese código y publicó el APK QA
-  `11293665071` (44.725.668 bytes comprimidos, retención 7 días).
+- Apps nativas 2026-10-03: Tauri 2 comparte frontend/Graph, callback PKCE
+  `nerqia://auth/callback`, scanner oficial y entrada manual. CI compiló NSIS
+  unsigned (`37171776139`) y Android debug (`37175058583`, artefacto `11293665071`,
+  retención 7 días). No certifica firma/dispositivo/stores. MSVC local, redirect
+  y publicación siguen abiertos: [contrato nativo](docs/APPS_NATIVAS.md).
 - Profit por SKU: filas acotadas, columnas e importes legibles y desglose
   completo de costos accesible con teclado en móvil/escritorio. La geometría,
   navegación y detalle se comprueban por separado sin aumentar sus límites.
@@ -268,7 +255,14 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
 5. Acompañar segundo merchant: onboarding, migración, publicación, primera venta
    y margen explicado sin intervención SQL.
 
-### P1 — Commerce completo y Profit Foundation
+### P1 — POS/Commerce operacional y Profit Foundation
+
+Primero cerrar el piloto de ferretería con [la matriz POS](docs/POS_OPERACION.md):
+QR confirmado sin duplicados, turnos y permisos, devolución/cuenta corriente,
+catálogo fraccionado/barcodes, compras/recepciones, migración y conciliación
+física. Impresión fiscal/hardware y transferencias directas CVU necesitan sus
+propios gates: nunca confirmar automáticamente por importe o captura de pantalla.
+`test.scadi.com.ar` sólo expuso su login; no se auditó su sistema privado.
 
 1. Certificar migrador con archivos reales, variantes/clientes/imágenes,
    redirects, cantidades, opt-out y reversa. No crear otro importador.
@@ -328,6 +322,11 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    exportación indiscriminada ni credenciales de proveedor.
 
 ### Posterior — Escala bajo demanda
+
+Paridad pública actualizada 2026-10-07: [Creators/GoMarz](docs/INFLUENCERS.md)
+cierra colaboración, derechos, publicación y payout; [Profit/Escalafy](docs/PROFIT.md)
+cierra costos/canales y Ads read-only con fuentes. Commerce certifica catálogo
+hasta refund con permisos/mobile/outcome; ninguna paridad se declara por pantallas.
 
 Standalone Profit/Growth, Ship, Developers/apps, regiones, Consulting y Capital
 exigen ICP, retención, unit economics y ownership. No se crean repositorios,

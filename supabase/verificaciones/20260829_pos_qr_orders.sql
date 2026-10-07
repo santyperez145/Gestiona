@@ -36,6 +36,7 @@ DECLARE
   v_count integer;
   v_restos integer;
   v_payment public.payment_transactions%ROWTYPE;
+  v_evidence jsonb;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
   ASSERT v_user IS NOT NULL, 'No hay usuario para la fixture ZZ';
@@ -50,6 +51,8 @@ BEGIN
   INSERT INTO public.memberships (org_id, user_id, role)
   VALUES (v_org, v_user, 'owner');
   UPDATE public.settings SET exchange_rate = 1000 WHERE org_id = v_org;
+  INSERT INTO public.payment_connections (org_id, provider, access_token, external_id, live_mode)
+  VALUES (v_org, 'mercadopago', 'nerqia:v1:fixture-not-a-token', 'ZZ_COLLECTOR', false);
 
   INSERT INTO public.products (
     id, org_id, user_id, name, sale_price_ars,
@@ -102,6 +105,15 @@ BEGIN
     jsonb_build_object('proof', true)
   );
 
+  -- Current contract (2026-10-07): the resource fetched by the server must
+  -- prove every paid amount and the receiving account, not merely requested gross.
+  v_evidence := jsonb_build_object('source','mercadopago_orders_api',
+    'provider_evidence_version',1,'provider_order_type','qr','provider_currency','ARS',
+    'external_reference','posqr_' || replace(v_session::text,'-',''),
+    'provider_merchant_id','ZZ_COLLECTOR','provider_live_mode',false,
+    'payment_count',1,'payment_status','processed','payment_status_detail','accredited',
+    'order_total_amount',v_amount::text,'order_paid_amount',v_amount::text,
+    'payment_amount',v_amount::text,'payment_paid_amount',v_amount::text);
   v_response := public.pos_qr_apply_provider(
     v_session,
     'ORD_ZZ_' || replace(v_session::text, '-', ''),
@@ -111,7 +123,7 @@ BEGIN
     v_amount,
     v_amount - v_platform_fee - 300,
     300,
-    jsonb_build_object('proof', true)
+    v_evidence
   );
   v_transaction := (v_response->>'sale_transaction_id')::uuid;
 
@@ -143,8 +155,8 @@ BEGIN
   v_response := public.pos_qr_apply_provider(
     v_session,
     'ORD_ZZ_' || replace(v_session::text, '-', ''),
-    'processed', 'accredited', NULL,
-    v_amount, NULL, NULL, jsonb_build_object('retry', true)
+    'processed', 'accredited', 'PAY_ZZ_' || replace(v_session::text, '-', ''),
+    v_amount, NULL, NULL, v_evidence
   );
   ASSERT (v_response->>'reused')::boolean, 'el segundo processed no fue idempotente';
   ASSERT (SELECT count(*) FROM public.sale_transactions

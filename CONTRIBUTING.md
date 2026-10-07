@@ -295,7 +295,8 @@ usuario; nunca guardarla en el repo.
 El estado y los números reproducibles viven en [ROADMAP.md](ROADMAP.md), no
 en una segunda bitácora de esta guía. Prioridad: confiabilidad/release,
 Commerce certificado y Profit Foundation; después Finance operacional y Growth.
-La expansión Creators se pausa sin abandonar incidentes/seguridad/certificación.
+Creators vuelve al backlog por decisión del dueño del 2026-10-07, después del
+gate POS/Commerce operacional; no abandonar incidentes/seguridad/certificación.
 
 Los gates externos no se cierran con fixtures: documento Finance persistido,
 cobro/payout, correo, logística, ARCA y segundo merchant necesitan evidencia

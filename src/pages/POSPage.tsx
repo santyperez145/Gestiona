@@ -47,6 +47,7 @@ import {
   type PosFacturaEstado,
 } from "@/lib/posComprobante";
 import { ensureSaleTransactionInvoice, printFiscalInvoiceById } from "@/lib/saleInvoice";
+import { posAutoPrintKey, printPosReceiptById, printReceiptHtml } from "@/lib/posReceiptPrint";
 import { escapePrintHtml } from "@/lib/saleReceipt";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
@@ -274,7 +275,7 @@ function buildReceiptText(
 function ReceiptModal({
   items, payMethod, splitMode, splitMethod1, splitMethod2, splitAmount1, splitAmount2,
   customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount, paymentMethodDiscountARS,
-  note, saleId, transactionId, invoice, onFacturar, onClose, onNewSale,
+  note, saleId, transactionId, invoice, autoPrint, onFacturar, onClose, onNewSale,
 }: {
   items: CartItem[]; payMethod: PayMethod;
   splitMode: boolean; splitMethod1: PayMethod; splitMethod2: PayMethod;
@@ -286,6 +287,7 @@ function ReceiptModal({
   saleId?: string | null;
   transactionId?: string | null;
   invoice?: PosFacturaEstado | null;
+  autoPrint?: boolean;
   onFacturar?: () => Promise<void>;
   onClose: () => void; onNewSale: () => void;
 }) {
@@ -302,6 +304,27 @@ function ReceiptModal({
   const [emailSent, setEmailSent] = useState(false);
   const [facturando, setFacturando] = useState(false);
   const [printingInvoice, setPrintingInvoice] = useState(false);
+  const [printingTicket, setPrintingTicket] = useState(false);
+  const [printError, setPrintError] = useState<string | null>(null);
+  const autoPrintAttempt = useRef<string | null>(null);
+  const printStored = useCallback(async (requirePaid = false) => {
+    if (!transactionId) return;
+    setPrintingTicket(true);
+    setPrintError(null);
+    try {
+      await printPosReceiptById(orgId, transactionId, businessName, requirePaid);
+    } catch (error) {
+      console.error("[POS] Receipt print:", error);
+      const message = error instanceof Error ? error.message : "No se pudo imprimir. El ticket sigue guardado.";
+      setPrintError(message);
+      toast.error(message);
+    } finally { setPrintingTicket(false); }
+  }, [orgId, transactionId, businessName]);
+  useEffect(() => {
+    if (!autoPrint || !transactionId || !collected || autoPrintAttempt.current === transactionId) return;
+    autoPrintAttempt.current = transactionId;
+    void printStored(true);
+  }, [autoPrint, transactionId, collected, printStored]);
   const arcaCopy = posArcaInvoiceCopy();
   const thermalCopy = posThermalPrintCopy();
   const invoiceCopy = posReceiptInvoiceCopy(invoice);
@@ -348,7 +371,8 @@ function ReceiptModal({
     window.open(`https://wa.me/?text=${encodeURIComponent(receiptText)}`, "_blank");
   };
 
-  const print = () => {
+  const print = async () => {
+    if (transactionId) { await printStored(); return; }
     const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
     const rows = items.map(it =>
       `<tr><td>${escapePrintHtml(it.name)}</td><td align="center">x${it.quantity}</td><td align="right">${formatARS(it.price * it.quantity)}</td></tr>`
@@ -398,7 +422,7 @@ function ReceiptModal({
 </table>
 <div class="divider"></div>
 ${paymentInfo}
-<p class="center">${payMethod === "fiado" ? "⚠ PENDIENTE DE PAGO" : "✓ PAGADO"}</p>
+<p class="center">TICKET LOCAL · PENDIENTE DE SINCRONIZACIÓN</p>
   <p class="footer">${arcaCopy.notFiscalTicket}</p>
   ${invoice?.cae ? `<p class="center">Factura ${escapePrintHtml(invoice.number || "")} autorizada por separado · CAE ${escapePrintHtml(invoice.cae)}</p>` : ""}
   ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><span style="font-weight:bold">Nota:</span> ${escapePrintHtml(note)}</div>` : ""}
@@ -406,8 +430,11 @@ ${paymentInfo}
 <div class="footer">¡Gracias por tu compra!</div>
 </body></html>`;
 
-    const w = window.open("", "_blank", "width=400,height=600");
-    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); w.close(); }
+    try { await printReceiptHtml(html); }
+    catch (error) {
+      console.error("[POS] Local ticket print:", error);
+      setPrintError(error instanceof Error ? error.message : "No se pudo imprimir el ticket local.");
+    }
   };
 
   const generateMpLink = async () => {
@@ -534,10 +561,12 @@ ${paymentInfo}
             <Button variant="outline" size="sm" onClick={shareWhatsApp} className="gap-1.5">
               <MessageCircle className="w-4 h-4 text-green-400" />WhatsApp
             </Button>
-            <Button variant="outline" size="sm" onClick={print} className="gap-1.5">
-              <Printer className="w-4 h-4" />{thermalCopy.label}
+            <Button variant="outline" size="sm" onClick={() => void print()} disabled={printingTicket} className="gap-1.5">
+              {printingTicket ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}{thermalCopy.label}
             </Button>
           </div>
+
+          {printError && <p role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">{printError}</p>}
 
           {/* Una venta ya cobrada no pide otro link: duplicaría el cobro. Fiado sí. */}
           {!collected && (!mpLink ? (
@@ -1029,6 +1058,8 @@ export default function POSPage() {
   const [submitting, setSubmitting] = useState(false);
   const [qrCheckout, setQrCheckout] = useState<QrCheckoutContext | null>(null);
   const [qrRecoverySessions, setQrRecoverySessions] = useState<PosQrSession[]>([]);
+  const [autoPrintTicket, setAutoPrintTicket] = useState(false);
+  const [recoveryPrintingId, setRecoveryPrintingId] = useState<string | null>(null);
   const qrPollBusyRef = useRef(false);
   const qrCompletedRef = useRef<Set<string>>(new Set());
   const [receipt, setReceipt] = useState<{
@@ -1038,6 +1069,22 @@ export default function POSPage() {
     transactionId?: string | null;
     invoice?: PosFacturaEstado | null;
   } | null>(null);
+  useEffect(() => {
+    setReceipt(null);
+    if (!activeOrg?.id || !user?.id) { setAutoPrintTicket(false); return; }
+    try { setAutoPrintTicket(localStorage.getItem(posAutoPrintKey(activeOrg.id, user.id)) === "true"); }
+    catch (error) { console.error("[POS] Print preference read:", error); setAutoPrintTicket(false); }
+  }, [activeOrg?.id, user?.id]);
+  const toggleAutoPrint = () => {
+    const next = !autoPrintTicket;
+    setAutoPrintTicket(next);
+    if (!activeOrg?.id || !user?.id) return;
+    try { localStorage.setItem(posAutoPrintKey(activeOrg.id, user.id), String(next)); }
+    catch (error) {
+      console.error("[POS] Print preference save:", error);
+      toast.warning("La preferencia se usará en esta sesión; este navegador no permitió guardarla.");
+    }
+  };
   const [showCart, setShowCart] = useState(false);
   const [loadingProds, setLoadingProds] = useState(true);
   const [couponCode, setCouponCode] = useState("");
@@ -1977,7 +2024,7 @@ export default function POSPage() {
       transactionId: extras?.transactionId ?? null,
       invoice: extras?.invoice ?? null,
     });
-    toast.success(`Venta de ${formatARS(registeredTotal)} acreditada`);
+    toast.success(`Venta de ${formatARS(registeredTotal)} ${methodLabel === "QR Mercado Pago" ? "acreditada" : "registrada"}`);
     vibrateSuccess();
 
     const turnoCount = turnoSales.length + 1;
@@ -2135,7 +2182,7 @@ export default function POSPage() {
 
   const retryQrOrder = async (checkout: QrCheckoutContext) => {
     if (checkout.session?.state === "manual_review") {
-      toast.error("Revisá el movimiento en Mercado Pago antes de iniciar otro cobro");
+      await resumeRecoveredQr(checkout.session);
       return;
     }
     if (checkout.recovered && checkout.session) {
@@ -2276,6 +2323,7 @@ export default function POSPage() {
   }, [activeOrg?.id, isOnline]);
 
   const qrRecoverySession = qrRecoverySessions.find((session) => session.state === "completed")
+    ?? qrRecoverySessions.find((session) => session.state === "manual_review")
     ?? qrRecoverySessions.find((session) => !POS_QR_TERMINAL_STATES.has(session.state))
     ?? null;
 
@@ -3308,6 +3356,7 @@ export default function POSPage() {
         <button
           type="button"
           onClick={() => setWantArcaInvoice((open) => !open)}
+          aria-pressed={wantArcaInvoice}
           className={`w-full flex items-start gap-2 px-3 py-2 rounded-[8px] border text-left text-xs transition-all ${
             wantArcaInvoice
               ? "border-primary/40 bg-primary/5 text-foreground"
@@ -3318,6 +3367,16 @@ export default function POSPage() {
           <span>
             <span className="block font-medium text-foreground">{posArcaInvoiceCopy().checkboxLabel}</span>
             <span className="block mt-0.5 leading-relaxed">{posArcaInvoiceCopy().hint}</span>
+          </span>
+        </button>
+
+        <button type="button" role="switch" aria-checked={autoPrintTicket}
+          onClick={toggleAutoPrint}
+          className="w-full flex items-start gap-2 px-3 py-2 rounded-lg border border-border bg-card text-left text-xs hover:border-primary/30">
+          <Printer className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
+          <span>
+            <span className="block font-medium">Imprimir ticket al cerrar la venta · {autoPrintTicket ? "Activado" : "Desactivado"}</span>
+            <span className="block mt-0.5 text-muted-foreground leading-relaxed">Abre el diálogo de impresión tras guardar y cobrar. Preferencia de este dispositivo; no reemplaza la factura ARCA.</span>
           </span>
         </button>
 
@@ -3515,6 +3574,7 @@ export default function POSPage() {
           saleId={receipt.saleId}
           transactionId={receipt.transactionId}
           invoice={receipt.invoice}
+          autoPrint={autoPrintTicket}
           onFacturar={receipt.transactionId ? async () => {
             const invoice = await emitirFacturaDelTicket(receipt.transactionId as string);
             setReceipt((current) => current ? { ...current, invoice } : current);
@@ -3621,6 +3681,7 @@ export default function POSPage() {
         )}
         {qrRecoverySession && (
           <div
+            data-pos-qr-recovery
             role="status"
             aria-live="polite"
             className={`shrink-0 flex flex-wrap items-center gap-3 border-b px-3 py-2.5 text-xs sm:px-4 ${
@@ -3636,17 +3697,30 @@ export default function POSPage() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-semibold">
-                {qrRecoverySession.state === "completed" ? "Venta QR recuperada" : "Cobro QR pendiente recuperado"}
+                {qrRecoverySession.state === "completed" ? "Venta QR recuperada" : qrRecoverySession.state === "manual_review" ? "Cobro QR requiere revisión" : "Cobro QR pendiente recuperado"}
                 {` · ${formatARS(Number(qrRecoverySession.amount))}`}
               </p>
-              <p className="text-[10px] opacity-80">
+              <p className="text-[11px] leading-relaxed">
                 {qrRecoverySession.state === "completed"
                   ? "Mercado Pago acreditó y Nerqia cerró ticket, pago y stock aunque Caja no estuviera abierta."
+                  : qrRecoverySession.state === "manual_review" ? posQrFailureCopy(qrRecoverySession)
                   : "El carrito actual no se modifica. Retomá el mismo intento para evitar un cobro duplicado."}
               </p>
             </div>
             {qrRecoverySession.state === "completed" ? (
-              <div className="flex shrink-0 gap-2">
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
+                <Button size="sm" variant="outline" disabled={!!recoveryPrintingId || !qrRecoverySession.sale_transaction_id}
+                  className="h-8 gap-1.5 bg-background/80 text-[11px]" onClick={async () => {
+                    if (!activeOrg?.id || !qrRecoverySession.sale_transaction_id) return;
+                    setRecoveryPrintingId(qrRecoverySession.session_id);
+                    try { await printPosReceiptById(activeOrg.id, qrRecoverySession.sale_transaction_id, config.businessName || "Nerqia", true); }
+                    catch (error) {
+                      console.error("[POS] Recovered receipt print:", error);
+                      toast.error(error instanceof Error ? error.message : "No se pudo imprimir el ticket recuperado.");
+                    } finally { setRecoveryPrintingId(null); }
+                  }}>
+                  {recoveryPrintingId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />} Imprimir ticket
+                </Button>
                 <Button size="sm" variant="outline" className="h-8 bg-background/80 text-[11px]" asChild>
                   <Link to="/ventas">Ver ventas</Link>
                 </Button>
@@ -3654,8 +3728,12 @@ export default function POSPage() {
                   Entendido
                 </Button>
               </div>
+            ) : qrRecoverySession.state === "manual_review" ? (
+              <Button size="sm" variant="outline" className="h-8 w-full gap-1.5 bg-background/80 text-[11px] sm:w-auto" onClick={() => void resumeRecoveredQr(qrRecoverySession)}>
+                <RefreshCw className="h-3 w-3" /> Consultar el mismo cobro
+              </Button>
             ) : (
-              <div className="flex shrink-0 gap-2">
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
                 <Button size="sm" variant="outline" className="h-8 bg-background/80 text-[11px]" onClick={() => void cancelRecoveredQr(qrRecoverySession)}>
                   Cancelar intento
                 </Button>

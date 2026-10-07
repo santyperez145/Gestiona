@@ -1,6 +1,6 @@
 # Índice de documentación
 
-**Estado:** canónico. **Revisión:** 2026-10-03. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-07. **Owner:** Producto / CTO.
 
 Este índice enumera los documentos vigentes. ROADMAP describe presente y futuro;
 Git conserva auditorías, evidencia e incidentes cerrados. No se versionan dumps
@@ -38,6 +38,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [ADR 002 — Commerce OS](ADR_002_COMMERCE_OPERATING_SYSTEM.md)
 - [ADR 003 — Identidad y dominio](ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md)
 - [ADR 004 — Growth / Profit](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md): portfolio y Graph compartido; reemplazo parcial de ADR 002.
+- [ADR 005 — piloto POS / Creators](ADR_005_POS_PILOT_AND_CREATORS_SEQUENCE.md): precisa el gate operacional y reemplaza la pausa secundaria de ADR 004.
 
 Los ADR aceptados no se reescriben para ocultar el contexto: una decisión nueva
 los reemplaza con otro ADR.
@@ -59,6 +60,8 @@ los reemplaza con otro ADR.
 - [Cron](CRON.md): jobs y health.
 - [Email marketing](EMAIL_MARKETING.md): audiencia, consentimiento, baja y operación.
 - [Pagos](PAGOS.md): checkout, webhook, conciliación y refunds.
+- [POS operativo](POS_OPERACION.md): piloto de ferretería, cobro verificable,
+  ticket guardado, seguridad y gates de hardware/transferencias.
 - [Facturación](FACTURACION.md): renglones, IVA, NC, impresión y autoridad ARCA.
 - [Mercado Pago diferencial](MP_DIFERENCIAL.md): estrategia de fees, split y conciliación.
 - [Mercado Libre](MERCADOLIBRE.md): canal y sincronización.
