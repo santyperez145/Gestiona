@@ -121,10 +121,11 @@ sigue abierto como certificación operacional.
   de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
   idempotencia/refund y cero restos; no certifica dinero/hardware/ARCA reales.
   Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
+- Release 2026-10-07: [alias RLS](docs/SEGURIDAD.md) cerrado en producción; gramática PG17 verde, Preview POS bloqueada por replay de kits.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.
-- Validación local del 2026-10-07: `npm run verify` pasa 3.709 tests en 420
+- Validación local del 2026-10-07: `npm run verify` pasa 3.726 tests en 421
   archivos, funciones, lint sin errores, tipos y build. Runtime sin hallazgos;
   toolchain conserva la excepción temporal documentada más abajo.
   POS agrega ocho E2E sintéticos desktop/móvil con impresión y accesibilidad.

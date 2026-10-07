@@ -61,12 +61,33 @@ mantienen sus fichas canónicas.
 
 ## Evidencia y release
 
-Release de código: `npm run verify` verde (3.709 tests / 420 archivos), ocho E2E
+Release de código: `npm run verify` verde (3.726 tests / 421 archivos), ocho E2E
 POS desktop/móvil y Axe sin violaciones graves del aviso recuperado. Runtime
 sin advisories; se conserva la excepción temporal `braces` de toolchain.
 El guard se probó reversiblemente, incluida reaplicación y prueba histórica QR;
 el despliegue persistente backend y la promoción a producción no se deducen de
 esa verificación. Sin operación autorizada de proveedor/hardware todavía.
+
+La PR 16 expuso un fallo previo al POS al reconstruir desde cero: `20260430000005`
+modificaba una tabla creada en `000006`. Se guarda el orden correcto/columna,
+los cron históricos dejan de usar `ON CONFLICT` sobre un `SELECT`, payment links
+referencia `quotes`, el ledger agrega sus columnas sobre el Kardex existente y
+Stripe events aplica RLS al crear la tabla, no antes de que exista. Los bloques
+cron de gastos recurrentes, limpieza y campañas usan delimitadores distintos.
+`check:migrations` analiza todos los SQL con el parser PostgreSQL 17 (sólo dev,
+sin ejecutar consultas); valida gramática, no cuerpos PL/pgSQL/orden/permisos.
+Estos cambios son de replay, no un reset/reparación de versiones productivas.
+La reconstrucción completa sigue roja: alcanzó `20260523000013`, pero el segundo
+schema de kits indexa `active` sin agregarlo al primero. No reparar versiones,
+resetear producción ni omitir el check para salvar el POS.
+
+La revisión detectó además `org_members` sólo en la base alojada, como vista
+definer con grants de lectura/escritura al navegador. `20261007000000` sí se
+aplicó persistentemente el 2026-10-07: invoker RLS, alias sólo lectura, anon sin
+acceso. Readback de grants/opciones/versión verde y prueba reversible con dos
+usuarios ficticios: own/foreign, escalada denegada, lectura servidor y cero
+restos. El historial ahora crea la misma compatibilidad sin duplicar membresías.
+Eso no habilita por sí solo el release POS ni certifica todos los controles.
 
 `supabase/verificaciones/20261007_pos_qr_payment_evidence.sql` es reversible:
 nueve pruebas inválidas, cierre válido, duplicado, evento vencido, refund y

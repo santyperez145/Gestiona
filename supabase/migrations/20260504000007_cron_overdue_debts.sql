@@ -1,5 +1,8 @@
 -- Daily overdue debts check via pg_cron (runs at 8:00 AM UTC)
-select cron.schedule(
+DO $schedule$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'overdue-debts-daily') THEN
+    PERFORM cron.schedule(
   'overdue-debts-daily',
   '0 8 * * *',
   $$
@@ -12,4 +15,7 @@ select cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) on conflict (jobname) do update set schedule = excluded.schedule;
+    );
+  END IF;
+END;
+$schedule$;

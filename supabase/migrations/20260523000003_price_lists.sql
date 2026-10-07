@@ -1,6 +1,19 @@
 -- Price Lists (Listas de Precios) — tiered pricing for B2B/B2C/wholesale
 -- Allows different price lists per customer segment: minorista, mayorista, VIP, etc.
 
+-- Older modules use an alias that previously existed only in the hosted DB.
+-- It is the SAME membership authority, read-only and subject to its RLS.
+DO $legacy_alias$
+BEGIN
+  IF to_regclass('public.org_members') IS NULL THEN
+    CREATE VIEW public.org_members WITH (security_invoker = true) AS
+      SELECT id, org_id, user_id, role, joined_at, invited_by FROM public.memberships;
+    REVOKE ALL ON public.org_members FROM PUBLIC, anon, authenticated, service_role;
+    GRANT SELECT ON public.org_members TO authenticated, service_role;
+  END IF;
+END;
+$legacy_alias$;
+
 CREATE TABLE IF NOT EXISTS public.price_lists (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id        uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,

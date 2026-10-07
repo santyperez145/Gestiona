@@ -40,7 +40,7 @@ create index if not exists payment_links_external_ref_idx
   where external_ref is not null;
 
 -- ── Scheduled campaigns cron (every 15 min) ─────────────────────────────────
-do $$
+do $campaign_schedule$
 begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
     -- Remove old job if it exists, then re-add
@@ -59,7 +59,8 @@ begin
       $$
     );
   end if;
-end $$;
+end;
+$campaign_schedule$;
 
 -- ── Expire payment links (daily) ─────────────────────────────────────────────
 create or replace function expire_payment_links() returns void language plpgsql as $$

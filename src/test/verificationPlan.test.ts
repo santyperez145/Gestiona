@@ -5,7 +5,7 @@ import { E2E_REQUIRED_ENV, VERIFICATION_STAGES, executeVerification, missingVeri
 describe('shared release verification', () => {
   it('technical gate includes Edge, docs, browser types, tests, build, dependencies and diff', () => {
     expect(verificationPlan().map(step => [step.command, ...step.args].join(' '))).toEqual([
-      'npm run check:functions', 'npm run check:conteos', 'npm run check:enlaces',
+      'npm run check:functions', 'npm run check:migrations', 'npm run check:conteos', 'npm run check:enlaces',
       'npm run lint', 'npm run typecheck', 'npm run build', 'npm run test -- --maxWorkers=2',
       'npm run check:dependencies', 'git diff --check',
     ]);

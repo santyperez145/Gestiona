@@ -207,9 +207,11 @@ No usar `npx tsc --noEmit`: el `tsconfig.json` raíz tiene `files: []`.
 Warnings `exhaustive-deps` conocidos no se corrigen en masa; errores de lint:
 cero.
 
-El plan compartido incluye `check:functions`, conteos/enlaces, lint, typecheck,
+El plan compartido incluye `check:functions`, `check:migrations`, conteos/enlaces, lint, typecheck,
 build, Vitest, auditoría de dependencias desde moderate y `git diff --check`.
 CI usa `--stage=build|test|security|e2e`; no inventar una puerta más débil.
+`check:migrations` usa la gramática PostgreSQL 17 sin conectar ni ejecutar SQL.
+No reemplaza el replay Supabase Preview ni los drills de autoridad/PL/pgSQL.
 
 Flujos usan Playwright; cálculos usan Vitest. E2E autenticado necesita
 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `E2E_STORE_SLUG`,

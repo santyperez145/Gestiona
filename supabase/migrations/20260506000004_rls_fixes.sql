@@ -41,12 +41,18 @@ CREATE POLICY "marketing_templates_public_update" ON public.marketing_templates
 --    but we should still lock the table so no authenticated user can read or
 --    write event IDs directly from the client.
 -- ═══════════════════════════════════════════════════════════════════════════
-ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "stripe_events_no_client_access" ON public.stripe_events;
-CREATE POLICY "stripe_events_no_client_access" ON public.stripe_events
-  AS RESTRICTIVE FOR ALL TO authenticated
-  USING (false);   -- clients never access this table; service_role bypasses RLS
+-- Fresh replay creates stripe_events in the next migration. Existing
+-- environments are hardened here; the creation migration repeats the guard.
+DO $stripe_rls$
+BEGIN
+  IF to_regclass('public.stripe_events') IS NOT NULL THEN
+    ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "stripe_events_no_client_access" ON public.stripe_events;
+    CREATE POLICY "stripe_events_no_client_access" ON public.stripe_events
+      AS RESTRICTIVE FOR ALL TO authenticated USING (false);
+  END IF;
+END;
+$stripe_rls$;
 
 
 -- ═══════════════════════════════════════════════════════════════════════════

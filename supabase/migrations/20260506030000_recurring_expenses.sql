@@ -23,7 +23,7 @@ WHERE recurring = true
   AND recurring_next_date IS NULL;
 
 -- pg_cron: run auto-recurring-expenses edge function daily at 06:00 UTC
-DO $$
+DO $recurring_schedule$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     PERFORM cron.schedule(
@@ -42,4 +42,5 @@ BEGIN
     );
   END IF;
 EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+END;
+$recurring_schedule$;

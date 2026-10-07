@@ -1,5 +1,5 @@
 export const VERIFICATION_STAGES = {
-  build: ['check:functions', 'check:conteos', 'check:enlaces', 'lint', 'typecheck', 'build'],
+  build: ['check:functions', 'check:migrations', 'check:conteos', 'check:enlaces', 'lint', 'typecheck', 'build'],
   test: ['test'],
   security: ['check:dependencies'],
   e2e: ['test:e2e:ci'],

@@ -1,6 +1,6 @@
 # Seguridad y prevención de fraude
 
-**Estado:** canónico. **Corte:** 2026-10-03.
+**Estado:** canónico. **Corte:** 2026-10-07.
 
 Este documento define la línea base de seguridad de Nerqia. La arquitectura
 funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
@@ -21,6 +21,24 @@ funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
    Functions o tablas sin policies; la UI consume estados sanitizados.
 6. **Evidencia antes que confianza.** Los controles se verifican contra el
    catálogo y los grants reales de PostgreSQL.
+
+## Alias heredado de membresías — cierre 2026-10-07
+
+La consulta real del catálogo encontró `org_members` como vista de `memberships`
+sin `security_invoker` y con grants al navegador. No era una segunda tabla,
+pero el alias no respetaba la frontera RLS de la autoridad canónica.
+
+`20261007000000_legacy_membership_view_security.sql` se aplicó en producción:
+invoker RLS, sólo SELECT para usuarios autenticados/servidor, sin acceso anon y
+sin escrituras por el alias. Se conserva compatibilidad de los módulos viejos;
+las altas/bajas de membresía siguen por la autoridad canónica. Readback confirma
+`security_invoker=true`, anon sin SELECT, navegador sin INSERT y versión registrada.
+
+[Prueba reversible](../supabase/verificaciones/20261007_legacy_membership_view_security.sql):
+dos usuarios ficticios, viewer ve su organización pero no otra, escalada por
+UPDATE denegada, servidor conserva lectura y rollback con cero usuarios residuales.
+También se probó reaplicación dentro de rollback. No se cambiaron roles reales,
+no se resetearon datos ni se certifica con esto toda la plataforma.
 
 ## Superficies de confianza
 
