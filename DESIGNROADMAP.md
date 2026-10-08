@@ -171,7 +171,7 @@ Cada vista debe contemplar:
 2. Storefront: home, colección, búsqueda, PDP, carrito y checkout en matriz
    mobile/desktop.
 3. Pedidos: cola, selección masiva, inspector y recuperación por SLA.
-4. Migrador: origen, preview, mapeo, progreso, reconciliación y redirects.
+4. Migrador: hoja/fila sugeridas y corregibles, ambigüedades visibles, costo ARS/USD confirmado incluso en Shopify/Tiendanube, preview, aprobación, progreso y reconciliación; sin mutaciones por detección.
 5. Analytics: embudo y canal con explicación, no métricas decorativas.
 
 ### D2 — Business

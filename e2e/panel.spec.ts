@@ -116,13 +116,18 @@ async function assertInitialSelectedLabel(page: Page, name: string) {
 for (const destination of ['/productos', '/']) {
 test(`permisos: ${destination} recupera lectura sin revelar errores internos`, async ({ page }) => {
   let reads = 0;
+  let unavailable = true;
   await page.route('**/rest/v1/role_permissions?**', async route => {
     reads += 1;
-    if (reads === 1) return route.fulfill({ status: 403, contentType: 'application/json',
+    if (unavailable) return route.fulfill({ status: 403, contentType: 'application/json',
       body: JSON.stringify({ code: '42501', message: 'ZZ private permission failure' }) });
     return route.continue();
   });
+  const deniedRead = page.waitForResponse(response => (
+    new URL(response.url()).pathname.endsWith('/role_permissions') && response.status() === 403
+  ));
   await page.goto(destination);
+  await deniedRead;
   const error = page.locator('[data-workspace-state="error-recoverable"]').filter({ hasText: 'No pudimos verificar tu acceso' });
   await expect(error).toBeVisible();
   if (destination === '/productos') await expect(page.getByRole('heading', { name: 'Productos', exact: true })).toHaveCount(0);
@@ -132,24 +137,36 @@ test(`permisos: ${destination} recupera lectura sin revelar errores internos`, a
     await expect(error.getByRole('button', { name: 'Reintentar' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
+  // Keep the injected outage active across auth/MFA bootstrap remounts. Only
+  // the explicit retry may restore reads; a first-request-only fault races it.
+  const beforeRetry = reads;
+  expect(beforeRetry).toBeGreaterThanOrEqual(1);
+  unavailable = false;
   await error.getByRole('button', { name: 'Reintentar' }).click();
   if (destination === '/productos') await expect(page.getByRole('heading', { name: 'Productos', exact: true })).toBeVisible();
   else await expect(page.getByRole('link', { name: 'Productos', exact: true }).first()).toBeVisible();
-  expect(reads).toBe(2);
+  expect(reads).toBe(beforeRetry + 1);
 });
 }
 
 test('catalogo: la sugerencia revisable no cambia dinero ni stock y no guarda productos', async ({ page }) => {
   const writes: string[] = [];
   let suggestions = 0;
-  // Beneficio sintético sólo en este navegador; el consumo IA se intercepta.
-  await page.route('**/rest/v1/rpc/org_entitlements', async route => {
-    const response = await route.fetch();
-    const entitlements = await response.json();
-    await route.fulfill({ response, json: { ...entitlements, ia: true, ia_restante: 1, vigente: true } });
-  });
+  // Synthetic benefit and empty taxonomy only in this test; no billing/model
+  // calls. Permission and ordinary catalogue reads still use the real backend.
+  await page.route('**/rest/v1/subscriptions?**', route => route.fulfill({ json: null }));
+  await page.route('**/rest/v1/plans?**', route => route.fulfill({ json: null }));
+  await page.route('**/rest/v1/rpc/org_entitlements', route => route.fulfill({ json: {
+    vigente: true, motivo_de_corte: null, dias_de_gracia: 0,
+    ia: true, ia_restante: 1, backups: false, branding: false,
+    max_products: null, max_users: null, max_sales_per_month: null,
+  } }));
+  await page.route('**/rest/v1/ecommerce_categories?**', route => route.fulfill({ json: [] }));
   await page.route('**/rest/v1/products?**', route => {
-    if (['GET', 'HEAD'].includes(route.request().method())) return route.continue();
+    if (['GET', 'HEAD'].includes(route.request().method())) {
+      if (new URL(route.request().url()).searchParams.get('select') === 'category') return route.fulfill({ json: [] });
+      return route.continue();
+    }
     writes.push(route.request().method()); return route.abort();
   });
   await page.route('**/functions/v1/ai-chat', route => {
@@ -183,6 +200,59 @@ test('catalogo: la sugerencia revisable no cambia dinero ni stock y no guarda pr
   expect(await numbers()).toEqual(before);
   expect(writes).toEqual([]);
   expect(suggestions).toBe(1);
+});
+
+test('catalogo: revisa una foto y agrega copia propia sin guardar productos', async ({ page }) => {
+  const writes: string[] = [];
+  let searches = 0; let acquisitions = 0;
+  const id = '11111111-1111-4111-8111-111111111111';
+  const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/9n0AAAAASUVORK5CYII=', 'base64');
+  await page.route('**/functions/v1/ai-chat', route => route.abort());
+  await page.route('**/rest/v1/products?**', route => {
+    if (['GET', 'HEAD'].includes(route.request().method())) return route.continue();
+    writes.push('products'); return route.abort();
+  });
+  await page.route('**/storage/v1/object/public/product-images/**', route => route.fulfill({ contentType: 'image/png', body: tinyPng }));
+  await page.route('https://api.openverse.org/nerqia-fixture/**', route => route.fulfill({ contentType: 'image/png', body: tinyPng }));
+  await page.route('**/functions/v1/search-product-images', route => {
+    const body = route.request().postDataJSON();
+    expect(body.query).toBe('ZZ TALADRO GSB 13');
+    if (body.action === 'search') {
+      searches++;
+      return route.fulfill({ json: { ok: true, results: [{ id, title: 'Taladro GSB 13', thumbnail: `https://api.openverse.org/nerqia-fixture/${id}`,
+        url: 'https://upload.wikimedia.org/fixture.jpg', source_url: 'https://commons.wikimedia.org/fixture',
+        license: 'cc0', license_url: 'https://creativecommons.org/publicdomain/zero/1.0/', creator: 'Autor de prueba', match: { label: 'Modelo en el titulo', exact_product: false } }] } });
+    }
+    expect(body).toMatchObject({ action: 'acquire', candidate_id: id, review_product: true, review_rights: true });
+    expect(body).not.toHaveProperty('url'); acquisitions++;
+    const project = new URL(route.request().url()).origin;
+    return route.fulfill({ json: { ok: true, url: `${project}/storage/v1/object/public/product-images/${body.org_id}/catalog/${id}.webp` } });
+  });
+  await page.goto('/productos');
+  await page.getByRole('button', { name: 'Nuevo', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Nuevo producto' });
+  await editor.getByPlaceholder('Ej: Nombre del producto').fill('ZZ TALADRO GSB 13');
+  const before = await editor.getByRole('spinbutton').evaluateAll(elements => elements.map(element => (element as HTMLInputElement).value));
+  await editor.getByRole('button', { name: 'Buscar imagen', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Imagen del producto', exact: true });
+  await picker.getByRole('button', { name: 'Buscar', exact: true }).click();
+  await picker.getByRole('button', { name: 'Revisar', exact: true }).click();
+  const copy = picker.getByRole('button', { name: 'Copiar y agregar', exact: true });
+  await expect(copy).toBeDisabled();
+  for (const width of [360, 390, 768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await copy.scrollIntoViewIfNeeded();
+    expect((await copy.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expect(picker.locator('img').first()).toBeVisible();
+    expect(await picker.locator('img').first().evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  }
+  await picker.getByRole('checkbox').nth(0).check(); await expect(copy).toBeDisabled();
+  await picker.getByRole('checkbox').nth(1).check(); await copy.click();
+  await expect(picker).not.toBeVisible();
+  await expect(editor.locator('img[src*="/catalog/"]')).toBeVisible();
+  expect(await editor.getByRole('spinbutton').evaluateAll(elements => elements.map(element => (element as HTMLInputElement).value))).toEqual(before);
+  expect(searches).toBe(1); expect(acquisitions).toBe(1); expect(writes).toEqual([]);
 });
 
 test("Profit real: alias, canonical RPC and honest contribution", async ({ page }) => {

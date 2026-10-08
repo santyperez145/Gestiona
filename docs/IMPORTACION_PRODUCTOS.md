@@ -1,6 +1,6 @@
 # Importación de productos
 
-**Estado:** contrato vigente, verificado internamente. **Corte:** 2026-10-03.
+**Estado:** contrato vigente, verificado internamente. **Corte:** 2026-10-08.
 **Owner:** Commerce / Ingeniería. La certificación comercial vive en
 [C22.2](C222_CERTIFICAR_MIGRACION.md), no en los fixtures.
 
@@ -25,6 +25,38 @@ no son otro catálogo ni otro motor. `stage_catalog_migration` y
 `apply_catalog_migration` siguen delegando en `stage_product_import`,
 `apply_product_import` y `record_stock_movement`.
 La extensión está en `20261003000200_catalog_import_sessions.sql`.
+
+## Detección automática y revisión
+
+- Se examinan las primeras 20 filas del área usada de cada hoja (hasta 128
+  columnas); se propone la hoja con encabezados más reconocibles, no siempre
+  la primera. Portadas vacías/instrucciones no desplazan un catálogo reconocido.
+- Los encabezados se comparan por alias exactos, acentos/espacios normalizados,
+  sin IA ni fuzzy matching de identidad o importes. La fila puede corregirse
+  antes de preparar; el número físico se guarda en las opciones de sesión.
+- Empates de hojas/filas y encabezados repetidos se explican. Una columna
+  repetida no se asigna silenciosamente; si falta Nombre, no permite preparar.
+- «Costo» sin moneda requiere confirmación ARS/USD antes de validar; los costos
+  no asignados tampoco reaparecen desde el parser legacy. Cambiar hoja/fila
+  recalcula el mapeo y moneda, sin arrastrar índices de otra hoja.
+- Shopify/Tiendanube mantienen el parser agrupado y la identidad URL; la hoja
+  sigue seleccionable sin convertir variantes en productos independientes.
+  Si traen costos, exigen confirmar ARS/USD: no suponen USD por ser un export
+  de plataforma. La selección identifica moneda, no convierte importes; ventas
+  siguen en ARS y un origen en otra moneda exige revisión antes de aprobar.
+- La sugerencia no guarda productos ni aplica inventario. Continúan moneda,
+  destino, revisión del servidor, aprobación, idempotencia y reanudación. No hay
+  nueva dependencia, RPC, ruta ni migración para esta detección.
+
+Referencias oficiales comprobadas el 2026-10-08:
+[Tiendanube carga masiva](https://ayuda.tiendanube.com/es_AR/122710-importar-y-exportar-productos/como-completar-el-excel-de-carga-masiva-de-productos)
+conserva el identificador URL entre variantes;
+[Shopify CSV](https://help.shopify.com/en/manual/products/import-export/using-csv)
+documenta dependencias de columnas y sobrescritura. Nerqia mantiene una decisión
+más conservadora: celdas vacías no borran campos y la detección no aprueba cambios.
+[Inventario Shopify](https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv)
+comprueba stock actual frente al exportado; paridad de concurrencia de stock y
+certificación con export comercial real siguen siendo gates, no esta prueba local.
 
 ## Semántica del origen
 

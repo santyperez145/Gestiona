@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { configurePublicStore } from "./publicStoreFixture";
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const CATALOG = `/tienda/${SLUG}/productos`;
@@ -11,6 +12,9 @@ async function productVisible(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  // A live, bounded baseline must pass. Injected failures then own lookup
+  // timing; catalogue and variant reads remain real except the targeted fault.
+  await configurePublicStore(page, SLUG, row => row);
   // These tests only read production; analytics/cart writes stay in the browser.
   for (const rpc of ["record_store_visit", "save_store_cart_v3", "start_store_checkout_v2"]) {
     await page.route(`**/rest/v1/rpc/${rpc}`, route => route.fulfill({
@@ -23,7 +27,7 @@ test("a hung store lookup is aborted and retried without a manual reload", async
   let attempts = 0;
   await page.route(STORE_RPC, async route => {
     if (++attempts === 1) return; // Deliberately leave the first read unanswered.
-    await route.continue();
+    await route.fallback(); // Restore the verified baseline after the injected hang.
   });
   await page.goto(CATALOG);
   await productVisible(page);

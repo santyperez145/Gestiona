@@ -5,10 +5,10 @@ Decisiones activas y próximos cierres, no un diario: Git conserva la historia y
 
 ## Objetivo
 
-Commerce y las tiendas online son el núcleo de Nerqia. Business sostiene una
-fuente de verdad compartida; Finance controla gasto sin clonar Core; Profit
-explica contribución y decisiones; Growth conecta captación, ventas y retención.
-Completar trabajos verificables antes de ampliar el catálogo de módulos.
+Dos pilares principales: Commerce online y gestión del negocio (Business).
+Venta online, pagos, POS y facturación cierran el mismo circuito sobre un Graph.
+Finance, Profit, Growth y Creators deben ser profesionales, pero no desplazan
+ese núcleo. Adjunto 08/10 reconciliado: metas/hipótesis no prueban adopción; completar trabajos verificables, sin autoridades duplicadas.
 
 La referencia competitiva es Shopify/Tiendanube/Empretienda para Commerce,
 Mendel para Finance, GoMarz para creadores, Clientify para Growth y Escalafy
@@ -19,7 +19,7 @@ investigación y tecnología. La marca y experiencia final son propias.
 
 ## 1. Decisiones de producto
 
-- Commerce sigue siendo la puerta comercial y prioridad operacional.
+- Commerce es la puerta; Business/POS es el segundo pilar, no un ERP separado.
 - Profit se construye antes que Growth: aprovecha margen y costo existentes.
 - Growth y Profit son productos fuera de Finance, sobre el mismo Graph.
 - Commerce Graph es el Business Graph existente, no una segunda base.
@@ -40,8 +40,7 @@ investigación y tecnología. La marca y experiencia final son propias.
 - No se reescribe el stack por reputación; separar servicios/SSR requiere SLO
   o problema medido, owner, operación y costo de salida.
 
-Decisión vigente: [ADR 004](docs/ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md),
-con secuencia actualizada por [ADR 005](docs/ADR_005_POS_PILOT_AND_CREATORS_SEQUENCE.md).
+Decisión vigente: [ADR 004](docs/ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md); secuencia actualizada por [ADR 005](docs/ADR_005_POS_PILOT_AND_CREATORS_SEQUENCE.md).
 Actualiza parcialmente [ADR 002](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md);
 no revierte multitienda, dominios ni temas ya implementados.
 
@@ -256,7 +255,7 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
 5. Acompañar segundo merchant: onboarding, migración, publicación, primera venta
    y margen explicado sin intervención SQL.
 
-### P1 — POS/Commerce operacional y Profit Foundation
+### P1 — Commerce + gestión operacional; después Profit Foundation
 
 Primero cerrar el piloto de ferretería con [la matriz POS](docs/POS_OPERACION.md):
 QR confirmado sin duplicados, turnos y permisos, devolución/cuenta corriente,
@@ -265,8 +264,9 @@ física. Transferencias alias/CVU: feed real del receptor + referencia única +
 cierre idempotente/fiscal; los reportes asíncronos no prueban detección inmediata.
 `test.scadi.com.ar` sólo expuso su login; no se auditó su sistema privado.
 
-1. Certificar migrador y enriquecimiento: fotos exactas por GTIN/MPN/fuente autorizada, copy/SEO/atributos revisables,
-   lotes con presupuesto/checkpoint, cantidades, permisos, opt-out y reversa; sin otro importador ni precios adivinados.
+1. Migración primero: Excel con hoja/encabezado sugeridos, corrección y ambigüedades visibles; confirmar costo ARS/USD también en Shopify/Tiendanube, validar y aprobar sin stock/precios adivinados.
+   Certificar export real, variantes, imágenes, clientes, redirects y reversa segura; después GTIN/MPN/fuentes autorizadas y enriquecimiento revisable por lotes.
+   Carga asistida: copia CC0/PDM, revisión, procedencia y WebP propio verificados en Supabase con fixture limpia; identidad exacta y bulk pendientes. [Contrato](docs/NERQIA_INTELLIGENCE.md).
 2. Checkout → pago → fulfillment → devolución/refund: concurrencia, estados,
    recuperación, permisos y timeline hasta conciliación externa.
 3. Mobile, búsqueda/merchandising, SEO, accesibilidad y Core Web Vitals de campo;
@@ -279,7 +279,7 @@ cierre idempotente/fiscal; los reportes asíncronos no prueban detección inmedi
    ni costo histórico reconstruido desde precios actuales. `/profit` es hoy alias
    de la vista Foundation; no anuncia la suite completa ni Ads certificados.
 6. Fiscal/ARCA: simplificar certificado, CUIT, representación y punto de venta
-   Web Services con guía, padrón autorizado y diagnóstico; revisar WSFE 4.7/4.8. Completar
+   Web Services con guía, padrón autorizado y diagnóstico; contrastar el manual oficial WSFE vigente, no versiones supuestas. Completar
    factura/ticket y nota de crédito desde POS y ventas, impresión y recepción,
    sin anunciar autorización productiva hasta obtener y conciliar el CAE real.
    La factura manual ya acepta IVA por renglón A/B, agrupa alicuotas en pantalla
@@ -329,9 +329,9 @@ cierra colaboración, derechos, publicación y payout; [Profit/Escalafy](docs/PR
 cierra costos/canales y Ads read-only con fuentes. Commerce certifica catálogo
 hasta refund con permisos/mobile/outcome; ninguna paridad se declara por pantallas.
 
-Standalone Profit/Growth, Ship, Developers/apps, regiones, Consulting y Capital
-exigen ICP, retención, unit economics y ownership. No se crean repositorios,
-subdominios nuevos o servicios financieros sólo para completar un portfolio.
+Tras el piloto: perfiles progresivos, packs verticales sin forks, B2B (empresas/roles/precios/plazos), OMS (parciales/postventa) y suscripciones con gates reales.
+Studio/IA reutiliza Theme Engine con revisión/versiones; búsqueda avanzada y runtime/apps versionados requieren demanda, métricas, scopes y reversa.
+Profit/Growth, Ship, Capital y separación de storefront exigen ICP, retención, economics y SLO; no repositorios/servicios sólo para completar un portfolio.
 
 ## 6. Gates externos
 
@@ -360,8 +360,8 @@ no prueba aprobada. Ningún test altera el negocio real sin autorización.
 
 ## 8. Métricas y documentos
 
-North Star: **Active Transacting Merchants**, organizaciones con venta POS u
-orden online confirmada durante los últimos 30 días, sin contar fixtures.
+North Star: **Active Transacting Merchants**, con venta POS u orden online confirmada en 30 días, sin fixtures.
+Meta de adopción, no evidencia: 10 comercios externos → 8 tiendas publicadas → 5 primeras ventas → 3 usuarios semanales; medir activación, soporte y margen por cohorte.
 
 | Capa | Indicadores |
 |---|---|

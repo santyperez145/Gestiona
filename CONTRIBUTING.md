@@ -4,7 +4,7 @@ Este archivo es la autoridad de trabajo para cualquier persona o proceso que
 modifique el repositorio. Centraliza las reglas para evitar versiones
 divergentes.
 
-**Revisión:** 2026-10-01. **Owner:** Ingeniería.
+**Revisión:** 2026-10-08. **Owner:** Ingeniería.
 
 ## Misión
 
@@ -295,8 +295,8 @@ usuario; nunca guardarla en el repo.
 ## Estado actual
 
 El estado y los números reproducibles viven en [ROADMAP.md](ROADMAP.md), no
-en una segunda bitácora de esta guía. Prioridad: confiabilidad/release,
-Commerce certificado y Profit Foundation; después Finance operacional y Growth.
+en una segunda bitácora de esta guía. Prioridad: confiabilidad/release y
+Commerce + Business/POS operacional; después Profit, Finance y Growth.
 Creators vuelve al backlog por decisión del dueño del 2026-10-07, después del
 gate POS/Commerce operacional; no abandonar incidentes/seguridad/certificación.
 

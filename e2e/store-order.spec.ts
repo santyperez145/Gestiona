@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { configurePublicStore } from "./publicStoreFixture";
 
 const slug = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const orderNumber = "ZZ-RECOVERY";
@@ -11,6 +12,9 @@ const order = {
 };
 
 test("recupera la consulta y los botones de pago sin crear otra compra", async ({ page }, testInfo) => {
+  // Verify a fresh public configuration once; this test injects order/payment
+  // errors, not a simultaneous unrelated store lookup outage.
+  await configurePublicStore(page, slug, row => row);
   // Synthetic order and payment endpoints never reach the real backend.
   for (const rpc of ["record_store_visit", "save_store_cart_v3", "start_store_checkout_v2"]) {
     await page.route(`**/rest/v1/rpc/${rpc}`, route => route.fulfill({ status: 200, json: null }));

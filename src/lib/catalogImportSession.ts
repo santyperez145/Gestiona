@@ -14,6 +14,7 @@ export type CatalogImportOptions = {
   stock_mode: "replace" | "ignore"; location_id: string; destination_store_id: string;
   exchange_rate: number; margin_percent: number; auto_price: boolean;
   mapping: ImportMapping; cost_currency: "ARS" | "USD"; sheet_name: string; fingerprint: string;
+  header_row?: number;
 };
 export type CatalogImportSession = {
   ok: boolean; id: string; org_id: string; filename: string; source_format: "xls" | "xlsx" | "csv";
