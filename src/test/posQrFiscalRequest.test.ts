@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { posQrFiscalResult, type PosQrSession } from "@/lib/posQr";
 
 const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20261008000000_pos_qr_durable_fiscal_request.sql"), "utf8");
+const legacyRetry = readFileSync(resolve(process.cwd(), "supabase/migrations/20261008000010_pos_qr_legacy_fiscal_retry.sql"), "utf8");
 const edge = readFileSync(resolve(process.cwd(), "supabase/functions/mercadopago-pos-qr/index.ts"), "utf8");
 const pos = readFileSync(resolve(process.cwd(), "src/pages/POSPage.tsx"), "utf8");
 const session = (extra: Partial<PosQrSession> = {}): PosQrSession => ({
@@ -28,6 +29,9 @@ describe("durable POS fiscal request", () => {
     expect(migration).toContain("FROM PUBLIC, anon, authenticated, service_role");
     expect(migration).toContain("v_claims, ''");
     expect(migration).toContain("WHEN insufficient_privilege THEN v_error := 'permission_required'");
+    expect(legacyRetry).toContain("no admite una solicitud fiscal retroactiva");
+    expect(legacyRetry).toContain("jsonb_build_object('reused', true)");
+    expect(legacyRetry).toContain("v_session.created_by IS DISTINCT FROM auth.uid()");
   });
   it("the Edge validates a boolean and fiscal permission before creating a QR", () => {
     expect(edge).toContain('typeof body.requestInvoice !== "boolean"');

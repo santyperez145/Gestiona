@@ -492,7 +492,7 @@ Deno.serve(async (req) => {
       }
       const requestInvoice = body.requestInvoice === true;
       if (requestInvoice && !await permission(userClient, orgId, "invoices", "edit")) {
-        return json({ error: "No tenés permiso para solicitar la factura. El cobro no se inició.", code: "FISCAL_PERMISSION_REQUIRED" }, 403);
+        return json({ error: "No tenés permiso para solicitar la factura. Esta solicitud no generó otro cobro; si ya tenés un QR, consultá ese intento.", code: "FISCAL_PERMISSION_REQUIRED" }, 403);
       }
       if (!clientKey || !UUID_RE.test(clientKey) || !Array.isArray(body.sales)) {
         return json({ error: "El carrito o la clave del cobro no son válidos" }, 400);

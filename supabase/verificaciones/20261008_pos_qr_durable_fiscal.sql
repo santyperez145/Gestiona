@@ -1,6 +1,7 @@
 -- Preview only. No provider calls; every synthetic identity/event is rolled back.
 BEGIN;
 CREATE TEMP TABLE zz_pos_fiscal_checks(check_name text) ON COMMIT DROP;
+GRANT SELECT, INSERT ON zz_pos_fiscal_checks TO authenticated;
 DO $proof$
 DECLARE
   v_org uuid := gen_random_uuid();
@@ -87,6 +88,8 @@ BEGIN
       ASSERT (SELECT total FROM public.invoices WHERE id=v_invoice)=9000;
       ASSERT (SELECT cae FROM public.invoices WHERE id=v_invoice) IS NULL, 'Fixture fabricated a CAE';
       ASSERT (SELECT count(*) FROM public.outbox_events WHERE org_id=v_org AND event_type='factura.creada')=1;
+      PERFORM set_config('nerqia.pos_fiscal_verified',v_session::text,true);
+      PERFORM set_config('nerqia.pos_fiscal_unaffiliated',v_other::text,true);
       INSERT INTO zz_pos_fiscal_checks VALUES('server prepares canonical invoice and one fiscal outbox delivery');
     ELSIF v_case=2 THEN
       ASSERT v_invoice IS NULL AND v_result->>'invoice_preparation_error'='permission_required';
@@ -102,14 +105,55 @@ BEGIN
     ASSERT (SELECT count(*) FROM public.sale_transactions WHERE org_id=v_org)=v_case;
     ASSERT (SELECT stock FROM public.products WHERE id=v_product)=10-v_case;
     ASSERT (SELECT count(*) FROM public.invoices WHERE org_id=v_org)=1;
+    ASSERT (SELECT count(*) FROM public.outbox_events WHERE org_id=v_org AND event_type='factura.creada'
+      AND objetivo='afip-authorize')=1;
   END LOOP;
   INSERT INTO zz_pos_fiscal_checks VALUES('duplicates never create a second invoice, sale or stock movement');
   ASSERT NOT has_function_privilege('anon','public.pos_qr_session_prepare_fiscal(uuid,jsonb,uuid,boolean)','EXECUTE');
   ASSERT NOT has_function_privilege('authenticated','public.trg_pos_qr_prepare_fiscal_invoice()','EXECUTE');
   ASSERT NOT has_function_privilege('service_role','public.trg_pos_qr_prepare_fiscal_invoice()','EXECUTE');
   INSERT INTO zz_pos_fiscal_checks VALUES('private trigger and public request grants bounded');
+  v_key := gen_random_uuid();
+  v_sales := jsonb_set(v_sales,'{0,id}',to_jsonb(gen_random_uuid()));
+  v_result := public.pos_qr_session_prepare(v_org,v_sales,v_key);
+  v_session := (v_result->>'session_id')::uuid;
+  v_order := 'ORD_ZZ_LEGACY_' || replace(v_session::text,'-','');
+  PERFORM public.pos_qr_provider_created(v_session,v_order,'ZZ_QR','created','{}');
+  v_result := public.pos_qr_session_prepare_fiscal(v_org,v_sales,v_key,false);
+  ASSERT v_result->>'state'='pending' AND (v_result->>'reused')::boolean;
+  ASSERT NOT (v_result->>'invoice_requested')::boolean;
+  ASSERT (SELECT invoice_request_set_at FROM public.pos_qr_sessions WHERE id=v_session) IS NULL;
+  v_denied := false;
+  BEGIN
+    PERFORM public.pos_qr_session_prepare_fiscal(v_org,v_sales,v_key,true);
+  EXCEPTION WHEN unique_violation THEN v_denied := true;
+  END;
+  ASSERT v_denied, 'Legacy order retroactively enabled fiscal consent';
+  ASSERT (SELECT stock FROM public.products WHERE id=v_product)=6;
+  ASSERT (SELECT count(*) FROM public.sale_transactions WHERE org_id=v_org)=4;
+  INSERT INTO zz_pos_fiscal_checks VALUES('legacy order retries without a new charge or retroactive fiscal consent');
+  DELETE FROM public.memberships WHERE org_id=v_org AND user_id=v_other;
 END;
 $proof$;
+SET LOCAL ROLE authenticated;
+DO $browser$
+BEGIN
+  BEGIN
+    UPDATE public.pos_qr_sessions SET invoice_requested=false
+      WHERE id=current_setting('nerqia.pos_fiscal_verified')::uuid;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  ASSERT (public.pos_qr_session_response(current_setting('nerqia.pos_fiscal_verified')::uuid)
+    ->>'invoice_requested')::boolean, 'Browser mutated the frozen fiscal request';
+  INSERT INTO zz_pos_fiscal_checks VALUES('browser role cannot mutate the frozen fiscal decision');
+  PERFORM set_config('request.jwt.claims',jsonb_build_object(
+    'sub',current_setting('nerqia.pos_fiscal_unaffiliated'),'role','authenticated')::text,true);
+  ASSERT public.pos_qr_session_response(current_setting('nerqia.pos_fiscal_verified')::uuid) IS NULL,
+    'Unaffiliated browser read another merchant QR or invoice';
+  INSERT INTO zz_pos_fiscal_checks VALUES('unaffiliated account cannot read QR or fiscal document');
+END;
+$browser$;
+RESET ROLE;
 SELECT * FROM zz_pos_fiscal_checks;
 ROLLBACK;
 SELECT count(*) AS residual_organizations FROM public.organizations WHERE slug LIKE 'zz-pos-fiscal-%';

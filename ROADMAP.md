@@ -119,9 +119,9 @@ sigue abierto como certificación operacional.
 
 - POS 2026-10-08: QR correlacionado y solicitud fiscal durable, sin depender de Caja;
   de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
-  idempotencia/refund y cero restos; lote fiscal nuevo en gate, no certifica MP/ARCA/papel reales.
+  idempotencia/refund y cero restos; fiscal durable validado en Preview, deploy en gate; MP/ARCA/papel reales pendientes.
   Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
-- Release 2026-10-08: [replay](docs/MIGRATION_REPLAY.md) de 665 migraciones y QR/roles sin residuos; PR 17 integrada como `5ef4c3c0` con gates verdes: timeout/cancelación/retry de tienda sin perder carrito. [QR](docs/POS_OPERACION.md) v15/v66 + guard productivo; fiscal durable en gate propio.
+- Release 2026-10-08: [replay](docs/MIGRATION_REPLAY.md) de 666 migraciones + una incremental, fiscal/QR/roles sin residuos en Preview; PR 17 integrada/Vercel READY `5ef4c3c0`: lecturas acotadas sin perder carrito. [QR](docs/POS_OPERACION.md) v15/v66 + guard productivo; fiscal/legacy verificados, deploy en gate propio.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.

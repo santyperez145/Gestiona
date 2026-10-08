@@ -96,6 +96,18 @@ El siguiente lote fiscal del POS mantiene su gate propio por SHA: puerta local,
 CI, E2E y SQL reversible en Preview. Proxy de confianza, SMTP Auth y recepción real
 conservan gate propio; publicar código no demuestra configurar proveedores.
 
+POS fiscal durable, corte 2026-10-08: PR 18 `fe37b218` aprobó CI completo y
+Vercel; Preview `aihxgfebanfqbnekkvfu` instaló las 666 migraciones desde cero.
+Allí `20261008_pos_qr_durable_fiscal.sql` pasó diez grupos reversibles, incluidos
+roles web reales, no mutación del opt-in y aislamiento de factura. QR/alias
+anteriores también pasaron. Readback sin usuarios/orgs/sesiones/facturas/outbox
+residuales ni hallazgos de auditores; cero fixtures en producción. La CLI aplicó
+después sólo `20261008000010`: 667 versiones registradas. El QR legacy se retoma
+sin nuevo cobro ni consentimiento fiscal retroactivo; fixture/readback repetidos.
+La documentación y fixture ampliada se publican con puerta completa/gates de
+su SHA. Desplegar SQL nuevo → Edge QR → frontend, sin reaplicar históricos ni
+reparar journal. Cobro, CAE y papel reales mantienen su aceptación externa.
+
 La continuación incremental, las suites sintéticas y un deploy Vercel no
 certifican el banco, impresión física, homologación ARCA ni reemplazo de un ERP.
 

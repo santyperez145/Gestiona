@@ -44,7 +44,8 @@ mantienen sus fichas canónicas.
 
 ## Solicitud fiscal durable del QR
 
-`20261008000000` fija el opt-in fiscal antes de enviar el Order. La Edge exige
+`20261008000000` fija el opt-in fiscal antes de enviar el Order. `000010` conserva
+reintentos de QR anteriores sin habilitar facturación retroactiva. La Edge exige
 un booleano y `invoices.edit`; la RPC conserva precios, reservas y clave del
 preparador canónico. No permite cambiar la decisión al reusar la clave ni que
 otro cajero la reutilice. Solicitar factura sigue siendo opcional, default off.
@@ -70,17 +71,24 @@ Hay conexión OAuth MP y secreto webhook en Edge, pero ninguna caja QR activa.
 Completar sucursal/caja con datos reales mediante el POS antes del primer cobro.
 Esto no prueba recepción de notificaciones, dinero, CAE ni papel.
 
-`20261008_pos_qr_durable_fiscal.sql` está preparado exclusivamente para Preview
-con rollback: evidencia incompleta, cierre, opt-out, permiso revocado, identidad
-fiscal ausente y duplicados. E2E interceptados cubren solicitud, borrador/CAE,
-reload y vendedor sin ruta de admin. Estos archivos no prueban por sí solos su
-ejecución ni certifican cobro MP, autorización ARCA o impresión física reales.
+`20261008_pos_qr_durable_fiscal.sql` se ejecutó el 2026-10-08 en la Preview vacía
+`aihxgfebanfqbnekkvfu`: 666 migraciones desde cero y `000010` incremental, 667
+registradas; diez grupos de checks en rollback. Evidencia incompleta, cierre,
+opt-out, permiso
+revocado, identidad fiscal ausente, duplicados de venta/factura/outbox, QR legacy y ACL;
+rol authenticated real sin escritura del opt-in y cuenta sin membresía sin
+lectura del QR/factura. Las pruebas QR/alias anteriores también pasaron.
+Readback final: cero usuarios, organizaciones, sesiones, facturas y outbox;
+sin hallazgos de exposición, costo público, policies sin tenant o RPC de
+stock/dinero sin permiso. No hubo fixtures ni proveedores en producción.
 
-Puerta local del 2026-10-08: 3.793 tests en 426 archivos, gramática de las 666
+Puerta local del 2026-10-08: 3.793 tests en 426 archivos, gramática de las 667
 migraciones, Edge, lint sin errores, tipos/build y runtime sin advisories.
 Dieciséis E2E POS desktop/móvil verdes sin retries con red interceptada.
-Las nuevas fixtures SQL siguen pendientes de ejecución en Preview antes de
-integrar este lote; gramática y mocks no sustituyen ese control.
+E2E/Axe/capturas cubren solicitud, borrador/CAE, reload y vendedor sin ruta de
+admin. CI de `fe37b218`, Supabase Preview y Vercel aprobaron; compatibilidad y
+evidencia ampliadas mantienen gate propio. Deploy SQL → Edge → frontend todavía
+pendiente. Estos controles no certifican MP/ARCA/impresión física reales.
 
 ## Matriz para reemplazar el sistema del negocio
 

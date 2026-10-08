@@ -1,15 +1,17 @@
 # Qué falta configurar
 
-**Estado:** checklist operativo vigente. **Corte:** 2026-09-04.
+**Estado:** checklist operativo vigente. **Corte:** 2026-10-08.
 
-Lo que **no** esté acá, ya funciona sin tocar nada.
+Este checklist no certifica operación por omisión ni por tener código/secreto.
+Cada proveedor exige su prueba real; gates y evidencia viven en ROADMAP y los
+contratos de dominio. No inventar pagos, CAE, entrega o hardware con fixtures.
 
 ## Resumen
 
 | Área | Estado |
 |---|---|
-| Base de datos, RLS, migraciones | ✅ Listo |
-| Cron jobs (13) | ✅ Arreglados, ver `docs/CRON.md` |
+| Base de datos, RLS, migraciones | Gate por SHA y replay aislado; no resetear producción ni reaplicar históricos. Ver `docs/MIGRATION_REPLAY.md`. |
+| Cron jobs | Agenda activa no prueba ejecución HTTP; ver `docs/CRON.md` y health de cada función. |
 | Tienda online `<slug>.nerqia.app` | ✅ Wildcard operativo y verificado en producción (2026-09-03) |
 | Catálogo público `/catalogo/:userId` | ✅ Funciona |
 | Notificaciones push | ✅ VAPID cargado |
@@ -17,7 +19,7 @@ Lo que **no** esté acá, ya funciona sin tocar nada.
 | **Emails** (campañas, secuencias, facturas) | 🟡 `nerqia.app` está verificado en Resend y `RESEND_API_KEY`/`FROM_EMAIL` están cargados. Emisores, errores por audiencia, idempotencia y ledger de eventos están desplegados (2026-09-05). Faltan activar Resend, crear el webhook firmado, configurar Auth SMTP y ejecutar la matriz real. |
 | **WhatsApp automático** | ⚠️ Requiere una conexión Evolution por comercio o una configuración global de plataforma |
 | **Cobros con tarjeta** | ❌ Falta Stripe |
-| **MercadoPago** | ⚠️ Token por org en Integraciones; falta el webhook |
+| **MercadoPago** | OAuth por org, secreto webhook presente en Edge (2026-10-08); ninguna caja QR activa. Completar sucursal/caja, registro de evento Order y cobro controlado; ver `docs/POS_OPERACION.md`. |
 | **Tiendanube** | ❌ Falta `TIENDANUBE_CLIENT_SECRET` |
 | **MercadoLibre** | ❌ Falta crear la app |
 
@@ -84,7 +86,8 @@ Sin `ANTHROPIC_API_KEY`, las funciones de IA generativa responden con error;
 |---|---|
 | `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE` | Alternativa global de plataforma para WhatsApp. Un comercio carga su propia conexión desde Integraciones; URL y clave entran por Edge Function y nunca se guardan en `settings` ni se devuelven al navegador. |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Cobro de suscripciones del SaaS |
-| `MP_WEBHOOK_SECRET` | Validar el webhook de MercadoPago (el token va por org en Integraciones) |
+| `MP_APP_ID`, `MP_APP_SECRET`, `MP_OAUTH_REDIRECT_URI` | App de plataforma y OAuth delegado por comercio. Sólo servidor; no pegar tokens merchant en frontend. |
+| `MP_WEBHOOK_SECRET` | Validar el webhook de MercadoPago; registrar Order para POS QR además de los tópicos de checkout/suscripciones usados. |
 | `TIENDANUBE_CLIENT_SECRET` | Sincronización con Tiendanube |
 | `RESEND_WEBHOOK_SECRET` | Firma de eventos de entrega, demora, fallo, rebote, supresión, queja, apertura y click desde Resend |
 | `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET`, `MELI_REDIRECT_URI`, `MELI_CRON_SECRET` | MercadoLibre — ver `docs/MERCADOLIBRE.md` |
