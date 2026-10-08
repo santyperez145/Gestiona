@@ -815,6 +815,3 @@ $verify$;
 SELECT check_name, passed, detail
 FROM zz_store_fulfillment_location_verification
 ORDER BY check_name;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260815000005', 'store_fulfillment_location') ON CONFLICT DO NOTHING;

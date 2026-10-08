@@ -161,7 +161,3 @@ BEGIN
   END IF;
 END;
 $verification$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000180', 'las_tareas_programadas_terminan')
-ON CONFLICT DO NOTHING;

@@ -201,7 +201,3 @@ BEGIN
   END IF;
 END;
 $verification$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000150', 'anon_no_verifica_una_delegacion_fiscal')
-ON CONFLICT DO NOTHING;

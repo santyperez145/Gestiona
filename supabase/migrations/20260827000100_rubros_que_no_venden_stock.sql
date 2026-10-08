@@ -308,7 +308,3 @@ BEGIN
 
   RAISE NOTICE 'OK: plato sin stock, insumo con stock, perfume con stock, sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000100', 'rubros_que_no_venden_stock')
-ON CONFLICT DO NOTHING;

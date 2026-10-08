@@ -135,7 +135,5 @@ GRANT EXECUTE ON FUNCTION public.get_profit_period(uuid, date, date, integer, in
 COMMENT ON FUNCTION public.get_profit_period(uuid, date, date, integer, integer, integer) IS
   'Profit Foundation: canonical measured contribution, complete period population, paged products/operations, analytics permission; ARS, Buenos Aires operation date; no Ads or net-profit claim.';
 
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20261002000000', 'profit_period_authority') ON CONFLICT DO NOTHING;
 NOTIFY pgrst, 'reload schema';
 COMMIT;

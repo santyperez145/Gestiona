@@ -138,7 +138,3 @@ BEGIN
 
   RAISE NOTICE 'OK: la vencida se marca, la que esta al dia no, sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000140', 'la_suscripcion_vencida_se_marca_sola')
-ON CONFLICT DO NOTHING;

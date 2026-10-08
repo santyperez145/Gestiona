@@ -371,7 +371,3 @@ BEGIN
   END IF;
 END;
 $verification$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000160', 'las_funciones_internas_no_son_anonimas')
-ON CONFLICT DO NOTHING;

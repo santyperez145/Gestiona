@@ -164,7 +164,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260904000020', 'store_checkout_stage')
-ON CONFLICT DO NOTHING;

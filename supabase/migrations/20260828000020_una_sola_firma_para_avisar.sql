@@ -116,7 +116,3 @@ BEGIN
 
   RAISE NOTICE 'OK: una sola firma, los límites del plan corren y contratar no aborta';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000020', 'una_sola_firma_para_avisar')
-ON CONFLICT DO NOTHING;

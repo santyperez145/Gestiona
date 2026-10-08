@@ -130,7 +130,3 @@ BEGIN
 
   RAISE NOTICE 'OK: % cron job(s) pasan a identificarse con x-cron-secret', v_jobs;
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000090', 'el_cron_se_identifica')
-ON CONFLICT DO NOTHING;

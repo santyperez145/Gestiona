@@ -403,7 +403,3 @@ BEGIN
 
   RAISE NOTICE 'OK: ningún plan pago ofrece menos que el trial, y el cupo de IA se mide';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000010', 'la_ia_tiene_techo_y_se_mide')
-ON CONFLICT DO NOTHING;

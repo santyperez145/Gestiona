@@ -134,6 +134,3 @@ BEGIN
     v_cats, COALESCE(v_dist, '(sin productos)');
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260825000002', 'categoria_sin_rubro') ON CONFLICT DO NOTHING;

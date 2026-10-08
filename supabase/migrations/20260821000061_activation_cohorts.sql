@@ -445,6 +445,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000061', 'activation_cohorts') ON CONFLICT DO NOTHING;

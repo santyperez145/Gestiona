@@ -217,6 +217,3 @@ BEGIN
   END IF;
 END;
 $cron$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000007', 'platform_risk_series') ON CONFLICT DO NOTHING;

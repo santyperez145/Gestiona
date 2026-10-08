@@ -103,6 +103,3 @@ BEGIN
   RAISE NOTICE 'ZZ_OK social_posts es la unica autoridad de contenido social';
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260826000220', 'contenido_social_una_tabla') ON CONFLICT DO NOTHING;

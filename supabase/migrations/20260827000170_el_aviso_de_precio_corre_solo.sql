@@ -45,7 +45,3 @@ BEGIN
 
   RAISE NOTICE 'OK: agendado 9 AM Argentina, con los secretos que necesita';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000170', 'el_aviso_de_precio_corre_solo')
-ON CONFLICT DO NOTHING;

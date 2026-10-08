@@ -116,7 +116,3 @@ BEGIN
 
   RAISE NOTICE 'OK: la baja sin período se cierra, y la que tiene período lo conserva';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000030', 'la_baja_sin_periodo_se_cierra_ya')
-ON CONFLICT DO NOTHING;

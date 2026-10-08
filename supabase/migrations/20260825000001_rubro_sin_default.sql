@@ -71,6 +71,3 @@ BEGIN
   RAISE NOTICE 'ZZ_OK default quitado; % filas en perfumes y % sin rubro intactas', v_perfumes, v_null;
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260825000001', 'rubro_sin_default') ON CONFLICT DO NOTHING;

@@ -26,7 +26,5 @@ BEGIN
 END;
 $guard$;
 
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20261007000000', 'legacy_membership_view_security') ON CONFLICT DO NOTHING;
 NOTIFY pgrst, 'reload schema';
 COMMIT;

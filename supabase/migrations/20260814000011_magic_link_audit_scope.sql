@@ -123,6 +123,3 @@ BEGIN
   END IF;
 END;
 $verificar$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000011', 'magic_link_audit_scope') ON CONFLICT DO NOTHING;

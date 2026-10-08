@@ -677,7 +677,3 @@ BEGIN
   END IF;
 END;
 $verification$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000140', 'el_perfil_se_convierte_en_blueprint')
-ON CONFLICT DO NOTHING;

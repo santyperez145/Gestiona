@@ -89,6 +89,3 @@ BEGIN
   THEN RAISE EXCEPTION 'Quedaron datos ZZ de F10'; END IF;
 END;
 $verificar$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000005', 'return_shipping_cost') ON CONFLICT DO NOTHING;

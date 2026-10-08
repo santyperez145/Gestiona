@@ -947,7 +947,3 @@ BEGIN
 
   RAISE NOTICE 'OK: vista vacia; vendedor frenado; admin puede; sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000030', 'ser_miembro_no_es_tener_el_permiso')
-ON CONFLICT DO NOTHING;

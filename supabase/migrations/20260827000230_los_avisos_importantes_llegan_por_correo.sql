@@ -289,7 +289,3 @@ BEGIN
 
   RAISE NOTICE 'OK: avisa una vez, no repite, y un envío fallido no cuenta como enviado';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000230', 'los_avisos_importantes_llegan_por_correo')
-ON CONFLICT DO NOTHING;

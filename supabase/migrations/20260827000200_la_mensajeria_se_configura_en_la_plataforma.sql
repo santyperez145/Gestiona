@@ -216,7 +216,3 @@ BEGIN
 
   RAISE NOTICE 'OK: una sola fila, sólo staff, y cambiar el dominio invalida lo verificado';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000200', 'la_mensajeria_se_configura_en_la_plataforma')
-ON CONFLICT DO NOTHING;

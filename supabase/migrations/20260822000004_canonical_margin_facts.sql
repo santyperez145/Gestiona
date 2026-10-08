@@ -445,6 +445,3 @@ BEGIN
   END IF;
 END
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260822000004', 'canonical_margin_facts') ON CONFLICT DO NOTHING;

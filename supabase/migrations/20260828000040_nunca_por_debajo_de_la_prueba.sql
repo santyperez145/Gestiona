@@ -241,7 +241,3 @@ BEGIN
 
   RAISE NOTICE 'OK: el límite baja de verdad, pero nunca por debajo de la prueba gratis';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000040', 'nunca_por_debajo_de_la_prueba')
-ON CONFLICT DO NOTHING;

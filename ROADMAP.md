@@ -121,7 +121,7 @@ sigue abierto como certificación operacional.
   de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
   idempotencia/refund y cero restos; no certifica dinero/hardware/ARCA reales.
   Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
-- Release 2026-10-08: [alias RLS](docs/SEGURIDAD.md) productivo; replay incremental y QR/roles verdes, checkpoint `4b4b706d` pusheado. [Integración Auth/POS y gate de Preview nueva](docs/MIGRATION_REPLAY.md) antes de `main`.
+- Release 2026-10-08: [alias RLS](docs/SEGURIDAD.md) productivo; Auth/POS `a871f306` pusheado, 3.779 tests y CI verdes. [Preview nueva/journal sin doble registro](docs/MIGRATION_REPLAY.md) antes de `main`.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.

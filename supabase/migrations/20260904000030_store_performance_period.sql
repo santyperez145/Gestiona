@@ -188,8 +188,5 @@ BEGIN
 END;
 $$;
 
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260904000030', 'store_performance_period')
-ON CONFLICT DO NOTHING;
 
 COMMIT;

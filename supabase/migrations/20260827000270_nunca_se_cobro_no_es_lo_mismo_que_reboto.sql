@@ -219,7 +219,3 @@ BEGIN
 
   RAISE NOTICE 'OK: se confirma por minutos, sin pagar no da el plan, y el comercio conserva lo suyo';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000270', 'nunca_se_cobro_no_es_lo_mismo_que_reboto')
-ON CONFLICT DO NOTHING;

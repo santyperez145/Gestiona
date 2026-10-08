@@ -548,6 +548,3 @@ $verify$;
 SELECT check_name, detail, passed
 FROM zz_sale_transaction_verification
 ORDER BY check_name;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260815000004', 'sale_transactions_plan_limit') ON CONFLICT DO NOTHING;

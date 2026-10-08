@@ -207,7 +207,3 @@ BEGIN
     'anon puede cambiar la mensajeria';
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260904000150', 'email_provider_selection')
-ON CONFLICT DO NOTHING;

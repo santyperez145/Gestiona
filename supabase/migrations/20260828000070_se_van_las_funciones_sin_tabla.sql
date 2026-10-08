@@ -78,7 +78,3 @@ BEGIN
 
   RAISE NOTICE 'OK: se fueron las diez huérfanas y quedaron % funciones plpgsql', v_vivas;
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000070', 'se_van_las_funciones_sin_tabla')
-ON CONFLICT DO NOTHING;

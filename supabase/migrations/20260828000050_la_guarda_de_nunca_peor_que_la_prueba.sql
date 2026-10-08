@@ -99,7 +99,3 @@ BEGIN
 
   RAISE NOTICE 'OK: las dos vistas están vacías y la de planes detecta';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000050', 'la_guarda_de_nunca_peor_que_la_prueba')
-ON CONFLICT DO NOTHING;

@@ -824,7 +824,3 @@ BEGIN
   ), 'Caja no puede preparar el QR';
 END;
 $guard$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000041', 'pos_qr_mercadopago_orders')
-ON CONFLICT DO NOTHING;

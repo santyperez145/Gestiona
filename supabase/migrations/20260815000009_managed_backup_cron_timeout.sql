@@ -96,6 +96,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260815000009', 'managed_backup_cron_timeout') ON CONFLICT DO NOTHING;

@@ -113,7 +113,3 @@ BEGIN
 
   RAISE NOTICE 'OK: uno gana, el otro no, el vencido se roba, sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000080', 'un_solo_pedido_de_ticket_a_la_vez')
-ON CONFLICT DO NOTHING;

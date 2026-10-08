@@ -520,7 +520,3 @@ BEGIN
 
   RAISE NOTICE 'OK: preaviso obligatorio para subir, baja inmediata, el comercio ve lo suyo y no lo ajeno, el precio se mueve solo si MP acepto';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000160', 'el_precio_acordado_y_su_cambio')
-ON CONFLICT DO NOTHING;

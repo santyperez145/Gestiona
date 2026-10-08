@@ -115,6 +115,3 @@ BEGIN
   RAISE NOTICE 'ZZ_OK deals enlaza por customer_id como las otras cinco';
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260826000210', 'deals_por_cliente') ON CONFLICT DO NOTHING;

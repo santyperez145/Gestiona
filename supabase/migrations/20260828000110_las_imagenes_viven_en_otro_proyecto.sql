@@ -99,7 +99,3 @@ BEGIN
 
   RAISE NOTICE 'OK: % imagen(es) colgando del proyecto anterior, a la vista', v_n;
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000110', 'las_imagenes_viven_en_otro_proyecto')
-ON CONFLICT DO NOTHING;

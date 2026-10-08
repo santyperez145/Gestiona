@@ -595,7 +595,3 @@ LEFT JOIN LATERAL (
 ) tickets ON true;
 
 GRANT SELECT ON public.cash_session_summary TO authenticated;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000044', 'pos_turno_autoritativo')
-ON CONFLICT DO NOTHING;

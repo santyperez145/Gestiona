@@ -105,6 +105,3 @@ BEGIN
   END IF;
 END;
 $verificar$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000009', 'platform_cron_health') ON CONFLICT DO NOTHING;

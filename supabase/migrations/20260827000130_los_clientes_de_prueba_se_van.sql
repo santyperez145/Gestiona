@@ -140,7 +140,3 @@ BEGIN
 
   RAISE NOTICE 'OK: se fueron los de prueba, quedaron % reales, la evidencia del cobro intacta', v_reales;
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000130', 'los_clientes_de_prueba_se_van')
-ON CONFLICT DO NOTHING;

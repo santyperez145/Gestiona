@@ -331,7 +331,3 @@ BEGIN
   END IF;
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260925000500', 'influencer_chat_notifications')
-ON CONFLICT DO NOTHING;

@@ -101,7 +101,3 @@ BEGIN
     RAISE EXCEPTION 'dominios propios incompletos: columnas %, funcion %', v_columnas, v_funcion;
   END IF;
 END $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260903000080', 'store_custom_domains')
-ON CONFLICT DO NOTHING;

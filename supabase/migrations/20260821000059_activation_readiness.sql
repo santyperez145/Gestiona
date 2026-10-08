@@ -232,6 +232,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000059', 'activation_readiness') ON CONFLICT DO NOTHING;

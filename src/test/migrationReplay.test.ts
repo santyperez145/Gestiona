@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { migrationSyntaxFailures } from "../../scripts/check-migration-syntax.mjs";
@@ -11,6 +11,12 @@ const cronFiles = ["20260503000002_cron_customer_alerts.sql", "20260504000005_cr
   "20260522000005_whatsapp_digest.sql"];
 
 describe("empty-schema replay contracts", () => {
+  it("lets the migration runner own its journal without duplicate self-registration", () => {
+    const offenders = readdirSync(resolve("supabase/migrations"))
+      .filter(file => file.endsWith(".sql"))
+      .filter(file => /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+supabase_migrations\.schema_migrations\b/i.test(read(file)));
+    expect(offenders).toEqual([]);
+  });
   it("uses the PostgreSQL grammar to reject nested-dollar syntax without executing SQL", async () => {
     const failures = await migrationSyntaxFailures([
       { name: "valid.sql", sql: "DO $outer$ BEGIN PERFORM cron.schedule('test', '* * * * *', $$SELECT 1;$$); END; $outer$;" },

@@ -382,7 +382,3 @@ BEGIN
 
   RAISE NOTICE 'OK: el buzon de Finance ya no corta por ambiguedad';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000060', 'el_buzon_de_finance_puede_recibir')
-ON CONFLICT DO NOTHING;

@@ -145,7 +145,3 @@ BEGIN
 
   RAISE NOTICE 'OK: sin certificados de comercio, todos delegados, plataforma intacta, constraint activa';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000050', 'ningun_comercio_guarda_su_certificado')
-ON CONFLICT DO NOTHING;

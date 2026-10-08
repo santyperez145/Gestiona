@@ -863,7 +863,3 @@ BEGIN
   RAISE NOTICE 'Finance matching verificado: aliases, ambigüedad, ACL, idempotencia, cero efectos y restos 0';
 END;
 $fixture$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260822000012', 'finance_document_matching')
-ON CONFLICT DO NOTHING;

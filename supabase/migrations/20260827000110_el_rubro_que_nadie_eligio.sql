@@ -129,7 +129,3 @@ BEGIN
 
   RAISE NOTICE 'OK: vacia, el rubro real intacto, y detecta uno adivinado';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000110', 'el_rubro_que_nadie_eligio')
-ON CONFLICT DO NOTHING;

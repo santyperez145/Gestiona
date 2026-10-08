@@ -139,7 +139,3 @@ BEGIN
 
   RAISE NOTICE 'OK: la funcion escribe, guarda el motivo y lo limpia';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000070', 'la_verificacion_se_guardaba_en_una_columna_inexistente')
-ON CONFLICT DO NOTHING;

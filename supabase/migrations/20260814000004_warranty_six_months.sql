@@ -123,6 +123,3 @@ BEGIN
   END IF;
 END;
 $verificar$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000004', 'warranty_six_months') ON CONFLICT DO NOTHING;

@@ -145,7 +145,3 @@ BEGIN
 
   RAISE NOTICE 'OK: mismo CUIT sin tramite, otro CUIT con tramite, CUIT real intacto';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000060', 'sin_tramite_cuando_no_hay_tramite')
-ON CONFLICT DO NOTHING;

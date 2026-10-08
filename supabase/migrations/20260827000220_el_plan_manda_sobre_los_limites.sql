@@ -296,7 +296,3 @@ BEGIN
 
   RAISE NOTICE 'OK: baja de plan suspende al que sobra, nunca al dueño, no borra nada y subir lo devuelve';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000220', 'el_plan_manda_sobre_los_limites')
-ON CONFLICT DO NOTHING;

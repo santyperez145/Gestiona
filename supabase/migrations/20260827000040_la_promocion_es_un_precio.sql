@@ -214,7 +214,3 @@ BEGIN
 
   RAISE NOTICE 'OK: vendedor lee y no escribe; admin escribe; cobro con permiso; sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000040', 'la_promocion_es_un_precio')
-ON CONFLICT DO NOTHING;

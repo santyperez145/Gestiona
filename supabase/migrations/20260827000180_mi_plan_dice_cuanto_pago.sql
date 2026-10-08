@@ -91,7 +91,3 @@ BEGIN
   PERFORM set_config('request.jwt.claims', NULL, true);
   RAISE NOTICE 'OK: Mi plan puede mostrar el precio realmente acordado';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000180', 'mi_plan_dice_cuanto_pago')
-ON CONFLICT DO NOTHING;

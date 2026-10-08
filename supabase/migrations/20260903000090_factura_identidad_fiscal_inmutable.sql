@@ -377,7 +377,3 @@ BEGIN
   END IF;
 END;
 $guard$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260903000090', 'factura_identidad_fiscal_inmutable')
-ON CONFLICT DO NOTHING;

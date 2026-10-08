@@ -335,7 +335,3 @@ BEGIN
 
   RAISE NOTICE 'OK: el comercio nuevo asienta su primera venta, sin duplicar, sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000120', 'el_segundo_comercio_perdia_su_primer_asiento')
-ON CONFLICT DO NOTHING;

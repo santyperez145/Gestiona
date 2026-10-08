@@ -356,7 +356,3 @@ BEGIN
   END IF;
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260822000010', 'finance_document_inspection')
-ON CONFLICT DO NOTHING;

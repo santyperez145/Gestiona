@@ -90,7 +90,3 @@ BEGIN
   RAISE NOTICE 'OK: 0 en el proyecto viejo, % productos con foto acá, % sin foto',
     v_aqui, v_sin;
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000120', 'las_imagenes_ya_estan_en_casa')
-ON CONFLICT DO NOTHING;

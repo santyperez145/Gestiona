@@ -127,7 +127,3 @@ BEGIN
 
   RAISE NOTICE 'OK: se fue el trigger muerto, vender funciona y la auditoría real sigue';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000080', 'se_va_el_trigger_que_finge_auditar')
-ON CONFLICT DO NOTHING;

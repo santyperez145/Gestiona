@@ -465,8 +465,5 @@ BEGIN
 END;
 $guard$;
 
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20260929001000', 'creator_private_deliverables')
-ON CONFLICT DO NOTHING;
 
 COMMIT;

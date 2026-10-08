@@ -53,6 +53,3 @@ $$;
 
 REVOKE ALL ON FUNCTION public.creator_campaigns() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.creator_campaigns() TO authenticated;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260922000600', 'creator_campaign_review_feedback') ON CONFLICT DO NOTHING;

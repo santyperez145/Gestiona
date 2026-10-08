@@ -30,8 +30,5 @@ BEGIN
 END;
 $$;
 
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260904000070', 'retire_public_payment_fixture')
-ON CONFLICT DO NOTHING;
 
 COMMIT;

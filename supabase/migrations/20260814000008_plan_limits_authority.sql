@@ -223,6 +223,3 @@ BEGIN
   END IF;
 END;
 $verificar$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000008', 'plan_limits_authority') ON CONFLICT DO NOTHING;

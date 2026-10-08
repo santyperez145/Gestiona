@@ -286,6 +286,3 @@ $verify$;
 SELECT check_name, passed, detail
 FROM zz_variant_transfer_verification
 ORDER BY check_name;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260815000006', 'variant_location_transfers') ON CONFLICT DO NOTHING;

@@ -24,6 +24,7 @@ migración nueva, comparación contra el esquema desplegado y gate propio.
 | RLS/grants alojados | Cachés/catálogo interno deny-by-default, conciliaciones por capacidad; alias invoker con SELECT de su fuente bajo RLS. | Sin escritura vía alias ni bypass del auditor de seguridad. |
 | Influencers fuera de orden | Bootstrap con Auth canónico, sin convertir canjes en entregas/pagos; preservar helper de provisioning y mapa de reputación ampliado. | Rutas monetarias legacy no se legitiman por referral code; portal final usa sesión. |
 | Alta de usuario | Triggers separados para perfil y workspace; nunca llamar una función trigger como función normal; límites usan `joined_at`. | Producción conserva su configuración vigente; el historial no la reemplaza. |
+| Journal duplicado | Retirar 148 auto-registraciones; la CLI/integración Supabase registra cada archivo aplicado. | No modificar ni reparar versiones productivas; una consulta SQL aislada no registra un deploy. |
 
 ## Evidencia interna ejecutada
 
@@ -51,6 +52,9 @@ migración nueva, comparación contra el esquema desplegado y gate propio.
 1. Checkpoint `4b4b706d` pusheado a PR 16: `npm run verify` verde, 3.749 tests
    en 421 archivos. Integrar Auth en la misma PR y repetir el gate del conjunto;
    incluir `20261004000100`, ya registrado en producción, sin reparar el journal.
+   Conjunto `a871f306`: gate local de 3.779 tests/424 archivos y CI verde;
+   Preview nueva `uxsffufotnlizjlyywog` falló por doble registro de `20260814000003`.
+   Eliminar la auto-registración del SQL y repetir la reconstrucción completa.
 2. Recrear la Preview efímera y confirmar la aplicación desde el primer archivo
    del historial corregido, sin datos ni secretos productivos copiados.
 3. Repetir ambos SQL reversibles en esa base nueva; comprobar auditorías y

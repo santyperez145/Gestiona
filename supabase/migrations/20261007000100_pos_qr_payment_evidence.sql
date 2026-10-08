@@ -114,6 +114,4 @@ BEGIN
 END;
 $guard$;
 
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20261007000100', 'pos_qr_payment_evidence') ON CONFLICT DO NOTHING;
 COMMIT;

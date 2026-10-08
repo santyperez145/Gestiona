@@ -205,7 +205,5 @@ $function$;
 REVOKE ALL ON FUNCTION public.capture_inventory_capital(uuid,date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.capture_inventory_capital(uuid,date) TO authenticated;
 
-INSERT INTO supabase_migrations.schema_migrations(version, name, statements)
-VALUES ('20261002000200', 'inventory_capital_authority', ARRAY[]::text[]) ON CONFLICT (version) DO NOTHING;
 NOTIFY pgrst, 'reload schema';
 COMMIT;

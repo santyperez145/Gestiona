@@ -60,6 +60,3 @@ BEGIN
   END IF;
 END
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000055', 'ledger_payment_source') ON CONFLICT DO NOTHING;

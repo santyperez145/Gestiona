@@ -207,7 +207,3 @@ BEGIN
 
   RAISE NOTICE 'OK: avisa al pedir y al aprobar, no al vendedor, y no en cada vista';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000210', 'lo_que_el_staff_hace_se_avisa')
-ON CONFLICT DO NOTHING;

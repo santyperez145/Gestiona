@@ -318,6 +318,3 @@ BEGIN
   RAISE NOTICE 'ZZ_OK instrumentacion de invocaciones lista';
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260826000170', 'resultado_real_de_la_invocacion') ON CONFLICT DO NOTHING;

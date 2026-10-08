@@ -183,6 +183,3 @@ BEGIN
     'creator_submit_deliverable sigue disponible para anon';
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260922000800', 'security_hardening_creator_anon') ON CONFLICT DO NOTHING;

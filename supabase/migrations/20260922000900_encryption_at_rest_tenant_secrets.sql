@@ -275,6 +275,3 @@ BEGIN
   ASSERT v_en_claro = 0, format('quedan %s contrasenas SMTP sin cifrar', v_en_claro);
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260922000900', 'encryption_at_rest_tenant_secrets') ON CONFLICT DO NOTHING;

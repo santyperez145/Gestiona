@@ -79,6 +79,3 @@ BEGIN
     format('quedan %s funciones SECURITY DEFINER sin search_path fijado', v_sin_path);
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260922001000', 'search_path_definer_hardening') ON CONFLICT DO NOTHING;

@@ -475,6 +475,3 @@ SELECT
   +
   (SELECT count(*) FROM public.platform_commission_rules WHERE change_reason LIKE 'ZZ %')
   AS commission_approval_remainders;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000058', 'commission_approval_gate') ON CONFLICT DO NOTHING;

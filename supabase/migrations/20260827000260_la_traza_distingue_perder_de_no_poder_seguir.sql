@@ -166,7 +166,3 @@ BEGIN
     'aparecieron cobros nuevos sin enlace a su venta: ' || v_sin_traza
     || '. mark_store_order_paid dejó de guardar ecommerce_order_id.';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000260', 'la_traza_distingue_perder_de_no_poder_seguir')
-ON CONFLICT DO NOTHING;

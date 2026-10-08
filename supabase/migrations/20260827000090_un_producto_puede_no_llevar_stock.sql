@@ -310,7 +310,3 @@ BEGIN
 
   RAISE NOTICE 'OK: el servicio no se mueve, el producto sí, sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000090', 'un_producto_puede_no_llevar_stock')
-ON CONFLICT DO NOTHING;
