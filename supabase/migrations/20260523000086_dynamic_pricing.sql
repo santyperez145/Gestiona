@@ -41,21 +41,8 @@ CREATE TABLE IF NOT EXISTS dynamic_price_events (
   revenue_impact  numeric(14,2) GENERATED ALWAYS AS (ROUND((adjusted_price - original_price) * units_sold, 2)) STORED
 );
 
-CREATE TABLE IF NOT EXISTS demand_signals (
-  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  product_id      uuid        NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  signal_date     date        NOT NULL,
-  views_count     int         NOT NULL DEFAULT 0,
-  cart_adds       int         NOT NULL DEFAULT 0,
-  searches        int         NOT NULL DEFAULT 0,
-  orders          int         NOT NULL DEFAULT 0,
-  demand_score    numeric(5,2) GENERATED ALWAYS AS (
-    ROUND((views_count * 0.1 + cart_adds * 0.5 + searches * 0.2 + orders * 2.0), 2)
-  ) STORED,
-  elasticity_est  numeric(6,4) NOT NULL DEFAULT -1.5,
-  UNIQUE (org_id, product_id, signal_date)
-);
+-- Reuse the event-grain demand_signals created by 20260523000064.
+-- Do not replace observations with an incompatible daily aggregate schema.
 
 -- Suggest optimal price based on demand elasticity
 CREATE OR REPLACE FUNCTION suggest_optimal_price(
@@ -91,7 +78,7 @@ $$;
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_dyn_rules_org      ON dynamic_price_rules(org_id, is_active, priority);
 CREATE INDEX IF NOT EXISTS idx_dyn_events_product ON dynamic_price_events(product_id, event_time DESC);
-CREATE INDEX IF NOT EXISTS idx_demand_signals_org ON demand_signals(org_id, product_id, signal_date DESC);
+CREATE INDEX IF NOT EXISTS idx_demand_signals_product ON demand_signals(org_id, product_id, detected_at DESC);
 
 -- RLS
 ALTER TABLE dynamic_price_rules  ENABLE ROW LEVEL SECURITY;

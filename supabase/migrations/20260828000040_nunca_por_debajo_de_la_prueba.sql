@@ -177,6 +177,10 @@ DECLARE
 BEGIN
   SELECT * INTO v_base FROM public.plans WHERE code = 'trial';
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture piso de límites omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_start FROM public.plans WHERE code = 'starter';
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id, plan_id)

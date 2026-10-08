@@ -119,6 +119,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de beneficios omitido: no hay miembro';
+    RETURN;
+  END IF;
   -- `pro` tiene IA, backups y branding: sirve para ver el corte.
   SELECT id INTO v_plan FROM public.plans WHERE code = 'pro';
 

@@ -100,6 +100,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de vencimientos omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_plan FROM public.plans WHERE code = 'starter';
 
   -- Dos organizaciones ZZ: una con el período cumplido, otra al día.

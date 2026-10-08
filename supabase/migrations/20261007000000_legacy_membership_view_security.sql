@@ -7,6 +7,9 @@ CREATE OR REPLACE VIEW public.org_members WITH (security_invoker = true) AS
 
 REVOKE ALL ON public.org_members FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.org_members TO authenticated, service_role;
+-- An invoker view also requires SELECT on its canonical source. Hosted grants
+-- are not part of a fresh Preview; do not fix this by reverting to definer.
+GRANT SELECT ON public.memberships TO authenticated, service_role;
 COMMENT ON VIEW public.org_members IS
   'Read-only compatibility alias. Memberships is canonical; invoker RLS applies.';
 
@@ -19,6 +22,7 @@ BEGIN
   ASSERT (SELECT 'security_invoker=true' = ANY (reloptions)
     FROM pg_class WHERE oid='public.org_members'::regclass);
   ASSERT (SELECT relrowsecurity FROM pg_class WHERE oid='public.memberships'::regclass);
+  ASSERT has_table_privilege('authenticated','public.memberships','SELECT');
 END;
 $guard$;
 

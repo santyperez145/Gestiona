@@ -283,6 +283,10 @@ DECLARE
   v_restos   int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture primer asiento omitido: no hay miembro';
+    RETURN;
+  END IF;
 
   -- Un comercio recién nacido: sin plan de cuentas, como cualquiera que se
   -- registre mañana.

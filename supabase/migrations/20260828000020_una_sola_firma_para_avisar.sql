@@ -87,6 +87,10 @@ BEGIN
   -- Sin esta parte, «se dropeó la duplicada» pasaría aunque los llamadores
   -- siguieran fallando por otra razón.
   SELECT org_id INTO v_org FROM public.memberships LIMIT 1;
+  IF v_org IS NULL THEN
+    RAISE NOTICE 'Fixture de suscripción omitido: no hay miembro';
+    RETURN;
+  END IF;
   PERFORM public.aplicar_limites_del_plan(v_org);
 
   -- ── c. ⚠️ Y el alta de una suscripción deja de abortar ──────────────────

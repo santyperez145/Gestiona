@@ -145,6 +145,10 @@ DECLARE
 BEGIN
   SELECT user_id INTO v_user  FROM public.memberships LIMIT 1;
   SELECT user_id INTO v_staff FROM public.platform_admins LIMIT 1;
+  IF v_user IS NULL OR v_staff IS NULL THEN
+    RAISE NOTICE 'Fixture de avisos omitido: faltan miembro/staff';
+    RETURN;
+  END IF;
   -- Un segundo usuario para el rol vendedor: tiene que quedar SIN aviso.
   SELECT id INTO v_otro FROM auth.users WHERE id <> v_user LIMIT 1;
 

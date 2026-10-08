@@ -64,6 +64,13 @@ DECLARE
 BEGIN
   SELECT p.org_id INTO v_org FROM public.products p
    GROUP BY p.org_id ORDER BY count(*) DESC LIMIT 1;
+  SELECT count(*) INTO v_n FROM public.marketing_posts;
+  ASSERT v_n = 0,
+    'marketing_posts tiene ' || v_n || ' filas: hay que migrarlas antes de deprecarla';
+  IF v_org IS NULL THEN
+    RAISE NOTICE 'Fixture social omitido: no hay organización con productos';
+    RETURN;
+  END IF;
 
   -- 1. La columna existe y su default no marca todo como IA.
   INSERT INTO public.social_posts (org_id, title, content, status)

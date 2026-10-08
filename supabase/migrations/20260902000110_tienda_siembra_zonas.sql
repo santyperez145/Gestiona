@@ -100,7 +100,8 @@ DECLARE
 BEGIN
   SELECT user_id INTO v_usr FROM public.memberships LIMIT 1;
   IF v_usr IS NULL THEN
-    RAISE EXCEPTION 'no hay un usuario de membresía para verificar el seed';
+    RAISE NOTICE 'Fixture de zonas omitido: no hay usuario de membresía';
+    RETURN;
   END IF;
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id)

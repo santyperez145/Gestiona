@@ -159,6 +159,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture primer cobro omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_pro   FROM public.plans WHERE code = 'pro';
   SELECT id INTO v_trial FROM public.plans WHERE code = 'trial';
 

@@ -7,9 +7,7 @@
 -- Created: 2026-09-03
 -- Purpose: Create finance_bank_reconciliations table and match_transactions function
 
-DROP TABLE IF EXISTS public.finance_bank_reconciliations CASCADE;
-
-CREATE TABLE public.finance_bank_reconciliations (
+CREATE TABLE IF NOT EXISTS public.finance_bank_reconciliations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   bank_transaction_id UUID REFERENCES public.bank_transactions(id) ON DELETE SET NULL,
@@ -24,8 +22,17 @@ CREATE TABLE public.finance_bank_reconciliations (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_finance_bank_reconciliations_org_date ON public.finance_bank_reconciliations(org_id, transaction_date);
-CREATE INDEX idx_finance_bank_reconciliations_org_status ON public.finance_bank_reconciliations(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_finance_bank_reconciliations_org_date ON public.finance_bank_reconciliations(org_id, transaction_date);
+CREATE INDEX IF NOT EXISTS idx_finance_bank_reconciliations_org_status ON public.finance_bank_reconciliations(org_id, status);
+
+ALTER TABLE public.finance_bank_reconciliations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.finance_bank_reconciliations FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.finance_bank_reconciliations TO authenticated;
+GRANT ALL ON public.finance_bank_reconciliations TO service_role;
+DROP POLICY IF EXISTS finance_bank_reconciliations_read ON public.finance_bank_reconciliations;
+CREATE POLICY finance_bank_reconciliations_read ON public.finance_bank_reconciliations
+  FOR SELECT TO authenticated
+  USING (public.has_permission(org_id, 'expenses', 'view'));
 
 ALTER TABLE public.bank_transactions ADD COLUMN IF NOT EXISTS reconciliation_id UUID REFERENCES public.finance_bank_reconciliations(id) ON DELETE SET NULL;
 

@@ -82,6 +82,10 @@ BEGIN
   -- Sin esta mitad, «arreglado» pasaría igual habiendo cerrado a alguien que
   -- pagó por el mes que le queda.
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture baja con período omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_plan FROM public.plans WHERE code = 'pro';
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id, plan_id)

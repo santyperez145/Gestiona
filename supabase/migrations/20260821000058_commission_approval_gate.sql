@@ -406,7 +406,8 @@ BEGIN
   WHERE role = 'superadmin'
   LIMIT 1;
   IF v_actor IS NULL THEN
-    RAISE EXCEPTION 'No platform superadmin available for commission verification';
+    RAISE NOTICE 'Commission fixture omitted: no platform superadmin in this environment';
+    RETURN;
   END IF;
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id)

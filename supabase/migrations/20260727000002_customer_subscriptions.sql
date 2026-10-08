@@ -109,6 +109,9 @@ CREATE POLICY "admin write sub_invoices" ON public.subscription_invoices FOR ALL
 -- ============================================================================
 -- renew_subscription: avanza el período y emite la factura del ciclo
 -- ============================================================================
+-- The earlier prototype returns void and uses a different argument name.
+-- PostgreSQL requires an explicit replacement for this public contract change.
+DROP FUNCTION IF EXISTS public.renew_subscription(UUID);
 CREATE OR REPLACE FUNCTION public.renew_subscription(p_subscription_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
@@ -175,4 +178,5 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.renew_subscription(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.renew_subscription(UUID) TO authenticated;

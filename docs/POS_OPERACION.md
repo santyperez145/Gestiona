@@ -1,7 +1,7 @@
 # POS operativo — piloto de ferretería
 
 **Estado:** contrato y matriz de cierre, no certificación comercial.
-**Corte:** 2026-10-07. **Owner:** Producto / Operación / CTO.
+**Corte:** 2026-10-08. **Owner:** Producto / Operación / CTO.
 
 ## Propósito y autoridades
 
@@ -86,10 +86,12 @@ clientes apuntan a `suppliers`/`customers`; defaults criptográficos resuelven
 `extensions`, sin depender del search path. No se despliegan esos históricos
 sobre datos productivos. La reconstrucción completa sigue abierta: no reparar
 versiones, resetear producción ni omitir el check para salvar el POS.
-Replay incremental de la Preview alcanzó `20260523000057`; `000060` aún indexa
-`audit_logs.severity` antes de incorporar los campos enriquecidos. Gate pendiente:
-resolver esa expansión y reconstruir una Preview nueva con todos los históricos
-corregidos; la continuación parcial no prueba una instalación desde cero.
+Replay incremental del 2026-10-08 alcanzó `20261007000100`; se resolvieron
+expansiones de auditoría, dependencias, identidades, RLS y fixtures ligados a
+datos productivos. Pruebas reversibles de QR/alias verdes y auditorías sin
+hallazgos, cero usuarios/organizaciones residuales. [Evidencia y límites del
+replay](MIGRATION_REPLAY.md): falta reconstruir una Preview nueva desde cero;
+la continuación parcial no permite omitir el check ni promover el release.
 
 La revisión detectó además `org_members` sólo en la base alojada, como vista
 definer con grants de lectura/escritura al navegador. `20261007000000` sí se
@@ -101,8 +103,9 @@ Eso no habilita por sí solo el release POS ni certifica todos los controles.
 
 `supabase/verificaciones/20261007_pos_qr_payment_evidence.sql` es reversible:
 nueve pruebas inválidas, cierre válido, duplicado, evento vencido, refund y
-snapshot viejo, ACL y rollback con cero restos. Fue ejecutado con el guard dentro
-de rollback sobre la base vinculada. No cobró dinero ni llamó a MP.
+snapshot viejo, ACL y rollback con cero restos. Ejecutado con el guard dentro
+de rollback sobre la base vinculada y, el 2026-10-08, en Preview incremental
+con actor propio. No cobró dinero ni llamó a MP.
 Unit tests ejecutan el helper de Orders y el cargador/impresor con fuentes
 controladas; comprobar ticket íntegro, XSS, deuda, tenant y error sin recobro.
 E2E `pos-checkout.spec.ts` usa red totalmente interceptada: QR nuevo pendiente

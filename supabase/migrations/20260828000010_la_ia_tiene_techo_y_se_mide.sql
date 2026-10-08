@@ -326,6 +326,10 @@ BEGIN
         OR (t.custom_branding AND NOT p.custom_branding) );
   ASSERT v_peor = 0,
     v_peor || ' plan(es) pago(s) ofrecen menos capacidades que el trial gratis';
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de consumo IA omitido: no hay miembro';
+    RETURN;
+  END IF;
 
   -- ── b. Un comercio nuevo tiene cupo, y arranca sin consumo ──────────────
   INSERT INTO public.organizations (id, name, slug, owner_user_id, plan_id)

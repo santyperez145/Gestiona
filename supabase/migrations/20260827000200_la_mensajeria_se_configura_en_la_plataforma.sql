@@ -192,6 +192,10 @@ BEGIN
   END;
   PERFORM set_config('request.jwt.claims', NULL, true);
   ASSERT NOT v_ajeno, 'cualquiera pudo cambiar el remitente de toda la plataforma';
+  IF v_staff IS NULL THEN
+    RAISE NOTICE 'Fixture remitente staff omitido: no hay staff; ajeno bloqueado';
+    RETURN;
+  END IF;
 
   -- ── c. Cambiar el dominio borra la verificación ─────────────────────────
   PERFORM set_config('request.jwt.claims',

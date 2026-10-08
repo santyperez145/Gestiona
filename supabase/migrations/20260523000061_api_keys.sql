@@ -52,21 +52,8 @@ CREATE TABLE IF NOT EXISTS webhooks_advanced (
   created_at      timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS webhook_deliveries (
-  id              bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  webhook_id      uuid        NOT NULL REFERENCES webhooks_advanced(id) ON DELETE CASCADE,
-  org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  event_type      text        NOT NULL,
-  payload         jsonb       NOT NULL DEFAULT '{}',
-  status          text        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','delivered','failed','retrying')),
-  attempt_count   int         NOT NULL DEFAULT 0,
-  next_retry_at   timestamptz,
-  response_code   int,
-  response_body   text,
-  error_message   text,
-  created_at      timestamptz NOT NULL DEFAULT now(),
-  delivered_at    timestamptz
-);
+-- Reuse webhook_deliveries from 20260506040000 / 20260523000017.
+-- Delivery state is the canonical delivered boolean, not a second status model.
 
 -- API usage stats per key
 CREATE OR REPLACE FUNCTION get_api_key_stats(p_api_key_id uuid, p_days int DEFAULT 30)
@@ -95,7 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_org        ON api_keys(org_id, is_active
 CREATE INDEX IF NOT EXISTS idx_api_usage_key_ts    ON api_key_usage_logs(api_key_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_api_usage_org_ts    ON api_key_usage_logs(org_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_webhooks_adv_org    ON webhooks_advanced(org_id, is_active);
-CREATE INDEX IF NOT EXISTS idx_webhook_deliveries  ON webhook_deliveries(webhook_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries  ON webhook_deliveries(webhook_id, delivered, created_at DESC);
 
 -- RLS
 ALTER TABLE api_keys           ENABLE ROW LEVEL SECURITY;

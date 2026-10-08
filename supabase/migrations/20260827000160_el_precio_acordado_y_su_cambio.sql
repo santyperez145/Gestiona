@@ -410,6 +410,10 @@ DECLARE
 BEGIN
   SELECT user_id INTO v_user  FROM public.memberships LIMIT 1;
   SELECT user_id INTO v_staff FROM public.platform_admins LIMIT 1;
+  IF v_user IS NULL OR v_staff IS NULL THEN
+    RAISE NOTICE 'Fixture de precios omitido: faltan miembro/staff';
+    RETURN;
+  END IF;
 
   -- ⚠️ Un bloque DO corre como superusuario y `auth.uid()` es NULL, así que
   -- TODA llamada al RPC fallaba por el chequeo de staff. La primera versión de

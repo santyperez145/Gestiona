@@ -110,6 +110,10 @@ DECLARE
 BEGIN
   SELECT org_id, delegacion_verificada INTO v_org, v_antes
     FROM public.afip_credentials LIMIT 1;
+  IF v_org IS NULL THEN
+    RAISE NOTICE 'Fixture de estado AFIP omitido: sin credenciales de comercio';
+    RETURN;
+  END IF;
 
   -- ── a. Marcar OK escribe ────────────────────────────────────────────────
   PERFORM public.afip_marcar_delegacion(v_org, true, NULL);

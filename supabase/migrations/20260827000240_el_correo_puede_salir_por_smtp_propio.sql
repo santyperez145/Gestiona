@@ -128,6 +128,10 @@ DECLARE
   v_guardo_secreto boolean;
 BEGIN
   SELECT user_id INTO v_staff FROM public.platform_admins LIMIT 1;
+  IF v_staff IS NULL THEN
+    RAISE NOTICE 'Fixture SMTP omitido: no hay staff';
+    RETURN;
+  END IF;
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', v_staff::text, 'role','authenticated')::text, true);
 

@@ -894,6 +894,10 @@ BEGIN
     'quedan ' || v_filas || ' RPC que mueven stock o plata sin exigir permiso';
 
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de permisos omitido: no hay miembro de organización';
+    RETURN;
+  END IF;
   INSERT INTO public.organizations (id, name, slug, owner_user_id)
   VALUES (v_org, 'ZZ verificacion permisos',
           'zz-verif-' || substr(v_org::text, 1, 8), v_user);

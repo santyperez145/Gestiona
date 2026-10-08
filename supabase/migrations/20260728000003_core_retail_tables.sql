@@ -146,6 +146,16 @@ CREATE TABLE IF NOT EXISTS public.product_bundle_items (
 );
 
 -- ── Seguimientos de CRM ─────────────────────────────────────────────────────
+-- May's component table has no tenant column. Derive it from its existing
+-- bundle before the common RLS policy reads org_id; do not guess the owner.
+ALTER TABLE public.product_bundle_items
+  ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES public.organizations(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+UPDATE public.product_bundle_items item SET org_id = parent.org_id
+  FROM public.product_bundles parent
+  WHERE item.bundle_id = parent.id AND item.org_id IS NULL;
+ALTER TABLE public.product_bundle_items ALTER COLUMN org_id SET NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.crm_followups (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id         UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,

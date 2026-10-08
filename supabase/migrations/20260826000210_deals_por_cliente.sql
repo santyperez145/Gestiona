@@ -56,6 +56,15 @@ BEGIN
   SELECT m.user_id INTO v_user FROM public.memberships m
    WHERE m.org_id = v_org AND m.role IN ('owner','admin') LIMIT 1;
 
+  SELECT count(*) INTO v_n
+    FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+   WHERE NOT t.tgisinternal AND p.proname = 'trg_sales_link_customer';
+  ASSERT v_n = 6, 'esperaba 6 tablas enlazadas, hay ' || v_n;
+  IF v_org IS NULL OR v_user IS NULL THEN
+    RAISE NOTICE 'Fixture CRM omitido: no hay organización/miembro con productos';
+    RETURN;
+  END IF;
+
   INSERT INTO public.customers (org_id, user_id, name)
   VALUES (v_org, v_user, 'ZZ Cliente De Prueba') RETURNING id INTO v_cli;
 

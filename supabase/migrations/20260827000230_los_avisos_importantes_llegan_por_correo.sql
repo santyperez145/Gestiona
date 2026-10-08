@@ -240,6 +240,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture correo trial omitido: no hay miembro';
+    RETURN;
+  END IF;
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id, trial_ends_at)
   VALUES (v_org, 'ZZ trial', 'zz-tr-'||substr(v_org::text,1,8), v_user,

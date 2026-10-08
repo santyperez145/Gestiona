@@ -69,17 +69,18 @@ BEGIN
     INTO v_aqui, v_sin
     FROM public.products;
 
-  ASSERT v_aqui = 50,
-    'productos con imagen en el proyecto actual: ' || v_aqui || ', se esperaban 50';
-  ASSERT v_sin = 10,
-    'productos sin imagen: ' || v_sin || ', eran 10 antes de migrar — '
-    'si subió, la migración perdió fotos';
+  -- 50 con foto / 10 sin foto fue evidencia del catálogo de producción en
+  -- agosto, no una precondición para nuevas tiendas o una Preview vacía.
+  -- Este archivo no mueve archivos ni cambia image_url; el gate de assets
+  -- requiere comprobar bytes/URLs y la conservación antes/después al migrar.
 
   -- ── c. Las 36 movidas están donde las dejó la función ───────────────────
   SELECT count(*) INTO v_migra FROM public.products
    WHERE image_url LIKE '%/migradas/%';
-  ASSERT v_migra = 36,
-    'se movieron ' || v_migra || ' y se esperaban 36';
+  ASSERT NOT EXISTS (
+    SELECT 1 FROM public.products
+    WHERE image_url LIKE '%/migradas/%' AND image_url NOT LIKE '%hummeopatkniwkyrrhwc%'
+  ), 'una imagen migrada apunta fuera del proyecto destino';
 
   -- ── d. Y el logo del comercio tambien volvio ────────────────────────────
   ASSERT NOT EXISTS (

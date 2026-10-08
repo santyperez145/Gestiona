@@ -181,7 +181,7 @@ cobro; no invita a cambiar el medio y duplicar dinero. Preferencia de impresión
 como switch accesible por usuario/dispositivo, ticket persistido y reimpresión
 del cobro recuperado. Ticket comercial, deuda/offline y factura ARCA se distinguen.
 Sin gradiente decorativo; ocho E2E y Axe del aviso recuperado verdes. Gate abierto:
-release Preview/autoridades ERP, scanner/teclado/impresora real y turno de ferretería.
+Preview nueva ([replay 08/10](docs/MIGRATION_REPLAY.md)), autoridad ERP e impresión/turno reales.
 La matriz funcional y el orden de cierre viven en [POS](docs/POS_OPERACION.md).
 
 1. Auditar páginas que todavía usan cards largas o tabs locales no persistidas.

@@ -159,6 +159,8 @@ END $$;
 -- Catálogo público. Los precios de decant vienen YA CALCULADOS: antes el
 -- navegador recibía total_cost_usd y los márgenes para hacer la cuenta del
 -- lado del cliente, o sea que publicaba el costo de cada producto.
+-- Hosted schema had this nullable offer field without a versioned ALTER.
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS price_2x_ars numeric;
 DROP VIEW IF EXISTS public.catalog_products;
 CREATE VIEW public.catalog_products AS
 SELECT

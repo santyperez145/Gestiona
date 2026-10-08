@@ -1,6 +1,6 @@
 # Índice de documentación
 
-**Estado:** canónico. **Revisión:** 2026-10-07. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-08. **Owner:** Producto / CTO.
 
 Este índice enumera los documentos vigentes. ROADMAP describe presente y futuro;
 Git conserva auditorías, evidencia e incidentes cerrados. No se versionan dumps
@@ -82,6 +82,7 @@ los reemplaza con otro ADR.
 - [Soporte diagnóstico](SOPORTE_DIAGNOSTICO.md): triage y operación.
 - [Restore](RESTORE.md): recuperación y drills.
 - [Release recovery](RELEASE_RECOVERY.md): rollback/promoción protegidos y límites.
+- [Instalación reproducible](MIGRATION_REPLAY.md): replay, fixtures, permisos y gate de Preview nueva; sin reset productivo.
 - [Apps nativas](APPS_NATIVAS.md): Tauri, auth/deep links, toolchains, firma y distribución.
 
 ## Política documental

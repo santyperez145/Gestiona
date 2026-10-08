@@ -86,7 +86,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; 2026-10-04: ambas homes siguen en Google y el sitemap XML para bots quedó corregido/verificado en producción (`a4f2f9bb`). | Aceptación/cobertura actual en Search Console; pago/fulfillment y conversión de campo. [Evidencia SEO](docs/SEO_INDEXACION.md). |
 | Migración | Worker Excel/CSV, mapeo/moneda, hasta 50.000 filas; sesión reanudable por lotes sobre staging/apply existentes, Kardex, variantes, clientes, imágenes y redirects. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
-| Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo desde documento persistido. | ARCA A/B/C y NC, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
+| Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo persistido. | ND asociada a factura y saldo/IVA; ARCA A/B/C/NC/ND, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
 | Finance | Inbox, aprobación versionada, comprometido/disponible, reembolsos/anticipos, dimensiones, conciliación CSV y export del ledger. | Documento y cierre reales; feeds de tarjetas externas y controles; [contrato](docs/FINANCE.md). |
 | Profit | Hechos por producto/SKU/canal/tienda; capital FIFO registrado en Kardex, capas/rotación, export y cierres org/día. Agregados completos, permisos y detalle paginado. | Adquisiciones/retornos con costo completo, conciliación física, primera operación explicable y decisión adoptada; Ads después. |
 | Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
@@ -121,7 +121,7 @@ sigue abierto como certificación operacional.
   de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
   idempotencia/refund y cero restos; no certifica dinero/hardware/ARCA reales.
   Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
-- Release 2026-10-07: [alias RLS](docs/SEGURIDAD.md) cerrado en producción; compatibilidad ERP/gramática PG17 corregidas, Preview aún abierta.
+- Release 2026-10-08: [alias RLS](docs/SEGURIDAD.md) productivo; replay incremental completo y QR/roles reversibles verdes. [Gate de Preview nueva y ramas archivadas](docs/MIGRATION_REPLAY.md) pendiente antes de `main`.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.

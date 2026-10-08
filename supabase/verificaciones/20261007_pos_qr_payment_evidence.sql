@@ -5,7 +5,7 @@ DO $proof$
 DECLARE
   v_org uuid := gen_random_uuid();
   v_product uuid := gen_random_uuid();
-  v_user uuid;
+  v_user uuid := gen_random_uuid();
   v_session uuid;
   v_order text;
   v_proof jsonb;
@@ -14,8 +14,10 @@ DECLARE
   v_ticket uuid;
   v_denied boolean := false;
 BEGIN
-  SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
-  ASSERT v_user IS NOT NULL, 'No fixture actor available';
+  -- Self-contained actor: this proof also runs after an empty Preview replay.
+  INSERT INTO auth.users(id,email,raw_user_meta_data)
+    VALUES(v_user,'zz-qr-actor-' || v_user::text || '@example.invalid',
+      '{"name":"ZZ QR evidence actor","account_type":"store_customer"}');
   INSERT INTO public.organizations(id,name,slug,owner_user_id)
     VALUES(v_org,'ZZ QR evidence','zz-qr-evidence-' || v_org::text,v_user);
   INSERT INTO public.memberships(org_id,user_id,role) VALUES(v_org,v_user,'owner');
@@ -93,3 +95,4 @@ $proof$;
 SELECT * FROM zz_qr_evidence_checks;
 ROLLBACK;
 SELECT count(*) AS residual_organizations FROM public.organizations WHERE slug LIKE 'zz-qr-evidence-%';
+SELECT count(*) AS residual_users FROM auth.users WHERE email LIKE 'zz-qr-actor-%@example.invalid';

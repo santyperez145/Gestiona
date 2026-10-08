@@ -136,7 +136,7 @@ BEGIN
     SELECT m.id,
            row_number() OVER (
              ORDER BY (m.role::text = 'owner') DESC,
-                      COALESCE(m.joined_at, m.created_at) ASC,
+                      m.joined_at ASC,
                       m.id ASC
            ) AS puesto
       FROM public.memberships m

@@ -144,6 +144,10 @@ BEGIN
   SELECT o.id INTO v_org FROM public.organizations o
    ORDER BY (SELECT count(*) FROM public.ledger_accounts a WHERE a.org_id = o.id) DESC LIMIT 1;
   SELECT m.user_id INTO v_user FROM public.memberships m WHERE m.org_id = v_org LIMIT 1;
+  IF v_org IS NULL OR v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de cobranza omitido: no hay organización/miembro';
+    RETURN;
+  END IF;
 
   -- 1. Con las históricas asentadas, Deudores del libro tiene que netear cero:
   --    las 3 ventas fiado entraron por el debe y las 3 cobranzas por el haber.

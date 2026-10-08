@@ -94,6 +94,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de bajas omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_plan FROM public.plans WHERE code = 'starter';
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id) VALUES

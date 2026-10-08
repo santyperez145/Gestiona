@@ -45,6 +45,13 @@
 -- El Ticket de Acceso también se limpia: era el de la fila del comercio, y en
 -- modo delegado el TA es uno solo y vive en `afip_platform_credentials`. Dejar
 -- el viejo haría que se reusara un ticket que no corresponde a ese certificado.
+DO $preserve_platform_credentials$
+DECLARE
+  v_before jsonb;
+  v_after jsonb;
+BEGIN
+  SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) INTO v_before
+    FROM public.afip_platform_credentials p;
 UPDATE public.afip_credentials
    SET certificate   = NULL,
        private_key   = NULL,
@@ -55,6 +62,12 @@ UPDATE public.afip_credentials
  WHERE certificate IS NOT NULL
     OR private_key IS NOT NULL
     OR modo IS DISTINCT FROM 'delegado';
+  SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) INTO v_after
+    FROM public.afip_platform_credentials p;
+  ASSERT v_before IS NOT DISTINCT FROM v_after,
+    'se modificaron credenciales de plataforma al cerrar el modo propio';
+END
+$preserve_platform_credentials$;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 2. Que no pueda volver
@@ -108,8 +121,17 @@ BEGIN
   -- verificación en verde — y nadie podría facturar.
   SELECT count(*) INTO v_plat FROM public.afip_platform_credentials
    WHERE certificate IS NOT NULL AND private_key IS NOT NULL;
-  ASSERT v_plat > 0,
-    'la plataforma se quedo SIN certificado: nadie puede facturar';
+  -- Las credenciales de este entorno se comparan arriba; una Preview nueva
+  -- no debe recibir un certificado real para instalar el esquema.
+  ASSERT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.afip_credentials'::regclass
+      AND conname = 'afip_credentials_sin_certificado_propio' AND convalidated
+  ), 'la constraint de certificados propios no quedó validada';
+  IF NOT EXISTS (SELECT 1 FROM public.afip_credentials) THEN
+    RAISE NOTICE 'Fixture constraint AFIP omitido: sin credenciales de comercio';
+    RETURN;
+  END IF;
 
   -- ── c. La constraint frena de verdad ────────────────────────────────────
   BEGIN

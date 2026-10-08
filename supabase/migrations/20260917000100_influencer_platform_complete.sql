@@ -2,6 +2,11 @@
 -- Fecha: 2026-09-17
 -- Descripción: Tablas completas para contratos con influencers, tracking de entregables, liquidaciones y portal de marca
 
+BEGIN;
+-- Bootstrap only. The 20260921000110 recovery installs the canonical
+-- can_manage_influencers contracts once the entitlement helper exists.
+-- Never infer delivered work or duplicate payouts from historical canjes.
+
 -- ============================================
 -- CONTRATOS CON INFLUENCERS
 -- ============================================
@@ -67,7 +72,7 @@ CREATE TABLE IF NOT EXISTS public.influencer_payments (
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   completed_at TIMESTAMPTZ,
-  created_by UUID REFERENCES public.users(id) ON DELETE SET NULL
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_payments_org ON public.influencer_payments(org_id);
@@ -112,7 +117,8 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+REVOKE ALL ON FUNCTION public.set_updated_at() FROM PUBLIC, anon, authenticated;
 
 DROP TRIGGER IF EXISTS trg_contracts_updated ON public.influencer_contracts;
 CREATE TRIGGER trg_contracts_updated BEFORE UPDATE ON public.influencer_contracts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -131,62 +137,11 @@ ALTER TABLE public.influencer_deliverables ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.influencer_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.brand_portal_profiles ENABLE ROW LEVEL SECURITY;
 
--- Contratos: solo miembros de la org pueden ver/editar
-CREATE POLICY "Contracts - Read" ON public.influencer_contracts FOR SELECT USING (org_id = public.current_org_id());
-CREATE POLICY "Contracts - Insert" ON public.influencer_contracts FOR INSERT WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "Contracts - Update" ON public.influencer_contracts FOR UPDATE USING (org_id = public.current_org_id());
-CREATE POLICY "Contracts - Delete" ON public.influencer_contracts FOR DELETE USING (org_id = public.current_org_id());
+-- Deny browser access until the reviewed recovery policies are installed.
+REVOKE ALL ON public.influencer_contracts, public.influencer_deliverables,
+  public.influencer_payments, public.brand_portal_profiles
+  FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.influencer_contracts, public.influencer_deliverables,
+  public.influencer_payments, public.brand_portal_profiles TO service_role;
 
--- Entregables: solo miembros de la org
-CREATE POLICY "Deliverables - Read" ON public.influencer_deliverables FOR SELECT USING (org_id = public.current_org_id());
-CREATE POLICY "Deliverables - Insert" ON public.influencer_deliverables FOR INSERT WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "Deliverables - Update" ON public.influencer_deliverables FOR UPDATE USING (org_id = public.current_org_id());
-CREATE POLICY "Deliverables - Delete" ON public.influencer_deliverables FOR DELETE USING (org_id = public.current_org_id());
-
--- Pagos: solo miembros de la org
-CREATE POLICY "Payments - Read" ON public.influencer_payments FOR SELECT USING (org_id = public.current_org_id());
-CREATE POLICY "Payments - Insert" ON public.influencer_payments FOR INSERT WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "Payments - Update" ON public.influencer_payments FOR UPDATE USING (org_id = public.current_org_id());
-CREATE POLICY "Payments - Delete" ON public.influencer_payments FOR DELETE USING (org_id = public.current_org_id());
-
--- Brand Portal: solo miembros de la org
-CREATE POLICY "Portal - Read" ON public.brand_portal_profiles FOR SELECT USING (org_id = public.current_org_id());
-CREATE POLICY "Portal - Insert" ON public.brand_portal_profiles FOR INSERT WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "Portal - Update" ON public.brand_portal_profiles FOR UPDATE USING (org_id = public.current_org_id());
-CREATE POLICY "Portal - Delete" ON public.brand_portal_profiles FOR DELETE USING (org_id = public.current_org_id());
-
--- ============================================
--- MIGRAR DATOS EXISTENTES (si los hay)
--- ============================================
--- Migrar exchanges como entregables si corresponde
-INSERT INTO public.influencer_deliverables (org_id, influencer_id, influencer_name, campaign_name, description, due_date, status, created_at)
-SELECT DISTINCT
-  org_id,
-  NULL,
-  influencer_name,
-  'Canje registrado',
-  'Producto: ' || product_name,
-  created_at::date + interval '7 days',
-  CASE WHEN status = 'publicado' THEN 'completado' ELSE 'en_progreso' END,
-  created_at
-FROM public.influencer_exchanges
-WHERE org_id NOT IN (SELECT org_id FROM public.influencer_deliverables)
-ON CONFLICT DO NOTHING;
-
--- Migrar payouts como pagos
-INSERT INTO public.influencer_payments (org_id, influencer_id, influencer_name, amount, currency, payment_method, status, period_start, period_end, created_at, completed_at)
-SELECT
-  org_id,
-  influencer_id,
-  influencer_name,
-  amount_ars,
-  'ARS',
-  'transfer',
-  CASE WHEN status = 'paid' THEN 'completed' ELSE 'pending' END,
-  NULL,
-  NULL,
-  created_at,
-  CASE WHEN status = 'paid' THEN paid_at ELSE NULL END
-FROM public.influencer_payouts
-WHERE org_id NOT IN (SELECT org_id FROM public.influencer_payments)
-ON CONFLICT DO NOTHING;
+COMMIT;

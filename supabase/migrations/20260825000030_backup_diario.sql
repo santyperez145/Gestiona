@@ -54,6 +54,12 @@ DO $blk$
 DECLARE v_sched text;
 BEGIN
   SELECT schedule INTO v_sched FROM cron.job WHERE jobname = 'daily-org-backups';
+  IF v_sched IS NULL AND NOT EXISTS (
+    SELECT 1 FROM vault.decrypted_secrets WHERE name = 'BACKUP_CRON_SECRET'
+  ) THEN
+    RAISE NOTICE 'Backup no configurado: falta BACKUP_CRON_SECRET; no se prueba ejecución operativa';
+    RETURN;
+  END IF;
   IF v_sched IS DISTINCT FROM '30 3 * * *' THEN
     RAISE EXCEPTION 'El backup diario quedó en %, no en 30 3 * * *', COALESCE(v_sched, '(inexistente)');
   END IF;

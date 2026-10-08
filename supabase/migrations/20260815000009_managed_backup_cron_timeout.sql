@@ -78,6 +78,7 @@ $cron$;
 DO $$
 DECLARE
   v_job_count integer;
+  v_expected_jobs integer;
 BEGIN
   IF to_regprocedure('public.invoke_edge_function_with_secret_timeout(text,text,text,integer)') IS NULL THEN
     RAISE EXCEPTION 'No se creó el helper con timeout para backups';
@@ -87,8 +88,11 @@ BEGIN
     RAISE EXCEPTION 'El helper de backup no puede ser ejecutable desde el navegador';
   END IF;
   SELECT count(*) INTO v_job_count FROM cron.job WHERE jobname = 'weekly-org-backups';
-  IF v_job_count <> 1 THEN
-    RAISE EXCEPTION 'Se esperaba un cron weekly-org-backups y hay %', v_job_count;
+  SELECT CASE WHEN EXISTS (
+    SELECT 1 FROM vault.decrypted_secrets WHERE name = 'BACKUP_CRON_SECRET'
+  ) THEN 1 ELSE 0 END INTO v_expected_jobs;
+  IF v_job_count <> v_expected_jobs THEN
+    RAISE EXCEPTION 'Cron weekly-org-backups no coincide con Vault: esperado %, encontrado %', v_expected_jobs, v_job_count;
   END IF;
 END;
 $$;

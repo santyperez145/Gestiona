@@ -16,7 +16,7 @@ const root = process.cwd();
 const page = readFileSync(resolve(root, "src/pages/CreatorDiscoveryPage.tsx"), "utf8");
 const db = readFileSync(resolve(root, "src/lib/influencersDB.ts"), "utf8");
 const migration = readFileSync(
-  resolve(root, "supabase/migrations/20260925002100_influencer_creator_reputation.sql"),
+  resolve(root, "supabase/migrations/20260925001900_influencer_social_metric_reports.sql"),
   "utf8",
 );
 
@@ -58,5 +58,7 @@ describe("descubrimiento con reputación verificada — elegir con datos, no a c
     expect(migration).toContain("delivery_date <= d.due_date");
     expect(migration).toContain("FROM public.influencer_publication_proofs");
     expect(migration).toContain("p.verified_by IS NOT NULL");
+    expect(migration).toContain("verified_metrics boolean");
+    expect(migration).toContain("last_verified_at timestamptz");
   });
 });

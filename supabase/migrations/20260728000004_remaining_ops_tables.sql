@@ -225,7 +225,12 @@ END;
 $$;
 
 -- Resumen de auditoría por entidad/acción en un rango.
-CREATE OR REPLACE FUNCTION public.get_audit_summary(p_org_id uuid, p_from timestamptz, p_to timestamptz)
+-- Retain the optional range from May; CREATE OR REPLACE cannot remove defaults.
+CREATE OR REPLACE FUNCTION public.get_audit_summary(
+  p_org_id uuid,
+  p_from timestamptz DEFAULT now() - interval '30 days',
+  p_to timestamptz DEFAULT now()
+)
 RETURNS TABLE (entity_type text, action text, event_count bigint, unique_users bigint, last_event timestamptz)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT a.entity_type, a.action,
