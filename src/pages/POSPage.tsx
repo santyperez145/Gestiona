@@ -72,6 +72,7 @@ import {
   POS_QR_RETRYABLE_TERMINAL_STATES,
   POS_QR_TERMINAL_STATES,
   posQrFailureCopy,
+  posQrFiscalResult,
   type PosQrPhase,
   type PosQrSession,
   type PosQrSetupPayload,
@@ -120,6 +121,7 @@ interface QrCheckoutContext {
   error: string | null;
   /** Sesión encontrada al volver a Caja: jamás debe vaciar el carrito actual. */
   recovered?: boolean;
+  requestInvoice?: boolean;
 }
 
 interface PosCashSessionStatus {
@@ -2096,7 +2098,7 @@ export default function POSPage() {
     }));
     await finishOnlineSaleUi(soldItems, checkout.saleIds, "QR Mercado Pago", Number(session.amount), {
       transactionId: session.sale_transaction_id ?? null,
-      invoice: wantArcaInvoice && session.sale_transaction_id
+      invoice: session.invoice_requested !== undefined ? posQrFiscalResult(session) : wantArcaInvoice && session.sale_transaction_id
         ? await emitirFacturaDelTicket(session.sale_transaction_id)
         : null,
     });
@@ -2115,6 +2117,7 @@ export default function POSPage() {
         orgId: activeOrg.id,
         clientKey: checkout.clientKey,
         sales: checkout.transactionLines,
+        requestInvoice: checkout.requestInvoice ?? wantArcaInvoice,
       },
     });
     if (error || data?.error) {
@@ -2481,6 +2484,7 @@ export default function POSPage() {
           transactionLines,
           soldItems,
           saleIds: txSaleIds,
+          requestInvoice: wantArcaInvoice,
           session: null,
           phase: "preparing",
           error: null,
@@ -3706,6 +3710,15 @@ export default function POSPage() {
                   : qrRecoverySession.state === "manual_review" ? posQrFailureCopy(qrRecoverySession)
                   : "El carrito actual no se modifica. Retomá el mismo intento para evitar un cobro duplicado."}
               </p>
+              {qrRecoverySession.state === "completed" && qrRecoverySession.invoice_requested && (
+                <p className="mt-1 text-[11px] leading-relaxed">
+                  {qrRecoverySession.invoice?.cae
+                    ? `Factura autorizada · CAE ${qrRecoverySession.invoice.cae}`
+                    : qrRecoverySession.invoice?.invoice_id
+                      ? "Factura preparada en servidor; falta la autorización de ARCA. Un encargado puede consultar su estado."
+                      : posQrFiscalResult(qrRecoverySession)?.motivo}
+                </p>
+              )}
             </div>
             {qrRecoverySession.state === "completed" ? (
               <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
@@ -3724,6 +3737,11 @@ export default function POSPage() {
                 <Button size="sm" variant="outline" className="h-8 bg-background/80 text-[11px]" asChild>
                   <Link to="/ventas">Ver ventas</Link>
                 </Button>
+                {qrRecoverySession.invoice_requested && isAdmin && (
+                  <Button size="sm" variant="outline" className="h-8 bg-background/80 text-[11px]" asChild>
+                    <Link to="/facturas">Ver facturación</Link>
+                  </Button>
+                )}
                 <Button size="sm" className="h-8 text-[11px]" onClick={() => void dismissRecoveredQr(qrRecoverySession)}>
                   Entendido
                 </Button>

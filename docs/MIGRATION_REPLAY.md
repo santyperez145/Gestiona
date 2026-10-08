@@ -87,8 +87,13 @@ La corrección acota cada lectura inicial a 4 s, permite un segundo intento con
 signal nuevo y cancela al cambiar de tienda/salir. El agotamiento muestra error
 recuperable, no 404 ni catálogo vacío; cobros/idempotencia no cambian.
 
-Mantener gates por SHA para la corrección: puerta local completa, CI, E2E,
-Supabase Preview y Vercel. Proxy de confianza, SMTP Auth y recepción real
+PR 17 aprobó sus checks y se integró como `5ef4c3c0` el 2026-10-08; Vercel
+`dpl_GE6Fjkv7Mct8xzbTGpgx5e8TJExZ` READY con ese SHA y alias productivos.
+No cambió SQL; su check Preview quedó omitido, no prueba un nuevo replay.
+La rama se retiró tras comparar el árbol completo, con tag recuperable
+`archive/2026-10-08/codex-store-read-timeout` (`8da472a4`).
+El siguiente lote fiscal del POS mantiene su gate propio por SHA: puerta local,
+CI, E2E y SQL reversible en Preview. Proxy de confianza, SMTP Auth y recepción real
 conservan gate propio; publicar código no demuestra configurar proveedores.
 
 La continuación incremental, las suites sintéticas y un deploy Vercel no

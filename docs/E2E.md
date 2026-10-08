@@ -37,6 +37,13 @@ entrega](https://help.shopify.com/en/manual/fulfillment/managing-orders/order-st
 La decisión de reintentar consultas sin recrear compras es propia de Nerqia;
 estas pruebas no certifican un cobro ni un webhook real.
 
+POS fiscal durable (2026-10-08): `pos-checkout.spec.ts` intercepta toda la red
+de Supabase, incluido Auth, para comprobar opt-in enviado antes del QR,
+borrador frente a CAE canónico, reload sin refacturar y vendedor sin ruta de
+admin. Un pago completo permite imprimir el ticket aun si falta permiso fiscal.
+Ni la factura/CAE simulados ni el diálogo interceptado certifican proveedor
+o papel. La prueba SQL separada vive en [POS operativo](POS_OPERACION.md).
+
 Pedidos C23: `storeOrderQueuePage.test.tsx` cubre contrato paginado, cambio de
 vitrina con respuesta tardía, debounce, errores/reintento, navegación por URL,
 CSV de página y vacío filtrado. La fixture reversible

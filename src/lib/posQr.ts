@@ -1,3 +1,5 @@
+import { posParseFacturarResult, type PosFacturaEstado } from "@/lib/posComprobante";
+
 export type PosQrState =
   | "preparing"
   | "pending"
@@ -26,12 +28,30 @@ export interface PosQrSession {
   sale_transaction_id?: string | null;
   failure_reason?: string | null;
   payment_attempt_id: string;
+  invoice_requested?: boolean;
+  invoice_preparation_error?: string | null;
+  invoice?: { invoice_id: string; number?: string; cae?: string | null; afip_status?: string | null; ok: boolean; autorizar?: boolean } | null;
   items?: Array<{
     product_id: string;
     title: string;
     unit_price: number | string;
     quantity: number | string;
   }>;
+}
+
+export function posQrFiscalResult(session: PosQrSession): PosFacturaEstado | null {
+  if (!session.invoice_requested || session.state !== "completed") return null;
+  if (session.invoice?.invoice_id) return {
+    ...posParseFacturarResult(session.invoice),
+    cae: session.invoice.cae ?? undefined,
+    afipStatus: session.invoice.afip_status ?? undefined,
+  };
+  const detail = session.invoice_preparation_error === "permission_required"
+    ? "La venta está cobrada. Un encargado con permiso fiscal debe preparar su factura desde Ventas."
+    : session.invoice_preparation_error === "configuration_required"
+      ? "La venta está cobrada. Completá la configuración fiscal y reintentá su factura desde Ventas."
+      : "La venta está cobrada, pero su factura requiere revisión desde Ventas. No vuelvas a cobrar.";
+  return { ok: false, motivo: detail };
 }
 
 export interface PosQrSetupPayload {

@@ -42,6 +42,46 @@ mantienen sus fichas canónicas.
   automático sólo para ticket persistido y totalmente cobrado. Deuda/parcial no
   se rotula como cobro completo. Fallar impresión no revierte ni repite la venta.
 
+## Solicitud fiscal durable del QR
+
+`20261008000000` fija el opt-in fiscal antes de enviar el Order. La Edge exige
+un booleano y `invoices.edit`; la RPC conserva precios, reservas y clave del
+preparador canónico. No permite cambiar la decisión al reusar la clave ni que
+otro cajero la reutilice. Solicitar factura sigue siendo opcional, default off.
+
+Sólo la transición acreditada a `completed` prepara el documento mediante
+`facturar_venta_pos`, con membresía/permiso actuales del cajero original. La
+factura y su evento usan la autoridad ya existente, no otro numerador/ledger.
+`factura.creada` mantiene la autorización ARCA en el outbox con sus reintentos,
+sin depender del navegador ni llamar a ARCA dentro de la transacción del pago.
+Un fallo fiscal conserva venta/pago/stock y un motivo seguro para corregir
+desde Ventas. CAE sólo se muestra cuando existe en la factura canónica; un
+borrador/cola pendiente no es autorización. El recuperador lee ese estado,
+no factura de nuevo. La ruta administrativa se oculta a vendedores.
+
+Despliegue obligatorio: migración nueva → Edge QR → frontend. Sin RPC nueva,
+el nuevo servidor rechaza iniciar el cobro; no ignora silenciosamente el opt-in.
+Los intents históricos no reciben una solicitud fiscal inventada. El contrato
+anterior del navegador conserva su acción fiscal manual idempotente.
+
+Readback de producción del 2026-10-08: suscripción fiscal activa, cron de
+outbox y conciliación QR activos; últimas consultas QR HTTP 200 sin timeout.
+Hay conexión OAuth MP y secreto webhook en Edge, pero ninguna caja QR activa.
+Completar sucursal/caja con datos reales mediante el POS antes del primer cobro.
+Esto no prueba recepción de notificaciones, dinero, CAE ni papel.
+
+`20261008_pos_qr_durable_fiscal.sql` está preparado exclusivamente para Preview
+con rollback: evidencia incompleta, cierre, opt-out, permiso revocado, identidad
+fiscal ausente y duplicados. E2E interceptados cubren solicitud, borrador/CAE,
+reload y vendedor sin ruta de admin. Estos archivos no prueban por sí solos su
+ejecución ni certifican cobro MP, autorización ARCA o impresión física reales.
+
+Puerta local del 2026-10-08: 3.793 tests en 426 archivos, gramática de las 666
+migraciones, Edge, lint sin errores, tipos/build y runtime sin advisories.
+Dieciséis E2E POS desktop/móvil verdes sin retries con red interceptada.
+Las nuevas fixtures SQL siguen pendientes de ejecución en Preview antes de
+integrar este lote; gramática y mocks no sustituyen ese control.
+
 ## Matriz para reemplazar el sistema del negocio
 
 | Trabajo | Base actual | Gate / siguiente cierre |
