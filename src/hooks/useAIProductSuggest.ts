@@ -1,172 +1,168 @@
-/**
- * useAIProductSuggest — AI-powered product data auto-fill.
- *
- * Given a product name, calls the ai-chat edge function to suggest:
- *   - category (maps to app categories)
- *   - price range (min/max in ARS)
- *   - description (short marketing text)
- *   - tags (array of keywords)
- *   - unit (unidad, ml, g, etc.)
- *
- * Debounced 800ms so it doesn't fire on every keystroke.
- * Results are cached in-memory by product name (case-insensitive).
- *
- * Usage:
- *   const { suggest, loading, result, clear } = useAIProductSuggest(orgId);
- *   // call suggest(name) when the input changes
- *   // result contains the parsed suggestions
- */
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { useOrgCategories } from "@/components/products/CategorySelect";
 import { slugDeNombre } from "@/lib/storeCategories";
 
 export interface ProductSuggestion {
   category?: string;
-  priceMin?: number;
-  priceMax?: number;
+  categoryLabel?: string;
   description?: string;
   tags?: string[];
   unit?: string;
   brand?: string;
 }
 
-const cache = new Map<string, ProductSuggestion>();
+function resolverCategoria(raw: unknown, slugs: string[]): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  return slugs.find(slug => slug === raw.trim())
+    ?? slugs.find(slug => slugDeNombre(slug) === slugDeNombre(raw));
+}
 
-/**
- * La categoría que propuso la IA, resuelta contra las de la organización.
- *
- * Hasta 2026-08-25 acá había un `CATEGORY_MAP` escrito a mano que traducía
- * "perfume" a `perfume_diseñador` y "perfume árabe" a `perfume_arabe`, y el
- * prompt le fijaba a la IA una lista de doce categorías del negocio original.
- * Una tienda de ropa recibía sugerencias de perfumería, y peor: `mapCategory`
- * devolvía el texto crudo cuando no encontraba nada, así que la sugerencia
- * podía ser una categoría que el comercio no tiene.
- *
- * Ahora sólo se devuelve algo si coincide con una categoría real de la
- * organización. Un slug que no está en su lista no se puede elegir en el
- * formulario: sugerirlo dejaría el selector en blanco.
- */
-function resolverCategoria(raw: string | undefined, slugs: string[]): string | undefined {
-  if (!raw) return undefined;
-  const exacto = slugs.find(s => s === raw.trim());
-  if (exacto) return exacto;
-  // Por slug, que tolera acentos, mayúsculas y guión bajo contra guión medio.
-  const propuesto = slugDeNombre(raw);
-  return propuesto ? slugs.find(s => slugDeNombre(s) === propuesto) : undefined;
+function safeText(value: unknown, max: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const text = value.trim();
+  return text && text.length <= max && !/[<>]/.test(text)
+    && !Array.from(text).some(character => character.charCodeAt(0) <= 8) ? text : undefined;
 }
 
 export function useAIProductSuggest(orgId: string | undefined) {
-  const { opciones } = useOrgCategories(orgId);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ProductSuggestion | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const { user } = useAuth();
+  const { opciones, cargando: categoriesLoading, error: categoriesError } = useOrgCategories(orgId);
   const slugs = useMemo(() => opciones.map(o => o.slug), [opciones]);
+  const scope = JSON.stringify({ orgId: orgId ?? "sin-org", userId: user?.id, login: user?.last_sign_in_at,
+    categories: opciones, categoriesLoading, categoriesError });
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const [snapshot, setSnapshot] = useState<{ scope: string; name: string; data: ProductSuggestion } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ scope: string; message: string } | null>(null);
+  const cache = useRef(new Map<string, { data: ProductSuggestion; expires: number }>());
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const generation = useRef(0);
+
+  const cancel = useCallback(() => {
+    generation.current += 1;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+  }, []);
+  const clear = useCallback(() => {
+    cancel();
+    setSnapshot(null);
+    setBusy(null);
+    setFailure(null);
+  }, [cancel]);
+
+  useEffect(() => {
+    clear();
+    cache.current.clear();
+    return cancel;
+  }, [scope, clear, cancel]);
 
   const suggest = useCallback((name: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    clear();
     const trimmed = name.trim();
-    if (!trimmed || trimmed.length < 3) { setResult(null); return; }
-
-    // La caché es de módulo y sobrevive al cambio de organización, así que la
-    // clave lleva el `orgId`: la categoría sugerida sale de las categorías de
-    // un comercio y no vale para otro.
-    const cacheKey = `${orgId ?? "sin-org"}|${trimmed.toLowerCase()}`;
-    if (cache.has(cacheKey)) {
-      setResult(cache.get(cacheKey)!);
+    if (!orgId || !user?.id || trimmed.length < 3 || trimmed.length > 200) return;
+    if (categoriesLoading) return;
+    if (categoriesError) {
+      setFailure({ scope, message: "No pudimos verificar las categorías. Completá los datos manualmente o reintentá su carga." });
       return;
     }
-
+    const cacheKey = JSON.stringify([scope, trimmed]);
+    const cached = cache.current.get(cacheKey);
+    if (cached && cached.expires > Date.now()) {
+      setSnapshot({ scope, name: trimmed, data: cached.data });
+      return;
+    }
+    const requestGeneration = generation.current;
+    const current = () => scopeRef.current === scope && generation.current === requestGeneration;
     debounceRef.current = setTimeout(async () => {
-      if (!orgId) return;
-      setLoading(true);
+      if (!current()) return;
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const timeout = setTimeout(() => controller.abort(), 20_000);
+      setBusy(scope);
       try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
         const { data: { session } } = await supabase.auth.getSession();
-
-        const prompt = `Sos un asistente de un ERP/POS para negocios en Argentina. El usuario está cargando un producto llamado: "${trimmed}". Respondé SOLO con un JSON válido (sin markdown, sin texto extra) con este esquema exacto:
-{"category":"string","priceMin":number,"priceMax":number,"description":"string","tags":["string"],"unit":"string","brand":"string"}
-- category: ${slugs.length > 0
-  ? `elegí exactamente uno de estos códigos del comercio y devolvelo tal cual: ${slugs.join(", ")}`
-  : `devolvé "" — este comercio todavía no tiene categorías cargadas y no hay que inventarle una`}
-- priceMin/priceMax: precio estimado en pesos argentinos (ARS) para un negocio minorista. Usá valores realistas para Argentina 2024-2025.
-- description: descripción breve de marketing en español (máx 100 caracteres)
-- tags: array de 2-4 keywords útiles
-- unit: "unidad", "ml", "g", "kg", "litro", etc.
-- brand: marca conocida si aplica, o "" si no
-Solo JSON, sin texto adicional.`;
-
-        const res = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
+        if (!current()) return;
+        if (!session || session.user.id !== user.id) throw new Error("Session unavailable");
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${session?.access_token || anonKey}`,
-            "apikey": anonKey,
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            message: prompt,
-            history: [],
-            orgId,
-          }),
+          signal: controller.signal,
+          body: JSON.stringify({ purpose: 'catalog-suggestion', productName: trimmed, orgId }),
         });
-
-        if (!res.ok || !res.body) return;
-
-        // Read SSE stream and collect all text
+        if (!res.ok || !res.body) throw new Error("Suggestion unavailable");
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let accumulated = "";
-        let buf = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const parts = buf.split("\n");
-          buf = parts.pop() ?? "";
-          for (const line of parts) {
-            const trimLine = line.trim();
-            if (trimLine.startsWith("data:")) {
-              const json = trimLine.slice(5).trim();
-              if (json === "[DONE]") continue;
-              try {
-                const parsed = JSON.parse(json);
-                const delta = parsed?.choices?.[0]?.delta?.content ?? parsed?.content ?? "";
-                if (delta) accumulated += delta;
-              } catch { /* partial chunk */ }
-            }
+        let buffer = "";
+        let bytes = 0;
+        const readLine = (line: string) => {
+          if (!line.trim().startsWith("data:")) return;
+          const value = line.trim().slice(5).trim();
+          if (value === "[DONE]") return;
+          const event = JSON.parse(value);
+          if (event?.error) throw new Error('Suggestion stream failed');
+          const delta = event?.delta ?? event?.choices?.[0]?.delta?.content ?? event?.content;
+          if (typeof delta === "string") accumulated += delta;
+        };
+        try {
+          while (current()) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytes += value.byteLength;
+            if (bytes > 65_536) throw new Error("Suggestion too large");
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            lines.forEach(readLine);
           }
+          buffer += decoder.decode();
+          if (buffer.trim()) readLine(buffer);
+        } finally {
+          await reader.cancel();
         }
-
-        // Try to parse JSON from accumulated text
-        const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          const suggestion: ProductSuggestion = {
-            category: resolverCategoria(parsed.category, slugs),
-            priceMin: typeof parsed.priceMin === "number" ? parsed.priceMin : undefined,
-            priceMax: typeof parsed.priceMax === "number" ? parsed.priceMax : undefined,
-            description: typeof parsed.description === "string" ? parsed.description : undefined,
-            tags: Array.isArray(parsed.tags) ? parsed.tags : undefined,
-            unit: typeof parsed.unit === "string" ? parsed.unit : undefined,
-            brand: typeof parsed.brand === "string" && parsed.brand ? parsed.brand : undefined,
-          };
-          cache.set(cacheKey, suggestion);
-          setResult(suggestion);
+        if (!current()) return;
+        const parsed = JSON.parse(accumulated.trim().replace(/^```json\s*/i, "").replace(/\s*```$/, ""));
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid suggestion");
+        const category = resolverCategoria(parsed.category, slugs);
+        const suggestion: ProductSuggestion = {
+          category,
+          categoryLabel: opciones.find(option => option.slug === category)?.label,
+          description: safeText(parsed.description, 200),
+          tags: Array.isArray(parsed.tags) ? [...new Set(parsed.tags.map((tag: unknown) => safeText(tag, 40)).filter(Boolean))].slice(0, 4) as string[] : undefined,
+          unit: safeText(parsed.unit, 30),
+          brand: safeText(parsed.brand, 80),
+        };
+        if (!Object.values(suggestion).some(value => typeof value === "string" && value)) throw new Error("Empty suggestion");
+        // No hay precios en el contrato. La IA no es autoridad comercial.
+        if (cache.current.size >= 20) cache.current.delete(cache.current.keys().next().value);
+        cache.current.set(cacheKey, { data: suggestion, expires: Date.now() + 300_000 });
+        setSnapshot({ scope, name: trimmed, data: suggestion });
+      } catch {
+        if (current()) {
+          console.error('[CatalogSuggestion] request unavailable', { orgId });
+          setFailure({ scope, message: "No pudimos preparar sugerencias. Reintentá o completá los datos manualmente." });
         }
-      } catch { /* non-critical */ } finally {
-        setLoading(false);
+      } finally {
+        clearTimeout(timeout);
+        if (current()) setBusy(null);
       }
     }, 800);
-  }, [orgId, slugs]);
+  }, [orgId, user?.id, scope, slugs, opciones, categoriesLoading, categoriesError, clear]);
 
-  const clear = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setResult(null);
-    setLoading(false);
-  }, []);
-
-  return { suggest, loading, result, clear };
+  return {
+    suggest,
+    clear,
+    result: snapshot?.scope === scope ? snapshot.data : null,
+    query: snapshot?.scope === scope ? snapshot.name : "",
+    loading: busy === scope,
+    error: failure?.scope === scope ? failure.message : null,
+  };
 }

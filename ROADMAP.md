@@ -35,7 +35,7 @@ investigación y tecnología. La marca y experiencia final son propias.
 - Ads empieza con importación read-only; campañas, precios y dinero necesitan
   autoridad, política y aprobación antes de ejecutar.
 - Commerce gratuito sin topes de productos/ventas/equipo: [oferta y brechas](docs/PLANES.md).
-  Precios contratados preservados; Profit standalone/add-ons/Consulting siguen hipótesis.
+  Precios contratados preservados; Gestión standalone ~ARS 50.000/mes y módulos opcionales son propuesta no aprobada, detallada en Planes.
 - Capital, emisión de tarjetas y custodia requieren partner, legal y riesgo.
 - No se reescribe el stack por reputación; separar servicios/SSR requiere SLO
   o problema medido, owner, operación y costo de salida.
@@ -245,7 +245,7 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    inspeccionado, confirmación y smoke público. Environment y aprobación owner
    están activos; faltan token dedicado, segundo revisor sin autoaprobación y un
    game day autorizado. El auto-deploy continúa.
-2. Revisar funciones expuestas pendientes, permisos RPC/RLS, cron, secretos,
+2. Revisar funciones expuestas, permisos RPC/RLS (acciones/contexto válidos), cron, secretos,
    archivo/libro de migraciones y restauración reproducible.
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
    honestos, alerts accionables y soporte con correlación sanitizada.
@@ -265,8 +265,8 @@ física. Transferencias alias/CVU: feed real del receptor + referencia única +
 cierre idempotente/fiscal; los reportes asíncronos no prueban detección inmediata.
 `test.scadi.com.ar` sólo expuso su login; no se auditó su sistema privado.
 
-1. Certificar migrador con archivos reales, variantes/clientes/imágenes,
-   redirects, cantidades, opt-out y reversa. No crear otro importador.
+1. Certificar migrador y enriquecimiento: fotos exactas por GTIN/MPN/fuente autorizada, copy/SEO/atributos revisables,
+   lotes con presupuesto/checkpoint, cantidades, permisos, opt-out y reversa; sin otro importador ni precios adivinados.
 2. Checkout → pago → fulfillment → devolución/refund: concurrencia, estados,
    recuperación, permisos y timeline hasta conciliación externa.
 3. Mobile, búsqueda/merchandising, SEO, accesibilidad y Core Web Vitals de campo;
@@ -279,7 +279,7 @@ cierre idempotente/fiscal; los reportes asíncronos no prueban detección inmedi
    ni costo histórico reconstruido desde precios actuales. `/profit` es hoy alias
    de la vista Foundation; no anuncia la suite completa ni Ads certificados.
 6. Fiscal/ARCA: simplificar certificado, CUIT, representación y punto de venta
-   Web Services con guía contextual, validación y diagnóstico. Completar
+   Web Services con guía, padrón autorizado y diagnóstico; revisar WSFE 4.7/4.8. Completar
    factura/ticket y nota de crédito desde POS y ventas, impresión y recepción,
    sin anunciar autorización productiva hasta obtener y conciliar el CAE real.
    La factura manual ya acepta IVA por renglón A/B, agrupa alicuotas en pantalla

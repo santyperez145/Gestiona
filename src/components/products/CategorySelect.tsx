@@ -27,7 +27,7 @@
  * de un slug que ya está en los datos —ahí sí evita mostrar `perfume_arabe`
  * crudo a quien lo tiene cargado—, nunca como oferta.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
@@ -60,22 +60,37 @@ export interface OpcionCategoria {
  */
 export function useOrgCategories(orgId: string | null | undefined) {
   const {
-    categorias: filas, cargando: cargandoCategorias, recargar: recargarCategorias,
+    categorias: filas, cargando: cargandoCategorias, error: categoryError, recargar: recargarCategorias,
   } = useOrgCategoryNames(orgId);
-  const [slugsEnUso, setSlugsEnUso] = useState<string[]>([]);
-  const [cargandoSlugs, setCargandoSlugs] = useState(true);
+  const scope = orgId ?? null;
+  const activeScope = useRef(scope);
+  activeScope.current = scope;
+  const generation = useRef(0);
+  const [snapshot, setSnapshot] = useState<{ scope: string; slugs: string[]; error: boolean } | null>(null);
 
   const cargarSlugs = useCallback(async () => {
-    if (!orgId) { setSlugsEnUso([]); setCargandoSlugs(false); return; }
-    const { data } = await supabase.from("products").select("category").eq("org_id", orgId);
-    setSlugsEnUso(
-      [...new Set(((data ?? []) as { category: string | null }[])
-        .map(p => p.category).filter(Boolean) as string[])],
-    );
-    setCargandoSlugs(false);
+    const request = ++generation.current;
+    setSnapshot(null);
+    if (!orgId) return;
+    try {
+      const { data, error } = await supabase.from("products").select("category").eq("org_id", orgId);
+      if (activeScope.current !== orgId || generation.current !== request) return;
+      if (error) console.error('[OrgCategories] product categories unavailable', { orgId, code: error.code });
+      setSnapshot({ scope: orgId, error: Boolean(error), slugs: error ? []
+        : [...new Set(((data ?? []) as { category: string | null }[])
+          .map(p => p.category).filter(Boolean) as string[])] });
+    } catch {
+      if (activeScope.current === orgId && generation.current === request) {
+        console.error('[OrgCategories] product categories unavailable', { orgId });
+        setSnapshot({ scope: orgId, slugs: [], error: true });
+      }
+    }
   }, [orgId]);
 
-  useEffect(() => { cargarSlugs(); }, [cargarSlugs]);
+  useEffect(() => { cargarSlugs(); return () => { generation.current += 1; }; }, [cargarSlugs]);
+  const current = scope && snapshot?.scope === scope ? snapshot : null;
+  const slugsEnUso = useMemo(() => current?.slugs ?? [], [current]);
+  const cargandoSlugs = Boolean(scope && !current);
 
   const cargar = useCallback(async () => {
     await Promise.all([recargarCategorias(), cargarSlugs()]);
@@ -137,6 +152,7 @@ export function useOrgCategories(orgId: string | null | undefined) {
   return {
     opciones, categorias: filas,
     cargando: cargandoCategorias || cargandoSlugs,
+    error: categoryError || (current?.error ? "No pudimos cargar las categorías. Reintentá para continuar." : null),
     crear, recargar: cargar,
   };
 }
@@ -153,7 +169,7 @@ interface Props {
 export default function CategorySelect({
   value, onChange, orgId, permitirCrear = true, className,
 }: Props) {
-  const { opciones, cargando, crear } = useOrgCategories(orgId);
+  const { opciones, cargando, error, crear, recargar } = useOrgCategories(orgId);
   const [creando, setCreando] = useState(false);
   const [nombre, setNombre] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -168,6 +184,12 @@ export default function CategorySelect({
     setCreando(false);
   };
 
+  if (error) {
+    return <div className="flex flex-wrap items-center gap-2" role="alert">
+      <span className="text-sm text-muted-foreground">{error}</span>
+      <Button type="button" size="sm" variant="outline" className="min-h-10" onClick={() => void recargar()}>Reintentar</Button>
+    </div>;
+  }
   if (creando) {
     return (
       <div className="flex gap-2">

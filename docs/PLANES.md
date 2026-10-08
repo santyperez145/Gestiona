@@ -24,7 +24,29 @@ el comercio continúa gratis. Un corte de plan pago también conserva Commerce;
 no borra datos, suspende al equipo ni restringe el catálogo o las ventas.
 Permisos, cuotas de API, límites de archivo y controles de abuso permanecen.
 
-## Una autoridad
+## Modularidad propuesta (no es una oferta publicada)
+
+El dueño plantea el 2026-10-08 vender Gestión para negocios por aproximadamente
+ARS 50.000/organización/mes, contratable sin tienda online, y sumar módulos
+opcionales. Importe definitivo, impuestos, alcance, prueba, costos de consumo y
+migración de clientes requieren confirmación; no se habilita cobro ni se modifica
+el catálogo por esta hipótesis. Ver [Economics](ECONOMICS.md).
+
+Commerce, Gestión, Finance, Growth/Profit y Creators son paquetes comerciales
+posibles, no copias de datos ni una página nueva por paquete. `role_permissions`
+decide lo que puede hacer una persona, no lo que compró la organización.
+`organization_product_access` y el evaluador de capacidades ya separan producto,
+permiso y rollout; Finance conserva su autoridad `product_surface_access`.
+El SaaS actual contrata un plan por organización: todavía no factura una cesta
+de módulos independientes. No duplicar `subscriptions` ni activar un entitlement
+porque un checkout se abrió: requerirá autorización, confirmación del proveedor,
+reconciliación, cancelación y prueba de aislamiento por producto.
+
+Los contratos actuales y el Core gratuito siguen intactos. Gestión paga debe
+definir valor adicional o una oferta nueva con transición explícita, sin cobrar
+dos veces por funciones ya incluidas ni retirar acceso al negocio por accidente.
+
+## Autoridad vigente
 
 - `org_entitlements` decide vigencia, gracia, extras, cupos y límites efectivos.
   La expiración de la prueba se comprueba por request, sin esperar el cron;
