@@ -189,6 +189,9 @@ nivel ni quitarse el acceso.
 ## Principios de enforcement
 
 - Toda operación de tenant se filtra por `org_id` (RLS).
+- CI publica artefactos sólo de proyectos E2E públicos. Traces/snapshots del
+  panel y setup pueden incluir JWT, cookies y datos privados incluso sin el
+  archivo de sesión: no se suben al repositorio público ni a sus artefactos.
 - **RLS separa comercios; no separa personas dentro de un comercio.** Evita que
   una organización vea los datos de otra, y eso es todo lo que hace: no dice
   «este empleado puede ver stock, pero no ajustarlo». Esa pregunta la contesta

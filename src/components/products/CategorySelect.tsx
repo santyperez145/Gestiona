@@ -202,10 +202,10 @@ export default function CategorySelect({
           }}
           className={className}
         />
-        <Button size="sm" onClick={confirmar} disabled={guardando || !nombre.trim()}>
+        <Button type="button" size="sm" onClick={confirmar} disabled={guardando || !nombre.trim()}>
           {guardando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Crear"}
         </Button>
-        <Button size="sm" variant="outline" onClick={() => setCreando(false)}>Cancelar</Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => setCreando(false)}>Cancelar</Button>
       </div>
     );
   }

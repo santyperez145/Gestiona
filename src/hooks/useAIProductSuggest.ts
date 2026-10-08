@@ -26,12 +26,12 @@ function safeText(value: unknown, max: number): string | undefined {
     && !Array.from(text).some(character => character.charCodeAt(0) <= 8) ? text : undefined;
 }
 
-export function useAIProductSuggest(orgId: string | undefined) {
+export function useAIProductSuggest(orgId: string | undefined, enabled = true) {
   const { user } = useAuth();
   const { opciones, cargando: categoriesLoading, error: categoriesError } = useOrgCategories(orgId);
   const slugs = useMemo(() => opciones.map(o => o.slug), [opciones]);
   const scope = JSON.stringify({ orgId: orgId ?? "sin-org", userId: user?.id, login: user?.last_sign_in_at,
-    categories: opciones, categoriesLoading, categoriesError });
+    categories: opciones, categoriesLoading, categoriesError, enabled });
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
   const [snapshot, setSnapshot] = useState<{ scope: string; name: string; data: ProductSuggestion } | null>(null);
@@ -63,7 +63,7 @@ export function useAIProductSuggest(orgId: string | undefined) {
   const suggest = useCallback((name: string) => {
     clear();
     const trimmed = name.trim();
-    if (!orgId || !user?.id || trimmed.length < 3 || trimmed.length > 200) return;
+    if (!enabled || !orgId || !user?.id || trimmed.length < 3 || trimmed.length > 200) return;
     if (categoriesLoading) return;
     if (categoriesError) {
       setFailure({ scope, message: "No pudimos verificar las categorías. Completá los datos manualmente o reintentá su carga." });
@@ -155,7 +155,7 @@ export function useAIProductSuggest(orgId: string | undefined) {
         if (current()) setBusy(null);
       }
     }, 800);
-  }, [orgId, user?.id, scope, slugs, opciones, categoriesLoading, categoriesError, clear]);
+  }, [orgId, user?.id, scope, slugs, opciones, categoriesLoading, categoriesError, enabled, clear]);
 
   return {
     suggest,

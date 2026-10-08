@@ -347,7 +347,7 @@ export default function ProductsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { activeOrg, activeRole } = useOrg();
-  const { productLimit, plan } = useEntitlements();
+  const { productLimit, plan, canUseAI, iaRestante, loading: entitlementsLoading } = useEntitlements();
   const { online } = useNetworkStatus();
   const [identityParams, setIdentityParams] = useSearchParams();
   const { fromWizard, goal: handoffGoal } = parseActivationHandoff(identityParams);
@@ -1142,6 +1142,7 @@ export default function ProductsPage() {
                       settings={settings}
                       userId={user!.id}
                       orgId={activeOrg?.id}
+                      aiEnabled={!entitlementsLoading && canUseAI && iaRestante !== 0}
                       firstUse={fromWizard && !editing && products.length === 0}
                       handoffGoal={handoffGoal}
                       onDirtyChange={setProductFormDirty}
@@ -1853,11 +1854,12 @@ function ChipSelect({ items, selected, onToggle }: { items: TaxItem[]; selected:
   );
 }
 
-export function ProductForm({ product, settings, userId, orgId, firstUse = false, handoffGoal = null, onDirtyChange, onSave }: {
+export function ProductForm({ product, settings, userId, orgId, aiEnabled = false, firstUse = false, handoffGoal = null, onDirtyChange, onSave }: {
   product: any;
   settings: any;
   userId: string;
   orgId?: string;
+  aiEnabled?: boolean;
   firstUse?: boolean;
   handoffGoal?: 'pos' | 'online' | null;
   onDirtyChange: (dirty: boolean) => void;
@@ -2110,7 +2112,7 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
   }, [product?.id]);
 
   // AI product suggestion
-  const { suggest: aiSuggest, loading: aiLoading, result: aiResult, query: aiQuery, error: aiSuggestionError, clear: aiClear } = useAIProductSuggest(orgId);
+  const { suggest: aiSuggest, loading: aiLoading, result: aiResult, query: aiQuery, error: aiSuggestionError, clear: aiClear } = useAIProductSuggest(orgId, aiEnabled);
   const [aiDismissed, setAiDismissed] = useState(false);
 
   const productTypeSlug = productTypes.find(t => t.id === productTypeId)?.slug ?? null;
@@ -2522,7 +2524,6 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
     <form
       onSubmit={handleSubmit}
       onPaste={handlePaste}
-      onInputCapture={markDirty}
       onChangeCapture={markDirty}
       className="flex h-full min-h-0 flex-col"
       aria-label={product?.id ? `Editar ${product.name}` : 'Crear producto'}

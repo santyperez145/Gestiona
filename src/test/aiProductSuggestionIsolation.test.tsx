@@ -26,6 +26,19 @@ async function ask(result: { current: ReturnType<typeof useAIProductSuggest> }, 
 }
 
 describe('sugerencias de catalogo aisladas y revisables', () => {
+  it('no solicita IA sin beneficio y retira cache al perderlo', async () => {
+    const { result, rerender } = renderHook(({ enabled }) => useAIProductSuggest('org', enabled), { initialProps: { enabled: false } });
+    await ask(result);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+    rerender({ enabled: true });
+    await ask(result);
+    expect(result.current.result).not.toBeNull();
+    rerender({ enabled: false });
+    expect(result.current.result).toBeNull();
+    await ask(result);
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
   it('no consulta IA con categorias pendientes o inaccesibles', async () => {
     state.categoriesLoading = true;
     const { result, rerender } = renderHook(() => useAIProductSuggest('org'));

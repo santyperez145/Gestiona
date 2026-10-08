@@ -174,6 +174,8 @@ El chat general exige rol administrativo y Analytics, verifica cada fuente
 y el acceso a Finance; usa JWT/RLS, no service-role para obtener contexto.
 Las muestras limitadas no se presentan como totales completos. Categorías y
 slugs descartan respuestas de otro negocio y muestran errores recuperables.
+Sin beneficio IA o con cupo agotado no se dispara autocompletado; el servidor
+revalida el beneficio y el consumo. La carga manual no se restringe.
 
 - persistir procedencia/licencia y copiar imágenes elegidas a Storage;
 - agregar GTIN/MPN como claves de matching y conector Icecat detrás de flag;

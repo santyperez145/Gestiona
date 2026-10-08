@@ -122,15 +122,16 @@ jobs:
       - name: Run critical E2E
         run: npm run verify -- --stage=e2e
 
-      # Un fallo sin captura ni trace obliga a adivinar el estado real de una
-      # sesión remota. La evidencia se conserva sólo cuando hace falta y no
-      # incluye el storageState autenticado.
+      # Solo evidencia publica. Los traces del panel/setup pueden contener JWT,
+      # cookies y datos del negocio aunque no incluyan el storageState.
       - name: Preserve E2E failure evidence
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: critical-e2e-failure-${{ github.run_attempt }}
-          path: test-results/
+          path: |
+            test-results/*-chromium/**
+            test-results/*-mobile/**
           if-no-files-found: ignore
           retention-days: 7
 

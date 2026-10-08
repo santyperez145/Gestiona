@@ -142,6 +142,12 @@ test(`permisos: ${destination} recupera lectura sin revelar errores internos`, a
 test('catalogo: la sugerencia revisable no cambia dinero ni stock y no guarda productos', async ({ page }) => {
   const writes: string[] = [];
   let suggestions = 0;
+  // Beneficio sintético sólo en este navegador; el consumo IA se intercepta.
+  await page.route('**/rest/v1/rpc/org_entitlements', async route => {
+    const response = await route.fetch();
+    const entitlements = await response.json();
+    await route.fulfill({ response, json: { ...entitlements, ia: true, ia_restante: 1, vigente: true } });
+  });
   await page.route('**/rest/v1/products?**', route => {
     if (['GET', 'HEAD'].includes(route.request().method())) return route.continue();
     writes.push(route.request().method()); return route.abort();
@@ -160,6 +166,7 @@ test('catalogo: la sugerencia revisable no cambia dinero ni stock y no guarda pr
   await page.getByRole('button', { name: 'Nuevo', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Nuevo producto' });
   await editor.getByPlaceholder('Ej: Nombre del producto').fill('ZZ MARTILLO');
+  await expect(editor.getByPlaceholder('Ej: Nombre del producto')).toHaveValue('ZZ MARTILLO');
   const apply = editor.getByRole('button', { name: 'Aplicar', exact: true });
   await expect(apply).toBeVisible();
   const numbers = () => editor.getByRole('spinbutton').evaluateAll(elements => elements.map(element => (element as HTMLInputElement).value));

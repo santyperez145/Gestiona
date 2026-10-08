@@ -65,6 +65,19 @@ async function openPage() {
   return result;
 }
 describe('flujo real de Productos con backend simulado', () => {
+  it('conserva la escritura nativa del nombre y descripcion al marcar el formulario sucio', async () => {
+    await openPage();
+    fireEvent.click(screen.getByRole('button', { name: /^Nuevo$/ }));
+    const editor = await screen.findByRole('dialog', { name: 'Nuevo producto' });
+    const name = within(editor).getByPlaceholderText('Ej: Nombre del producto');
+    fireEvent.input(name, { target: { value: 'Martillo' } });
+    expect(name).toHaveValue('MARTILLO');
+    const description = within(editor).getByPlaceholderText('Notas sobre el producto');
+    fireEvent.input(description, { target: { value: 'Herramienta de mano' } });
+    expect(description).toHaveValue('Herramienta de mano');
+    expect(name).toHaveValue('MARTILLO');
+    expect(mocks.add).not.toHaveBeenCalled();
+  });
   it('abre el editor aun sin permiso de crear y con limite de plan alcanzado', async () => {
     mocks.permissions.canCreate = false; mocks.limit = 1;
     await openPage();
