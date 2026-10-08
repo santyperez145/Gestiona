@@ -57,7 +57,7 @@ El acceso recordado es opt-in durante siete días **también después de logout*
    Sólo acepta este transporte desde el proxy first-party autenticado por
    `NERQIA_TRUST_PROXY_SECRET`; no entrega credenciales a llamadas directas.
    El mismo secreto se guarda como variable privada en Vercel y secreto de
-   Supabase Edge, nunca en el bundle del navegador.
+   Supabase Edge, nunca en el bundle ni en headers enviados por el navegador.
 4. Cada login nuevo sigue requiriendo contraseña. La base comprueba usuario,
    sesión Auth viva y credential; registra un grant para ese `session_id`, con
    el vencimiento original. No se extiende por actividad ni por otro login.

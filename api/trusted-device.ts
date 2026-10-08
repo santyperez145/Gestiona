@@ -45,12 +45,9 @@ export function allowedTrustOrigin(request: Request): boolean {
     && !["cross-site", "same-site"].includes(request.headers.get("Sec-Fetch-Site") ?? "");
 }
 
-export function trustedProxyRequest(request: Request, secret = process.env.NERQIA_TRUST_PROXY_SECRET ?? ""): boolean {
-  const supplied = request.headers.get("X-Nerqia-Trust-Proxy") ?? "";
-  if (!secret || supplied.length !== secret.length) return false;
-  let difference = 0;
-  for (let i = 0; i < secret.length; i++) difference |= secret.charCodeAt(i) ^ supplied.charCodeAt(i);
-  return difference === 0;
+export function trustedProxyConfigured(secret = process.env.NERQIA_TRUST_PROXY_SECRET ?? ""): boolean {
+  // This key belongs to the Vercel -> Edge hop, never to a browser request.
+  return secret.length >= 32 && secret.length <= 4096 && /^[\x21-\x7e]+$/.test(secret);
 }
 
 /** Whitelist the response rather than spreading upstream JSON (which can contain token). */
@@ -72,7 +69,7 @@ export function publicTrustResult(data: Record<string, unknown>) {
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return reply({ code: "METHOD_NOT_ALLOWED" }, 405);
   if (!allowedTrustOrigin(request)) return reply({ code: "ORIGIN_NOT_ALLOWED" }, 403);
-  if (!trustedProxyRequest(request)) return reply({ code: "TRUST_UNAVAILABLE" }, 503);
+  if (!trustedProxyConfigured()) return reply({ code: "TRUST_UNAVAILABLE" }, 503);
   const authorization = request.headers.get("Authorization") ?? "";
   if (!/^Bearer [A-Za-z0-9_.-]+$/.test(authorization) || authorization.length > 12000) {
     return reply({ code: "AUTH_REQUIRED" }, 401);
