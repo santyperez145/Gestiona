@@ -86,11 +86,32 @@ Puerta local del 2026-10-08: 3.793 tests en 426 archivos, gramática de las 667
 migraciones, Edge, lint sin errores, tipos/build y runtime sin advisories.
 Dieciséis E2E POS desktop/móvil verdes sin retries con red interceptada.
 E2E/Axe/capturas cubren solicitud, borrador/CAE, reload y vendedor sin ruta de
-admin. CI de `fe37b218`, Supabase Preview y Vercel aprobaron; compatibilidad y
-evidencia ampliadas mantienen gate propio. Deploy SQL → Edge → frontend todavía
-pendiente. Estos controles no certifican MP/ARCA/impresión física reales.
+admin. CI completo de `daa6911d`, Supabase Preview y Vercel aprobaron.
+Con autorización explícita del dueño se aplicaron únicamente `000000` y
+`000010` en producción y se desplegó `mercadopago-pos-qr` v16 ACTIVE con JWT.
+Readback 2026-10-08: 667 migraciones, hashes de preparación/trigger/respuesta iguales a
+Preview, finalizador de pago canónico intacto, trigger activo y sin permisos
+para anon/ejecución directa autenticada del trigger. Webhook v66 y ARCA v67
+se conservaron. CLI restaurada a Preview; sin cobros/ventas/facturas de prueba.
+PR18 integrada en main `4fcd814aec9b75ede4a45c0c1c17c0ddbc44eaa5`, Vercel
+`dpl_HzAUBF8DcN1ZBfG7c6jtDcChJ9VS` READY para ese SHA y alias asignado.
+Estos controles no certifican MP/ARCA/impresión física reales ni un feed CVU.
 
 ## Matriz para reemplazar el sistema del negocio
+
+Requisito reafirmado por el dueño el 2026-10-08: automatizar alias/CVU, además
+del QR. La implementación debe empezar por comprobar el feed de la cuenta
+receptora con una transferencia autorizada y su referencia inequívoca. Consulta
+de Payments no acredita cobertura de todos los ingresos CVU. Los reportes de
+cuenta pueden no traer `EXTERNAL_REFERENCE` para envíos de dinero; su webhook
+anuncia un archivo generado, no una acreditación instantánea por venta.
+Sin referencia única no se autoasigna por monto, nombre, comprobante ni texto.
+El siguiente gate es contrato/acceso del proveedor y prueba de cobertura,
+después inbox de entradas no vinculadas, confirmación inequívoca y cierre sobre
+las autoridades POS/stock/fiscal actuales, con duplicados, devolución y pagos
+tardíos ensayados en Preview. Una cuenta recaudadora por operación requiere
+partner; no crear CVU, contratar un PSP ni cobrar nuevas tarifas por inferencia.
+Esta investigación no habilita un feed ni confirma pagos de clientes.
 
 | Trabajo | Base actual | Gate / siguiente cierre |
 |---|---|---|
@@ -182,6 +203,9 @@ física ni emisión ARCA: esos gates requieren una operación controlada real.
   y [estados](https://www.mercadopago.com.ar/developers/es/docs/qr-code/resources/status-order-transaction).
 - [Reportes de cuenta MP](https://www.mercadopago.com.ar/developers/es/docs/checkout-api-payments/additional-content/reports/account-money/generate)
   y [Point](https://www.mercadopago.com.ar/developers/es/docs/mp-point/payment-processing).
+- Alias/CVU, consulta ampliada 2026-10-08: [campos y referencia ausente](https://www.mercadopago.com.ar/developers/es/docs/links-and-debts/additional-content/reports/account-money/report-fields),
+  [generación asíncrona y webhook del reporte](https://www.mercadopago.com.ar/developers/es/docs/reports/account-money/api)
+  y [Payments Search](https://www.mercadopago.com.ar/developers/en/reference/online-payments/subscriptions/search-payments/get).
 - [Shopify, impresoras compatibles](https://help.shopify.com/en/manual/sell-in-person/hardware/receipt-printers)
   y [caja](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/cash-register-management).
 - [Tiendanube, ciclo de venta](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-es-el-proceso-de-venta-en-tiendanube).

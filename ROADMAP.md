@@ -83,7 +83,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 
 | Dominio | Base implementada / comprobación interna | Próximo gate |
 |---|---|---|
-| Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; 2026-10-04: ambas homes siguen en Google y el sitemap XML para bots quedó corregido/verificado en producción (`a4f2f9bb`). | Aceptación/cobertura actual en Search Console; pago/fulfillment y conversión de campo. [Evidencia SEO](docs/SEO_INDEXACION.md). |
+| Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; búsqueda predictiva/Enter unificada, exacta primero y aproximada explícita, filtros intactos, teclado y links sin imagen nombrados; 8 E2E/Axe locales (2026-10-08); [contrato UI](docs/INTERFAZ.md). | CI/SHA del buscador; Search Console, pago/fulfillment y conversión de campo; [evidencia SEO](docs/SEO_INDEXACION.md). |
 | Migración | Worker Excel/CSV, mapeo/moneda, hasta 50.000 filas; sesión reanudable por lotes sobre staging/apply existentes, Kardex, variantes, clientes, imágenes y redirects. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
 | Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo persistido. | ND asociada a factura y saldo/IVA; ARCA A/B/C/NC/ND, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
@@ -119,9 +119,9 @@ sigue abierto como certificación operacional.
 
 - POS 2026-10-08: QR correlacionado y solicitud fiscal durable, sin depender de Caja;
   de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
-  idempotencia/refund y cero restos; fiscal durable validado en Preview, deploy en gate; MP/ARCA/papel reales pendientes.
+  idempotencia/refund y cero restos; fiscal durable validado en Preview y SQL/Edge productivos; MP/ARCA/papel reales pendientes.
   Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
-- Release 2026-10-08: [replay](docs/MIGRATION_REPLAY.md) de 666 migraciones + una incremental, fiscal/QR/roles sin residuos en Preview; PR 17 integrada/Vercel READY `5ef4c3c0`: lecturas acotadas sin perder carrito. [QR](docs/POS_OPERACION.md) v15/v66 + guard productivo; fiscal/legacy verificados, deploy en gate propio.
+- Release 2026-10-08: [replay](docs/MIGRATION_REPLAY.md) de 666 migraciones + una incremental, fiscal/QR/roles sin residuos en Preview. PR18 `4fcd814a` integrada y Vercel READY tras autorización específica: 667 migraciones productivas, QR v16 ACTIVE, hashes/ACL verificados. PR17 `5ef4c3c0` READY: lectura acotada sin perder carrito; [POS](docs/POS_OPERACION.md).
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.
@@ -261,8 +261,8 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
 Primero cerrar el piloto de ferretería con [la matriz POS](docs/POS_OPERACION.md):
 QR confirmado sin duplicados, turnos y permisos, devolución/cuenta corriente,
 catálogo fraccionado/barcodes, compras/recepciones, migración y conciliación
-física. Impresión fiscal/hardware y transferencias directas CVU necesitan sus
-propios gates: nunca confirmar automáticamente por importe o captura de pantalla.
+física. Transferencias alias/CVU: feed real del receptor + referencia única +
+cierre idempotente/fiscal; los reportes asíncronos no prueban detección inmediata.
 `test.scadi.com.ar` sólo expuso su login; no se auditó su sistema privado.
 
 1. Certificar migrador con archivos reales, variantes/clientes/imágenes,

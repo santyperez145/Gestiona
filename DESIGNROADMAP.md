@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-10-07. Este documento define la dirección visual y los próximos
+**Corte:** 2026-10-08. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -66,7 +66,7 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 | Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada/responsive; ambas homes visibles en Google el 2026-10-04 y routing XML corregido/verificado en producción, sin cambiar la interfaz humana. | Cobertura actual en Search Console; conversión real. [Evidencia](docs/SEO_INDEXACION.md). |
 | Business | Workspace claro, rail persistente, topbar, tabs y tablas densas. | Shell y primitives transversales; páginas críticas migradas. | Eliminar CSS heredado y cerrar estados restantes. |
 | Commerce admin | Configuración, rendimiento, voz, catálogo, páginas, diseño, pagos/envíos. | Selector de tienda compartido con Pedidos; datos reales en producción. | Surtido multi-tienda y responsive autenticado. |
-| Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema/favicon, navegación SPA/restauración, variantes, carrito, checkout y SEO; lectura inicial acotada con retry accesible sin perder carrito (2026-10-08). | Gate por SHA de resiliencia, performance de campo y compradores. |
+| Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema/favicon, SPA/restauración y retry sin perder carrito; buscador predictivo/Enter coherente, aproximados rotulados y filtros preservados; combobox con foco/activedescendant, IDs únicos y touch 44 px; links sin imagen nombrados, 8 E2E/Axe locales (2026-10-08). | CI/SHA de búsqueda; performance de campo y compradores. |
 | Acceso y correo | Identidad Nerqia clara en el alta y seguridad sin jerga del proveedor. | Confirmación propia publicada en Auth; gate con enrolamiento, opt-in «Recordar este navegador durante 7 días» y recuperación TOTP; dispositivos revocables con vencimiento; proxy probado sin pedir secretos al browser. | Preview/release y circuito browser tras configurar secreto server-side; remitente Auth SMTP, entrega real y enforcement MFA transversal. |
 | Finance | Trabajo de gasto, documentos y aprobación; no espejo de Business. | Layout/entitlement e Inbox técnico. | Primer documento real y políticas preventivas. |
 | Platform | Control plane violeta, colas y Merchant 360. | Shell, MFA, áreas operativas; Mensajería separa diagnóstico de staff, acción del comercio y copy del comprador, con alertas persistentes en campañas/SMTP/equipo. | Completar matriz visual autenticada y estados reales de webhook/Auth SMTP. |
@@ -181,7 +181,7 @@ cobro; no invita a cambiar el medio y duplicar dinero. Preferencia de impresión
 como switch accesible por usuario/dispositivo, ticket persistido y reimpresión
 del cobro recuperado. Solicitud fiscal durable distingue pendiente/CAE y corrección; vendedor sin link administrativo.
 Sin gradiente decorativo; dieciséis E2E POS verdes (red interceptada). Checkout: colores atómicos al cotizar, sin contraste transitorio.
-[Replay completo 08/10](docs/MIGRATION_REPLAY.md) aprobado; gates por SHA, autoridad/impresión reales pendientes.
+[Replay completo 08/10](docs/MIGRATION_REPLAY.md) aprobado; PR18 `4fcd814a` READY y QR v16 productivo. Autoridad/impresión reales pendientes.
 La matriz funcional y el orden de cierre viven en [POS](docs/POS_OPERACION.md).
 
 1. Auditar páginas que todavía usan cards largas o tabs locales no persistidas.

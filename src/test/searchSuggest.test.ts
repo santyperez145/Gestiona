@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   sugerenciasDeBusqueda, destinoSugerencia, moverSeleccion,
+  buscarProductosDeTienda,
   type ProductoBuscable,
 } from "@/lib/searchSuggest";
 
@@ -81,6 +82,11 @@ describe("sugerenciasDeBusqueda", () => {
     expect(sugerenciasDeBusqueda("asad", todoAgotado).length).toBeGreaterThan(0);
   });
 
+  it("un agotado coincidente no desaparece porque haya stock de otro producto", () => {
+    const productos = [p({ id: "b", name: "TALADRO INDUSTRIAL", stock: 0 }), p({ id: "a", name: "MARTILLO", stock: 5 })];
+    expect(sugerenciasDeBusqueda("taladro", productos).map(s => s.valor)).toEqual(["b"]);
+  });
+
   it("no devuelve nada cuando no hay coincidencia", () => {
     expect(sugerenciasDeBusqueda("zapatillas", catalogo)).toEqual([]);
   });
@@ -97,6 +103,43 @@ describe("sugerenciasDeBusqueda", () => {
 
   it("un catálogo vacío no rompe", () => {
     expect(sugerenciasDeBusqueda("algo", [])).toEqual([]);
+  });
+});
+
+describe("buscarProductosDeTienda: same contract as predictive search", () => {
+  it("Enter on a typo includes every suggested product, with an explicit approximate flag", () => {
+    const result = buscarProductosDeTienda("lataffa", catalogo);
+    expect(result.aproximada).toBe(true);
+    expect(result.productos.map(p => p.id)).toEqual(["2", "1"]);
+    const suggested = sugerenciasDeBusqueda("lataffa", catalogo).filter(s => s.tipo === "producto");
+    expect(suggested.every(s => result.productos.some(p => p.id === s.valor))).toBe(true);
+  });
+
+  it("an exact result wins even if it is sold out and approximate products have stock", () => {
+    const productos = [p({ id: "exact", name: "LATTAFA", stock: 0 }), p({ id: "other", name: "LATTAFAS", stock: 5 }), p({ id: "approx", name: "LATAFFA", stock: 5 })];
+    const result = buscarProductosDeTienda("lattafa", productos);
+    expect(result.aproximada).toBe(false);
+    expect(result.productos.map(p => p.id)).toEqual(["exact", "other"]);
+  });
+
+  it("keeps every token mandatory and ignores accents", () => {
+    expect(buscarProductosDeTienda("látaffa khamrah", catalogo).productos.map(p => p.id)).toEqual(["2"]);
+    expect(buscarProductosDeTienda("lataffa tornillo", catalogo).productos).toEqual([]);
+  });
+
+  it("category labels and descriptions work in both inputs; descriptions are not fuzzed", () => {
+    const productos = [p({ id: "tool", name: "ROTOPERCUTOR", category: "maquinas", description: "Para hormigón armado" })];
+    const label = () => "Herramientas eléctricas";
+    expect(buscarProductosDeTienda("electricas", productos, label).productos).toEqual(productos);
+    expect(sugerenciasDeBusqueda("electricas", productos, { nombreCategoria: label }).some(s => s.tipo === "producto")).toBe(true);
+    expect(buscarProductosDeTienda("hormigón", productos).productos).toEqual(productos);
+    expect(buscarProductosDeTienda("hormigonx", productos).productos).toEqual([]);
+  });
+
+  it("blank queries preserve the merchant's order; unknown queries do not invent results", () => {
+    expect(buscarProductosDeTienda("  ", catalogo).productos).toBe(catalogo);
+    expect(buscarProductosDeTienda("zapatillas", catalogo)).toEqual({ productos: [], aproximada: false });
+    expect(buscarProductosDeTienda("[[[", catalogo).productos).toEqual([]);
   });
 });
 

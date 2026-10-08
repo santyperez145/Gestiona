@@ -35,7 +35,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
       data-variant-count={tieneVariantes ? variantes.length : undefined}
     >
       <div className="storefront-product-card__media relative">
-        <Link to={productUrl} className="relative block aspect-[4/5] overflow-hidden" style={{ background: "hsl(var(--st-muted) / 0.08)" }}>
+        <Link to={productUrl} aria-label={`Ver ${p.name}`} className="relative block aspect-[4/5] overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]" style={{ background: "hsl(var(--st-muted) / 0.08)" }}>
           <div aria-hidden="true" className="absolute inset-0 grid place-items-center opacity-10">
             <ShoppingBag className="w-7 h-7" />
           </div>
