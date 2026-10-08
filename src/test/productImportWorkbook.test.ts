@@ -98,6 +98,25 @@ describe("Excel legacy y mapeo de productos", () => {
     expect(parsed.negativeStock).toBe(1);
     expect(previewProductImportRow(product, { exchangeRate: 0, defaultMarginPercent: 0, autoFillSalePrice: false })).toMatchObject({ salePriceARS: 200, profitARS: 100 });
   });
+  it.each(["shopify", "tiendanube"])("no supone USD para costos %s y conserva variantes al confirmar ARS", platform => {
+    const matrix = platform === "shopify"
+      ? [["Handle", "Title", "Variant SKU", "Variant Price", "Option1 Name", "Option1 Value", "Cost per item"], ["zz-camisa", "ZZ Camisa", "ZZ-S", 1000, "Talle", "S", 500], ["zz-camisa", "", "ZZ-M", 1200, "Talle", "M", 600]]
+      : [["Identificador de URL", "Nombre", "SKU", "Precio", "Nombre de propiedad 1", "Valor de propiedad 1", "Costo"], ["zz-camisa", "ZZ Camisa", "ZZ-S", 1000, "Talle", "S", 500], ["zz-camisa", "", "ZZ-M", 1200, "Talle", "M", 600]];
+    const book = workbook(matrix);
+    const detected = mapProductWorkbook(book, "zz-platform.xlsx");
+    expect(detected.costCurrencyAmbiguous).toBe(true);
+    const pesos = mapProductWorkbook(book, "zz-platform.xlsx", { costCurrency: "ARS" });
+    const dollars = mapProductWorkbook(book, "zz-platform.xlsx", { costCurrency: "USD" });
+    expect(pesos.costCurrencyAmbiguous).toBe(false);
+    expect(pesos.parsed.products[0]).toMatchObject({ cost_ars: 500, sale_price_ars: 1000 });
+    expect(pesos.parsed.products[0]).not.toHaveProperty("cost_usd");
+    expect(pesos.parsed.products[0].provided).toContain("cost_ars");
+    expect(pesos.parsed.products[0].provided).not.toContain("cost_usd");
+    expect(pesos.parsed.products[0].variants).toEqual(dollars.parsed.products[0].variants);
+    expect(dollars.parsed.products[0]).toMatchObject({ cost_usd: 500 });
+    expect(dollars.parsed.products[0]).not.toHaveProperty("cost_ars");
+    expect(mapProductWorkbook(workbook(matrix.map(row => row.slice(0, -1))), "zz.xlsx").costCurrencyAmbiguous).toBe(false);
+  });
   it("conserva formato numérico con ceros y posición real de la fila", () => {
     const book = XLSX.utils.book_new(); const sheet = XLSX.utils.aoa_to_sheet([[], [], ["Nombre", "SKU", "Precio", "Costo ARS"], ["ZZ Ejemplo", 12, 200, 100]]);
     sheet.B4.z = "000000"; XLSX.utils.book_append_sheet(book, sheet, "Productos");

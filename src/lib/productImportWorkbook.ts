@@ -64,6 +64,7 @@ export function mapProductWorkbook(workbook: XLSX.WorkBook, filename: string, op
   const original: CatalogMigrationParseResult = hardware && !platform
     ? { source, sourceRows: sourceRows.length, products: [], variantCount: 0, imageCount: 0, redirectCount: 0, warnings: [] }
     : parseCatalogMigrationRows(sourceRows.map(rawRow), filename);
+  const platformHasCosts = platform && original.products.some(product => product.cost_usd !== undefined);
   if (platform && options.mapping) throw new Error("Las exportaciones de plataforma conservan su agrupación de variantes.");
   const cellValue = (cells: unknown[], row: number, field: keyof ImportMapping) => {
     const index = Number(mapping[field]);
@@ -74,7 +75,15 @@ export function mapProductWorkbook(workbook: XLSX.WorkBook, filename: string, op
     const text = String(value ?? "").trim();
     return !text || missingPlaceholder.test(text) ? undefined : identifiers.has(field) ? text : value;
   };
-  const products = platform ? original.products : sourceRows.map(({ cells, row }, index) => {
+  const products = platform ? original.products.map(product => {
+    // Platform exports use the store's currency, not an implied USD currency.
+    // Reinterpret only after the merchant chooses; never convert the amount.
+    if (costCurrency !== "ARS" || product.cost_usd === undefined) return product;
+    const next: CatalogMigrationProduct = { ...product, cost_ars: product.cost_usd,
+      provided: [...product.provided.filter(field => field !== "cost_usd"), "cost_ars"] };
+    delete next.cost_usd;
+    return next;
+  }) : sourceRows.map(({ cells, row }, index) => {
     const product: CatalogMigrationProduct = { ...(hardware ? {} : original.products[index]), name: String(cellValue(cells, row, "name") ?? "").trim(), provided: [...(hardware ? [] : original.products[index].provided)], source_row: row,
       source_record: JSON.stringify({ headers, values: cells }) };
     if (product.name && !product.provided.includes("name")) product.provided.push("name");
@@ -104,13 +113,14 @@ export function mapProductWorkbook(workbook: XLSX.WorkBook, filename: string, op
   const detectionWarnings = platform ? [] : productColumnWarnings(headers, mapping);
   if (!options.headerRow && detection.uncertain) detectionWarnings.push("La fila de encabezados no es concluyente. Revisá la fila elegida y el mapeo antes de continuar.");
   if (!options.sheetName && suggestions.length > 1 && suggestions[0].score === suggestions[1].score) detectionWarnings.push("Hay varias hojas posibles. Revisá la hoja elegida antes de continuar; sólo se importa una por sesión.");
-  if (!platform && mapping.cost && !options.costCurrency && costHeader === "costo" && !hardware) detectionWarnings.push("La columna Costo no indica moneda. Confirmá ARS o USD; el valor no se convierte automáticamente.");
+  const costCurrencyAmbiguous = !options.costCurrency && (platformHasCosts || (!platform && !!mapping.cost && costHeader === "costo" && !hardware));
+  if (costCurrencyAmbiguous) detectionWarnings.push("El costo no indica moneda. Confirmá ARS o USD; el valor no se convierte automáticamente.");
   if (hardware) warnings.push("PRECIO DE LISTA es el precio normal. VENTA se conserva como dato de origen para efectivo/transferencia; no se convierte en una oferta general ni cambia los descuentos del negocio.");
   if (!platform) warnings.push("Las columnas no mapeadas se conservan en el registro de origen del lote; no crean proveedores ni modifican descuentos automáticamente.");
   return { parsed: { ...original, products, sourceRows: sourceRows.length, warnings }, mapping, costCurrency,
     profile: platform ? "platform" : hardware ? "hardware" : "mapped", sheetName, sheetNames: workbook.SheetNames, columns,
     headerRow: range.s.r + headerIndex + 1, headerCandidates: detection.candidates.map(row => ({ value: String(range.s.r + row.index + 1), label: `Fila ${range.s.r + row.index + 1} · ${row.label}` })), detectionWarnings,
-    costCurrencyAmbiguous: !platform && !!mapping.cost && costHeader === "costo" && !hardware && !options.costCurrency,
+    costCurrencyAmbiguous,
     negativeStock: stocks.filter(value => value < 0).length, fractionalStock: stocks.filter(value => !Number.isInteger(value)).length,
     duplicateCodes: [...codes.values()].filter(value => value > 1).length };
 }

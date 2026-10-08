@@ -85,3 +85,29 @@ test("importador Excel: detecta hoja/fila, confirma moneda y conserva revisión 
   await expect(prepare).toBeDisabled(); // Currency still needs explicit confirmation.
   expect(writes).toEqual([]); expect(errors).toEqual([]);
 });
+
+for (const platform of ["shopify", "tiendanube"]) {
+  test(`costos ${platform}: confirmar ARS sin perder agrupación ni escribir catálogo`, async ({ page }) => {
+    const writes = await mockImporter(page);
+    const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+    const book = XLSX.utils.book_new();
+    const matrix = platform === "shopify"
+      ? [["Handle", "Title", "Variant SKU", "Variant Price", "Option1 Name", "Option1 Value", "Cost per item"], ["zz-camisa", "ZZ Camisa", "ZZ-S", 1000, "Talle", "S", 500], ["zz-camisa", "", "ZZ-M", 1200, "Talle", "M", 600]]
+      : [["Identificador de URL", "Nombre", "SKU", "Precio", "Nombre de propiedad 1", "Valor de propiedad 1", "Costo"], ["zz-camisa", "ZZ Camisa", "ZZ-S", 1000, "Talle", "S", 500], ["zz-camisa", "", "ZZ-M", 1200, "Talle", "M", 600]];
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(matrix), "Catálogo");
+    await page.goto('/productos?importar=1');
+    const importer = page.getByRole('dialog', { name: 'Importar catálogo' });
+    await importer.locator('input[type="file"]').setInputFiles({ name: 'zz-platform.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: XLSX.write(book, { type: 'buffer', bookType: 'xlsx' }) });
+    const currency = importer.getByRole('combobox', { name: 'Moneda del costo de origen' });
+    const prepare = importer.getByRole('button', { name: 'Preparar y validar' });
+    await expect(prepare).toBeDisabled();
+    await expect(currency).toBeEnabled();
+    await currency.click();
+    await page.getByRole('option', { name: 'Pesos argentinos (ARS)', exact: true }).click();
+    await expect(importer.getByText('ZZ Camisa', { exact: true })).toBeVisible();
+    await expect(currency).toHaveText('Pesos argentinos (ARS)');
+    await expect(prepare).toBeEnabled();
+    await expect(importer.getByRole('combobox', { name: 'Nombre del producto', exact: true })).toHaveCount(0);
+    expect(writes).toEqual([]); expect(errors).toEqual([]);
+  });
+}

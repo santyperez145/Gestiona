@@ -264,7 +264,7 @@ física. Transferencias alias/CVU: feed real del receptor + referencia única +
 cierre idempotente/fiscal; los reportes asíncronos no prueban detección inmediata.
 `test.scadi.com.ar` sólo expuso su login; no se auditó su sistema privado.
 
-1. Migración primero: Excel con hoja/encabezado sugeridos, corrección y ambigüedades visibles; confirmar moneda, validar y aprobar sin stock/precios adivinados.
+1. Migración primero: Excel con hoja/encabezado sugeridos, corrección y ambigüedades visibles; confirmar costo ARS/USD también en Shopify/Tiendanube, validar y aprobar sin stock/precios adivinados.
    Certificar export real, variantes, imágenes, clientes, redirects y reversa segura; después GTIN/MPN/fuentes autorizadas y enriquecimiento revisable por lotes.
    Carga asistida: copia CC0/PDM, revisión, procedencia y WebP propio verificados en Supabase con fixture limpia; identidad exacta y bulk pendientes. [Contrato](docs/NERQIA_INTELLIGENCE.md).
 2. Checkout → pago → fulfillment → devolución/refund: concurrencia, estados,

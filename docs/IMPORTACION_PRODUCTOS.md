@@ -41,6 +41,9 @@ La extensión está en `20261003000200_catalog_import_sessions.sql`.
   recalcula el mapeo y moneda, sin arrastrar índices de otra hoja.
 - Shopify/Tiendanube mantienen el parser agrupado y la identidad URL; la hoja
   sigue seleccionable sin convertir variantes en productos independientes.
+  Si traen costos, exigen confirmar ARS/USD: no suponen USD por ser un export
+  de plataforma. La selección identifica moneda, no convierte importes; ventas
+  siguen en ARS y un origen en otra moneda exige revisión antes de aprobar.
 - La sugerencia no guarda productos ni aplica inventario. Continúan moneda,
   destino, revisión del servidor, aprobación, idempotencia y reanudación. No hay
   nueva dependencia, RPC, ruta ni migración para esta detección.
