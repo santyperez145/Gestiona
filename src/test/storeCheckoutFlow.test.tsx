@@ -70,10 +70,17 @@ describe("checkout con fallos reales de promesas", () => {
     let resolveOrder!: (value: unknown) => void;
     mocks.create.mockImplementation(() => new Promise(resolve => { resolveOrder = resolve; }));
     const checkout = await openCheckout();
+    for (const button of screen.getAllByRole("button", { name: "Finalizar compra" })) {
+      expect(button).toHaveStyle({ transitionProperty: "box-shadow, transform" });
+    }
     checkout.submit();
     checkout.submit();
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
     expect(screen.getByText("Estamos confirmando tu pedido")).toBeVisible();
+    for (const button of screen.getAllByRole("button", { name: "Confirmando pedido..." })) {
+      expect(button).toBeDisabled();
+      expect(button).toHaveStyle({ transitionProperty: "box-shadow, transform" });
+    }
     expect(mocks.clear).not.toHaveBeenCalled();
     await act(async () => resolveOrder({ data: { order_number: "ORD1" }, error: null, cartLinked: true }));
     expect(await screen.findByTestId("order-destination")).toHaveTextContent("ORD1");

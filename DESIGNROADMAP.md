@@ -180,8 +180,8 @@ POS, corte 2026-10-07: revisión QR explica el motivo y permite consultar el mis
 cobro; no invita a cambiar el medio y duplicar dinero. Preferencia de impresión
 como switch accesible por usuario/dispositivo, ticket persistido y reimpresión
 del cobro recuperado. Ticket comercial, deuda/offline y factura ARCA se distinguen.
-Sin gradiente decorativo; ocho E2E y Axe del aviso recuperado verdes. Gate abierto:
-Preview nueva sin doble registro ([replay 08/10](docs/MIGRATION_REPLAY.md)), autoridad/impresión reales.
+Sin gradiente decorativo; ocho E2E/Axe POS verdes. Checkout: colores atómicos al cotizar, sin contraste transitorio.
+[Replay completo 08/10](docs/MIGRATION_REPLAY.md) aprobado; gates por SHA, autoridad/impresión reales pendientes.
 La matriz funcional y el orden de cierre viven en [POS](docs/POS_OPERACION.md).
 
 1. Auditar páginas que todavía usan cards largas o tabs locales no persistidas.

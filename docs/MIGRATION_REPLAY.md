@@ -47,21 +47,41 @@ migración nueva, comparación contra el esquema desplegado y gate propio.
   perfil; su `memberships.created_at` sí existe. Ambos fallos observados en
   Preview son diferencias de reconstrucción, no incidentes productivos probados.
 
-## Gate todavía abierto
+## Reconstrucción completa y backend publicado
 
-1. Checkpoint `4b4b706d` pusheado a PR 16: `npm run verify` verde, 3.749 tests
-   en 421 archivos. Integrar Auth en la misma PR y repetir el gate del conjunto;
-   incluir `20261004000100`, ya registrado en producción, sin reparar el journal.
-   Conjunto `a871f306`: gate local de 3.779 tests/424 archivos y CI verde;
-   Preview nueva `uxsffufotnlizjlyywog` falló por doble registro de `20260814000003`.
-   Eliminar la auto-registración del SQL y repetir la reconstrucción completa.
-2. Recrear la Preview efímera y confirmar la aplicación desde el primer archivo
-   del historial corregido, sin datos ni secretos productivos copiados.
-3. Repetir ambos SQL reversibles en esa base nueva; comprobar auditorías y
-   residuos. El check Supabase Preview debe terminar aprobado, no saltarse.
-4. Publicar primero los productores Edge de evidencia QR, luego el guard SQL;
-   después promover frontend por el flujo protegido normal de `main`.
-5. Cerrar PR 15 y retirar ambas ramas sólo después de comprobar su contenido
+- `13dbc906`: puerta local completa, 3.780 tests/424 archivos. El runner
+  aplicó las 665 migraciones desde cero en la Preview efímera y sin datos
+  `ssmppsjyhvdyrkzpjjpa`; check Supabase aprobado el 2026-10-08 a las 04:36 UTC.
+- Allí se repitieron ambos SQL reversibles: QR y alias/roles. Readback final:
+  cero usuarios, organizaciones y hallazgos de los cuatro auditores anteriores.
+  Esta vez no hubo reparaciones diagnósticas ni copias de datos productivos.
+- Producción: se publicaron primero `mercadopago-pos-qr` v15 y
+  `mercadopago-webhook` v66, ambos ACTIVE; el webhook conserva validación HMAC
+  sin JWT de usuario en el gateway. Después la CLI aplicó y registró únicamente
+  `20261007000100`; el dry-run no propuso históricos, seeds ni roles.
+- La huella del finalizador original coincide entre Preview y producción
+  (`036c75166a8945daef949878c64e2366`). El readback productivo confirma el guard
+  registrado y cero funciones/costos expuestos, policies sin tenant o tablas
+  públicas sin RLS. No se hicieron escrituras de fixtures en producción:
+  se mantiene la alternativa segura de Preview, no se evita la revisión.
+- CI de `13dbc906`: tipos/build, dependencias, unit tests y builds nativos
+  aprobados. Un E2E móvil detectó contraste transitorio del checkout al resolver
+  envío: foreground y fondo se interpolaban entre dos pares válidos.
+  La corrección intercambia el par sin animar sus colores y conserva foco;
+  el E2E retiene la cotización real y audita estados pendiente/listo.
+  Dos E2E locales (desktop/móvil), sin retries, y Axe de ambos estados verdes;
+  no se envía el pedido. Se conservaron screenshots para revisión visual.
+
+## Gate de promoción y operación real
+
+1. Publicar la corrección de contraste y repetir la puerta completa sobre ese
+   SHA: CI, E2E, Supabase Preview y Vercel; no reutilizar checks de otro commit.
+   Auth está integrado en PR 16; su migración `20261004000100`, ya productiva,
+   participa del replay sin reparar el journal ni volver a aplicarla allí.
+2. Promover frontend por el flujo protegido normal de `main`. Los productores
+   y el guard ya se publicaron en el orden documentado; nunca abrir el helper
+   interno ni ignorar un check pendiente para acelerar la integración.
+3. Cerrar PR 15 y retirar ambas ramas sólo después de comprobar su contenido
    integrado a `main`. Proxy de confianza, SMTP Auth y recepción real mantienen
    gate propio; el código pusheado no demuestra configuración de proveedores.
 

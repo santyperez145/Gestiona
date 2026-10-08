@@ -609,6 +609,9 @@ export default function StoreCheckout() {
     color: accionDeshabilitada ? "hsl(var(--st-text))" : "hsl(var(--st-accent-fg))",
     borderColor: accionDeshabilitada ? "hsl(var(--st-border))" : "transparent",
     borderRadius: "var(--st-radius)",
+    // Swap the foreground/background pair atomically. Interpolating both
+    // during shipping resolution can make an otherwise AA pair unreadable.
+    transitionProperty: "box-shadow, transform",
   } as React.CSSProperties;
   const processingCopy = processingStage === "creating_order"
     ? { button: "Confirmando pedido...", title: "Estamos confirmando tu pedido", detail: "Validamos stock, precio y entrega." }

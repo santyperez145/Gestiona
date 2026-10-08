@@ -142,10 +142,32 @@ test.describe("WCAG A/AA del Storefront", () => {
     await auditar(page, "Carrito");
   });
 
-  test("checkout no tiene violaciones axe críticas o serias", async ({ page }) => {
+  test("checkout no tiene violaciones axe críticas o serias", async ({ page }, testInfo) => {
     await prepararCarrito(page);
-    await page.goto(tienda("/checkout"));
-    await expect(page.getByRole("heading", { name: "Finalizar compra" })).toBeVisible();
-    await auditar(page, "Checkout");
+    let releaseQuote!: () => void;
+    const quoteBarrier = new Promise<void>(resolve => { releaseQuote = resolve; });
+    // Read the real quote, but hold its response to exercise the pending ->
+    // ready palette swap that previously interpolated through unreadable colors.
+    await page.route("**/rest/v1/rpc/quote_store_shipping", async route => {
+      const response = await route.fetch();
+      await quoteBarrier;
+      await route.fulfill({ response });
+    });
+    try {
+      await page.goto(tienda("/checkout"));
+      await expect(page.getByRole("heading", { name: "Finalizar compra" })).toBeVisible();
+      const action = page.getByRole("main").locator('button[type="submit"]:visible');
+      await expect(action).toHaveText("Calculando entrega...");
+      await expect(action).toBeDisabled();
+      expect(await action.evaluate(element => getComputedStyle(element).transitionProperty))
+        .toBe("box-shadow, transform");
+      await auditar(page, "Checkout calculando entrega");
+      releaseQuote();
+      await expect(action).toBeEnabled();
+      await auditar(page, "Checkout listo para confirmar");
+      await page.screenshot({ path: testInfo.outputPath("checkout-ready.png") });
+    } finally {
+      releaseQuote();
+    }
   });
 });

@@ -84,14 +84,15 @@ Cobros recurrentes de clientes usan `customer_subscriptions`, nunca la
 suscripción SaaS; lecturas de miembros y escritura owner/admin. Proveedores y
 clientes apuntan a `suppliers`/`customers`; defaults criptográficos resuelven
 `extensions`, sin depender del search path. No se despliegan esos históricos
-sobre datos productivos. La reconstrucción completa sigue abierta: no reparar
-versiones, resetear producción ni omitir el check para salvar el POS.
+sobre datos productivos. No reparar versiones, resetear producción ni omitir
+el check para salvar el POS.
 Replay incremental del 2026-10-08 alcanzó `20261007000100`; se resolvieron
 expansiones de auditoría, dependencias, identidades, RLS y fixtures ligados a
 datos productivos. Pruebas reversibles de QR/alias verdes y auditorías sin
 hallazgos, cero usuarios/organizaciones residuales. [Evidencia y límites del
-replay](MIGRATION_REPLAY.md): falta reconstruir una Preview nueva desde cero;
-la continuación parcial no permite omitir el check ni promover el release.
+replay](MIGRATION_REPLAY.md): Preview nueva `ssmppsjyhvdyrkzpjjpa` instaló las
+665 migraciones desde cero el 2026-10-08 y repitió QR/roles sin residuos/hallazgos.
+La promoción del frontend sigue el gate completo de su propio SHA.
 
 La revisión detectó además `org_members` sólo en la base alojada, como vista
 definer con grants de lectura/escritura al navegador. `20261007000000` sí se
@@ -105,7 +106,8 @@ Eso no habilita por sí solo el release POS ni certifica todos los controles.
 nueve pruebas inválidas, cierre válido, duplicado, evento vencido, refund y
 snapshot viejo, ACL y rollback con cero restos. Ejecutado con el guard dentro
 de rollback sobre la base vinculada y, el 2026-10-08, en Preview incremental
-con actor propio. No cobró dinero ni llamó a MP.
+con actor propio y también en la Preview reconstruida desde cero.
+No cobró dinero ni llamó a MP; no se escribieron fixtures en producción.
 Unit tests ejecutan el helper de Orders y el cargador/impresor con fuentes
 controladas; comprobar ticket íntegro, XSS, deuda, tenant y error sin recobro.
 E2E `pos-checkout.spec.ts` usa red totalmente interceptada: QR nuevo pendiente
@@ -119,6 +121,11 @@ Orden backend: publicar primero las funciones que producen la evidencia
 (`mercadopago-pos-qr`, `mercadopago-webhook`), luego el guard SQL. Invertirlo
 haría que el servidor viejo no cumpla el contrato nuevo. No abrir el finalizador
 interno para salvar una migración. El browser se despliega después del gate.
+El 2026-10-08 se publicaron QR v15 y webhook v66 ACTIVE, después se aplicó
+`20261007000100` mediante la CLI: sólo esa migración pendiente, con journal
+del runner. La huella del finalizador coincide con Preview y los auditores
+productivos siguen sin hallazgos. No certifica recepción de dinero, impresión
+física ni emisión ARCA: esos gates requieren una operación controlada real.
 
 ## Referencias oficiales, consultadas 2026-10-07
 
