@@ -66,6 +66,10 @@ BEGIN
   -- mirando el catálogo.
   SELECT org_id, user_id INTO v_org, v_user FROM public.memberships LIMIT 1;
   SELECT id INTO v_prod FROM public.products WHERE org_id = v_org LIMIT 1;
+  IF v_org IS NULL OR v_user IS NULL OR v_prod IS NULL THEN
+    RAISE NOTICE 'Fixture de venta/auditoría omitido: faltan organización/miembro/producto';
+    RETURN;
+  END IF;
 
   INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity,
                             total_ars, date, payment_method, source, paid)
@@ -123,7 +127,3 @@ BEGIN
 
   RAISE NOTICE 'OK: se fue el trigger muerto, vender funciona y la auditoría real sigue';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000080', 'se_va_el_trigger_que_finge_auditar')
-ON CONFLICT DO NOTHING;

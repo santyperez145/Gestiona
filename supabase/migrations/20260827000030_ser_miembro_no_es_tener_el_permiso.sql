@@ -894,6 +894,10 @@ BEGIN
     'quedan ' || v_filas || ' RPC que mueven stock o plata sin exigir permiso';
 
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de permisos omitido: no hay miembro de organización';
+    RETURN;
+  END IF;
   INSERT INTO public.organizations (id, name, slug, owner_user_id)
   VALUES (v_org, 'ZZ verificacion permisos',
           'zz-verif-' || substr(v_org::text, 1, 8), v_user);
@@ -943,7 +947,3 @@ BEGIN
 
   RAISE NOTICE 'OK: vista vacia; vendedor frenado; admin puede; sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000030', 'ser_miembro_no_es_tener_el_permiso')
-ON CONFLICT DO NOTHING;

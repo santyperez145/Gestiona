@@ -374,6 +374,3 @@ BEGIN
   END IF;
 END
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000057', 'payment_correlation_trace') ON CONFLICT DO NOTHING;

@@ -25,6 +25,22 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- Partition by month for performance at scale
 -- (We define the base table; actual partitioning can be added later via Supabase migrations)
 
+-- April already creates the canonical UUID-id / text-entity audit table.
+-- CREATE IF NOT EXISTS does not add these later fields on a fresh replay.
+ALTER TABLE public.audit_logs
+  ADD COLUMN IF NOT EXISTS user_email text,
+  ADD COLUMN IF NOT EXISTS user_role text,
+  ADD COLUMN IF NOT EXISTS entity_label text,
+  ADD COLUMN IF NOT EXISTS old_values jsonb,
+  ADD COLUMN IF NOT EXISTS new_values jsonb,
+  ADD COLUMN IF NOT EXISTS diff jsonb,
+  ADD COLUMN IF NOT EXISTS ip_address text,
+  ADD COLUMN IF NOT EXISTS user_agent text,
+  ADD COLUMN IF NOT EXISTS request_id uuid DEFAULT gen_random_uuid(),
+  ADD COLUMN IF NOT EXISTS severity text NOT NULL DEFAULT 'info',
+  ADD COLUMN IF NOT EXISTS tags text[] NOT NULL DEFAULT '{}'::text[],
+  ADD COLUMN IF NOT EXISTS metadata jsonb NOT NULL DEFAULT '{}'::jsonb;
+
 -- Summary function: counts by entity_type and action in a period
 CREATE OR REPLACE FUNCTION get_audit_summary(
   p_org_id uuid,
@@ -64,7 +80,7 @@ CREATE OR REPLACE FUNCTION log_audit_event(
   p_severity    text DEFAULT 'info',
   p_metadata    jsonb DEFAULT '{}'
 )
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE
   v_diff jsonb := '{}';
   key text;
@@ -90,6 +106,11 @@ BEGIN
   );
 END;
 $$;
+
+-- This helper accepts an explicit actor and tenant; only trusted server code
+-- may invoke it. Client-side audit writes continue through their RLS contract.
+REVOKE ALL ON FUNCTION public.log_audit_event(uuid, uuid, text, text, text, uuid, text, jsonb, jsonb, text, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.log_audit_event(uuid, uuid, text, text, text, uuid, text, jsonb, jsonb, text, jsonb) TO service_role;
 
 -- Indexes (optimized for the most common queries)
 CREATE INDEX IF NOT EXISTS idx_audit_org_ts      ON audit_logs(org_id, created_at DESC);

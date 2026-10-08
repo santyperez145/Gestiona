@@ -483,7 +483,3 @@ BEGIN
   END IF;
 END;
 $guard$;
-
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20260822000009', 'finance_document_inbox')
-ON CONFLICT DO NOTHING;

@@ -139,6 +139,10 @@ BEGIN
   SELECT o.id INTO v_org FROM public.organizations o
    ORDER BY (SELECT count(*) FROM public.ledger_accounts a WHERE a.org_id = o.id) DESC LIMIT 1;
   SELECT m.user_id INTO v_user FROM public.memberships m WHERE m.org_id = v_org LIMIT 1;
+  IF v_org IS NULL OR v_user IS NULL THEN
+    RAISE NOTICE 'Fixture ledger omitido: no hay organización/miembro';
+    RETURN;
+  END IF;
 
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, total_cost_usd, stock, is_active)
   VALUES (v_org, v_user, 'ZZ trigger ' || v_sufijo, 8000, 1, 5, true) RETURNING id INTO v_prod;

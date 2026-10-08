@@ -262,7 +262,3 @@ BEGIN
   END IF;
 END
 $guards$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260830000010', 'pos_refund_mercadopago')
-ON CONFLICT DO NOTHING;

@@ -365,6 +365,3 @@ BEGIN
   END IF;
 END
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260822000005', 'margin_operation_explanations') ON CONFLICT DO NOTHING;

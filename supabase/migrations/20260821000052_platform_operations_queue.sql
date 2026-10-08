@@ -189,6 +189,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000052', 'platform_operations_queue') ON CONFLICT DO NOTHING;

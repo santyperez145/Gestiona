@@ -105,6 +105,10 @@ BEGIN
   SELECT a.cuit INTO v_cuit FROM public.afip_credentials a WHERE a.org_id = v_org;
   SELECT p.cuit INTO v_plat FROM public.afip_platform_credentials p
    WHERE p.certificate IS NOT NULL LIMIT 1;
+  IF v_org IS NULL OR v_user IS NULL OR v_plat IS NULL THEN
+    RAISE NOTICE 'Fixture de delegación omitido: faltan identidad/credenciales';
+    RETURN;
+  END IF;
 
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims',
@@ -141,7 +145,3 @@ BEGIN
 
   RAISE NOTICE 'OK: mismo CUIT sin tramite, otro CUIT con tramite, CUIT real intacto';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000060', 'sin_tramite_cuando_no_hay_tramite')
-ON CONFLICT DO NOTHING;

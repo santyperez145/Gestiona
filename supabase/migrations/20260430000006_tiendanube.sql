@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.tiendanube_connections (
   last_sync_orders_at    timestamptz,
   sync_products   boolean NOT NULL DEFAULT true,
   sync_orders     boolean NOT NULL DEFAULT true,
+  webhook_id      text,
   UNIQUE(org_id, store_id)
 );
 

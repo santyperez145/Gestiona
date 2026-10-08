@@ -177,6 +177,3 @@ $verify$;
 SELECT check_name, passed, detail
 FROM zz_organization_backup_verification
 ORDER BY check_name;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260815000008', 'organization_managed_backups') ON CONFLICT DO NOTHING;

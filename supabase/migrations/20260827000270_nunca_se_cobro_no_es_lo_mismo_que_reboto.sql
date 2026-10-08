@@ -159,6 +159,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture primer cobro omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_pro   FROM public.plans WHERE code = 'pro';
   SELECT id INTO v_trial FROM public.plans WHERE code = 'trial';
 
@@ -215,7 +219,3 @@ BEGIN
 
   RAISE NOTICE 'OK: se confirma por minutos, sin pagar no da el plan, y el comercio conserva lo suyo';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000270', 'nunca_se_cobro_no_es_lo_mismo_que_reboto')
-ON CONFLICT DO NOTHING;

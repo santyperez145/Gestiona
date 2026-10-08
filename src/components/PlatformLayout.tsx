@@ -36,6 +36,7 @@ const NAV: NavItem[] = [
   { to: '/platform/operaciones', label: 'Operaciones', icon: ShieldCheck, group: 'operations' },
   { to: '/platform/sistema', label: 'Sistema', icon: Server, group: 'operations' },
   { to: '/platform/mensajeria', label: 'Mensajería', icon: Mail, group: 'operations' },
+  { to: '/platform/seguridad', label: 'Seguridad de mi cuenta', icon: ShieldCheck, group: 'workspace' },
   { to: '/platform/planes', label: 'Planes', icon: DollarSign, group: 'monetization', roles: ['finance'] },
   { to: '/platform/negocio', label: 'Negocio', icon: TrendingUp, group: 'monetization', roles: ['finance'] },
   { to: '/platform/comisiones', label: 'Comisiones', icon: Percent, group: 'monetization', roles: ['finance'] },

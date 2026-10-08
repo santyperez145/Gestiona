@@ -970,7 +970,3 @@ BEGIN
   RAISE NOTICE 'Finance drafts verificado: segregación, idempotencia, Core aprobado, stock quieto y restos 0';
 END;
 $fixture$;
-
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20260822000013', 'finance_document_drafts')
-ON CONFLICT DO NOTHING;

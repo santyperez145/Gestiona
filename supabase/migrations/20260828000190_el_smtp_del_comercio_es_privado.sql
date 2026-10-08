@@ -154,7 +154,3 @@ BEGIN
   END IF;
 END;
 $verification$;
-
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20260828000190', 'el_smtp_del_comercio_es_privado')
-ON CONFLICT DO NOTHING;

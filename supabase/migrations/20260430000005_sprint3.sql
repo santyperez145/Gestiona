@@ -37,4 +37,12 @@ ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS mp_access_token text;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS mp_enabled boolean NOT NULL DEFAULT false;
 
 -- Tiendanube webhook secret per connection (for HMAC verification)
-ALTER TABLE public.tiendanube_connections ADD COLUMN IF NOT EXISTS webhook_id text;
+-- This historical migration precedes the table creation migration. Keep replay
+-- safe from an empty database and apply the column after creation below.
+DO $$
+BEGIN
+  IF to_regclass('public.tiendanube_connections') IS NOT NULL THEN
+    ALTER TABLE public.tiendanube_connections ADD COLUMN IF NOT EXISTS webhook_id text;
+  END IF;
+END;
+$$;

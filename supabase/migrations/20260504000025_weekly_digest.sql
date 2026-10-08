@@ -1,5 +1,8 @@
 -- Weekly performance digest cron — every Monday at 9 AM UTC
-SELECT cron.schedule(
+DO $schedule$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'weekly-performance-digest') THEN
+    PERFORM cron.schedule(
   'weekly-performance-digest',
   '0 9 * * 1',
   $$
@@ -12,4 +15,7 @@ SELECT cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) ON CONFLICT (jobname) DO UPDATE SET schedule = EXCLUDED.schedule;
+    );
+  END IF;
+END;
+$schedule$;

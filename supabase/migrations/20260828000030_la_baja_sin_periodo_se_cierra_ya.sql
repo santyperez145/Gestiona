@@ -82,6 +82,10 @@ BEGIN
   -- Sin esta mitad, «arreglado» pasaría igual habiendo cerrado a alguien que
   -- pagó por el mes que le queda.
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture baja con período omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_plan FROM public.plans WHERE code = 'pro';
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id, plan_id)
@@ -112,7 +116,3 @@ BEGIN
 
   RAISE NOTICE 'OK: la baja sin período se cierra, y la que tiene período lo conserva';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000030', 'la_baja_sin_periodo_se_cierra_ya')
-ON CONFLICT DO NOTHING;

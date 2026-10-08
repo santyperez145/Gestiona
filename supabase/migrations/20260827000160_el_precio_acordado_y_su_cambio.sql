@@ -410,6 +410,10 @@ DECLARE
 BEGIN
   SELECT user_id INTO v_user  FROM public.memberships LIMIT 1;
   SELECT user_id INTO v_staff FROM public.platform_admins LIMIT 1;
+  IF v_user IS NULL OR v_staff IS NULL THEN
+    RAISE NOTICE 'Fixture de precios omitido: faltan miembro/staff';
+    RETURN;
+  END IF;
 
   -- ⚠️ Un bloque DO corre como superusuario y `auth.uid()` es NULL, así que
   -- TODA llamada al RPC fallaba por el chequeo de staff. La primera versión de
@@ -516,7 +520,3 @@ BEGIN
 
   RAISE NOTICE 'OK: preaviso obligatorio para subir, baja inmediata, el comercio ve lo suyo y no lo ajeno, el precio se mueve solo si MP acepto';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000160', 'el_precio_acordado_y_su_cambio')
-ON CONFLICT DO NOTHING;

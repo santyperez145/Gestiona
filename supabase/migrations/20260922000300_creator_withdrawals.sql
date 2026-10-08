@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.influencer_withdrawal_requests (
 
 CREATE INDEX IF NOT EXISTS idx_withdrawals_token ON public.influencer_withdrawal_requests(token);
 CREATE INDEX IF NOT EXISTS idx_withdrawals_org_status ON public.influencer_withdrawal_requests(org_id, status);
+ALTER TABLE public.influencer_withdrawal_requests ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- SALDO REAL DEL CREADOR POR TOKEN

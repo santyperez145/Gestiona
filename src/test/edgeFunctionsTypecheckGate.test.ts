@@ -18,10 +18,10 @@ describe("guardia de tipos de Edge Functions", () => {
       .filter((entry) => existsSync(resolve(functionsDir, entry.name, "index.ts")))
       .length;
 
-    // 84 al 2026-09-25: incorpora `copy-product-images` (copia de imágenes
-    // externas del migrador de catálogo al storage propio).
+    // 85 al 2026-10-04: incorpora `trusted-device`, autoridad de dispositivos
+    // recordados; no agrega un proveedor de identidad ni guarda códigos OTP.
     // El número está fijo a propósito: agregar una Edge Function tiene que ser una decisión visible.
-    expect(count).toBe(84);
+    expect(count).toBe(85);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

@@ -1,8 +1,14 @@
 # Medios de cobro
 
-**Estado:** contrato vigente. **Corte:** 2026-10-02.
+**Estado:** contrato vigente. **Corte:** 2026-10-07.
 
 Cómo cobra cada comercio en su tienda online.
+
+Mostrador: [POS operativo](POS_OPERACION.md) conserva la misma autoridad de
+dinero/stock. QR exige evidencia obtenida de Orders, pago completo acreditado,
+cuenta receptora, referencia, moneda e importes coincidentes; ni el monto pedido
+ni el cuerpo del webhook por sí solos prueban dinero recibido. La transferencia
+manual CVU no se autocierra por coincidencia de importe.
 
 ## Nerqia Pay (2026-09-02)
 

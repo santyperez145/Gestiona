@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   order_number    text        NOT NULL,
-  supplier_id     uuid        REFERENCES proveedores(id) ON DELETE SET NULL,
+  supplier_id     uuid        REFERENCES public.suppliers(id) ON DELETE SET NULL,
   supplier_name   text        NOT NULL,
   supplier_email  text,
   status          text        NOT NULL DEFAULT 'draft'

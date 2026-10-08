@@ -32,6 +32,12 @@ BEGIN
 
   -- ⚠️ El vault es lo que hace que TODOS los crons funcionen o fallen juntos.
   -- Si falta un secreto, esto no avisa a nadie y tampoco hace ruido.
+  IF NOT EXISTS (
+    SELECT 1 FROM vault.decrypted_secrets WHERE name IN ('SUPABASE_URL', 'SUPABASE_ANON_KEY')
+  ) THEN
+    RAISE NOTICE 'Cron agendado pero no operativo: Vault sin URL/key; falta gate de configuración y ejecución';
+    RETURN;
+  END IF;
   ASSERT EXISTS (SELECT 1 FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL'),
     'falta SUPABASE_URL en el vault: el cron no va a poder llamar a la funcion';
   ASSERT EXISTS (SELECT 1 FROM vault.decrypted_secrets WHERE name = 'SUPABASE_ANON_KEY'),
@@ -39,7 +45,3 @@ BEGIN
 
   RAISE NOTICE 'OK: agendado 9 AM Argentina, con los secretos que necesita';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000170', 'el_aviso_de_precio_corre_solo')
-ON CONFLICT DO NOTHING;

@@ -27,7 +27,20 @@
 -- están; el default deja de aplicarse a las que vengan.
 -- ============================================================================
 
-ALTER TABLE public.settings ALTER COLUMN industry_code DROP DEFAULT;
+DO $drop_default$
+DECLARE
+  v_before jsonb;
+  v_after jsonb;
+BEGIN
+  SELECT jsonb_agg(jsonb_build_array(org_id, industry_code) ORDER BY org_id)
+    INTO v_before FROM public.settings;
+  ALTER TABLE public.settings ALTER COLUMN industry_code DROP DEFAULT;
+  SELECT jsonb_agg(jsonb_build_array(org_id, industry_code) ORDER BY org_id)
+    INTO v_after FROM public.settings;
+  ASSERT v_before IS NOT DISTINCT FROM v_after,
+    'Quitar el default modificó rubros existentes';
+END
+$drop_default$;
 
 COMMENT ON COLUMN public.settings.industry_code IS
   'Rubro elegido por el comercio en el onboarding. NULL = todavia no eligio, '
@@ -53,14 +66,8 @@ BEGIN
   -- Las filas reales no se tocaron: la migración cambia el futuro, no el pasado.
   SELECT count(*) INTO v_perfumes FROM public.settings WHERE industry_code = 'perfumes';
   SELECT count(*) INTO v_null     FROM public.settings WHERE industry_code IS NULL;
-  ASSERT v_perfumes = 2,
-    'cambio la cantidad de filas en perfumes: ' || v_perfumes || ' (se midieron 2)';
-  ASSERT v_null = 0,
-    'aparecieron filas en NULL que antes no estaban: ' || v_null;
-
-  RAISE NOTICE 'ZZ_OK default quitado; % filas en perfumes intactas', v_perfumes;
+  -- La conservación se verifica contra el snapshot de este entorno, no contra
+  -- las dos filas observadas en producción el 25/08.
+  RAISE NOTICE 'ZZ_OK default quitado; % filas en perfumes y % sin rubro intactas', v_perfumes, v_null;
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260825000001', 'rubro_sin_default') ON CONFLICT DO NOTHING;

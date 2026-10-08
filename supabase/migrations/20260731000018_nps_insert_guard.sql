@@ -20,6 +20,13 @@
 -- mismo criterio que el link de pago.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- July 23 removes this unused module in a clean installation. Harden only
+-- hosted environments that still retain it; do not recreate retired tables.
+DO $legacy_nps$
+BEGIN
+  IF to_regclass('public.nps_responses') IS NULL
+    OR to_regclass('public.nps_surveys') IS NULL THEN RETURN; END IF;
+
 DROP POLICY IF EXISTS "public_nps_response_insert" ON public.nps_responses;
 
 CREATE POLICY "public_nps_response_insert" ON public.nps_responses
@@ -36,3 +43,5 @@ CREATE POLICY "public_nps_response_insert" ON public.nps_responses
 
 COMMENT ON POLICY "public_nps_response_insert" ON public.nps_responses IS
   'Respuesta pública, atada a una encuesta activa de la misma organización. El uuid de la encuesta es el secreto, igual que en los links de pago.';
+END;
+$legacy_nps$;

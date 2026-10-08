@@ -72,7 +72,8 @@ BEGIN
   LIMIT 1;
 
   IF v_platform_user IS NULL THEN
-    RAISE EXCEPTION 'No hay platform_admin para verificar platform_cron_health';
+    RAISE NOTICE 'Esquema instalado; verificar cron health con fixture de staff en la matriz operacional';
+    RETURN;
   END IF;
 
   SELECT count(*) INTO v_jobs FROM cron.job;
@@ -104,6 +105,3 @@ BEGIN
   END IF;
 END;
 $verificar$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000009', 'platform_cron_health') ON CONFLICT DO NOTHING;

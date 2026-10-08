@@ -94,6 +94,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de bajas omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_plan FROM public.plans WHERE code = 'starter';
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id) VALUES
@@ -139,7 +143,3 @@ BEGIN
 
   RAISE NOTICE 'OK: la baja vencida se cierra, la vigente se respeta, el impago sigue marcandose';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000190', 'la_baja_se_cierra_sola')
-ON CONFLICT DO NOTHING;

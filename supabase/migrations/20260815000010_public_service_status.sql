@@ -136,6 +136,3 @@ $verify$;
 SELECT check_name, passed, detail
 FROM zz_public_service_status_verification
 ORDER BY check_name;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260815000010', 'public_service_status') ON CONFLICT DO NOTHING;

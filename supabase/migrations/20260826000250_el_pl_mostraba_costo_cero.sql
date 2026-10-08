@@ -124,7 +124,13 @@ BEGIN
 
   ASSERT v_negativos = 0, 'quedaron ' || v_negativos || ' ventas con costo negativo';
   ASSERT v_mayores  = 0, 'quedaron ' || v_mayores || ' ventas con costo mayor que la venta';
-  ASSERT v_con_costo > 0, 'no se completo ninguna venta';
+  ASSERT NOT EXISTS (
+    SELECT 1 FROM public.sales
+    WHERE COALESCE(cost_of_goods_ars, 0) = 0
+      AND profit_ars IS NOT NULL AND total_ars IS NOT NULL
+      AND total_ars - profit_ars > 0
+      AND total_ars - profit_ars <= total_ars
+  ), 'quedaron ventas elegibles sin completar el costo histórico';
 
   -- ⚠️ Las únicas que pueden quedar sin costo son las de prueba de $1. Si
   --    quedara otra, el backfill dejó algo afuera y hay que mirarlo.
@@ -136,10 +142,8 @@ BEGIN
   ASSERT v_zz = 0,
     'quedaron ' || v_zz || ' ventas reales sin costo que no son de prueba';
 
-  -- Y en el otro sentido: que el total sea del orden esperado. Un backfill que
-  -- escribiera ceros también pasaria los asserts de arriba.
-  ASSERT v_suma > 700000,
-    'el costo total quedo en ' || v_suma || ', se esperaban ~798.851';
+  -- El residual anterior detecta un backfill que escribiera ceros. El importe
+  -- medido en producción en agosto no es una precondición de otro entorno.
 
   RAISE NOTICE 'OK: % ventas con costo, % sin costo (las de prueba), total $%',
     v_con_costo, v_sin_costo, round(v_suma);

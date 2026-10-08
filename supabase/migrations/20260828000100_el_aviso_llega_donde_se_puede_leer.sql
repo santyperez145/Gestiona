@@ -61,7 +61,7 @@ BEGIN
     SELECT m.id,
            row_number() OVER (
              ORDER BY (m.role::text = 'owner') DESC,
-                      COALESCE(m.joined_at, m.created_at) ASC,
+                      m.joined_at ASC,
                       m.id ASC
            ) AS puesto
       FROM public.memberships m
@@ -165,7 +165,3 @@ BEGIN
 
   RAISE NOTICE 'OK: la suspensión y el cambio de precio salen por correo';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000100', 'el_aviso_llega_donde_se_puede_leer')
-ON CONFLICT DO NOTHING;

@@ -148,6 +148,15 @@ END;
 $$;
 
 -- Cohort retention query helper
+-- Legacy snapshot has no browser consumer; do not expose cost-bearing writes.
+REVOKE ALL ON FUNCTION public.generate_bi_snapshot(uuid, date) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.generate_bi_snapshot(uuid, date) TO service_role;
+
+-- The July linker backfills this same nullable CRM key; do not infer identity
+-- from a customer name here or create a parallel customer model.
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS customer_id uuid
+  REFERENCES public.customers(id) ON DELETE SET NULL;
+
 CREATE OR REPLACE FUNCTION get_cohort_retention(p_org_id uuid, p_months int DEFAULT 6)
 RETURNS TABLE(
   cohort_month  date,
@@ -163,25 +172,31 @@ RETURNS TABLE(
     GROUP BY customer_id
   ),
   cohort_activity AS (
-    SELECT
+    SELECT DISTINCT
       fp.cohort_month,
       DATE_TRUNC('month', s.created_at) AS activity_month,
       s.customer_id
     FROM sales s
     JOIN first_purchase fp ON fp.customer_id = s.customer_id
     WHERE s.org_id = p_org_id
+  ),
+  cohort_sizes AS (
+    SELECT cohort_month, COUNT(*) AS customers FROM first_purchase
+    GROUP BY cohort_month
+  ),
+  retention AS (
+    SELECT ca.cohort_month, ca.activity_month, COUNT(*) AS retained
+    FROM cohort_activity ca GROUP BY ca.cohort_month, ca.activity_month
   )
   SELECT
-    cohort_month::date,
-    EXTRACT(MONTH FROM AGE(activity_month, cohort_month))::int AS month_offset,
-    COUNT(DISTINCT ca.customer_id) FILTER (WHERE month_offset = 0) OVER (PARTITION BY cohort_month) AS customers,
-    COUNT(DISTINCT ca.customer_id) AS retained,
-    ROUND(COUNT(DISTINCT ca.customer_id) * 100.0 /
-      NULLIF(COUNT(DISTINCT ca.customer_id) FILTER (WHERE EXTRACT(MONTH FROM AGE(activity_month, cohort_month)) = 0) OVER (PARTITION BY cohort_month), 0), 1) AS retention_pct
-  FROM cohort_activity ca
-  WHERE cohort_month >= DATE_TRUNC('month', NOW()) - ((p_months-1) || ' months')::interval
-  GROUP BY cohort_month, activity_month, ca.customer_id
-  ORDER BY cohort_month, month_offset;
+    r.cohort_month::date,
+    (EXTRACT(YEAR FROM AGE(r.activity_month, r.cohort_month)) * 12
+      + EXTRACT(MONTH FROM AGE(r.activity_month, r.cohort_month)))::int AS month_offset,
+    c.customers, r.retained,
+    ROUND(r.retained * 100.0 / NULLIF(c.customers, 0), 1) AS retention_pct
+  FROM retention r JOIN cohort_sizes c USING (cohort_month)
+  WHERE r.cohort_month >= DATE_TRUNC('month', NOW()) - ((p_months-1) || ' months')::interval
+  ORDER BY r.cohort_month, month_offset;
 $$;
 
 -- Indexes

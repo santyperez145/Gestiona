@@ -16,6 +16,13 @@ create table if not exists public.stock_movements (
   created_at timestamptz not null default now()
 );
 
+-- The earlier Kardex migration creates this table with reference_type/id.
+-- Keep that schema and add the operational-ledger fields explicitly instead
+-- of assuming CREATE TABLE IF NOT EXISTS will alter the existing table.
+alter table public.stock_movements
+  add column if not exists source_type text,
+  add column if not exists source_id uuid;
+
 alter table public.stock_movements enable row level security;
 
 create policy "org_members_manage_stock_movements" on public.stock_movements

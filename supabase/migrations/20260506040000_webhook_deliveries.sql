@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS integration_logs_org_integration ON public.integratio
 CREATE INDEX IF NOT EXISTS integration_logs_recent ON public.integration_logs(org_id, created_at DESC);
 
 -- Auto-clean logs older than 30 days (pg_cron job)
-DO $$
+DO $cleanup_schedule$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     PERFORM cron.schedule(
@@ -70,4 +70,5 @@ BEGIN
     );
   END IF;
 EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+END;
+$cleanup_schedule$;

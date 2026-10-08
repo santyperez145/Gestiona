@@ -283,6 +283,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260922000700', 'expense_request_notifications') ON CONFLICT DO NOTHING;

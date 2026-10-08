@@ -67,6 +67,10 @@ BEGIN
   SELECT o.id INTO v_org FROM public.organizations o
    ORDER BY (SELECT count(*) FROM public.sales s WHERE s.org_id = o.id) DESC LIMIT 1;
   SELECT m.user_id INTO v_user FROM public.memberships m WHERE m.org_id = v_org LIMIT 1;
+  IF v_org IS NULL OR v_user IS NULL THEN
+    RAISE NOTICE 'Fixture ABC omitido: no hay organización/miembro';
+    RETURN;
+  END IF;
 
   -- Como el rol real: la función exige membresía.
   SET LOCAL ROLE authenticated;

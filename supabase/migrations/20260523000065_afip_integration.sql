@@ -68,6 +68,11 @@ CREATE TABLE IF NOT EXISTS afip_padron_cache (
   consulted_at      timestamptz NOT NULL DEFAULT now()
 );
 
+-- Global cache is server-owned: no browser may enumerate consulted CUITs.
+ALTER TABLE public.afip_padron_cache ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.afip_padron_cache FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.afip_padron_cache TO service_role;
+
 -- Get next CBte number for a punto_venta + tipo
 CREATE OR REPLACE FUNCTION get_next_cbte_number(
   p_org_id      uuid,

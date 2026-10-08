@@ -801,7 +801,3 @@ BEGIN
   END IF;
 END;
 $guard$;
-
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20260828000130', 'el_negocio_activa_capacidades')
-ON CONFLICT DO NOTHING;

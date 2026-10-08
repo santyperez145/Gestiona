@@ -277,6 +277,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260922000400', 'creator_accounts_role') ON CONFLICT DO NOTHING;

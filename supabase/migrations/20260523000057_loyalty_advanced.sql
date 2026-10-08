@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS loyalty_rewards (
 CREATE TABLE IF NOT EXISTS loyalty_members (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  customer_id     uuid        NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  customer_id     uuid        NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
   current_points  int         NOT NULL DEFAULT 0,
   lifetime_points int         NOT NULL DEFAULT 0,
   tier_id         uuid        REFERENCES loyalty_tiers(id) ON DELETE SET NULL,

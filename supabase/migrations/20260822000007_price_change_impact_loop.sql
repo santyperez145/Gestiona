@@ -848,7 +848,3 @@ BEGIN
   END IF;
 END;
 $guard$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260822000007', 'price_change_impact_loop')
-ON CONFLICT DO NOTHING;

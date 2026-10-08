@@ -159,7 +159,3 @@ BEGIN
   ), 'falta el reconciliador periodico de QR';
 END;
 $guard$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000042', 'pos_qr_se_recupera_solo')
-ON CONFLICT DO NOTHING;

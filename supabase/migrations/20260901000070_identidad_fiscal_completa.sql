@@ -154,7 +154,3 @@ BEGIN
   END IF;
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260901000070', 'identidad_fiscal_completa')
-ON CONFLICT DO NOTHING;

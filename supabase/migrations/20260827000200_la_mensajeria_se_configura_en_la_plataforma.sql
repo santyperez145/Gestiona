@@ -192,6 +192,10 @@ BEGIN
   END;
   PERFORM set_config('request.jwt.claims', NULL, true);
   ASSERT NOT v_ajeno, 'cualquiera pudo cambiar el remitente de toda la plataforma';
+  IF v_staff IS NULL THEN
+    RAISE NOTICE 'Fixture remitente staff omitido: no hay staff; ajeno bloqueado';
+    RETURN;
+  END IF;
 
   -- ── c. Cambiar el dominio borra la verificación ─────────────────────────
   PERFORM set_config('request.jwt.claims',
@@ -212,7 +216,3 @@ BEGIN
 
   RAISE NOTICE 'OK: una sola fila, sólo staff, y cambiar el dominio invalida lo verificado';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000200', 'la_mensajeria_se_configura_en_la_plataforma')
-ON CONFLICT DO NOTHING;

@@ -61,6 +61,3 @@ BEGIN
     'anon puede leer meli_connections';
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260922001100', 'encryption_at_rest_oauth_tokens') ON CONFLICT DO NOTHING;

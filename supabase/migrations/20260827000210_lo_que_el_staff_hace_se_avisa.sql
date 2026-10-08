@@ -145,6 +145,10 @@ DECLARE
 BEGIN
   SELECT user_id INTO v_user  FROM public.memberships LIMIT 1;
   SELECT user_id INTO v_staff FROM public.platform_admins LIMIT 1;
+  IF v_user IS NULL OR v_staff IS NULL THEN
+    RAISE NOTICE 'Fixture de avisos omitido: faltan miembro/staff';
+    RETURN;
+  END IF;
   -- Un segundo usuario para el rol vendedor: tiene que quedar SIN aviso.
   SELECT id INTO v_otro FROM auth.users WHERE id <> v_user LIMIT 1;
 
@@ -203,7 +207,3 @@ BEGIN
 
   RAISE NOTICE 'OK: avisa al pedir y al aprobar, no al vendedor, y no en cada vista';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000210', 'lo_que_el_staff_hace_se_avisa')
-ON CONFLICT DO NOTHING;

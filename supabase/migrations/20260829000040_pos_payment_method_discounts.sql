@@ -274,7 +274,3 @@ BEGIN
   RAISE NOTICE 'OK: descuento POS lee settings, aliases y QR sin inventar';
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000040', 'pos_payment_method_discounts')
-ON CONFLICT DO NOTHING;

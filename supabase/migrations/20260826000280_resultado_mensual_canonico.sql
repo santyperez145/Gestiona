@@ -146,6 +146,10 @@ BEGIN
   SELECT o.id INTO v_org FROM public.organizations o
    ORDER BY (SELECT count(*) FROM public.sales s WHERE s.org_id = o.id) DESC LIMIT 1;
   SELECT m.user_id INTO v_user FROM public.memberships m WHERE m.org_id = v_org LIMIT 1;
+  IF v_org IS NULL OR v_user IS NULL THEN
+    RAISE NOTICE 'Conciliación P&L omitida: no hay organización/miembro para el fixture';
+    RETURN;
+  END IF;
 
   SELECT COALESCE(SUM(s.total_ars), 0), COALESCE(SUM(s.cost_of_goods_ars), 0)
     INTO v_ventas, v_costo FROM public.sales s WHERE s.org_id = v_org;
@@ -165,7 +169,8 @@ BEGIN
 
   RESET ROLE;
 
-  ASSERT v_meses > 0, 'la funcion no devolvio ningun mes';
+  ASSERT v_meses > 0 OR (v_ventas = 0 AND v_costo = 0 AND v_gastos = 0),
+    'la funcion no devolvio meses pese a operaciones con importe';
   ASSERT abs(v_rventas - v_ventas) <= 1,
     'las ventas no concilian: RPC ' || v_rventas || ' vs sales ' || v_ventas;
   ASSERT abs(v_rcosto - v_costo) <= 1,

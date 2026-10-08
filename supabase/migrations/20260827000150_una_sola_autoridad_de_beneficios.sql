@@ -119,6 +119,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de beneficios omitido: no hay miembro';
+    RETURN;
+  END IF;
   -- `pro` tiene IA, backups y branding: sirve para ver el corte.
   SELECT id INTO v_plan FROM public.plans WHERE code = 'pro';
 
@@ -174,7 +178,3 @@ BEGIN
 
   RAISE NOTICE 'OK: activa con todo, impaga cortada, gracia respetada, sin fugas';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000150', 'una_sola_autoridad_de_beneficios')
-ON CONFLICT DO NOTHING;

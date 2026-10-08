@@ -1,11 +1,11 @@
 # Influencers: alcance y verificación
 
-**Corte:** 2026-10-01. Superficie propia en `/influencer-marketing`.
+**Corte:** 2026-10-07. Superficie propia en `/influencer-marketing`.
 No está terminada la paridad funcional con GoMarz.
 
 ## Referencia contrastada
 
-Fuente oficial: [GoMarz](https://www.go-marz.com/), consultada el 2026-09-21.
+Fuente oficial: [GoMarz](https://www.go-marz.com/), consultada el 2026-10-07.
 Su sitio anuncia briefs asistidos, selección de creadores, invitaciones, chat,
 revisión de contenido, seguimiento y pagos sujetos a publicación. Son capacidades
 publicadas; no se inspeccionó su aplicación autenticada. Nerqia conserva su marca,
@@ -13,6 +13,14 @@ componentes y autoridades de datos, sin copiar activos ni presentar una red ajen
 de creadores como propia.
 
 ## Estado real
+
+El pedido del dueño retoma la expansión después del gate operacional POS/Commerce.
+Secuencia: brief asistido con revisión → descubrimiento consentido/invitación →
+aceptación bilateral/derechos → archivo privado/versiones/chat → publicación
+verificada → liquidación externa acreditada → resultados con fuentes.
+GoMarz publica retención de pagos hasta publicación y devolución por incumplimiento;
+Nerqia no anuncia escrow/custodia ni esa garantía sin partner, contrato y revisión
+legal. Social OAuth y escaneo antimalware son gates previos a escala, no badges.
 
 | Trabajo | Implementación | Pendiente |
 |---|---|---|

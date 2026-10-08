@@ -67,8 +67,5 @@ BEGIN
 END;
 $$;
 
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260904000060', 'hash_public_rate_limit_subjects')
-ON CONFLICT DO NOTHING;
 
 COMMIT;

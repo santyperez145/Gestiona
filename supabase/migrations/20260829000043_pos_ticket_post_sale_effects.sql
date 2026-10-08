@@ -243,7 +243,3 @@ CREATE TRIGGER trg_reconcile_sale_transaction_effects
 AFTER INSERT OR UPDATE OR DELETE ON public.sales
 FOR EACH ROW
 EXECUTE FUNCTION public.trg_reconcile_sale_transaction_effects();
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000043', 'pos_ticket_post_sale_effects')
-ON CONFLICT DO NOTHING;

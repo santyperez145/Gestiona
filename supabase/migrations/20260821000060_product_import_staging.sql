@@ -637,6 +637,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000060', 'product_import_staging') ON CONFLICT DO NOTHING;

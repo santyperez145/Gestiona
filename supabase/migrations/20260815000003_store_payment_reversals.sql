@@ -439,6 +439,3 @@ SELECT check_name, passed, detail FROM zz_store_payment_reversal_verification
 UNION ALL SELECT 'zz_restos', NOT EXISTS (
   SELECT 1 FROM public.organizations WHERE name = 'ZZ reversión pago tienda'
 ), 'debe ser true';
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260815000003', 'store_payment_reversals') ON CONFLICT DO NOTHING;

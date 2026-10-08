@@ -331,7 +331,3 @@ REVOKE ALL ON FUNCTION public.create_sales_transaction(uuid, jsonb, text)
   FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_sales_transaction(uuid, jsonb, text)
   TO authenticated;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000030', 'pos_offline_ticket_idempotency')
-ON CONFLICT DO NOTHING;

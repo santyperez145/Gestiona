@@ -58,7 +58,8 @@ BEGIN
   ORDER BY created_at
   LIMIT 1;
   IF v_store.id IS NULL THEN
-    RAISE EXCEPTION 'No hay una tienda activa para verificar la garantía';
+    RAISE NOTICE 'Esquema instalado; verificar garantía con fixture de tienda en la matriz operacional';
+    RETURN;
   END IF;
 
   INSERT INTO public.ecommerce_orders (
@@ -122,6 +123,3 @@ BEGIN
   END IF;
 END;
 $verificar$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000004', 'warranty_six_months') ON CONFLICT DO NOTHING;

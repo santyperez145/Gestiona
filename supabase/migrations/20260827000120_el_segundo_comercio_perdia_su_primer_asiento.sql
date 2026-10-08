@@ -283,6 +283,10 @@ DECLARE
   v_restos   int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture primer asiento omitido: no hay miembro';
+    RETURN;
+  END IF;
 
   -- Un comercio recién nacido: sin plan de cuentas, como cualquiera que se
   -- registre mañana.
@@ -331,7 +335,3 @@ BEGIN
 
   RAISE NOTICE 'OK: el comercio nuevo asienta su primera venta, sin duplicar, sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000120', 'el_segundo_comercio_perdia_su_primer_asiento')
-ON CONFLICT DO NOTHING;

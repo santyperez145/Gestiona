@@ -110,6 +110,10 @@ DECLARE
 BEGIN
   SELECT org_id, delegacion_verificada INTO v_org, v_antes
     FROM public.afip_credentials LIMIT 1;
+  IF v_org IS NULL THEN
+    RAISE NOTICE 'Fixture de estado AFIP omitido: sin credenciales de comercio';
+    RETURN;
+  END IF;
 
   -- ── a. Marcar OK escribe ────────────────────────────────────────────────
   PERFORM public.afip_marcar_delegacion(v_org, true, NULL);
@@ -135,7 +139,3 @@ BEGIN
 
   RAISE NOTICE 'OK: la funcion escribe, guarda el motivo y lo limpia';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000070', 'la_verificacion_se_guardaba_en_una_columna_inexistente')
-ON CONFLICT DO NOTHING;

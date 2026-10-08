@@ -1320,7 +1320,3 @@ BEGIN
   END IF;
 END
 $guards$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000045', 'devolucion_pos_transaccional')
-ON CONFLICT DO NOTHING;

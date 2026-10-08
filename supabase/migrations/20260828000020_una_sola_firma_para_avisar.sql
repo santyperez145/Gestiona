@@ -87,6 +87,10 @@ BEGIN
   -- Sin esta parte, «se dropeó la duplicada» pasaría aunque los llamadores
   -- siguieran fallando por otra razón.
   SELECT org_id INTO v_org FROM public.memberships LIMIT 1;
+  IF v_org IS NULL THEN
+    RAISE NOTICE 'Fixture de suscripción omitido: no hay miembro';
+    RETURN;
+  END IF;
   PERFORM public.aplicar_limites_del_plan(v_org);
 
   -- ── c. ⚠️ Y el alta de una suscripción deja de abortar ──────────────────
@@ -112,7 +116,3 @@ BEGIN
 
   RAISE NOTICE 'OK: una sola firma, los límites del plan corren y contratar no aborta';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000020', 'una_sola_firma_para_avisar')
-ON CONFLICT DO NOTHING;

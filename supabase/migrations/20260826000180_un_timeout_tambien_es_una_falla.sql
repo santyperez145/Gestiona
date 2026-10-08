@@ -174,6 +174,3 @@ BEGIN
   RAISE NOTICE 'ZZ_OK timeout cuenta como falla y el despacho espera 30 s';
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260826000180', 'un_timeout_tambien_es_una_falla') ON CONFLICT DO NOTHING;

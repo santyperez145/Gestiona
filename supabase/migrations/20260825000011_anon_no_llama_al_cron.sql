@@ -62,7 +62,15 @@
 -- navegador, ni logueado.
 
 REVOKE ALL ON FUNCTION public.invoke_edge_function(text)          FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rls_auto_enable()                   FROM PUBLIC, anon, authenticated;
+-- Helper instalado sólo en algunos proyectos alojados; no crear una nueva
+-- autoridad que modifique RLS para satisfacer una reconstrucción vacía.
+DO $hosted_rls_helper$
+BEGIN
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
+  END IF;
+END
+$hosted_rls_helper$;
 REVOKE ALL ON FUNCTION public.vencer_reservas()                   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.expire_overdue_trials()             FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.check_overdue_debts()               FROM PUBLIC, anon, authenticated;

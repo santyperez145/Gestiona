@@ -56,6 +56,16 @@ BEGIN
 END;
 $block$;
 
+-- Legacy money routes use a referral code/UUID, not a private capability.
+-- Keep them inaccessible to browsers; the later settlement and authenticated
+-- portal migrations replace/remove them. Do not certify them as public tokens.
+REVOKE ALL ON FUNCTION public.get_creator_earnings(text),
+  public.request_creator_withdrawal(text, numeric),
+  public.list_creator_withdrawals(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_creator_earnings(text),
+  public.request_creator_withdrawal(text, numeric),
+  public.list_creator_withdrawals(text) TO service_role;
+
 -- ── 2. expire_influencer_invitations: exclusiva de service_role ─────────────
 DO $block$
 DECLARE
@@ -127,7 +137,8 @@ WITH contracts(function_name, audience, rationale) AS (
     ('save_influencer_campaign', 'authenticated_delegate', 'Guarda una campana bajo can_manage_influencers y control optimista.'),
     ('transition_influencer_campaign', 'authenticated_delegate', 'Cambia el estado de una campana bajo can_manage_influencers.'),
     ('create_influencer_invitation', 'authenticated_delegate', 'Crea la invitacion bajo can_manage_influencers con token del servidor.'),
-    ('finance_core_snapshot', 'authenticated_delegate', 'Resumen Finance: exige product_surface_access antes de agregar datos.')
+    ('finance_core_snapshot', 'authenticated_delegate', 'Resumen Finance: exige product_surface_access antes de agregar datos.'),
+    ('resolve_creator_withdrawal', 'authenticated_delegate', 'Resolucion de retiro reservada a can_manage_influencers de la organizacion, nunca anon.')
 )
 INSERT INTO public.security_function_contracts(
   function_name, identity_arguments, audience, rationale, definition_hash, reviewed_on
@@ -159,6 +170,10 @@ BEGIN
   FROM public.audit_funciones_expuestas;
   ASSERT v_count = 0, 'funciones SECURITY DEFINER sin contrato: ' || v_detail;
 
+  ASSERT NOT has_function_privilege('anon', 'public.request_creator_withdrawal(text,numeric)', 'EXECUTE')
+    AND NOT has_function_privilege('authenticated', 'public.request_creator_withdrawal(text,numeric)', 'EXECUTE'),
+    'la solicitud monetaria legacy sigue expuesta por referral code';
+
   -- Nadie anónimo puede tocar invitaciones ni perfiles de creador.
   ASSERT NOT has_function_privilege('anon', 'public.expire_influencer_invitations()', 'EXECUTE'),
     'expire_influencer_invitations sigue disponible para anon';
@@ -168,6 +183,3 @@ BEGIN
     'creator_submit_deliverable sigue disponible para anon';
 END;
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260922000800', 'security_hardening_creator_anon') ON CONFLICT DO NOTHING;

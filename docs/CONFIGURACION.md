@@ -174,7 +174,19 @@ Ese aplicador exige un token de Management API en `SUPABASE_ACCESS_TOKEN`; si
 el remitente Auth todavía no es `noreply@nerqia.app` por Resend, exige además
 `NERQIA_AUTH_SMTP_KEY` (API key exclusiva de envío de Auth). Lee la
 configuración antes y después, y no imprime secretos. Sin `--apply` sólo valida
-el archivo local. No pasar claves como argumentos ni guardarlas en Git.
+el archivo local. `--apply --template-only` publica asunto/contenido sin tocar
+SMTP. No pasar claves como argumentos ni guardarlas en Git.
+El 2026-10-04 se publicó esta plantilla en el proyecto
+`hummeopatkniwkyrrhwc`: la lectura posterior confirmó asunto y HTML Nerqia;
+`smtp_host` y `smtp_admin_email` seguían vacíos. Por lo tanto el correo ya
+tiene contenido personalizado, pero **el remitente y la entrega a usuarios
+reales siguen pendientes de Auth SMTP**.
+Para el acceso recordado, configurar además el mismo secreto aleatorio de al
+menos 32 bytes como `NERQIA_TRUST_PROXY_SECRET` en Vercel (Preview y Production)
+y en los secretos de Supabase Edge. El proxy `/api/trusted-device` lo envía
+server-to-server; nunca debe empezar con `VITE_`, exponerse al cliente ni
+guardarse en Git ni exigirse a una solicitud del browser. Sin ambas copias,
+el endpoint debe fallar cerrado y el usuario puede continuar con TOTP.
 La matriz de aceptación debe observar recepción, demora/fallo, rebote, queja,
 supresión, reset de contraseña, magic link e invitación. Ninguno se declara
 productivo por DNS o por un deploy solamente.

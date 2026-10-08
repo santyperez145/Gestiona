@@ -33,6 +33,14 @@
 -- que sí operaba como perfumería no se toca aunque le falte la fila de
 -- evidencia — borrar un rubro real es peor que dejar uno de más.
 
+DO $preserve_chosen_industry$
+DECLARE
+  v_before jsonb;
+  v_after jsonb;
+BEGIN
+  SELECT jsonb_agg(jsonb_build_array(s.org_id, s.industry_code) ORDER BY s.org_id)
+    INTO v_before FROM public.settings s
+    JOIN public.organization_business_profiles p ON p.org_id = s.org_id;
 UPDATE public.settings s
    SET industry_code = NULL,
        updated_at    = now()
@@ -41,6 +49,13 @@ UPDATE public.settings s
                     WHERE p.org_id = s.org_id)
    AND NOT EXISTS (SELECT 1 FROM public.product_types t WHERE t.org_id = s.org_id)
    AND NOT EXISTS (SELECT 1 FROM public.products pr    WHERE pr.org_id = s.org_id);
+  SELECT jsonb_agg(jsonb_build_array(s.org_id, s.industry_code) ORDER BY s.org_id)
+    INTO v_after FROM public.settings s
+    JOIN public.organization_business_profiles p ON p.org_id = s.org_id;
+  ASSERT v_before IS NOT DISTINCT FROM v_after,
+    'se modificó un rubro respaldado por perfil';
+END
+$preserve_chosen_industry$;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- La guardia
@@ -90,12 +105,16 @@ BEGIN
     FROM public.settings s
     JOIN public.organization_business_profiles p ON p.org_id = s.org_id
    LIMIT 1;
-  ASSERT v_real IS NOT NULL,
-    'se borro el rubro de una organizacion que SI lo habia elegido';
+  -- La conservación exacta se compara arriba con los perfiles de este entorno;
+  -- no exigir que exista ya una perfumería real para instalar el esquema.
 
   -- ── c. Y la vista detecta cuando aparece uno adivinado ──────────────────
   -- Una vista que nunca devuelve nada tampoco sirve de guarda.
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de rubro adivinado omitido: no hay miembro';
+    RETURN;
+  END IF;
   INSERT INTO public.organizations (id, name, slug, owner_user_id)
   VALUES (v_org, 'ZZ rubro adivinado', 'zz-rubro-' || substr(v_org::text,1,8), v_user);
   UPDATE public.settings SET industry_code = 'perfumes' WHERE org_id = v_org;
@@ -110,7 +129,3 @@ BEGIN
 
   RAISE NOTICE 'OK: vacia, el rubro real intacto, y detecta uno adivinado';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000110', 'el_rubro_que_nadie_eligio')
-ON CONFLICT DO NOTHING;

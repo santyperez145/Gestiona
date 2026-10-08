@@ -81,7 +81,3 @@ BEGIN
 
   RAISE NOTICE 'OK: el catálogo público ve % opción(es) y la tabla sigue cerrada', v_n;
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000280', 'el_catalogo_dice_las_cuotas_que_hay')
-ON CONFLICT DO NOTHING;

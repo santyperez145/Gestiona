@@ -664,7 +664,3 @@ BEGIN
   RAISE NOTICE 'Finance extraction verificada: lease, umbral, revisión, ACL, cero efectos y restos 0';
 END;
 $fixture$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260822000011', 'finance_document_extraction')
-ON CONFLICT DO NOTHING;

@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS ecommerce_cart_sessions (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   store_id        uuid        NOT NULL REFERENCES ecommerce_stores(id) ON DELETE CASCADE,
-  session_token   text        NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex'),
+  session_token   text        NOT NULL UNIQUE DEFAULT encode(extensions.gen_random_bytes(16), 'hex'),
   customer_id     uuid        REFERENCES customers(id) ON DELETE SET NULL,
   customer_email  text,
   items           jsonb       NOT NULL DEFAULT '[]',   -- [{product_id, qty, price, name}]

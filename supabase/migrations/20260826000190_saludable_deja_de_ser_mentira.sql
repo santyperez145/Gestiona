@@ -126,6 +126,3 @@ BEGIN
   RAISE NOTICE 'ZZ_OK saludable ya no significa solo "se despacho"';
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260826000190', 'saludable_deja_de_ser_mentira') ON CONFLICT DO NOTHING;

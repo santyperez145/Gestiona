@@ -59,21 +59,8 @@ CREATE TABLE IF NOT EXISTS margin_targets (
   UNIQUE NULLS NOT DISTINCT (org_id, applies_to, entity_id)
 );
 
-CREATE TABLE IF NOT EXISTS price_history (
-  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  product_id      uuid        NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  old_price       numeric(14,2) NOT NULL,
-  new_price       numeric(14,2) NOT NULL,
-  change_pct      numeric(8,4) GENERATED ALWAYS AS (
-    CASE WHEN old_price = 0 THEN 0
-    ELSE ROUND(((new_price - old_price) / old_price) * 100, 4) END
-  ) STORED,
-  change_reason   text,
-  rule_id         uuid        REFERENCES pricing_rules(id) ON DELETE SET NULL,
-  changed_by      uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
-  changed_at      timestamptz NOT NULL DEFAULT now()
-);
+-- Keep the canonical price_history created by 20260504000018 and its trigger.
+-- Its observation timestamp is created_at; no parallel changed_at authority.
 
 -- Apply pricing rules to a product and return computed price
 CREATE OR REPLACE FUNCTION apply_pricing_rules(
@@ -144,9 +131,15 @@ END;
 $$;
 
 -- Indexes
+-- Only internal callers may evaluate these legacy cost-based rules.
+REVOKE ALL ON FUNCTION public.apply_pricing_rules(uuid, uuid, numeric, numeric, integer, text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.apply_pricing_rules(uuid, uuid, numeric, numeric, integer, text)
+  TO service_role;
+
 CREATE INDEX IF NOT EXISTS idx_pricing_rules_org     ON pricing_rules(org_id, is_active, priority);
 CREATE INDEX IF NOT EXISTS idx_experiments_org       ON pricing_experiments(org_id, product_id, status);
-CREATE INDEX IF NOT EXISTS idx_price_history_product ON price_history(org_id, product_id, changed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_price_history_product ON price_history(org_id, product_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_margin_targets_org    ON margin_targets(org_id, applies_to);
 
 -- RLS

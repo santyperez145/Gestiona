@@ -630,7 +630,3 @@ BEGIN
   END IF;
 END;
 $guard$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260822000006', 'pos_payment_settlements')
-ON CONFLICT DO NOTHING;

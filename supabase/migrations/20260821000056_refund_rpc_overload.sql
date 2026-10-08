@@ -72,6 +72,3 @@ BEGIN
   END IF;
 END
 $verify$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000056', 'refund_rpc_overload') ON CONFLICT DO NOTHING;

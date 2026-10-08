@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS price_lists (
   description     text,
   currency        text        NOT NULL DEFAULT 'ARS',
   is_default      boolean     NOT NULL DEFAULT false,
-  active          boolean     NOT NULL DEFAULT true,
+  is_active       boolean     NOT NULL DEFAULT true,
   valid_from      date,
   valid_until     date,
   applies_to      text        NOT NULL DEFAULT 'all'
@@ -19,6 +19,18 @@ CREATE TABLE IF NOT EXISTS price_lists (
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
+
+-- CREATE TABLE IF NOT EXISTS does not upgrade the first list schema. Keep its
+-- canonical status and expand it before indexes/SQL helpers use new fields.
+ALTER TABLE public.price_lists
+  ADD COLUMN IF NOT EXISTS valid_from date,
+  ADD COLUMN IF NOT EXISTS valid_until date,
+  ADD COLUMN IF NOT EXISTS applies_to text NOT NULL DEFAULT 'all'
+    CHECK (applies_to IN ('all','segment','customer')),
+  ADD COLUMN IF NOT EXISTS customer_segment text,
+  ADD COLUMN IF NOT EXISTS discount_type text NOT NULL DEFAULT 'none'
+    CHECK (discount_type IN ('none','percentage','fixed')),
+  ADD COLUMN IF NOT EXISTS discount_value numeric(10,4) NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS price_list_items (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,7 +44,21 @@ CREATE TABLE IF NOT EXISTS price_list_items (
   UNIQUE (price_list_id, product_id, min_quantity)
 );
 
-CREATE INDEX IF NOT EXISTS idx_price_lists_org   ON price_lists(org_id, active, is_default);
+ALTER TABLE public.price_list_items
+  ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES public.organizations(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS custom_price numeric(12,2),
+  ADD COLUMN IF NOT EXISTS min_quantity int NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+UPDATE public.price_list_items item SET org_id = parent.org_id
+  FROM public.price_lists parent
+  WHERE item.price_list_id = parent.id AND item.org_id IS NULL;
+ALTER TABLE public.price_list_items ALTER COLUMN org_id SET NOT NULL;
+UPDATE public.price_list_items
+  SET custom_price = COALESCE(custom_price, price_ars),
+      min_quantity = GREATEST(min_quantity, min_qty)
+  WHERE custom_price IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_price_lists_org   ON price_lists(org_id, is_active, is_default);
 CREATE INDEX IF NOT EXISTS idx_price_list_items  ON price_list_items(price_list_id, product_id);
 CREATE INDEX IF NOT EXISTS idx_pli_org_product   ON price_list_items(org_id, product_id);
 

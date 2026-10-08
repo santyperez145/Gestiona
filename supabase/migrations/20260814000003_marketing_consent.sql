@@ -139,6 +139,3 @@ BEGIN
       AND column_name = 'marketing_consent_at'
   ) THEN RAISE EXCEPTION 'Falta customers.marketing_consent_at'; END IF;
 END $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000003', 'marketing_consent') ON CONFLICT DO NOTHING;

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS product_batches (
   quantity        numeric(14,4) NOT NULL DEFAULT 0,
   reserved_qty    numeric(14,4) NOT NULL DEFAULT 0,
   unit_cost       numeric(14,2),
-  supplier_id     uuid        REFERENCES proveedores(id) ON DELETE SET NULL,
+  supplier_id     uuid        REFERENCES public.suppliers(id) ON DELETE SET NULL,
   purchase_ref    text,
   notes           text,
   status          text        NOT NULL DEFAULT 'active'

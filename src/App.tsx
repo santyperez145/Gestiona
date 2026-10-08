@@ -69,6 +69,7 @@ const PlatformBusinessPage = lazy(() => import("@/pages/PlatformBusinessPage"));
 const PlatformAfipPage = lazy(() => import("@/pages/PlatformAfipPage"));
 const PlatformAnnouncementsPage = lazy(() => import("@/pages/PlatformAnnouncementsPage"));
 const PlatformMessagingPage = lazy(() => import("@/pages/PlatformMessagingPage"));
+const PlatformSecurityPage = lazy(() => import("@/pages/PlatformSecurityPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 // ── Page-level loading fallback ─────────────────────────────────────────────
@@ -171,6 +172,7 @@ function PlatformRoutes() {
           <Route path="anuncios" element={<PlatformAnnouncementsPage />} />
           <Route path="sistema" element={<PlatformAdminPage section="system" />} />
           <Route path="mensajeria" element={<PlatformMessagingPage />} />
+          <Route path="seguridad" element={<PlatformSecurityPage />} />
           {/* Ruta vieja */}
           <Route path="admin" element={<Navigate to="/platform" replace />} />
           <Route path="*" element={<Navigate to="/platform" replace />} />

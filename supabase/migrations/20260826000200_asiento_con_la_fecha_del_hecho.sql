@@ -559,6 +559,3 @@ BEGIN
   RAISE NOTICE 'ZZ_OK el asiento se fecha por el hecho';
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260826000200', 'asiento_con_la_fecha_del_hecho') ON CONFLICT DO NOTHING;

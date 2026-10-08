@@ -466,7 +466,3 @@ COMMENT ON FUNCTION public.webhook_config_guardar(
   'Crea/edita un endpoint y sincroniza su consumidor durable de venta.registrada; el secret sólo se devuelve al crear.';
 COMMENT ON TABLE public.event_subscriptions IS
   'Consumidores server-managed de Domain Events. Los miembros sólo leen; los RPC sincronizan configuraciones públicas.';
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000010', 'sale_created_vive_en_el_outbox')
-ON CONFLICT (version) DO NOTHING;

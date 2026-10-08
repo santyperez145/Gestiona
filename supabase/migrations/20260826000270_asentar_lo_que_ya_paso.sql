@@ -138,8 +138,10 @@ BEGIN
 
   -- Y en el otro sentido: que efectivamente haya asientos. Un ledger vacío
   -- concilia con cualquier cosa si los importes reales fueran cero.
-  ASSERT v_asientos > 0, 'no se asento nada';
-  ASSERT v_ledger_ventas > 0, 'el ledger quedo con ventas en cero';
+  ASSERT v_asientos > 0 OR (v_ventas_reales = 0 AND v_gastos_reales = 0),
+    'hay operaciones con importe pero no se asento nada';
+  ASSERT v_ledger_ventas > 0 OR v_ventas_reales = 0,
+    'el ledger quedo con ventas en cero pese a ventas operativas';
 
   RAISE NOTICE 'OK: el ledger dice lo mismo que la fuente operativa';
 END $conciliar$;

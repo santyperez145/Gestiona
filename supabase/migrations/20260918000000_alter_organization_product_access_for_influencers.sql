@@ -1,5 +1,7 @@
 -- supabase/migrations/20260918000000_alter_organization_product_access_for_influencers.sql
 
+BEGIN;
+
 -- Alter organization_product_access to allow 'influencers' in product_key CHECK
 ALTER TABLE public.organization_product_access
 DROP CONSTRAINT IF EXISTS organization_product_access_product_key_check,
@@ -13,8 +15,7 @@ ADD CONSTRAINT organization_product_access_events_product_key_check
 CHECK (product_key IN ('business', 'finance', 'influencers'));
 
 -- Update the seed function to also insert a row for influencers with status 'available'
--- We replace the existing function
-DROP FUNCTION IF EXISTS public.seed_organization_product_access();
+-- Preserve the trigger dependency and the existing browser-denied ACL.
 CREATE OR REPLACE FUNCTION public.seed_organization_product_access()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -36,3 +37,5 @@ DROP TRIGGER IF EXISTS trg_seed_organization_product_access ON public.organizati
 CREATE TRIGGER trg_seed_organization_product_access
 AFTER INSERT ON public.organizations
 FOR EACH ROW EXECUTE FUNCTION public.seed_organization_product_access();
+
+COMMIT;

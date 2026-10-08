@@ -149,7 +149,3 @@ BEGIN
 
   RAISE NOTICE 'OK: el comercio sigue sus pagos (%), un ajeno no ve ninguno', v_propios;
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000250', 'seguir_un_pago_de_punta_a_punta')
-ON CONFLICT DO NOTHING;

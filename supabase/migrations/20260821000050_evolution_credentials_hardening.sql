@@ -133,6 +133,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000050', 'evolution_credentials_hardening') ON CONFLICT DO NOTHING;

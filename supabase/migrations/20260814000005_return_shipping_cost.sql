@@ -57,7 +57,10 @@ DECLARE
 BEGIN
   SELECT id, org_id INTO v_store
   FROM public.ecommerce_stores WHERE is_active ORDER BY created_at LIMIT 1;
-  IF v_store.id IS NULL THEN RAISE EXCEPTION 'No hay tienda activa para verificar F10'; END IF;
+  IF v_store.id IS NULL THEN
+    RAISE NOTICE 'Esquema instalado; verificar F10 con fixture de tienda en la matriz operacional';
+    RETURN;
+  END IF;
 
   INSERT INTO public.ecommerce_orders (
     org_id, store_id, order_number, customer_email, customer_name, payment_status
@@ -86,6 +89,3 @@ BEGIN
   THEN RAISE EXCEPTION 'Quedaron datos ZZ de F10'; END IF;
 END;
 $verificar$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260814000005', 'return_shipping_cost') ON CONFLICT DO NOTHING;

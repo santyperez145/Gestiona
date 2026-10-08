@@ -292,6 +292,15 @@ GRANT EXECUTE ON FUNCTION public.ia_registrar_consumo(uuid, uuid, text, int, int
   TO service_role;
 
 -- Tres helpers heredados exponían el rol de cualquier UUID conocido a anon.
+-- El replay también crea helpers legados de BI/precios sin consumidores de
+-- navegador; conservarlos internos aunque el entorno tuviera grants directos.
+REVOKE ALL ON FUNCTION public.generate_bi_snapshot(uuid, date) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.apply_pricing_rules(uuid, uuid, numeric, numeric, integer, text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.generate_bi_snapshot(uuid, date) TO service_role;
+GRANT EXECUTE ON FUNCTION public.apply_pricing_rules(uuid, uuid, numeric, numeric, integer, text)
+  TO service_role;
+
 -- Las policies sólo los llaman como el usuario autenticado; service_role sigue
 -- disponible para procesos administrativos.
 REVOKE ALL ON FUNCTION public.platform_role(uuid) FROM PUBLIC, anon;
@@ -319,7 +328,9 @@ BEGIN
     'public.podar_invocaciones(integer)',
     'public.cambios_de_precio_a_aplicar()',
     'public.registrar_cambio_de_precio(uuid,text,text,jsonb)',
-    'public.ia_registrar_consumo(uuid,uuid,text,integer,integer,numeric)'
+    'public.ia_registrar_consumo(uuid,uuid,text,integer,integer,numeric)',
+    'public.generate_bi_snapshot(uuid,date)',
+    'public.apply_pricing_rules(uuid,uuid,numeric,numeric,integer,text)'
   ] LOOP
     IF has_function_privilege('anon', v_signature, 'EXECUTE')
        OR has_function_privilege('authenticated', v_signature, 'EXECUTE')
@@ -360,7 +371,3 @@ BEGIN
   END IF;
 END;
 $verification$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000160', 'las_funciones_internas_no_son_anonimas')
-ON CONFLICT DO NOTHING;

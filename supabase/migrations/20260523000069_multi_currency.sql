@@ -8,6 +8,11 @@ CREATE TABLE IF NOT EXISTS currencies (
   is_active       boolean     NOT NULL DEFAULT true
 );
 
+-- Reference data is provisioned internally, not a browser-writeable catalog.
+ALTER TABLE public.currencies ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.currencies FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.currencies TO service_role;
+
 -- Seed common currencies
 INSERT INTO currencies (code, name, symbol, decimal_places) VALUES
   ('ARS', 'Peso Argentino',   '$',  2),
@@ -32,6 +37,16 @@ CREATE TABLE IF NOT EXISTS exchange_rates (
   created_at      timestamptz NOT NULL DEFAULT now(),
   UNIQUE NULLS NOT DISTINCT (org_id, currency_from, currency_to, rate_type, valid_from)
 );
+
+-- Preserve the May 23 tracker and its dated USD/EUR/BRL observations.
+-- Pair-specific observations stay nullable; never fabricate a 1:1 quote.
+ALTER TABLE public.exchange_rates
+  ADD COLUMN IF NOT EXISTS currency_from text REFERENCES public.currencies(code),
+  ADD COLUMN IF NOT EXISTS currency_to text REFERENCES public.currencies(code),
+  ADD COLUMN IF NOT EXISTS rate numeric(18,6) CHECK (rate > 0),
+  ADD COLUMN IF NOT EXISTS rate_type text,
+  ADD COLUMN IF NOT EXISTS valid_from timestamptz,
+  ADD COLUMN IF NOT EXISTS valid_to timestamptz;
 
 CREATE TABLE IF NOT EXISTS org_currencies (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -109,7 +124,8 @@ BEGIN
     LIMIT 1;
   END IF;
 
-  RETURN ROUND(p_amount * COALESCE(v_rate, 1), 2);
+  IF v_rate IS NULL THEN RAISE EXCEPTION 'Missing verified exchange rate'; END IF;
+  RETURN ROUND(p_amount * v_rate, 2);
 END;
 $$;
 

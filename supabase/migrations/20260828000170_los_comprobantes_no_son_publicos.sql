@@ -166,7 +166,3 @@ BEGIN
   END IF;
 END;
 $verification$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000170', 'los_comprobantes_no_son_publicos')
-ON CONFLICT DO NOTHING;

@@ -100,6 +100,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de vencimientos omitido: no hay miembro';
+    RETURN;
+  END IF;
   SELECT id INTO v_plan FROM public.plans WHERE code = 'starter';
 
   -- Dos organizaciones ZZ: una con el período cumplido, otra al día.
@@ -134,7 +138,3 @@ BEGIN
 
   RAISE NOTICE 'OK: la vencida se marca, la que esta al dia no, sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000140', 'la_suscripcion_vencida_se_marca_sola')
-ON CONFLICT DO NOTHING;

@@ -266,6 +266,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de rubros omitido: no hay miembro';
+    RETURN;
+  END IF;
   INSERT INTO public.organizations (id, name, slug, owner_user_id)
   VALUES (v_org, 'ZZ verificacion rubros',
           'zz-rubros-' || substr(v_org::text, 1, 8), v_user);
@@ -304,7 +308,3 @@ BEGIN
 
   RAISE NOTICE 'OK: plato sin stock, insumo con stock, perfume con stock, sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000100', 'rubros_que_no_venden_stock')
-ON CONFLICT DO NOTHING;

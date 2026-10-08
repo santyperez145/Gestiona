@@ -128,6 +128,10 @@ DECLARE
   v_guardo_secreto boolean;
 BEGIN
   SELECT user_id INTO v_staff FROM public.platform_admins LIMIT 1;
+  IF v_staff IS NULL THEN
+    RAISE NOTICE 'Fixture SMTP omitido: no hay staff';
+    RETURN;
+  END IF;
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', v_staff::text, 'role','authenticated')::text, true);
 
@@ -167,7 +171,3 @@ BEGIN
 
   RAISE NOTICE 'OK: se configura el SMTP, y una contraseña se rechaza';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000240', 'el_correo_puede_salir_por_smtp_propio')
-ON CONFLICT DO NOTHING;

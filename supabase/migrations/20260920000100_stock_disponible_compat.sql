@@ -26,7 +26,30 @@ CREATE OR REPLACE FUNCTION public.stock_disponible(
       AND (p_location_id IS NULL OR r.location_id IS NULL OR r.location_id = p_location_id)
   ), 0);
 $$;
-COMMENT ON FUNCTION public.stock_disponible IS 'Disponible global o por sucursal.';
-REVOKE ALL ON FUNCTION public.stock_disponible(uuid) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.stock_disponible(uuid, uuid) FROM PUBLIC;
+COMMENT ON FUNCTION public.stock_disponible(uuid, uuid, uuid) IS 'Disponible global o por sucursal.';
+-- Older signatures may exist only in hosted installations. Defaults already
+-- cover one/two argument calls; do not create competing stock authorities.
+DO $legacy_acl$
+BEGIN
+  IF to_regprocedure('public.stock_disponible(uuid)') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.stock_disponible(uuid) FROM PUBLIC;
+  END IF;
+  IF to_regprocedure('public.stock_disponible(uuid,uuid)') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.stock_disponible(uuid, uuid) FROM PUBLIC;
+  END IF;
+END;
+$legacy_acl$;
+REVOKE ALL ON FUNCTION public.stock_disponible(uuid, uuid, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.stock_disponible(uuid, uuid, uuid) TO anon, authenticated;
+
+-- The new definition changes its hash. Preserve the explicitly reviewed public
+-- stock-only contract, not a blanket exemption for every definer function.
+INSERT INTO public.security_function_contracts
+  (function_name, identity_arguments, audience, rationale, definition_hash, reviewed_on)
+SELECT 'stock_disponible', pg_get_function_identity_arguments(p.oid),
+  'public_storefront', 'Devuelve disponibilidad vendible, nunca costo ni movimientos.',
+  md5(pg_get_functiondef(p.oid)), DATE '2026-09-20'
+FROM pg_proc p WHERE p.oid = 'public.stock_disponible(uuid,uuid,uuid)'::regprocedure
+ON CONFLICT (function_name, identity_arguments) DO UPDATE SET
+  rationale = EXCLUDED.rationale, definition_hash = EXCLUDED.definition_hash,
+  reviewed_on = EXCLUDED.reviewed_on;

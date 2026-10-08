@@ -13,76 +13,21 @@
 -- influencers('view') + RLS, nunca datos de otra org, nunca anon.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION public.influencer_reputation_map(p_org_id uuid)
-RETURNS TABLE (
-  influencer_id uuid,
-  rating numeric,
-  reviews_count bigint,
-  collaborations_count bigint,
-  on_time_rate numeric,
-  verified_publications bigint
-)
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-  WITH reputacion AS (
-    SELECT r.influencer_id,
-           avg(r.rating)::numeric AS rating,
-           count(*)::bigint AS reviews_count
-    FROM public.influencer_reviews r
-    WHERE r.org_id = p_org_id
-    GROUP BY r.influencer_id
-  ),
-  entregas AS (
-    SELECT d.influencer_id,
-           count(*) FILTER (
-             WHERE d.status = 'completado'
-               AND d.delivery_date IS NOT NULL
-           )::bigint AS done,
-           count(*) FILTER (
-             WHERE d.status = 'completado'
-               AND d.delivery_date IS NOT NULL
-               AND d.delivery_date <= d.due_date
-           )::bigint AS on_time
-    FROM public.influencer_deliverables d
-    WHERE d.org_id = p_org_id AND d.influencer_id IS NOT NULL
-    GROUP BY d.influencer_id
-  ),
-  campanas AS (
-    SELECT cc.influencer_id,
-           count(DISTINCT cc.campaign_id)::bigint AS collaborations_count
-    FROM public.influencer_campaign_creators cc
-    WHERE cc.org_id = p_org_id
-    GROUP BY cc.influencer_id
-  ),
-  pruebas AS (
-    SELECT p.influencer_id,
-           count(*)::bigint AS verified_publications
-    FROM public.influencer_publication_proofs p
-    WHERE p.org_id = p_org_id AND p.verified_by IS NOT NULL
-    GROUP BY p.influencer_id
-  )
-  SELECT i.id,
-         COALESCE(rep.rating, NULL::numeric) AS rating,
-         COALESCE(rep.reviews_count, 0)::bigint AS reviews_count,
-         COALESCE(cam.collaborations_count, 0)::bigint AS collaborations_count,
-         CASE WHEN ent.done > 0
-              THEN round(100.0 * ent.on_time / ent.done, 0)
-              ELSE NULL::numeric END AS on_time_rate,
-         COALESCE(pr.verified_publications, 0)::bigint AS verified_publications
-  FROM public.influencers i
-  LEFT JOIN reputacion rep ON rep.influencer_id = i.id
-  LEFT JOIN entregas ent ON ent.influencer_id = i.id
-  LEFT JOIN campanas cam ON cam.influencer_id = i.id
-  LEFT JOIN pruebas pr ON pr.influencer_id = i.id
-  WHERE i.org_id = p_org_id
-    -- Guard: solo el equipo con permiso de ver influencers de ESA org obtiene
-    -- filas. Sin esta línea, un usuario autenticado de otra org podría pedir
-    -- reputación ajena pasando un org_id ajeno (SECURITY DEFINER salta RLS).
-    AND public.can_manage_influencers(p_org_id, 'view');
-$$;
+-- 20260925001900 sorts BEFORE this file and already defines the complete map
+-- with verified_metrics and last_verified_at. Do not replace its eight-column
+-- return type with this earlier six-column draft or remove measured evidence.
+DO $reputation_contract$
+DECLARE
+  v_oid regprocedure := to_regprocedure('public.influencer_reputation_map(uuid)');
+BEGIN
+  ASSERT v_oid IS NOT NULL, 'El mapa canonico de reputacion no fue instalado';
+  ASSERT pg_get_function_result(v_oid) LIKE '%verified_metrics%'
+    AND pg_get_function_result(v_oid) LIKE '%last_verified_at%',
+    'El mapa perdio su evidencia de metricas verificadas';
+  ASSERT pg_get_functiondef(v_oid) LIKE '%can_manage_influencers%',
+    'El mapa de reputacion perdio su guarda de organizacion';
+END;
+$reputation_contract$;
 
 REVOKE ALL ON FUNCTION public.influencer_reputation_map(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.influencer_reputation_map(uuid) TO authenticated;

@@ -1,5 +1,8 @@
 -- Daily stock alert check via pg_cron (runs at 9:00 AM UTC)
-select cron.schedule(
+DO $schedule$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'stock-alerts-daily') THEN
+    PERFORM cron.schedule(
   'stock-alerts-daily',
   '0 9 * * *',
   $$
@@ -12,4 +15,7 @@ select cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) on conflict (jobname) do update set schedule = excluded.schedule;
+    );
+  END IF;
+END;
+$schedule$;

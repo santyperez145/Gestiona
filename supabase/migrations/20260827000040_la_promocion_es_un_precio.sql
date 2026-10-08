@@ -132,6 +132,10 @@ DECLARE
   v_msg    text;
 BEGIN
   SELECT user_id INTO v_user FROM public.memberships LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE NOTICE 'Fixture de promociones omitido: no hay miembro';
+    RETURN;
+  END IF;
   INSERT INTO public.organizations (id, name, slug, owner_user_id)
   VALUES (v_org, 'ZZ verificacion precio',
           'zz-precio-' || substr(v_org::text, 1, 8), v_user);
@@ -210,7 +214,3 @@ BEGIN
 
   RAISE NOTICE 'OK: vendedor lee y no escribe; admin escribe; cobro con permiso; sin restos';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260827000040', 'la_promocion_es_un_precio')
-ON CONFLICT DO NOTHING;

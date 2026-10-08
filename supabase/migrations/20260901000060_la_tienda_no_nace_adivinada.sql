@@ -61,8 +61,3 @@ BEGIN
   END IF;
 END
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260901000060', 'la_tienda_no_nace_adivinada')
-ON CONFLICT DO NOTHING;
-

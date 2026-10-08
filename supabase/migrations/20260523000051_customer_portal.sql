@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS portal_sessions (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   customer_id     uuid        NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-  token           text        NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  token           text        NOT NULL UNIQUE DEFAULT encode(extensions.gen_random_bytes(32), 'hex'),
   expires_at      timestamptz NOT NULL DEFAULT now() + interval '7 days',
   last_seen_at    timestamptz,
   ip_address      inet,

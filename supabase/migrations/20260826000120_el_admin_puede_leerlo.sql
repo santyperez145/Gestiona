@@ -51,20 +51,27 @@ DECLARE
   v_admin uuid;
   v_otro  uuid;
   v_filas int;
+  v_esperadas int;
 BEGIN
   SELECT user_id INTO v_admin FROM public.platform_admins LIMIT 1;
   SELECT m.user_id INTO v_otro FROM public.memberships m
    WHERE m.user_id NOT IN (SELECT user_id FROM public.platform_admins) LIMIT 1;
 
   -- 1. El staff la lee.
-  SET LOCAL ROLE authenticated;
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
-  SELECT count(*) INTO v_filas FROM public.platform_gross_profit_por_pago;
-  ASSERT v_filas > 0, 'el admin de plataforma no ve ningun pago: ' || v_filas;
-  PERFORM 1 FROM public.platform_gross_profit_resumen;
-  PERFORM 1 FROM public.audit_planes_cobrables;
-  RESET ROLE;
+  IF v_admin IS NOT NULL THEN
+    SELECT count(*) INTO v_esperadas FROM public.payment_transactions;
+    SET LOCAL ROLE authenticated;
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+    SELECT count(*) INTO v_filas FROM public.platform_gross_profit_por_pago;
+    ASSERT v_filas = v_esperadas,
+      'el admin no ve todos los pagos: ' || v_filas || '/' || v_esperadas;
+    PERFORM 1 FROM public.platform_gross_profit_resumen;
+    PERFORM 1 FROM public.audit_planes_cobrables;
+    RESET ROLE;
+  ELSE
+    RAISE NOTICE 'Lectura staff omitida: no hay identidad Platform para el fixture';
+  END IF;
 
   -- 2. Un comercio no ve el margen de la plataforma. Acá el permiso alcanza
   --    para consultar, y es el WHERE el que devuelve vacío: eso es lo correcto.
@@ -88,5 +95,5 @@ BEGIN
   END;
   RESET ROLE;
 
-  RAISE NOTICE 'OK: el staff lee las tres vistas, el comercio ve 0 filas y anon no puede preguntar';
+  RAISE NOTICE 'OK: anon bloqueado; comprobaciones staff/comercio sólo con identidades disponibles';
 END $verif$;

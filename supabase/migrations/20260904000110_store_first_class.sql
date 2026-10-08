@@ -1474,8 +1474,5 @@ BEGIN
 END;
 $verify$;
 
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260904000110', 'store_first_class')
-ON CONFLICT DO NOTHING;
 
 COMMIT;

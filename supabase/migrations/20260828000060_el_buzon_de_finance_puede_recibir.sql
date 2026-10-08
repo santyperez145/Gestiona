@@ -337,6 +337,10 @@ DECLARE
   v_restos int;
 BEGIN
   SELECT org_id, user_id INTO v_org, v_user FROM public.memberships LIMIT 1;
+  IF v_org IS NULL OR v_user IS NULL THEN
+    RAISE NOTICE 'Fixture inbox Finance omitido: no hay organización/miembro';
+    RETURN;
+  END IF;
 
   INSERT INTO public.finance_documents (org_id, document_type, title, status, created_by)
   VALUES (v_org, 'supplier_invoice', 'ZZ inbox finance', 'pending_upload', v_user)
@@ -378,7 +382,3 @@ BEGIN
 
   RAISE NOTICE 'OK: el buzon de Finance ya no corta por ambiguedad';
 END $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260828000060', 'el_buzon_de_finance_puede_recibir')
-ON CONFLICT DO NOTHING;

@@ -227,7 +227,3 @@ BEGIN
   END IF;
 END;
 $cert$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260925000700', 'customer_timeline_360')
-ON CONFLICT DO NOTHING;

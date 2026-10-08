@@ -1,6 +1,8 @@
 -- Smart Alerts Engine: rule-based alerts with conditions, channels, cooldowns
 
-CREATE TABLE IF NOT EXISTS alert_rules (
+-- V1 alert_rules is already consumed by check-alerts. V2 uses the canonical
+-- smart_alert_rules name that the July migration and SmartAlertsPage share.
+CREATE TABLE IF NOT EXISTS smart_alert_rules (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name            text        NOT NULL,
@@ -24,7 +26,7 @@ CREATE TABLE IF NOT EXISTS alert_rules (
 CREATE TABLE IF NOT EXISTS alert_events (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  rule_id         uuid        REFERENCES alert_rules(id) ON DELETE SET NULL,
+  rule_id         uuid        REFERENCES smart_alert_rules(id) ON DELETE SET NULL,
   rule_name       text        NOT NULL,
   category        text        NOT NULL,
   priority        text        NOT NULL,
@@ -44,7 +46,7 @@ CREATE TABLE IF NOT EXISTS alert_subscriptions (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   user_id         uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  rule_id         uuid        NOT NULL REFERENCES alert_rules(id) ON DELETE CASCADE,
+  rule_id         uuid        NOT NULL REFERENCES smart_alert_rules(id) ON DELETE CASCADE,
   channels        text[]      NOT NULL DEFAULT '{app}',
   is_active       boolean     NOT NULL DEFAULT true,
   UNIQUE (user_id, rule_id)
@@ -64,23 +66,28 @@ FROM alert_events ae
 GROUP BY ae.org_id, ae.category, ae.priority;
 
 -- Trigger updated_at
-CREATE OR REPLACE TRIGGER trg_alert_rules_ts BEFORE UPDATE ON alert_rules FOR EACH ROW EXECUTE FUNCTION update_scenario_ts();
+CREATE OR REPLACE TRIGGER trg_smart_rules_updated BEFORE UPDATE ON smart_alert_rules FOR EACH ROW EXECUTE FUNCTION update_scenario_ts();
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_alert_rules_org      ON alert_rules(org_id, category, is_active);
+CREATE INDEX IF NOT EXISTS idx_smart_alert_rules_org ON smart_alert_rules(org_id, category, is_active);
 CREATE INDEX IF NOT EXISTS idx_alert_events_org     ON alert_events(org_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_alert_events_unread  ON alert_events(org_id, acknowledged_at) WHERE acknowledged_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_alert_subs_user      ON alert_subscriptions(user_id, is_active);
 
 -- RLS
-ALTER TABLE alert_rules         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE smart_alert_rules   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alert_events        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alert_subscriptions ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "org_alert_rules"  ON alert_rules;
+DROP POLICY IF EXISTS "org read smart_rules" ON smart_alert_rules;
+DROP POLICY IF EXISTS "admin write smart_rules" ON smart_alert_rules;
 DROP POLICY IF EXISTS "org_alert_events" ON alert_events;
 DROP POLICY IF EXISTS "org_alert_subs"   ON alert_subscriptions;
 
-CREATE POLICY "org_alert_rules"  ON alert_rules         USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));
+CREATE POLICY "org read smart_rules" ON smart_alert_rules FOR SELECT TO authenticated
+  USING (public.is_org_member(org_id, auth.uid()));
+CREATE POLICY "admin write smart_rules" ON smart_alert_rules FOR ALL TO authenticated
+  USING (public.has_org_role(org_id, auth.uid(), ARRAY['owner','admin']))
+  WITH CHECK (public.has_org_role(org_id, auth.uid(), ARRAY['owner','admin']));
 CREATE POLICY "org_alert_events" ON alert_events        USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));
 CREATE POLICY "org_alert_subs"   ON alert_subscriptions USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));

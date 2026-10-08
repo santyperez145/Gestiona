@@ -410,6 +410,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260822000001', 'business_profiler') ON CONFLICT DO NOTHING;

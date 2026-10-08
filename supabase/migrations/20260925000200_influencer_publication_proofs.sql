@@ -247,7 +247,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260925000200', 'influencer_publication_proofs')
-ON CONFLICT DO NOTHING;

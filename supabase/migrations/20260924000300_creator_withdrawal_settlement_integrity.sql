@@ -238,7 +238,3 @@ ON CONFLICT (function_name, identity_arguments) DO UPDATE SET
   rationale = EXCLUDED.rationale,
   definition_hash = EXCLUDED.definition_hash,
   reviewed_on = EXCLUDED.reviewed_on;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260924000300', 'creator_withdrawal_settlement_integrity')
-ON CONFLICT DO NOTHING;

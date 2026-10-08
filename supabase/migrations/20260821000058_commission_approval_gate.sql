@@ -406,7 +406,8 @@ BEGIN
   WHERE role = 'superadmin'
   LIMIT 1;
   IF v_actor IS NULL THEN
-    RAISE EXCEPTION 'No platform superadmin available for commission verification';
+    RAISE NOTICE 'Commission fixture omitted: no platform superadmin in this environment';
+    RETURN;
   END IF;
 
   INSERT INTO public.organizations (id, name, slug, owner_user_id)
@@ -474,6 +475,3 @@ SELECT
   +
   (SELECT count(*) FROM public.platform_commission_rules WHERE change_reason LIKE 'ZZ %')
   AS commission_approval_remainders;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260821000058', 'commission_approval_gate') ON CONFLICT DO NOTHING;

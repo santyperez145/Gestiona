@@ -266,7 +266,3 @@ BEGIN
   RAISE NOTICE 'api_key_consumir_cupo: 6 invariantes, restos 0';
 END;
 $verif$;
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260829000020', 'api_publica_tiene_contrato')
-ON CONFLICT DO NOTHING;

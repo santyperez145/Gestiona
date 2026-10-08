@@ -153,7 +153,5 @@ GRANT EXECUTE ON FUNCTION public.get_profit_period(uuid,date,date,integer,intege
 -- Retire only the unpublished staging overload; no released client uses it.
 DROP FUNCTION IF EXISTS public.get_profit_period(uuid,date,date,integer,integer,integer,jsonb);
 
-INSERT INTO supabase_migrations.schema_migrations(version, name)
-VALUES ('20261002000100', 'profit_sku_store_dimensions') ON CONFLICT DO NOTHING;
 NOTIFY pgrst, 'reload schema';
 COMMIT;

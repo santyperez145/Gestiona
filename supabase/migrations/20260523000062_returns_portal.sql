@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS return_requests (
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   rma_number      text        NOT NULL,
   sale_id         uuid        REFERENCES sales(id) ON DELETE SET NULL,
-  client_id       uuid        REFERENCES clients(id) ON DELETE SET NULL,
+  client_id       uuid        REFERENCES public.customers(id) ON DELETE SET NULL,
   customer_name   text        NOT NULL DEFAULT '',
   customer_email  text,
   product_id      uuid        REFERENCES products(id) ON DELETE SET NULL,
