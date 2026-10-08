@@ -145,6 +145,14 @@ feeds autorizados y benchmark de identidad. No se corrigieron automáticamente
 las URLs legacy ni se importó la planilla de otro negocio. El límite por usuario
 y por IP es por instancia; no certifica un presupuesto distribuido de jobs.
 
+Verificación del 2026-10-08: función y migración aplicadas en Supabase; cuenta
+técnica/organización temporales probaron búsqueda real, revisión obligatoria,
+adquisición WebP (1024 x 768, 97.582 bytes), lectura del asset propio,
+procedencia, deduplicación y rechazo por permiso/otra organización. Se eliminaron
+identidad, organización y archivo; cero productos reales modificados. El drill
+SQL reversible verifica RLS y paths de Storage. Esto prueba la operación de
+copia, no identidad exacta, precisión comercial ni rendimiento masivo.
+
 ### Bulk para 10.000 productos
 
 El pipeline objetivo es asíncrono y reanudable:

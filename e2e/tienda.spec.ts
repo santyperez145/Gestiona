@@ -17,6 +17,7 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { configurePublicStore } from "./publicStoreFixture";
 test.use({ serviceWorkers: 'block' });
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
@@ -47,13 +48,9 @@ test.beforeEach(async ({ page }) => {
 
 test.describe("cuotas de ficha con proveedor interceptado", () => {
   async function configure(page: Page, enabled: () => boolean) {
-    await page.route("**/rest/v1/rpc/get_store_by_slug", async route => {
-      const response = await route.fetch();
-      if (response.status() !== 200) { await route.fulfill({ response }); return; }
-      const data = await response.json();
-      const patch = (row: Record<string, unknown>) => ({ ...row, currency: "ARS", payment_methods: enabled() ? ["gestiona_pay"] : ["transferencia"] });
-      await route.fulfill({ response, json: Array.isArray(data) ? data.map(patch) : patch(data) });
-    });
+    await configurePublicStore(page, SLUG, row => ({
+      ...row, currency: "ARS", payment_methods: enabled() ? ["gestiona_pay"] : ["transferencia"],
+    }));
   }
   async function openProduct(page: Page) {
     await page.goto(tienda("/productos"));

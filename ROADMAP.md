@@ -266,7 +266,7 @@ cierre idempotente/fiscal; los reportes asíncronos no prueban detección inmedi
 
 1. Certificar migrador y enriquecimiento: fotos exactas por GTIN/MPN/fuente autorizada, copy/SEO/atributos revisables,
    lotes con presupuesto/checkpoint, cantidades, permisos, opt-out y reversa; sin otro importador ni precios adivinados.
-   Carga asistida: copia Openverse CC0/PDM con revisión, procedencia privada y WebP propio; no certifica identidad exacta ni bulk. [Contrato](docs/NERQIA_INTELLIGENCE.md).
+   Carga asistida: copia CC0/PDM, revisión, procedencia y WebP propio verificados en Supabase con fixture limpia; identidad exacta y bulk pendientes. [Contrato](docs/NERQIA_INTELLIGENCE.md).
 2. Checkout → pago → fulfillment → devolución/refund: concurrencia, estados,
    recuperación, permisos y timeline hasta conciliación externa.
 3. Mobile, búsqueda/merchandising, SEO, accesibilidad y Core Web Vitals de campo;

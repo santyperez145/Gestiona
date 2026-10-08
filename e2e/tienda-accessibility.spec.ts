@@ -10,6 +10,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { THEME_IDS } from "../src/storefront/theme";
+import { configurePublicStore } from "./publicStoreFixture";
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const tienda = (ruta = "") => `/tienda/${SLUG}${ruta}`;
@@ -77,19 +78,7 @@ test.describe("WCAG A/AA del Storefront", () => {
   test("todos los temas publicados sostienen el contraste del inicio", async ({ page }) => {
     test.setTimeout(120_000);
     let tema = THEME_IDS[0];
-    await page.route("**/rest/v1/rpc/get_store_by_slug", async route => {
-      const response = await route.fetch();
-      const body = await response.json() as Record<string, unknown> | Record<string, unknown>[];
-      const applyTheme = (row: Record<string, unknown>) => ({
-        ...row,
-        theme: tema,
-        primary_color: null,
-      });
-      await route.fulfill({
-        response,
-        json: Array.isArray(body) ? body.map(applyTheme) : applyTheme(body),
-      });
-    });
+    await configurePublicStore(page, SLUG, row => ({ ...row, theme: tema, primary_color: null }));
 
     for (const themeId of THEME_IDS) {
       tema = themeId;
