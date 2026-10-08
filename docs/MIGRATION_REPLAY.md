@@ -104,9 +104,16 @@ anteriores también pasaron. Readback sin usuarios/orgs/sesiones/facturas/outbox
 residuales ni hallazgos de auditores; cero fixtures en producción. La CLI aplicó
 después sólo `20261008000010`: 667 versiones registradas. El QR legacy se retoma
 sin nuevo cobro ni consentimiento fiscal retroactivo; fixture/readback repetidos.
-La documentación y fixture ampliada se publican con puerta completa/gates de
-su SHA. Desplegar SQL nuevo → Edge QR → frontend, sin reaplicar históricos ni
-reparar journal. Cobro, CAE y papel reales mantienen su aceptación externa.
+CI completo de `daa6911d` aprobado. Con autorización específica del dueño,
+se aplicaron únicamente `20261008000000` y `20261008000010` en producción,
+sin fixtures, reparación de journal ni `--include-all`; dry-run posterior vacío.
+Readback: 667 versiones, trigger activo; preparación/trigger/respuesta iguales
+a Preview y finalizador canónico sin modificación. QR v16 ACTIVE con JWT,
+webhook v66 y ARCA v67 conservados; CLI restaurada a Preview.
+PR18 integrada en main `4fcd814aec9b75ede4a45c0c1c17c0ddbc44eaa5`; Vercel
+`dpl_HzAUBF8DcN1ZBfG7c6jtDcChJ9VS` READY con ese SHA y alias asignado.
+Se respetó SQL → Edge QR → frontend. Cobro, CAE y papel reales mantienen su
+aceptación externa; no hubo ventas, cobros ni facturas productivas de prueba.
 
 La continuación incremental, las suites sintéticas y un deploy Vercel no
 certifican el banco, impresión física, homologación ARCA ni reemplazo de un ERP.

@@ -25,6 +25,7 @@ export interface ProductoBuscable {
   name: string;
   brand?: string | null;
   category?: string | null;
+  description?: string | null;
   stock?: number | null;
   image_url?: string | null;
   total_sold?: number | null;
@@ -47,6 +48,35 @@ export interface Sugerencia {
 
 const MIN_LARGO = 2;
 
+/** Shared by predictive search and Enter: exact matches always win, before facets. */
+export function buscarProductosDeTienda<T extends ProductoBuscable>(
+  query: string,
+  productos: T[],
+  nombreCategoria: (slug: string) => string = s => s,
+): { productos: T[]; aproximada: boolean } {
+  const tokens = queryTokens(query);
+  if (!tokens.length) return { productos, aproximada: false };
+  const literales = productos.filter(p => matchesAllTokens(
+    `${p.name} ${p.brand ?? ""} ${p.description ?? ""} ${p.category ?? ""} ${p.category ? nombreCategoria(p.category) : ""}`,
+    tokens,
+  ));
+  // Approximate names/brands, not long descriptions that produce noisy matches.
+  const matches = literales.length ? literales : productos.filter(p =>
+    matchesAllTokensAprox(`${p.name} ${p.brand ?? ""}`, tokens));
+  const q = normalizeText(query).trim();
+  const wordStart = new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+  const rank = (p: T) => {
+    const name = normalizeText(p.name);
+    return name.startsWith(q) ? 0 : wordStart.test(name) ? 1 : 2;
+  };
+  return {
+    productos: [...matches].sort((a, b) => rank(a) - rank(b)
+      || (Number(b.total_sold) || 0) - (Number(a.total_sold) || 0)
+      || a.name.localeCompare(b.name)),
+    aproximada: !literales.length && matches.length > 0,
+  };
+}
+
 /**
  * Sugerencias para lo que se está tipeando.
  *
@@ -68,10 +98,11 @@ export function sugerenciasDeBusqueda(
   if (q.length < MIN_LARGO) return [];
 
   const tokens = queryTokens(query);
-  const conStock = productos.filter(p => (Number(p.stock) || 0) > 0);
+  const matches = buscarProductosDeTienda(query, productos, nombreCategoria).productos;
+  const conStock = matches.filter(p => (Number(p.stock) || 0) > 0);
   // Sin stock igual se sugiere si no hay nada más: la ficha existe y ofrece
   // avisar cuando vuelva, que es mejor que "no encontramos nada".
-  const universo = conStock.length > 0 ? conStock : productos;
+  const universo = conStock.length > 0 ? conStock : matches;
 
   const salida: Sugerencia[] = [];
 
@@ -98,34 +129,7 @@ export function sugerenciasDeBusqueda(
     salida.push({ tipo: "categoria", label: nombreCategoria(slug), valor: slug, cantidad });
   }
 
-  // ── Productos ────────────────────────────────────────────────────────
-  //
-  // B10 — primero literal; **sólo si no hay ninguna** se cae a lo aproximado.
-  // Nunca se mezclan: un resultado difuso arriba de uno exacto es peor que no
-  // tener difuso. Antes "lataffa" no encontraba nada teniendo 30 Lattafa, y no
-  // lo encontraba de la peor forma —"sin resultados" le dice al comprador que
-  // no lo tenemos—.
-  const literales = universo.filter(p =>
-    matchesAllTokens(`${p.name} ${p.brand ?? ""}`, tokens));
-  const aproximados = literales.length > 0 ? literales : universo.filter(p =>
-    matchesAllTokensAprox(`${p.name} ${p.brand ?? ""}`, tokens));
-
-  const productosMatch = aproximados
-    .map(p => {
-      const nombre = normalizeText(p.name);
-      // Empieza con lo buscado > lo contiene al principio de una palabra > resto.
-      const rank = nombre.startsWith(q) ? 0
-        : new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(nombre) ? 1
-        : 2;
-      return { p, rank };
-    })
-    .sort((a, b) =>
-      a.rank - b.rank ||
-      (Number(b.p.total_sold) || 0) - (Number(a.p.total_sold) || 0) ||
-      a.p.name.localeCompare(b.p.name),
-    );
-
-  for (const { p } of productosMatch) {
+  for (const p of universo) {
     salida.push({
       tipo: "producto",
       label: p.name,

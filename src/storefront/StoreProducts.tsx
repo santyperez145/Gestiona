@@ -5,7 +5,7 @@ import ProductCard from "./ProductCard";
 import {
   menuDeCategorias, nombreDeCategoria, arbolDeCategorias, slugsDeRama,
 } from "@/lib/storeCategories";
-import { normalizeText, queryTokens, matchesAllTokens } from "@/lib/searchText";
+import { buscarProductosDeTienda } from "@/lib/searchSuggest";
 import { FAMILIAS_OLFATIVAS, taxLabel } from "@/lib/scentTaxonomy";
 import { SlidersHorizontal, X } from "lucide-react";
 import { storeCatalogEmptyKind } from "@/lib/storeCatalogEmpty";
@@ -92,13 +92,12 @@ export default function StoreProducts() {
       }));
   }, [cats2, categorias, products]);
 
+  const busqueda = useMemo(() => buscarProductosDeTienda(
+    q, products, slug => nombreDeCategoria(slug, cats2),
+  ), [q, products, cats2]);
+
   const filtrados = useMemo(() => {
-    const tokens = queryTokens(q);
-    let out = products.filter(p => {
-      if (tokens.length) {
-        const hay = normalizeText(`${p.name} ${p.brand ?? ""} ${p.description ?? ""}`);
-        if (!matchesAllTokens(hay, tokens)) return false;
-      }
+    let out = busqueda.productos.filter(p => {
       if (slugsFiltro && !slugsFiltro.has(p.category ?? "")) return false;
       if (genero && p.gender !== genero) return false;
       if (soloOferta && priceOf(p) >= Number(p.sale_price_ars)) return false;
@@ -114,7 +113,7 @@ export default function StoreProducts() {
     else if (orden === "nuevo") out.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     else if (orden === "vendidos") out.sort((a, b) => (Number(b.total_sold) || 0) - (Number(a.total_sold) || 0));
     return out;
-  }, [products, perfumes, q, cat, genero, familia, soloOferta, precioMin, precioMax, orden, priceOf]);
+  }, [busqueda.productos, perfumes, slugsFiltro, genero, familia, soloOferta, precioMin, precioMax, orden, priceOf]);
 
   const activos = [q, cat, genero, familia, soloOferta ? "1" : "",
     precioMin > 0 ? "min" : "", precioMax > 0 ? "max" : ""].filter(Boolean).length;
@@ -185,11 +184,18 @@ export default function StoreProducts() {
             {filtrados.length} {filtrados.length === 1 ? "producto" : "productos"}
             {activos > 0 ? ` · ${activos} filtro${activos === 1 ? "" : "s"}` : ""}
           </p>
+          {busqueda.aproximada && filtrados.length > 0 && (
+            <p role="status" className="text-sm mt-2" style={{ color: "hsl(var(--st-muted))" }}>
+              Mostramos coincidencias aproximadas para “{q}”. Tus filtros siguen aplicados.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
+            aria-expanded={showFilters}
+            aria-controls="filtros-catalogo"
             onClick={() => setShowFilters(v => !v)}
             className="sm:hidden inline-flex min-h-11 items-center gap-1.5 px-3 py-2 text-sm border font-medium"
             style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
@@ -211,7 +217,7 @@ export default function StoreProducts() {
 
       <div className="storefront-products__layout grid sm:grid-cols-[15rem_1fr] gap-7 lg:gap-10">
         {/* ── Filtros ─────────────────────────────────────────────── */}
-        <aside className={`storefront-filter-panel ${showFilters ? "block" : "hidden"} sm:block space-y-5`}>
+        <aside id="filtros-catalogo" aria-label="Filtros del catálogo" className={`storefront-filter-panel ${showFilters ? "block" : "hidden"} sm:block space-y-5`}>
           {activos > 0 && (
             <button onClick={limpiar} className="text-xs inline-flex items-center gap-1 hover:underline" style={{ color: "hsl(var(--st-link))" }}>
               <X className="w-3 h-3" /> Limpiar filtros
@@ -422,6 +428,7 @@ function Opcion({ activo, onClick, children }: { activo: boolean; onClick: () =>
   return (
     <button
       type="button"
+      aria-pressed={activo}
       onClick={onClick}
       className={`storefront-filter-option block w-full min-h-11 text-left text-sm py-2.5 px-2.5 rounded-md transition-colors ${activo ? "is-active font-semibold" : "opacity-75 hover:opacity-100"}`}
       style={activo

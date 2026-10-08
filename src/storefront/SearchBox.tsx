@@ -6,11 +6,11 @@
  * que no sabe cómo se escribe "Khamrah" lo encuentra igual, y el que buscó algo
  * que no está se entera antes de llegar a una página vacía.
  *
- * Las reglas viven en `searchSuggest.ts` (18 tests). Acá sólo está el
+ * Las reglas compartidas con el catálogo viven en `searchSuggest.ts`. Acá está el
  * comportamiento del control: teclado, foco y cierre.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import {
   sugerenciasDeBusqueda, destinoSugerencia, moverSeleccion,
@@ -38,33 +38,47 @@ export default function SearchBox({
   base, productos, nombreCategoria, className = "", variante = "header", onNavegar,
 }: Props) {
   const navigate = useNavigate();
-  const [q, setQ] = useState("");
+  const location = useLocation();
+  const [q, setQ] = useState(() => new URLSearchParams(location.search).get("q") ?? "");
   const [abierto, setAbierto] = useState(false);
   const [sel, setSel] = useState(-1);
   const caja = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listId = `sugerencias-busqueda-${useId()}`;
 
   const sugerencias = useMemo(
     () => sugerenciasDeBusqueda(q, productos, { nombreCategoria }),
     [q, productos, nombreCategoria],
   );
 
-  // Al cambiar lo escrito la selección vuelve a cero: si no, la flecha quedaba
-  // apuntando a una fila que ya es otra cosa.
-  useEffect(() => { setSel(-1); }, [q]);
+  // Back/forward and external navigation must close stale suggestions too.
+  useEffect(() => {
+    setQ(new URLSearchParams(location.search).get("q") ?? "");
+    setAbierto(false);
+    setSel(-1);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (abierto && sel >= 0) document.getElementById(`${listId}-${sel}`)?.scrollIntoView({ block: "nearest" });
+  }, [abierto, sel, listId]);
 
   // Cerrar al tocar afuera. Sin esto el desplegable queda flotando sobre la
   // página después de navegar con el mouse a cualquier otro lado.
   useEffect(() => {
     if (!abierto) return;
-    const fuera = (e: MouseEvent) => {
-      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false);
+    const fuera = (e: PointerEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) {
+        setAbierto(false);
+        setSel(-1);
+      }
     };
-    document.addEventListener("mousedown", fuera);
-    return () => document.removeEventListener("mousedown", fuera);
+    document.addEventListener("pointerdown", fuera);
+    return () => document.removeEventListener("pointerdown", fuera);
   }, [abierto]);
 
   const irA = (destino: string) => {
     setAbierto(false);
+    setSel(-1);
     setQ("");
     onNavegar?.();
     navigate(destino);
@@ -76,7 +90,7 @@ export default function SearchBox({
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") { setAbierto(false); return; }
+    if (e.key === "Escape") { setAbierto(false); setSel(-1); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       if (sugerencias.length === 0) return;
       e.preventDefault();   // que no mueva el cursor dentro del input
@@ -89,7 +103,7 @@ export default function SearchBox({
       // Con una sugerencia marcada gana ésa; si no, se busca lo escrito. El
       // orden importa: al revés, quien escribe y aprieta Enter termina en un
       // producto que no eligió.
-      if (sel >= 0 && sugerencias[sel]) irA(destinoSugerencia(sugerencias[sel], base));
+      if (abierto && sel >= 0 && sugerencias[sel]) irA(destinoSugerencia(sugerencias[sel], base));
       else buscarTexto();
     }
   };
@@ -97,26 +111,36 @@ export default function SearchBox({
   const enHeader = variante === "header";
 
   return (
-    <div ref={caja} className={`relative ${className}`}>
+    <div ref={caja} className={`relative ${className}`} onBlur={event => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        setAbierto(false);
+        setSel(-1);
+      }
+    }}>
       <form onSubmit={e => { e.preventDefault(); buscarTexto(); }} className="relative flex items-center">
         <Search
           className="w-4 h-4 absolute left-2.5 opacity-50 pointer-events-none"
           style={{ color: enHeader ? "hsl(var(--st-header-fg))" : "inherit" }}
         />
         <input
+          ref={inputRef}
           value={q}
-          onChange={e => { setQ(e.target.value); setAbierto(true); }}
+          onChange={e => { setQ(e.target.value); setAbierto(true); setSel(-1); }}
           onFocus={() => setAbierto(true)}
+          onClick={() => setAbierto(true)}
           onKeyDown={onKeyDown}
           placeholder="Buscar..."
           aria-label="Buscar productos"
           aria-expanded={abierto && sugerencias.length > 0}
           role="combobox"
-          aria-controls="sugerencias-busqueda"
+          aria-autocomplete="list"
+          aria-controls={abierto && sugerencias.length > 0 ? listId : undefined}
+          aria-activedescendant={abierto && sugerencias[sel] ? `${listId}-${sel}` : undefined}
+          autoComplete="off"
           className={
             enHeader
-              ? "h-9 w-full pl-8 pr-8 text-sm bg-white/15 placeholder:opacity-60 outline-none focus:bg-white/25 transition-colors"
-              : "w-full h-9 pl-8 pr-8 text-sm bg-white/15 outline-none"
+              ? "min-h-11 w-full pl-8 pr-11 text-sm bg-white/15 placeholder:opacity-60 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-current transition-colors"
+              : "w-full min-h-11 pl-8 pr-11 text-sm bg-white/15 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-current"
           }
           style={{
             color: enHeader ? "hsl(var(--st-header-fg))" : "hsl(var(--st-text))",
@@ -128,8 +152,8 @@ export default function SearchBox({
         {q && (
           <button
             type="button"
-            onClick={() => { setQ(""); setAbierto(false); }}
-            className="absolute right-2 opacity-60 hover:opacity-100"
+            onClick={() => { setQ(""); setAbierto(false); setSel(-1); inputRef.current?.focus(); }}
+            className="absolute right-0 min-h-11 min-w-11 grid place-items-center opacity-60 hover:opacity-100 focus-visible:outline focus-visible:outline-2"
             aria-label="Borrar la búsqueda"
             style={{ color: enHeader ? "hsl(var(--st-header-fg))" : "hsl(var(--st-text))" }}
           >
@@ -140,9 +164,12 @@ export default function SearchBox({
 
       {abierto && sugerencias.length > 0 && (
         <div
-          id="sugerencias-busqueda"
-          role="listbox"
-          className="absolute left-0 right-0 top-full mt-1 z-50 border shadow-lg overflow-hidden min-w-[16rem]"
+          className="absolute left-0 right-0 top-full mt-1 z-50 border shadow-lg overflow-hidden min-w-[16rem] max-w-[calc(100vw-2rem)]"
+          onKeyDown={event => {
+            if (event.key === "Escape") {
+              event.preventDefault(); inputRef.current?.focus(); setAbierto(false); setSel(-1);
+            }
+          }}
           style={{
             background: "hsl(var(--st-bg))",
             borderColor: "hsl(var(--st-border))",
@@ -150,15 +177,18 @@ export default function SearchBox({
             color: "hsl(var(--st-text))",
           }}
         >
+          <div id={listId} role="listbox" aria-label="Sugerencias de productos" className="max-h-[min(24rem,50dvh)] overflow-y-auto overscroll-contain">
           {sugerencias.map((s, i) => (
             <button
+              id={`${listId}-${i}`}
               key={`${s.tipo}:${s.valor}`}
               type="button"
               role="option"
+              tabIndex={-1}
               aria-selected={i === sel}
-              // `onMouseDown` y no `onClick`: el `blur` del input dispara antes
-              // que el click y el desplegable se cierra sin navegar.
-              onMouseDown={e => { e.preventDefault(); irA(destinoSugerencia(s, base)); }}
+              // Keep focus in the combobox; click works for touch and activation too.
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => irA(destinoSugerencia(s, base))}
               onMouseEnter={() => setSel(i)}
               className="w-full min-h-11 flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
               style={{ background: i === sel ? "hsl(var(--st-accent) / 0.12)" : "transparent" }}
@@ -193,11 +223,12 @@ export default function SearchBox({
               </span>
             </button>
           ))}
+          </div>
 
           <button
             type="button"
-            onMouseDown={e => { e.preventDefault(); buscarTexto(); }}
-            className="w-full min-h-11 px-3 py-2 text-left text-xs border-t hover:opacity-80"
+            onClick={buscarTexto}
+            className="w-full min-h-11 px-3 py-2 text-left text-xs border-t hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
             style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-link))" }}
           >
             Ver todo lo que coincide con "{q.trim()}"

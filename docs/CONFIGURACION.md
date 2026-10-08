@@ -19,7 +19,7 @@ contratos de dominio. No inventar pagos, CAE, entrega o hardware con fixtures.
 | **Emails** (campañas, secuencias, facturas) | 🟡 `nerqia.app` está verificado en Resend y `RESEND_API_KEY`/`FROM_EMAIL` están cargados. Emisores, errores por audiencia, idempotencia y ledger de eventos están desplegados (2026-09-05). Faltan activar Resend, crear el webhook firmado, configurar Auth SMTP y ejecutar la matriz real. |
 | **WhatsApp automático** | ⚠️ Requiere una conexión Evolution por comercio o una configuración global de plataforma |
 | **Cobros con tarjeta** | ❌ Falta Stripe |
-| **MercadoPago** | OAuth por org, secreto webhook presente en Edge (2026-10-08); ninguna caja QR activa. Completar sucursal/caja, registro de evento Order y cobro controlado; ver `docs/POS_OPERACION.md`. |
+| **MercadoPago** | OAuth por org, secreto webhook y QR v16/fiscal durable productivos (2026-10-08); ninguna caja QR activa en el readback previo. Completar sucursal/caja, registro de evento Order y cobro controlado; alias/CVU sin feed habilitado. Ver `docs/POS_OPERACION.md`. |
 | **Tiendanube** | ❌ Falta `TIENDANUBE_CLIENT_SECRET` |
 | **MercadoLibre** | ❌ Falta crear la app |
 

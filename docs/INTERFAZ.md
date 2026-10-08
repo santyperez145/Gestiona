@@ -1,6 +1,6 @@
 # Interfaz de Nerqia
 
-**Estado:** vigente. **Corte:** 2026-09-07.
+**Estado:** vigente. **Corte:** 2026-10-08 (búsqueda de tienda).
 
 Este documento traduce el sistema visual a implementación. La dirección está
 en [DESIGNROADMAP.md](../DESIGNROADMAP.md) y la evaluación completa en
@@ -75,6 +75,24 @@ StoreLayout es mobile-first. Producto, variantes, imágenes, precio,
 disponibilidad, entrega y compra deben ser visibles y verificables. La ficha
 tiene caja de compra sticky en desktop y barra fija en mobile. Cada tema
 usa tokens/versionado, no CSS arbitrario inyectado.
+
+Búsqueda pública: sugerencias y Enter usan `buscarProductosDeTienda` sobre el
+mismo catálogo mínimo, sin requests por tecla. Primero literales; sólo ante
+ausencia de ellos aproxima nombres/marcas, lo informa y después aplica todos
+los filtros. Un filtro sin coincidencias no relaja la búsqueda ni cambia precio.
+Los enlaces de imagen tienen nombre incluso si el comercio no cargó una foto.
+La matriz local pasó ocho E2E desktop/mobile (incluida tablet), sin retries y con
+red interceptada; Axe sin violaciones graves/críticas y capturas revisadas.
+Un agotado coincidente sigue descubrible aunque otros productos tengan stock;
+no habilita compra. El combobox conserva foco/consulta en URL, anuncia selección,
+resetea al cerrar/cambiar ruta y no comparte IDs entre header y menú.
+
+Referencia oficial consultada el 2026-10-08: Shopify documenta
+[predictive search](https://help.shopify.com/en/manual/online-store/storefront-search/predictive-search)
+y [tolerancia a errores](https://help.shopify.com/en/manual/online-store/storefront-search/search-behavior).
+Es una traducción determinística propia, no su motor, IA ni paridad total.
+Gate: unitarios de búsqueda y `e2e/store-search.spec.ts` sintético en desktop,
+móvil/tablet, teclado/Axe y requests; no mide conversión ni adopción de campo.
 
 ## Densidad y medidas
 
