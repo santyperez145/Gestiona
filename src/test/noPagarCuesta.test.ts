@@ -96,6 +96,19 @@ function soloCodigo(texto: string): string {
 describe("el aviso dice qué pasó de verdad", () => {
   const layout = soloCodigo(readFileSync(resolve(ROOT, "src/components/AppLayout.tsx"), "utf8"));
 
+  it("la prueba de extras no presenta el comercio como un servicio que vence", () => {
+    expect(layout).toContain('Tu comercio sigue gratis cuando termine la prueba.');
+    expect(layout).not.toContain('Elegí un plan para seguir usando el sistema.');
+    expect(ent).toMatch(/graciaLocal === 0 && plan\?\.code !== 'trial' \? 'impago'/);
+  });
+
+  it("Mi plan distingue el comercio gratuito del estado legacy de impago", () => {
+    const page = soloCodigo(readFileSync(resolve(ROOT, "src/pages/MiPlanPage.tsx"), "utf8"));
+    expect(page).toMatch(/motivoDeCorte === 'prueba_finalizada' \? 'commerce_free'/);
+    expect(page).toContain('Comercio gratuito, sin débito periódico.');
+    expect(page).toContain('!esInicial && canSubscribe && !sub?.cancela_al_final');
+  });
+
   it("⚠️ no acusa de no pagar a quien acaba de suscribirse", () => {
     /**
      * `mp-subscribe` guarda la suscripción como `past_due` y SIN

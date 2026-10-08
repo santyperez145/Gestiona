@@ -7,12 +7,12 @@ import { useNavigate } from 'react-router-dom';
 
 export function usePlanLimits() {
   const { activeOrg } = useOrg();
-  const { plan, subscription } = useEntitlements();
+  const { plan, productLimit, userLimit } = useEntitlements();
   const navigate = useNavigate();
 
   // Returns true if allowed to proceed, false if limit hit (shows toast)
   const checkProductLimit = useCallback(async (): Promise<boolean> => {
-    if (!activeOrg || plan?.max_products == null) return true;
+    if (!activeOrg || productLimit == null) return true;
     const { count, error } = await supabase
       .from('products')
       .select('id', { count: 'exact', head: true })
@@ -21,15 +21,15 @@ export function usePlanLimits() {
       toast.error('No se pudo verificar el límite de productos. Intentá de nuevo.');
       return false;
     }
-    if ((count ?? 0) >= plan.max_products) {
-      toast.error(`Límite de ${plan.max_products} productos alcanzado en tu plan ${plan.name}.`, {
+    if ((count ?? 0) >= productLimit) {
+      toast.error(`Límite de ${productLimit} productos alcanzado en tu plan ${plan?.name ?? ''}.`, {
         action: { label: 'Ver planes', onClick: () => navigate('/precios') },
         duration: 6000,
       });
       return false;
     }
     return true;
-  }, [activeOrg, navigate, plan]);
+  }, [activeOrg, navigate, plan, productLimit]);
 
   const checkSalesLimit = useCallback(async (): Promise<boolean> => {
     if (!activeOrg) return true;
@@ -53,7 +53,7 @@ export function usePlanLimits() {
   }, [activeOrg, navigate, plan]);
 
   const checkUserLimit = useCallback(async (): Promise<boolean> => {
-    if (!activeOrg || plan?.max_users == null) return true;
+    if (!activeOrg || userLimit == null) return true;
     const { count, error } = await supabase
       .from('memberships')
       .select('id', { count: 'exact', head: true })
@@ -62,22 +62,18 @@ export function usePlanLimits() {
       toast.error('No se pudo verificar el límite de usuarios. Intentá de nuevo.');
       return false;
     }
-    if ((count ?? 0) >= plan.max_users) {
-      toast.error(`Límite de ${plan.max_users} usuario${plan.max_users !== 1 ? 's' : ''} alcanzado en tu plan ${plan.name}.`, {
+    if ((count ?? 0) >= userLimit) {
+      toast.error(`Límite de ${userLimit} usuario${userLimit !== 1 ? 's' : ''} alcanzado en tu plan ${plan?.name ?? ''}.`, {
         action: { label: 'Ver planes', onClick: () => navigate('/precios') },
         duration: 6000,
       });
       return false;
     }
     return true;
-  }, [activeOrg, navigate, plan]);
+  }, [activeOrg, navigate, plan, userLimit]);
 
-  // Subscription is effectively blocked if canceled or past_due past the period end
-  const subscriptionBlocked =
-    subscription?.status === 'canceled' ||
-    (subscription?.status === 'past_due' &&
-      !!subscription.current_period_end &&
-      new Date(subscription.current_period_end) < new Date());
+  // A paid extra can expire; operating the free Commerce Core does not.
+  const subscriptionBlocked = false;
 
   return { checkProductLimit, checkSalesLimit, checkUserLimit, subscriptionBlocked };
 }

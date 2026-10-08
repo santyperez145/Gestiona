@@ -6,6 +6,13 @@ sin escribir la base ni activar una comisión.
 
 Última revisión: **2026-08-21**.
 
+**Actualización de oferta 2026-10-08:** por pedido del dueño se habilita Commerce
+gratuito permanente, sin topes comerciales de catálogo/ventas/equipo. Los
+mensuales existentes se conservan y el precio de lista anual pasa a nueve
+mensualidades; contratos autorizados no cambian. La autoridad y las brechas
+están en [Planes](PLANES.md). No demuestra rentabilidad, retención ni habilita
+una comisión; las mediciones históricas de este documento conservan su fecha.
+
 ## 1. Punto de partida medido
 
 ✅ La evidencia disponible es demasiado chica para fijar pricing:

@@ -54310,6 +54310,7 @@ export type Database = {
         Row: {
           ahorro_anual_pct: number | null
           ai_enabled: boolean | null
+          ai_monthly_credits: number | null
           backups_enabled: boolean | null
           code: string | null
           custom_branding: boolean | null
@@ -54327,6 +54328,7 @@ export type Database = {
         Insert: {
           ahorro_anual_pct?: never
           ai_enabled?: boolean | null
+          ai_monthly_credits?: number | null
           backups_enabled?: boolean | null
           code?: string | null
           custom_branding?: boolean | null
@@ -54344,6 +54346,7 @@ export type Database = {
         Update: {
           ahorro_anual_pct?: never
           ai_enabled?: boolean | null
+          ai_monthly_credits?: number | null
           backups_enabled?: boolean | null
           code?: string | null
           custom_branding?: boolean | null

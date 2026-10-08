@@ -23,6 +23,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [Growth](GROWTH.md): CRM/marketing fuera de Finance, identidad compartida y fases.
 - [Influencers](INFLUENCERS.md): alcance real, referencia GoMarz y pendientes.
 - [Economics](ECONOMICS.md): monetización y métricas.
+- [Planes](PLANES.md): oferta Commerce vigente, autoridad de billing y brechas competitivas.
 - [Inversores](INVERSORES.md): tesis y narrativa.
 - [Activación y cohortes](ACTIVACION_COHORTES.md): adopción y medición.
 - [Business Profiler](BUSINESS_PROFILER.md): personalización por comercio.

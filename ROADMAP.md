@@ -1,8 +1,7 @@
 # Nerqia Commerce OS — roadmap
 
 **Estado:** canónico. **Revisión:** 2026-10-08. **Owner:** Producto / CTO.
-Este documento contiene decisiones activas y próximos cierres, no un diario.
-Git conserva la historia; los contratos de dominio viven en [el índice](docs/INDICE.md).
+Decisiones activas y próximos cierres, no un diario: Git conserva la historia y [el índice](docs/INDICE.md) los contratos.
 
 ## Objetivo
 
@@ -35,8 +34,8 @@ investigación y tecnología. La marca y experiencia final son propias.
   ni habilita custodia/payouts sin contrato.
 - Ads empieza con importación read-only; campañas, precios y dinero necesitan
   autoridad, política y aprobación antes de ejecutar.
-- Comercio gratuito, standalone Profit, add-ons y Consulting son hipótesis de
-  ICP/economics. Este roadmap no cambia precios ni habilita billing.
+- Commerce gratuito sin topes de productos/ventas/equipo: [oferta y brechas](docs/PLANES.md).
+  Precios contratados preservados; Profit standalone/add-ons/Consulting siguen hipótesis.
 - Capital, emisión de tarjetas y custodia requieren partner, legal y riesgo.
 - No se reescribe el stack por reputación; separar servicios/SSR requiere SLO
   o problema medido, owner, operación y costo de salida.
@@ -85,6 +84,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 |---|---|---|
 | Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; búsqueda unificada, exacta/aproximada explícita, filtros/teclado y links nombrados. PR19 `6644f613` READY; `lataffa` trae 27 productos reales (2026-10-08). Hotfix conserva texto al repetir Enter; [contrato UI](docs/INTERFAZ.md). | Search Console, pago/fulfillment y conversión de campo; [evidencia SEO](docs/SEO_INDEXACION.md). |
 | Migración | Worker Excel/CSV, mapeo/moneda, hasta 50.000 filas; sesión reanudable por lotes sobre staging/apply existentes, Kardex, variantes, clientes, imágenes y redirects. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
+| Planes | Inicial gratuito persistente, Commerce ilimitado en planes estándar, ahorro anual real y cupo IA; catálogo/Platform/Mi plan conectados. | Cerrar las brechas por capacidad del [benchmark vigente](docs/PLANES.md), sin vender servicios ni paridad no certificados. |
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
 | Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo persistido. | ND asociada a factura y saldo/IVA; ARCA A/B/C/NC/ND, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
 | Finance | Inbox, aprobación versionada, comprometido/disponible, reembolsos/anticipos, dimensiones, conciliación CSV y export del ledger. | Documento y cierre reales; feeds de tarjetas externas y controles; [contrato](docs/FINANCE.md). |
@@ -125,7 +125,7 @@ sigue abierto como certificación operacional.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.
-- Validación local del 2026-10-07: `npm run verify` pasa 3.732 tests en 421
+- Validación local del 2026-10-08: `npm run verify` pasa 3.826 tests en 427
   archivos, funciones, lint sin errores, tipos y build. Runtime sin hallazgos;
   toolchain conserva la excepción temporal documentada más abajo.
   POS agrega ocho E2E sintéticos desktop/móvil con impresión y accesibilidad.

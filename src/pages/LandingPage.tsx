@@ -98,7 +98,7 @@ const SURFACES = [
   },
 ] as const;
 
-const CHECKS = ['14 días sin tarjeta', 'Importación asistida', 'Soporte en español'];
+const CHECKS = ['Comercio gratuito sin vencimiento', '14 días de extras sin tarjeta', 'Importación Excel por lotes'];
 
 /** Preguntas frecuentes reales del producto Nerqia. Las respuestas
  *  describen lo que la plataforma hace HOY, no lo que promete hacer. */
@@ -445,7 +445,7 @@ export default function LandingPage() {
               <div className="landing-cta__side">
                 <p>Configurá el negocio, importá el catálogo y conectá el siguiente canal sin volver a empezar desde cero.</p>
                 <Link to="/login?mode=register" className="landing-button landing-button--primary">Probar Nerqia gratis <ArrowRight /></Link>
-                <small>14 días sin tarjeta de crédito</small>
+                <small>Comercio gratuito · 14 días de prueba de extras sin tarjeta</small>
               </div>
             </div>
           </div>

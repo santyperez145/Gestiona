@@ -554,6 +554,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           );
 
+          if (motivoDeCorte === 'prueba_finalizada') return (
+            <div className="bg-primary/5 border-b border-border px-4 py-2.5 flex items-center gap-3">
+              <p className="text-sm flex-1">Tu comercio sigue gratis. La prueba de los extras terminó; tus datos, ventas y stock siguen intactos.</p>
+              <Button size="sm" variant="outline" asChild><Link to="/mi-plan">Ver planes</Link></Button>
+              <button aria-label="Cerrar aviso de plan" onClick={() => setBannerDismissed(true)}><XIcon className="w-4 h-4" /></button>
+            </div>
+          );
           if (motivoDeCorte) return (
             <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2.5 flex items-center gap-3">
               <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
@@ -561,9 +568,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <span className="font-semibold">
                   {motivoDeCorte === 'impago' ? 'Tu suscripción tiene un pago pendiente.'
                     : motivoDeCorte === 'pausado' ? 'Tu suscripción está pausada.'
+                    : motivoDeCorte === 'sin_pagar' ? 'La contratación del plan no se confirmó.'
                     : 'Tu suscripción está cancelada.'}
                 </span>{' '}
-                Se apagaron los extras del plan. Tus datos, ventas y stock siguen intactos.
+                Se apagaron los extras del plan. Tu comercio sigue gratis y tus datos, ventas y stock siguen intactos.
               </p>
               <Link to="/mi-plan"><Button size="sm" variant="destructive" className="h-7 text-xs shrink-0">Regularizar</Button></Link>
               <button onClick={() => setBannerDismissed(true)} className="text-destructive/60 hover:text-destructive shrink-0"><XIcon className="w-4 h-4" /></button>
@@ -590,13 +598,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="bg-primary/8 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
               <Zap className="w-4 h-4 text-primary shrink-0" />
               <p className="text-sm flex-1">
-                {trialDaysLeft === 0
-                  ? <><span className="font-semibold text-destructive">Tu trial venció hoy.</span> Elegí un plan para seguir usando el sistema.</>
-                  : <><span className="font-semibold">Trial: {trialDaysLeft} {trialDaysLeft === 1 ? 'día' : 'días'} restantes.</span> Elegí un plan antes de que expire.</>
-                }
+                <span className="font-semibold">Prueba de extras: {trialDaysLeft} {trialDaysLeft === 1 ? 'día' : 'días'} restantes.</span>{' '}
+                Tu comercio sigue gratis cuando termine la prueba.
               </p>
-              <Link to="/pricing"><Button size="sm" className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">Ver planes</Button></Link>
-              <button onClick={() => setBannerDismissed(true)} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0"><XIcon className="w-4 h-4" /></button>
+              <Link to="/precios"><Button size="sm" className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">Ver planes</Button></Link>
+              <button aria-label="Cerrar aviso de plan" onClick={() => setBannerDismissed(true)} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0"><XIcon className="w-4 h-4" /></button>
             </div>
           );
           return null;

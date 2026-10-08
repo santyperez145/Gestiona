@@ -60,7 +60,7 @@ describe("los planes se muestran y se cobran en pesos", () => {
 
   it("y sí edita el precio que se cobra", () => {
     expect(admin, "el formulario dejó de editar el precio en pesos")
-      .toMatch(/price_ars_monthly:\s*parseFloat/);
+      .toMatch(/price_ars_monthly:\s*e\.target\.value === '' \? null : Number\(e\.target\.value\)/);
   });
 
   it("el guardado deja escribir el precio en pesos", () => {

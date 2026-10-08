@@ -18,10 +18,12 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { formatARS } from "@/lib/supabaseStore";
 import { useEntitlements } from "@/lib/useEntitlements";
+import { annualSaving, limitesDelPlan, planPrice } from "@/lib/planOffer";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { plural, palabra } from "@/lib/plural";
+import { plural } from "@/lib/plural";
 import {
   CreditCard, Check, Loader2, ExternalLink, AlertTriangle, Calendar, Receipt,
 } from "lucide-react";
@@ -90,6 +92,8 @@ interface PlanContratable {
   max_products: number | null;
   max_users: number | null;
   ai_enabled: boolean;
+  ai_monthly_credits: number | null;
+  max_sales_per_month: number | null;
   ahorro_anual_pct: number | null;
   sort_order: number;
 }
@@ -127,7 +131,8 @@ interface Factura {
 
 const ETIQUETA_ESTADO: Record<string, { texto: string; clase: string }> = {
   active:   { texto: "Activa",           clase: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
-  trialing: { texto: "Prueba gratuita",  clase: "bg-blue-500/12 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+  trialing: { texto: "Prueba de extras", clase: "bg-blue-500/12 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+  commerce_free: { texto: "Comercio gratuito", clase: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
   past_due: { texto: "Pago pendiente",   clase: "bg-destructive/12 text-destructive border-destructive/20" },
   paused:   { texto: "Pausada",          clase: "bg-yellow-500/12 text-yellow-700 dark:text-yellow-400 border-yellow-500/20" },
   canceled: { texto: "Cancelada",        clase: "bg-muted text-muted-foreground border-border" },
@@ -136,7 +141,9 @@ const ETIQUETA_ESTADO: Record<string, { texto: string; clase: string }> = {
 
 export default function MiPlanPage() {
   usePageTitle("Mi plan");
-  const { activeOrg } = useOrg();
+  const { activeOrg, activeRole } = useOrg();
+  const { planVigente, motivoDeCorte, productLimit, userLimit, salesLimit } = useEntitlements();
+  const canSubscribe = activeRole === 'owner' || activeRole === 'admin';
   const { ask, dialog } = useConfirmDialog();
 
   const [sub, setSub] = useState<EstadoSuscripcion | null>(null);
@@ -175,7 +182,7 @@ export default function MiPlanPage() {
   useEffect(() => { cargar(); }, [cargar]);
 
   const contratar = async (plan: PlanContratable) => {
-    if (!activeOrg) return;
+    if (!activeOrg || !canSubscribe || planPrice(plan, ciclo === 'anual') == null) return;
     setContratando(plan.code);
 
     const { data, error } = await supabase.functions.invoke("mp-subscribe", {
@@ -190,7 +197,7 @@ export default function MiPlanPage() {
     setContratando(null);
 
     if (error || (data as any)?.error) {
-      toast.error((data as any)?.error ?? "No se pudo iniciar la suscripción");
+      toast.error(await mensajeDeEdgeFunction(error, data) || "No se pudo iniciar la suscripción");
       return;
     }
 
@@ -205,7 +212,8 @@ export default function MiPlanPage() {
     window.location.href = link;
   };
 
-  const estadoActual = sub?.estado ?? "sin_suscripcion";
+  const esInicial = sub?.plan?.code === 'trial';
+  const estadoActual = motivoDeCorte === 'prueba_finalizada' ? 'commerce_free' : (sub?.estado ?? "sin_suscripcion");
   /**
    * ⚠️ El cartel decía «Pago pendiente» a quien acababa de darse de baja. El
    * estado en la base sigue siendo `past_due` hasta que el barrido horario lo
@@ -216,7 +224,7 @@ export default function MiPlanPage() {
     ? { texto: "Dada de baja", clase: "bg-muted text-muted-foreground border-border" }
     : (ETIQUETA_ESTADO[estadoActual] ?? ETIQUETA_ESTADO.sin_suscripcion);
   const precio = (p: PlanContratable) =>
-    ciclo === "anual" ? Number(p.price_ars_yearly ?? 0) : Number(p.price_ars_monthly);
+    planPrice(p, ciclo === 'anual');
 
   return (
     <div className="workspace-page space-y-5">
@@ -224,9 +232,14 @@ export default function MiPlanPage() {
         icon={CreditCard}
         eyebrow="Commerce · Suscripción"
         title="Mi plan"
-        description="Límites de tienda y cobro por MercadoPago — sin inventar precios."
+        description="Tu comercio, los extras del plan y tu suscripción."
         badge={{ label: badge.texto }}
       />
+      {!loading && <section className="border-y border-border py-4">
+        <h2 className="text-sm font-semibold">{planVigente ? 'Capacidades vigentes de tu comercio' : 'Comercio gratuito activo'}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Productos: {productLimit ?? 'sin límite de plan'} · Ventas/mes: {salesLimit ?? 'sin límite de plan'} · Usuarios: {userLimit ?? 'sin límite de plan'}.</p>
+        <Link to="/precios" className="mt-2 inline-block text-sm text-primary dark:text-blue-300 underline underline-offset-4">Comparar todas las prestaciones</Link>
+      </section>}
 
       {/* Estado actual */}
       <div className="rounded-[8px] border border-border/80 bg-card p-5">
@@ -236,7 +249,7 @@ export default function MiPlanPage() {
           </div>
         ) : estadoActual === "sin_suscripcion" ? (
           <p className="text-sm text-muted-foreground">
-            Todavía no tenés un plan contratado. Elegí uno abajo.
+            Tu comercio es gratuito. Podés sumar los extras de un plan cuando los necesites.
           </p>
         ) : (
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -245,7 +258,7 @@ export default function MiPlanPage() {
               <p className="text-xl font-semibold">{sub?.plan?.name ?? "—"}</p>
               {estadoActual !== "sin_suscripcion" && (
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {sub?.precio_ars != null
+                  {esInicial ? 'Comercio gratuito, sin débito periódico.' : sub?.precio_ars != null
                     ? <>Pagás <span className="font-medium text-foreground">{formatARS(sub.precio_ars)}</span>{sub?.ciclo === "anual" ? " por año" : " por mes"}</>
                     : "No tenemos registro del monto: revisalo en tu resumen de MercadoPago"}
                 </p>
@@ -255,11 +268,11 @@ export default function MiPlanPage() {
               </span>
             </div>
 
-            {sub?.renueva_el && (
+            {sub?.renueva_el && estadoActual !== 'commerce_free' && (
               <div className="text-right">
                 <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
                   <Calendar className="w-3 h-3" />
-                  {sub.cancela_al_final ? "Vence el" : "Renueva el"}
+                  {esInicial ? 'Fin de la prueba de extras' : sub.cancela_al_final ? "Vence el" : "Renueva el"}
                 </p>
                 <p className="text-sm font-medium">
                   {new Date(sub.renueva_el).toLocaleDateString("es-AR")}
@@ -291,7 +304,7 @@ export default function MiPlanPage() {
           * Que la baja esté en otra pantalla es una fricción puesta a
           * propósito, y de las que se pagan con una queja pública.
           */}
-        {!sub?.cancela_al_final
+        {!esInicial && canSubscribe && !sub?.cancela_al_final
           && ["active", "past_due", "trialing"].includes(estadoActual) && (
           <div className="mt-4 flex justify-end">
             <Button
@@ -438,14 +451,14 @@ export default function MiPlanPage() {
 
                   <div className="mt-2">
                     <span className="text-2xl font-semibold tabular-nums">
-                      {monto > 0 ? formatARS(monto) : "—"}
+                      {monto != null && monto > 0 ? formatARS(monto) : "No disponible"}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {ciclo === "anual" ? " / año" : " / mes"}
                     </span>
-                    {ciclo === "anual" && p.ahorro_anual_pct ? (
+                    {ciclo === "anual" && (annualSaving(p) ?? 0) > 0 ? (
                       <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                        Ahorrás {p.ahorro_anual_pct}% contra el mensual
+                        Ahorrás {annualSaving(p)}% contra el mensual
                       </p>
                     ) : null}
                   </div>
@@ -455,26 +468,13 @@ export default function MiPlanPage() {
                   )}
 
                   <ul className="mt-3 space-y-1 text-xs flex-1">
-                    <li className="flex items-center gap-1.5">
-                      <Check className="w-3 h-3 text-emerald-500 shrink-0" />
-                      {p.max_products ? `${p.max_products.toLocaleString("es-AR")} ${palabra(p.max_products, "producto")}` : "Productos ilimitados"}
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <Check className="w-3 h-3 text-emerald-500 shrink-0" />
-                      {p.max_users ? `${p.max_users} usuario${p.max_users === 1 ? "" : "s"}` : "Usuarios ilimitados"}
-                    </li>
-                    {p.ai_enabled && (
-                      <li className="flex items-center gap-1.5">
-                        <Check className="w-3 h-3 text-emerald-500 shrink-0" />
-                        Asistente de IA
-                      </li>
-                    )}
+                    {limitesDelPlan(p).map(line => <li className="flex items-start gap-1.5" key={line}><Check className="mt-0.5 w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />{line}</li>)}
                   </ul>
 
                   <Button
                     className="w-full mt-4"
                     variant={esActual ? "outline" : "default"}
-                    disabled={esActual || contratando !== null || monto <= 0}
+                    disabled={esActual || contratando !== null || monto == null || monto <= 0 || !canSubscribe}
                     onClick={() => contratar(p)}
                   >
                     {contratando === p.code ? (
