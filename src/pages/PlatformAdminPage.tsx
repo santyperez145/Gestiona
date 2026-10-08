@@ -71,6 +71,7 @@ interface UserRow {
 
 interface PlanRow {
   id: string;
+  code: string;
   name: string;
   description: string | null;
   price_usd_monthly: number;
@@ -81,6 +82,7 @@ interface PlanRow {
   max_sales_per_month: number | null;
   max_users: number | null;
   ai_enabled: boolean;
+  ai_monthly_credits: number | null;
   backups_enabled: boolean;
   custom_branding: boolean;
   stripe_price_id_monthly: string | null;
@@ -1470,7 +1472,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                       <div className="space-y-1.5 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Precio mensual</span>
-                          <span className="font-mono font-medium">{(p.price_ars_monthly ?? 0) > 0 ? `${pesos(p.price_ars_monthly)}/mes` : 'Gratis'}</span>
+                          <span className="font-mono font-medium">{p.price_ars_monthly == null ? 'Sin configurar' : p.price_ars_monthly > 0 ? `${pesos(p.price_ars_monthly)}/mes` : 'Gratis'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Precio anual</span>
@@ -1491,7 +1493,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                         </div>
                         <div className="border-t border-border/50 my-2" />
                         <div className="flex gap-2 flex-wrap">
-                          {p.ai_enabled && <Badge variant="outline" className="text-xs text-primary border-primary/30">IA</Badge>}
+                          {p.ai_enabled && <Badge variant="outline" className="text-xs text-primary border-primary/30">IA: {p.ai_monthly_credits == null ? 'sin tope mensual' : `${p.ai_monthly_credits.toLocaleString('es-AR')} acciones/mes`}</Badge>}
                           {p.backups_enabled && <Badge variant="outline" className="text-xs">Backups</Badge>}
                           {p.custom_branding && <Badge variant="outline" className="text-xs">Branding</Badge>}
                         </div>
@@ -1963,19 +1965,19 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                   a cargar el número en el lugar equivocado. */}
               <div>
                 <Label className="text-xs">Precio mensual (ARS) — el que se cobra</Label>
-                <Input type="number" min="0" value={editPlanForm.price_ars_monthly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_ars_monthly: parseFloat(e.target.value) || 0 }))} className="h-9" />
+                <Input type="number" min="0" step="0.01" value={editPlanForm.price_ars_monthly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_ars_monthly: e.target.value === '' ? null : Number(e.target.value) }))} className="h-9" />
               </div>
               <div>
                 <Label className="text-xs">Precio anual (ARS)</Label>
-                <Input type="number" min="0" value={editPlanForm.price_ars_yearly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_ars_yearly: parseFloat(e.target.value) || 0 }))} className="h-9" />
+                <Input type="number" min="0" step="0.01" value={editPlanForm.price_ars_yearly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_ars_yearly: e.target.value === '' ? null : Number(e.target.value) }))} className="h-9" />
               </div>
               <div className="space-y-1.5">
                 <Label>Máx. productos (vacío = ilimitado)</Label>
-                <Input type="number" min="0" value={editPlanForm.max_products ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_products: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="∞" />
+                <Input disabled={['trial', 'starter', 'pro', 'business'].includes(editPlanDialog.plan?.code ?? '')} type="number" min="0" value={editPlanForm.max_products ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_products: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="Sin límite de plan" />
               </div>
               <div className="space-y-1.5">
                 <Label>Máx. ventas/mes</Label>
-                <Input type="number" min="0" value={editPlanForm.max_sales_per_month ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_sales_per_month: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="∞" />
+                <Input disabled={['trial', 'starter', 'pro', 'business'].includes(editPlanDialog.plan?.code ?? '')} type="number" min="0" value={editPlanForm.max_sales_per_month ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_sales_per_month: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="Sin límite de plan" />
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label>Características que se muestran en la landing</Label>
@@ -1994,17 +1996,21 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                     features: e.target.value.split("\n").map(l => l.trim()).filter(Boolean),
                   }))}
                   className="text-xs"
-                  placeholder={"Soporte prioritario\nOnboarding dedicado"}
+                  placeholder={"Sólo servicios operativos y comprobados"}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Vacío = se usan los textos por defecto del plan. Los límites se
-                  muestran solos.
+                  Los límites y el cupo de IA se muestran solos. No publiques servicios ni integraciones pendientes.
                 </p>
               </div>
               <div className="space-y-1.5">
                 <Label>Máx. usuarios</Label>
-                <Input type="number" min="0" value={editPlanForm.max_users ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_users: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="∞" />
+                <Input disabled={['trial', 'starter', 'pro', 'business'].includes(editPlanDialog.plan?.code ?? '')} type="number" min="0" value={editPlanForm.max_users ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_users: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="Sin límite de plan" />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="plan-ai-quota">Acciones de IA por mes</Label>
+                <Input id="plan-ai-quota" type="number" min="0" step="1" value={editPlanForm.ai_monthly_credits ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, ai_monthly_credits: e.target.value === '' ? null : Number(e.target.value) }))} className="h-9" placeholder="Sin tope mensual" />
+              </div>
+              <p className="col-span-2 text-xs text-muted-foreground">Los planes estándar incluyen productos, ventas y usuarios sin tope. La IA conserva su propio cupo. Cambiar el precio de lista no modifica cobros ya autorizados.</p>
             </div>
             <div className="space-y-3 border-t border-border pt-3">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Funcionalidades</Label>

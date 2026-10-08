@@ -5,6 +5,7 @@
 //          removePlatformAdmin, updatePlan, getUsers, toggleBanUser,
 //          suspendOrg, reactivateOrg, getAdminLogs, getOrgActivity
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { validatePlanUpdates } from "../_shared/planUpdates.ts";
 
 const ALLOWED_ORIGINS = [
   "https://nerqia.app",
@@ -442,6 +443,7 @@ Deno.serve(async (req) => {
     // ── UPDATE PLAN ────────────────────────────────────────────
     if (action === "updatePlan") {
       const { planId, updates } = body;
+      if (typeof planId !== 'string' || !UUID_RE.test(planId)) return json({ error: 'Plan inválido' }, 400);
       // ⚠️ Los precios en PESOS son los que se cobran: MercadoPago sólo cobra
       // ARS y `mp-subscribe` lee `price_ars_monthly`. Hasta 2026-08-27 esta
       // allowlist sólo dejaba escribir los de dólares, así que el dueño editaba
@@ -450,19 +452,24 @@ Deno.serve(async (req) => {
       const allowed = ["name", "description",
         "price_ars_monthly", "price_ars_yearly",
         "price_usd_monthly", "price_usd_yearly",
-        "max_products", "max_sales_per_month", "max_users", "ai_enabled",
+        "max_products", "max_sales_per_month", "max_users", "ai_enabled", "ai_monthly_credits",
         "backups_enabled", "custom_branding", "stripe_price_id_monthly",
         "stripe_price_id_yearly", "features"];
-      const safe: Record<string, unknown> = Object.fromEntries(
-        Object.entries(updates || {}).filter(([k]) => allowed.includes(k)),
-      );
+      let safe: Record<string, unknown>;
+      try { safe = validatePlanUpdates(updates, allowed); }
+      catch (error) { return json({ error: error instanceof Error ? error.message : 'Datos inválidos' }, 400); }
       // `price_ars_updated_at` existe para ver desde cuándo no se toca un precio
       // —con inflación, uno viejo es un descuento que nadie decidió—. Si se
       // actualizara a mano, mentiría en cuanto alguien edite por otra vía.
       if ("price_ars_monthly" in safe || "price_ars_yearly" in safe) {
         safe.price_ars_updated_at = new Date().toISOString();
       }
-      await admin.from("plans").update(safe).eq("id", planId);
+      const { data: updated, error: updateError } = await admin.from("plans").update(safe).eq("id", planId).select('id').maybeSingle();
+      if (updateError) {
+        console.error('updatePlan failed', updateError.code);
+        return json({ error: 'No pudimos guardar el plan. Revisá los valores e intentá nuevamente.' }, 500);
+      }
+      if (!updated) return json({ error: 'El plan ya no existe' }, 404);
       await logAction("updatePlan", { details: { planId, updates: safe } });
       return json({ ok: true });
     }

@@ -56,7 +56,7 @@ export default function TermsPage() {
 
       <LegalSection title="4. Prueba, planes y cobro">
         <ul>
-          <li>La prueba inicial dura 14 días y no requiere tarjeta.</li>
+          <li>El plan Inicial mantiene el comercio gratuito sin vencimiento. La prueba de los extras dura 14 días y no requiere tarjeta; al finalizar, el comercio y los datos siguen disponibles.</li>
           <li>Los precios publicados para Argentina se expresan en pesos argentinos y muestran la periodicidad aplicable.</li>
           <li>Las suscripciones se autorizan y procesan mediante Mercado Pago; {brand} no almacena el número completo de la tarjeta.</li>
           <li>Antes de pagar se informa el plan, importe y frecuencia que se autorizarán en el proveedor.</li>

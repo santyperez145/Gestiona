@@ -1,483 +1,530 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { mensajeDeEdgeFunction } from '@/lib/edgeErrors';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/lib/auth';
-import { useOrg } from '@/lib/orgContext';
-import { useEntitlements } from '@/lib/useEntitlements';
-import { Button } from '@/components/ui/button';
-import { Check, Sparkles, ArrowLeft, Loader2, Crown, AlertTriangle, ChevronDown } from 'lucide-react';
-import { toast } from 'sonner';
-import type { Plan } from '@/lib/useEntitlements';
-import BrandLogo from '@/components/shared/BrandLogo';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
+import { useEntitlements, type Plan } from "@/lib/useEntitlements";
+import {
+  annualSaving,
+  limitesDelPlan,
+  planPrice,
+  PLAN_COMPARISON,
+} from "@/lib/planOffer";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Check,
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  AlertTriangle,
+  ChevronDown,
+  RefreshCw,
+} from "lucide-react";
+import { toast } from "sonner";
+import BrandLogo from "@/components/shared/BrandLogo";
 
-import { plural, palabra } from "@/lib/plural";
-/**
- * Los renglones que se pueden escribir a mano, y sólo ésos.
- *
- * ⚠️ Antes esta lista también decía los límites, y **mentía**: prometía «hasta
- * 100 productos» en Starter cuando el plan permite 1000, y «hasta 1.000» en Pro
- * cuando es ilimitado. Un texto suelto al lado de una columna se desincroniza
- * el día que alguien toca la columna — y acá el texto es una promesa de venta.
- *
- * Los límites ahora salen de las columnas del plan (`limitesDelPlan`), así que
- * no pueden contradecirlo. Esto queda para lo que de verdad es texto de venta.
- */
-const FALLBACK_FEATURES: Record<string, string[]> = {
-  trial:    ['14 días gratis, sin tarjeta', 'Catálogo público'],
-  starter:  ['Catálogo público', 'Soporte por email'],
-  pro:      ['Integraciones Tiendanube y MercadoPago', 'Soporte por email'],
-  business: ['Soporte prioritario', 'API pública con rate limit alto', 'Onboarding dedicado'],
-};
-
-/**
- * Lo que el plan permite, dicho desde sus propias columnas.
- *
- * Si el dueño cambia `max_products` en la consola, la landing lo dice sola: no
- * hay que acordarse de editar también un texto.
- */
-function limitesDelPlan(p: Plan): string[] {
-  const cantidad = (n: number | null | undefined, singular: string, plural: string) =>
-    n == null ? `${plural} ilimitados` : `Hasta ${Number(n).toLocaleString('es-AR')} ${n === 1 ? singular : plural}`;
-
-  const lineas = [
-    cantidad(p.max_products, 'producto', 'productos'),
-    cantidad(p.max_users, 'usuario', 'usuarios'),
-  ];
-  if (p.max_sales_per_month != null) {
-    lineas.push(`${Number(p.max_sales_per_month).toLocaleString('es-AR')} ${palabra(Number(p.max_sales_per_month), "venta")} por mes`);
-  } else {
-    lineas.push('Ventas ilimitadas');
-  }
-  if (p.ai_enabled) lineas.push('Inteligencia artificial incluida');
-  if (p.backups_enabled) lineas.push('Backups automáticos');
-  if (p.custom_branding) lineas.push('Branding propio en la tienda');
-  return lineas;
-}
-
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  active:   { label: 'Activo',         color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
-  trialing: { label: 'Trial activo',   color: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
-  past_due: { label: 'Pago pendiente', color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20' },
-  canceled: { label: 'Cancelado',      color: 'bg-destructive/15 text-destructive border-destructive/20' },
-  paused:   { label: 'Pausado',        color: 'bg-muted text-muted-foreground border-border' },
-};
-
-/**
- * Las preguntas frecuentes.
- *
- * ── Dos reglas, y las dos salieron de encontrar el problema ───────────────
- *
- * ⚠️ **Cada respuesta tiene que ser cierta.** Medidas contra el código el
- * 2026-08-27, cuatro de cinco no lo eran:
- *
- *   - «Cancelás desde Configuración → Facturación» — esa pestaña no existe (es
- *     Ajustes → Suscripción), y el botón que sí existía **no cancelaba nada**.
- *   - «Te avisamos 3 días antes de que termine el trial» — ninguna función
- *     mandaba ese aviso. Ahora existe: `avisar_trial_por_vencer` corre por cron
- *     y el mail sale por `avisos-por-correo`.
- *   - «La cuenta se pausa» — no se pausa: se apagan los extras y el comercio
- *     sigue entrando y viendo todo lo suyo.
- *   - «Los cambios de plan se aplican al final del período (downgrade)» — no
- *     hay nada que programe un cambio de plan a futuro.
- *
- * 📌 Una página de precios es una promesa comercial. Una respuesta que no se
- * puede cumplir no es un detalle de redacción: es lo que hace que alguien se dé
- * de baja el primer mes sintiéndose engañado.
- *
- * 📌 **Y se escriben para el comercio, no para el que programó.** Nada de
- * «upgrade», «downgrade», «período de facturación» ni nombres de pantallas
- * internas. El que lee esto vende perfumes, no lee código.
- */
 const FAQ = [
   {
-    q: '¿Puedo cambiar de plan cuando quiera?',
-    a: 'Sí. Elegís el plan nuevo desde Mi plan y MercadoPago te pide autorizar el nuevo importe. Desde ese momento pagás el plan nuevo.',
+    q: "¿La tienda gratuita vence después de 14 días?",
+    a: "No. Tu tienda, productos, ventas y equipo siguen disponibles sin límite de plan. Los 14 días corresponden a la prueba de los extras: inteligencia artificial, copias automáticas y marca propia sin identificación de Nerqia.",
   },
   {
-    q: '¿Qué pasa cuando se termina la prueba gratis?',
-    a: 'Nada se borra. Seguís entrando y viendo tus ventas, tu stock y tus clientes; lo que se apaga son los extras del plan, como el asistente de inteligencia artificial. Cuando elegís un plan, vuelve todo.',
+    q: "¿Puedo cambiar de plan cuando quiera?",
+    a: "Sí. Elegís el plan nuevo desde Mi plan y MercadoPago te pide autorizar el nuevo importe. El cambio necesita tu autorización; no modificamos tus cobros sólo por publicar un precio nuevo.",
   },
   {
-    q: '¿Puedo darme de baja cuando quiera?',
-    a: 'Sí, sin costo y desde la misma pantalla donde contratás: Mi plan. Le avisamos a MercadoPago para que no te cobre más, y seguís usando el sistema hasta que termine el mes que ya pagaste.',
+    q: "¿Puedo darme de baja cuando quiera?",
+    a: "Sí, desde Mi plan. Le avisamos a MercadoPago para que no te cobre más. Conservás los extras hasta que termina lo que ya pagaste, y después podés seguir con el comercio gratuito.",
   },
   {
-    q: '¿Qué pasa con mi información si me doy de baja?',
-    a: 'Queda toda. Podés seguir entrando a ver tus ventas, productos y clientes, y descargarte una copia desde Ajustes cuando quieras. No borramos nada por dejar de pagar.',
+    q: "¿Qué pasa con mi información si me doy de baja?",
+    a: "Tus productos, ventas, stock y clientes siguen intactos. Podés seguir operando y exportando tus datos; no borramos información por dejar de pagar.",
   },
   {
-    q: '¿En qué moneda son los precios?',
-    a: 'En pesos argentinos. Se cobra por mes o por año con MercadoPago, usando la tarjeta o el saldo que ya tenés ahí.',
+    q: "¿En qué moneda son los precios?",
+    a: "En pesos argentinos. La suscripción se autoriza con MercadoPago. Los costos de procesar los pagos de tus compradores dependen del proveedor que conectes y son independientes de tu plan.",
   },
   {
-    q: '¿Conviene pagar el año entero?',
-    a: 'Sí: pagando los doce meses juntos te sale alrededor de un 17% menos que mes a mes.',
+    q: "¿Conviene pagar el año entero?",
+    a: "Cada plan muestra su ahorro real frente a doce pagos mensuales. Al elegir Anual ves tanto el equivalente por mes como el importe total que vas a autorizar por año.",
   },
   {
-    q: '¿Y si alguna vez suben el precio?',
-    a: 'Te avisamos por mail con treinta días de anticipación, diciéndote cuánto pagás hoy, cuánto vas a pagar y desde qué día. Si no te conviene, te das de baja antes y no se te cobra el importe nuevo.',
+    q: "¿Y si alguna vez suben el precio?",
+    a: "El precio publicado es para nuevas contrataciones. Un cambio de tu importe necesita un aviso previo con el monto y la fecha, y podés dar de baja la suscripción desde Mi plan.",
   },
 ];
+const TRUST = ["Sin permanencia", "Tus datos son tuyos", "Baja desde Mi plan"];
+const fmtARS = (n: number) =>
+  n.toLocaleString("es-AR", { maximumFractionDigits: 2 });
 
-/**
- * ⚠️ Acá decía **«Hosting en Argentina»**, y es falso: la base está en
- * `aws-1-us-east-1`, o sea Virginia, Estados Unidos. Es una afirmación sobre
- * dónde viven los datos de otro — de las que se firman, no de las que se
- * escriben para llenar una fila.
- *
- * 📌 También salió «HTTPS incluido»: es cierto y no significa nada para quien
- * vende perfumes. Un sello de confianza que el lector no entiende no genera
- * confianza, ocupa lugar.
- */
-const TRUST = ['Sin contrato de permanencia', 'Tus datos son tuyos', 'Te podés dar de baja solo', 'Soporte en español'];
-
-// ⚠️ El precio que vale es el de PESOS: es el que cobra MercadoPago, que es
-// el único medio con el que se puede pagar la suscripción, y el que lee
-// `mp-subscribe`. Los de dólares quedan en la tabla como referencia
-// comercial y NO se muestran: publicar USD y cobrar ARS es prometer un
-// precio y cobrar otro.
-//
-// Un plan sin precio en pesos no se puede cobrar. Se devuelve 0 y la tarjeta
-// lo muestra como "Sin precio" en vez de inventar una conversión.
-const precioMensual = (p: { price_ars_monthly?: number | null }) => Number(p.price_ars_monthly) || 0;
-const precioAnual = (p: { price_ars_yearly?: number | null }) => Number(p.price_ars_yearly) || 0;
-
-const fmtARS = (n: number) => n.toLocaleString('es-AR');
 export default function PricingPage() {
-  const { user, session } = useAuth();
-  const { activeOrg } = useOrg();
-  const { plan: currentPlan, subscription, isTrialing, trialDaysLeft } = useEntitlements();
+  const { user } = useAuth();
+  const { activeOrg, activeRole } = useOrg();
+  const {
+    plan: currentPlan,
+    subscription,
+    planVigente,
+    isTrialing,
+    trialDaysLeft,
+  } = useEntitlements();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [yearly, setYearly] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
-
-  useEffect(() => {
-    supabase.from('plans').select('*').eq('active', true).neq('code', 'trial').order('sort_order').then(({ data }) => {
-      setPlans((data || []) as Plan[]);
-      setLoading(false);
-    });
-  }, []);
+  const [comparisonPlan, setComparisonPlan] = useState("");
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const {
+    data: plans = [],
+    isPending: loading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["public-plan-offers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plans")
+        .select(
+          "id,code,name,description,price_ars_monthly,price_ars_yearly,max_products,max_sales_per_month,max_users,ai_enabled,ai_monthly_credits,backups_enabled,custom_branding,sort_order,features",
+        )
+        .eq("active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data as Plan[];
+    },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+  const visiblePlan = plans.find((p) => p.code === comparisonPlan) ?? plans[0];
+  const canSubscribe =
+    !user || activeRole === "owner" || activeRole === "admin";
 
   const handleSelect = async (plan: Plan) => {
-    if (!user) { navigate('/?signup=1'); return; }
-    if (plan.code === 'trial') { navigate('/'); return; }
-    if (!activeOrg) { toast.error('Necesitás tener una organización activa para suscribirte.'); return; }
-    if (currentPlan?.code === plan.code && subscription?.status === 'active') { toast.info('Ya estás en este plan.'); return; }
+    if (!user) {
+      navigate("/login?mode=register");
+      return;
+    }
+    if (plan.code === "trial") {
+      navigate("/mi-plan");
+      return;
+    }
+    if (!activeOrg || !canSubscribe) {
+      toast.error("El titular o administrador puede contratar el plan.");
+      return;
+    }
+    if (planPrice(plan, yearly) == null || planPrice(plan, yearly) === 0)
+      return;
     setCheckingOut(plan.code);
+    setCheckoutError(null);
     try {
-      /**
-       * ⚠️ Esto llamaba a `create-checkout`, que es **Stripe puro** y hace
-       * `requireEnv("STRIPE_SECRET_KEY")` al cargar el módulo: sin ese secreto
-       * la función devuelve 500 antes de ejecutar una línea del handler.
-       *
-       * O sea que el botón de contratar de la página de precios —la puerta de
-       * entrada de todo el negocio— caía siempre en «No se pudo iniciar el
-       * pago». Medido el 2026-08-27.
-       *
-       * El cobro real es por MercadoPago, con la misma función que ya usa
-       * Mi plan. Una sola forma de contratar, y es la que cobra.
-       */
-      const { data, error } = await supabase.functions.invoke('mp-subscribe', {
+      const { data, error } = await supabase.functions.invoke("mp-subscribe", {
         body: {
           org_id: activeOrg.id,
           plan_code: plan.code,
-          ciclo: yearly ? 'anual' : 'mensual',
+          ciclo: yearly ? "anual" : "mensual",
           back_url: `${window.location.origin}/mi-plan`,
         },
       });
-      if (error) {
-        const motivo = await mensajeDeEdgeFunction(error, data);
-        console.error('mp-subscribe', motivo || error);
-        toast.error(motivo || 'No se pudo iniciar la suscripción.');
+      if (error || data?.error) {
+        const message = await mensajeDeEdgeFunction(error, data);
+        setCheckoutError(
+          message || "No pudimos iniciar la suscripción. Intentá nuevamente.",
+        );
         return;
       }
       const link = (data as { init_point?: string })?.init_point;
-      if (!link) { toast.error('MercadoPago no devolvió el link de pago.'); return; }
-      // Se manda a autorizar el débito. La suscripción se activa cuando MP
-      // confirma el primer cobro, no al abrir el link.
+      if (!link || !/^https:\/\//.test(link)) {
+        setCheckoutError(
+          "No recibimos el enlace de autorización. Intentá nuevamente.",
+        );
+        return;
+      }
       window.location.href = link;
-    } catch (e) {
-      console.error('handleSelect', e);
-      toast.error('Error al conectar con el sistema de pagos.');
+    } catch (error) {
+      console.error("Pricing subscription request failed", error);
+      setCheckoutError(
+        "No pudimos conectar con el sistema de pagos. Intentá nuevamente.",
+      );
     } finally {
       setCheckingOut(null);
     }
   };
 
-  const getButtonLabel = (plan: Plan) => {
-    if (checkingOut === plan.code) return null;
-    if (!user) return 'Empezar ahora';
-    if (currentPlan?.code === plan.code) {
-      if (subscription?.status === 'active') return 'Plan actual';
-      if (subscription?.status === 'past_due') return 'Renovar ahora';
-      if (subscription?.status === 'canceled') return 'Reactivar';
-    }
-    // ⚠️ Se compara por el precio que se COBRA (ARS). Comparar por el de
-    //    dólares podía decir "Subir" para un plan más barato en pesos si las
-    //    dos escalas dejaban de ser proporcionales — y lo son sólo por ahora.
-    if (currentPlan && precioMensual(plan) > precioMensual(currentPlan)) return `Subir a ${plan.name}`;
-    if (currentPlan && precioMensual(plan) < precioMensual(currentPlan)) return `Bajar a ${plan.name}`;
-    return `Elegir ${plan.name}`;
-  };
-
-  // Primero lo que el plan PERMITE —derivado de sus columnas, así que siempre
-  // cierto— y después lo que el dueño escribió como texto de venta.
-  const getFeatures = (p: Plan): string[] => {
-    const escritas = Array.isArray(p.features) && p.features.length > 0
-      ? p.features
-      : (FALLBACK_FEATURES[p.code] || []);
-    return [...limitesDelPlan(p), ...escritas];
-  };
-
-  const subStatus = subscription?.status;
-
   return (
-    <div className="pricing-shell min-h-screen text-foreground">
-
-      {/* ── Nav ──────────────────────────────────────────────────── */}
-      <header className="pricing-shell__nav sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-[13px] font-display font-semibold text-muted-foreground/70 hover:text-foreground transition-colors">
-            <ArrowLeft className="w-3.5 h-3.5" /> <BrandLogo markClassName="h-5 w-5" nameClassName="text-[13px]" />
+    <div className="plan-offers min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-background">
+        <nav
+          aria-label="Navegación de planes"
+          className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4"
+        >
+          <Link to="/" aria-label="Nerqia, inicio">
+            <BrandLogo />
           </Link>
-          {user && (
-            <Link to="/" className="text-[12px] text-muted-foreground/50 hover:text-foreground transition-colors">
-              Volver al panel
+          <Button variant="ghost" asChild>
+            <Link to={user ? "/mi-plan" : "/"}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {user ? "Mi plan" : "Inicio"}
             </Link>
-          )}
-        </div>
+          </Button>
+        </nav>
       </header>
-
-      {/* Subscription status banner */}
-      {user && subStatus && subStatus !== 'canceled' && (
-        <div className={`border-b px-6 py-2 text-center text-[12px] flex items-center justify-center gap-1.5 ${
-          subStatus === 'past_due' ? 'bg-yellow-500/8 border-yellow-500/20 text-yellow-400' :
-          subStatus === 'trialing' ? 'bg-blue-500/8 border-blue-500/20 text-blue-400' :
-          'bg-emerald-500/8 border-emerald-500/20 text-emerald-400'
-        }`}>
-          {subStatus === 'past_due' && <AlertTriangle className="w-3.5 h-3.5" />}
-          {subStatus === 'trialing' && <Sparkles className="w-3.5 h-3.5" />}
-          {subStatus === 'active' && <Crown className="w-3.5 h-3.5" />}
-          <span>
-            {subStatus === 'trialing' && `Trial activo — te quedan ${plural(trialDaysLeft, "día")}`}
-            {subStatus === 'active' && `Plan ${currentPlan?.name || ''} activo`}
-            {subStatus === 'past_due' && 'Tu pago está pendiente. Actualizá tu método de pago para continuar.'}
-          </span>
-        </div>
-      )}
-
-      {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="pricing-shell__hero relative max-w-6xl mx-auto px-6 pt-16 pb-12 text-center">
-        <p className="pricing-shell__brand">Nerqia</p>
-        <p className="pricing-shell__kicker">Planes para vender online</p>
-
-        <h1 className="font-display text-[2.4rem] md:text-[3.1rem] font-bold tracking-tight leading-[1.05] mb-4 max-w-2xl mx-auto">
-          Empezá gratis. Escalás cuando la tienda vende.
-        </h1>
-        <p className="text-[15px] text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
-          14 días sin tarjeta. Checkout, stock y margen en el mismo Commerce OS — sin ser otro CRM.
-        </p>
-
-        {/* Billing toggle — underline style */}
-        <div className="inline-flex border-b border-border/40">
-          {[
-            { val: false, label: 'Mensual' },
-            { val: true, label: 'Anual', badge: '-17%' },
-          ].map(({ val, label, badge }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => setYearly(val)}
-              className={[
-                'px-6 pb-3 text-[11px] font-semibold uppercase tracking-[0.1em] transition-all duration-200',
-                'relative after:absolute after:bottom-[-1px] after:inset-x-0 after:h-[2px] after:rounded-full after:transition-transform after:duration-200',
-                yearly === val
-                  ? 'text-foreground after:bg-primary after:scale-x-100'
-                  : 'text-muted-foreground/50 hover:text-muted-foreground after:bg-primary after:scale-x-0',
-              ].join(' ')}
-            >
-              {label}
-              {badge && yearly === val && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-[3px] bg-primary/15 text-primary text-[9px] font-bold">
-                  {badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Plans grid ───────────────────────────────────────────── */}
-      <section className="pricing-shell__plans max-w-6xl mx-auto px-6 pb-16 grid md:grid-cols-3 gap-5">
-        {loading
-          ? Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="pricing-shell__card rounded-xl border border-border/50 bg-card p-6 h-96 animate-pulse" />
-            ))
-          : plans.map((p, idx) => {
-              const price = yearly ? precioAnual(p) : precioMensual(p);
-              const isPro = p.code === 'pro';
-              const isCurrent = currentPlan?.code === p.code;
-              const isLoading = checkingOut === p.code;
-              const features = getFeatures(p);
-              const btnLabel = getButtonLabel(p);
-              const isCurrentActive = isCurrent && subscription?.status === 'active';
-
-              return (
-                <div
-                  key={p.id}
-                  className={[
-                    'pricing-shell__card relative rounded-xl border p-6 flex flex-col overflow-hidden',
-                    isCurrent
-                      ? 'border-primary/40 bg-card/90 pricing-shell__card--current'
-                      : isPro
-                      ? 'border-primary/30 bg-card pricing-shell__card--featured'
-                      : 'border-border/50 bg-card',
-                  ].join(' ')}
-                >
-                  {/* Inner top highlight */}
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent" />
-
-                  {/* Featured accent bar */}
-                  {isPro && (
-                    <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full"
-                      style={{ background: 'var(--gradient-gold)' }} />
-                  )}
-
-                  {/* Badges row */}
-                  <div className="flex items-center gap-2 mb-4 min-h-[22px]">
-                    {isPro && !isCurrent && (
-                      <span className="px-[5px] py-[2px] rounded-[3px] bg-primary/15 text-primary text-[10px] font-bold uppercase tracking-[0.08em] font-mono">
-                        Más elegido
-                      </span>
-                    )}
-                    {isCurrent && subStatus && (
-                      <span className={`inline-flex items-center gap-1 px-[5px] py-[2px] rounded-[3px] text-[10px] font-bold uppercase tracking-[0.08em] border font-mono ${STATUS_LABEL[subStatus]?.color || ''}`}>
-                        <Crown className="w-2.5 h-2.5" />
-                        {STATUS_LABEL[subStatus]?.label || 'Tu plan'}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Plan name */}
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40 mb-1">
-                    {String(idx + 1).padStart(2, '0')}
-                  </p>
-                  <h3 className="font-display text-[1.2rem] font-bold tracking-tight">{p.name}</h3>
-                  <p className="text-[12px] text-muted-foreground/55 mt-1 mb-5 min-h-[36px]">{p.description || ''}</p>
-
-                  {/* Price */}
-                  <div className="mb-5">
-                    {precioMensual(p) === 0 ? (
-                      <span className="font-mono text-[2.2rem] font-bold tracking-tight">Gratis</span>
-                    ) : (
-                      <div className="flex items-end gap-1">
-                        <span className="font-mono text-[2.2rem] font-bold tracking-tight">${price}</span>
-                        <span className="text-[11px] text-muted-foreground/50 pb-1.5">/ {yearly ? 'año' : 'mes'}</span>
-                      </div>
-                    )}
-                    {yearly && precioMensual(p) > 0 && (
-                      <p className="text-[11px] text-muted-foreground/45 mt-0.5 font-mono">
-                        <span className="line-through">${fmtARS(precioMensual(p) * 12)}/año</span>
-                        {' '}→ ahorrás ${fmtARS(Math.round(precioMensual(p) * 12 - precioAnual(p)))}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Features */}
-                  <ul className="space-y-2 mb-6 flex-1">
-                    {features.map(f => (
-                      <li key={f} className="flex items-start gap-2">
-                        <div className="mt-[3px] w-[3px] h-[12px] rounded-full bg-primary/50 shrink-0" />
-                        <span className="text-[12px] text-muted-foreground/70">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button
-                    onClick={() => handleSelect(p)}
-                    className={`w-full ${isCurrentActive ? 'opacity-50 pointer-events-none' : ''}`}
-                    variant={isPro || isCurrent ? 'default' : 'outline'}
-                    disabled={!!checkingOut || isCurrentActive}
-                  >
-                    {isLoading ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</>
-                    ) : btnLabel}
-                  </Button>
-                </div>
-              );
-            })}
-      </section>
-
-      {/* ── Trust strip ──────────────────────────────────────────── */}
-      <section className="border-y border-border/30 py-8"
-        style={{ background: 'hsl(var(--card))' }}>
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/35 mb-5">
-            Utilizado por negocios de perfumería, ropa, tecnología, gastronomía y más
+      <main>
+        <section className="mx-auto max-w-7xl px-5 pb-8 pt-10 sm:pt-14">
+          <p className="mb-3 text-sm font-semibold text-primary">
+            Nerqia · Planes
           </p>
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2">
-            {TRUST.map(f => (
-              <div key={f} className="flex items-center gap-1.5">
-                <div className="w-[3px] h-[10px] rounded-full bg-primary/50" />
-                <span className="text-[12px] text-muted-foreground/55 font-medium">{f}</span>
-              </div>
+          <h1 className="max-w-3xl font-display text-3xl font-bold leading-tight sm:text-4xl">
+            Tu tienda sin límites. Un plan para cada etapa.
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
+            Empezá con el comercio gratuito. Sumá inteligencia artificial,
+            copias automáticas y tu propia marca cuando lo necesites.
+          </p>
+          {user && subscription && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              {isTrialing && planVigente
+                ? `Prueba de extras: ${trialDaysLeft} días restantes.`
+                : planVigente
+                  ? `Tu plan: ${currentPlan?.name ?? "activo"}.`
+                  : "Comercio gratuito activo. Tus datos y tu tienda siguen disponibles."}{" "}
+              <Link
+                className="text-primary underline underline-offset-4"
+                to="/mi-plan"
+              >
+                Ver mi suscripción
+              </Link>
+            </p>
+          )}
+          <div
+            className="mt-7 inline-flex rounded-lg border border-border bg-card p-1"
+            role="group"
+            aria-label="Frecuencia de pago"
+          >
+            {[
+              { value: false, label: "Mensual" },
+              { value: true, label: "Anual" },
+            ].map(({ value, label }) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={yearly === value}
+                onClick={() => setYearly(value)}
+                className={`min-h-10 rounded-md px-6 text-sm font-medium ${yearly === value ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}
+              >
+                {label}
+              </button>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── FAQ ──────────────────────────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-6 py-16">
-        <div className="mb-10">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-2">FAQ</p>
-          <h2 className="font-display text-[1.8rem] font-bold tracking-tight">Preguntas frecuentes</h2>
-        </div>
-        <div className="space-y-1">
+        </section>
+        <section
+          aria-label="Planes disponibles"
+          className="mx-auto max-w-7xl px-5 pb-10"
+        >
+          {isError ? (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center gap-3 border border-destructive/40 p-5"
+            >
+              <AlertTriangle className="h-5 w-5" />
+              No pudimos cargar los planes.
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reintentar
+              </Button>
+            </div>
+          ) : loading ? (
+            <div role="status" className="py-12">
+              <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
+              Cargando planes…
+            </div>
+          ) : plans.length === 0 ? (
+            <p role="status">No hay planes publicados en este momento.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {plans.map((p) => {
+                const free = p.code === "trial";
+                const amount = planPrice(p, yearly);
+                const saving = annualSaving(p);
+                const current =
+                  !free &&
+                  currentPlan?.code === p.code &&
+                  subscription?.status === "active";
+                const features = [
+                  ...limitesDelPlan(p),
+                  ...(Array.isArray(p.features) ? p.features : []),
+                ];
+                return (
+                  <article
+                    key={p.id}
+                    aria-labelledby={`offer-${p.code}`}
+                    className={`plan-offer plan-offer--${p.code} flex flex-col rounded-lg border border-border bg-card p-5`}
+                  >
+                    <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+                      <h2
+                        id={`offer-${p.code}`}
+                        className="text-xl font-semibold"
+                      >
+                        {p.name}
+                      </h2>
+                      {current && (
+                        <span className="text-xs font-medium text-primary">
+                          Tu plan
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 min-h-12 text-sm text-muted-foreground">
+                      {p.description}
+                    </p>
+                    <div className="mt-5 min-h-24">
+                      <p className="text-2xl font-semibold tabular-nums">
+                        {amount === null
+                          ? "No disponible"
+                          : amount === 0
+                            ? "Gratis"
+                            : `$${fmtARS(yearly ? Math.round((amount / 12) * 100) / 100 : amount)}`}
+                        <span className="ml-1 text-xs font-normal text-muted-foreground">
+                          {amount != null && amount > 0 ? "ARS / mes" : ""}
+                        </span>
+                      </p>
+                      {yearly && amount != null && amount > 0 && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          ${fmtARS(amount)} ARS en un pago anual
+                        </p>
+                      )}
+                      {yearly && saving != null && saving > 0 && (
+                        <p className="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                          Ahorrás {saving}%
+                        </p>
+                      )}
+                      {free && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Sin tarjeta · Sin vencimiento del comercio
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      className="mt-3 w-full"
+                      variant={free ? "outline" : "default"}
+                      disabled={
+                        checkingOut !== null ||
+                        current ||
+                        (!free &&
+                          (amount == null || amount <= 0 || !canSubscribe))
+                      }
+                      onClick={() => handleSelect(p)}
+                    >
+                      {checkingOut === p.code ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Conectando
+                        </>
+                      ) : current ? (
+                        "Plan actual"
+                      ) : free ? (
+                        user ? (
+                          "Ver comercio gratuito"
+                        ) : (
+                          "Crear tienda gratis"
+                        )
+                      ) : (
+                        <>
+                          {user ? `Elegir ${p.name}` : "Empezar ahora"}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                    <ul className="mt-5 flex-1 space-y-3 border-t border-border pt-5 text-sm">
+                      {Array.from(new Set(features)).map((feature) => (
+                        <li key={feature} className="flex items-start gap-2">
+                          <Check
+                            aria-hidden
+                            className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                          />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {free && (
+                      <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+                        La prueba de los extras dura 14 días. Después, tu
+                        comercio sigue gratis.
+                      </p>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+          {user && !canSubscribe && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Podés comparar planes. Para contratar, pedile al titular o
+              administrador del comercio.
+            </p>
+          )}
+          {checkoutError && (
+            <p
+              role="alert"
+              className="mt-4 rounded-lg border border-destructive/30 p-4 text-sm"
+            >
+              {checkoutError}
+            </p>
+          )}
+          <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+            Los importes corresponden al plan de Nerqia. El dominio, la
+            mensajería, los envíos y las comisiones del proveedor de pagos
+            pueden tener costos propios. Cada conexión requiere una cuenta
+            habilitada y configuración.
+          </p>
+        </section>
+        {plans.length > 0 && !isError && (
+          <section
+            aria-labelledby="comparison-title"
+            className="border-y border-border bg-card py-10"
+          >
+            <div className="mx-auto max-w-7xl px-5">
+              <h2 id="comparison-title" className="text-2xl font-semibold">
+                Compará lo que incluye cada plan
+              </h2>
+              <div className="my-5 lg:hidden">
+                <label htmlFor="compare-plan" className="mb-2 block text-sm">
+                  Plan a comparar
+                </label>
+                <Select
+                  value={visiblePlan?.code}
+                  onValueChange={setComparisonPlan}
+                >
+                  <SelectTrigger id="compare-plan" className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {plans.map((p) => (
+                      <SelectItem key={p.id} value={p.code}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Tabs defaultValue="commerce" className="mt-6">
+                <TabsList className="mb-4 flex h-auto w-fit max-w-full flex-wrap justify-start gap-1">
+                  {PLAN_COMPARISON.map((group) => (
+                    <TabsTrigger
+                      className="min-h-10 whitespace-normal"
+                      key={group.id}
+                      value={group.id}
+                    >
+                      {group.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {PLAN_COMPARISON.map((group) => (
+                  <TabsContent value={group.id} key={group.id}>
+                    <table className="w-full table-fixed text-sm">
+                      <caption className="sr-only">
+                        {group.label}: prestaciones por plan
+                      </caption>
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th
+                            scope="col"
+                            className="w-[46%] py-4 pr-3 text-left font-medium lg:w-[28%]"
+                          >
+                            Prestación
+                          </th>
+                          {plans.map((p) => (
+                            <th
+                              key={p.id}
+                              scope="col"
+                              className={`${p.id === visiblePlan?.id ? "" : "hidden"} px-2 py-4 text-left font-semibold lg:table-cell`}
+                            >
+                              {p.name}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.rows.map((row) => (
+                          <tr
+                            key={row.label}
+                            className="border-b border-border last:border-0"
+                          >
+                            <th
+                              scope="row"
+                              className="py-4 pr-3 text-left font-normal"
+                            >
+                              {row.label}
+                            </th>
+                            {plans.map((p) => (
+                              <td
+                                key={p.id}
+                                className={`${p.id === visiblePlan?.id ? "" : "hidden"} break-words px-2 py-4 text-muted-foreground lg:table-cell`}
+                              >
+                                {row.value(p)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TabsContent>
+                ))}
+              </Tabs>
+              <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+                Las acciones de IA no son conversaciones de WhatsApp. Los
+                permisos y la seguridad se mantienen en todos los planes;
+                contratar no saltea validaciones ni configuraciones de
+                proveedores.
+              </p>
+            </div>
+          </section>
+        )}
+        <section className="mx-auto max-w-3xl px-5 py-10">
+          <h2 className="mb-5 text-2xl font-semibold">Preguntas frecuentes</h2>
           {FAQ.map((item, i) => (
-            <div key={i} className="rounded-[8px] border border-border/40 overflow-hidden"
-              style={{ background: 'hsl(var(--card))' }}>
+            <div className="border-b border-border" key={item.q}>
               <button
-                className="w-full text-left px-5 py-4 flex items-center justify-between gap-3 hover:bg-muted/20 transition-colors"
+                type="button"
+                aria-expanded={faqOpen === i}
+                aria-controls={`faq-${i}`}
+                className="flex w-full items-center justify-between gap-3 py-5 text-left text-sm font-medium"
                 onClick={() => setFaqOpen(faqOpen === i ? null : i)}
               >
-                <span className="font-display font-medium text-[13px]">{item.q}</span>
-                <ChevronDown className={`w-4 h-4 text-muted-foreground/50 shrink-0 transition-transform duration-200 ${faqOpen === i ? 'rotate-180' : ''}`} />
+                {item.q}
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 ${faqOpen === i ? "rotate-180" : ""}`}
+                />
               </button>
-              {faqOpen === i && (
-                <div className="px-5 pb-4 text-[12px] text-muted-foreground/60 border-t border-border/30 pt-3 leading-relaxed">
-                  {item.a}
-                </div>
-              )}
+              <div
+                id={`faq-${i}`}
+                hidden={faqOpen !== i}
+                className="pb-5 text-sm leading-relaxed text-muted-foreground"
+              >
+                {item.a}
+              </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* ── Footer CTA ───────────────────────────────────────────── */}
-      <section className="border-t border-border/30 py-16 text-center"
-        style={{ background: 'hsl(var(--card))' }}>
-        <div className="max-w-md mx-auto px-6">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-3">¿Tenés dudas?</p>
-          <h2 className="font-display text-[1.6rem] font-bold tracking-tight mb-3">Estamos para ayudarte</h2>
-          <p className="text-[12px] text-muted-foreground/55 mb-7 leading-relaxed">
-            Escribinos por WhatsApp o email y te respondemos en menos de 24 horas.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {!user && (
-              <Button onClick={() => navigate('/?signup=1')}>
-                Empezar gratis — 14 días
-              </Button>
-            )}
-            <Button variant="outline" asChild>
-              <Link to="/">Volver al panel</Link>
-            </Button>
+        </section>
+      </main>
+      <footer className="border-t border-border px-5 py-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
+          <p>{TRUST.join(" · ")}</p>
+          <div className="flex gap-5">
+            <Link to="/terminos">Términos</Link>
+            <Link to="/privacidad">Privacidad</Link>
+            <Link to="/">Nerqia</Link>
           </div>
         </div>
-      </section>
+      </footer>
     </div>
   );
 }

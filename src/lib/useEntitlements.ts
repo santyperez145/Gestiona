@@ -21,6 +21,7 @@ export interface Plan {
   max_sales_per_month: number | null;
   max_users: number | null;
   ai_enabled: boolean;
+  ai_monthly_credits?: number | null;
   backups_enabled: boolean;
   custom_branding: boolean;
   sort_order: number;
@@ -53,7 +54,7 @@ interface Entitlements {
   /** El plan está pago (o en trial): los beneficios se aplican. */
   planVigente: boolean;
   /** Por qué se cortaron, si se cortaron. `null` cuando está todo bien. */
-  motivoDeCorte: 'impago' | 'cancelado' | 'pausado' | null;
+  motivoDeCorte: 'impago' | 'cancelado' | 'pausado' | 'sin_pagar' | 'prueba_finalizada' | null;
   /** Días de gracia que quedan antes de cortar por falta de pago. */
   diasDeGracia: number;
   /**
@@ -99,7 +100,7 @@ const DIAS_DE_GRACIA = 7;
  */
 interface EntitlementsDeLaBase {
   vigente: boolean;
-  motivo_de_corte: 'impago' | 'cancelado' | 'pausado' | null;
+  motivo_de_corte: Entitlements['motivoDeCorte'];
   dias_de_gracia: number;
   ia: boolean;
   backups: boolean;
@@ -196,7 +197,7 @@ export function useEntitlements(): Entitlements {
     /* eslint-disable-next-line */
   }, [confirmando, activeOrg?.id]);
 
-  const isTrialing = sub?.status === 'trialing';
+  const isTrialing = sub?.status === 'trialing' && Boolean(sub.current_period_end && new Date(sub.current_period_end) > new Date());
 
   /**
    * ── Los beneficios se cortan cuando no se paga ──────────────────────────
@@ -231,6 +232,7 @@ export function useEntitlements(): Entitlements {
     sub?.status === 'canceled' ? 'cancelado'
     : sub?.status === 'paused' ? 'pausado'
     : sub?.status === 'past_due' && graciaLocal === 0 ? 'impago'
+    : plan?.code === 'trial' && (!activeOrg?.trial_ends_at || new Date(activeOrg.trial_ends_at) <= new Date()) ? 'prueba_finalizada'
     : null;
 
   // La respuesta del servidor manda. El cálculo local es el respaldo para
@@ -239,7 +241,7 @@ export function useEntitlements(): Entitlements {
   // cliente no puede asumir que la de su propio commit ya corrió.
   const diasDeGracia = servidor ? servidor.dias_de_gracia : graciaLocal;
   const motivoDeCorte = servidor ? servidor.motivo_de_corte : motivoLocal;
-  const planVigente = servidor ? servidor.vigente : (!sub || motivoLocal === null);
+  const planVigente = servidor ? servidor.vigente : ((!sub || motivoLocal === null) && motivoLocal !== 'prueba_finalizada');
 
   const conBeneficio = (delServidor: boolean | undefined, local: boolean | null | undefined) =>
     servidor ? !!delServidor : (planVigente && !!local);
@@ -247,10 +249,9 @@ export function useEntitlements(): Entitlements {
   const limite = (
     delServidor: number | null | undefined,
     local: number | null | undefined,
-    piso: number,
   ) => servidor
     ? (delServidor ?? null)
-    : (planVigente ? (local ?? null) : Math.min(local ?? piso, piso));
+    : (planVigente ? (local ?? null) : null);
   const trialDaysLeft = sub?.current_period_end
     ? Math.max(0, Math.ceil((new Date(sub.current_period_end).getTime() - Date.now()) / 86400000))
     : 0;
@@ -264,9 +265,9 @@ export function useEntitlements(): Entitlements {
     canUseAI: conBeneficio(servidor?.ia, plan?.ai_enabled),
     canCustomBrand: conBeneficio(servidor?.branding, plan?.custom_branding),
     canUseBackups: conBeneficio(servidor?.backups, plan?.backups_enabled),
-    productLimit: limite(servidor?.max_products, plan?.max_products, 50),
-    userLimit: limite(servidor?.max_users, plan?.max_users, 1),
-    salesLimit: limite(servidor?.max_sales_per_month, plan?.max_sales_per_month, 50),
+    productLimit: limite(servidor?.max_products, plan?.max_products),
+    userLimit: limite(servidor?.max_users, plan?.max_users),
+    salesLimit: limite(servidor?.max_sales_per_month, plan?.max_sales_per_month),
     planVigente,
     motivoDeCorte,
     diasDeGracia,
