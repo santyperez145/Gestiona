@@ -118,11 +118,32 @@ incorrecta:
 4. búsqueda de contenido con licencia comercial (Openverse) con revisión;
 5. carga manual, pegado o cámara, siempre disponibles.
 
-El slice actual agrega búsqueda Openverse server-side desde la ficha, exige
-usuario owner/admin, limita abuso, excluye resultados marcados con watermark y
-no aplica nada automáticamente. La persona abre la fuente, verifica identidad
-y licencia, y elige. Openverse advierte que sus datos de licencia pueden ser
-inexactos; por eso no sirve como auto-fill masivo sin revisión.
+La ficha busca en Openverse con sesión, membership owner/admin y permisos
+`products.view` + `create`/`edit`. Ordena por tokens de nombre, marca y modelo;
+son señales, nunca certeza ni porcentaje de precisión. Excluye watermark,
+contenido maduro y fuentes no descargables. La copia actual admite sólo CC0/PDM
+desde Wikimedia/Flickr permitidos: las demás licencias requieren completar
+atribución pública antes de habilitarlas. Openverse no garantiza la licencia;
+la persona revisa identidad/variante y derechos en la fuente, y confirma ambas.
+
+`search-product-images` conserva una autoridad para búsqueda y adquisición:
+recibe ID, no URL/licencia del cliente, relee metadata del proveedor y valida
+cada redirect, HTTPS, tipo, firma, tamaño (4 MiB), dimensión (4 MP) y presupuesto
+de lectura. ImageMagick WASM 0.0.44 decodifica, orienta, quita metadata y genera
+WebP de hasta 1600 px. `catalog_image_sources` conserva fuente, licencia, actor,
+fecha, hash y procesamiento; RLS limita lectura al catálogo de la organización
+y sólo el servidor escribe. Paths `/catalog/` son inmutables para el navegador.
+Dos selecciones concurrentes reutilizan el mismo hash y compensan la copia
+sobrante; un error nunca se anuncia como producto actualizado. La ficha agrega
+la copia propia únicamente tras éxito y publica sólo al guardar el producto.
+
+Nombre/marca/org/sesión/cierre invalidan resultados y adquisiciones pendientes.
+No se sigue un redirect arbitrario ni se conservan URLs externas en selecciones
+nuevas. Los assets son reutilizables; cerrar sin guardar no los publica. Faltan
+retención/limpieza de assets no referenciados, revisión pública de procedencia,
+feeds autorizados y benchmark de identidad. No se corrigieron automáticamente
+las URLs legacy ni se importó la planilla de otro negocio. El límite por usuario
+y por IP es por instancia; no certifica un presupuesto distribuido de jobs.
 
 ### Bulk para 10.000 productos
 
@@ -177,7 +198,7 @@ slugs descartan respuestas de otro negocio y muestran errores recuperables.
 Sin beneficio IA o con cupo agotado no se dispara autocompletado; el servidor
 revalida el beneficio y el consumo. La carga manual no se restringe.
 
-- persistir procedencia/licencia y copiar imágenes elegidas a Storage;
+- ampliar procedencia/atribución a todas las fuentes autorizadas y licencias;
 - agregar GTIN/MPN como claves de matching y conector Icecat detrás de flag;
 - job bulk con presupuesto, checkpoint, retry y cola de excepciones;
 - definir tool schemas y tablas de runs/steps/approvals;
@@ -193,6 +214,8 @@ revalida el beneficio y el consumo. La carga manual no se restringe.
 - [Odoo — AI Manager separado de herramientas ejecutoras](https://www.odoo.com/documentation/19.0/applications/productivity/ai/server-actions.html)
 - [Openverse API client y búsqueda](https://docs.openverse.org/packages/js/api_client/index.html)
 - [Advertencia de licencia de Openverse](https://docs.openverse.org/_preview/4707/api/reference/made_with_ov.html)
+- [Openverse API, búsqueda y detalle por ID](https://api.openverse.org/v1/)
+- [ImageMagick WASM en Supabase Edge](https://supabase.com/docs/guides/functions/examples/image-manipulation)
 - [Icecat para datos de producto](https://icecat.com/integrations/)
 - [GS1 Product Image Specification](https://ref.gs1.org/standards/product-image-specification/3.7.0/)
 - [Cierre de Google Custom Search JSON API](https://developers.google.com/custom-search/v1/overview)

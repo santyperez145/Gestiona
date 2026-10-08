@@ -48,4 +48,11 @@ if (result.error) {
   console.error(`No se pudo iniciar Deno: ${result.error.message}`);
   process.exit(2);
 }
+if (result.status !== 0) process.exit(result.status ?? 1);
+const imageTestArgs = ["test", "--no-lock", "--allow-read", "--allow-env", "--allow-sys", "supabase/functions/_shared/catalogImageTransform_test.ts"];
+result = run("deno", imageTestArgs);
+if (result.error?.code === "ENOENT") {
+  result = run(process.platform === "win32" ? "npx.cmd" : "npx", ["--yes", "deno", ...imageTestArgs], process.platform === "win32");
+}
+if (result.error) console.error(`No se pudo probar la transformacion de imagenes: ${result.error.message}`);
 process.exit(result.status ?? 1);

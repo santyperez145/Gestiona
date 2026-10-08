@@ -185,6 +185,59 @@ test('catalogo: la sugerencia revisable no cambia dinero ni stock y no guarda pr
   expect(suggestions).toBe(1);
 });
 
+test('catalogo: revisa una foto y agrega copia propia sin guardar productos', async ({ page }) => {
+  const writes: string[] = [];
+  let searches = 0; let acquisitions = 0;
+  const id = '11111111-1111-4111-8111-111111111111';
+  const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/9n0AAAAASUVORK5CYII=', 'base64');
+  await page.route('**/functions/v1/ai-chat', route => route.abort());
+  await page.route('**/rest/v1/products?**', route => {
+    if (['GET', 'HEAD'].includes(route.request().method())) return route.continue();
+    writes.push('products'); return route.abort();
+  });
+  await page.route('**/storage/v1/object/public/product-images/**', route => route.fulfill({ contentType: 'image/png', body: tinyPng }));
+  await page.route('https://api.openverse.org/nerqia-fixture/**', route => route.fulfill({ contentType: 'image/png', body: tinyPng }));
+  await page.route('**/functions/v1/search-product-images', route => {
+    const body = route.request().postDataJSON();
+    expect(body.query).toBe('ZZ TALADRO GSB 13');
+    if (body.action === 'search') {
+      searches++;
+      return route.fulfill({ json: { ok: true, results: [{ id, title: 'Taladro GSB 13', thumbnail: `https://api.openverse.org/nerqia-fixture/${id}`,
+        url: 'https://upload.wikimedia.org/fixture.jpg', source_url: 'https://commons.wikimedia.org/fixture',
+        license: 'cc0', license_url: 'https://creativecommons.org/publicdomain/zero/1.0/', creator: 'Autor de prueba', match: { label: 'Modelo en el titulo', exact_product: false } }] } });
+    }
+    expect(body).toMatchObject({ action: 'acquire', candidate_id: id, review_product: true, review_rights: true });
+    expect(body).not.toHaveProperty('url'); acquisitions++;
+    const project = new URL(route.request().url()).origin;
+    return route.fulfill({ json: { ok: true, url: `${project}/storage/v1/object/public/product-images/${body.org_id}/catalog/${id}.webp` } });
+  });
+  await page.goto('/productos');
+  await page.getByRole('button', { name: 'Nuevo', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Nuevo producto' });
+  await editor.getByPlaceholder('Ej: Nombre del producto').fill('ZZ TALADRO GSB 13');
+  const before = await editor.getByRole('spinbutton').evaluateAll(elements => elements.map(element => (element as HTMLInputElement).value));
+  await editor.getByRole('button', { name: 'Buscar imagen', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Imagen del producto', exact: true });
+  await picker.getByRole('button', { name: 'Buscar', exact: true }).click();
+  await picker.getByRole('button', { name: 'Revisar', exact: true }).click();
+  const copy = picker.getByRole('button', { name: 'Copiar y agregar', exact: true });
+  await expect(copy).toBeDisabled();
+  for (const width of [360, 390, 768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await copy.scrollIntoViewIfNeeded();
+    expect((await copy.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expect(picker.locator('img').first()).toBeVisible();
+    expect(await picker.locator('img').first().evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  }
+  await picker.getByRole('checkbox').nth(0).check(); await expect(copy).toBeDisabled();
+  await picker.getByRole('checkbox').nth(1).check(); await copy.click();
+  await expect(picker).not.toBeVisible();
+  await expect(editor.locator('img[src*="/catalog/"]')).toBeVisible();
+  expect(await editor.getByRole('spinbutton').evaluateAll(elements => elements.map(element => (element as HTMLInputElement).value))).toEqual(before);
+  expect(searches).toBe(1); expect(acquisitions).toBe(1); expect(writes).toEqual([]);
+});
+
 test("Profit real: alias, canonical RPC and honest contribution", async ({ page }) => {
   const responsePromise = page.waitForResponse(response => response.url().includes("/rpc/get_profit_period_dimensions"));
   await page.goto("/profit");

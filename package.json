@@ -120,6 +120,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.32.0",
+    "@imagemagick/magick-wasm": "0.0.44",
     "@playwright/test": "^1.57.0",
     "@rolldown/plugin-babel": "^0.1.7",
     "@sentry/vite-plugin": "^2.23.1",
