@@ -152,14 +152,21 @@ test(`permisos: ${destination} recupera lectura sin revelar errores internos`, a
 test('catalogo: la sugerencia revisable no cambia dinero ni stock y no guarda productos', async ({ page }) => {
   const writes: string[] = [];
   let suggestions = 0;
-  // Beneficio sintético sólo en este navegador; el consumo IA se intercepta.
-  await page.route('**/rest/v1/rpc/org_entitlements', async route => {
-    const response = await route.fetch();
-    const entitlements = await response.json();
-    await route.fulfill({ response, json: { ...entitlements, ia: true, ia_restante: 1, vigente: true } });
-  });
+  // Synthetic benefit and empty taxonomy only in this test; no billing/model
+  // calls. Permission and ordinary catalogue reads still use the real backend.
+  await page.route('**/rest/v1/subscriptions?**', route => route.fulfill({ json: null }));
+  await page.route('**/rest/v1/plans?**', route => route.fulfill({ json: null }));
+  await page.route('**/rest/v1/rpc/org_entitlements', route => route.fulfill({ json: {
+    vigente: true, motivo_de_corte: null, dias_de_gracia: 0,
+    ia: true, ia_restante: 1, backups: false, branding: false,
+    max_products: null, max_users: null, max_sales_per_month: null,
+  } }));
+  await page.route('**/rest/v1/ecommerce_categories?**', route => route.fulfill({ json: [] }));
   await page.route('**/rest/v1/products?**', route => {
-    if (['GET', 'HEAD'].includes(route.request().method())) return route.continue();
+    if (['GET', 'HEAD'].includes(route.request().method())) {
+      if (new URL(route.request().url()).searchParams.get('select') === 'category') return route.fulfill({ json: [] });
+      return route.continue();
+    }
     writes.push(route.request().method()); return route.abort();
   });
   await page.route('**/functions/v1/ai-chat', route => {
