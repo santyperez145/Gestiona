@@ -2,6 +2,7 @@ export interface PgError { code?: string; message?: string; status?: number }
 
 type ReadResult = { error?: PgError | null; status?: number };
 type RetryOptions = { delaysMs?: readonly number[]; maxAttempts?: number };
+export type AbortableReadOptions = RetryOptions & { timeoutMs?: number; signal?: AbortSignal };
 
 /** Codes take precedence: a SQL/JWT/schema error is not a transport outage. */
 export function isTransientReadError(error: PgError | null | undefined): boolean {
@@ -32,6 +33,44 @@ export async function retryRead<T extends ReadResult>(read: () => PromiseLike<T>
     if (delay > 0) await new Promise<void>(resolve => setTimeout(resolve, delay));
   }
   throw new Error("No se pudo completar la lectura");
+}
+
+/** Read-only requests get a fresh deadline per attempt, including SDK/auth waits. */
+export function retryAbortableRead<T extends ReadResult>(
+  read: (signal: AbortSignal) => PromiseLike<T>,
+  options: AbortableReadOptions = {},
+): Promise<T> {
+  const timeoutMs = options.timeoutMs ?? 4_000;
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new RangeError("Invalid read timeout");
+  return retryRead(async () => {
+    const cancelled = () => Object.assign(new Error("Read cancelled"), { code: "ABORT_ERR" });
+    if (options.signal?.aborted) throw cancelled();
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    let onAbort: () => void;
+    const interrupted = new Promise<never>((_, reject) => {
+      onAbort = () => {
+        const error = cancelled();
+        reject(error);
+        controller.abort(error);
+      };
+      options.signal?.addEventListener("abort", onAbort, { once: true });
+      timer = setTimeout(() => {
+        const error = Object.assign(new Error("Read timed out"), { code: "ETIMEDOUT" });
+        reject(error);
+        controller.abort(error);
+      }, timeoutMs);
+    });
+    try {
+      return await Promise.race([
+        Promise.resolve().then(() => read(controller.signal)),
+        interrupted,
+      ]);
+    } finally {
+      clearTimeout(timer);
+      options.signal?.removeEventListener("abort", onAbort);
+    }
+  }, { ...options, delaysMs: options.delaysMs ?? [150] });
 }
 
 /** Callers must preserve a server-enforced idempotency key across attempts. */

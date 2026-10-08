@@ -74,16 +74,22 @@ migración nueva, comparación contra el esquema desplegado y gate propio.
 
 ## Gate de promoción y operación real
 
-1. Publicar la corrección de contraste y repetir la puerta completa sobre ese
-   SHA: CI, E2E, Supabase Preview y Vercel; no reutilizar checks de otro commit.
-   Auth está integrado en PR 16; su migración `20261004000100`, ya productiva,
-   participa del replay sin reparar el journal ni volver a aplicarla allí.
-2. Promover frontend por el flujo protegido normal de `main`. Los productores
-   y el guard ya se publicaron en el orden documentado; nunca abrir el helper
-   interno ni ignorar un check pendiente para acelerar la integración.
-3. Cerrar PR 15 y retirar ambas ramas sólo después de comprobar su contenido
-   integrado a `main`. Proxy de confianza, SMTP Auth y recepción real mantienen
-   gate propio; el código pusheado no demuestra configuración de proveedores.
+El 2026-10-08, los checks requeridos de `86997fba` aprobaron y PR 16 se fusionó
+sin bypass a `main` como `b62af837`. El árbol coincide íntegramente; Vercel
+`dpl_AyPGAfwfdEhuKHKsP8gU1umWWLDd` quedó READY en producción con ese SHA.
+PR 15 se cerró como incluida. No se reaplicó su migración productiva de Auth.
+
+La CI posterior al merge (`37730531705`) detectó otra falla: el catálogo móvil
+seguía en skeleton al vencer la espera de productos. La traza confirma assets
+200 y sólo `get_store_by_slug` pendiente, sin respuesta ni consultas posteriores.
+No prueba una caída de base ni una violación Axe: prueba una espera sin límite.
+La corrección acota cada lectura inicial a 4 s, permite un segundo intento con
+signal nuevo y cancela al cambiar de tienda/salir. El agotamiento muestra error
+recuperable, no 404 ni catálogo vacío; cobros/idempotencia no cambian.
+
+Mantener gates por SHA para la corrección: puerta local completa, CI, E2E,
+Supabase Preview y Vercel. Proxy de confianza, SMTP Auth y recepción real
+conservan gate propio; publicar código no demuestra configurar proveedores.
 
 La continuación incremental, las suites sintéticas y un deploy Vercel no
 certifican el banco, impresión física, homologación ARCA ni reemplazo de un ERP.
@@ -99,8 +105,10 @@ Dos ramas antiguas con parches únicos se conservaron antes de retirarlas:
 `archive/2026-10-07/codex-repository-quality-cleanup` apunta a `ee3a1171` y
 `archive/2026-10-07/claude-nostalgic-shirley-ec0434` a `7e9f4597`.
 Los tags remotos permiten recuperar el contenido; no se fusionaron sus cambios
-viejos en masa ni se borraron worktrees ajenos. Las dos ramas activas de
-integración se conservan hasta cerrar sus PRs.
+viejos en masa ni se borraron worktrees ajenos. El 2026-10-08 se retiraron las
+ramas Auth/POS ya integradas, conservando tags remotos
+`archive/2026-10-08/codex-auth-trusted-devices` (`c08899d9`) y
+`archive/2026-10-08/codex-pos-safe-checkout` (`86997fba`).
 
 ## Referencias oficiales
 
@@ -111,3 +119,6 @@ integración se conservan hasta cerrar sus PRs.
 - [Supabase: proceso de deployment](https://supabase.com/docs/guides/deployment/branching):
   las migraciones preceden al deploy de funciones; el contrato POS requiere
   prepublicar sus productores para no bloquear cobros con evidencia vieja.
+- [Supabase: abortSignal](https://supabase.com/docs/reference/javascript/using-modifiers-abortsignal),
+  consultado 2026-10-08. El SDK instalado es 2.101.1: se cancela cada fetch y
+  también se limita la espera del SDK; no se asumen retries de versiones nuevas.

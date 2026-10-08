@@ -1,6 +1,6 @@
 # E2E críticos
 
-**Estado:** gate vigente. **Corte:** 2026-10-01.
+**Estado:** gate vigente. **Corte:** 2026-10-08.
 
 La puerta E2E prueba la tienda pública en Chromium de escritorio y teléfono, y
 las superficies críticas del panel con una identidad técnica. Los specs leen la
@@ -52,6 +52,14 @@ de 24 horas son decisiones propias; no equivalen a paridad completa con Shopify.
 
 ## Contrato del gate
 
+- `store-read-recovery.spec.ts` retiene sólo la lectura de tienda: verifica
+  timeout/reintento automático, agotamiento con recuperación, Axe y carrito
+  conservado. Las escrituras de visita/carrito/checkout se interceptan; no
+  ejecuta fixtures en producción ni amplía timeouts globales de Playwright.
+- Evidencia 2026-10-08: diez escenarios focales desktop/mobile verdes sin retries
+  (recuperación y catálogo/Axe); incluye carrito no vacío, fallos de catálogo y
+  variantes. No ejecutar otro build/`verify` sobre `dist` mientras corre preview:
+  la traza de una corrida superpuesta detectó bundle sin variables, no una caída.
 - Vite construye el bundle de producción y lo sirve con `vite preview` en
   `4173` por defecto y `--strictPort`. Probar el artefacto real evita que cuatro
   browsers compitan por la transformación inicial del dev server.
@@ -101,7 +109,8 @@ un producto completamente agotado; las variantes agotadas sí quedaron cubiertas
 CI del mismo SHA: [104 aprobados y 3 omitidos](https://github.com/santyperez145/Gestiona/actions/runs/36913162530),
 incluyendo setup y panel autenticados. Build, lint, tipos, tests y auditoría
 también pasaron. Estos escenarios no demuestran cobros externos, cobertura de
-todos los roles ni branch protection; `main` sigue sin checks requeridos.
+todos los roles ni branch protection. Desde el 2026-10-03, `main` sí exige
+CI, Supabase Preview y Vercel; esta evidencia anterior no prueba esos checks.
 
 Para reutilizar deliberadamente un servidor local:
 

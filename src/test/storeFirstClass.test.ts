@@ -93,7 +93,7 @@ describe("tiendas first-class sobre un único Business Core", () => {
     expect(MIGRATION).toContain("LEFT JOIN LATERAL");
     expect(PUBLIC_DATA).toContain("'get_store_catalog_products'");
     expect(PUBLIC_DATA).toContain("{ p_slug: storeSlug }");
-    expect(STORE_CONTEXT).toContain("fetchStoreProducts(row.org_id, row.slug)");
+    expect(STORE_CONTEXT).toContain("fetchStoreProducts(row.org_id, row.slug, readOptions)");
   });
 
   it("configuración, pedidos y recuperación comparten el mismo selector", () => {
