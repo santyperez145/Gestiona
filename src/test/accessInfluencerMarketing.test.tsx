@@ -5,7 +5,7 @@ import { businessRoutes, influencerMarketingProductRoutes, moduleForPath, busine
 
 const state = vi.hoisted(() => ({ role: 'admin', canView: true, loading: false }));
 vi.mock('@/lib/orgContext', () => ({ useOrg: () => ({ activeOrg: { id: 'org' }, activeRole: state.role, loading: false }) }));
-vi.mock('@/lib/permissionsContext', () => ({ useModulePerms: () => ({ canView: state.canView, loading: state.loading }) }));
+vi.mock('@/lib/permissionsContext', () => ({ useModulePerms: () => ({ canView: state.canView, loading: state.loading, error: null }), useRefreshPermissions: () => vi.fn() }));
 afterEach(() => { cleanup(); state.role = 'admin'; state.canView = true; state.loading = false; });
 
 describe('acceso y rutas de Influencers', () => {

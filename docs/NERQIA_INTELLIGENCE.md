@@ -159,6 +159,24 @@ incidentes, costo por acción útil, productos publicables y margen protegido.
 
 ## 8. Pendientes inmediatos
 
+**Carga asistida, 2026-10-08:** el autocompletado descarta respuestas tardías,
+aisla caché por usuario/sesión/org/categorías y limita tiempo/tamaño de respuesta.
+No propone ni aplica precios estimados; categoría/marca/descripción se aplican
+sólo tras revisión, sin pisar campos ya completos. Errores permiten reintentar
+o continuar manualmente. Esto no prueba precisión de un modelo ni reemplaza
+la fuente del fabricante: fotos exactas, descripción completa, atributos,
+SEO y duplicados masivos siguen el pipeline I2 con procedencia, presupuesto,
+checkpoint y aprobación. Nunca inventar stock, costo, impuesto, certificados
+o prestaciones del producto. Datos fiscales no pasan al modelo del catálogo.
+El servidor arma el prompt de `catalog-suggestion`, exige ver/crear productos
+y consulta sólo categorías propias; no carga ventas, clientes ni Finance.
+El chat general exige rol administrativo y Analytics, verifica cada fuente
+y el acceso a Finance; usa JWT/RLS, no service-role para obtener contexto.
+Las muestras limitadas no se presentan como totales completos. Categorías y
+slugs descartan respuestas de otro negocio y muestran errores recuperables.
+Sin beneficio IA o con cupo agotado no se dispara autocompletado; el servidor
+revalida el beneficio y el consumo. La carga manual no se restringe.
+
 - persistir procedencia/licencia y copiar imágenes elegidas a Storage;
 - agregar GTIN/MPN como claves de matching y conector Icecat detrás de flag;
 - job bulk con presupuesto, checkpoint, retry y cola de excepciones;

@@ -140,6 +140,17 @@ inline/dirty state y navegación breve. Después, aceptación real autorizada y
 certificación A/B/C/NC, impresión y entrega. No declarar esos gates completos
 con red interceptada o fixtures.
 
-Referencias oficiales revisadas el 2026-10-03: [manual WSFEv1 4.1 de ARCA](https://www.arca.gob.ar/ws/documentacion/manuales/manual-desarrollador-ARCA-COMPG-v4-1.pdf),
+**Actualización de referencias, 2026-10-08:** la [página oficial](https://www.arca.gob.ar/fe/ayuda/webservice.asp)
+publica WSFEv1 4.7 y [homologación externa](https://www.arca.gob.ar/fe/ayuda/homologacion_externa.asp)
+publica 4.8. La lectura histórica 4.1 no certifica conformidad con esas versiones:
+queda pendiente contrastar validaciones, fixtures y rechazos del contrato vigente.
+Simplificar mediante delegación guiada, padrón autorizado, detección de puntos
+CAE y diagnóstico; no pedir clave fiscal ni eliminar autorizaciones de ARCA.
+`ws_sr_constancia_inscripcion` reemplaza al padrón A5 según el
+[catálogo oficial](https://www.arca.gob.ar/ws/documentacion/catalogo.asp);
+su conexión/permiso se verifica por separado de WSFE. Un certificado privado
+por comercio contradice el contrato actual: requeriría un ADR y revisión de seguridad.
+
+Referencias históricas revisadas el 2026-10-03: [manual WSFEv1 4.1 de ARCA](https://www.arca.gob.ar/ws/documentacion/manuales/manual-desarrollador-ARCA-COMPG-v4-1.pdf),
 [certificado de producción](https://arca.gob.ar/ws/WSAA/WSAA.ObtenerCertificado.pdf)
 y [delegación a terceros](https://www.arca.gob.ar/ws/WSAA/ADMINREL.DelegarWS.pdf).

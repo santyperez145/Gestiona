@@ -347,7 +347,7 @@ export default function ProductsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { activeOrg, activeRole } = useOrg();
-  const { productLimit, plan } = useEntitlements();
+  const { productLimit, plan, canUseAI, iaRestante, loading: entitlementsLoading } = useEntitlements();
   const { online } = useNetworkStatus();
   const [identityParams, setIdentityParams] = useSearchParams();
   const { fromWizard, goal: handoffGoal } = parseActivationHandoff(identityParams);
@@ -1142,6 +1142,7 @@ export default function ProductsPage() {
                       settings={settings}
                       userId={user!.id}
                       orgId={activeOrg?.id}
+                      aiEnabled={!entitlementsLoading && canUseAI && iaRestante !== 0}
                       firstUse={fromWizard && !editing && products.length === 0}
                       handoffGoal={handoffGoal}
                       onDirtyChange={setProductFormDirty}
@@ -1853,11 +1854,12 @@ function ChipSelect({ items, selected, onToggle }: { items: TaxItem[]; selected:
   );
 }
 
-export function ProductForm({ product, settings, userId, orgId, firstUse = false, handoffGoal = null, onDirtyChange, onSave }: {
+export function ProductForm({ product, settings, userId, orgId, aiEnabled = false, firstUse = false, handoffGoal = null, onDirtyChange, onSave }: {
   product: any;
   settings: any;
   userId: string;
   orgId?: string;
+  aiEnabled?: boolean;
   firstUse?: boolean;
   handoffGoal?: 'pos' | 'online' | null;
   onDirtyChange: (dirty: boolean) => void;
@@ -2110,7 +2112,7 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
   }, [product?.id]);
 
   // AI product suggestion
-  const { suggest: aiSuggest, loading: aiLoading, result: aiResult, clear: aiClear } = useAIProductSuggest(orgId);
+  const { suggest: aiSuggest, loading: aiLoading, result: aiResult, query: aiQuery, error: aiSuggestionError, clear: aiClear } = useAIProductSuggest(orgId, aiEnabled);
   const [aiDismissed, setAiDismissed] = useState(false);
 
   const productTypeSlug = productTypes.find(t => t.id === productTypeId)?.slug ?? null;
@@ -2138,8 +2140,7 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
     } else {
       aiClear();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name]);
+  }, [name, product?.id, orgId, aiSuggest, aiClear]);
   // El tipo describe cada opción; el módulo siempre es transversal y se llama
   // Variantes. Un comercio de indumentaria o electrónica no debería encontrar
   // la ficha rotulada como "Sabores" por un default heredado de vapers.
@@ -2523,7 +2524,6 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
     <form
       onSubmit={handleSubmit}
       onPaste={handlePaste}
-      onInputCapture={markDirty}
       onChangeCapture={markDirty}
       className="flex h-full min-h-0 flex-col"
       aria-label={product?.id ? `Editar ${product.name}` : 'Crear producto'}
@@ -2697,17 +2697,14 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
           </Button>
         </div>
         {/* AI suggestion banner */}
-        {!product && !aiDismissed && aiResult && (
-          <div className="mt-2 p-2.5 rounded-lg bg-primary/8 border border-primary/25 flex items-start gap-2 animate-in slide-in-from-top-1 duration-200">
+        {!product && !aiDismissed && aiResult && aiQuery === name.trim() && (
+          <div className="mt-2 p-2.5 rounded-lg bg-primary/8 border border-primary/25 flex flex-wrap items-start gap-2 animate-in slide-in-from-top-1 duration-200">
             <Brain className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-semibold text-primary mb-1">Sugerencia IA</p>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                {aiResult.category && <span>📁 {aiResult.category}</span>}
-                {aiResult.priceMin && aiResult.priceMax && (
-                  <span>💰 ${aiResult.priceMin.toLocaleString("es-AR")} – ${aiResult.priceMax.toLocaleString("es-AR")}</span>
-                )}
-                {aiResult.brand && <span>🏷 {aiResult.brand}</span>}
+                {aiResult.category && <span>{aiResult.categoryLabel || nombreDeCategoria(aiResult.category)}</span>}
+                {aiResult.brand && <span>{aiResult.brand}</span>}
                 {aiResult.description && <span className="truncate max-w-full">{aiResult.description}</span>}
               </div>
             </div>
@@ -2716,13 +2713,12 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-6 text-[10px] px-2 text-primary hover:bg-primary/10"
+                className="min-h-10 text-xs px-2 text-primary hover:bg-primary/10"
                 onClick={() => {
                   markDirty();
-                  if (aiResult.category) setCategory(aiResult.category);
+                  if (aiResult.category && !category) setCategory(aiResult.category);
                   if (aiResult.description && !description) setDescription(aiResult.description);
                   if (aiResult.brand && !brand) setBrand(aiResult.brand.toUpperCase());
-                  if (aiResult.priceMax && !salePriceARS) setSalePriceARS(aiResult.priceMax.toString());
                   setAiDismissed(true);
                   toast.success("Sugerencia IA aplicada", { duration: 2000 });
                 }}
@@ -2733,7 +2729,8 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-6 text-[10px] px-2 text-muted-foreground/60 hover:text-muted-foreground"
+                className="h-10 w-10 p-0 text-muted-foreground/60 hover:text-muted-foreground"
+                aria-label="Descartar sugerencia"
                 onClick={() => setAiDismissed(true)}
               >
                 <X className="w-3 h-3" />
@@ -2741,6 +2738,10 @@ export function ProductForm({ product, settings, userId, orgId, firstUse = false
             </div>
           </div>
         )}
+        {!product && !aiDismissed && aiSuggestionError && <WorkspaceState
+          kind="error-recoverable" layout="banner" title="Sugerencias pendientes"
+          description={aiSuggestionError} actionLabel="Reintentar" onAction={() => aiSuggest(name)} className="mt-2"
+        />}
         {!product && !aiDismissed && aiLoading && name.length >= 3 && (
           <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
             <Brain className="w-3 h-3 animate-pulse text-primary/60" />

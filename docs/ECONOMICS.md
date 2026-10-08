@@ -98,6 +98,13 @@ es su costo total de cobro.
 
 Ninguna está aprobada:
 
+**Propuesta del dueño, 2026-10-08:** Gestión independiente alrededor de
+ARS 50.000 por organización/mes, con módulos opcionales sobre el Graph compartido.
+No es un precio aprobado ni incluye una decisión sobre IVA. Validar costo de
+servir, alcance, soporte, cobro recurrente y transición de contratos vigentes;
+la oferta Commerce gratuita no se revoca por esta propuesta. Contrato técnico
+y estado comercial en [Planes](PLANES.md).
+
 | Modelo | Ventaja potencial | Riesgo a demostrar |
 |---|---|---|
 | Nerqia Pay incluido | Monetización alineada al volumen y una sola explicación de costo. | Contrato upstream, approval rate, fraude, refunds e impuesto pueden borrar el margen. |

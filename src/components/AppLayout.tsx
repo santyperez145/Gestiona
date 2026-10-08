@@ -31,7 +31,8 @@ import CommerceHeader from "@/components/commerce/CommerceHeader";
 import BusinessHeader from "@/components/business/BusinessHeader";
 import FinanceHeader from "@/components/finance/FinanceHeader";
 import PlatformHeader from "@/components/platform/PlatformHeader";
-import { usePermissionsResolver } from "@/lib/permissionsContext";
+import { usePermissionsResolver, useRefreshPermissions } from "@/lib/permissionsContext";
+import WorkspaceState from "@/components/shared/WorkspaceState";
 import { moduleForRoute } from "@/lib/moduleMap";
 import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta } from "@/lib/navigation";
 import { ROUTES } from "@/app/routeManifest";
@@ -162,7 +163,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Además del rol, se respeta `can_view` por módulo (Admin → Permisos):
   // sin esto los toggles de la mayoría de los módulos no hacían nada.
-  const { forModule } = usePermissionsResolver();
+  const { forModule, error: permissionError } = usePermissionsResolver();
+  const refreshPermissions = useRefreshPermissions();
   const navItems = useMemo(() => {
     return allNavItems.filter(item => {
       if (!item.roles.includes(role)) return false;
@@ -629,6 +631,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           : "workspace-content p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in"
         }>
           <div className={`workspace-page workspace-route-surface ${immersiveRoute ? 'h-full min-h-0' : ''}`}>
+            {permissionError && !moduleForRoute(pathname) && <WorkspaceState
+              kind="error-recoverable"
+              layout="banner"
+              title="No pudimos verificar tu acceso"
+              description={permissionError}
+              actionLabel="Reintentar"
+              onAction={refreshPermissions}
+              className="mb-4"
+            />}
             {children}
           </div>
         </div>

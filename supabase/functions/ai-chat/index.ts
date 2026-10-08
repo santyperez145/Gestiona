@@ -12,6 +12,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
+import { aiChatAuthority, catalogSuggestionPrompt } from "../_shared/aiChatScope.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,8 +54,14 @@ Deno.serve(async (req) => {
     }
     const userId = userRes.user.id;
 
-    const { message, history, orgId, model } = await req.json();
-    if (!message?.trim()) {
+    const { message, history, orgId, model, purpose = 'chat', productName } = await req.json();
+    const catalog = purpose === 'catalog-suggestion';
+    if (!['chat', 'catalog-suggestion'].includes(purpose)
+      || typeof orgId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgId)
+      || (catalog ? typeof productName !== 'string' || productName.trim().length < 3 || productName.length > 200
+        : typeof message !== 'string' || !message.trim() || message.length > 8000)
+      || (!catalog && history != null && (!Array.isArray(history) || history.length > 10
+        || history.some((h: any) => !h || !['user', 'assistant'].includes(h.role) || typeof h.content !== 'string' || h.content.length > 8000)))) {
       return new Response(JSON.stringify({ error: "Mensaje requerido" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -71,14 +78,25 @@ Deno.serve(async (req) => {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const authority = await aiChatAuthority(sb, orgId, purpose, membership.role);
+    if (!authority.allowed) return new Response(JSON.stringify({ error: "No tenés permiso para esta asistencia." }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
     // El plan cubre la IA, o acá se corta. Ser miembro no es tener el
     // beneficio: cada respuesta quema crédito de Anthropic.
     const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
     if (sinPlan) return sinPlan;
 
-    // Load business context
-    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    let businessContext: string;
+    if (catalog) {
+      // Una ficha no necesita ventas, clientes, costos ni contexto financiero.
+      const { data: categories, error } = await sb.from('ecommerce_categories').select('slug')
+        .eq('org_id', orgId).eq('is_active', true).limit(200);
+      if (error) throw new Error('Catalog context unavailable');
+      businessContext = catalogSuggestionPrompt(productName.trim(), (categories ?? []).map(row => row.slug));
+    } else {
+    // User JWT + explicit module authority: never bypass RLS for AI context.
 
     const [
       { data: products },
@@ -87,11 +105,13 @@ Deno.serve(async (req) => {
       { data: expenses },
       { data: settings },
     ] = await Promise.all([
-      admin.from("products").select("name, category, stock, sale_price_ars, total_cost_usd, profit_per_unit_ars").eq("org_id", orgId).limit(50),
-      admin.from("sales").select("product_name, total_ars, profit_ars, quantity, date, customer_name, payment_method").eq("org_id", orgId).order("date", { ascending: false }).limit(100),
-      admin.from("debts").select("customer_name, remaining_ars, due_date, status").eq("org_id", orgId).eq("status", "pending").limit(20),
-      admin.from("expenses").select("description, amount_ars, category, date").eq("org_id", orgId).order("date", { ascending: false }).limit(30),
-      admin.from("settings").select("exchange_rate, business_name, tax_enabled").eq("org_id", orgId).maybeSingle(),
+      authority.products ? sb.from("products").select("name, category, stock, sale_price_ars, profit_per_unit_ars").eq("org_id", orgId).limit(50).throwOnError() : { data: null },
+      authority.sales ? sb.from("sales").select(authority.customers
+        ? "product_name, total_ars, profit_ars, quantity, date, customer_name, payment_method"
+        : "product_name, total_ars, profit_ars, quantity, date, payment_method").eq("org_id", orgId).order("date", { ascending: false }).limit(100).throwOnError() : { data: null },
+      authority.sales ? sb.from("debts").select("remaining_ars, due_date, status").eq("org_id", orgId).eq("status", "pending").limit(20).throwOnError() : { data: null },
+      authority.expenses ? sb.from("expenses").select("description, amount_ars, category, date").eq("org_id", orgId).order("date", { ascending: false }).limit(30).throwOnError() : { data: null },
+      authority.settings ? sb.from("settings").select("exchange_rate, business_name, tax_enabled").eq("org_id", orgId).maybeSingle().throwOnError() : { data: null },
     ]);
 
     const today = new Date();
@@ -133,10 +153,13 @@ Deno.serve(async (req) => {
       .map((p: any) => ({ name: p.name, margin: (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 }))
       .sort((a, b) => b.margin - a.margin).slice(0, 3);
 
-    const businessContext = `
+    businessContext = `
 CONTEXTO DEL NEGOCIO — ${(settings as any)?.business_name || "Tu negocio"}
-TC actual: $${(settings as any)?.exchange_rate || "N/A"} ARS/USD
+MUESTRA PARCIAL, no totales completos: hasta 50 productos, 100 ventas, 20 deudas y 30 gastos.
+Las fuentes sin permiso se omiten; ausencia de fuente no significa cero.
+${authority.settings ? `TC actual: $${(settings as any)?.exchange_rate || "N/A"} ARS/USD` : ''}
 
+${authority.sales ? `
 MES ACTUAL vs MES ANTERIOR:
 - Mes anterior: $${Math.round(prevMonthRev).toLocaleString("es-AR")} ARS / $${Math.round(prevMonthProfit).toLocaleString("es-AR")} ganancia
 - Mes actual (hasta hoy): $${Math.round(thisMonthRev).toLocaleString("es-AR")} ARS / $${Math.round(thisMonthProfit).toLocaleString("es-AR")} ganancia
@@ -148,7 +171,9 @@ MES ACTUAL vs MES ANTERIOR:
 
 TOP PRODUCTOS este mes:
 ${topProds.map(([name, d]) => `• ${name}: ${d.qty} u. / $${Math.round(d.rev).toLocaleString("es-AR")} / margen ${d.rev > 0 ? ((d.profit / d.rev) * 100).toFixed(0) : 0}%`).join("\n") || "Sin ventas este mes"}
+` : ''}
 
+${authority.products ? `
 PRODUCTOS CON MAYOR MARGEN:
 ${highMarginProds.map(p => `• ${p.name}: ${p.margin.toFixed(0)}% margen`).join("\n")}
 
@@ -156,10 +181,12 @@ STOCK (${(products || []).length} productos):
 - Con stock bajo (≤3 u.): ${lowStock.length} productos
 - Sin stock: ${outOfStock.length} productos
 ${lowStock.slice(0, 5).map((p: any) => `• ${p.name}: ${p.stock} u.`).join("\n")}
+` : ''}
 
-DEUDAS: $${Math.round(totalDebt).toLocaleString("es-AR")} ARS (${(debts || []).length} clientes)
-GASTOS ÚLTIMOS 30D: $${Math.round(totalExpenses).toLocaleString("es-AR")} ARS
+${authority.sales ? `DEUDAS: $${Math.round(totalDebt).toLocaleString("es-AR")} ARS (${(debts || []).length} registros)` : ''}
+${authority.expenses ? `GASTOS ÚLTIMOS 30D: $${Math.round(totalExpenses).toLocaleString("es-AR")} ARS` : ''}
 
+${authority.sales && authority.customers ? `
 TOP CLIENTES (últimos 30d):
 ${(() => {
   const custMap: Record<string, number> = {};
@@ -168,16 +195,18 @@ ${(() => {
   });
   return Object.entries(custMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, total]) => `• ${name}: $${Math.round(total).toLocaleString("es-AR")}`).join("\n") || "Sin datos de clientes";
 })()}
+` : ''}
 `;
+    }
 
     const messages: Anthropic.MessageParam[] = [
-      ...((history || []) as Array<{ role: "user" | "assistant"; content: string }>).slice(-10).map((h) => ({
+      ...((catalog ? [] : history || []) as Array<{ role: "user" | "assistant"; content: string }>).slice(-10).map((h) => ({
         role: h.role,
         content: h.content,
       })),
       {
         role: "user",
-        content: `${businessContext}\n\nPREGUNTA DEL USUARIO: ${message}`,
+        content: catalog ? businessContext : `${businessContext}\n\nPREGUNTA DEL USUARIO: ${message}`,
       },
     ];
 
@@ -196,15 +225,15 @@ ${(() => {
       "claude-sonnet-5": "claude-sonnet-5",
       "claude-haiku-4-5": "claude-haiku-4-5-20251001",
     };
-    const modeloElegido = MODELOS[String(model ?? "")] ?? "claude-sonnet-5";
+    const modeloElegido = catalog ? MODELOS['claude-haiku-4-5'] : MODELOS[String(model ?? "")] ?? "claude-sonnet-5";
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
           const claudeStream = anthropic.messages.stream({
             model: modeloElegido,
-            max_tokens: 1024,
-            system: SYSTEM_PROMPT,
+            max_tokens: catalog ? 512 : 1024,
+            system: catalog ? 'Redactá una ficha sólo desde datos explícitos. Nunca inventes especificaciones. Respondé JSON, no conversación.' : SYSTEM_PROMPT,
             messages,
           });
 
@@ -246,7 +275,8 @@ ${(() => {
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         } catch (err) {
-          const errChunk = `data: ${JSON.stringify({ error: err instanceof Error ? err.message : "Error" })}\n\n`;
+          console.error('ai-chat stream failed', err);
+          const errChunk = `data: ${JSON.stringify({ error: "No pudimos completar la respuesta. Reintentá." })}\n\n`;
           controller.enqueue(encoder.encode(errChunk));
         } finally {
           controller.close();
@@ -265,7 +295,7 @@ ${(() => {
     });
   } catch (e: any) {
     console.error("ai-chat error:", e);
-    return new Response(JSON.stringify({ error: e.message || "Error interno" }), {
+    return new Response(JSON.stringify({ error: "No pudimos preparar la asistencia. Reintentá." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

@@ -119,7 +119,8 @@ describe('contrato visual transversal de Gestión', () => {
 
     expect(products).toContain('const [productFormDirty, setProductFormDirty] = useState(false)');
     expect(products).toContain('onOpenChange={handleProductEditorOpenChange}');
-    expect(products).toContain('onInputCapture={markDirty}');
+    expect(products).toContain('onChangeCapture={markDirty}');
+    expect(products).not.toContain('onInputCapture={markDirty}');
     expect(products).toContain("window.addEventListener('beforeunload', warnBeforeUnload)");
     expect(products).toContain('title="¿Descartar los cambios del producto?"');
     expect(products).toContain('confirmText="Descartar cambios"');

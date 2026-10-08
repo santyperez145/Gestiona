@@ -43,6 +43,7 @@ export interface ModulePermissions {
   canDelete: boolean;
   canExport: boolean;
   loading:   boolean;
+  error:     string | null;
   /** True if permissions came from the DB override, false if from role defaults */
   fromDb:    boolean;
 }

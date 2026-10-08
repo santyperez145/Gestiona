@@ -113,6 +113,78 @@ async function assertInitialSelectedLabel(page: Page, name: string) {
   await expect(trigger).toHaveText(initialLabel);
 }
 
+for (const destination of ['/productos', '/']) {
+test(`permisos: ${destination} recupera lectura sin revelar errores internos`, async ({ page }) => {
+  let reads = 0;
+  await page.route('**/rest/v1/role_permissions?**', async route => {
+    reads += 1;
+    if (reads === 1) return route.fulfill({ status: 403, contentType: 'application/json',
+      body: JSON.stringify({ code: '42501', message: 'ZZ private permission failure' }) });
+    return route.continue();
+  });
+  await page.goto(destination);
+  const error = page.locator('[data-workspace-state="error-recoverable"]').filter({ hasText: 'No pudimos verificar tu acceso' });
+  await expect(error).toBeVisible();
+  if (destination === '/productos') await expect(page.getByRole('heading', { name: 'Productos', exact: true })).toHaveCount(0);
+  await expect(page.getByText('ZZ private permission failure')).toHaveCount(0);
+  for (const width of [360, 390, 768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(error.getByRole('button', { name: 'Reintentar' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+  await error.getByRole('button', { name: 'Reintentar' }).click();
+  if (destination === '/productos') await expect(page.getByRole('heading', { name: 'Productos', exact: true })).toBeVisible();
+  else await expect(page.getByRole('link', { name: 'Productos', exact: true }).first()).toBeVisible();
+  expect(reads).toBe(2);
+});
+}
+
+test('catalogo: la sugerencia revisable no cambia dinero ni stock y no guarda productos', async ({ page }) => {
+  const writes: string[] = [];
+  let suggestions = 0;
+  // Beneficio sintético sólo en este navegador; el consumo IA se intercepta.
+  await page.route('**/rest/v1/rpc/org_entitlements', async route => {
+    const response = await route.fetch();
+    const entitlements = await response.json();
+    await route.fulfill({ response, json: { ...entitlements, ia: true, ia_restante: 1, vigente: true } });
+  });
+  await page.route('**/rest/v1/products?**', route => {
+    if (['GET', 'HEAD'].includes(route.request().method())) return route.continue();
+    writes.push(route.request().method()); return route.abort();
+  });
+  await page.route('**/functions/v1/ai-chat', route => {
+    suggestions += 1;
+    const body = route.request().postDataJSON();
+    expect(body.purpose).toBe('catalog-suggestion');
+    expect(body.productName).toBe('ZZ MARTILLO');
+    expect(body).not.toHaveProperty('message');
+    expect(route.request().headers().authorization).toMatch(/^Bearer /);
+    return route.fulfill({ contentType: 'text/event-stream', body:
+      `data: ${JSON.stringify({ delta: JSON.stringify({ description: 'Martillo de mano', priceMax: 999999, stock: 1000 }) })}\n\ndata: [DONE]\n\n` });
+  });
+  await page.goto('/productos');
+  await page.getByRole('button', { name: 'Nuevo', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Nuevo producto' });
+  await editor.getByPlaceholder('Ej: Nombre del producto').fill('ZZ MARTILLO');
+  await expect(editor.getByPlaceholder('Ej: Nombre del producto')).toHaveValue('ZZ MARTILLO');
+  const apply = editor.getByRole('button', { name: 'Aplicar', exact: true });
+  await expect(apply).toBeVisible();
+  const numbers = () => editor.getByRole('spinbutton').evaluateAll(elements => elements.map(element => (element as HTMLInputElement).value));
+  const before = await numbers();
+  for (const width of [360, 390, 768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await apply.scrollIntoViewIfNeeded();
+    await expect(apply).toBeVisible();
+    expect((await apply.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+  await apply.click();
+  await expect(editor.getByPlaceholder('Notas sobre el producto')).toHaveValue('Martillo de mano');
+  expect(await numbers()).toEqual(before);
+  expect(writes).toEqual([]);
+  expect(suggestions).toBe(1);
+});
+
 test("Profit real: alias, canonical RPC and honest contribution", async ({ page }) => {
   const responsePromise = page.waitForResponse(response => response.url().includes("/rpc/get_profit_period_dimensions"));
   await page.goto("/profit");

@@ -47,7 +47,7 @@ retirado; no se reescribe la historia.
 
 | Rol | Alcance |
 |---|---|
-| `owner` | Control total. No se le puede quitar acceso ni removerlo del equipo. |
+| `owner` | Titular del negocio; no se lo remueve del equipo. Sus acciones respetan los overrides de `admin` en `has_permission`. |
 | `admin` | Operación completa del negocio. Configurable por módulo. |
 | `vendedor` | Ventas, POS, clientes y CRM. Prepara pedidos del ecommerce. Sin finanzas ni configuración. |
 | `viewer` | Solo lectura, sin plata ni configuración. |
@@ -72,13 +72,26 @@ Defaults al crear una org (`seed_default_permissions()`):
 - **viewer** — solo lectura, sin `settings`/`team`/`finance`/`payments`. Exporta
   `reports` y `analytics`.
 
-El `owner` no pasa por la matriz: siempre tiene todo.
+El `owner` conserva la titularidad pero `has_permission` consulta los overrides
+de `admin` para sus acciones. La UI debe reflejar esa autoridad, no conceder
+acceso que después rechace la base. Contrato productivo contrastado el 2026-10-08.
 
 ### Cómo consultarlos
 
 - Front: `useModulePermissions(module)` / `useHasPermission(module, action)`
   (`src/lib/usePermissions.ts`). Es **UX**, no seguridad — sirve para no ofrecer
   botones que van a fallar.
+  El provider comparte una lectura por identidad, inicio de sesión, organización
+  y rol; un cambio de contexto deniega inmediatamente y descarta respuestas
+  anteriores. `ModuleAccessGate` no monta páginas protegidas durante la carga,
+  distingue error recuperable de denegación y reintenta sin recargar. Business
+  y Creators comparten esa barrera; Finance consulta su RPC de producto existente.
+  `owner` respeta las restricciones de `admin`, igual que el SQL productivo.
+  Esto no activa ni factura módulos: permisos del equipo no son contratación.
+- `has_permission` deniega acciones desconocidas/nulas y contexto incompleto
+  antes de defaults. Preserva overrides y grants existentes; verificación como
+  owner/admin/vendedor/viewer/anon y otro tenant con rollback en
+  `supabase/verificaciones/20261008_permission_action_contract.sql`.
 - Base / Edge Functions: RPC `has_permission(org_id, module, action)`.
 - Dentro de una RPC: `exigir_permiso(org, módulo, acción, qué)`, que llama a la
   anterior y **falla** con `insufficient_privilege`. Va después del chequeo de
@@ -176,6 +189,9 @@ nivel ni quitarse el acceso.
 ## Principios de enforcement
 
 - Toda operación de tenant se filtra por `org_id` (RLS).
+- CI publica artefactos sólo de proyectos E2E públicos. Traces/snapshots del
+  panel y setup pueden incluir JWT, cookies y datos privados incluso sin el
+  archivo de sesión: no se suben al repositorio público ni a sus artefactos.
 - **RLS separa comercios; no separa personas dentro de un comercio.** Evita que
   una organización vea los datos de otra, y eso es todo lo que hace: no dice
   «este empleado puede ver stock, pero no ajustarlo». Esa pregunta la contesta
