@@ -7,13 +7,19 @@ CREATE TABLE IF NOT EXISTS product_bundles (
   name          text        NOT NULL,
   description   text,
   image_url     text,
-  sale_price    numeric(12,2) NOT NULL DEFAULT 0,
-  active        boolean     NOT NULL DEFAULT true,
+  price_ars     numeric(12,2) NOT NULL DEFAULT 0,
+  is_active     boolean     NOT NULL DEFAULT true,
   featured      boolean     NOT NULL DEFAULT false,
   sold_count    int         NOT NULL DEFAULT 0,
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
+
+-- The earlier bundle schema already owns price_ars/is_active. Add only the
+-- new operational fields, not a second price/status that could diverge.
+ALTER TABLE public.product_bundles
+  ADD COLUMN IF NOT EXISTS featured boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS sold_count int NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS product_bundle_items (
   id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23,7 +29,7 @@ CREATE TABLE IF NOT EXISTS product_bundle_items (
   UNIQUE (bundle_id, product_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_bundles_org    ON product_bundles(org_id, active);
+CREATE INDEX IF NOT EXISTS idx_bundles_org    ON product_bundles(org_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_bundle_items   ON product_bundle_items(bundle_id);
 CREATE INDEX IF NOT EXISTS idx_bundle_product ON product_bundle_items(product_id);
 

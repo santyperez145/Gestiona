@@ -61,7 +61,7 @@ mantienen sus fichas canónicas.
 
 ## Evidencia y release
 
-Release de código: `npm run verify` verde (3.726 tests / 421 archivos), ocho E2E
+Release de código: `npm run verify` verde (3.732 tests / 421 archivos), ocho E2E
 POS desktop/móvil y Axe sin violaciones graves del aviso recuperado. Runtime
 sin advisories; se conserva la excepción temporal `braces` de toolchain.
 El guard se probó reversiblemente, incluida reaplicación y prueba histórica QR;
@@ -77,9 +77,19 @@ cron de gastos recurrentes, limpieza y campañas usan delimitadores distintos.
 `check:migrations` analiza todos los SQL con el parser PostgreSQL 17 (sólo dev,
 sin ejecutar consultas); valida gramática, no cuerpos PL/pgSQL/orden/permisos.
 Estos cambios son de replay, no un reset/reparación de versiones productivas.
-La reconstrucción completa sigue roja: alcanzó `20260523000013`, pero el segundo
-schema de kits indexa `active` sin agregarlo al primero. No reparar versiones,
-resetear producción ni omitir el check para salvar el POS.
+La reconstrucción expuso incompatibilidades de kits, listas y logs webhook:
+se conservan `price_ars`/`is_active` y `event`/`delivered`, se agregan los campos
+operativos antes de indexarlos y se completa el tenant del item desde su lista.
+Cobros recurrentes de clientes usan `customer_subscriptions`, nunca la
+suscripción SaaS; lecturas de miembros y escritura owner/admin. Proveedores y
+clientes apuntan a `suppliers`/`customers`; defaults criptográficos resuelven
+`extensions`, sin depender del search path. No se despliegan esos históricos
+sobre datos productivos. La reconstrucción completa sigue abierta: no reparar
+versiones, resetear producción ni omitir el check para salvar el POS.
+Replay incremental de la Preview alcanzó `20260523000057`; `000060` aún indexa
+`audit_logs.severity` antes de incorporar los campos enriquecidos. Gate pendiente:
+resolver esa expansión y reconstruir una Preview nueva con todos los históricos
+corregidos; la continuación parcial no prueba una instalación desde cero.
 
 La revisión detectó además `org_members` sólo en la base alojada, como vista
 definer con grants de lectura/escritura al navegador. `20261007000000` sí se

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS vendor_portal_access (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   supplier_id     uuid        NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
-  portal_token    text        NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  portal_token    text        NOT NULL UNIQUE DEFAULT encode(extensions.gen_random_bytes(32), 'hex'),
   email           text        NOT NULL,
   is_active       boolean     NOT NULL DEFAULT true,
   last_login      timestamptz,

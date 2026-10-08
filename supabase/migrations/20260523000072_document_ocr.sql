@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS ocr_line_items (
 CREATE TABLE IF NOT EXISTS ocr_supplier_patterns (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  supplier_id     uuid        REFERENCES proveedores(id) ON DELETE CASCADE,
+  supplier_id     uuid        REFERENCES public.suppliers(id) ON DELETE CASCADE,
   cuit            text,
   name_pattern    text,       -- regex pattern to match supplier name
   matched_count   int         NOT NULL DEFAULT 0,

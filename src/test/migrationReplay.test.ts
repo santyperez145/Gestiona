@@ -63,4 +63,49 @@ describe("empty-schema replay contracts", () => {
     expect(security).toContain("GRANT SELECT ON public.org_members TO authenticated, service_role");
     expect(security).not.toMatch(/GRANT (?:ALL|INSERT|UPDATE|DELETE)/);
   });
+  it("expands the old bundle and price-list schemas before new indexes/helpers", () => {
+    const bundles = read("20260523000013_product_bundles.sql");
+    expect(bundles).not.toMatch(/\bsale_price\s+numeric|\bactive\s+boolean/);
+    expect(bundles).toContain("ADD COLUMN IF NOT EXISTS sold_count");
+    expect(bundles).toContain("product_bundles(org_id, is_active)");
+    const prices = read("20260523000021_price_lists.sql");
+    expect(prices).toContain("price_lists(org_id, is_active, is_default)");
+    expect(prices.indexOf("ADD COLUMN IF NOT EXISTS custom_price")).toBeLessThan(prices.indexOf("CREATE INDEX IF NOT EXISTS idx_pli_org_product"));
+    expect(prices).toContain("item.price_list_id = parent.id AND item.org_id IS NULL");
+  });
+  it("extends canonical webhook logs without a parallel status or deleting legacy deliveries", () => {
+    const sql = read("20260523000017_webhooks.sql");
+    expect(sql).toContain("ADD COLUMN IF NOT EXISTS webhook_id uuid");
+    expect(sql).toContain("ON DELETE SET NULL");
+    expect(sql).toContain("webhook_deliveries(org_id, delivered, created_at DESC)");
+    expect(sql).not.toMatch(/NEW\.status|OLD\.status/);
+    expect(sql).toContain("IF NEW.webhook_id IS NULL THEN RETURN NEW");
+  });
+  it("keeps recurring customer billing separate from the platform SaaS subscription", () => {
+    const sql = read("20260523000018_subscriptions.sql");
+    expect(sql).toContain("CREATE TABLE IF NOT EXISTS customer_subscriptions");
+    expect(sql).toContain("REFERENCES customer_subscriptions(id)");
+    expect(sql).not.toMatch(/(?:FROM|ON|ALTER TABLE|UPDATE)\s+subscriptions\b/);
+    expect(sql).toMatch(/current_period_start timestamptz/);
+    expect(sql).toContain('"org_subs" ON customer_subscriptions FOR SELECT TO authenticated');
+    expect(sql).toContain("ARRAY[''owner'',''admin'']");
+  });
+  it("purchase orders, lots and OCR reference the canonical supplier table", () => {
+    for (const file of ["20260523000025_purchase_orders.sql", "20260523000039_batch_lot_tracking.sql", "20260523000072_document_ocr.sql"]) {
+      expect(read(file)).toContain("REFERENCES public.suppliers(id)");
+      expect(read(file)).not.toMatch(/REFERENCES proveedores/);
+    }
+  });
+  it("token defaults use the actual pgcrypto extension schema, not an ambient search path", () => {
+    for (const file of ["20260523000051_customer_portal.sql", "20260523000061_api_keys.sql", "20260523000068_ecommerce_store.sql", "20260523000083_vendor_portal.sql"]) {
+      expect(read(file)).toContain("extensions.gen_random_bytes");
+      expect(read(file)).not.toMatch(/(?<!\.)\bgen_random_bytes\(/);
+    }
+  });
+  it("loyalty and returns share the CRM customer identity", () => {
+    for (const file of ["20260523000057_loyalty_advanced.sql", "20260523000062_returns_portal.sql"]) {
+      expect(read(file)).toContain("REFERENCES public.customers(id)");
+      expect(read(file)).not.toMatch(/REFERENCES clients/);
+    }
+  });
 });

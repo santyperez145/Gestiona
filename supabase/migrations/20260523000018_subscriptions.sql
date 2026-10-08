@@ -1,4 +1,4 @@
--- Subscription Plans & Recurring Billing
+-- Customer recurring plans, never the platform's SaaS subscriptions authority.
 
 CREATE TABLE IF NOT EXISTS subscription_plans (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS subscriptions (
+CREATE TABLE IF NOT EXISTS customer_subscriptions (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   plan_id         uuid        NOT NULL REFERENCES subscription_plans(id) ON DELETE RESTRICT,
@@ -27,9 +27,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   customer_email  text,
   status          text        NOT NULL DEFAULT 'trial'
                               CHECK (status IN ('trial','active','past_due','cancelled','paused','expired')),
-  current_period_start date   NOT NULL DEFAULT CURRENT_DATE,
-  current_period_end   date   NOT NULL,
-  trial_end       date,
+  current_period_start timestamptz NOT NULL DEFAULT now(),
+  current_period_end   timestamptz NOT NULL,
+  trial_end       timestamptz,
   cancelled_at    timestamptz,
   cancel_reason   text,
   payment_method  text,
@@ -43,16 +43,16 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
 CREATE TABLE IF NOT EXISTS subscription_invoices (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  subscription_id uuid        NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+  subscription_id uuid        NOT NULL REFERENCES customer_subscriptions(id) ON DELETE CASCADE,
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   invoice_number  text        NOT NULL,
   amount          numeric(12,2) NOT NULL,
   currency        text        NOT NULL DEFAULT 'ARS',
   status          text        NOT NULL DEFAULT 'pending'
                               CHECK (status IN ('pending','paid','failed','void')),
-  period_start    date        NOT NULL,
-  period_end      date        NOT NULL,
-  due_date        date        NOT NULL,
+  period_start    timestamptz NOT NULL,
+  period_end      timestamptz NOT NULL,
+  due_date        timestamptz NOT NULL,
   paid_at         timestamptz,
   payment_method  text,
   notes           text,
@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS subscription_invoices (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sub_plans_org    ON subscription_plans(org_id, active);
-CREATE INDEX IF NOT EXISTS idx_subs_org         ON subscriptions(org_id, status, current_period_end);
-CREATE INDEX IF NOT EXISTS idx_subs_customer    ON subscriptions(customer_id, status);
+CREATE INDEX IF NOT EXISTS idx_subs_org         ON customer_subscriptions(org_id, status, current_period_end);
+CREATE INDEX IF NOT EXISTS idx_subs_customer    ON customer_subscriptions(customer_id, status);
 CREATE INDEX IF NOT EXISTS idx_sub_invoices     ON subscription_invoices(subscription_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sub_inv_due      ON subscription_invoices(org_id, status, due_date);
 
@@ -82,21 +82,21 @@ $$;
 CREATE OR REPLACE FUNCTION renew_subscription(p_sub_id uuid)
 RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
-  sub subscriptions%ROWTYPE;
+  sub customer_subscriptions%ROWTYPE;
   plan subscription_plans%ROWTYPE;
   new_start date;
   new_end date;
   inv_num text;
   amount numeric;
 BEGIN
-  SELECT * INTO sub FROM subscriptions WHERE id = p_sub_id;
+  SELECT * INTO sub FROM customer_subscriptions WHERE id = p_sub_id;
   SELECT * INTO plan FROM subscription_plans WHERE id = sub.plan_id;
 
   new_start := sub.current_period_end;
   new_end := next_period_end(new_start, plan.billing_interval);
   amount := COALESCE(sub.amount_override, plan.price) * (1 - sub.discount_percent / 100);
 
-  UPDATE subscriptions
+  UPDATE customer_subscriptions
   SET current_period_start = new_start,
       current_period_end = new_end,
       status = 'active',
@@ -123,15 +123,15 @@ CREATE OR REPLACE FUNCTION update_plan_subscriber_count()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
   UPDATE subscription_plans SET subscriber_count = (
-    SELECT COUNT(*) FROM subscriptions WHERE plan_id = COALESCE(NEW.plan_id, OLD.plan_id) AND status IN ('trial','active','past_due','paused')
+    SELECT COUNT(*) FROM customer_subscriptions WHERE plan_id = COALESCE(NEW.plan_id, OLD.plan_id) AND status IN ('trial','active','past_due','paused')
   ) WHERE id = COALESCE(NEW.plan_id, OLD.plan_id);
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_sub_count ON subscriptions;
+DROP TRIGGER IF EXISTS trg_sub_count ON customer_subscriptions;
 CREATE TRIGGER trg_sub_count
-  AFTER INSERT OR UPDATE OR DELETE ON subscriptions
+  AFTER INSERT OR UPDATE OR DELETE ON customer_subscriptions
   FOR EACH ROW EXECUTE FUNCTION update_plan_subscriber_count();
 
 -- updated_at triggers
@@ -140,26 +140,39 @@ RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = now(); RETURN NEW; END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_subs_updated ON subscriptions;
-CREATE TRIGGER trg_subs_updated BEFORE UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION update_sub_timestamp();
+DROP TRIGGER IF EXISTS trg_subs_updated ON customer_subscriptions;
+CREATE TRIGGER trg_subs_updated BEFORE UPDATE ON customer_subscriptions FOR EACH ROW EXECUTE FUNCTION update_sub_timestamp();
 
 DROP TRIGGER IF EXISTS trg_sub_plans_updated ON subscription_plans;
 CREATE TRIGGER trg_sub_plans_updated BEFORE UPDATE ON subscription_plans FOR EACH ROW EXECUTE FUNCTION update_sub_timestamp();
 
 -- RLS
 ALTER TABLE subscription_plans    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscriptions         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_subscriptions         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscription_invoices ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "org_sub_plans"    ON subscription_plans;
-DROP POLICY IF EXISTS "org_subs"         ON subscriptions;
+DROP POLICY IF EXISTS "org_subs"         ON customer_subscriptions;
 DROP POLICY IF EXISTS "org_sub_invoices" ON subscription_invoices;
 
-CREATE POLICY "org_sub_plans" ON subscription_plans
+CREATE POLICY "org_sub_plans" ON subscription_plans FOR SELECT TO authenticated
   USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));
 
-CREATE POLICY "org_subs" ON subscriptions
+CREATE POLICY "org_subs" ON customer_subscriptions FOR SELECT TO authenticated
   USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));
 
-CREATE POLICY "org_sub_invoices" ON subscription_invoices
+CREATE POLICY "org_sub_invoices" ON subscription_invoices FOR SELECT TO authenticated
   USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));
+
+-- Match the canonical customer-billing authority; never widen later admin-only
+-- policies with an older permissive FOR ALL policy for every organization member.
+DO $billing_writes$
+DECLARE v_table text;
+BEGIN
+  FOREACH v_table IN ARRAY ARRAY['subscription_plans','customer_subscriptions','subscription_invoices'] LOOP
+    EXECUTE format('DROP POLICY IF EXISTS customer_billing_admin ON public.%I', v_table);
+    EXECUTE format(
+      'CREATE POLICY customer_billing_admin ON public.%I FOR ALL TO authenticated USING (public.has_org_role(org_id, auth.uid(), ARRAY[''owner'',''admin''])) WITH CHECK (public.has_org_role(org_id, auth.uid(), ARRAY[''owner'',''admin'']))', v_table);
+  END LOOP;
+END;
+$billing_writes$;

@@ -21,38 +21,45 @@ CREATE TABLE IF NOT EXISTS webhook_configs (
 
 CREATE TABLE IF NOT EXISTS webhook_deliveries (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  webhook_id      uuid        NOT NULL REFERENCES webhook_configs(id) ON DELETE CASCADE,
+  webhook_id      uuid        REFERENCES webhook_configs(id) ON DELETE SET NULL,
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  event_type      text        NOT NULL,
+  event           text        NOT NULL,
+  webhook_url     text        NOT NULL,
   payload         jsonb       NOT NULL DEFAULT '{}',
-  status          text        NOT NULL DEFAULT 'pending'
-                              CHECK (status IN ('pending','success','failed','retrying')),
-  http_status     int,
-  response_body   text,
-  response_time_ms int,
-  attempt         int         NOT NULL DEFAULT 1,
+  delivered       boolean     NOT NULL DEFAULT false,
+  last_response_status int,
+  last_response_body text,
+  duration_ms     int,
+  attempt_count   int         NOT NULL DEFAULT 1,
   delivered_at    timestamptz,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
 
+-- Existing direct-webhook logs remain valid without a configured webhook ID.
+-- Keep their event/delivered/attempt authority instead of a parallel status.
+ALTER TABLE public.webhook_deliveries
+  ADD COLUMN IF NOT EXISTS webhook_id uuid REFERENCES public.webhook_configs(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS duration_ms int;
+
 CREATE INDEX IF NOT EXISTS idx_webhooks_org       ON webhook_configs(org_id, active);
 CREATE INDEX IF NOT EXISTS idx_webhook_deliveries ON webhook_deliveries(webhook_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_delivery_status    ON webhook_deliveries(org_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_delivery_status    ON webhook_deliveries(org_id, delivered, created_at DESC);
 
 -- Update counters on delivery
 CREATE OR REPLACE FUNCTION update_webhook_counters()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.status = 'success' AND (OLD.status IS NULL OR OLD.status != 'success') THEN
+  IF NEW.webhook_id IS NULL THEN RETURN NEW; END IF;
+  IF TG_OP = 'INSERT' THEN
     UPDATE webhook_configs
     SET total_deliveries = total_deliveries + 1,
-        success_count = success_count + 1,
+        success_count = success_count + CASE WHEN NEW.delivered THEN 1 ELSE 0 END,
         last_triggered_at = now(),
         updated_at = now()
     WHERE id = NEW.webhook_id;
-  ELSIF NEW.status = 'failed' AND (OLD.status IS NULL OR OLD.status != 'failed') THEN
+  ELSIF NEW.delivered AND NOT OLD.delivered THEN
     UPDATE webhook_configs
-    SET total_deliveries = total_deliveries + 1,
+    SET success_count = success_count + 1,
         last_triggered_at = now(),
         updated_at = now()
     WHERE id = NEW.webhook_id;

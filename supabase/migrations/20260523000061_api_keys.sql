@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS webhooks_advanced (
   org_id          uuid        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name            text        NOT NULL,
   url             text        NOT NULL,
-  secret          text        NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),
+  secret          text        NOT NULL DEFAULT encode(extensions.gen_random_bytes(32), 'hex'),
   events          text[]      NOT NULL DEFAULT '{}',  -- ['sale.created','product.updated', ...]
   is_active       boolean     NOT NULL DEFAULT true,
   retry_count     int         NOT NULL DEFAULT 3,
