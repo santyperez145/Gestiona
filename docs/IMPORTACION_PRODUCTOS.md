@@ -7,7 +7,7 @@
 ## Flujo y límites
 
 ~~~text
-archivo local → worker → hoja/columnas/moneda → sesión de validación
+archivo local → worker → hoja/columna→destino/moneda → confirmar asignaciones → sesión de validación
 → revisión completa → aprobación → lotes atómicos → reconciliación
 ~~~
 
@@ -34,16 +34,28 @@ La extensión está en `20261003000200_catalog_import_sessions.sql`.
 - Los encabezados se comparan por alias exactos, acentos/espacios normalizados,
   sin IA ni fuzzy matching de identidad o importes. La fila puede corregirse
   antes de preparar; el número físico se guarda en las opciones de sesión.
-- Empates de hojas/filas y encabezados repetidos se explican. Una columna
-  repetida no se asigna silenciosamente; si falta Nombre, no permite preparar.
-- «Costo» sin moneda requiere confirmación ARS/USD antes de validar; los costos
-  no asignados tampoco reaparecen desde el parser legacy. Cambiar hoja/fila
-  recalcula el mapeo y moneda, sin arrastrar índices de otra hoja.
+- Cada columna muestra letra física, encabezado, ejemplos y destino editable,
+  incluso en Shopify/Tiendanube. La detección es una propuesta: se puede omitir
+  con «No importar», corregir o restaurar; ninguna asignación queda plegada.
+- Empates, encabezados repetidos y sinónimos conflictivos se explican. Cada
+  destino usa una sola columna; faltan Nombre/identidad/estructura o hay
+  asignaciones inválidas, no permite preparar. Los campos opcionales de oferta,
+  género, contenido y stock mínimo tampoco se importan por una ruta oculta.
+- Cualquier costo asignado sin unidad requiere confirmación ARS/USD, también
+  `Importe` manual o `COSTO` de gestión. Cambiar su columna invalida la moneda;
+  cambiar hoja/fila recalcula sin arrastrar índices. Los campos omitidos no
+  reaparecen desde el parser legacy.
 - Shopify/Tiendanube mantienen el parser agrupado y la identidad URL; la hoja
   sigue seleccionable sin convertir variantes en productos independientes.
+  Los destinos de URL y pares de propiedades con contenido son estructurales;
+  omitirlos bloquea la preparación en vez de perder variantes silenciosamente.
   Si traen costos, exigen confirmar ARS/USD: no suponen USD por ser un export
   de plataforma. La selección identifica moneda, no convierte importes; ventas
   siguen en ARS y un origen en otra moneda exige revisión antes de aprobar.
+- Es obligatorio confirmar las asignaciones antes de preparar; cambiar hoja,
+  fila, moneda o destino exige nueva revisión. `column_mapping` se conserva en
+  las opciones inmutables de sesión; las sesiones anteriores mantienen su
+  semántica original al reanudar, no se remapean con reglas nuevas.
 - La sugerencia no guarda productos ni aplica inventario. Continúan moneda,
   destino, revisión del servidor, aprobación, idempotencia y reanudación. No hay
   nueva dependencia, RPC, ruta ni migración para esta detección.
@@ -52,7 +64,10 @@ Referencias oficiales comprobadas el 2026-10-08:
 [Tiendanube carga masiva](https://ayuda.tiendanube.com/es_AR/122710-importar-y-exportar-productos/como-completar-el-excel-de-carga-masiva-de-productos)
 conserva el identificador URL entre variantes;
 [Shopify CSV](https://help.shopify.com/en/manual/products/import-export/using-csv)
-documenta dependencias de columnas y sobrescritura. Nerqia mantiene una decisión
+documenta dependencias de columnas y sobrescritura, y su
+[selector de encabezados](https://help.shopify.com/en/manual/products/import-export/common-import-issues)
+permite corregir columnas no reconocidas. Tiendanube documenta una plantilla
+estándar; no se atribuye un mapper arbitrario no observado. Nerqia mantiene una decisión
 más conservadora: celdas vacías no borran campos y la detección no aprueba cambios.
 [Inventario Shopify](https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv)
 comprueba stock actual frente al exportado; paridad de concurrencia de stock y
@@ -70,7 +85,7 @@ Para exportaciones de gestión con `CODIGO`, `DESCRIPCION`, `COSTO`, `VENTA`,
 `PRECIO DE LISTA` y códigos de barras numerados:
 
 - `DESCRIPCION` es el nombre; `CODIGO` es el SKU;
-- `COSTO` se propone en ARS, con moneda visible y modificable;
+- `COSTO` se propone en ARS, pero exige confirmar moneda antes de validar;
 - `PRECIO DE LISTA` es el precio normal;
 - `VENTA` puede ser un precio condicionado a efectivo/transferencia. Se conserva
   en auditoría, **no** se transforma en una oferta para todos los medios ni
@@ -95,7 +110,11 @@ ticket offline reutilizan el costo unitario canónico. Si un costo USD no puede
 convertirse, el resultado queda desconocido, no una ganancia calculada sobre cero.
 
 Shopify/Tiendanube conservan agrupación de variantes, imágenes, dimensiones,
-visibilidad, identidad externa y redirects. Su agrupación específica no se
+visibilidad, identidad externa y redirects. Su registro de origen declara
+`scope: first_row` y cantidad de filas: sólo conserva los valores de la primera
+fila del grupo, para no rechazar grupos grandes por el límite de auditoría de
+16 KB. Las variantes normalizadas completas, el mapeo y la huella permanecen
+en la sesión; esta muestra no es un archivo original íntegro. Su agrupación no se
 reinterpreta con el mapeo genérico. Empretienda sigue sin certificación de una
 plantilla real; reconocer un nombre de archivo no prueba compatibilidad total.
 
@@ -145,7 +164,7 @@ como imágenes ya independientes del proveedor.
 ## Verificación y operación
 
 ~~~bash
-npx vitest run src/test/productImportWorkbook.test.ts src/test/catalogImportSession.test.ts src/test/productCatalogPaging.test.ts
+npx vitest run src/test/productImportWorkbook.test.ts src/test/productImportColumnMapping.test.ts src/test/catalogImportSession.test.ts src/test/productCatalogPaging.test.ts
 npx supabase db query --linked --file supabase/verificaciones/20261003_catalog_import_sessions.sql
 npx supabase db query --linked --file supabase/tests/catalog_migration_smoke.sql
 npx supabase db push --linked --dry-run

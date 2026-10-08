@@ -28,7 +28,7 @@ describe("Excel legacy y mapeo de productos", () => {
     expect(result.mapping).toMatchObject({ sku: "", cost: "", name: "0", sale: "5" });
     expect(result.columns[1].label).toBe("CÓDIGO · columna B");
     expect(result.columns[2].label).toBe("Codigo · columna C");
-    expect(result.detectionWarnings.join(" ")).toMatch(/Código.*repetidos.*Costo.*repetidos/);
+    expect(result.detectionWarnings.join(" ")).toMatch(/Código.*varias columnas.*Costo.*varias columnas/);
     expect(result.parsed.products[0]).not.toHaveProperty("sku");
     expect(result.parsed.products[0]).not.toHaveProperty("cost_usd");
     const chosen = mapProductWorkbook(book, "zz.xlsx", { mapping: { ...result.mapping, sku: "2", cost: "4" }, costCurrency: "ARS", headerRow: result.headerRow });

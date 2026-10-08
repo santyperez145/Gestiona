@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useOrg } from "@/lib/orgContext";
 import { useModulePermissions } from "@/lib/usePermissions";
-import { previewProductImportRow, productImportFormat, PRODUCT_IMPORT_MAX_BYTES, IMPORT_MAPPING_FIELDS, type ImportMapping } from "@/lib/productImport";
+import { previewProductImportRow, productImportFormat, PRODUCT_IMPORT_MAX_BYTES } from "@/lib/productImport";
 import { catalogMigrationSourceLabel } from "@/lib/catalogMigration";
 import type { WorkbookImportOptions, WorkbookImportResult } from "@/lib/productImportWorkbook";
 import { createProductImportReader } from "@/lib/productImportReader";
@@ -19,8 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import FilePicker from "@/components/shared/FilePicker";
+import ProductImportColumnMapping from "@/components/products/ProductImportColumnMapping";
 import { toast } from "sonner";
-import { AlertCircle, ArrowLeft, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Download, FileCheck2, FileSpreadsheet, Loader2, PackageCheck, Pause, Play, ShieldCheck, Upload, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Download, FileCheck2, FileSpreadsheet, Loader2, PackageCheck, Pause, Play, ShieldCheck, Upload, X } from "lucide-react";
 
 const PAGE_SIZE = 50;
 type Step = "upload" | "preview" | "staged" | "done";
@@ -72,6 +73,7 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
   const [marginPercent, setMarginPercent] = useState(80);
   const [autoPrice, setAutoPrice] = useState(false);
   const [currencyConfirmed, setCurrencyConfirmed] = useState(false);
+  const [columnsConfirmed, setColumnsConfirmed] = useState(false);
   const [mirrorState, setMirrorState] = useState({ busy: false, mirrored: 0, remaining: false, failed: 0, done: false });
   const reader = useRef<ReturnType<typeof createProductImportReader> | null>(null);
   const alive = useRef(true);
@@ -85,9 +87,11 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
   const canImport = !permissions.loading && permissions.canView && (activeRole === "owner" || activeRole === "admin");
   const rows = useMemo(() => workbook?.parsed.products || [], [workbook]);
   const migration = workbook?.parsed;
+  const detectionWarnings = workbook?.detectionWarnings.filter(message => !workbook.mappingIssues.includes(message)) || [];
   const pageRows = useMemo(() => rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [rows, page]);
   const previews = useMemo(() => pageRows.map(row => previewProductImportRow(row, { exchangeRate, defaultMarginPercent: marginPercent, autoFillSalePrice: autoPrice })), [pageRows, exchangeRate, marginPercent, autoPrice]);
   const needsLocation = stockMode === "replace" && locations.length > 1 && rows.some(row => row.provided.includes("stock"));
+  const requiresExchangeRate = rows.some(row => row.provided.includes("cost_usd"));
   const validContext = (expectedOrg: string) => alive.current && currentOrg.current === expectedOrg && contextVersion.current === contextStamp;
 
   function reportError(cause: unknown, fallback: string) {
@@ -131,7 +135,7 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
     return () => { alive.current = false; stop.current = true; reader.current?.dispose(); reader.current = null; };
   }, []);
   useEffect(() => {
-    stop.current = true; setStep("upload"); setStage(null); setWorkbook(null); setHistory([]); setFileName(""); setError(""); setBusy(false);
+    stop.current = true; setStep("upload"); setStage(null); setWorkbook(null); setHistory([]); setFileName(""); setError(""); setBusy(false); setColumnsConfirmed(false); setCurrencyConfirmed(false);
     setLocations([]); setStores([]); setLocationId(""); setDestinationStoreId(""); setExchangeRate(0); setContextError(""); setContextLoading(!!orgId && canImport);
     sessionId.current = null; validationRequest.current += 1;
     reader.current?.dispose(); reader.current = null;
@@ -150,21 +154,33 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
       reader.current?.dispose(); const currentReader = createProductImportReader(); reader.current = currentReader;
       const buffer = await file.arrayBuffer();
       if (!validContext(expectedOrg)) return;
-      const next = await currentReader.read(buffer, file.name, stage?.status === "preparing" ? { mapping: stage.source_system === "shopify" || stage.source_system === "tiendanube" ? undefined : stage.options.mapping, costCurrency: stage.options.cost_currency, sheetName: stage.options.sheet_name, headerRow: stage.options.header_row } : undefined);
+      const next = await currentReader.read(buffer, file.name, stage?.status === "preparing" ? {
+        columnMapping: stage.options.column_mapping,
+        legacyPlatform: !stage.options.column_mapping && (stage.source_system === "shopify" || stage.source_system === "tiendanube"),
+        mapping: stage.options.column_mapping || stage.source_system === "shopify" || stage.source_system === "tiendanube" ? undefined : stage.options.mapping,
+        costCurrency: stage.options.cost_currency, sheetName: stage.options.sheet_name, headerRow: stage.options.header_row,
+      } : undefined);
       if (!validContext(expectedOrg)) return;
       if (stage && (file.name !== stage.filename || next.fingerprint !== stage.options.fingerprint || next.parsed.products.length !== stage.total)) throw new Error("Seleccioná el mismo archivo original para reanudar esta importación.");
-      setWorkbook(next); setCurrencyConfirmed(!next.costCurrencyAmbiguous); setFileName(file.name); setPage(0); setStep("preview");
+      setWorkbook(next); setCurrencyConfirmed(!next.costCurrencyAmbiguous); setColumnsConfirmed(!!stage); setFileName(file.name); setPage(0); setStep("preview");
     } catch (cause) { if (validContext(expectedOrg)) reportError(cause, "No pudimos leer el archivo. Revisá el formato y reintentá."); }
     finally { if (validContext(expectedOrg)) setBusy(false); }
   }
   async function remap(options: WorkbookImportOptions) {
-    if (!reader.current || !workbook || stage || !orgId) return;
-    const expectedOrg = orgId; setBusy(true); setError("");
+    if (!reader.current || !workbook || stage || !orgId || busy) return;
+    const expectedOrg = orgId; setBusy(true); setError(""); setColumnsConfirmed(false);
     try {
       const next = await reader.current.read(undefined, undefined, options);
       if (validContext(expectedOrg)) { setWorkbook(next); setCurrencyConfirmed(!next.costCurrencyAmbiguous); setPage(0); }
     } catch (cause) { if (validContext(expectedOrg)) reportError(cause, "No pudimos aplicar el mapeo."); }
     finally { if (validContext(expectedOrg)) setBusy(false); }
+  }
+  function changeColumn(column: string, target: string) {
+    if (!workbook) return;
+    const changesCost = workbook.columnMapping[column] === "cost" || target === "cost";
+    void remap({ columnMapping: { ...workbook.columnMapping, [column]: target },
+      ...(!changesCost && currencyConfirmed ? { costCurrency: workbook.costCurrency } : {}),
+      sheetName: workbook.sheetName, headerRow: workbook.headerRow });
   }
   async function loadStagedRows(session: CatalogImportSession, nextPage: number, filter: string) {
     const request = ++validationRequest.current;
@@ -185,17 +201,18 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
   }, [stage?.id, step, page, validationFilter]);
 
   async function prepare() {
-    if (!orgId || !workbook || !canImport || busy || contextLoading || contextError) return;
+    if (!orgId || !workbook || !canImport || busy || contextLoading || contextError || !rows.length) return;
     if (!currencyConfirmed) return void setError("Confirmá la moneda del costo antes de validar.");
+    if (!columnsConfirmed || workbook.mappingIssues.length) return void setError("Revisá y confirmá la asignación de todas las columnas antes de validar.");
     if (workbook.profile !== "platform" && !workbook.mapping.name) return void setError("Elegí la columna Nombre del producto antes de validar.");
-    if (rows.some(row => row.provided.includes("cost_usd")) && exchangeRate <= 0) return void setError("Ingresá una cotización USD válida.");
+    if (requiresExchangeRate && exchangeRate <= 0) return void setError("Ingresá una cotización USD válida.");
     if (needsLocation && !locationId) return void setError("Elegí la sucursal del stock.");
     const expectedOrg = orgId; stop.current = false; setBusy(true); setError("");
     try {
       const chunks = catalogImportChunks(rows);
       sessionId.current ||= stage?.id || crypto.randomUUID();
       let next = await startCatalogImport(stage || { id: sessionId.current, org_id: orgId, filename: fileName, source_format: productImportFormat(fileName)!, source_system: workbook.parsed.source, total: rows.length, source_rows: workbook.parsed.sourceRows,
-        options: { stock_mode: stockMode, location_id: locationId, destination_store_id: destinationStoreId, exchange_rate: exchangeRate, margin_percent: marginPercent, auto_price: autoPrice, mapping: workbook.mapping, cost_currency: workbook.costCurrency, sheet_name: workbook.sheetName, header_row: workbook.headerRow, fingerprint: workbook.fingerprint || "" } });
+        options: { stock_mode: stockMode, location_id: locationId, destination_store_id: destinationStoreId, exchange_rate: exchangeRate, margin_percent: marginPercent, auto_price: autoPrice, mapping: workbook.mapping, column_mapping: workbook.columnMapping, cost_currency: workbook.costCurrency, sheet_name: workbook.sheetName, header_row: workbook.headerRow, fingerprint: workbook.fingerprint || "" } });
       if (!validContext(expectedOrg)) return;
       setStage(next);
       for (const chunk of chunks) {
@@ -242,7 +259,7 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
   }
   function reset() {
     sessionId.current = null; validationRequest.current += 1;
-    stop.current = true; setWorkbook(null); setFileName(""); setStage(null); setStagedRows([]); setSkipInvalid(false); setPage(0); setError(""); setStep("upload");
+    stop.current = true; setWorkbook(null); setFileName(""); setStage(null); setStagedRows([]); setSkipInvalid(false); setPage(0); setError(""); setStep("upload"); setColumnsConfirmed(false); setCurrencyConfirmed(false);
     reader.current?.dispose(); reader.current = null; setMirrorState({ busy: false, mirrored: 0, remaining: false, failed: 0, done: false });
   }
   async function discard() {
@@ -295,11 +312,15 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><SummaryCard label="Productos" value={rows.length} /><SummaryCard label="Variantes" value={migration?.variantCount || 0} /><SummaryCard label="Stock negativo" value={workbook.negativeStock} /><SummaryCard label="Stock fraccionario" value={workbook.fractionalStock} /></div>
         <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary" className="bg-muted text-foreground">{catalogMigrationSourceLabel(workbook.parsed.source)}</Badge>{workbook.duplicateCodes > 0 && <Badge variant="destructive">{workbook.duplicateCodes} códigos repetidos</Badge>}</div>
         {workbook.parsed.warnings.map(message => <Alert key={message} variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertDescription className="text-foreground opacity-100">{message}</AlertDescription></div></Alert>)}
-        {workbook.detectionWarnings.length > 0 && <Alert variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertTitle>Revisá la detección del archivo</AlertTitle><AlertDescription className="text-foreground opacity-100">{workbook.detectionWarnings.map(message => <p key={message}>{message}</p>)}</AlertDescription></div></Alert>}
+        {detectionWarnings.length > 0 && <Alert variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertTitle>Revisá la detección del archivo</AlertTitle><AlertDescription className="text-foreground opacity-100">{detectionWarnings.map(message => <p key={message}>{message}</p>)}</AlertDescription></div></Alert>}
         <p className="text-xs text-muted-foreground">Encabezados en fila {workbook.headerRow}. La detección propone columnas; no guarda ni publica productos.</p>
-        <div className="grid gap-3 sm:grid-cols-3"><SelectField label="Hoja del archivo" value={workbook.sheetName} options={workbook.sheetNames.map(name => ({ value: name, label: name }))} disabled={busy || !!stage} onChange={value => void remap({ sheetName: value })} /><SelectField label="Fila de encabezados" value={String(workbook.headerRow)} options={workbook.headerCandidates} disabled={busy || !!stage} onChange={value => void remap({ sheetName: workbook.sheetName, headerRow: Number(value) })} /><SelectField label="Moneda del costo de origen" value={currencyConfirmed ? workbook.costCurrency : ""} options={[...(!currencyConfirmed ? [{ value: "", label: "Confirmá la moneda del costo" }] : []), { value: "ARS", label: "Pesos argentinos (ARS)" }, { value: "USD", label: "Dólares estadounidenses (USD)" }]} disabled={busy || !!stage} onChange={value => value && void remap({ mapping: workbook.profile === "platform" ? undefined : workbook.mapping, costCurrency: value as "ARS" | "USD", sheetName: workbook.sheetName, headerRow: workbook.headerRow })} /></div>
-        {workbook.profile !== "platform" && <details open={workbook.detectionWarnings.length > 0} className="border-y border-border py-3"><summary className="flex cursor-pointer items-center justify-between text-sm font-semibold">Columnas del archivo<ChevronDown className="h-4 w-4" /></summary><div className="grid gap-3 pt-3 sm:grid-cols-2 lg:grid-cols-3">{Object.entries(IMPORT_MAPPING_FIELDS).map(([field, label]) => <SelectField key={field} label={label} value={workbook.mapping[field as keyof ImportMapping]} options={[{ value: "", label: "No importar esta columna" }, ...workbook.columns.map(column => ({ value: column.id, label: column.label }))]} disabled={busy || !!stage} onChange={value => void remap({ mapping: { ...workbook.mapping, [field]: value }, ...(currencyConfirmed ? { costCurrency: workbook.costCurrency } : {}), sheetName: workbook.sheetName, headerRow: workbook.headerRow })} />)}</div></details>}
-        <div className="grid gap-3 sm:grid-cols-2"><div><Label htmlFor="import-rate" className="text-xs">Cotización USD a ARS {workbook.costCurrency === "ARS" ? "(opcional)" : "(obligatoria)"}</Label><Input id="import-rate" type="number" min="0" value={exchangeRate || ""} disabled={busy || !!stage} onChange={event => setExchangeRate(Number(event.target.value))} /></div><div><Label htmlFor="import-margin" className="text-xs">Margen sugerido (%)</Label><Input id="import-margin" type="number" min="-99" max="5000" value={marginPercent} disabled={busy || !!stage} onChange={event => setMarginPercent(Number(event.target.value))} /></div></div>
+        <div className="grid gap-3 sm:grid-cols-3"><SelectField label="Hoja del archivo" value={workbook.sheetName} options={workbook.sheetNames.map(name => ({ value: name, label: name }))} disabled={busy || !!stage} onChange={value => void remap({ sheetName: value })} /><SelectField label="Fila de encabezados" value={String(workbook.headerRow)} options={workbook.headerCandidates} disabled={busy || !!stage} onChange={value => void remap({ sheetName: workbook.sheetName, headerRow: Number(value) })} /><SelectField label="Moneda del costo de origen" value={currencyConfirmed ? workbook.costCurrency : ""} options={[...(!currencyConfirmed ? [{ value: "", label: "Confirmá la moneda del costo" }] : []), { value: "ARS", label: "Pesos argentinos (ARS)" }, { value: "USD", label: "Dólares estadounidenses (USD)" }]} disabled={busy || !!stage} onChange={value => value && void remap({ columnMapping: workbook.columnMapping, costCurrency: value as "ARS" | "USD", sheetName: workbook.sheetName, headerRow: workbook.headerRow })} /></div>
+        {stage && !stage.options.column_mapping
+          ? <Alert variant="info"><ShieldCheck className="h-4 w-4" /><div><AlertTitle>Opciones originales conservadas</AlertTitle><AlertDescription className="text-foreground opacity-100">Esta sesión empezó con el importador anterior. Se retoma con sus asignaciones originales, sin aplicar una detección nueva. Para cambiar columnas, descartá la validación pendiente e iniciá otra importación.</AlertDescription></div></Alert>
+          : <ProductImportColumnMapping workbook={workbook} disabled={busy || !!stage} onChange={changeColumn} onDetect={() => void remap({ sheetName: workbook.sheetName, headerRow: workbook.headerRow })} />}
+        {workbook.mappingIssues.length > 0 && <Alert variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertTitle>Corregí la asignación antes de continuar</AlertTitle><AlertDescription className="text-foreground opacity-100">{workbook.mappingIssues.map(message => <p key={message}>{message}</p>)}</AlertDescription></div></Alert>}
+        <label className="flex min-h-11 items-start gap-3 py-2 text-sm"><Checkbox aria-label="Confirmo que cada columna corresponde al dato indicado" className="mt-0.5" checked={columnsConfirmed} disabled={busy || !!stage || workbook.mappingIssues.length > 0} onCheckedChange={value => setColumnsConfirmed(value === true)} /><span>Confirmo que cada columna corresponde al dato indicado<span className="mt-1 block text-xs text-muted-foreground">Cualquier cambio de hoja, encabezado, moneda o asignación requiere revisar y confirmar nuevamente.</span></span></label>
+        <div className="grid gap-3 sm:grid-cols-2"><div><Label htmlFor="import-rate" className="text-xs">Cotización USD a ARS {requiresExchangeRate ? "(obligatoria)" : "(opcional)"}</Label><Input id="import-rate" type="number" min="0" value={exchangeRate || ""} disabled={busy || !!stage} onChange={event => setExchangeRate(Number(event.target.value))} /></div><div><Label htmlFor="import-margin" className="text-xs">Margen sugerido (%)</Label><Input id="import-margin" type="number" min="-99" max="5000" value={marginPercent} disabled={busy || !!stage} onChange={event => setMarginPercent(Number(event.target.value))} /></div></div>
         <label className="flex items-center gap-2 text-sm"><Checkbox checked={autoPrice} disabled={busy || !!stage} onCheckedChange={value => setAutoPrice(value === true)} />Sugerir precio sólo cuando falta en el archivo</label>
         <SelectField label="Inventario" value={stockMode} options={[{ value: "replace", label: "Usar stock del archivo (ajuste en Kardex)" }, { value: "ignore", label: "Conservar stock actual (sin movimientos)" }]} disabled={busy || !!stage} onChange={value => setStockMode(value as "replace" | "ignore")} />
         {stockMode === "replace" && (workbook.negativeStock > 0 || workbook.fractionalStock > 0) && <Alert variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertTitle>Inventario por revisar</AlertTitle><AlertDescription className="text-foreground opacity-100">Nerqia usa unidades enteras. Las filas con stock negativo o fraccionario serán inválidas; no se redondearán ni se convertirán a cero. Podés conservar el inventario actual e importar sólo catálogo y precios.</AlertDescription></div></Alert>}
@@ -307,7 +328,7 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
         {(migration?.redirectCount || 0) > 0 && !destinationStoreId && <Alert variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertTitle>Sin tienda de destino</AlertTitle><AlertDescription className="text-foreground opacity-100">Las URLs antiguas no tendrán redirects en una tienda.</AlertDescription></div></Alert>}
         <div className="max-h-[420px] overflow-auto border-y border-border" tabIndex={0} aria-label="Vista previa de productos importados"><table className="w-full min-w-[780px] text-xs"><thead className="sticky top-0 bg-card text-muted-foreground"><tr>{["Fila", "Producto", "Código", "Costo", "Precio normal", "Stock de origen", "Revisión local"].map(label => <th key={label} className="p-2 text-left">{label}</th>)}</tr></thead><tbody>{pageRows.map((row, index) => <tr key={page * PAGE_SIZE + index} className="border-t border-border align-top"><td className="p-2">{row.source_row || page * PAGE_SIZE + index + 1}</td><td className="max-w-[250px] break-words p-2 font-medium">{row.name || "Sin nombre"}</td><td className="p-2 font-mono">{String(row.sku || "—")}</td><td className="whitespace-nowrap p-2">{row.cost_ars !== undefined ? ars(Number(row.cost_ars)) : row.cost_usd !== undefined ? `USD ${row.cost_usd}` : "Sin costo"}</td><td className="whitespace-nowrap p-2">{ars(previews[index].salePriceARS)}</td><td className="p-2">{String(row.stock ?? "—")}</td><td className="max-w-[240px] p-2">{previews[index].localIssues.filter(issue => stockMode !== "ignore" || issue !== "Stock inválido").join(" · ") || "Sin observaciones"}</td></tr>)}</tbody></table></div>
         <Pagination page={page} total={rows.length} onPage={setPage} disabled={busy} />
-        <div className="flex flex-wrap justify-between gap-2"><Button variant="outline" disabled={busy} onClick={stage ? () => void discard() : reset}><ArrowLeft className="mr-2 h-4 w-4" />{stage ? "Descartar validación" : "Cambiar archivo"}</Button><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy} onClick={onClose}>Cancelar</Button><Button onClick={() => void prepare()} disabled={busy || contextLoading || !!contextError || !currencyConfirmed || (workbook.profile !== "platform" && !workbook.mapping.name) || (needsLocation && !locationId)}>{busy || contextLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />}Preparar y validar</Button></div></div>
+        <div className="flex flex-wrap justify-between gap-2"><Button variant="outline" disabled={busy} onClick={stage ? () => void discard() : reset}><ArrowLeft className="mr-2 h-4 w-4" />{stage ? "Descartar validación" : "Cambiar archivo"}</Button><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy} onClick={onClose}>Cancelar</Button><Button onClick={() => void prepare()} disabled={busy || contextLoading || !!contextError || !currencyConfirmed || !columnsConfirmed || workbook.mappingIssues.length > 0 || !rows.length || (workbook.profile !== "platform" && !workbook.mapping.name) || (needsLocation && !locationId)}>{busy || contextLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />}Preparar y validar</Button></div></div>
       </section>}
       {step === "staged" && stage && <section className="space-y-4">
         <Alert variant={stage.invalid ? "warning" : "success"}><FileCheck2 className="h-4 w-4" /><div><AlertTitle>{stage.status === "applying" ? "Importación aprobada, pendiente de completar" : stage.invalid ? "Hay filas que no se aplicarán" : "Validación completa"}</AlertTitle><AlertDescription className="text-foreground opacity-100">{stage.status === "applying" ? `${stage.created + stage.updated} productos ya guardados. Reanudar no los vuelve a aplicar.` : `El servidor revisó ${stage.total} productos. Todavía no se cambió ningún producto ni unidad.`}</AlertDescription></div></Alert>
