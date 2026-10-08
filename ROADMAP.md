@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Estado:** canónico. **Revisión:** 2026-10-07. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-08. **Owner:** Producto / CTO.
 Este documento contiene decisiones activas y próximos cierres, no un diario.
 Git conserva la historia; los contratos de dominio viven en [el índice](docs/INDICE.md).
 
@@ -117,11 +117,11 @@ sigue abierto como certificación operacional.
 
 ### Calidad y release
 
-- POS 2026-10-07: evidencia QR completa, revisión sin recobro, ticket persistido
+- POS 2026-10-08: QR correlacionado y solicitud fiscal durable, sin depender de Caja;
   de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
-  idempotencia/refund y cero restos; no certifica dinero/hardware/ARCA reales.
+  idempotencia/refund y cero restos; fiscal durable validado en Preview, deploy en gate; MP/ARCA/papel reales pendientes.
   Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
-- Release 2026-10-08: [replay](docs/MIGRATION_REPLAY.md) de 665 migraciones y QR/roles sin residuos; Auth/POS integrados y Vercel READY `b62af837`. CI posterior detectó lectura de tienda colgada: timeout/cancelación/retry en corrección con gate propio; [QR](docs/POS_OPERACION.md) v15/v66 + guard productivo.
+- Release 2026-10-08: [replay](docs/MIGRATION_REPLAY.md) de 666 migraciones + una incremental, fiscal/QR/roles sin residuos en Preview; PR 17 integrada/Vercel READY `5ef4c3c0`: lecturas acotadas sin perder carrito. [QR](docs/POS_OPERACION.md) v15/v66 + guard productivo; fiscal/legacy verificados, deploy en gate propio.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.

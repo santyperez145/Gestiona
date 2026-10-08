@@ -70,7 +70,7 @@ async function permission(
   // deno-lint-ignore no-explicit-any
   userClient: any,
   orgId: string,
-  module: "sales" | "payments",
+  module: "sales" | "payments" | "invoices",
   action: "create" | "edit",
 ) {
   const { data, error } = await userClient.rpc("has_permission", {
@@ -487,13 +487,21 @@ Deno.serve(async (req) => {
         }, 422);
       }
       const clientKey = cleanText(body.clientKey, 80);
+      if (body.requestInvoice !== undefined && typeof body.requestInvoice !== "boolean") {
+        return json({ error: "La solicitud de factura no es válida", code: "INVALID_FISCAL_REQUEST" }, 400);
+      }
+      const requestInvoice = body.requestInvoice === true;
+      if (requestInvoice && !await permission(userClient, orgId, "invoices", "edit")) {
+        return json({ error: "No tenés permiso para solicitar la factura. Esta solicitud no generó otro cobro; si ya tenés un QR, consultá ese intento.", code: "FISCAL_PERMISSION_REQUIRED" }, 403);
+      }
       if (!clientKey || !UUID_RE.test(clientKey) || !Array.isArray(body.sales)) {
         return json({ error: "El carrito o la clave del cobro no son válidos" }, 400);
       }
-      const { data: prepared, error: prepareError } = await userClient.rpc("pos_qr_session_prepare", {
+      const { data: prepared, error: prepareError } = await userClient.rpc("pos_qr_session_prepare_fiscal", {
         p_org_id: orgId,
         p_sales: body.sales,
         p_client_key: clientKey,
+        p_request_invoice: requestInvoice,
       });
       if (prepareError) throw prepareError;
       const session = asRecord(prepared);

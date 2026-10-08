@@ -87,9 +87,26 @@ La corrección acota cada lectura inicial a 4 s, permite un segundo intento con
 signal nuevo y cancela al cambiar de tienda/salir. El agotamiento muestra error
 recuperable, no 404 ni catálogo vacío; cobros/idempotencia no cambian.
 
-Mantener gates por SHA para la corrección: puerta local completa, CI, E2E,
-Supabase Preview y Vercel. Proxy de confianza, SMTP Auth y recepción real
+PR 17 aprobó sus checks y se integró como `5ef4c3c0` el 2026-10-08; Vercel
+`dpl_GE6Fjkv7Mct8xzbTGpgx5e8TJExZ` READY con ese SHA y alias productivos.
+No cambió SQL; su check Preview quedó omitido, no prueba un nuevo replay.
+La rama se retiró tras comparar el árbol completo, con tag recuperable
+`archive/2026-10-08/codex-store-read-timeout` (`8da472a4`).
+El siguiente lote fiscal del POS mantiene su gate propio por SHA: puerta local,
+CI, E2E y SQL reversible en Preview. Proxy de confianza, SMTP Auth y recepción real
 conservan gate propio; publicar código no demuestra configurar proveedores.
+
+POS fiscal durable, corte 2026-10-08: PR 18 `fe37b218` aprobó CI completo y
+Vercel; Preview `aihxgfebanfqbnekkvfu` instaló las 666 migraciones desde cero.
+Allí `20261008_pos_qr_durable_fiscal.sql` pasó diez grupos reversibles, incluidos
+roles web reales, no mutación del opt-in y aislamiento de factura. QR/alias
+anteriores también pasaron. Readback sin usuarios/orgs/sesiones/facturas/outbox
+residuales ni hallazgos de auditores; cero fixtures en producción. La CLI aplicó
+después sólo `20261008000010`: 667 versiones registradas. El QR legacy se retoma
+sin nuevo cobro ni consentimiento fiscal retroactivo; fixture/readback repetidos.
+La documentación y fixture ampliada se publican con puerta completa/gates de
+su SHA. Desplegar SQL nuevo → Edge QR → frontend, sin reaplicar históricos ni
+reparar journal. Cobro, CAE y papel reales mantienen su aceptación externa.
 
 La continuación incremental, las suites sintéticas y un deploy Vercel no
 certifican el banco, impresión física, homologación ARCA ni reemplazo de un ERP.

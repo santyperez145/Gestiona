@@ -1,6 +1,6 @@
 # Facturación y autoridad fiscal
 
-**Estado:** vigente, 2026-10-03. **Responsable:** Business Core / integración ARCA.
+**Estado:** vigente, 2026-10-08. **Responsable:** Business Core / integración ARCA.
 Este contrato describe cálculo, persistencia y representación. Configuración
 general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LEGAL.md).
 
@@ -10,6 +10,12 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
 - Las nuevas ventas POS capturan la tasa server-side. Las históricas conservan
   `fiscal_tax_rate = NULL`: no se les inventa un snapshot; al facturarlas se usa
   la configuración vigente, que requiere revisión si cambió desde la venta.
+- QR guarda la solicitud fiscal antes del Order y prepara la factura canónica
+  al cerrar el ticket acreditado, aunque el browser esté cerrado. Revalida
+  `invoices.edit` del cajero original; una falla fiscal queda recuperable sin
+  revertir el cobro. Autorización y reintentos pertenecen al outbox existente.
+  Borrador no significa CAE; opt-out no genera factura. Contrato, orden de
+  deploy y pruebas en [POS operativo](POS_OPERACION.md).
 - Commerce captura `ecommerce_orders.fiscal_snapshot` al crear el pedido. El
   servidor distribuye el descuento entre productos y registra envío, neto,
   tasa e IVA por línea. El total persistido es el importe final cobrado: no

@@ -1,6 +1,6 @@
 # Medios de cobro
 
-**Estado:** contrato vigente. **Corte:** 2026-10-07.
+**Estado:** contrato vigente. **Corte:** 2026-10-08.
 
 Cómo cobra cada comercio en su tienda online.
 
@@ -141,6 +141,20 @@ npx supabase secrets set MP_WEBHOOK_SECRET=la_clave_del_webhook
 
 Sin `MP_WEBHOOK_SECRET` el webhook **falla cerrado** y no acredita el pago.
 Debe configurarse y certificarse la firma antes de habilitar cobros.
+
+Para POS QR, habilitar **Order (Mercado Pago)** en la aplicación del integrador,
+modo productivo y la misma URL HTTPS. No alcanza con el tópico de pagos del
+checkout ni con guardar el secreto. La documentación oficial exige configurar
+el webhook en la app principal que obtuvo OAuth del comercio. Conservar los
+eventos ya utilizados por tienda/suscripciones; no reemplazarlos para activar QR.
+Referencia consultada el 2026-10-08: [notificaciones QR/Orders](https://www.mercadopago.com.ar/developers/es/docs/qr-code/notifications).
+
+Readback del 2026-10-08: secretos MP presentes y conexión OAuth almacenada,
+sin caja QR activa. El formulario de Caja crea sucursal/caja con datos reales;
+la cuenta/mode y notificaciones deben comprobarse con operación controlada.
+No se certificó desde esta lectura el registro del webhook en el panel MP.
+Transferencias libres a alias/CVU siguen manuales hasta disponer de un feed
+verificable y correlación inequívoca; no equivalen a un Order de QR.
 
 ### 4. Desplegar
 

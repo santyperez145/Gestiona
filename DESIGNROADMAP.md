@@ -176,11 +176,11 @@ Cada vista debe contemplar:
 
 ### D2 — Business
 
-POS, corte 2026-10-07: revisión QR explica el motivo y permite consultar el mismo
+POS, corte 2026-10-08: revisión QR explica el motivo y permite consultar el mismo
 cobro; no invita a cambiar el medio y duplicar dinero. Preferencia de impresión
 como switch accesible por usuario/dispositivo, ticket persistido y reimpresión
-del cobro recuperado. Ticket comercial, deuda/offline y factura ARCA se distinguen.
-Sin gradiente decorativo; ocho E2E/Axe POS verdes. Checkout: colores atómicos al cotizar, sin contraste transitorio.
+del cobro recuperado. Solicitud fiscal durable distingue pendiente/CAE y corrección; vendedor sin link administrativo.
+Sin gradiente decorativo; dieciséis E2E POS verdes (red interceptada). Checkout: colores atómicos al cotizar, sin contraste transitorio.
 [Replay completo 08/10](docs/MIGRATION_REPLAY.md) aprobado; gates por SHA, autoridad/impresión reales pendientes.
 La matriz funcional y el orden de cierre viven en [POS](docs/POS_OPERACION.md).
 
