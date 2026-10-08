@@ -48,15 +48,18 @@ migración nueva, comparación contra el esquema desplegado y gate propio.
 
 ## Gate todavía abierto
 
-1. Ejecutar `npm run verify`, commitear y pushear el checkpoint a PR 16.
+1. Checkpoint `4b4b706d` pusheado a PR 16: `npm run verify` verde, 3.749 tests
+   en 421 archivos. Integrar Auth en la misma PR y repetir el gate del conjunto;
+   incluir `20261004000100`, ya registrado en producción, sin reparar el journal.
 2. Recrear la Preview efímera y confirmar la aplicación desde el primer archivo
    del historial corregido, sin datos ni secretos productivos copiados.
 3. Repetir ambos SQL reversibles en esa base nueva; comprobar auditorías y
    residuos. El check Supabase Preview debe terminar aprobado, no saltarse.
 4. Publicar primero los productores Edge de evidencia QR, luego el guard SQL;
    después promover frontend por el flujo protegido normal de `main`.
-5. Actualizar la base de PR 15 y repetir sus checks. La configuración del proxy
-   de confianza, SMTP Auth y recepción real siguen teniendo gate propio.
+5. Cerrar PR 15 y retirar ambas ramas sólo después de comprobar su contenido
+   integrado a `main`. Proxy de confianza, SMTP Auth y recepción real mantienen
+   gate propio; el código pusheado no demuestra configuración de proveedores.
 
 La continuación incremental, las suites sintéticas y un deploy Vercel no
 certifican el banco, impresión física, homologación ARCA ni reemplazo de un ERP.

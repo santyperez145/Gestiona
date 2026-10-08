@@ -92,8 +92,8 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
 | Creators | Portal autenticado, identidad/canjes, contratos, chat, evidencia privada y liquidación interna. | Payout acreditado, escaneo y social OAuth; expansión secuenciada después de POS/Commerce; [contrato](docs/INFLUENCERS.md). |
 | Pay | OAuth, checkout, webhook, manual, refund, comisión y settlement idempotentes. | Certificación por proveedor/destino; cuenta cargada no garantiza rail disponible. |
-| Correo | Remitentes por propósito, baja, consentimiento, ledger de entrega e idempotencia; plantilla de confirmación Nerqia para negocio/creador/comprador versionada y aplicador de Auth alojado con lectura posterior. | Publicar plantilla y Auth SMTP Resend en proyecto alojado, luego alta/entrega/enlace/rebote reales; [configuración](docs/CONFIGURACION.md), [marketing](docs/EMAIL_MARKETING.md). |
-| Platform | MFA, alta, Merchant 360, integraciones, soporte, riesgo y billing MP firmado; gate ahora falla cerrado ante error de consulta y enrola sin abrir el panel. | Autoridad MFA en servidor/RLS, dispositivo confiable revocable por 7 días tras logout y SLO/operación autorizada; [seguridad](docs/SEGURIDAD.md). |
+| Correo | Remitentes por propósito, baja, consentimiento, ledger de entrega e idempotencia; confirmación Nerqia para negocio/creador/comprador publicada en Auth alojado y verificada por lectura posterior (2026-10-04). | Auth SMTP Resend (falta clave dedicada del dueño) y remitente `noreply@nerqia.app`; luego alta/entrega/enlace/rebote reales; [configuración](docs/CONFIGURACION.md), [marketing](docs/EMAIL_MARKETING.md). |
+| Platform | MFA, alta, Merchant 360, soporte, riesgo y billing MP firmado; acceso recordado opt-in por 7 días tras logout, cookie HttpOnly y grant propio; Auth directo/revocación comprobados el 2026-10-04; proxy first-party corregido y probado sin secretos del cliente (2026-10-07); administración de dispositivos. | Publicar tras Preview verde, configurar secreto interno Vercel↔Edge y verificar browser→logout→login; MFA transversal RLS/Edge sin romper bootstrap; [seguridad](docs/SEGURIDAD.md). |
 
 ### Evidencia Finance corregida
 
@@ -121,7 +121,7 @@ sigue abierto como certificación operacional.
   de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
   idempotencia/refund y cero restos; no certifica dinero/hardware/ARCA reales.
   Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
-- Release 2026-10-08: [alias RLS](docs/SEGURIDAD.md) productivo; replay incremental completo y QR/roles reversibles verdes. [Gate de Preview nueva y ramas archivadas](docs/MIGRATION_REPLAY.md) pendiente antes de `main`.
+- Release 2026-10-08: [alias RLS](docs/SEGURIDAD.md) productivo; replay incremental y QR/roles verdes, checkpoint `4b4b706d` pusheado. [Integración Auth/POS y gate de Preview nueva](docs/MIGRATION_REPLAY.md) antes de `main`.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.

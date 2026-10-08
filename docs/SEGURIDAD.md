@@ -64,15 +64,63 @@ en AAL1. Nunca se almacena el TOTP ni su secreto para repetirlo en segundo
 plano. Desde 2026-10-04, error de lectura AAL/factores = panel cerrado con
 reintento; el alta obligatoria del factor ocurre dentro del gate.
 
-Recordar un dispositivo siete días **después** de logout está pendiente. Para
-habilitarlo se exige consentimiento opt-in, credencial aleatoria de alta
-entropía custodiada en el dispositivo, hash y vencimiento absolutos en servidor,
-rotación/revocación por usuario y por factor, límite de dispositivos, evento
-auditable, prueba de reuso/robo, y una política de autorización uniforme para
-RLS y Edge Functions. El JWT de una sesión nueva seguirá en AAL1 hasta que
-Supabase verifique un factor; por eso omitir sólo la pantalla con una marca
-local dejaría Platform y Finance con un bypass visible y no es aceptable.
-Acciones sensibles deberán seguir requiriendo un AAL2 fresco.
+El acceso recordado es opt-in durante siete días **también después de logout**:
+
+1. Contraseña y TOTP real reciente permiten registrar el navegador.
+2. `/api/trusted-device` custodia una credencial aleatoria de 256 bits en cookie
+   `__Host-nerqia-mfa-device`, Secure, HttpOnly, SameSite=Strict, Path=/ y **sin
+   Domain**. Nunca se comparte con tiendas ni se entrega en JSON o JS storage.
+3. La Edge `trusted-device` valida el JWT con Auth y pasa sólo su hash SHA-256
+   y claims verificados a `trusted_device_command`, exclusivo de service_role.
+   Sólo acepta este transporte desde el proxy first-party autenticado por
+   `NERQIA_TRUST_PROXY_SECRET`; no entrega credenciales a llamadas directas.
+   El mismo secreto se guarda como variable privada en Vercel y secreto de
+   Supabase Edge, nunca en el bundle ni en headers enviados por el navegador.
+4. Cada login nuevo sigue requiriendo contraseña. La base comprueba usuario,
+   sesión Auth viva y credential; registra un grant para ese `session_id`, con
+   el vencimiento original. No se extiende por actividad ni por otro login.
+5. Perfil y Seguridad de mi cuenta en Plataforma permiten olvidar este
+   navegador o revocar dispositivos propios, también al staff sin organización.
+   Cambiar contraseña, email o factores verificados invalida la huella privada
+   y los grants existentes; no depende del formulario que haga el cambio.
+
+El JWT nuevo permanece AAL1: el permiso recordado no se presenta como AAL2
+ni como MFA fresco. No hay OTP, secreto TOTP ni contraseña persistidos por
+esta capacidad. Se limita la lista a veinte dispositivos activos. Las tablas
+viven en `nerqia_auth`, sin acceso directo web; guardan alta, uso y revocación.
+La web sirve el permiso mediante transporte first-party; el cliente nativo
+continúa con TOTP, sin prometer persistencia de una cookie entre protocolos.
+Un fallo del servicio ofrece TOTP normal y nunca abre el gate. El perfil exige
+TOTP real de los últimos cinco minutos para cambios de seguridad; la contraseña
+actual se comprueba con una sesión aislada sin reemplazar la sesión principal.
+
+El grant que consulta `get_session_mfa_status` sólo se crea en el servidor
+después de canjear la cookie HttpOnly y se liga al `session_id` Auth vivo,
+dispositivo, huella privada y vencimiento. La función no recibe la cookie en
+cada consulta RLS; por eso el contrato no equivale a enforcement global hasta
+integrarlo y probarlo en todos sus consumidores.
+
+**Límite vigente:** este slice valida server-side el dispositivo y su grant,
+pero no transforma las policies tenant, Storage/Realtime ni todas las Edge
+existentes en enforcement MFA uniforme. `get_session_mfa_status` es el contrato
+propio autenticado para ese siguiente trabajo; no basta agregarlo sin conectar
+los consumidores. El bootstrap OrgProvider precede al gate y debe conservar
+un contrato mínimo antes de aplicar guards globales. RLS/Edge y step-up de
+credenciales fiscales, pagos o acciones de Platform siguen en ROADMAP como
+puerta pendiente: una protección de pantalla no demuestra esa garantía.
+
+Verificación 2026-10-04: migración `20261004000100` aplicada, Edge desplegada,
+smoke SQL con rollback y cero residuos; `scripts/test-trusted-device-live.mjs`
+pasó contra Auth y Edge reales con un comprador ZZ confirmado sin correo:
+TOTP → registro → logout → contraseña/nuevo SID AAL1 → grant, mismo vencimiento,
+revocación y cambio de contraseña. El usuario temporal se eliminó y la lectura
+posterior verificó limpieza. Ese drill sólo corre con aprobación explícita,
+proyecto fijo y credenciales server-side por entorno; nunca imprime secretos.
+Los tests de navegador con Auth interceptado acreditan UX, no entrega de correo.
+Fuentes oficiales consultadas el 2026-10-04:
+[MFA](https://supabase.com/docs/guides/auth/auth-mfa),
+[sesiones](https://supabase.com/docs/guides/auth/sessions) y
+[seguridad de acceso Shopify](https://help.shopify.com/en/manual/your-account/logging-in/secure-sign-in).
 
 ## Base de datos
 

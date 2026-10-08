@@ -1,7 +1,8 @@
 /**
  * Publica la plantilla de alta en Supabase Auth alojado y, si hace falta,
- * configura el remitente transaccional de Resend. Sin --apply sólo valida el
- * archivo local. Nunca imprime ni persiste credenciales.
+ * configura el remitente transaccional de Resend. --apply --template-only
+ * permite publicar sólo el contenido cuando todavía falta la clave SMTP.
+ * Sin --apply sólo valida el archivo local. Nunca imprime ni persiste claves.
  *
  * Credenciales (variables de entorno, nunca argumentos):
  *   SUPABASE_ACCESS_TOKEN     Personal access token con auth_config_write
@@ -24,6 +25,7 @@ if (!process.argv.includes("--apply")) {
 
 const managementToken = process.env.SUPABASE_ACCESS_TOKEN;
 const smtpKey = process.env.NERQIA_AUTH_SMTP_KEY;
+const templateOnly = process.argv.includes("--template-only");
 if (!managementToken) throw new Error("Falta SUPABASE_ACCESS_TOKEN en el entorno.");
 
 const endpoint = `https://api.supabase.com/v1/projects/${projectRef}/config/auth`;
@@ -47,7 +49,7 @@ const previous = await request("GET");
 const smtpReady =
   previous.smtp_host === "smtp.resend.com" &&
   previous.smtp_admin_email?.toLowerCase() === fromEmail;
-if (!smtpReady && !smtpKey) {
+if (!templateOnly && !smtpReady && !smtpKey) {
   throw new Error(
     "Auth SMTP no está configurado con el remitente Nerqia. " +
     "Definí NERQIA_AUTH_SMTP_KEY (clave dedicada de Resend) antes de publicar.",
@@ -57,7 +59,7 @@ if (!smtpReady && !smtpKey) {
 const payload = {
   mailer_subjects_confirmation: subject,
   mailer_templates_confirmation_content: template,
-  ...(smtpKey ? {
+  ...(!templateOnly && smtpKey ? {
     external_email_enabled: true,
     mailer_autoconfirm: false,
     smtp_admin_email: fromEmail,
@@ -74,10 +76,14 @@ const applied = await request("GET");
 if (
   applied.mailer_subjects_confirmation !== subject ||
   applied.mailer_templates_confirmation_content !== template ||
-  applied.smtp_host !== "smtp.resend.com" ||
-  applied.smtp_admin_email?.toLowerCase() !== fromEmail
+  (!templateOnly && (
+    applied.smtp_host !== "smtp.resend.com" ||
+    applied.smtp_admin_email?.toLowerCase() !== fromEmail
+  ))
 ) {
   throw new Error("La lectura posterior no coincide con la plantilla/remitente esperados.");
 }
-console.log("Supabase Auth: plantilla y remitente Nerqia verificados por lectura posterior.");
+console.log(templateOnly
+  ? "Supabase Auth: contenido y asunto Nerqia verificados; remitente SMTP pendiente."
+  : "Supabase Auth: plantilla y remitente Nerqia verificados por lectura posterior.");
 console.log("Pendiente: probar un alta real, entrega, enlace de confirmación y rebotes.");

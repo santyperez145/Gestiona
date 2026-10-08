@@ -9,6 +9,12 @@ const mocks = vi.hoisted(() => ({
   enroll: vi.fn(),
   unenroll: vi.fn(),
   signOut: vi.fn(),
+  trust: vi.fn(),
+}));
+
+vi.mock("@/lib/trustedDevice", () => ({
+  canRememberDevice: () => true,
+  trustedDeviceCommand: mocks.trust,
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -38,6 +44,7 @@ const gate = () => render(
 describe("MfaGate de la plataforma", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.trust.mockResolvedValue({ trusted: false });
     mocks.factors.mockResolvedValue({ data: { totp: [{ id: "factor-1", status: "verified" }] }, error: null });
     mocks.verify.mockResolvedValue({ error: null });
     mocks.enroll.mockResolvedValue({
@@ -74,6 +81,42 @@ describe("MfaGate de la plataforma", () => {
     expect(await screen.findByText("No pudimos verificar tu acceso")).toBeInTheDocument();
     expect(screen.queryByTestId("protected-app")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reintentar verificación" })).toBeInTheDocument();
+  });
+
+  it("permite una nueva sesión AAL1 sólo con permiso vigente de servidor", async () => {
+    mocks.aal.mockResolvedValue({ data: { currentLevel: "aal1", nextLevel: "aal2" }, error: null });
+    mocks.trust.mockResolvedValue({ trusted: true, expiresAt: new Date(Date.now() + 604800000).toISOString() });
+    gate();
+    expect(await screen.findByTestId("protected-app")).toBeInTheDocument();
+    expect(mocks.trust).toHaveBeenCalledWith("redeem");
+    expect(mocks.verify).not.toHaveBeenCalled();
+  });
+
+  it("pide TOTP si el recuerdo expiró o falla, aunque el cliente lo quiera recordar", async () => {
+    mocks.aal.mockResolvedValue({ data: { currentLevel: "aal1", nextLevel: "aal2" }, error: null });
+    mocks.trust.mockResolvedValue({ trusted: true, expiresAt: new Date(Date.now() - 1000).toISOString() });
+    gate();
+    expect(await screen.findByText("Verificación en dos pasos")).toBeInTheDocument();
+    expect(screen.queryByTestId("protected-app")).not.toBeInTheDocument();
+    cleanup();
+    mocks.trust.mockRejectedValue(new Error("Servicio de dispositivo no disponible. Ingresá el código."));
+    gate();
+    expect(await screen.findByText("Servicio de dispositivo no disponible. Ingresá el código.")).toBeInTheDocument();
+    expect(screen.queryByTestId("protected-app")).not.toBeInTheDocument();
+  });
+
+  it("registra un navegador sólo después del TOTP y una elección explícita", async () => {
+    mocks.aal.mockResolvedValueOnce({ data: { currentLevel: "aal1", nextLevel: "aal2" }, error: null })
+      .mockResolvedValue({ data: { currentLevel: "aal2", nextLevel: "aal2" }, error: null });
+    gate();
+    const checkbox = await screen.findByRole("checkbox", { name: "Recordar este navegador durante 7 días" });
+    expect(checkbox).not.toBeChecked();
+    fireEvent.click(checkbox);
+    expect(mocks.trust).not.toHaveBeenCalledWith("register");
+    fireEvent.change(screen.getByPlaceholderText("000000"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verificar" }));
+    expect(await screen.findByTestId("protected-app")).toBeInTheDocument();
+    expect(mocks.trust).toHaveBeenCalledWith("register");
   });
 
   it("activa el factor obligatorio dentro del gate antes de abrir el panel", async () => {
