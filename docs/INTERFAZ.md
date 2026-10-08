@@ -85,7 +85,16 @@ La matriz local pasó ocho E2E desktop/mobile (incluida tablet), sin retries y c
 red interceptada; Axe sin violaciones graves/críticas y capturas revisadas.
 Un agotado coincidente sigue descubrible aunque otros productos tengan stock;
 no habilita compra. El combobox conserva foco/consulta en URL, anuncia selección,
-resetea al cerrar/cambiar ruta y no comparte IDs entre header y menú.
+resetea al cerrar/cambiar ruta y no comparte IDs entre header y menú. Repetir
+Enter en la misma URL conserva el texto; cerrar el popup no equivale a borrarlo.
+
+Release de búsqueda del 2026-10-08: PR19 `6644f613`, Vercel
+`dpl_DCaNtnptsB5QEsVZtXfKgEGq3h9k` READY con SHA y alias verificados.
+`npm run verify` pasó 3.799 tests / 426 archivos; CI pasó 183 E2E y omitió tres.
+En Exentry Imports, `/productos?q=lataffa` pasó de cero a 27 productos reales,
+incluidos agotados con aviso sin botón de compra; son datos del momento, no un
+conteo contractual. No se hicieron pedidos ni pagos. La repetición de Enter
+detectada al revisar ese release se corrige en un hotfix con gate propio.
 
 Referencia oficial consultada el 2026-10-08: Shopify documenta
 [predictive search](https://help.shopify.com/en/manual/online-store/storefront-search/predictive-search)
