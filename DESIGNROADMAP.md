@@ -61,9 +61,9 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 
 ## 4. Superficies
 
-| Superficie | Dirección | Estado 2026-09-04 | Próximo cierre |
+| Superficie | Dirección | Estado comprobado | Próximo cierre |
 |---|---|---|---|
-| Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada/responsive; ambas homes visibles en Google el 2026-10-04 y routing XML corregido/verificado en producción, sin cambiar la interfaz humana. | Cobertura actual en Search Console; conversión real. [Evidencia](docs/SEO_INDEXACION.md). |
+| Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada/responsive; ambas homes indexadas y sitemap Correcto en Console el 2026-10-08. 7 clics/24 impresiones en 02/09–05/10; www excluido como alternativa canónica. XML/JSON-LD accesibles, sin cambiar la UI humana. | Catálogo restante y conversión real; no ranking garantizado. [Evidencia](docs/SEO_INDEXACION.md). |
 | Business | Workspace claro, rail persistente, topbar, tabs y tablas densas. | Shell y primitives transversales; páginas críticas migradas. | Eliminar CSS heredado y cerrar estados restantes. |
 | Commerce admin | Configuración, rendimiento, voz, catálogo, páginas, diseño, pagos/envíos. | Selector de tienda compartido con Pedidos; datos reales en producción. | Surtido multi-tienda y responsive autenticado. |
 | Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema/favicon, SPA/restauración y retry sin perder carrito; búsqueda coherente, aproximados rotulados y filtros; combobox con foco/IDs únicos/touch 44 px y links nombrados. PR19 `6644f613` READY, 27 coincidencias reales; texto conservado al repetir Enter (2026-10-08). | Performance de campo y compradores. |

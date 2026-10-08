@@ -1,6 +1,6 @@
 # SEO e indexación de Nerqia y sus tiendas
 
-Última revisión: **2026-10-04**.
+Última revisión: **2026-10-08**.
 
 ## Objetivo y límite honesto
 
@@ -98,6 +98,55 @@ Estado: fallo de routing corregido y verificado en producción. Aceptación y
 cobertura actuales en Search Console continúan pendientes de una sesión;
 accesibilidad del XML no se presenta como nueva indexación ni aceptación.
 
+### Cobertura y primeras señales de búsqueda — 2026-10-08
+
+Revisión de sólo lectura entre 12:50 y 13:00 UTC, con la sesión del dueño en
+la propiedad de dominio `nerqia.app`. No se enviaron sitemaps ni solicitudes
+de indexación nuevas, y no se modificaron DNS, datos comerciales ni permisos.
+
+- Google Search real (`site:nerqia.app`) muestra ambas homes con títulos y
+  descripciones propios. La búsqueda integrada devolvió cero resultados;
+  no se interpreta esa diferencia entre herramientas como desindexación.
+- URL Inspection confirma Nerqia y Exentry indexadas, con rastreo permitido,
+  obtención correcta y canonical elegido igual al declarado. Últimos rastreos
+  mostrados: Nerqia 5 de octubre; Exentry 3 de septiembre de 2026. Las horas
+  mostradas por Console no se convierten a UTC sin conocer su zona.
+- Cobertura agregada, actualizada el **3 de octubre de 2026**: 3 indexadas y
+  74 sin indexar; 72 descubiertas pendientes y 2 con redirección. Los tres
+  ejemplos son las dos homes y `https://www.nerqia.app/`. La inspección individual
+  más reciente de www (rastreo 5 de octubre) ya la excluye como alternativa con
+  canonical correcto hacia `https://nerqia.app/`. Por ese desfase, **no se
+  anuncian tres páginas distintas ni una nueva ficha de catálogo indexada**.
+- Sitemap raíz en Console: índice **Correcto**, enviado el 3 de septiembre,
+  última lectura el 28 de septiembre de 2026 y 73 páginas descubiertas.
+  Aceptado/descubierto no equivale a indexado. El diagnóstico temporal de sitemap
+  mostrado dentro de la inspección de www no reemplaza este informe del índice.
+- Rendimiento Web, selector de tres meses; el gráfico contiene datos del
+  **2026-09-02 al 2026-10-05**, actualizado «hace 28 horas»: **7 clics y 24
+  impresiones**, CTR agregado 29,2 % y posición media agregada 2,3. Es una muestra
+  mínima, no una posición actual garantizada, ventas ni clientes nuevos.
+  El desglose de páginas muestra Exentry con 4 clics/12 impresiones. La tabla de
+  consultas sólo expone `exentry` (0 clics/1 impresión): no se atribuyen los
+  demás clics a consultas que Google no muestra ni se suman agregaciones distintas.
+- Acciones manuales y Problemas de seguridad: sin hallazgos en ambos informes.
+- Readback HTTP externo: índice raíz y dos hijos devuelven XML 200 a Mozilla y
+  Googlebot, sin `X-Robots-Tag`; 2 hijos, 3 URLs de plataforma y 73 de Exentry,
+  sin duplicados dentro de cada documento. Ambas homes conservan 200,
+  `index,follow`, canonical propio y JSON-LD parseable. Esto no certifica
+  resultados enriquecidos ni Core Web Vitals de campo.
+
+Cambio material: primeras señales de rendimiento documentadas y sesión de
+Console recuperada. Siguen abiertos el resto del catálogo, crecimiento de
+consultas relevantes y conversión orgánica; no hace falta reenviar las homes.
+La consolidación de www se observa en la próxima actualización del agregado,
+sin retiradas manuales, `noindex` ni solicitudes repetidas de indexación.
+
+Evidencia reproducible en la propiedad verificada:
+[Sitemaps](https://search.google.com/search-console/sitemaps?resource_id=sc-domain%3Anerqia.app),
+[Cobertura](https://search.google.com/search-console/index?resource_id=sc-domain%3Anerqia.app),
+[Rendimiento](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Anerqia.app).
+Requieren la sesión del dueño; no son enlaces públicos ni credenciales.
+
 Fuentes oficiales:
 
 - [Site names en Google](https://developers.google.com/search/docs/appearance/site-names): `WebSite` en la home, nombre coherente y home rastreable.
@@ -108,6 +157,7 @@ Fuentes oficiales:
 - [Estructura de un ecommerce](https://developers.google.com/search/docs/specialty/ecommerce/help-google-understand-your-ecommerce-site-structure): categorías y productos deben enlazarse con `<a href>`; el buscador interno no reemplaza la navegación.
 - [Paginación incremental](https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading): cada página necesita URL/canonical propios y enlaces secuenciales rastreables.
 - [Solicitar un nuevo rastreo](https://developers.google.com/search/docs/crawling-indexing/ask-google-to-recrawl): pedirlo repetidamente no acelera el proceso ni garantiza indexación.
+- [Consolidar URLs duplicadas](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls): canonical/redirección orientan la selección de Google; una variante de host no es otra página comercial.
 
 ## Arquitectura única
 
@@ -235,5 +285,6 @@ no se copiaron ni buscaron credenciales del navegador.
 - comprador humano conserva la SPA; crawler recibe semántica equivalente;
 - build, guardas y prueba publicada sin regresión de Storefront;
 - sitemap enviado/aceptado y home inspeccionada cuando haya acceso a Search Console;
-- aparición de las dos homes cerrada con URL Inspection y búsqueda pública;
-  impresiones, consultas, cobertura restante y posición siguen abiertas.
+- aparición de las dos homes y primeras impresiones/consulta comprobadas;
+  cobertura restante, crecimiento y conversión siguen abiertos. Una posición
+  media observada no cierra un objetivo de ranking.
