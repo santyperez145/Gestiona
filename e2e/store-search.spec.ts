@@ -52,6 +52,15 @@ test("typo: predictive search, Enter, URL and facets use the same matches", asyn
   await expect(page.getByRole("status")).toContainText("coincidencias aproximadas");
   await expect(page.locator(".storefront-products__grid .storefront-product-card")).toHaveCount(2);
   await expect(page).toHaveURL(/q=lataffa/);
+  const sameQuery = await openSearch(page);
+  await expect(sameQuery).toHaveValue("lataffa");
+  await sameQuery.click();
+  await expect(page.getByRole("option", { name: /LATTAFA KHAMRAH/ })).toBeVisible();
+  await sameQuery.press("Enter");
+  const repeatedQuery = await openSearch(page);
+  await expect(repeatedQuery).toHaveValue("lataffa");
+  await expect(page).toHaveURL(/productos\?q=lataffa$/);
+  if ((page.viewportSize()?.width ?? 1280) < 640) await page.getByRole("button", { name: "Menú", exact: true }).click();
   if ((page.viewportSize()?.width ?? 1280) < 640) await page.getByRole("button", { name: /^Filtros/ }).click();
   await page.getByRole("button", { name: "Herramientas", exact: true }).click();
   await expect(page.getByText("No encontramos productos con esos filtros", { exact: true })).toBeVisible();

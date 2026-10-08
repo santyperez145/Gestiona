@@ -79,7 +79,8 @@ export default function SearchBox({
   const irA = (destino: string) => {
     setAbierto(false);
     setSel(-1);
-    setQ("");
+    // Route synchronization clears/updates the query when the destination
+    // changes; submitting the same URL must keep the current text.
     onNavegar?.();
     navigate(destino);
   };
