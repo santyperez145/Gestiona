@@ -116,13 +116,18 @@ async function assertInitialSelectedLabel(page: Page, name: string) {
 for (const destination of ['/productos', '/']) {
 test(`permisos: ${destination} recupera lectura sin revelar errores internos`, async ({ page }) => {
   let reads = 0;
+  let unavailable = true;
   await page.route('**/rest/v1/role_permissions?**', async route => {
     reads += 1;
-    if (reads === 1) return route.fulfill({ status: 403, contentType: 'application/json',
+    if (unavailable) return route.fulfill({ status: 403, contentType: 'application/json',
       body: JSON.stringify({ code: '42501', message: 'ZZ private permission failure' }) });
     return route.continue();
   });
+  const deniedRead = page.waitForResponse(response => (
+    new URL(response.url()).pathname.endsWith('/role_permissions') && response.status() === 403
+  ));
   await page.goto(destination);
+  await deniedRead;
   const error = page.locator('[data-workspace-state="error-recoverable"]').filter({ hasText: 'No pudimos verificar tu acceso' });
   await expect(error).toBeVisible();
   if (destination === '/productos') await expect(page.getByRole('heading', { name: 'Productos', exact: true })).toHaveCount(0);
@@ -132,10 +137,15 @@ test(`permisos: ${destination} recupera lectura sin revelar errores internos`, a
     await expect(error.getByRole('button', { name: 'Reintentar' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
+  // Keep the injected outage active across auth/MFA bootstrap remounts. Only
+  // the explicit retry may restore reads; a first-request-only fault races it.
+  const beforeRetry = reads;
+  expect(beforeRetry).toBeGreaterThanOrEqual(1);
+  unavailable = false;
   await error.getByRole('button', { name: 'Reintentar' }).click();
   if (destination === '/productos') await expect(page.getByRole('heading', { name: 'Productos', exact: true })).toBeVisible();
   else await expect(page.getByRole('link', { name: 'Productos', exact: true }).first()).toBeVisible();
-  expect(reads).toBe(2);
+  expect(reads).toBe(beforeRetry + 1);
 });
 }
 
