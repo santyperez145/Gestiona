@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { retryRead as retryPublicRead, retryIdempotentWrite, isTransientReadError as isTransientPublicError, type PgError } from '@/lib/transientRead';
+import { retryRead as retryPublicRead, retryAbortableRead, retryIdempotentWrite, isTransientReadError as isTransientPublicError, type AbortableReadOptions, type PgError } from '@/lib/transientRead';
 
 export { retryPublicRead, retryIdempotentWrite };
 export { isTransientReadError as isTransientPublicError, type PgError } from '@/lib/transientRead';
@@ -119,15 +119,16 @@ const PUBLIC_BRANDING_COLUMNS =
 export async function fetchStoreProducts(
   orgId: string,
   storeSlug?: string,
+  options: AbortableReadOptions = {},
 ): Promise<LecturaPublica<CatalogProduct[]>> {
   // La vitrina se identifica por slug. Con varias tiendas sobre el mismo Core,
   // consultar sólo por organización perdería la configuración comercial de la
   // tienda y, en vistas heredadas, podría duplicar cada producto.
   if (storeSlug) {
-    const canonical = await retryPublicRead(() => supabase.rpc(
+    const canonical = await retryAbortableRead(signal => supabase.rpc(
       'get_store_catalog_products',
       { p_slug: storeSlug },
-    ));
+    ).abortSignal(signal), options);
     if (!canonical.error) {
       return { ok: true, data: (canonical.data ?? []) as unknown as CatalogProduct[] };
     }
@@ -147,12 +148,12 @@ export async function fetchStoreProducts(
   // ⚠️ Un error de red no es un catálogo vacío. Devolver `[]` hacía que la
   // home mostrara "0 productos" con la tienda llena — el mismo `?? []` que
   // este archivo existe para evitar.
-  const view = await retryPublicRead(() => supabase
+  const view = await retryAbortableRead(signal => supabase
     .from('store_catalog_products')
     .select(STORE_PRODUCT_COLUMNS_WITH_DECANTS)
     .eq('org_id', orgId)
     .order('featured', { ascending: false })
-    .order('name'));
+    .order('name').abortSignal(signal), options);
 
   if (!view.error) return { ok: true, data: (view.data ?? []) as unknown as CatalogProduct[] };
   if (!isMissingRelation(view.error)) {
@@ -161,12 +162,12 @@ export async function fetchStoreProducts(
   }
 
   warnFallback('store_catalog_products');
-  const previa = await retryPublicRead(() => supabase
+  const previa = await retryAbortableRead(signal => supabase
     .from('catalog_products')
     .select(PRODUCT_COLUMNS_WITH_DECANTS)
     .eq('org_id', orgId)
     .order('featured', { ascending: false })
-    .order('name'));
+    .order('name').abortSignal(signal), options);
   if (!previa.error) return { ok: true, data: (previa.data ?? []) as unknown as CatalogProduct[] };
   if (!isMissingRelation(previa.error)) {
     console.error('[catálogo] error leyendo catalog_products:', previa.error.message);
@@ -174,13 +175,13 @@ export async function fetchStoreProducts(
   }
 
   warnFallback('catalog_products');
-  const raw = await retryPublicRead(() => supabase
+  const raw = await retryAbortableRead(signal => supabase
     .from('products')
     .select(PRODUCT_COLUMNS)
     .eq('org_id', orgId)
     .gt('sale_price_ars', 0)
     .order('featured', { ascending: false })
-    .order('name'));
+    .order('name').abortSignal(signal), options);
 
   if (raw.error) {
     console.error('[catálogo] error leyendo products:', raw.error.message);
@@ -865,16 +866,16 @@ export interface StoreVariant {
  * RPC todavía no existe, para que la tienda pueda distinguir "no hay
  * variantes" de "no puedo saberlo" y no oculte productos por error.
  */
-export async function fetchStoreVariants(slug: string): Promise<StoreVariant[] | null> {
-  const { data, error } = await retryPublicRead(() =>
-    supabase.rpc('get_store_variants', { p_slug: slug }));
+export async function fetchStoreVariants(slug: string, options: AbortableReadOptions = {}): Promise<StoreVariant[] | null> {
+  const { data, error } = await retryAbortableRead(signal =>
+    supabase.rpc('get_store_variants', { p_slug: slug }).abortSignal(signal), options);
   if (!error) return (data ?? []) as unknown as StoreVariant[];
   if (isMissingFunction(error)) {
     warnFallback('get_store_variants');
     return null;
   }
   console.error('[tienda] error leyendo variantes:', error.message);
-  return null;
+  throw error;
 }
 
 export async function fetchCatalogVariants(productId: string) {

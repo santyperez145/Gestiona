@@ -35,6 +35,7 @@ import {
 } from "@/lib/storeCartSync";
 import { storeVisitAttribution, storeVisitToken } from "@/lib/storeVisitAttribution";
 import { useStoreAuth } from "./storeAuth";
+import { retryAbortableRead } from "@/lib/transientRead";
 
 export interface StoreInfo {
   org_id: string;
@@ -289,17 +290,19 @@ export function StoreProvider({
   // ── Carga de la tienda ──────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
+    const readOptions = { signal: controller.signal };
     setLoading(true);
     setNotFound(false);
     setLoadError(false);
 
     (async () => {
-      const storeResponse = await retryPublicRead(() => previewVersionId
+      const storeResponse = await retryAbortableRead(signal => (previewVersionId
         ? supabase.rpc("get_store_theme_preview", {
           p_slug: slug,
           p_version_id: previewVersionId,
         })
-        : supabase.rpc("get_store_by_slug", { p_slug: slug }));
+        : supabase.rpc("get_store_by_slug", { p_slug: slug })).abortSignal(signal), readOptions);
       if (storeResponse.error) {
         console.error("[tienda] error leyendo la tienda:", storeResponse.error.message);
         if (!cancelled) { setLoadError(true); setLoading(false); }
@@ -324,14 +327,14 @@ export function StoreProvider({
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
-        fetchStoreProducts(row.org_id, row.slug),
-        retryPublicRead(() => supabase.rpc("get_store_perfume_details", { p_slug: slug })),
-        fetchStoreVariants(slug),
-        retryPublicRead(() => supabase.rpc("get_store_reviews", { p_slug: slug })),
-        retryPublicRead(() => supabase.rpc("get_store_pages", { p_slug: slug })),
-        retryPublicRead(() => supabase.rpc("get_store_banners", { p_slug: slug })),
-        retryPublicRead(() => supabase.rpc("get_store_categories", { p_slug: slug })),
-        retryPublicRead(() => supabase.rpc("get_store_quantity_discounts", { p_slug: slug })),
+        fetchStoreProducts(row.org_id, row.slug, readOptions),
+        retryAbortableRead(signal => supabase.rpc("get_store_perfume_details", { p_slug: slug }).abortSignal(signal), readOptions),
+        fetchStoreVariants(slug, readOptions),
+        retryAbortableRead(signal => supabase.rpc("get_store_reviews", { p_slug: slug }).abortSignal(signal), readOptions),
+        retryAbortableRead(signal => supabase.rpc("get_store_pages", { p_slug: slug }).abortSignal(signal), readOptions),
+        retryAbortableRead(signal => supabase.rpc("get_store_banners", { p_slug: slug }).abortSignal(signal), readOptions),
+        retryAbortableRead(signal => supabase.rpc("get_store_categories", { p_slug: slug }).abortSignal(signal), readOptions),
+        retryAbortableRead(signal => supabase.rpc("get_store_quantity_discounts", { p_slug: slug }).abortSignal(signal), readOptions),
       ]);
       if (cancelled) return;
 
@@ -381,11 +384,13 @@ export function StoreProvider({
       setReglasCantidad((qRes?.data ?? []) as unknown as ReglaCantidad[]);
       setLoading(false);
     })().catch(error => {
+      controller.abort();
+      if (cancelled) return;
       console.error('[tienda] carga interrumpida', { code: error?.code ?? 'transport' });
       if (!cancelled) { setLoadError(true); setLoading(false); }
     });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [slug, previewVersionId, reloadTick]);
 
   // ── Carrito persistido ──────────────────────────────────────────────────
@@ -426,7 +431,7 @@ export function StoreProvider({
   // renueva la actividad; después de 30 minutos la capacidad rota. El RPC
   // hashea el token y conserva sólo primera fuente/medio/campaña + hostname.
   useEffect(() => {
-    if (loading || !store) return;
+    if (loading || loadError || !store) return;
     if (previewMode) {
       setVisitToken("");
       setVisitRecordReady(true);
@@ -457,7 +462,7 @@ export function StoreProvider({
       if (!cancelled) setVisitRecordReady(true);
     });
     return () => { cancelled = true; };
-  }, [loading, location.pathname, location.search, previewMode, slug, store]);
+  }, [loading, loadError, location.pathname, location.search, previewMode, slug, store]);
 
   // Sincronización multi-pestaña: si el comprador
   // agrega un ítem o finaliza el checkout en otra pestaña, esta pestaña refleja
@@ -590,7 +595,8 @@ export function StoreProvider({
   // una del dispositivo y otra de la cuenta, devuelve ambas consolidadas. La
   // vista se rearma siempre con catálogo actual para no revivir precio/stock.
   useEffect(() => {
-    if (loading || buyerIdentityLoading || !store || !cartToken) return;
+    // Never reconcile a saved cart against an unavailable/partial catalog.
+    if (loading || loadError || buyerIdentityLoading || !store || !cartToken) return;
     if (previewMode) {
       setCartHydrated(true);
       setCartSyncStatus("local");
@@ -642,14 +648,14 @@ export function StoreProvider({
     });
 
     return () => { cancelled = true; };
-  }, [loading, buyerIdentityLoading, buyerSession?.user.id, buyerCustomer?.id, store, slug, cartToken, products, variantsByProduct, priceOf, persist, previewMode]);
+  }, [loading, loadError, buyerIdentityLoading, buyerSession?.user.id, buyerCustomer?.id, store, slug, cartToken, products, variantsByProduct, priceOf, persist, previewMode]);
 
   // Debounce corto: el carrito sigue respondiendo en memoria, y una ráfaga de
   // clics en + termina en una sola escritura. Los errores quedan visibles en
   // consola y en la UI; no se convierten en un falso “carrito vacío”.
   useEffect(() => {
     if (previewMode) return;
-    if (!cartHydrated || loading || !store || !cartToken || !visitToken || !visitRecordReady) return;
+    if (!cartHydrated || loading || loadError || !store || !cartToken || !visitToken || !visitRecordReady) return;
     let cancelled = false;
     setCartSyncStatus("syncing");
     const timeout = window.setTimeout(() => {
@@ -669,7 +675,7 @@ export function StoreProvider({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [cart, cartEmail, cartHydrated, cartToken, loading, previewMode, slug, store, visitRecordReady, visitToken]);
+  }, [cart, cartEmail, cartHydrated, cartToken, loading, loadError, previewMode, slug, store, visitRecordReady, visitToken]);
 
   const fmt = useCallback((n: number) =>
     new Intl.NumberFormat("es-AR", {

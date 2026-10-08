@@ -121,7 +121,7 @@ sigue abierto como certificación operacional.
   de 80 mm con impresión opt-in/reimpresión. SQL reversible con nueve rechazos,
   idempotencia/refund y cero restos; no certifica dinero/hardware/ARCA reales.
   Contrato, matriz y evidencias: [POS operativo](docs/POS_OPERACION.md).
-- Release 2026-10-08: [replay](docs/MIGRATION_REPLAY.md) de 665 migraciones y QR/roles sin residuos; 3.780 tests locales. [Backend QR](docs/POS_OPERACION.md) v15/v66 + guard productivo; frontend por gates protegidos de cada SHA.
+- Release 2026-10-08: [replay](docs/MIGRATION_REPLAY.md) de 665 migraciones y QR/roles sin residuos; Auth/POS integrados y Vercel READY `b62af837`. CI posterior detectó lectura de tienda colgada: timeout/cancelación/retry en corrección con gate propio; [QR](docs/POS_OPERACION.md) v15/v66 + guard productivo.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.
