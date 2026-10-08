@@ -131,7 +131,8 @@ interface Factura {
 
 const ETIQUETA_ESTADO: Record<string, { texto: string; clase: string }> = {
   active:   { texto: "Activa",           clase: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
-  trialing: { texto: "Prueba gratuita",  clase: "bg-blue-500/12 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+  trialing: { texto: "Prueba de extras", clase: "bg-blue-500/12 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+  commerce_free: { texto: "Comercio gratuito", clase: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
   past_due: { texto: "Pago pendiente",   clase: "bg-destructive/12 text-destructive border-destructive/20" },
   paused:   { texto: "Pausada",          clase: "bg-yellow-500/12 text-yellow-700 dark:text-yellow-400 border-yellow-500/20" },
   canceled: { texto: "Cancelada",        clase: "bg-muted text-muted-foreground border-border" },
@@ -141,7 +142,7 @@ const ETIQUETA_ESTADO: Record<string, { texto: string; clase: string }> = {
 export default function MiPlanPage() {
   usePageTitle("Mi plan");
   const { activeOrg, activeRole } = useOrg();
-  const { planVigente, productLimit, userLimit, salesLimit } = useEntitlements();
+  const { planVigente, motivoDeCorte, productLimit, userLimit, salesLimit } = useEntitlements();
   const canSubscribe = activeRole === 'owner' || activeRole === 'admin';
   const { ask, dialog } = useConfirmDialog();
 
@@ -211,7 +212,8 @@ export default function MiPlanPage() {
     window.location.href = link;
   };
 
-  const estadoActual = sub?.estado ?? "sin_suscripcion";
+  const esInicial = sub?.plan?.code === 'trial';
+  const estadoActual = motivoDeCorte === 'prueba_finalizada' ? 'commerce_free' : (sub?.estado ?? "sin_suscripcion");
   /**
    * ⚠️ El cartel decía «Pago pendiente» a quien acababa de darse de baja. El
    * estado en la base sigue siendo `past_due` hasta que el barrido horario lo
@@ -247,7 +249,7 @@ export default function MiPlanPage() {
           </div>
         ) : estadoActual === "sin_suscripcion" ? (
           <p className="text-sm text-muted-foreground">
-            Todavía no tenés un plan contratado. Elegí uno abajo.
+            Tu comercio es gratuito. Podés sumar los extras de un plan cuando los necesites.
           </p>
         ) : (
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -256,7 +258,7 @@ export default function MiPlanPage() {
               <p className="text-xl font-semibold">{sub?.plan?.name ?? "—"}</p>
               {estadoActual !== "sin_suscripcion" && (
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {sub?.precio_ars != null
+                  {esInicial ? 'Comercio gratuito, sin débito periódico.' : sub?.precio_ars != null
                     ? <>Pagás <span className="font-medium text-foreground">{formatARS(sub.precio_ars)}</span>{sub?.ciclo === "anual" ? " por año" : " por mes"}</>
                     : "No tenemos registro del monto: revisalo en tu resumen de MercadoPago"}
                 </p>
@@ -266,11 +268,11 @@ export default function MiPlanPage() {
               </span>
             </div>
 
-            {sub?.renueva_el && (
+            {sub?.renueva_el && estadoActual !== 'commerce_free' && (
               <div className="text-right">
                 <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
                   <Calendar className="w-3 h-3" />
-                  {sub.cancela_al_final ? "Vence el" : "Renueva el"}
+                  {esInicial ? 'Fin de la prueba de extras' : sub.cancela_al_final ? "Vence el" : "Renueva el"}
                 </p>
                 <p className="text-sm font-medium">
                   {new Date(sub.renueva_el).toLocaleDateString("es-AR")}
@@ -302,7 +304,7 @@ export default function MiPlanPage() {
           * Que la baja esté en otra pantalla es una fricción puesta a
           * propósito, y de las que se pagan con una queja pública.
           */}
-        {!sub?.cancela_al_final
+        {!esInicial && canSubscribe && !sub?.cancela_al_final
           && ["active", "past_due", "trialing"].includes(estadoActual) && (
           <div className="mt-4 flex justify-end">
             <Button

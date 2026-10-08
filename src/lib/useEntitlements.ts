@@ -231,7 +231,7 @@ export function useEntitlements(): Entitlements {
   const motivoLocal: Entitlements['motivoDeCorte'] =
     sub?.status === 'canceled' ? 'cancelado'
     : sub?.status === 'paused' ? 'pausado'
-    : sub?.status === 'past_due' && graciaLocal === 0 ? 'impago'
+    : sub?.status === 'past_due' && graciaLocal === 0 && plan?.code !== 'trial' ? 'impago'
     : plan?.code === 'trial' && (!activeOrg?.trial_ends_at || new Date(activeOrg.trial_ends_at) <= new Date()) ? 'prueba_finalizada'
     : null;
 

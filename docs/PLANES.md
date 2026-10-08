@@ -27,7 +27,8 @@ Permisos, cuotas de API, límites de archivo y controles de abuso permanecen.
 ## Una autoridad
 
 - `org_entitlements` decide vigencia, gracia, extras, cupos y límites efectivos.
-  La expiración de la prueba se comprueba por request, sin esperar el cron.
+  La expiración de la prueba se comprueba por request, sin esperar el cron;
+  su estado `past_due` heredado no se presenta como una deuda de un plan pago.
 - `organization_plan_limits`, `get_sales_plan_usage`, triggers e importación
   conservan esa autoridad; `usePlanLimits` usa los límites efectivos, no los
   límites crudos de una suscripción vencida.

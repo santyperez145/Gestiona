@@ -44,6 +44,14 @@ DO $$ DECLARE c record; e jsonb; BEGIN
   ASSERT (e->>'ia_restante')::int = 0, 'Expired trial keeps AI allowance';
 END $$;
 RESET ROLE;
+UPDATE public.subscriptions SET status='past_due', current_period_end=now()-interval '9 days' WHERE org_id IN (SELECT org_id FROM zz_plan_context);
+SET LOCAL ROLE authenticated;
+DO $$ DECLARE e jsonb; BEGIN
+  e := public.org_entitlements((SELECT org_id FROM zz_plan_context));
+  ASSERT e->>'motivo_de_corte'='prueba_finalizada', 'Hourly cron must not turn a free trial into unpaid debt';
+  ASSERT NOT (e->>'ia')::boolean AND (e->>'commerce_gratuito')::boolean, 'Aged free trial state wrong';
+END $$;
+RESET ROLE;
 UPDATE public.subscriptions s SET plan_id=c.paid_id, status='active', current_period_end=now()+interval '20 days' FROM zz_plan_context c WHERE s.org_id=c.org_id;
 SET LOCAL ROLE authenticated;
 DO $$ DECLARE c record; e jsonb; BEGIN
@@ -61,6 +69,7 @@ SET LOCAL ROLE authenticated;
 DO $$ DECLARE e jsonb; BEGIN
   e := public.org_entitlements((SELECT org_id FROM zz_plan_context));
   ASSERT NOT (e->>'ia')::boolean AND (e->>'commerce_gratuito')::boolean, 'Expired paid status wrong';
+  ASSERT e->>'motivo_de_corte'='impago', 'Paid debt must retain its own notice';
   ASSERT e->'max_products'='null'::jsonb AND e->'max_users'='null'::jsonb AND e->'max_sales_per_month'='null'::jsonb, 'Past due commerce restricted';
 END $$;
 RESET ROLE;

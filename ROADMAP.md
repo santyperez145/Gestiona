@@ -125,7 +125,7 @@ sigue abierto como certificación operacional.
 - Toolchain 2026-10-07: `source-map-js` 1.2.2 y `postcss-selector-parser` 7.1.6
   corrigen los dos advisories nuevos detectados por el gate. No se amplía la
   excepción `braces` existente ni se introduce una migración de framework.
-- Validación local del 2026-10-08: `npm run verify` pasa 3.824 tests en 427
+- Validación local del 2026-10-08: `npm run verify` pasa 3.826 tests en 427
   archivos, funciones, lint sin errores, tipos y build. Runtime sin hallazgos;
   toolchain conserva la excepción temporal documentada más abajo.
   POS agrega ocho E2E sintéticos desktop/móvil con impresión y accesibilidad.
