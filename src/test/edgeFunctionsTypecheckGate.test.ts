@@ -21,7 +21,7 @@ describe("guardia de tipos de Edge Functions", () => {
     // 85 al 2026-10-04: incorpora `trusted-device`, autoridad de dispositivos
     // recordados; no agrega un proveedor de identidad ni guarda códigos OTP.
     // El número está fijo a propósito: agregar una Edge Function tiene que ser una decisión visible.
-    expect(count).toBe(85);
+    expect(count).toBe(86);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

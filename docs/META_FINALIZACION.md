@@ -16,7 +16,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Fiscal Health en ARCA: datos, conexión, delegación, ambiente, rechazos, pendientes y CAE reciente (puntaje 0–100).
 - [ ] Vigencia del certificado de plataforma y alertas 60/30/7 días en Platform.
 - [ ] Advertencias de CAE otorgado persistidas (tope Monotributo y otras).
-- [ ] Nota de Débito asociada con saldo/IVA por alícuota.
+- [x] Nota de Débito asociada a factura autorizada (A/B/C), con CbtesAsoc en WSFE.
 - [ ] Alta fiscal guiada: padrón (`ws_sr_constancia_inscripcion`), delegación paso a paso, detección de puntos CAE, autotest y factura de homologación.
 - [ ] Facturación automática configurable (Commerce/POS) y por lote con resultado por pedido.
 - [ ] Asistente de renovación de certificado (60/30/7 días).

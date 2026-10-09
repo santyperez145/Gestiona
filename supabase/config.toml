@@ -84,3 +84,9 @@ verify_jwt = false
 # weekly-backup: "30 3 * * 0" (domingos 03:30 UTC), sólo si existe
 # BACKUP_CRON_SECRET tanto en Vault como en Edge Functions. D8a crea snapshots
 # con integridad verificable; el restore destructivo sigue bloqueado por drill.
+
+# Cron cada 10 minutos (20260925011000): la autenticación es x-cron-secret
+# dentro de la función (exigirCron); el código se recuperó de la versión
+# desplegada el 2026-10-09 porque nunca había entrado al repo.
+[functions.reconcile-store-refunds]
+verify_jwt = false
