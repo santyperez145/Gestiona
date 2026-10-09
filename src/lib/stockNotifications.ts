@@ -27,12 +27,3 @@ export async function checkStockAfterSale(productId: string, productName: string
     });
   }
 }
-
-export async function checkAllLowStock(userId: string): Promise<Array<{ name: string; stock: number }>> {
-  const orgId = getActiveOrgId();
-  if (!orgId) return [];
-  const threshold = await getThreshold(orgId);
-  const { data: products } = await fetchOrgProducts(orgId, 'id, name, stock', (q) => q.lte('stock', threshold));
-
-  return (products || []).sort((a: { stock: number }, b: { stock: number }) => a.stock - b.stock);
-}

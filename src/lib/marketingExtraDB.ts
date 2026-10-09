@@ -30,14 +30,6 @@ export async function listStoryTemplates() {
   if (error) throw error;
   return data || [];
 }
-
-// ===== Industry Presets (no hardcode) =====
-export async function listIndustries() {
-  const { data, error } = await supabase.from('industry_presets').select('*').eq('active', true).order('sort_order');
-  if (error) throw error;
-  return data || [];
-}
-
 // ===== Banners =====
 export async function listBanners() {
   const orgId = requireActiveOrgId();
@@ -168,15 +160,4 @@ export async function updateBrandKnowledge(id: string, updates: any) {
 export async function deleteBrandKnowledge(id: string) {
   const { error } = await supabase.from('brand_knowledge').delete().eq('id', id);
   if (error) throw error;
-}
-
-// ===== Influencer settlements =====
-export async function listInfluencerSalesByPeriod(opts: { from: string; to: string; influencerId?: string; onlyUnpaid?: boolean }) {
-  const orgId = requireActiveOrgId();
-  let q = supabase.from('influencer_sales').select('*').eq('org_id', orgId).gte('created_at', opts.from).lte('created_at', opts.to).order('created_at', { ascending: false });
-  if (opts.influencerId) q = q.eq('influencer_id', opts.influencerId);
-  if (opts.onlyUnpaid) q = q.eq('paid', false);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data || [];
 }

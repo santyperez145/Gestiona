@@ -761,13 +761,6 @@ export async function upsertSellerGoalDB(goal: any) {
   const { error } = await supabase.from('seller_goals').upsert(goal, { onConflict: 'user_id,month' });
   if (error) throw error;
 }
-
-export async function getMyGoalsDB(userId: string) {
-  const { data, error } = await supabase.from('seller_goals').select('*').eq('user_id', userId).order('month', { ascending: false }).limit(3);
-  if (error) throw error;
-  return data || [];
-}
-
 // ========= PRODUCT VARIANTS =========
 export async function getVariantsDB(productId: string) {
   const { data, error } = await supabase.from('product_variants').select('*').eq('product_id', productId).order('variant_name');
@@ -922,12 +915,6 @@ export function dateToNoon(dateStr: string) {
 export function getCategoryLabel(cat: string) {
   return nombreDeCategoria(cat);
 }
-
-export function getGenderLabel(g: string) {
-  const map: Record<string, string> = { masculino: 'Masculino', femenino: 'Femenino', unisex: 'Unisex' };
-  return map[g] || g;
-}
-
 export function calculateProductProfits(costUSD: number, customsPercent: number, salePriceARS: number, exchangeRate: number) {
   const customsFee = costUSD * (customsPercent / 100);
   const totalCostUSD = costUSD + customsFee;
@@ -1032,14 +1019,6 @@ export async function deleteExpenseDB(id: string) {
   const { error } = await supabase.from('expenses').delete().eq('id', id);
   if (error) throw error;
 }
-
-export function getMonthlyExpenses(expenses: any[], year: number, month: number) {
-  return expenses.filter(e => {
-    const d = new Date(e.date);
-    return d.getFullYear() === year && d.getMonth() === month;
-  });
-}
-
 // Default fallback. Real categories come from settings.expense_categories per-user.
 export const EXPENSE_CATEGORIES = [
   { value: 'alquiler', label: 'Alquiler', color: 'hsl(20, 70%, 50%)' },

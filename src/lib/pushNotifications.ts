@@ -34,12 +34,6 @@ export function isPushSupported(): boolean {
     "Notification" in window
   );
 }
-
-/** Returns the current notification permission status. */
-export function getNotificationPermission(): NotificationPermission {
-  return Notification.permission;
-}
-
 /** Returns current push subscription or null. */
 export async function getCurrentSubscription(): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null;

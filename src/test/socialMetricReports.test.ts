@@ -95,7 +95,6 @@ describe("métricas sociales verificadas por evidencia", () => {
 
   it("el frontend llama los RPC con la firma real y muestra el sello en descubrimiento", () => {
     expect(db).toContain("sb.rpc('list_social_metric_reports', { p_org_id: orgId })");
-    expect(db).toContain("p_engagement_rate: input.engagement_rate ?? null");
     expect(db).toContain("verified_metrics: boolean");
     expect(db).toContain("last_verified_at: string | null");
     // La pestaña de pagos monta la bandeja de revisión.

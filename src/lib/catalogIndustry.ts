@@ -17,14 +17,6 @@
  * (legado / org sin Profiler) la categoría heredada sigue abriendo la ficha.
  */
 
-export const CATEGORIAS_PERFUME = ["perfume_arabe", "perfume_diseñador"] as const;
-export const CATEGORIAS_VAPER = ["vaper", "liquido"] as const;
-
-/** Slugs de `product_types` sembrados por el Business Profiler. */
-export const TIPOS_PERFUME = ["perfume"] as const;
-export const TIPOS_VAPER = ["dispositivo-vape", "e-liquid"] as const;
-export const TIPOS_TECNOLOGIA = ["tecnologia"] as const;
-
 export function esCategoriaPerfume(slug: string | null | undefined): boolean {
   return slug === "perfume_arabe" || slug === "perfume_diseñador";
 }

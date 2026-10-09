@@ -27,12 +27,6 @@ interface PolicyRow {
 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
-
-export function useActiveRole() {
-  const { activeRole } = useOrg();
-  return activeRole;
-}
-
 export default function FinancePolicyPanel() {
   const { activeOrg, activeRole } = useOrg();
   const queryClient = useQueryClient();

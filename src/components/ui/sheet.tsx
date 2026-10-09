@@ -5,9 +5,7 @@ import { cn } from '@/lib/utils';
 import { DialogOverlay } from '@/components/ui/dialog';
 
 export const Sheet = Primitive.Root;
-export const SheetTrigger = Primitive.Trigger;
-export const SheetClose = Primitive.Close;
-export const SheetPortal = Primitive.Portal;
+export const SheetTrigger = Primitive.Trigger;export const SheetPortal = Primitive.Portal;
 export const SheetOverlay = DialogOverlay;
 
 export interface SheetContentProps extends Omit<React.ComponentPropsWithoutRef<typeof Primitive.Content>, 'title'> {

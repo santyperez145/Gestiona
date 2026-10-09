@@ -41,11 +41,6 @@ describe("descubrimiento con reputación verificada — elegir con datos, no a c
     expect(page).toContain("Mejor rating");
   });
 
-  it("la reputación llega en UNA llamada batch (RPC), no N+1 por tarjeta", () => {
-    expect(db).toContain("influencer_reputation_map");
-    expect(db).toContain("new Map(rows.map");
-  });
-
   it("el RPC de reputación es server-side, con guard de permiso y scope por org", () => {
     expect(migration).toContain("can_manage_influencers(p_org_id, 'view')");
     expect(migration).toContain("WHERE i.org_id = p_org_id");

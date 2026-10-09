@@ -147,8 +147,3 @@ export const seedProductsList = rawProducts.map(raw => {
     stock: raw.stock,
   };
 });
-
-// Legacy localStorage seed (kept for backward compat)
-export function seedProducts() {
-  // No-op now — seeding happens via Supabase
-}

@@ -62,10 +62,6 @@ export const useIsDesktop = () => useMediaQuery("(min-width: 1024px)");
 
 /** True when viewport width ≥ 1280px (large screens) */
 export const useIsLarge = () => useMediaQuery("(min-width: 1280px)");
-
-/** True when viewport width ≥ 1536px (XL screens) */
-export const useIsXL = () => useMediaQuery("(min-width: 1536px)");
-
 /** True when OS / browser prefers dark color scheme */
 export const usePrefersDark = () =>
   useMediaQuery("(prefers-color-scheme: dark)");
@@ -73,25 +69,3 @@ export const usePrefersDark = () =>
 /** True when user has requested reduced motion */
 export const useReducedMotion = () =>
   useMediaQuery("(prefers-reduced-motion: reduce)");
-
-/** True when device has a coarse pointer (touch screen) */
-export const useIsTouchDevice = () => useMediaQuery("(pointer: coarse)");
-
-/** True when device can hover (mouse / trackpad) */
-export const useCanHover = () => useMediaQuery("(hover: hover)");
-
-/**
- * Returns the current Tailwind-like breakpoint name.
- * "sm" | "md" | "lg" | "xl" | "2xl"
- */
-export function useBreakpoint(): "sm" | "md" | "lg" | "xl" | "2xl" {
-  const is2xl = useMediaQuery("(min-width: 1536px)");
-  const isXl  = useMediaQuery("(min-width: 1280px)");
-  const isLg  = useMediaQuery("(min-width: 1024px)");
-  const isMd  = useMediaQuery("(min-width: 768px)");
-  if (is2xl) return "2xl";
-  if (isXl)  return "xl";
-  if (isLg)  return "lg";
-  if (isMd)  return "md";
-  return "sm";
-}

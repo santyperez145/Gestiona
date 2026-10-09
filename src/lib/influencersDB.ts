@@ -235,11 +235,6 @@ export async function updateDeliverable(id: string, updates: Partial<InfluencerD
   if (error) throw error;
 }
 
-export async function completeDeliverable(id: string): Promise<void> {
-  const { error } = await sb.from('influencer_deliverables').update({ status: 'completado', delivery_date: new Date().toISOString() }).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
-  if (error) throw error;
-}
-
 export async function deleteDeliverable(id: string): Promise<void> {
   const { error } = await sb.from('influencer_deliverables').delete().eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
@@ -348,45 +343,12 @@ export function heldPaymentLabel(p: Pick<InfluencerPaymentRelease, 'is_payable' 
   return 'Retenido hasta publicación';
 }
 
-export async function createPayment(payload: Partial<InfluencerPayment> & { org_id: string; influencer_id: string }): Promise<InfluencerPayment> {
-  const orgId = requireActiveOrgId();
-  const { data, error } = await sb.from('influencer_payments').insert({ ...payload, org_id: orgId }).select().single();
-  if (error) throw error;
-  return data as InfluencerPayment;
-}
-
-export async function updatePayment(id: string, updates: Partial<InfluencerPayment>) {
-  const { error } = await sb.from('influencer_payments').update(updates).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
-  if (error) throw error;
-}
-
-export async function processPayment(id: string): Promise<void> {
-  throw new Error('Los pagos requieren un proveedor conectado y confirmación del servidor.');
-}
-
 /** ─── Brand Portal ─── */
 export async function listBrandPortals(): Promise<BrandPortalProfile[]> {
   const orgId = requireActiveOrgId();
   const { data, error } = await sb.from('brand_portal_profiles').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as BrandPortalProfile[];
-}
-
-export async function createBrandPortal(payload: Partial<BrandPortalProfile> & { org_id: string; influencer_id: string }): Promise<BrandPortalProfile> {
-  const orgId = requireActiveOrgId();
-  const { data, error } = await sb.from('brand_portal_profiles').insert({ ...payload, org_id: orgId }).select().single();
-  if (error) throw error;
-  return data as BrandPortalProfile;
-}
-
-export async function updateBrandPortal(id: string, updates: Partial<BrandPortalProfile>) {
-  const { error } = await sb.from('brand_portal_profiles').update(updates).eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
-  if (error) throw error;
-}
-
-export async function deleteBrandPortal(id: string): Promise<void> {
-  const { error } = await sb.from('brand_portal_profiles').delete().eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
-  if (error) throw error;
 }
 
 /** ─── Influencers (CRUD básico) ─── */
@@ -411,13 +373,6 @@ export async function updateInfluencer(id: string, updates: Partial<Influencer>)
 export async function deleteInfluencer(id: string): Promise<void> {
   const { error } = await sb.from('influencers').delete().eq('org_id', requireActiveOrgId()).eq('id', id).select('id').single();
   if (error) throw error;
-}
-
-export async function findInfluencerByCode(referralCode: string): Promise<Influencer | null> {
-  const orgId = requireActiveOrgId();
-  const { data, error } = await sb.from('influencers').select('*').eq('org_id', orgId).eq('referral_code', referralCode).single();
-  if (error) return null;
-  return data as Influencer;
 }
 
 export async function createInfluencerProfile(payload: Partial<Influencer> & { org_id?: string }) {
@@ -474,16 +429,6 @@ export async function respondInfluencerInvitation(token: string, action: 'accept
   const { data, error } = await sb.rpc('respond_influencer_invitation', { p_token: token, p_action: action });
   if (error) throw error;
   return String(data);
-}
-
-/** ─── Reviews y reputación (rating real, no valores fijos) ─── */
-export async function listInfluencerReviews(influencerId?: string): Promise<InfluencerReview[]> {
-  const orgId = requireActiveOrgId();
-  let q = sb.from('influencer_reviews').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
-  if (influencerId) q = q.eq('influencer_id', influencerId);
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data || []) as InfluencerReview[];
 }
 
 export async function createInfluencerReview(payload: {
@@ -652,13 +597,6 @@ export type InfluencerReputation = {
   last_verified_at: string | null;
 };
 
-export async function listInfluencerReputation(orgId: string): Promise<Map<string, InfluencerReputation>> {
-  const { data, error } = await sb.rpc('influencer_reputation_map', { p_org_id: orgId });
-  if (error) throw error;
-  const rows = (data ?? []) as InfluencerReputation[];
-  return new Map(rows.map(row => [row.influencer_id, row]));
-}
-
 /** ─── Métricas sociales verificadas (Go-Marz parity) ─── */
 export type SocialMetricReport = {
   id: string;
@@ -686,36 +624,6 @@ export async function listSocialMetricReports(orgId: string): Promise<SocialMetr
   const { data, error } = await sb.rpc('list_social_metric_reports', { p_org_id: orgId });
   if (error) throw error;
   return (data ?? []) as SocialMetricReport[];
-}
-
-export async function submitSocialMetricReport(input: {
-  influencer_id: string;
-  platform: SocialMetricReport['platform'];
-  evidence_url: string;
-  period_start: string;
-  period_end: string;
-  followers: number;
-  reach?: number | null;
-  impressions?: number | null;
-  engagement_rate?: number | null;
-  metric_kind?: 'captura' | 'export_csv';
-  notes?: string | null;
-}): Promise<SocialMetricReport> {
-  const { data, error } = await sb.rpc('submit_social_metric_report', {
-    p_influencer_id: input.influencer_id,
-    p_platform: input.platform,
-    p_evidence_url: input.evidence_url,
-    p_period_start: input.period_start,
-    p_period_end: input.period_end,
-    p_followers: input.followers,
-    p_reach: input.reach ?? null,
-    p_impressions: input.impressions ?? null,
-    p_engagement_rate: input.engagement_rate ?? null,
-    p_metric_kind: input.metric_kind ?? 'captura',
-    p_notes: input.notes ?? null,
-  });
-  if (error) throw error;
-  return data as SocialMetricReport;
 }
 
 export async function reviewSocialMetricReport(
