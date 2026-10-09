@@ -74,6 +74,8 @@ interface Invoice {
   cae_vencimiento: string | null;
   afip_status: string | null;
   afip_error: string | null;
+  /** Avisos de ARCA con el CAE otorgado (no anulan la autorización). */
+  afip_observaciones?: { code: number; msg: string }[] | null;
   numero_afip: number | null;
   afip_environment: string | null;
   emisor_razon_social: string | null;
@@ -715,7 +717,7 @@ export default function InvoicesPage() {
       setInvoices([]);
       setLoadError(error.message);
     } else {
-      setInvoices((data || []) as Invoice[]);
+      setInvoices((data || []) as unknown as Invoice[]);
     }
     setLoading(false);
   }, [activeOrg]);
@@ -1472,6 +1474,12 @@ export default function InvoicesPage() {
                               <ShieldCheck className="w-3 h-3" />CAE
                             </span>
                           )}
+                          {inv.cae && !!inv.afip_observaciones?.length && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20"
+                              title={inv.afip_observaciones.map(o => `${o.code}: ${o.msg}`).join(" · ")}>
+                              <AlertTriangle className="w-3 h-3" />Con observaciones
+                            </span>
+                          )}
                           {inv.afip_status === "processing" && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20" title={inv.afip_error || "La respuesta de ARCA está en verificación"}>
                               <Loader2 className="w-3 h-3 animate-spin" />En verificación
@@ -1623,6 +1631,14 @@ export default function InvoicesPage() {
                           </p>
                           {inv.cae_vencimiento && (
                             <p className="text-xs text-muted-foreground">Vto. CAE: {fechaFiscalArgentina(inv.cae_vencimiento)}</p>
+                          )}
+                          {!!inv.afip_observaciones?.length && (
+                            <div className="mt-1 rounded-md border border-amber-500/25 bg-amber-500/5 p-2 text-[11px] text-amber-800 dark:text-amber-200">
+                              <p className="font-semibold">ARCA autorizó con observaciones</p>
+                              <ul className="mt-0.5 list-disc pl-4">
+                                {inv.afip_observaciones.map(o => <li key={o.code}>{o.msg} <span className="opacity-70">({o.code})</span></li>)}
+                              </ul>
+                            </div>
                           )}
                           {inv.numero_afip && tipoCbte && (
                             <p className="text-xs text-muted-foreground">

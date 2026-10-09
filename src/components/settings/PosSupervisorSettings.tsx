@@ -77,7 +77,7 @@ export default function PosSupervisorSettings({ orgId, canManage }: { orgId: str
     <div className="flex items-start justify-between gap-3 rounded-[8px] border border-border/60 p-3">
       <div>
         <Label htmlFor="pos-auto-invoice" className="text-sm">Facturar todas las ventas del POS</Label>
-        <p className="text-xs text-muted-foreground">Cada ticket nuevo arranca pidiendo factura ARCA (o tique-factura si la caja tiene controlador). El cajero puede apagarlo en un ticket puntual.</p>
+        <p className="text-xs text-muted-foreground">Cada ticket nuevo arranca pidiendo factura ARCA. El cajero puede apagarlo en un ticket puntual.</p>
       </div>
       <Switch id="pos-auto-invoice" checked={facturaAutomatica} disabled={cargando} onCheckedChange={value => void guardarFacturaAutomatica(value)} />
     </div>

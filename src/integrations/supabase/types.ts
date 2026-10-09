@@ -22821,6 +22821,7 @@ export type Database = {
           afip_candidate_set_at: string | null
           afip_environment: string | null
           afip_error: string | null
+          afip_observaciones: Json | null
           afip_status: string | null
           arca_qr_payload: Json | null
           cae: string | null
@@ -22875,6 +22876,7 @@ export type Database = {
           afip_candidate_set_at?: string | null
           afip_environment?: string | null
           afip_error?: string | null
+          afip_observaciones?: Json | null
           afip_status?: string | null
           arca_qr_payload?: Json | null
           cae?: string | null
@@ -22929,6 +22931,7 @@ export type Database = {
           afip_candidate_set_at?: string | null
           afip_environment?: string | null
           afip_error?: string | null
+          afip_observaciones?: Json | null
           afip_status?: string | null
           arca_qr_payload?: Json | null
           cae?: string | null

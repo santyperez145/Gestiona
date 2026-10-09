@@ -41,7 +41,7 @@ import {
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
 import { invoiceIvaXml } from "../_shared/invoiceIva.ts";
-import { ArcaReadError, assertEnabledPoint, leerSolicitudCaeWsfe, leerUltimoAutorizadoWsfe } from "../_shared/wsfeRespuesta.ts";
+import { ArcaReadError, assertEnabledPoint, leerSolicitudCaeWsfe, leerUltimoAutorizadoWsfe, type MensajeWsfe } from "../_shared/wsfeRespuesta.ts";
 import { ArcaAutorizacionError, resumirRechazoArca } from "../_shared/arcaRechazos.ts";
 
 const supabase = createClient(
@@ -672,7 +672,7 @@ Deno.serve(async (req) => {
     providerNumber = nextNumber;
 
     // ── Step 3: Request CAE ───────────────────────────────────
-    const { cae, caeVencimiento } = await solicitarCAE({
+    const { cae, caeVencimiento, observaciones } = await solicitarCAE({
       wsfeUrl,
       token: token_ta,
       sign: sign_ta,
@@ -699,6 +699,16 @@ Deno.serve(async (req) => {
       },
     );
     if (finalizeError) throw new Error("ARCA otorgó el CAE, pero no se pudo registrar la autorización");
+
+    // Avisos de ARCA con el CAE otorgado: no cambian la autorización, pero el
+    // comercio tiene que verlos. Si no se guardan, queda el log.
+    if (observaciones.length) {
+      const { error: obsError } = await supabase.rpc("afip_registrar_observaciones", {
+        p_invoice_id: invoiceId,
+        p_observaciones: observaciones,
+      });
+      if (obsError) console.error("[ARCA] No se guardaron las observaciones del CAE", { codigos: observaciones.map(o => o.code) });
+    }
 
     return ok(finalized || {
       ok: true,
@@ -972,7 +982,7 @@ async function solicitarCAE(args: {
   numero: number;
   invoice: any;
   associatedInvoice: AfipAssociatedVoucher | null;
-}): Promise<{ cae: string; caeVencimiento: string }> {
+}): Promise<{ cae: string; caeVencimiento: string; observaciones: MensajeWsfe[] }> {
   const { wsfeUrl, token, sign, cuit, puntoVenta, tipoCbte, numero, invoice, associatedInvoice } = args;
 
   const fecha = invoice.issue_date.replace(/-/g, "");
@@ -1055,7 +1065,7 @@ async function solicitarCAE(args: {
     if (respuesta.observaciones.length) {
       console.warn("[ARCA] CAE otorgado con observaciones", { codigos: respuesta.observaciones.map(o => o.code) });
     }
-    return { cae: respuesta.cae, caeVencimiento: respuesta.caeVencimiento ?? "" };
+    return { cae: respuesta.cae, caeVencimiento: respuesta.caeVencimiento ?? "", observaciones: respuesta.observaciones };
   }
 
   if (respuesta.resultado === "R" || respuesta.errores.length) {
