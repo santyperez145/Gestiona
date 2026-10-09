@@ -7,13 +7,6 @@ const ROOT = process.cwd();
 const leer = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
 
 describe("el catálogo no compite con la tienda que cobra", () => {
-  it("el panel arma el link canónico con enlaceCanonicoDeVitrina", () => {
-    const page = leer("src/pages/CatalogPage.tsx");
-    expect(page).toContain("enlaceCanonicoDeVitrina");
-    expect(page).toContain("ecommerce_stores");
-    expect(page).toContain("kind === \"tienda\"");
-  });
-
   it("el catálogo público manda a la tienda si hay slug publicado", () => {
     const page = leer("src/pages/PublicCatalogPage.tsx");
     const ds = leer("src/lib/publicDataSource.ts");

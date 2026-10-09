@@ -5,12 +5,11 @@ import {
   parseLinkExternalRef,
   parseQuoteExternalRef,
   pickCanonicalTotal,
-} from "@/lib/mpLinkAmount";
+} from "../../supabase/functions/_shared/mpLinkAmount";
 
 const root = process.cwd();
 const edge = () => readFileSync(join(root, "supabase/functions/mercadopago-link/index.ts"), "utf8");
 const shared = () => readFileSync(join(root, "supabase/functions/_shared/mpLinkAmount.ts"), "utf8");
-const mirror = () => readFileSync(join(root, "src/lib/mpLinkAmount.ts"), "utf8");
 
 describe("mpLinkAmount (autoridad del monto)", () => {
   it("parsea quote: y link:", () => {
@@ -46,10 +45,9 @@ describe("mpLinkAmount (autoridad del monto)", () => {
     expect(src).toContain('from("quotes")');
     expect(src).toContain("pickCanonicalTotal");
     expect(src).toContain("amount_source");
-    // Espejo: mismas funciones exportadas en shared y src/lib.
+    // Una sola implementación: la Edge Function y este test usan `_shared`.
     for (const name of ["parseQuoteExternalRef", "pickCanonicalTotal", "validateChargeTotal"]) {
       expect(shared()).toContain(name);
-      expect(mirror()).toContain(name);
     }
   });
 });

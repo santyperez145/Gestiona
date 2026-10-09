@@ -107,13 +107,6 @@ describe("el workspace no se presenta como una vertical si el comercio no lo es"
     expect(pagina).toContain("Compra vapers");
   });
 
-  it("el catálogo interno no ofrece filtros de perfume sin preguntar al catálogo", () => {
-    const pagina = leer("src/pages/CatalogPage.tsx");
-    expect(pagina).toContain("elCatalogoOperaPerfumes");
-    expect(pagina).toContain("operaPerfumes && (");
-    expect(pagina).toContain("Filtros de perfume");
-  });
-
   it("Reportes no consulta fichas olfativas si el comercio no opera perfumes", () => {
     const pagina = leer("src/pages/ReportsPage.tsx");
     expect(pagina).toContain("elCatalogoOperaPerfumes");

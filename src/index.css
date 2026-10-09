@@ -4786,36 +4786,6 @@
     border-radius: 0 !important;
   }
 
-  .catalog-vitrina-filter {
-    position: relative;
-    background: transparent;
-    color: hsl(var(--muted-foreground));
-    letter-spacing: -0.01em;
-  }
-
-  .catalog-vitrina-filter:hover {
-    color: hsl(var(--foreground));
-  }
-
-  .catalog-vitrina-filter.is-active {
-    color: hsl(var(--primary));
-  }
-
-  .catalog-vitrina-filter.is-active::after {
-    content: "";
-    position: absolute;
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: 0;
-    height: 2px;
-    background: hsl(var(--primary));
-  }
-
-  .catalog-vitrina-card {
-    border: 1px solid hsl(var(--border) / 0.75);
-    background: hsl(var(--card));
-  }
-
   .commerce-store-panel {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border) / 0.72);

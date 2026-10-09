@@ -199,7 +199,7 @@ describe("funciones SECURITY DEFINER expuestas", () => {
   });
 
   it("un webhook no puede apuntar a la red interna", () => {
-    // SSRF: el servidor visita esa URL. `src/lib/outbox.ts` ya lo validaba, pero
+    // SSRF: el servidor visita esa URL. el antiguo espejo de outbox en cliente ya lo validaba, pero
     // el cliente no es la autoridad — un INSERT por PostgREST se lo saltea.
     const endurecimiento = migraciones()
       .find(m => m.archivo.includes("endurecer_motores"))?.sql ?? "";

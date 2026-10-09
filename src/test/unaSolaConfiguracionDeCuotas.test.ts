@@ -134,7 +134,7 @@ describe("el catálogo no promete cuotas que el comercio no ofrece", () => {
    * igual. Una financiación que se promete y no existe es lo que hace que
    * alguien decida comprar y después no pueda.
    */
-  const PANTALLAS = ["src/pages/CatalogPage.tsx", "src/pages/PublicCatalogPage.tsx"];
+  const PANTALLAS = ["src/pages/PublicCatalogPage.tsx"];
 
   it("ninguna escribe una cantidad de cuotas a mano", () => {
     const culpables: string[] = [];

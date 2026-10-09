@@ -206,7 +206,6 @@ describe('contrato visual transversal de Gestión', () => {
 
     for (const path of [
       'src/components/products/ProductsExcelImport.tsx',
-      'src/components/products/ProductsPriceImport.tsx',
       'src/pages/BankReconciliationPage.tsx',
       'src/pages/CustomersPage.tsx',
     ]) {
@@ -266,7 +265,6 @@ describe('contrato visual transversal de Gestión', () => {
   it('métricas y vitrina dejan el cromo SaaS genérico', () => {
     const kpi = source('src/components/shared/KPICard.tsx');
     const metric = source('src/components/shared/MetricCard.tsx');
-    const catalog = source('src/pages/CatalogPage.tsx');
     const store = source('src/pages/EcommerceStorePage.tsx');
     const pdp = source('src/storefront/StoreProduct.tsx');
     const css = source('src/index.css');
@@ -276,9 +274,6 @@ describe('contrato visual transversal de Gestión', () => {
     expect(kpi).not.toContain('glow');
     expect(metric).not.toContain('hover:-translate-y');
     expect(metric).not.toContain('shadow-kpi');
-    expect(catalog).toContain('catalog-vitrina-card');
-    expect(catalog).toContain('catalog-vitrina-filter');
-    expect(catalog).not.toContain('hover:-translate-y-0.5');
     expect(store).toContain('commerce-metric-ledger');
     expect(pdp).toContain('storefront-pdp__buybox');
     expect(pdp).toContain('storefront-pdp__crumb');
