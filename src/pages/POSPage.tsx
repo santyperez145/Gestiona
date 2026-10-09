@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } f
 import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
 import PosCustomerPicker, { etiquetaCliente, type PosCustomer } from "@/components/pos/PosCustomerPicker";
 import { letraParaCliente } from "@/lib/customerFiscal";
+import { accionDeTecla, ATAJOS_POS, medioSiguiente, type AccionPos } from "@/lib/posShortcuts";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
 import { productMatchesCode } from "@/lib/productCodes";
@@ -1437,42 +1438,24 @@ export default function POSPage() {
     return () => clearTimeout(timeout);
   }, [customer, activeOrg]);
 
-  // Keyboard shortcuts
+  // Atajos de teclado: la tabla vive en posShortcuts y las acciones se leen
+  // de una ref que se actualiza en cada render, así ninguna tecla usa estado viejo.
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const couponInputRef = useRef<HTMLInputElement>(null);
+  const shortcutActions = useRef<Partial<Record<AccionPos, () => void>>>({});
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
-      const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
-      // F1 / ? → show keyboard shortcuts help
-      if (e.key === 'F1' || (e.key === '?' && !inInput)) { e.preventDefault(); setShowShortcutHelp(v => !v); return; }
-      // F2 → focus product search
-      if (e.key === 'F2') { e.preventDefault(); searchInputRef.current?.focus(); searchInputRef.current?.select(); return; }
-      // F5 / F11 → toggle fullscreen
-      if (e.key === 'F5' || e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
-      // Escape → close help overlay first, then clear search, then cart
-      if (e.key === 'Escape') {
-        if (showShortcutHelp) { setShowShortcutHelp(false); return; }
-        if (!inInput) { if (search) setSearch(''); else if (cart.length > 0) setCart([]); return; }
-      }
-      // F9 → confirm sale (if cart has items and sale not disabled)
-      if (e.key === 'F9') { e.preventDefault(); if (cart.length > 0 && !confirmDisabledRef.current) confirmSale(); return; }
-      // + key → increment qty of last cart item
-      if (e.key === '+' && !inInput && cart.length > 0) {
-        e.preventDefault();
-        setCart(prev => prev.map((it, i) => i === prev.length - 1 ? { ...it, quantity: it.quantity + 1 } : it));
-        return;
-      }
-      // - key → decrement qty of last cart item
-      if (e.key === '-' && !inInput && cart.length > 0) {
-        e.preventDefault();
-        setCart(prev => prev.map((it, i) => i === prev.length - 1 ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it));
-        return;
-      }
+      const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable;
+      const accion = accionDeTecla(e, inInput);
+      const handler = accion ? shortcutActions.current[accion] : undefined;
+      if (!handler) return;
+      e.preventDefault();
+      handler();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart, search, showShortcutHelp, toggleFullscreen]);
+  }, []);
 
   // Espejo de confirmDisabled para el listener de teclado (ver más abajo).
   const confirmDisabledRef = useRef(false);
@@ -2610,6 +2593,39 @@ export default function POSPage() {
   });
   const payCaution = posPayMethodCaution(payMethod);
 
+  const elegirMedio = (method: PayMethod) => {
+    if (!visiblePayMethods.some(m => m.value === method)) { toast.info("Ese medio de pago no está disponible en esta caja"); return; }
+    setPayMethod(method);
+  };
+  shortcutActions.current = {
+    ayuda: () => setShowShortcutHelp(v => !v),
+    buscar: () => { searchInputRef.current?.focus(); searchInputRef.current?.select(); },
+    cliente: () => setCustomerPickerOpen(true),
+    medio_siguiente: () => setPayMethod(medioSiguiente(visiblePayMethods.map(m => m.value), payMethod)),
+    medio_1: () => elegirMedio("efectivo"),
+    medio_2: () => elegirMedio("transferencia"),
+    medio_3: () => elegirMedio("debito"),
+    medio_4: () => elegirMedio("credito"),
+    pantalla_completa: () => toggleFullscreen(),
+    cupon: () => couponInputRef.current?.focus(),
+    guardar_ticket: () => saveCurrentOrder(),
+    tickets_guardados: () => setShowSavedOrders(true),
+    cobrar: () => { if (cart.length > 0 && !confirmDisabledRef.current) confirmSale(); },
+    factura_arca: () => setWantArcaInvoice(v => { toast.info(v ? "Este ticket no pide factura ARCA" : "Este ticket pide factura ARCA"); return !v; }),
+    mas: () => setCart(prev => prev.map((it, i) => i === prev.length - 1 ? { ...it, quantity: it.quantity + 1 } : it)),
+    menos: () => setCart(prev => prev.map((it, i) => i === prev.length - 1 ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it)),
+    quitar_ultimo: () => setCart(prev => prev.slice(0, -1)),
+    vaciar_carrito: () => {
+      if (!cart.length) return;
+      void ask({ title: "¿Vaciar el carrito?", description: "Se quitan todos los productos del ticket actual.", confirmText: "Vaciar", variant: "destructive" })
+        .then(ok => { if (ok) clearCart(); });
+    },
+    escape: () => {
+      if (showShortcutHelp) { setShowShortcutHelp(false); return; }
+      if (search) setSearch('');
+    },
+  };
+
   // ─────────────────────────────────────────────────────────
   // Cart panel
   // ─────────────────────────────────────────────────────────
@@ -2634,7 +2650,7 @@ export default function POSPage() {
           )}
           {cart.length > 0 && (
             <button onClick={saveCurrentOrder} className="text-xs text-muted-foreground hover:text-yellow-400 flex items-center gap-1" title="Guardar carrito para después">
-              <Undo2 className="w-3 h-3" />Guardar
+              <Undo2 className="w-3 h-3" />Guardar <kbd className="text-[9px] opacity-60">F7</kbd>
             </button>
           )}
           {cart.length > 0 && (
@@ -2872,7 +2888,7 @@ export default function POSPage() {
         )}
         <div className="flex items-center gap-1.5">
           <Button type="button" size="sm" variant="outline" className="h-8 shrink-0 text-xs" onClick={() => setCustomerPickerOpen(true)}>
-            <User className="mr-1 h-3.5 w-3.5" />{posCustomer ? "Cambiar cliente" : "Elegir cliente"}
+            <User className="mr-1 h-3.5 w-3.5" />{posCustomer ? "Cambiar cliente" : "Elegir cliente"}<kbd className="ml-1 text-[9px] opacity-60">F3</kbd>
           </Button>
           {posCustomer ? (
             <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-xs">
@@ -3172,7 +3188,8 @@ export default function POSPage() {
             <div className="relative flex-1">
               <Ticket className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder="Código de cupón"
+                ref={couponInputRef}
+                placeholder="Código de cupón (F6)"
                 value={couponCode}
                 onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); if (couponResult) setCouponResult(null); }}
                 className="h-8 text-sm bg-muted pl-8 uppercase"
@@ -4167,17 +4184,10 @@ export default function POSPage() {
               <DialogTitle className="flex items-center gap-2">
                 <Keyboard className="w-4 h-4 text-primary" />Atajos de teclado POS
               </DialogTitle>
-              <DialogDescription>Acciones rápidas disponibles cuando el foco no está en un campo de texto.</DialogDescription>
+              <DialogDescription>Las teclas F funcionan siempre, incluso escribiendo en el buscador.</DialogDescription>
             </DialogHeader>
             <div className="space-y-1.5">
-              {([
-                ["F2", "Enfocar búsqueda de productos"],
-                ["F9", "Confirmar venta (si hay items en el carrito)"],
-                ["F5 / F11", "Pantalla completa"],
-                ["F1 / ?", "Mostrar / cerrar esta ayuda"],
-                ["Escape", "Cerrar ayuda · Limpiar búsqueda · Vaciar carrito"],
-                ["+ / −", "Aumentar / reducir cantidad del último ítem"],
-              ] as [string, string][]).map(([key, desc]) => (
+              {ATAJOS_POS.map(({ teclas: key, descripcion: desc }) => (
                 <div key={key} className="flex items-center gap-3 text-sm">
                   <kbd className="shrink-0 inline-flex items-center justify-center min-w-[52px] px-2 py-1 rounded-lg border border-border bg-muted font-mono text-[11px] font-bold text-foreground">
                     {key}
@@ -4187,7 +4197,7 @@ export default function POSPage() {
               ))}
             </div>
             <p className="text-[10px] text-muted-foreground mt-4 border-t border-border/40 pt-3">
-              Los atajos no funcionan cuando el foco está en un campo de texto. Presioná Escape para cerrar.
+              +, −, ? y Supr no actúan mientras escribís en un campo. Esc cierra esta ayuda.
             </p>
           </DialogContent>
       </Dialog>
