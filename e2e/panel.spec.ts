@@ -75,6 +75,8 @@ test("importador: lotes sintéticos, respuesta perdida y recuperación sin mutar
   await importer.locator('input[type="file"]').setInputFiles({ name: "zz-import-recovery.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
   await expect(importer.getByText("501 filas de origen agrupadas")).toBeVisible();
   await expect(importer.getByRole("combobox", { name: "Moneda del costo de origen" })).toHaveText("Pesos argentinos (ARS)");
+  await expect(importer.getByRole("button", { name: "Preparar y validar" })).toBeDisabled();
+  await importer.getByRole("checkbox", { name: "Confirmo que cada columna corresponde al dato indicado" }).check();
   await importer.getByRole("button", { name: "Preparar y validar" }).click();
   await expect(importer.getByText("Validación completa", { exact: true })).toBeVisible();
   expect([...chunks.keys()]).toEqual([0,250,500]); expect(positions).toEqual([]);

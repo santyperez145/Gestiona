@@ -25,8 +25,14 @@ describe("sesión de importación", () => {
   });
   it("transporta opciones y filas sólo al staging autoritativo", async () => {
     mocks.rpc.mockResolvedValue({ data: { ok: true, id: "session" }, error: null });
-    await startCatalogImport({ id: "session", org_id: "tenant", filename: "zz.xls", source_format: "xls", source_system: "generic", source_rows: 1, total: 1, options: { stock_mode: "ignore" } } as Parameters<typeof startCatalogImport>[0]);
-    expect(mocks.rpc).toHaveBeenCalledWith("start_catalog_import", expect.objectContaining({ p_session_id: "session", p_org_id: "tenant" }));
+    const options: Parameters<typeof startCatalogImport>[0]["options"] = {
+      stock_mode: "ignore", location_id: "", destination_store_id: "", exchange_rate: 0,
+      margin_percent: 0, auto_price: false, cost_currency: "ARS", sheet_name: "Productos", fingerprint: "zz",
+      mapping: { name: "0", sku: "1", brand: "", category: "", cost: "", sale: "", barcode: "", barcode2: "", barcode3: "", stock: "", description: "", classification: "" },
+      column_mapping: { "0": "name", "1": "sku", "2": "" },
+    };
+    await startCatalogImport({ id: "session", org_id: "tenant", filename: "zz.xls", source_format: "xls", source_system: "generic", source_rows: 1, total: 1, options });
+    expect(mocks.rpc).toHaveBeenCalledWith("start_catalog_import", expect.objectContaining({ p_session_id: "session", p_org_id: "tenant", p_options: options }));
     const rows = [{ name: "ZZ", provided: ["name"] }]; await stageCatalogImportChunk("session", 250, rows);
     expect(mocks.rpc).toHaveBeenLastCalledWith("stage_catalog_import_chunk", { p_session_id: "session", p_position: 250, p_rows: rows });
   });
