@@ -49,7 +49,11 @@ describe("transacciones de venta y cupo de plan", () => {
   });
 
   it("el navegador usa el RPC y ninguna pantalla inserta filas de sales directamente", () => {
-    expect(store).toContain("rpc('create_sales_transaction'");
+    // El navegador llama la autoridad de precios (v3/v2); la v1 no se expone.
+    expect(store).toContain("'create_sales_transaction_v3'");
+    expect(store).not.toContain("rpc('create_sales_transaction',");
+    const revoke = readFileSync(resolve(ROOT, "supabase/migrations/20261009000900_venta_base_solo_desde_autoridad.sql"), "utf8");
+    expect(revoke).toContain("REVOKE EXECUTE ON FUNCTION public.create_sales_transaction(uuid, jsonb, text) FROM PUBLIC, anon, authenticated;");
     expect(store).not.toContain(".from('sales').insert");
 
     const writes = sourceFiles(resolve(ROOT, "src"))

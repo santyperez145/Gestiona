@@ -394,11 +394,8 @@ export async function addSalesDB(sales: any[], source?: string) {
     ({ data, error } = await supabase.rpc('create_sales_transaction_v2' as never, args as never) as
       { data: unknown; error: { code?: string; message: string } | null });
   }
-  if (error && ['42883', 'PGRST202'].includes(String(error.code))) {
-    console.warn('[POS] create_sales_transaction_v2 no existe todavía; se usa la anterior');
-    ({ data, error } = await supabase.rpc('create_sales_transaction', args) as
-      { data: unknown; error: { code?: string; message: string } | null });
-  }
+  // La v1 no recalcula precios: sólo la ejecutan v2/v3 dentro de la base
+  // (20261009000900). No hay fallback del navegador hacia ella.
   if (error) throw error;
 
   // Deuda, uso de cupon y atribucion ya forman parte del mismo commit que el
