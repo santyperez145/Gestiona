@@ -67,6 +67,17 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   emisor. La solicitud no puede
   marcarse verificada desde el navegador. Pendiente, corrección y verificada
   quedan separados y auditados; cambiar CUIT/ambiente/punto invalida el ciclo.
+- `FECAESolicitar` se lee con XML estructurado (`leerSolicitudCaeWsfe`): motivo
+  en `Errors/Err` y Observaciones del detalle, nunca en `Events`. El manual 4.7
+  publica dos formas del detalle (`FEDetResponse > Obs > Observaciones` en el
+  esquema, `FECAEDetResponse > Observaciones > Obs` en el ejemplo); se aceptan
+  ambas. `arcaRechazos.ts` traduce los códigos leídos en el manual a título,
+  qué hacer y estado: 500/501/502 quedan `processing` para conciliar, 600/601
+  son `config_error` y las validaciones son `rejected`. Un código desconocido
+  conserva el texto oficial, acotado. Respuesta inválida, Fault o aprobación sin
+  CAE válido no prueban rechazo: quedan `processing`. El SOAP crudo sólo va al log.
+  Las advertencias de un CAE otorgado (p. ej. 10236, tope de Monotributo) se
+  registran en el log; persistirlas para el comercio requiere columna propia.
 - A4 y 80 mm muestran neto/IVA para A y NC A, precios finales para B/C y sus NC,
   transparencia, identidad congelada, CAE/QR y referencia de la NC. Homologación
   se identifica explícitamente y no es un comprobante productivo.
@@ -142,8 +153,11 @@ con red interceptada o fixtures.
 
 **Actualización de referencias, 2026-10-08:** la [página oficial](https://www.arca.gob.ar/fe/ayuda/webservice.asp)
 publica WSFEv1 4.7 y [homologación externa](https://www.arca.gob.ar/fe/ayuda/homologacion_externa.asp)
-publica 4.8. La lectura histórica 4.1 no certifica conformidad con esas versiones:
-queda pendiente contrastar validaciones, fixtures y rechazos del contrato vigente.
+publica 4.8. La lectura histórica 4.1 no certifica conformidad con esas versiones.
+El 2026-10-09 se contrastaron con el manual 4.7 la estructura de respuesta de
+`FECAESolicitar`, los errores de infraestructura y los códigos traducidos
+(`src/test/arcaRechazos.test.ts`); siguen pendientes 4.8 de homologación, el
+resto de validaciones del request y una emisión real.
 Simplificar mediante delegación guiada, padrón autorizado, detección de puntos
 CAE y diagnóstico; no pedir clave fiscal ni eliminar autorizaciones de ARCA.
 `ws_sr_constancia_inscripcion` reemplaza al padrón A5 según el

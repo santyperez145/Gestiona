@@ -39,7 +39,8 @@ import {
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
 import { invoiceIvaXml } from "../_shared/invoiceIva.ts";
-import { ArcaReadError, assertEnabledPoint, leerUltimoAutorizadoWsfe } from "../_shared/wsfeRespuesta.ts";
+import { ArcaReadError, assertEnabledPoint, leerSolicitudCaeWsfe, leerUltimoAutorizadoWsfe } from "../_shared/wsfeRespuesta.ts";
+import { ArcaAutorizacionError, resumirRechazoArca } from "../_shared/arcaRechazos.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -708,9 +709,11 @@ Deno.serve(async (req) => {
     let userMsg = msg;
     let afipStatus = "error";
 
-    if (msg.includes("AFIP rechazó") || msg.includes("Resultado") || msg.includes("ErrMsg")) {
-      afipStatus = "rejected";
-      userMsg = `AFIP rechazó la factura: ${msg}`;
+    if (e instanceof ArcaAutorizacionError) {
+      // FECAESolicitar ya tradujo el código oficial; una respuesta incierta
+      // queda `processing` para conciliar con FECompConsultar.
+      afipStatus = e.estado;
+      userMsg = msg;
     } else if (msg.includes("reconciliar") || msg.includes("secuencia fiscal")) {
       afipStatus = "network_error";
       userMsg = msg;
@@ -1027,24 +1030,37 @@ async function solicitarCAE(args: {
   const soap = wsfeSoap("FECAESolicitar", body, { token, sign, cuit });
   const xml = await wsfeCall(wsfeUrl, soap, "FECAESolicitar");
 
-  // Check for errors in response
-  const errMsg = extractXml(xml, "ErrMsg");
-  const obsMsg = extractXml(xml, "Msg");
-  const result = extractXml(xml, "Resultado");
-  if (result === "R" || (!extractXml(xml, "CAE") && errMsg)) {
-    throw new Error(errMsg || obsMsg || "AFIP rechazó la factura");
+  // WSFE no usa `ErrMsg`: el motivo vive en Errors/Err y en las Observaciones
+  // del detalle. Leer el primer `<Msg>` podía mostrar un Evento de ARCA en
+  // lugar del rechazo, y ese texto no se clasificaba como `rejected`.
+  let respuesta: ReturnType<typeof leerSolicitudCaeWsfe>;
+  try {
+    respuesta = leerSolicitudCaeWsfe(xml);
+  } catch (e) {
+    console.error("[ARCA] FECAESolicitar response unreadable", { code: e instanceof ArcaReadError ? e.code : "unknown" });
+    throw new ArcaAutorizacionError(
+      "network_error",
+      e instanceof ArcaReadError ? e.message : "ARCA no confirmó la autorización. Nerqia la verifica antes de volver a emitir.",
+    );
   }
 
-  const cae = extractXml(xml, "CAE");
-  const caeVto = extractXml(xml, "CAEFchVto");
-  if (!cae) throw new Error("AFIP no devolvió CAE. Respuesta: " + xml.slice(0, 500));
+  if (respuesta.resultado === "A" && respuesta.cae && !respuesta.errores.length) {
+    if (respuesta.observaciones.length) {
+      console.warn("[ARCA] CAE otorgado con observaciones", { codigos: respuesta.observaciones.map(o => o.code) });
+    }
+    return { cae: respuesta.cae, caeVencimiento: respuesta.caeVencimiento ?? "" };
+  }
 
-  // Format CAEFchVto from YYYYMMDD to YYYY-MM-DD
-  const caeVencimiento = caeVto
-    ? `${caeVto.slice(0, 4)}-${caeVto.slice(4, 6)}-${caeVto.slice(6, 8)}`
-    : "";
+  if (respuesta.resultado === "R" || respuesta.errores.length) {
+    const resumen = resumirRechazoArca(respuesta.errores, respuesta.observaciones);
+    throw new ArcaAutorizacionError(resumen.estado, resumen.mensaje, resumen.codigos);
+  }
 
-  return { cae, caeVencimiento };
+  // Aprobado sin CAE válido, parcial o sin resultado: no hay prueba de rechazo.
+  throw new ArcaAutorizacionError(
+    "network_error",
+    "ARCA no devolvió un CAE válido. Nerqia verifica el comprobante antes de volver a emitir.",
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1083,7 +1099,11 @@ async function wsfeCall(url: string, soap: string, action: string): Promise<stri
     signal: AbortSignal.timeout(30_000),
   });
   const xml = await resp.text();
-  if (!resp.ok) throw new Error(`WSFE HTTP ${resp.status}: ${xml.slice(0, 300)}`);
+  if (!resp.ok) {
+    // El cuerpo SOAP queda en el log; el mensaje persistido llega al comercio.
+    console.error("[ARCA] WSFE HTTP error", { action, status: resp.status, body: xml.slice(0, 300) });
+    throw new Error(`WSFE HTTP ${resp.status}`);
+  }
   return xml;
 }
 

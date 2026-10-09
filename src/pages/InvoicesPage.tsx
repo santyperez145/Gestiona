@@ -29,6 +29,7 @@ import {
 import { CONDICIONES_IVA, tipoDeComprobante, validarCuit, type CondicionIva } from "@/lib/fiscalIdentity";
 import { loadAssociatedFiscalInvoice, printFiscalInvoiceTicket } from "@/lib/saleInvoice";
 import { invoiceIvaGroups, invoiceDisplayLines } from "../../supabase/functions/_shared/invoiceIva";
+import { explicacionesDesdeMensaje } from "../../supabase/functions/_shared/arcaRechazos";
 import { useModulePermissions } from "@/lib/usePermissions";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
@@ -391,7 +392,9 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
 export default function InvoicesPage() {
   usePageTitle("Facturas");
   const { user } = useAuth();
-  const { activeOrg } = useOrg();
+  const { activeOrg, activeRole } = useOrg();
+  // /afip es una ruta de administración; el atajo no ofrece una pantalla bloqueada.
+  const canOpenArcaSettings = activeRole === "owner" || activeRole === "admin";
   const invoicePermissions = useModulePermissions("invoices");
   const { ask, dialog } = useConfirmDialog();
   const navigate = useNavigate();
@@ -1557,13 +1560,21 @@ export default function InvoicesPage() {
                             <ShieldAlert className="w-3.5 h-3.5" />Error ARCA
                           </p>
                           <p className="text-xs text-muted-foreground">{inv.afip_error}</p>
-                          {canManage && afipConfigured && inv.tipo_comprobante && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
-                              onClick={() => handleAuthorizeAfip(inv)}
-                            >
-                              Reintentar autorización
-                            </Button>
-                          )}
+                          <div className="flex flex-wrap gap-2">
+                            {canManage && afipConfigured && inv.tipo_comprobante && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                                onClick={() => handleAuthorizeAfip(inv)}
+                              >
+                                Reintentar autorización
+                              </Button>
+                            )}
+                            {canOpenArcaSettings && (inv.afip_status === "config_error" ||
+                              explicacionesDesdeMensaje(inv.afip_error).some(e => e.accion === "revisar_conexion_arca" || e.accion === "revisar_punto_venta")) && (
+                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate("/afip")}>
+                                Revisar conexión ARCA
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       )}
 
