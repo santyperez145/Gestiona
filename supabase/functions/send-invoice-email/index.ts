@@ -90,9 +90,10 @@ Deno.serve(async (req) => {
         .select("description, quantity, total").eq("invoice_id", documentId).order("id");
       if (itemsError) throw itemsError;
       const isCredit = [3, 8, 13].includes(Number(invoice.tipo_comprobante));
+      const isDebit = [2, 7, 12].includes(Number(invoice.tipo_comprobante));
       document = {
         kind: "invoice",
-        title: isCredit ? "Nota de crédito" : invoice.cae ? "Factura" : "Comprobante comercial",
+        title: isCredit ? "Nota de crédito" : isDebit ? "Nota de débito" : invoice.cae ? "Factura" : "Comprobante comercial",
         number: invoice.number,
         customerName: invoice.customer_name,
         recipient: String(invoice.customer_email ?? "").trim().toLowerCase(),

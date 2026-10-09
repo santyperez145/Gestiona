@@ -22810,6 +22810,8 @@ export type Database = {
       }
       invoices: {
         Row: {
+          motivo_nota_debito: string | null
+          nota_debito_de: string | null
           afip_authorization_requested_by: string | null
           afip_authorization_started_at: string | null
           afip_candidate_number: number | null
@@ -22862,6 +22864,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          motivo_nota_debito?: string | null
+          nota_debito_de?: string | null
           afip_authorization_requested_by?: string | null
           afip_authorization_started_at?: string | null
           afip_candidate_number?: number | null
@@ -22914,6 +22918,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          motivo_nota_debito?: string | null
+          nota_debito_de?: string | null
           afip_authorization_requested_by?: string | null
           afip_authorization_started_at?: string | null
           afip_candidate_number?: number | null

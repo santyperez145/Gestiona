@@ -169,7 +169,7 @@ export function printableArcaQrUrl(invoice: PrintableArcaInvoice): string | null
     !invoice.punto_venta ||
     !invoice.tipo_comprobante ||
     !invoice.cae_vencimiento ||
-    ![1, 3, 6, 8, 11, 13].includes(Number(invoice.tipo_comprobante)) ||
+    ![1, 2, 3, 6, 7, 8, 11, 12, 13].includes(Number(invoice.tipo_comprobante)) ||
     !fechaArca.test(invoice.cae_vencimiento.slice(0, 10));
   if (invalidSnapshot) {
     throw new Error("Faltan datos fiscales del comprobante autorizado. Revisalo antes de imprimir.");

@@ -33,4 +33,17 @@ describe("comprobante asociado para notas de credito ARCA", () => {
   it("no asocia documentos a facturas ordinarias", () => {
     expect(associatedVoucherXml(1, null)).toBe("");
   });
+  it.each([
+    [2, 1],
+    [7, 6],
+    [12, 11],
+  ])("asocia ND tipo %i con factura tipo %i", (debitType, sourceType) => {
+    expect(associatedVoucherXml(debitType, { tipo_comprobante: sourceType, punto_venta: 3, numero_afip: 7 }))
+      .toContain(`<ar:Tipo>${sourceType}</ar:Tipo>`);
+  });
+
+  it("la ND exige su factura original y de la misma clase", () => {
+    expect(() => associatedVoucherXml(7, null)).toThrow("nota de debito");
+    expect(() => associatedVoucherXml(7, { tipo_comprobante: 1, punto_venta: 3, numero_afip: 7 })).toThrow("nota de debito");
+  });
 });

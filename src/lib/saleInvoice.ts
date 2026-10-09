@@ -61,10 +61,13 @@ export type AssociatedFiscalInvoice = { title: string; number: string; issueDate
 
 const DOCUMENT_TYPE: Record<number, { letter: string; title: string }> = {
   1: { letter: "A", title: "FACTURA A" },
+  2: { letter: "ND A", title: "NOTA DE DÉBITO A" },
   3: { letter: "NC A", title: "NOTA DE CRÉDITO A" },
   6: { letter: "B", title: "FACTURA B" },
+  7: { letter: "ND B", title: "NOTA DE DÉBITO B" },
   8: { letter: "NC B", title: "NOTA DE CRÉDITO B" },
   11: { letter: "C", title: "FACTURA C" },
+  12: { letter: "ND C", title: "NOTA DE DÉBITO C" },
   13: { letter: "NC C", title: "NOTA DE CRÉDITO C" },
 };
 const money = (value: unknown) => new Intl.NumberFormat("es-AR", {
@@ -76,19 +79,21 @@ const money = (value: unknown) => new Intl.NumberFormat("es-AR", {
 export async function loadAssociatedFiscalInvoice(invoice: {
   org_id?: string;
   nota_credito_de?: string | null;
+  nota_debito_de?: string | null;
   tipo_comprobante?: number | null;
 }): Promise<AssociatedFiscalInvoice | null> {
-  const sourceType: Record<number, number> = { 3: 1, 8: 6, 13: 11 };
+  const sourceType: Record<number, number> = { 2: 1, 3: 1, 7: 6, 8: 6, 12: 11, 13: 11 };
   const expectedType = sourceType[Number(invoice.tipo_comprobante)];
-  if (!invoice.nota_credito_de) {
-    if (expectedType) throw new Error("La nota de crédito no tiene una factura fiscal asociada.");
+  const originalId = invoice.nota_credito_de || invoice.nota_debito_de;
+  if (!originalId) {
+    if (expectedType) throw new Error("La nota no tiene una factura fiscal asociada.");
     return null;
   }
   if (!expectedType) throw new Error("El comprobante asociado no corresponde a una nota de crédito válida.");
   if (!invoice.org_id) throw new Error("No se pudo verificar la factura asociada a esta nota de crédito.");
   const { data, error } = await supabase.from("invoices")
     .select("tipo_comprobante, punto_venta, numero_afip, issue_date, cae")
-    .eq("id", invoice.nota_credito_de)
+    .eq("id", originalId)
     .eq("org_id", invoice.org_id)
     .maybeSingle();
   const title = data?.tipo_comprobante ? DOCUMENT_TYPE[data.tipo_comprobante]?.title : null;

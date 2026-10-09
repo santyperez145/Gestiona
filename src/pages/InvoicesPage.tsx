@@ -36,7 +36,7 @@ import { useModulePermissions } from "@/lib/usePermissions";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
-  ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus,
+  ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus, FilePlus,
   Square, CheckSquare, CheckCheck, RotateCcw, Copy, AlertTriangle, Printer,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
@@ -90,6 +90,7 @@ interface Invoice {
   fiscal_snapshot_source: string | null;
   fiscal_issued_at: string | null;
   nota_credito_de: string | null;
+  nota_debito_de?: string | null;
 }
 
 interface AfipSettings {
@@ -108,10 +109,13 @@ interface AfipSettings {
 // ─────────────────────────────────────────────────────────────
 const TIPO_CBTE: Record<number, { short: string; title: string; creditNote: boolean }> = {
   1: { short: "A", title: "FACTURA A", creditNote: false },
+  2: { short: "ND A", title: "NOTA DE DÉBITO A", creditNote: false },
   3: { short: "NC A", title: "NOTA DE CRÉDITO A", creditNote: true },
   6: { short: "B", title: "FACTURA B", creditNote: false },
+  7: { short: "ND B", title: "NOTA DE DÉBITO B", creditNote: false },
   8: { short: "NC B", title: "NOTA DE CRÉDITO B", creditNote: true },
   11: { short: "C", title: "FACTURA C", creditNote: false },
+  12: { short: "ND C", title: "NOTA DE DÉBITO C", creditNote: false },
   13: { short: "NC C", title: "NOTA DE CRÉDITO C", creditNote: true },
 };
 
@@ -422,6 +426,10 @@ export default function InvoicesPage() {
   const [ncDialogInv, setNcDialogInv] = useState<Invoice | null>(null);
   const [ncReason, setNcReason] = useState("");
   const [ncAmount, setNcAmount] = useState("");
+  const [ndDialogInv, setNdDialogInv] = useState<Invoice | null>(null);
+  const [ndReason, setNdReason] = useState("");
+  const [ndAmount, setNdAmount] = useState("");
+  const [creatingND, setCreatingND] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -882,6 +890,30 @@ export default function InvoicesPage() {
     }
   };
 
+  const createDebitNote = async (inv: Invoice) => {
+    const amount = Number(ndAmount);
+    if (!ndReason.trim()) { toast.error("La nota de débito necesita un motivo"); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { toast.error("Ingresá un importe mayor a cero"); return; }
+    setCreatingND(inv.id);
+    try {
+      const { data, error } = await supabase.rpc("emitir_nota_debito" as never, {
+        p_invoice_id: inv.id,
+        p_motivo: ndReason.trim(),
+        p_importe: amount,
+      } as never) as { data: string | null; error: { message: string } | null };
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("No se pudo confirmar la nota de débito");
+      setNdDialogInv(null);
+      toast.success("Nota de débito creada y enviada al circuito de autorización ARCA");
+      await load();
+    } catch (error) {
+      console.error("emitir_nota_debito", error);
+      toast.error(error instanceof Error ? error.message.replace(/^.*?:\s*/, "") : "No se pudo crear la nota de débito");
+    } finally {
+      setCreatingND(null);
+    }
+  };
+
   const stats = {
     total: invoices.length,
     paid: invoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0),
@@ -896,6 +928,7 @@ export default function InvoicesPage() {
     if (filterStatus !== "all" && visibleInvoiceStatus(inv) !== filterStatus) return false;
     if (filterType !== "all") {
       if (filterType === "NC" && ![3, 8, 13].includes(inv.tipo_comprobante ?? 0)) return false;
+      if (filterType === "ND" && ![2, 7, 12].includes(inv.tipo_comprobante ?? 0)) return false;
       if (filterType === "A" && inv.tipo_comprobante !== 1) return false;
       if (filterType === "B" && inv.tipo_comprobante !== 6) return false;
       if (filterType === "C" && inv.tipo_comprobante !== 11) return false;
@@ -1294,6 +1327,7 @@ export default function InvoicesPage() {
               <SelectItem value="B">Factura B</SelectItem>
               <SelectItem value="C">Factura C</SelectItem>
               <SelectItem value="NC">Nota de Crédito</SelectItem>
+              <SelectItem value="ND">Nota de Débito</SelectItem>
               <SelectItem value="none">Sin tipo</SelectItem>
             </SelectContent>
           </Select>
@@ -1548,6 +1582,14 @@ export default function InvoicesPage() {
                             : <FileMinus className="w-4 h-4 text-orange-400" />}
                         </Button>
                       )}
+                      {canManage && inv.cae && [1, 6, 11].includes(inv.tipo_comprobante ?? 0) && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Crear Nota de Débito"
+                          onClick={() => { setNdDialogInv(inv); setNdReason(""); setNdAmount(""); }}
+                          disabled={creatingND === inv.id}
+                        >
+                          {creatingND === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus className="w-4 h-4 text-sky-500" />}
+                        </Button>
+                      )}
                       {canManage && !inv.cae && inv.afip_status !== "processing" && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Eliminar borrador" onClick={() => deleteInvoice(inv.id)}>
                           <Trash2 className="w-4 h-4 text-destructive" />
@@ -1764,6 +1806,39 @@ export default function InvoicesPage() {
             >
               {creatingNC ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <RotateCcw className="w-4 h-4 mr-1.5" />}
               Crear Nota de Crédito
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ND Dialog */}
+      <Dialog open={!!ndDialogInv} onOpenChange={open => { if (!open) setNdDialogInv(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FilePlus className="w-5 h-5 text-sky-500" />
+              Nota de Débito — {ndDialogInv?.number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Suma un importe a <strong className="text-foreground">{ndDialogInv?.number}</strong> (intereses, diferencia de precio o gastos). Se asocia a la factura y ARCA le asigna numeración y CAE.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="debit-note-reason">Motivo *</Label>
+              <Input id="debit-note-reason" value={ndReason} maxLength={500} onChange={(event) => setNdReason(event.target.value)}
+                placeholder="Intereses por pago fuera de término" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="debit-note-amount">Importe final (IVA incluido)</Label>
+              <Input id="debit-note-amount" type="number" min="0.01" step="0.01" value={ndAmount} onChange={(event) => setNdAmount(event.target.value)} />
+              <p className="text-xs text-muted-foreground">El IVA se calcula con la alícuota de la factura; en clase C no se discrimina.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNdDialogInv(null)}>Cancelar</Button>
+            <Button onClick={() => ndDialogInv && void createDebitNote(ndDialogInv)} disabled={!!creatingND || !ndReason.trim() || !(Number(ndAmount) > 0)}>
+              {creatingND ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <FilePlus className="w-4 h-4 mr-1.5" />}
+              Crear Nota de Débito
             </Button>
           </DialogFooter>
         </DialogContent>

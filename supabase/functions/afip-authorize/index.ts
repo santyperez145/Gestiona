@@ -36,6 +36,8 @@ import {
 } from "../_shared/fiscalOutboxEvent.ts";
 import {
   associatedVoucherXml,
+  CREDIT_NOTE_TYPES,
+  DEBIT_NOTE_TYPES,
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
 import { invoiceIvaXml } from "../_shared/invoiceIva.ts";
@@ -512,14 +514,19 @@ Deno.serve(async (req) => {
     providerEnvironment = isProd ? "produccion" : "homologacion";
 
     let associatedInvoice: AfipAssociatedVoucher | null = null;
-    if ([3, 8, 13].includes(tipoCbte)) {
-      if (!invoice.nota_credito_de) {
-        return err("La nota de credito no tiene una factura original asociada");
+    const esNotaCredito = CREDIT_NOTE_TYPES.includes(tipoCbte);
+    const esNotaDebito = DEBIT_NOTE_TYPES.includes(tipoCbte);
+    const originalId = esNotaCredito ? invoice.nota_credito_de : esNotaDebito ? invoice.nota_debito_de : null;
+    if (esNotaCredito || esNotaDebito) {
+      if (!originalId) {
+        return err(esNotaCredito
+          ? "La nota de credito no tiene una factura original asociada"
+          : "La nota de debito no tiene una factura original asociada");
       }
       const { data: source, error: sourceError } = await supabase
         .from("invoices")
         .select("org_id, tipo_comprobante, punto_venta, numero_afip, cae, afip_status, afip_environment")
-        .eq("id", invoice.nota_credito_de)
+        .eq("id", originalId)
         .eq("org_id", invoice.org_id)
         .single();
       if (sourceError || !source || !source.cae || source.afip_status !== "authorized" ||
@@ -527,8 +534,8 @@ Deno.serve(async (req) => {
         return err("La factura original debe estar autorizada en el mismo entorno ARCA");
       }
       associatedInvoice = source;
-    } else if (invoice.nota_credito_de) {
-      return err("El tipo de comprobante no corresponde a una nota de credito");
+    } else if (invoice.nota_credito_de || invoice.nota_debito_de) {
+      return err("El tipo de comprobante no corresponde a una nota de credito o de debito");
     }
     try {
       associatedVoucherXml(tipoCbte, associatedInvoice);
