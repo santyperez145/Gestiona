@@ -30,6 +30,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import FilePicker from "@/components/shared/FilePicker";
+import { vencimientoCertificado } from '@/lib/certificateExpiry';
 
 interface Estado {
   cuit: string | null;
@@ -216,6 +217,20 @@ export default function PlatformAfipPage() {
         description="Un solo certificado para emitir en nombre de los comercios que delegan el servicio."
         icon={FileText}
       />
+
+      {listo && (() => {
+        const venc = vencimientoCertificado(estado?.certificate_expires_at);
+        if (venc.nivel === "ok") return null;
+        const tono = venc.nivel === "aviso" || venc.nivel === "desconocido"
+          ? "border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-200"
+          : "border-destructive/30 bg-destructive/5 text-destructive";
+        return (
+          <div role="alert" className={`flex items-start gap-2 rounded-[8px] border p-3 text-sm ${tono}`}>
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <span><strong>Certificado de la plataforma.</strong> {venc.mensaje}{estado?.comercios_delegados ? ` Afecta a ${estado.comercios_delegados} comercio${estado.comercios_delegados === 1 ? "" : "s"} delegado${estado.comercios_delegados === 1 ? "" : "s"}.` : ""}</span>
+          </div>
+        );
+      })()}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KPICard

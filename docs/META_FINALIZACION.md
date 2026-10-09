@@ -14,12 +14,12 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Rechazos WSFE leídos estructuradamente y explicados con acción (manual 4.7).
 - [x] Bandeja de pendientes fiscales en Facturas: grupos por acción y filtro `?fiscal=` (sin CAE ni autorización real).
 - [x] Fiscal Health en ARCA: datos, conexión, delegación, ambiente, rechazos, pendientes y CAE reciente (puntaje 0–100).
-- [ ] Vigencia del certificado de plataforma y alertas 60/30/7 días en Platform.
+- [x] Vigencia del certificado de plataforma con aviso a 60/30/7 días y vencido en Platform.
 - [ ] Advertencias de CAE otorgado persistidas (tope Monotributo y otras).
 - [x] Nota de Débito asociada a factura autorizada (A/B/C), con CbtesAsoc en WSFE.
 - [ ] Alta fiscal guiada: padrón (`ws_sr_constancia_inscripcion`), delegación paso a paso, detección de puntos CAE, autotest y factura de homologación.
 - [ ] Facturación automática configurable (Commerce/POS) y por lote con resultado por pedido.
-- [ ] Asistente de renovación de certificado (60/30/7 días).
+- [ ] Asistente de renovación de certificado (generar CSR y cargar CRT guiado).
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.
