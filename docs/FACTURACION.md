@@ -86,6 +86,19 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   la clase A/B/C y congela documento, razón social, domicilio y correo; sin
   cliente o con uno ajeno factura a consumidor final. Factura manual completa el
   receptor desde Clientes. Editar la ficha después no cambia lo emitido.
+- Controlador fiscal Epson TM-T900FA (firmware 1.03 "Neptuno"): el POS arma el
+  Tique-Factura A/B/C (0B01 abrir, 0B02 ítems brutos con decimales implícitos y
+  unidad de medida, 0B05 pagos, 0B06 cerrar) con los renglones que registró la
+  base y lo envía en un `POST /ext/batch` a la IP de la caja (HTTPS 8443 con
+  CORS y certificado aceptado, o HTTP 80). `fiscal_controller_documents`
+  (`20261009000500`) reserva el ticket antes de imprimir, confirma número/tipo y
+  libera si el equipo canceló; `facturar_venta_pos` rechaza tickets reservados o
+  emitidos en controlador y la reserva rechaza tickets con factura electrónica.
+  Un error a mitad del lote cancela el comprobante (0B07). Si el equipo imprimió
+  pero falló el registro, el reintento sólo confirma. Fuente: Protocolo de
+  Comunicación Epson rev. F (09/03/2021). Verificado contra el manual y SQL
+  reversible; la certificación real se hace en Modo Entrenamiento del equipo.
+  El canal nativo (Tauri) queda pendiente de compilar con Rust.
 - La bandeja de pendientes fiscales (`fiscalExceptions.ts`) agrupa comprobantes
   sin CAE por acción: conexión, datos del cliente, importes, contador, reintento,
   listos para autorizar y en verificación. Sólo lee estado persistido y filtra

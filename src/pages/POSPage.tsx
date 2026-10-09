@@ -2,6 +2,10 @@ import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } f
 import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
 import PosCustomerPicker, { etiquetaCliente, type PosCustomer } from "@/components/pos/PosCustomerPicker";
 import { letraParaCliente } from "@/lib/customerFiscal";
+import { esCondicionIva } from "@/lib/fiscalIdentity";
+import FiscalControllerDialog from "@/components/pos/FiscalControllerDialog";
+import { emitirTicketEnControlador } from "@/lib/fiscalPrinter/service";
+import { leerConfigControlador, type ConfigControlador } from "@/lib/fiscalPrinter/transport";
 import { accionDeTecla, ATAJOS_POS, medioSiguiente, type AccionPos } from "@/lib/posShortcuts";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
@@ -143,6 +147,9 @@ const reservationKey = (productId: string, variantId?: string | null) =>
 
 type PayMethod = "efectivo" | "transferencia" | "debito" | "credito" | "qr" | "mayorista" | "fiado";
 
+/** Estado del comprobante del ticket en el controlador fiscal de la caja. */
+type EstadoControlador = { estado: "emitido" | "error" | "pendiente"; tipo?: string; numero?: string; motivo?: string; yaEmitido?: boolean };
+
 const PAY_METHODS: { value: PayMethod; label: string; icon: typeof Banknote; color: string }[] = [
   { value: "efectivo",      label: "Efectivo",      icon: Banknote,        color: "text-green-400" },
   { value: "transferencia", label: "Transferencia", icon: ArrowLeftRight,  color: "text-blue-400" },
@@ -281,7 +288,7 @@ function buildReceiptText(
 function ReceiptModal({
   items, payMethod, splitMode, splitMethod1, splitMethod2, splitAmount1, splitAmount2,
   customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount, paymentMethodDiscountARS,
-  note, saleId, transactionId, invoice, autoPrint, onFacturar, onClose, onNewSale,
+  note, saleId, transactionId, invoice, autoPrint, onFacturar, controlador, onControlador, onClose, onNewSale,
 }: {
   items: CartItem[]; payMethod: PayMethod;
   splitMode: boolean; splitMethod1: PayMethod; splitMethod2: PayMethod;
@@ -295,8 +302,12 @@ function ReceiptModal({
   invoice?: PosFacturaEstado | null;
   autoPrint?: boolean;
   onFacturar?: () => Promise<void>;
+  /** Comprobante en el controlador fiscal de esta caja, si está configurado. */
+  controlador?: EstadoControlador | null;
+  onControlador?: () => Promise<void>;
   onClose: () => void; onNewSale: () => void;
 }) {
+  const [emitiendoControlador, setEmitiendoControlador] = useState(false);
   const change = !splitMode && payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
   const collected = posPaymentAlreadyCollected({
     payMethod,
@@ -672,7 +683,21 @@ ${paymentInfo}
             </Button>
           ) : null}
 
-          {transactionId && !invoice?.cae ? (
+          {controlador ? (
+            <div className={`rounded-md border p-2 text-xs ${controlador.estado === "emitido" ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "border-amber-500/30 text-amber-700 dark:text-amber-300"}`} role="status">
+              {controlador.estado === "emitido"
+                ? <p className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" />Tique-Factura {controlador.tipo} {controlador.numero} emitido en el controlador fiscal{controlador.yaEmitido ? " (ya estaba emitido)" : ""}</p>
+                : <p>{controlador.motivo}</p>}
+              {controlador.estado !== "emitido" && onControlador && (
+                <Button size="sm" variant="outline" className="mt-2 w-full gap-1.5" disabled={emitiendoControlador}
+                  onClick={async () => { setEmitiendoControlador(true); try { await onControlador(); } finally { setEmitiendoControlador(false); } }}>
+                  {emitiendoControlador ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}Reintentar en el controlador fiscal
+                </Button>
+              )}
+            </div>
+          ) : null}
+
+          {transactionId && !invoice?.cae && controlador?.estado !== "emitido" ? (
             <Button
               variant="outline"
               size="sm"
@@ -1077,7 +1102,11 @@ export default function POSPage() {
     saleId?: string | null;
     transactionId?: string | null;
     invoice?: PosFacturaEstado | null;
+    controlador?: EstadoControlador | null;
   } | null>(null);
+  const [controllerConfig, setControllerConfig] = useState<ConfigControlador | null>(null);
+  const [controllerDialogOpen, setControllerDialogOpen] = useState(false);
+  useEffect(() => { setControllerConfig(leerConfigControlador(activeOrg?.id)); }, [activeOrg?.id]);
   useEffect(() => {
     setReceipt(null);
     if (!activeOrg?.id || !user?.id) { setAutoPrintTicket(false); return; }
@@ -1971,7 +2000,7 @@ export default function POSPage() {
     saleIds: string[],
     methodLabel: string,
     registeredTotal = cartTotal,
-    extras?: { transactionId?: string | null; invoice?: PosFacturaEstado | null },
+    extras?: { transactionId?: string | null; invoice?: PosFacturaEstado | null; controlador?: EstadoControlador | null },
   ) => {
     if (!user || !activeOrg) return;
     const orgId = activeOrg.id;
@@ -2030,6 +2059,7 @@ export default function POSPage() {
       saleId: saleIds[0] || null,
       transactionId: extras?.transactionId ?? null,
       invoice: extras?.invoice ?? null,
+      controlador: extras?.controlador ?? null,
     });
     toast.success(`Venta de ${formatARS(registeredTotal)} ${methodLabel === "QR Mercado Pago" ? "acreditada" : "registrada"}`);
     vibrateSuccess();
@@ -2365,6 +2395,25 @@ export default function POSPage() {
     toast.info("Intento QR cancelado y reserva liberada");
   };
 
+  const emitirEnControlador = async (transactionId: string): Promise<EstadoControlador> => {
+    if (!activeOrg || !controllerConfig) return { estado: "error", motivo: "No hay controlador fiscal configurado en esta caja." };
+    const resultado = await emitirTicketEnControlador({
+      orgId: activeOrg.id,
+      transactionId,
+      config: controllerConfig,
+      comprador: posCustomer ? {
+        nombre: posCustomer.legal_name || posCustomer.name,
+        domicilio: posCustomer.fiscal_address || posCustomer.address,
+        tax_id: posCustomer.tax_id,
+        condicion: esCondicionIva(posCustomer.vat_condition) ? posCustomer.vat_condition : "consumidor_final",
+      } : null,
+      emisor: settings?.afip_tipo_emisor,
+      tasaPorDefecto: Number(settings?.tax_iva_percent ?? 21),
+    });
+    if ("motivo" in resultado) return { estado: "error", motivo: resultado.motivo };
+    return { estado: "emitido", tipo: resultado.tipo, numero: resultado.numero, yaEmitido: resultado.yaEmitido };
+  };
+
   const emitirFacturaDelTicket = async (transactionId: string): Promise<PosFacturaEstado> => {
     if (!activeOrg) {
       return { ok: false, motivo: "No hay una organización activa." };
@@ -2515,7 +2564,13 @@ export default function POSPage() {
         });
 
         let invoice: PosFacturaEstado | null = null;
-        if (wantArcaInvoice && transactionId) {
+        let controlador: EstadoControlador | null = null;
+        if (controllerConfig?.emitirAlCobrar && transactionId) {
+          // El controlador fiscal de esta caja reemplaza a la factura electrónica.
+          controlador = await emitirEnControlador(transactionId);
+          if (controlador.estado === "emitido") toast.success(`Tique-Factura ${controlador.tipo} ${controlador.numero} emitido`);
+          else toast.warning(controlador.motivo);
+        } else if (wantArcaInvoice && transactionId) {
           invoice = await emitirFacturaDelTicket(transactionId);
           if (invoice.cae) toast.success(`${posArcaInvoiceCopy().authorized}: ${invoice.cae}`);
           else if (invoice.ok && invoice.invoiceId) toast.info(posArcaInvoiceCopy().draft);
@@ -2529,7 +2584,7 @@ export default function POSPage() {
           txSaleIds,
           splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod,
           cartTotal,
-          { transactionId, invoice },
+          { transactionId, invoice, controlador },
         );
         return;
       } else {
@@ -3643,7 +3698,14 @@ export default function POSPage() {
           transactionId={receipt.transactionId}
           invoice={receipt.invoice}
           autoPrint={autoPrintTicket}
-          onFacturar={receipt.transactionId ? async () => {
+          controlador={receipt.controlador ?? (controllerConfig && receipt.transactionId ? { estado: "pendiente", motivo: "Este ticket todavía no se emitió en el controlador fiscal." } : null)}
+          onControlador={receipt.transactionId && controllerConfig ? async () => {
+            const controlador = await emitirEnControlador(receipt.transactionId as string);
+            setReceipt((current) => current ? { ...current, controlador } : current);
+            if (controlador.estado === "emitido") toast.success(`Tique-Factura ${controlador.tipo} ${controlador.numero} emitido`);
+            else toast.warning(controlador.motivo);
+          } : undefined}
+          onFacturar={receipt.transactionId && receipt.controlador?.estado !== "emitido" ? async () => {
             const invoice = await emitirFacturaDelTicket(receipt.transactionId as string);
             setReceipt((current) => current ? { ...current, invoice } : current);
             if (invoice.cae) toast.success(`${posArcaInvoiceCopy().authorized}: ${invoice.cae}`);
@@ -3915,6 +3977,19 @@ export default function POSPage() {
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </Button>
+          {isAdmin && (
+            <Button size="sm" variant="ghost" className={`h-9 w-9 p-0 shrink-0 hidden sm:flex ${controllerConfig ? "text-primary" : ""}`}
+              title={controllerConfig ? `Controlador fiscal: ${controllerConfig.host}` : "Configurar controlador fiscal"}
+              aria-label="Controlador fiscal" onClick={() => setControllerDialogOpen(true)}>
+              <Printer className="w-4 h-4" />
+            </Button>
+          )}
+          <FiscalControllerDialog
+            open={controllerDialogOpen}
+            orgId={activeOrg?.id}
+            onClose={() => setControllerDialogOpen(false)}
+            onSaved={(config) => { setControllerConfig(config); setControllerDialogOpen(false); toast.success(config ? "Controlador fiscal guardado para esta caja" : "Controlador fiscal desactivado"); }}
+          />
           <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden sm:flex" title="Atajos de teclado (F1 / ?)"
             onClick={() => setShowShortcutHelp(v => !v)}
           >

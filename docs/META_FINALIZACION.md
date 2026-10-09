@@ -29,7 +29,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Carga del catálogo en paralelo por rangos de UUID (un viaje en vez de 9), orden con `Intl.Collator`; variantes y ventas sin tope silencioso de 1.000 filas.
 - [x] Importación: cada problema con causa, arreglo y ejemplos; correcciones de un clic; errores del servidor con arreglo.
 - [x] Proveedor en cada producto: columna de importación (asocia o crea), visible y filtrable en Productos.
-- [ ] Controladores fiscales (Epson TM-T900FA y otras marcas) vía app nativa, además de WSFE.
+- [x] Controlador fiscal Epson TM-T900FA por red (protocolo HTTP oficial), sin doble comprobante con ARCA.
+- [ ] Controlador fiscal: certificación en Modo Entrenamiento con el equipo real, canal nativo Tauri, Hasar 2G.
 - [ ] Todos los comprobantes electrónicos de ARCA (WSFE, WSMTXCA, WSFEX, FCE MiPyME).
 - [ ] Estudio funcional de test.scadi.com.ar y paridad de funciones útiles.
 - [x] Clientes con CUIT/DNI, condición IVA, razón social y domicilio fiscal; selector en POS y factura manual; factura A/B/C según cliente.
