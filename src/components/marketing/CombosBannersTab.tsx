@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Package, Image as ImageIcon, Plus, Edit, Trash2, Layers, Minus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
 
 export default function CombosBannersTab() {
   return (
@@ -447,6 +448,15 @@ function ComboForm({ products, editItem, userId, onSave }: { products: any[]; ed
   const [name, setName] = useState(editItem?.name || '');
   const [description, setDescription] = useState(editItem?.description || '');
   const [selected, setSelected] = useState<string[]>(editItem?.product_ids || []);
+  const [productQuery, setProductQuery] = useState("");
+  const conStock = useMemo(() => products.filter(p => p.stock > 0), [products]);
+  const indice = useMemo(() => crearIndiceBusqueda(conStock, p => camposProducto(p)), [conStock]);
+  // Elegidos arriba y hasta 50 coincidencias: con miles de productos no se dibuja todo.
+  const opciones = useMemo(() => {
+    const elegidos = conStock.filter(p => selected.includes(p.id));
+    const base = productQuery.trim() ? buscarLiteral(indice, productQuery) : conStock;
+    return [...elegidos, ...base.filter(p => !selected.includes(p.id)).slice(0, 50)];
+  }, [conStock, indice, productQuery, selected]);
   const [comboPrice, setComboPrice] = useState(String(editItem?.combo_price_ars || ''));
   const [saving, setSaving] = useState(false);
 
@@ -488,8 +498,10 @@ function ComboForm({ products, editItem, userId, onSave }: { products: any[]; ed
       </div>
       <div>
         <label className="text-xs text-muted-foreground">Productos *</label>
+        <Input value={productQuery} onChange={e => setProductQuery(e.target.value)} placeholder="Buscar por nombre, marca o código"
+          aria-label="Buscar productos del combo" className="mb-2 bg-muted border-border" />
         <div className="max-h-48 overflow-y-auto border border-border rounded p-2 space-y-1">
-          {products.filter(p => p.stock > 0).map(p => (
+          {opciones.map(p => (
             <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/30 p-1 rounded">
               <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggle(p.id)} />
               <span>{p.name}</span>
