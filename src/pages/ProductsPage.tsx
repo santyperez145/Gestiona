@@ -87,6 +87,7 @@ import {
 
 import { plural } from "@/lib/plural";
 import { daysSinceKnownDate } from "@/lib/dateFacts";
+import { escapePrintHtml } from "@/lib/saleReceipt";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
@@ -115,9 +116,9 @@ function exportPriceLabels(products: any[], businessName: string) {
     const originalPrice = Number(p.sale_price_ars);
     return `
       <div class="label">
-        <div class="biz">${businessName}</div>
-        <div class="name">${p.name.slice(0, 32)}${p.name.length > 32 ? '…' : ''}</div>
-        ${p.brand && p.brand !== p.name ? `<div class="brand">${p.brand}</div>` : ''}
+        <div class="biz">${escapePrintHtml(businessName)}</div>
+        <div class="name">${escapePrintHtml(p.name.slice(0, 32))}${p.name.length > 32 ? '…' : ''}</div>
+        ${p.brand && p.brand !== p.name ? `<div class="brand">${escapePrintHtml(p.brand)}</div>` : ''}
         ${hasDiscount ? `
           <div class="old-price">${fmtARS(originalPrice)}</div>
           <div class="price discount">${fmtARS(price)}</div>
@@ -125,10 +126,10 @@ function exportPriceLabels(products: any[], businessName: string) {
         ` : `
           <div class="price">${fmtARS(price)}</div>
         `}
-        ${p.sku || p.barcode ? `<div class="sku">${p.sku || p.barcode}</div>` : ''}
+        ${p.sku || p.barcode ? `<div class="sku">${escapePrintHtml(p.sku || p.barcode)}</div>` : ''}
       </div>`;
   }).join('');
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas de precio — ${businessName}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas de precio — ${escapePrintHtml(businessName)}</title>
 <style>
   @page { margin: 8mm; }
   body { font-family: Arial, sans-serif; margin: 0; background: #fff; }
@@ -152,35 +153,46 @@ function exportPriceLabels(products: any[], businessName: string) {
   }
   .sku { font-size: 6px; color: #bbb; font-family: monospace; margin-top: 1.5mm; }
 </style></head><body>
-<h2>${businessName} — Etiquetas de precio (${plural(items.length, "producto")})</h2>
+<h2>${escapePrintHtml(businessName)} — Etiquetas de precio (${plural(items.length, "producto")})</h2>
 <div class="grid">${rows}</div>
 </body></html>`;
   const w = window.open('', '_blank', 'width=900,height=700');
   if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
 }
 
-function exportQRLabels(products: any[], businessName: string) {
+async function exportQRLabels(products: any[], businessName: string) {
   const inStock = products.filter(p => p.stock > 0).slice(0, 60);
   if (!inStock.length) return;
-  const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
-  const rows = inStock.map(p => {
-    const price = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
-      ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
-    const qrData = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, price }));
-    return `
+  // Open synchronously from the click; awaiting generation first can block it.
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) {
+    toast.error('Permití las ventanas emergentes para imprimir las etiquetas QR.');
+    return;
+  }
+  try {
+    const QRCode = await import('qrcode');
+    const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+    const rows = (await Promise.all(inStock.map(async p => {
+      const price = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
+        ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+      // Catalog identifiers and prices never leave the browser to make a label.
+      const qrData = await QRCode.toDataURL(JSON.stringify({ id: p.id, name: p.name, price }), {
+        width: 160, margin: 1, errorCorrectionLevel: 'M',
+      });
+      return `
       <div class="label">
         <div class="qr-wrap">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${qrData}" alt="QR" width="80" height="80" />
+          <img src="${escapePrintHtml(qrData)}" alt="QR" width="80" height="80" />
         </div>
         <div class="info">
-          <div class="name">${p.name.slice(0, 28)}${p.name.length > 28 ? '…' : ''}</div>
-          ${p.brand ? `<div class="brand">${p.brand}</div>` : ''}
+          <div class="name">${escapePrintHtml(p.name.slice(0, 28))}${p.name.length > 28 ? '…' : ''}</div>
+          ${p.brand ? `<div class="brand">${escapePrintHtml(p.brand)}</div>` : ''}
           <div class="price">${fmtARS(price)}</div>
-          ${p.sku || p.barcode ? `<div class="sku">${p.sku || p.barcode}</div>` : ''}
+          ${p.sku || p.barcode ? `<div class="sku">${escapePrintHtml(p.sku || p.barcode)}</div>` : ''}
         </div>
       </div>`;
-  }).join('');
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas QR — ${businessName}</title>
+    }))).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas QR — ${escapePrintHtml(businessName)}</title>
 <style>
   @page { margin: 10mm; }
   body { font-family: Arial, sans-serif; margin: 0; background: #fff; }
@@ -194,18 +206,24 @@ function exportQRLabels(products: any[], businessName: string) {
   .price { font-size: 11px; font-weight: bold; color: #b8860b; margin-top: 2px; }
   .sku { font-size: 6px; color: #aaa; font-family: monospace; margin-top: 1px; }
 </style></head><body>
-<h2>${businessName} — Etiquetas QR (${plural(inStock.length, "producto")})</h2>
+<h2>${escapePrintHtml(businessName)} — Etiquetas QR (${plural(inStock.length, "producto")})</h2>
 <div class="grid">${rows}</div>
 </body></html>`;
-  const w = window.open('', '_blank', 'width=900,height=700');
-  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
+    if (w.closed) return;
+    w.document.write(html); w.document.close(); w.focus();
+    setTimeout(() => { if (!w.closed) w.print(); }, 800);
+  } catch (error: unknown) {
+    console.error('[Productos] no se pudieron generar las etiquetas QR', error);
+    if (!w.closed) w.close();
+    toast.error('No se pudieron generar las etiquetas QR. Reintentá; tus productos no se modificaron.');
+  }
 }
 
 function printAgingPDF(aged: { name: string; stock: number; daysSince: number; valueARS: number }[], businessName: string, exchangeRate: number) {
   const totalValue = aged.reduce((s, p) => s + p.valueARS, 0);
   const rows = aged.map(p => `
     <tr>
-      <td>${p.name}</td>
+      <td>${escapePrintHtml(p.name)}</td>
       <td style="text-align:center">${p.stock}</td>
       <td style="text-align:center">${p.daysSince >= 999 ? "Nunca" : p.daysSince + "d"}</td>
       <td style="text-align:right">U$S ${(p.valueARS / exchangeRate).toFixed(2)}</td>
@@ -217,7 +235,7 @@ function printAgingPDF(aged: { name: string; stock: number; daysSince: number; v
   <style>body{font-family:Arial,sans-serif;padding:20px;color:#111}h1{font-size:18px;margin-bottom:4px}p{font-size:12px;color:#555;margin-bottom:16px}
   table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f3f4f6;padding:8px;text-align:left;border-bottom:2px solid #e5e7eb}
   td{padding:6px 8px;border-bottom:1px solid #e5e7eb}tfoot td{font-weight:bold;border-top:2px solid #111}</style></head>
-  <body><h1>${businessName} — Inventario sin movimiento</h1>
+  <body><h1>${escapePrintHtml(businessName)} — Inventario sin movimiento</h1>
   <p>Generado el ${new Date().toLocaleDateString("es-AR")} · ${plural(aged.length, "producto")} · U$S ${(totalValue / exchangeRate).toFixed(0)} inmovilizado</p>
   <table><thead><tr><th>Producto</th><th>Stock</th><th>Sin venta</th><th>Costo estimado</th><th>Sugerencia</th></tr></thead>
   <tbody>${rows}</tbody>
@@ -238,10 +256,10 @@ function exportPriceListPDF(products: any[], businessName: string) {
   const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
   let rows = '';
   Object.entries(grouped).forEach(([cat, items]) => {
-    rows += `<tr class="cat-row"><td colspan="3">${cat}</td></tr>`;
+    rows += `<tr class="cat-row"><td colspan="3">${escapePrintHtml(cat)}</td></tr>`;
     items.forEach(p => {
       rows += `<tr>
-        <td>${p.name}${p.brand ? ` <span class="brand">${p.brand}</span>` : ''}${p.gender ? ` <span class="gender">${p.gender}</span>` : ''}</td>
+        <td>${escapePrintHtml(p.name)}${p.brand ? ` <span class="brand">${escapePrintHtml(p.brand)}</span>` : ''}${p.gender ? ` <span class="gender">${escapePrintHtml(p.gender)}</span>` : ''}</td>
         <td class="price">${formatARS(Number(p.sale_price_ars))}</td>
         <td class="price">${p.discount_price_ars ? formatARS(Number(p.discount_price_ars)) : '—'}</td>
       </tr>`;
@@ -263,7 +281,7 @@ function exportPriceListPDF(products: any[], businessName: string) {
   .footer{margin-top:16px;font-size:10px;color:#999;text-align:center}
   @media print{.no-print{display:none}}
 </style></head><body>
-<h1>${businessName}</h1>
+<h1>${escapePrintHtml(businessName)}</h1>
 <div class="sub">Lista de precios — ${date} · ${plural(inStock.length, "producto")} disponibles</div>
 <table>
   <thead><tr><th>Producto</th><th class="price">Precio</th><th class="price">Oferta</th></tr></thead>
@@ -2533,12 +2551,12 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       {saveError && <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">{saveError}</p>}
       {productTypesStatus === 'error' || (attributesState.key === attributesKey && attributesState.status === 'error') ? (
         <div role="alert" className="space-y-2 rounded-md border border-destructive/30 p-3 text-sm">
-          <p>No se pudieron cargar los atributos del tipo.</p>
+          <p>{productTypesStatus === 'error' ? 'No se pudieron cargar los tipos de producto.' : 'No se pudieron cargar los atributos del tipo.'}</p>
           <p className="text-xs text-muted-foreground">Conservamos la ficha. No se puede guardar una edición incompleta ni borrar atributos por un error de carga.</p>
           <Button type="button" variant="outline" size="sm" onClick={() => {
             if (productTypesStatus === 'error') setProductTypesRetry(value => value + 1);
             else setAttributesRetry(value => value + 1);
-          }}>Reintentar atributos</Button>
+          }}>{productTypesStatus === 'error' ? 'Reintentar tipos' : 'Reintentar atributos'}</Button>
         </div>
       ) : !attributesReady ? <p role="status" className="text-sm text-muted-foreground">Cargando atributos del tipo…</p> : null}
       {creatingFirstProduct && (

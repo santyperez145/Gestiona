@@ -73,6 +73,20 @@ async function openPage() {
   return result;
 }
 describe('flujo real de Productos con backend simulado', () => {
+  it('distingue el fallo de tipos, preserva el borrador y recupera el guardado con retry', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(listProductTypes).mockRejectedValueOnce(new Error('ZZ private type failure'));
+    render(<TooltipProvider><ProductForm product={{ ...mocks.product }} settings={{ exchange_rate: 1000 }} userId="user" orgId="org" onDirtyChange={() => {}} onSave={() => {}} /></TooltipProvider>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar los tipos de producto.');
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
+    expect(screen.getByPlaceholderText('Ej: Nombre del producto')).toHaveValue('Producto de prueba');
+    expect(screen.queryByText('ZZ private type failure')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar tipos' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar cambios' })).not.toBeDisabled());
+    expect(screen.getByPlaceholderText('Ej: Nombre del producto')).toHaveValue('Producto de prueba');
+    expect(mocks.update).not.toHaveBeenCalled();
+    vi.mocked(console.error).mockRestore();
+  });
   it('conserva el contenido de una alta perfume al cambiar de categoría dentro del mismo tipo', async () => {
     vi.mocked(listProductTypes).mockResolvedValue([{ id: 'perfume', org_id: 'org', name: 'Perfume', slug: 'perfume',
       source: 'custom', active: true, maneja_stock: true, description: null, template_code: null,

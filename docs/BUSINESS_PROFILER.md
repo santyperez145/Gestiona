@@ -67,6 +67,18 @@ valores sólo alcanza definiciones explícitas de la edición actual: no borra
 atributos históricos de otros tipos ni interpreta una carga vacía como orden
 de eliminarlos.
 
+Tipos y definiciones sólo se escriben con `products.edit`; los valores permiten
+alta con `products.create` para productos del propio autor, o con `edit`;
+modificación/baja requieren `edit`. La lectura
+requiere miembro activo y `products.view` o `sales.create`, para conservar el
+mostrador sin conceder edición. El `org_id` no se traslada, aun teniendo acceso
+a dos negocios. Las policies `FOR ALL` por simple membresía quedan reemplazadas
+por acción en `20261009000010`; los grants mínimos también forman parte del
+replay. La configuración del Blueprint mantiene su propio permiso owner/admin.
+Las etiquetas QR se generan localmente con `qrcode` ya instalado: no se envían
+ids/nombres/precios a un proveedor externo. Error o bloqueo de popup se informa
+sin modificar productos; etiquetas/listas y cierre de caja escapan texto HTML.
+
 ## Contrato y autoridad
 
 - `industry_presets.product_type_templates` contiene JSON declarativo y
@@ -119,6 +131,7 @@ parecer que todo el onboarding falló.
 npx supabase db query --linked --file supabase/verificaciones/20260822_business_profiler.sql
 npx supabase db query --linked --file supabase/verificaciones/20260828_business_blueprint.sql
 npx supabase db query --linked --file supabase/verificaciones/20261009_hardware_business_profile.sql
+npx supabase db query --linked --file supabase/verificaciones/20261009_catalog_attribute_permissions.sql
 npx supabase db push --linked --dry-run
 ~~~
 
@@ -131,6 +144,16 @@ rollback deliberado:
 - organización y ajustes: visibles juntos tras completar onboarding;
 - usuario externo: bloqueado;
 - restos de tipos, atributos, perfil y nombre `ZZ`: 0.
+
+El 2026-10-09, Preview de PR27 pasó el verifier de Ferretería y el harness
+con roles `authenticated` owner/viewer: un tipo/cuatro atributos, replay sin
+duplicados, tipo propio intacto y tenant ajeno bloqueado. El drill del catálogo
+pasó siete grupos de CRUD/permisos con roles SQL reales, incluso create-only
+limitado al autor, cajero sin edición, suspensión y servidor. Todos los
+usuarios/organizaciones fueron sintéticos y revertidos; readback: cero restos.
+El primer ensayo expuso grants ausentes del replay, no un fallo productivo de
+carga probado: se corrigieron en la migración, nunca en los fixtures. Ninguna
+prueba emitió facturas, movió dinero ni llamó proveedores o hardware.
 
 La prueba de Blueprint del 2026-08-28 agregó una falla controlada en el paso 4:
 los tres pasos previos quedaron compensados, el dominio quedó vacío, el retry

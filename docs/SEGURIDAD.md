@@ -1,6 +1,6 @@
 # Seguridad y prevención de fraude
 
-**Estado:** canónico. **Corte:** 2026-10-07.
+**Estado:** canónico. **Corte:** 2026-10-09.
 
 Este documento define la línea base de seguridad de Nerqia. La arquitectura
 funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
@@ -41,6 +41,32 @@ También se probó reaplicación dentro de rollback. No se cambiaron roles reale
 no se resetearon datos ni se certifica con esto toda la plataforma.
 
 ## Superficies de confianza
+
+### Catálogo y atributos — revisión 2026-10-09
+
+La lectura productiva confirmó tres policies legacy `FOR ALL` basadas sólo en
+membresía: `product_types`, `attribute_definitions` y `product_attribute_values`.
+La UI de sólo lectura no era una barrera de escritura mediante API. El replay
+tampoco reconstruía sus grants de tabla, que existían sólo en producción.
+
+`20261009000010` reemplaza esas policies por acciones con membresía activa y
+permisos canónicos de Productos; lectura también admite `sales.create` para
+el cajero. Configurar tipos/definiciones requiere edición; crear valores admite
+alta sobre productos del propio autor o edición, pero cambiar/borrar valores
+exige edición. El tenant es
+inmutable y las referencias padre deben coincidir. Sin acceso directo anon,
+ni privilegios técnicos de tabla al navegador, ni bypass por un claim de rol.
+Storefront conserva sus RPC públicos y el servidor su rol real, no otra matriz.
+
+El gate usa roles PostgreSQL reales, dos tenants, viewer/editor/cajero,
+revocación/suspensión, CRUD y rollback sin residuos en Preview. El ensayo no
+certifica todos los permisos de Core ni reemplaza el gate MFA transversal.
+Las impresiones de caja y catálogo reutilizan escape HTML compartido para
+mostrar nombres, códigos y notas como texto, sin ejecutar contenido persistido.
+Los dos ensayos pasaron el 2026-10-09 en Preview de PR27, con cero identidades
+y organizaciones residuales. No se crearon fixtures ni operaciones comerciales
+en producción. Las etiquetas QR se generan localmente, sin compartir datos
+del catálogo con un generador externo. La impresión física conserva su gate.
 
 | Superficie | Identidad | Autoridad mínima |
 |---|---|---|
