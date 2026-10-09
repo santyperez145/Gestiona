@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from "react";
 import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
+import PosCustomerPicker, { etiquetaCliente, type PosCustomer } from "@/components/pos/PosCustomerPicker";
+import { letraParaCliente } from "@/lib/customerFiscal";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
 import { productMatchesCode } from "@/lib/productCodes";
@@ -1009,6 +1011,9 @@ export default function POSPage() {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingPriceVal, setEditingPriceVal] = useState("");
   const [customer, setCustomer] = useState("");
+  // Cliente identificado: su ficha fiscal decide la factura (A/B/C) en el servidor.
+  const [posCustomer, setPosCustomer] = useState<PosCustomer | null>(null);
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [posNote, setPosNote] = useState("");
   const [showRecentCustomers, setShowRecentCustomers] = useState(false);
   const [recentCustomers] = useState<string[]>(() => {
@@ -1568,6 +1573,7 @@ export default function POSPage() {
     localStorage.setItem("gestiona.pos.saved_orders", JSON.stringify(next));
     setCart([]);
     setCustomer("");
+    setPosCustomer(null);
     toast.success(`Pedido guardado: ${order.label}`);
   };
 
@@ -1580,6 +1586,7 @@ export default function POSPage() {
     }))) return;
     setCart(order.cart);
     setCustomer(order.customer);
+    setPosCustomer(null);
     const next = savedOrders.filter(o => o.id !== order.id);
     setSavedOrders(next);
     localStorage.setItem("gestiona.pos.saved_orders", JSON.stringify(next));
@@ -1962,6 +1969,7 @@ export default function POSPage() {
   const clearCart = () => {
     setCart([]);
     setCustomer("");
+    setPosCustomer(null);
     setPosNote("");
     setCashGiven("");
     setPayMethod("efectivo");
@@ -2470,6 +2478,7 @@ export default function POSPage() {
           profit_ars: profitARS,
           profit_usd: profitUSD,
           customer_name: customer.trim() || null,
+          customer_id: posCustomer?.id ?? null,
           date,
           paid: isPaid,
           payment_method: primaryMethod,
@@ -2861,11 +2870,35 @@ export default function POSPage() {
             )}
           </div>
         )}
+        <div className="flex items-center gap-1.5">
+          <Button type="button" size="sm" variant="outline" className="h-8 shrink-0 text-xs" onClick={() => setCustomerPickerOpen(true)}>
+            <User className="mr-1 h-3.5 w-3.5" />{posCustomer ? "Cambiar cliente" : "Elegir cliente"}
+          </Button>
+          {posCustomer ? (
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-xs">
+              <span className="min-w-0 flex-1 truncate" title={etiquetaCliente(posCustomer)}>
+                <strong>{posCustomer.legal_name || posCustomer.name}</strong> · {etiquetaCliente(posCustomer)}
+              </span>
+              <span className="shrink-0 font-semibold" title="Comprobante que corresponde">Factura {letraParaCliente(settings?.afip_tipo_emisor, posCustomer.vat_condition)}</span>
+              <button type="button" aria-label="Quitar cliente" className="shrink-0 text-muted-foreground hover:text-foreground" onClick={() => { setPosCustomer(null); setCustomer(""); }}>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : <span className="text-[11px] text-muted-foreground">Sin cliente: consumidor final</span>}
+        </div>
+        <PosCustomerPicker
+          open={customerPickerOpen}
+          orgId={activeOrg?.id}
+          userId={user?.id}
+          emisor={settings?.afip_tipo_emisor}
+          onClose={() => setCustomerPickerOpen(false)}
+          onSelect={(selected) => { setPosCustomer(selected); setCustomer(selected.name); setCustomerPickerOpen(false); }}
+        />
         <div className="relative">
           <Input
-            placeholder="Cliente (opcional)"
+            placeholder="Nombre en el ticket (opcional)"
             value={customer}
-            onChange={(e) => setCustomer(e.target.value)}
+            onChange={(e) => { setCustomer(e.target.value); if (posCustomer && e.target.value !== posCustomer.name) setPosCustomer(null); }}
             onFocus={() => setShowRecentCustomers(true)}
             onBlur={() => setTimeout(() => setShowRecentCustomers(false), 150)}
             className="h-8 text-sm bg-muted"

@@ -26,10 +26,11 @@ import {
   numeroFiscal,
   printableArcaQrUrl,
 } from "@/lib/arcaInvoice";
-import { CONDICIONES_IVA, tipoDeComprobante, validarCuit, type CondicionIva } from "@/lib/fiscalIdentity";
+import { CONDICIONES_IVA, esCondicionIva, formatearCuit, tipoDeComprobante, validarCuit, type CondicionIva } from "@/lib/fiscalIdentity";
 import { loadAssociatedFiscalInvoice, printFiscalInvoiceTicket } from "@/lib/saleInvoice";
 import { invoiceIvaGroups, invoiceDisplayLines } from "../../supabase/functions/_shared/invoiceIva";
 import { explicacionesDesdeMensaje } from "../../supabase/functions/_shared/arcaRechazos";
+import PosCustomerPicker from "@/components/pos/PosCustomerPicker";
 import { GRUPOS_PENDIENTE_FISCAL, grupoPendienteFiscal, resumenPendientesFiscales, type GrupoPendienteFiscal } from "@/lib/fiscalExceptions";
 import { useModulePermissions } from "@/lib/usePermissions";
 import {
@@ -416,6 +417,7 @@ export default function InvoicesPage() {
   const [afipSettingsError, setAfipSettingsError] = useState(false);
   const [afipSettingsReload, setAfipSettingsReload] = useState(0);
   const [search, setSearch] = useState("");
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [creatingNC, setCreatingNC] = useState<string | null>(null);
   const [ncDialogInv, setNcDialogInv] = useState<Invoice | null>(null);
   const [ncReason, setNcReason] = useState("");
@@ -1036,7 +1038,29 @@ export default function InvoicesPage() {
       {/* Create form */}
       {showForm && (
         <div className="bg-card border border-border/60 rounded-[10px] p-5 space-y-5">
-          <h2 className="font-semibold flex items-center gap-2"><Plus className="w-4 h-4" />Nueva factura</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold flex items-center gap-2"><Plus className="w-4 h-4" />Nueva factura</h2>
+            <Button type="button" size="sm" variant="outline" onClick={() => setCustomerPickerOpen(true)}>Elegir de Clientes</Button>
+          </div>
+          <PosCustomerPicker
+            open={customerPickerOpen}
+            orgId={activeOrg?.id}
+            userId={user?.id}
+            emisor={afipSettings?.afip_tipo_emisor}
+            onClose={() => setCustomerPickerOpen(false)}
+            onSelect={(c) => {
+              // La ficha completa los datos del receptor; siguen editables antes de emitir.
+              setForm(f => ({
+                ...f,
+                customer_name: c.legal_name || c.name,
+                customer_tax_id: c.tax_id ? (c.tax_id.length === 11 ? formatearCuit(c.tax_id) : c.tax_id) : "",
+                customer_address: c.fiscal_address || c.address || "",
+                customer_email: c.email || f.customer_email,
+                receiver_condition: esCondicionIva(c.vat_condition) ? c.vat_condition : "consumidor_final",
+              }));
+              setCustomerPickerOpen(false);
+            }}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

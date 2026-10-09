@@ -32,6 +32,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [ ] Controladores fiscales (Epson TM-T900FA y otras marcas) vía app nativa, además de WSFE.
 - [ ] Todos los comprobantes electrónicos de ARCA (WSFE, WSMTXCA, WSFEX, FCE MiPyME).
 - [ ] Estudio funcional de test.scadi.com.ar y paridad de funciones útiles.
+- [x] Clientes con CUIT/DNI, condición IVA, razón social y domicilio fiscal; selector en POS y factura manual; factura A/B/C según cliente.
+- [x] POS con catálogo grande: búsqueda indexada, grilla acotada, ventas/variantes completas.
 
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.

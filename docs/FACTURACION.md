@@ -78,6 +78,14 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   CAE válido no prueban rechazo: quedan `processing`. El SOAP crudo sólo va al log.
   Las advertencias de un CAE otorgado (p. ej. 10236, tope de Monotributo) se
   registran en el log; persistirlas para el comercio requiere columna propia.
+- Clientes con identidad fiscal (`20261009000200`): CUIT con dígito verificador
+  o DNI, condición frente al IVA, razón social y domicilio fiscal; quien no es
+  consumidor final requiere CUIT (restricción en base). El POS elige el cliente
+  con un buscador server-side o lo da de alta, y envía `customer_id` en cada
+  renglón. `facturar_venta_pos` usa la ficha del cliente de la organización para
+  la clase A/B/C y congela documento, razón social, domicilio y correo; sin
+  cliente o con uno ajeno factura a consumidor final. Factura manual completa el
+  receptor desde Clientes. Editar la ficha después no cambia lo emitido.
 - La bandeja de pendientes fiscales (`fiscalExceptions.ts`) agrupa comprobantes
   sin CAE por acción: conexión, datos del cliente, importes, contador, reintento,
   listos para autorizar y en verificación. Sólo lee estado persistido y filtra

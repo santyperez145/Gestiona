@@ -9603,6 +9603,11 @@ export type Database = {
       }
       customers: {
         Row: {
+          fiscal_address: string | null
+          legal_name: string | null
+          tax_id: string | null
+          tax_id_type: string | null
+          vat_condition: string
           address: string | null
           birthday: string | null
           buys_vapers: boolean
@@ -9628,6 +9633,11 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          fiscal_address?: string | null
+          legal_name?: string | null
+          tax_id?: string | null
+          tax_id_type?: string | null
+          vat_condition?: string
           address?: string | null
           birthday?: string | null
           buys_vapers?: boolean
@@ -9653,6 +9663,11 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          fiscal_address?: string | null
+          legal_name?: string | null
+          tax_id?: string | null
+          tax_id_type?: string | null
+          vat_condition?: string
           address?: string | null
           birthday?: string | null
           buys_vapers?: boolean

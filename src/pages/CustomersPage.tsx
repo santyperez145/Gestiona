@@ -49,6 +49,8 @@ import SegmentosView from "@/components/crm/SegmentosView";
 import { findCustomerDuplicates, type DuplicateCluster } from "@/lib/customerDuplicates";
 
 import { plural } from "@/lib/plural";
+import CustomerFiscalFields from "@/components/customers/CustomerFiscalFields";
+import { columnasIdentidadFiscal, errorIdentidadFiscal, identidadFiscalDesde } from "@/lib/customerFiscal";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -87,6 +89,11 @@ type CustomerData = {
 type CustomerProfile = {
   id: string;
   name: string;
+  vat_condition?: string | null;
+  tax_id?: string | null;
+  tax_id_type?: string | null;
+  legal_name?: string | null;
+  fiscal_address?: string | null;
   /** Viene del select(*); desempata homónimos igual que el trigger en SQL. */
   created_at?: string;
   company?: string;
@@ -250,6 +257,7 @@ function CustomerFormModal({
     buysVapers: initial?.buys_vapers ?? false,
   });
   const [scentPrefs, setScentPrefs] = useState<string[]>(initial?.scent_preferences ?? []);
+  const [fiscal, setFiscal] = useState(() => identidadFiscalDesde(initial));
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(
     initial?.custom_fields ?? {}
@@ -284,6 +292,8 @@ function CustomerFormModal({
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("El nombre es obligatorio"); return; }
+    const fiscalError = errorIdentidadFiscal(fiscal);
+    if (fiscalError) { toast.error(fiscalError); return; }
     // Validate required custom fields
     for (const def of customFieldDefs) {
       if (def.required && !customFieldValues[def.field_key] && customFieldValues[def.field_key] !== false) {
@@ -307,6 +317,7 @@ function CustomerFormModal({
         ...(operaVapers ? { buys_vapers: form.buysVapers } : {}),
         ...(operaPerfumes ? { scent_preferences: scentPrefs } : {}),
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
+        ...columnasIdentidadFiscal(fiscal),
       });
       onClose();
     } catch (e: any) {
@@ -390,6 +401,7 @@ function CustomerFormModal({
               className="bg-muted"
             />
           </div>
+          <CustomerFiscalFields value={fiscal} onChange={setFiscal} />
           <div>
             <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" />Cumpleaños</label>
             <Input

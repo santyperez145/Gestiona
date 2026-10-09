@@ -1058,13 +1058,15 @@ export async function getCustomerNotesDB(userId: string) {
 // ========= CUSTOMERS (perfil completo) =========
 export async function getCustomersDB(userId: string) {
   const orgId = await orgIdFor(userId);
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('org_id', orgId)
-    .order('name');
-  if (error) throw error;
-  return data || [];
+  // Sin el tope silencioso de 1.000 filas de PostgREST.
+  const customers = await selectAllRows<Database['public']['Tables']['customers']['Row']>(({ desde, hasta, despues, limite }) => {
+    let query = supabase.from('customers').select('*').eq('org_id', orgId).gte('id', desde).order('id').limit(limite);
+    if (hasta) query = query.lt('id', hasta);
+    if (despues) query = query.gt('id', despues);
+    return query;
+  });
+  const collator = new Intl.Collator('es');
+  return customers.sort((a, b) => collator.compare(a.name ?? '', b.name ?? ''));
 }
 
 export async function createCustomerDB(userId: string, customer: {
@@ -1072,6 +1074,7 @@ export async function createCustomerDB(userId: string, customer: {
   birthday?: string; tags?: string[]; notes?: string;
   instagram_handle?: string; whatsapp_number?: string; buys_vapers?: boolean; scent_preferences?: string[];
   custom_fields?: Record<string, any>;
+  vat_condition?: string | null; tax_id?: string | null; tax_id_type?: string | null; legal_name?: string | null; fiscal_address?: string | null;
 }) {
   const orgId = await orgIdFor(userId);
   const { data, error } = await supabase
@@ -1088,6 +1091,7 @@ export async function updateCustomerDB(id: string, updates: Partial<{
   birthday: string; tags: string[]; notes: string;
   instagram_handle: string; whatsapp_number: string; buys_vapers: boolean; scent_preferences: string[];
   custom_fields: Record<string, any>;
+  vat_condition: string; tax_id: string | null; tax_id_type: string | null; legal_name: string | null; fiscal_address: string | null;
 }>) {
   const { error } = await supabase
     .from('customers')
