@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from "react";
+import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
 import { productMatchesCode } from "@/lib/productCodes";
@@ -6,7 +7,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB, getSalesSinceDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -1622,18 +1623,23 @@ export default function POSPage() {
       const settled = await Promise.allSettled([
         getProductsDB(user.id),
         getSettingsDB(user.id),
-        supabase.from('sales').select('product_id, quantity').gte('date', since30.toISOString().slice(0, 10)),
+        // Una sola lectura de 90 días alimenta top vendidos (30 días) y el
+        // recomendador; filtrada por organización y sin tope de 1.000 filas.
+        activeOrg?.id
+          ? getSalesSinceDB<{ id: string; product_id: string | null; product_name: string; date: string; quantity: number }>(
+            activeOrg.id, 'id, product_id, product_name, date, quantity', since90.toISOString().slice(0, 10))
+          : Promise.resolve([]),
         getVariantsByUserDB(user.id).catch(() => []),
-        supabase.from('sales').select('product_id, product_name, date, quantity').gte('date', since90.toISOString().slice(0, 10)).not('product_id', 'is', null),
       ]);
       const val = <T,>(i: number, fallback: T): T =>
         settled[i].status === 'fulfilled' ? ((settled[i] as PromiseFulfilledResult<any>).value ?? fallback) : fallback;
 
       let prods = val<any[]>(0, []);
       const sett = val<any>(1, null);
-      const { data: recentSales } = val<any>(2, { data: [] });
+      const since30Text = since30.toISOString().slice(0, 10);
+      const salesForRec = val<any[]>(2, []).filter((s: any) => s.product_id);
+      const recentSales = salesForRec.filter((s: any) => s.date >= since30Text);
       const allVariants = val<any[]>(3, []);
-      const { data: salesForRec } = val<any>(4, { data: [] });
 
       // Snapshot local del catálogo: es lo que permite cobrar en una feria sin
       // señal. El caché del service worker vence a los 5 minutos y no alcanza.
@@ -1682,7 +1688,7 @@ export default function POSPage() {
       setTopProductIds(new Set(top5));
       if (salesForRec) setRecSales(salesForRec as { product_id: string; product_name: string; date: string; quantity: number }[]);
     })();
-  }, [user]);
+  }, [user, activeOrg?.id]);
 
   // ── Load bundles for POS ──
   useEffect(() => {
@@ -1697,40 +1703,48 @@ export default function POSPage() {
   }, [activeOrg?.id]);
 
   // ── Filtered products ──
-  const sellableCount = useMemo(
-    () => products.filter((p) => posProductIsSellable(p)).length,
-    [products],
+  // Con miles de productos, cada tecla no puede reconstruir índices: la lista
+  // vendible, el texto normalizado y el índice difuso se arman una vez por
+  // catálogo/categoría, y la búsqueda se difiere para no frenar el tipeo.
+  const sellable = useMemo(() => products.filter((p) => posProductIsSellable(p)), [products]);
+  const sellableCount = sellable.length;
+  const categoryList = useMemo(
+    () => (cat === "all" ? sellable : sellable.filter((p) => p.category === cat)),
+    [sellable, cat],
   );
+  const searchIndex = useMemo(
+    () => crearIndiceBusqueda(categoryList, (p: any) => [...camposProducto(p), p.description]),
+    [categoryList],
+  );
+  const fuseIndex = useMemo(() => FuseClass ? new FuseClass(categoryList, {
+    keys: [
+      { name: 'name', weight: 0.6 },
+      { name: 'brand', weight: 0.3 },
+      { name: 'description', weight: 0.1 },
+    ],
+    threshold: 0.4,
+    minMatchCharLength: 2,
+    ignoreLocation: true,
+  }) : null, [FuseClass, categoryList]);
+  const deferredSearch = useDeferredValue(search);
 
   const filtered = useMemo(() => {
-    let list = products.filter((p) => posProductIsSellable(p));
-    if (cat !== "all") list = list.filter((p) => p.category === cat);
-    if (search) {
-      // Exact barcode/SKU match takes priority
-      const exactBarcode = list.filter(p => productMatchesCode(p, search));
-      if (exactBarcode.length) return exactBarcode;
-      if (FuseClass) {
-        // Fuse.js fuzzy search — handles typos, partial matches, accent-insensitive
-        const fuse = new FuseClass(list, {
-          keys: [
-            { name: 'name', weight: 0.6 },
-            { name: 'brand', weight: 0.3 },
-            { name: 'description', weight: 0.1 },
-          ],
-          threshold: 0.4,
-          minMatchCharLength: 2,
-          ignoreLocation: true,
-        });
-        return fuse.search(search).map((r: any) => r.item);
-      }
-      // Fallback: simple substring search while Fuse loads (< 100ms in practice)
-      const q = search.toLowerCase();
-      return list.filter(
-        (p) => p.name?.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [products, cat, search, FuseClass]);
+    const query = deferredSearch.trim();
+    if (!query) return categoryList;
+    // Código de barras/SKU exacto primero; después todos los términos
+    // literales; recién sin coincidencias, difuso (tolera typos).
+    const exactBarcode = categoryList.filter(p => productMatchesCode(p, query));
+    if (exactBarcode.length) return exactBarcode;
+    const literal = buscarLiteral(searchIndex, query);
+    if (literal.length || !fuseIndex) return literal;
+    return fuseIndex.search(query).map((r: any) => r.item);
+  }, [categoryList, deferredSearch, searchIndex, fuseIndex]);
+
+  // La grilla dibuja un tope de tarjetas: el cajero busca, no recorre 11.000.
+  const POS_GRID_STEP = 60;
+  const [gridLimit, setGridLimit] = useState(POS_GRID_STEP);
+  useEffect(() => { setGridLimit(POS_GRID_STEP); }, [deferredSearch, cat]);
+  const gridProducts = useMemo(() => filtered.slice(0, gridLimit), [filtered, gridLimit]);
 
   const catalogEmptyKind = posCatalogEmptyKind({
     loading: loadingProds,
@@ -4000,8 +4014,9 @@ export default function POSPage() {
                 }}
               />
             ) : (
+              <>
               <div className="pos-product-grid grid gap-2">
-                {filtered.map((prod) => {
+                {gridProducts.map((prod) => {
                   const inCart = cart.find((it) => it.productId === prod.id);
                   const onlineReserved = Number(onlineReservations[prod.id] ?? 0);
                   const discP = prod.discount_price_ars ? Number(prod.discount_price_ars) : null;
@@ -4083,6 +4098,13 @@ export default function POSPage() {
                   );
                 })}
               </div>
+              {filtered.length > gridProducts.length && (
+                <div className="flex items-center justify-center gap-3 py-3 text-xs text-muted-foreground">
+                  <span>Mostrando {gridProducts.length} de {filtered.length.toLocaleString("es-AR")}. Buscá por nombre o código para ir directo.</span>
+                  <Button size="sm" variant="outline" onClick={() => setGridLimit((n) => n + POS_GRID_STEP)}>Mostrar más</Button>
+                </div>
+              )}
+              </>
             )}
           </div>
 

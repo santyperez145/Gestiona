@@ -777,9 +777,25 @@ export async function getVariantsDB(productId: string) {
 
 export async function getVariantsByUserDB(userId: string) {
   const orgId = await orgIdFor(userId);
-  const { data, error } = await supabase.from('product_variants').select('*').eq('org_id', orgId).eq('active', true).order('variant_name');
-  if (error) throw error;
-  return data || [];
+  // Sin tope de 1.000: un catálogo con talles/colores lo supera enseguida.
+  const variants = await selectAllRows<Database['public']['Tables']['product_variants']['Row']>(({ desde, hasta, despues, limite }) => {
+    let query = supabase.from('product_variants').select('*').eq('org_id', orgId).eq('active', true).gte('id', desde).order('id').limit(limite);
+    if (hasta) query = query.lt('id', hasta);
+    if (despues) query = query.gt('id', despues);
+    return query;
+  });
+  const collator = new Intl.Collator('es');
+  return variants.sort((a, b) => collator.compare(a.variant_name ?? '', b.variant_name ?? ''));
+}
+
+/** Ventas desde una fecha, completas y de una sola organización. */
+export async function getSalesSinceDB<T extends { id: string }>(orgId: string, columns: string, since: string): Promise<T[]> {
+  return selectAllRows<T>(({ desde, hasta, despues, limite }) => {
+    let query = supabase.from('sales').select(columns).eq('org_id', orgId).gte('date', since).gte('id', desde).order('id').limit(limite);
+    if (hasta) query = query.lt('id', hasta);
+    if (despues) query = query.gt('id', despues);
+    return query as unknown as PromiseLike<{ data: T[] | null; error: unknown }>;
+  });
 }
 
 export async function addVariantDB(variant: any) {
