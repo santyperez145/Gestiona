@@ -1406,32 +1406,31 @@ export default function POSPage() {
   const { tap: vibrateTap, success: vibrateSuccess } = useVibration();
 
   const [customerDebt, setCustomerDebt] = useState<number | null>(null);
+  // Tope de fiado del cliente elegido (null = sin límite). La base lo vuelve a validar.
+  const [customerCreditLimit, setCustomerCreditLimit] = useState<number | null>(null);
+  const posCustomerId = posCustomer?.id ?? null;
   useEffect(() => {
     setCustomerDebt(null);
+    setCustomerCreditLimit(null);
     setCustomerPriceListId(null);
-    if (!activeOrg || !customer.trim() || customer.trim().length < 3) return;
+    if (!activeOrg) return;
+    if (!posCustomerId && (!customer.trim() || customer.trim().length < 3)) return;
     const timeout = setTimeout(async () => {
+      // Con cliente elegido se usa su id; con nombre libre, coincidencia aproximada.
+      const debtQuery = supabase.from("debts").select("remaining_ars").eq("org_id", activeOrg.id).neq("status", "paid");
+      const customerQuery = supabase.from("customers").select("price_list_id, credit_limit_ars").eq("org_id", activeOrg.id);
       const [debtRes, customerRes] = await Promise.all([
-        supabase
-          .from("debts")
-          .select("remaining_ars")
-          .eq("org_id", activeOrg.id)
-          .ilike("customer_name", `%${customer.trim()}%`)
-          .neq("status", "paid"),
-        supabase
-          .from("customers")
-          .select("price_list_id")
-          .eq("org_id", activeOrg.id)
-          .ilike("name", `%${customer.trim()}%`)
-          .limit(1)
-          .maybeSingle(),
+        posCustomerId ? debtQuery.eq("customer_id", posCustomerId) : debtQuery.ilike("customer_name", `%${customer.trim()}%`),
+        (posCustomerId ? customerQuery.eq("id", posCustomerId) : customerQuery.ilike("name", `%${customer.trim()}%`)).limit(1).maybeSingle(),
       ]);
       const total = (debtRes.data || []).reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
       setCustomerDebt(total > 0 ? total : null);
       setCustomerPriceListId((customerRes.data as any)?.price_list_id ?? null);
-    }, 600);
+      const limite = (customerRes.data as any)?.credit_limit_ars;
+      setCustomerCreditLimit(posCustomerId && limite !== null && limite !== undefined ? Number(limite) : null);
+    }, posCustomerId ? 0 : 600);
     return () => clearTimeout(timeout);
-  }, [customer, activeOrg]);
+  }, [customer, activeOrg, posCustomerId]);
 
   // VIP loyalty tier lookup — fires when customer name settles (debounced)
   useEffect(() => {
@@ -2470,6 +2469,12 @@ export default function POSPage() {
 
     if (isOnline && !await checkSalesLimit()) return;
 
+    const vaFiado = splitMode ? splitMethod1 === "fiado" || splitMethod2 === "fiado" : payMethod === "fiado";
+    if (vaFiado && customerCreditLimit !== null && (customerDebt ?? 0) + cartTotal > customerCreditLimit) {
+      toast.error(`Supera el límite de fiado de ${posCustomer?.name ?? "el cliente"}: disponible ${formatARS(Math.max(customerCreditLimit - (customerDebt ?? 0), 0))}`);
+      return;
+    }
+
     const orgId = activeOrg.id;
     setSubmitting(true);
     try {
@@ -3051,6 +3056,11 @@ export default function POSPage() {
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{customer.trim()} tiene <strong>{formatARS(customerDebt)}</strong> pendiente de cobro</span>
           </div>
+        )}
+        {customerCreditLimit !== null && (
+          <p className="px-1 text-[11px] text-muted-foreground" data-testid="pos-credit-available">
+            Fiado disponible: <strong className="text-foreground">{formatARS(Math.max(customerCreditLimit - (customerDebt ?? 0), 0))}</strong> de {formatARS(customerCreditLimit)}
+          </p>
         )}
 
         {/* Price list badge — shown when customer has an active price list */}

@@ -9603,6 +9603,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          credit_limit_ars: number | null
           fiscal_address: string | null
           legal_name: string | null
           tax_id: string | null
@@ -9633,6 +9634,7 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          credit_limit_ars?: number | null
           fiscal_address?: string | null
           legal_name?: string | null
           tax_id?: string | null
@@ -9663,6 +9665,7 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          credit_limit_ars?: number | null
           fiscal_address?: string | null
           legal_name?: string | null
           tax_id?: string | null

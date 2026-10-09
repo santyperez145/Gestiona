@@ -1091,6 +1091,7 @@ export async function createCustomerDB(userId: string, customer: {
   instagram_handle?: string; whatsapp_number?: string; buys_vapers?: boolean; scent_preferences?: string[];
   custom_fields?: Record<string, any>;
   vat_condition?: string | null; tax_id?: string | null; tax_id_type?: string | null; legal_name?: string | null; fiscal_address?: string | null;
+  credit_limit_ars?: number | null;
 }) {
   const orgId = await orgIdFor(userId);
   const { data, error } = await supabase
@@ -1108,6 +1109,7 @@ export async function updateCustomerDB(id: string, updates: Partial<{
   instagram_handle: string; whatsapp_number: string; buys_vapers: boolean; scent_preferences: string[];
   custom_fields: Record<string, any>;
   vat_condition: string; tax_id: string | null; tax_id_type: string | null; legal_name: string | null; fiscal_address: string | null;
+  credit_limit_ars: number | null;
 }>) {
   const { error } = await supabase
     .from('customers')

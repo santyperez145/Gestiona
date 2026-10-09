@@ -39,7 +39,9 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Revisar y unificar productos duplicados (stock por Kardex, códigos como alternativos, archivo si hay historia).
 - [x] Vender por kilo, metro, litro o m² (stock y Kardex con tres decimales, sólo para productos por medida).
 - [x] Descuento manual máximo y autorización del encargado con PIN, validados en la base.
-- [ ] POS: presentación/caja y conversión entre unidades; fiado con límite de crédito.
+- [x] Fiado con límite de crédito por cliente: la base rechaza la deuda que lo supere; el POS muestra el disponible.
+- [x] Selectores de producto con búsqueda (50 resultados) en todas las pantallas: ningún `Select` dibuja el catálogo entero.
+- [ ] POS: presentación/caja y conversión entre unidades.
 
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.

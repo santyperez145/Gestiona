@@ -94,6 +94,8 @@ type CustomerProfile = {
   tax_id_type?: string | null;
   legal_name?: string | null;
   fiscal_address?: string | null;
+  /** Tope de fiado en ARS; null = sin límite. Sólo dueño/admin lo cambian. */
+  credit_limit_ars?: number | null;
   /** Viene del select(*); desempata homónimos igual que el trigger en SQL. */
   created_at?: string;
   company?: string;
@@ -235,6 +237,7 @@ function CustomerFormModal({
   orgId,
   operaPerfumes,
   operaVapers,
+  canEditCredit,
 }: {
   initial?: Partial<CustomerProfile>;
   onSave: (data: Partial<CustomerProfile>) => Promise<void>;
@@ -242,7 +245,11 @@ function CustomerFormModal({
   orgId?: string;
   operaPerfumes: boolean;
   operaVapers: boolean;
+  canEditCredit: boolean;
 }) {
+  const [creditLimit, setCreditLimit] = useState(
+    initial?.credit_limit_ars === null || initial?.credit_limit_ars === undefined ? "" : String(initial.credit_limit_ars),
+  );
   const [form, setForm] = useState({
     name: initial?.name ?? "",
     company: initial?.company ?? "",
@@ -294,6 +301,8 @@ function CustomerFormModal({
     if (!form.name.trim()) { toast.error("El nombre es obligatorio"); return; }
     const fiscalError = errorIdentidadFiscal(fiscal);
     if (fiscalError) { toast.error(fiscalError); return; }
+    const limite = creditLimit.trim() === "" ? null : Number(creditLimit.replace(",", "."));
+    if (limite !== null && (!Number.isFinite(limite) || limite < 0)) { toast.error("El límite de fiado debe ser un monto positivo"); return; }
     // Validate required custom fields
     for (const def of customFieldDefs) {
       if (def.required && !customFieldValues[def.field_key] && customFieldValues[def.field_key] !== false) {
@@ -318,6 +327,7 @@ function CustomerFormModal({
         ...(operaPerfumes ? { scent_preferences: scentPrefs } : {}),
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
         ...columnasIdentidadFiscal(fiscal),
+        ...(canEditCredit ? { credit_limit_ars: limite } : {}),
       });
       onClose();
     } catch (e: any) {
@@ -402,6 +412,23 @@ function CustomerFormModal({
             />
           </div>
           <CustomerFiscalFields value={fiscal} onChange={setFiscal} />
+          <div>
+            <label htmlFor="customer-credit-limit" className="text-xs text-muted-foreground mb-1 block">Límite de fiado (ARS)</label>
+            <Input
+              id="customer-credit-limit"
+              type="number"
+              min="0"
+              step="100"
+              value={creditLimit}
+              disabled={!canEditCredit}
+              onChange={e => setCreditLimit(e.target.value)}
+              placeholder="Sin límite"
+              className="bg-muted"
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {canEditCredit ? "La caja rechaza ventas fiado que superen este saldo pendiente. Vacío: sin límite." : "Sólo un dueño o administrador puede cambiarlo."}
+            </p>
+          </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" />Cumpleaños</label>
             <Input
@@ -2415,6 +2442,7 @@ export default function CustomersPage() {
           }
           onClose={() => setFormModal({ open: false })}
           orgId={activeOrg?.id}
+          canEditCredit={isAdmin}
           operaPerfumes={operaPerfumes}
           operaVapers={operaVapers}
         />
