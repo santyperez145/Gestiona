@@ -12,6 +12,8 @@ export interface ProductRow {
   id: string;
   name: string;
   brand?: string;
+  /** Nombre del proveedor; `undefined` si el producto no tiene uno asignado. */
+  supplier_name?: string;
   category?: string;
   /** Clases del chip de categoría (`colorDeCategoria`), para que todas tengan color. */
   category_color?: string;
@@ -178,7 +180,7 @@ export default function ProductTableOwn({ rows, selectedIds, onToggleRow, onTogg
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30 text-muted-foreground">
                       {product.image_url ? <img src={product.image_url} alt="" className="h-full w-full object-contain" loading="lazy" /> : product.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="min-w-0"><p className="break-words font-medium">{product.name}</p><p className="text-xs text-muted-foreground">{product.brand || "Sin marca"}</p></div>
+                    <div className="min-w-0"><p className="break-words font-medium">{product.name}</p><p className="text-xs text-muted-foreground">{product.brand || "Sin marca"}{product.supplier_name ? ` · Prov. ${product.supplier_name}` : ""}</p></div>
                   </div>
                 </td>
                 <td className="max-w-[180px] px-3 py-3"><span className={cn("inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-xs font-medium break-words", product.category_color ?? "bg-muted text-muted-foreground")}>{product.category || "Sin categoría"}</span></td>

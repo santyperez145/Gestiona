@@ -13,6 +13,7 @@ export const PRODUCT_WORKBOOK_ALIASES: Record<keyof ImportMapping, string[]> = {
   stock: ["stock", "existencia", "existencias", "cantidad", "quantity"],
   description: ["descripcion larga", "descripcion adicional", "descripcion", "description"],
   classification: ["clasificacion"],
+  supplier: ["proveedor", "proveedor principal", "distribuidor", "supplier"],
 };
 
 export function suggestProductColumns(headers: string[]) {

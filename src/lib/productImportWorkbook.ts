@@ -103,7 +103,7 @@ export function mapProductWorkbook(workbook: XLSX.WorkBook, filename: string, op
     delete product.cost_ars; delete product.cost_usd;
     product.provided = product.provided.filter(field => field !== "cost_ars" && field !== "cost_usd");
     const pairs: [keyof ImportMapping, string][] = [["sku", "sku"], ["brand", "brand"], ["category", "category"],
-      ["description", "description"], ["barcode", "barcode"], ["sale", "sale_price_ars"], ["stock", "stock"], ["cost", costCurrency === "ARS" ? "cost_ars" : "cost_usd"]];
+      ["description", "description"], ["supplier", "supplier"], ["barcode", "barcode"], ["sale", "sale_price_ars"], ["stock", "stock"], ["cost", costCurrency === "ARS" ? "cost_ars" : "cost_usd"]];
     for (const [input, output] of pairs) {
       delete product[output];
       product.provided = product.provided.filter(field => field !== output);
@@ -208,7 +208,7 @@ export function mapProductWorkbook(workbook: XLSX.WorkBook, filename: string, op
   const costCurrencyAmbiguous = !options.costCurrency && (legacy ? platformHasCosts || (!platform && !!mapping.cost && costHeader === "costo" && !hardware) : !!mapping.cost && !headerCurrency);
   if (costCurrencyAmbiguous) detectionWarnings.push("El costo no indica moneda. Confirmá ARS o USD; el valor no se convierte automáticamente.");
   if (hardware) warnings.push("PRECIO DE LISTA es el precio normal. VENTA se conserva como dato de origen para efectivo/transferencia; no se convierte en una oferta general ni cambia los descuentos del negocio.");
-  if (!platform) warnings.push("Las columnas no mapeadas se conservan en el registro de origen del lote; no crean proveedores ni modifican descuentos automáticamente.");
+  if (!platform) warnings.push("Las columnas no mapeadas se conservan en el registro de origen del lote. Sólo la columna asignada como Proveedor asocia o crea proveedores; ninguna modifica descuentos.");
   return { parsed: { ...original, products, sourceRows: sourceRows.length, warnings,
       variantCount: products.reduce((sum, product) => sum + (product.variants?.length || 0), 0),
       imageCount: products.reduce((sum, product) => sum + (product.image_urls?.length || 0), 0),

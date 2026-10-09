@@ -98,9 +98,22 @@ Para exportaciones de gestión con `CODIGO`, `DESCRIPCION`, `COSTO`, `VENTA`,
 - marcadores `***SIN DATOS***` se tratan como ausencia, no como marcas reales;
 - las columnas no mapeadas quedan en `normalized.source_record`, con encabezados
   y valores ordenados: dos columnas `CODIGO PROVEEDOR` no se sobreescriben;
-- proveedor, código de artículo del proveedor y fecha original no crean entidades
+- la columna asignada como **Proveedor** (alias exactos: proveedor, proveedor
+  principal, distribuidor, supplier) asocia el producto a un proveedor de la
+  organización por nombre, sin distinguir mayúsculas ni espacios, o lo crea al
+  aplicar (`20261009000100`, trigger `product_import_assign_supplier`). Validar
+  no crea proveedores; avisa si se creará uno o si el nombre es ambiguo. Una
+  celda vacía o una importación sin esa columna conserva el proveedor actual;
+- código de artículo del proveedor y fecha original no crean entidades
   financieras ni reemplazan fechas del sistema automáticamente. Una fila de
-  origen superior a 16 KB queda inválida para revisión.
+  origen superior a 16 KB queda inválida para revisión;
+- antes de validar, `productImportDiagnosis` agrupa los problemas por causa
+  (sin nombre, código repetido, precio/costo/stock inválido, sin precio, sin
+  cotización, oferta no menor) con explicación, arreglo y ejemplos por fila.
+  Las correcciones son explícitas: quitar filas, conservar la última aparición
+  de un código, no importar el stock o el costo de esas filas, o activar el
+  precio sugerido. Nunca redondea stock ni inventa precios sin la opción
+  elegida; el servidor vuelve a validar y sus errores muestran su arreglo.
 
 El costo ARS es nativo: no requiere inventar cotización ni pasar por USD para
 calcular margen/Kardex. Un costo USD sí exige cotización válida. Los campos

@@ -8,6 +8,7 @@ export const IMPORT_MAPPING_FIELDS = {
   cost: "Costo", sale: "Precio normal / lista", barcode: "Código de barras principal",
   barcode2: "Código de barras adicional 1", barcode3: "Código de barras adicional 2",
   stock: "Stock", description: "Descripción adicional", classification: "Clasificación",
+  supplier: "Proveedor",
 } as const;
 export type ImportMapping = Record<keyof typeof IMPORT_MAPPING_FIELDS, string>;
 
@@ -26,6 +27,7 @@ export const PRODUCT_IMPORT_FIELDS = [
   "content_ml",
   "description",
   "low_stock_threshold",
+  "supplier",
 ] as const;
 
 export type ProductImportField = (typeof PRODUCT_IMPORT_FIELDS)[number];
@@ -72,6 +74,7 @@ const COLUMN_ALIASES: Record<ProductImportField, string[]> = {
   content_ml: ["contenido ml", "ml", "volumen", "volume", "contenido", "tamaño", "tamano"],
   description: ["descripcion", "descripción", "descripcion larga", "descripción larga", "detalles", "notes", "observaciones"],
   low_stock_threshold: ["stock minimo", "stock mínimo", "umbral stock", "low stock threshold", "alerta stock"],
+  supplier: ["proveedor", "proveedor principal", "distribuidor", "supplier"],
 };
 
 const NUMERIC_FIELDS = new Set<ProductImportField>([

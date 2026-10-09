@@ -27,8 +27,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 **0. Pedidos del dueño 2026-10-09 (prioridad)**
 - [x] Productos con 11.000 ítems: página de 60 filas en lista y grilla, agrupado lineal, filtros memorizados y búsqueda diferida.
 - [ ] Carga del catálogo más liviana (columnas necesarias, índices de búsqueda).
-- [ ] Importación: explicar cada error con su causa y arreglo sugerido; corregir automáticamente lo seguro.
-- [ ] Proveedor en cada producto: columna de importación, alta/asociación y visible en el listado.
+- [x] Importación: cada problema con causa, arreglo y ejemplos; correcciones de un clic; errores del servidor con arreglo.
+- [x] Proveedor en cada producto: columna de importación (asocia o crea), visible y filtrable en Productos.
 - [ ] Controladores fiscales (Epson TM-T900FA y otras marcas) vía app nativa, además de WSFE.
 - [ ] Todos los comprobantes electrónicos de ARCA (WSFE, WSMTXCA, WSFEX, FCE MiPyME).
 - [ ] Estudio funcional de test.scadi.com.ar y paridad de funciones útiles.

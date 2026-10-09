@@ -28,7 +28,7 @@ describe("sesión de importación", () => {
     const options: Parameters<typeof startCatalogImport>[0]["options"] = {
       stock_mode: "ignore", location_id: "", destination_store_id: "", exchange_rate: 0,
       margin_percent: 0, auto_price: false, cost_currency: "ARS", sheet_name: "Productos", fingerprint: "zz",
-      mapping: { name: "0", sku: "1", brand: "", category: "", cost: "", sale: "", barcode: "", barcode2: "", barcode3: "", stock: "", description: "", classification: "" },
+      mapping: { name: "0", sku: "1", brand: "", category: "", cost: "", sale: "", barcode: "", barcode2: "", barcode3: "", stock: "", description: "", classification: "", supplier: "" },
       column_mapping: { "0": "name", "1": "sku", "2": "" },
     };
     await startCatalogImport({ id: "session", org_id: "tenant", filename: "zz.xls", source_format: "xls", source_system: "generic", source_rows: 1, total: 1, options });

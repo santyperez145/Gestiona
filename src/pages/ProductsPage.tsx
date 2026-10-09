@@ -381,6 +381,7 @@ export default function ProductsPage() {
   const [settings, setSettings] = useState<any>(null);
   const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product
   const [lastSaleDate, setLastSaleDate] = useState<Record<string, string>>({}); // last sale date per product id
+  const [supplierNames, setSupplierNames] = useState<Record<string, string>>({});
   const [open, setOpen] = useState(false);
   const [productFormDirty, setProductFormDirty] = useState(false);
   const [discardProductChangesOpen, setDiscardProductChangesOpen] = useState(false);
@@ -392,6 +393,8 @@ export default function ProductsPage() {
   const [filterStock, setFilterStock] = usePersistedState(orgViewKey("products.stock-filter", activeOrg?.id), 'all');
   const [filterExpiry, setFilterExpiry] = usePersistedState(orgViewKey("products.expiry-filter", activeOrg?.id), 'all');
   const [filterTag, setFilterTag] = usePersistedState(orgViewKey("products.tag-filter", activeOrg?.id), '');
+  // '' = todos, '__none' = sin proveedor, otro valor = id del proveedor.
+  const [filterSupplier, setFilterSupplier] = usePersistedState(orgViewKey("products.supplier-filter", activeOrg?.id), '');
   const [filterMovement, setFilterMovement] = usePersistedState(orgViewKey("products.movement-filter", activeOrg?.id), 'all');
   const [filterMargin, setFilterMargin] = usePersistedState(orgViewKey("products.margin-filter", activeOrg?.id), 'all');
   const [filterDiscount, setFilterDiscount] = usePersistedState(orgViewKey("products.discount-filter", activeOrg?.id), false);
@@ -505,10 +508,17 @@ export default function ProductsPage() {
           if (error) throw error;
           return data ?? [];
         }),
+      supabase.from('suppliers')
+        .select('id, name')
+        .eq('org_id', orgId)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data ?? [];
+        }),
     ]);
     if (request !== loadRequestRef.current || activeOrgIdRef.current !== orgId) return;
 
-    const [productsResult, settingsResult, variantsResult, salesResult, perfumeResult] = results;
+    const [productsResult, settingsResult, variantsResult, salesResult, perfumeResult, suppliersResult] = results;
     const coreResults = [
       ['productos', productsResult],
       ['ajustes de costos y precios', settingsResult],
@@ -585,6 +595,13 @@ export default function ProductsPage() {
       console.error('[Productos] no se pudo actualizar el movimiento de ventas', salesResult.reason);
     }
 
+    if (suppliersResult.status === 'fulfilled') {
+      setSupplierNames(Object.fromEntries(suppliersResult.value.map((s: { id: string; name: string }) => [s.id, s.name])));
+    } else {
+      failedSupporting.push('proveedores');
+      console.error('[Productos] no se pudieron actualizar los proveedores', suppliersResult.reason);
+    }
+
     setPartialWarning(failedSupporting.length > 0
       ? `El catálogo está disponible, pero faltan ${failedSupporting.join(', ')}. Los conteos, filtros o sugerencias relacionados pueden estar incompletos.`
       : null);
@@ -604,6 +621,7 @@ export default function ProductsPage() {
     setPerfumeDetailsByProduct({});
     setSalesVelocity({});
     setLastSaleDate({});
+    setSupplierNames({});
     setLoadError(null);
     setPartialWarning(null);
     setLastLoadedAt(null);
@@ -777,6 +795,7 @@ export default function ProductsPage() {
     if (filterExpiry === 'soon90') { if (!p.expiry_date) return false; const exp = new Date(p.expiry_date); if (exp < today || exp > in90Days) return false; }
     if (filterExpiry === 'has_expiry' && !p.expiry_date) return false;
     if (filterTag && !(p.tags || []).includes(filterTag)) return false;
+    if (filterSupplier === '__none' ? !!p.supplier_id : filterSupplier && p.supplier_id !== filterSupplier) return false;
     if (filterMovement === 'no30') {
       const last = lastSaleDate[p.id];
       if (last) {
@@ -826,7 +845,7 @@ export default function ProductsPage() {
     });
   }, [
     products, deferredSearch, searchMatchIds, calidadPorProducto, filterCalidad, filterCat, filterStock,
-    filterExpiry, filterTag, filterMovement, lastSaleDate, filterMargin, cotizacion, filterDiscount,
+    filterExpiry, filterTag, filterSupplier, filterMovement, lastSaleDate, filterMargin, cotizacion, filterDiscount,
     operaPerfumes, filterMaxPrice, filterGenderFacet, filterFamilia, filterNotas, filterEstacion,
     filterOcasion, perfumeDetailsByProduct,
   ]);
@@ -987,6 +1006,7 @@ export default function ProductsPage() {
     setFilterStock('all');
     setFilterExpiry('all');
     setFilterTag('');
+    setFilterSupplier('');
     setFilterMovement('all');
     setFilterMargin('all');
     setFilterDiscount(false);
@@ -1580,6 +1600,16 @@ export default function ProductsPage() {
               </SelectContent>
             </Select>
           )}
+          {Object.keys(supplierNames).length > 0 && (
+            <Select value={filterSupplier || '__all'} onValueChange={v => { setFilterSupplier(v === '__all' ? '' : v); setPage(0); }}>
+              <SelectTrigger className="w-[150px] bg-muted border-border h-9 text-sm" aria-label="Filtrar por proveedor"><SelectValue placeholder="Proveedor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">Proveedores: todos</SelectItem>
+                <SelectItem value="__none">Sin proveedor</SelectItem>
+                {Object.entries(supplierNames).sort(([, a], [, b]) => a.localeCompare(b, 'es')).map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <Select value={filterMovement} onValueChange={v => { setFilterMovement(v); setPage(0); }}>
             <SelectTrigger className="w-[150px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -1739,6 +1769,7 @@ export default function ProductsPage() {
                   id: p.id,
                   name: p.name,
                   brand: p.brand,
+                  supplier_name: p.supplier_id ? supplierNames[p.supplier_id] : undefined,
                   category: nombreCategoria(p.category) || 'Sin categoría',
                   category_color: colorDeCategoria(p.category),
                   image_url: p.image_url,
