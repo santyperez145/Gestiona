@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/shared/PageHeader";
 import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
+import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
+import { saludFiscal } from "@/lib/fiscalHealth";
 import KPICard from "@/components/shared/KPICard";
 import { fechaFiscalArgentina } from "@/lib/arcaInvoice";
 import { useModulePermissions } from "@/lib/usePermissions";
@@ -54,6 +56,7 @@ interface FiscalInvoice {
   number: string;
   customer_name: string;
   issue_date: string;
+  status: string | null;
   total: number;
   cae: string | null;
   cae_vencimiento: string | null;
@@ -136,7 +139,7 @@ export default function AFIPPage() {
         .maybeSingle(),
       supabase
         .from("invoices")
-        .select("id, number, customer_name, issue_date, total, cae, cae_vencimiento, afip_status, afip_error, numero_afip, tipo_comprobante")
+        .select("id, number, customer_name, issue_date, status, total, cae, cae_vencimiento, afip_status, afip_error, numero_afip, tipo_comprobante")
         .eq("org_id", orgId)
         .or("cae.not.is.null,afip_status.not.is.null")
         .order("issue_date", { ascending: false })
@@ -179,6 +182,11 @@ export default function AFIPPage() {
       billed: authorized.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0),
     };
   }, [invoices]);
+
+  const salud = useMemo(
+    () => (connectionError || invoicesError ? null : saludFiscal(connection, invoices)),
+    [connection, invoices, connectionError, invoicesError],
+  );
 
   const readiness = (() => {
     if (connectionError) {
@@ -333,6 +341,8 @@ export default function AFIPPage() {
           </div>
         </div>
       </div>
+
+      {!loading && salud && <FiscalHealthPanel salud={salud} />}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="CAE autorizados" value={metrics.authorized} icon={CheckCircle2} color="success" />

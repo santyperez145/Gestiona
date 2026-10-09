@@ -82,6 +82,10 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   sin CAE por acción: conexión, datos del cliente, importes, contador, reintento,
   listos para autorizar y en verificación. Sólo lee estado persistido y filtra
   Facturas con `?fiscal=`; no autoriza ni corrige datos.
+- Salud fiscal (`fiscalHealth.ts`) puntúa siete controles con la vista
+  `afip_connection_status` y los últimos 50 comprobantes, usando la misma regla
+  de la bandeja. No consulta ARCA: un puntaje alto no certifica emisión. El
+  certificado de plataforma no es visible para el comercio y se controla en Platform.
 - A4 y 80 mm muestran neto/IVA para A y NC A, precios finales para B/C y sus NC,
   transparencia, identidad congelada, CAE/QR y referencia de la NC. Homologación
   se identifica explícitamente y no es un comprobante productivo.
