@@ -1067,6 +1067,9 @@ export default function POSPage() {
   // Single payment
   const [payMethod, setPayMethod] = useState<PayMethod>("efectivo");
   const [wantArcaInvoice, setWantArcaInvoice] = useState(POS_WANTS_ARCA_INVOICE_DEFAULT);
+  // El comercio que factura todo lo define en Ajustes; cada ticket arranca así.
+  const facturaPorDefecto = Boolean(settings?.pos_factura_automatica) || POS_WANTS_ARCA_INVOICE_DEFAULT;
+  useEffect(() => { setWantArcaInvoice(facturaPorDefecto); }, [facturaPorDefecto]);
   const [cashGiven, setCashGiven] = useState("");
   const [payMethodsExpanded, setPayMethodsExpanded] = useState(false);
 
@@ -2023,6 +2026,7 @@ export default function POSPage() {
 
   const clearCart = () => {
     approvalRef.current = null;
+    setWantArcaInvoice(facturaPorDefecto);
     setCart([]);
     setCustomer("");
     setPosCustomer(null);
@@ -3039,7 +3043,11 @@ export default function POSPage() {
           userId={user?.id}
           emisor={settings?.afip_tipo_emisor}
           onClose={() => setCustomerPickerOpen(false)}
-          onSelect={(selected) => { setPosCustomer(selected); setCustomer(selected.name); setCustomerPickerOpen(false); }}
+          onSelect={(selected) => {
+            setPosCustomer(selected); setCustomer(selected.name); setCustomerPickerOpen(false);
+            // Un cliente con CUIT casi siempre pide factura: el ticket la pide.
+            if (selected.tax_id) setWantArcaInvoice(true);
+          }}
         />
         <div className="relative">
           <Input

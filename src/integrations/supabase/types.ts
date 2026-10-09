@@ -41477,6 +41477,7 @@ export type Database = {
       settings: {
         Row: {
           pos_descuento_max_pct: number | null
+          pos_factura_automatica: boolean
           afip_cuit: string | null
           afip_domicilio: string | null
           afip_environment: string | null
@@ -41562,6 +41563,7 @@ export type Database = {
         }
         Insert: {
           pos_descuento_max_pct?: number | null
+          pos_factura_automatica?: boolean
           afip_cuit?: string | null
           afip_domicilio?: string | null
           afip_environment?: string | null
@@ -41647,6 +41649,7 @@ export type Database = {
         }
         Update: {
           pos_descuento_max_pct?: number | null
+          pos_factura_automatica?: boolean
           afip_cuit?: string | null
           afip_domicilio?: string | null
           afip_environment?: string | null

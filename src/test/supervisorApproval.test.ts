@@ -27,3 +27,12 @@ describe("autorización del encargado en caja", () => {
     expect(pos).toContain("const clearCart = () => {\n    approvalRef.current = null;");
   });
 });
+
+describe("facturación automática en caja", () => {
+  it("cada ticket arranca con la preferencia de la organización", () => {
+    const pos = readFileSync("src/pages/POSPage.tsx", "utf8");
+    expect(pos).toContain("Boolean(settings?.pos_factura_automatica)");
+    expect(pos).toContain("setWantArcaInvoice(facturaPorDefecto);");
+    expect(pos).toContain("if (selected.tax_id) setWantArcaInvoice(true);");
+  });
+});
