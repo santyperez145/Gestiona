@@ -39444,6 +39444,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          price_override_approved_by: string | null
           attribution_source: string | null
           cost_of_goods_ars: number
           cost_per_unit_usd: number
@@ -39491,6 +39492,7 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          price_override_approved_by?: string | null
           attribution_source?: string | null
           cost_of_goods_ars?: number
           cost_per_unit_usd?: number
@@ -39538,6 +39540,7 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          price_override_approved_by?: string | null
           attribution_source?: string | null
           cost_of_goods_ars?: number
           cost_per_unit_usd?: number
@@ -41440,6 +41443,7 @@ export type Database = {
       }
       settings: {
         Row: {
+          pos_descuento_max_pct: number | null
           afip_cuit: string | null
           afip_domicilio: string | null
           afip_environment: string | null
@@ -41524,6 +41528,7 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          pos_descuento_max_pct?: number | null
           afip_cuit?: string | null
           afip_domicilio?: string | null
           afip_environment?: string | null
@@ -41608,6 +41613,7 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          pos_descuento_max_pct?: number | null
           afip_cuit?: string | null
           afip_domicilio?: string | null
           afip_environment?: string | null

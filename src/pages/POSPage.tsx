@@ -5,6 +5,7 @@ import { letraParaCliente } from "@/lib/customerFiscal";
 import { esCondicionIva } from "@/lib/fiscalIdentity";
 import { cantidadMedida, etiquetaUnidad } from "@/lib/unidadMedida";
 import FiscalControllerDialog from "@/components/pos/FiscalControllerDialog";
+import SupervisorApprovalDialog, { esRechazoPorAutorizacion, porcentajeDelRechazo } from "@/components/pos/SupervisorApprovalDialog";
 import { emitirTicketEnControlador } from "@/lib/fiscalPrinter/service";
 import { leerConfigControlador, type ConfigControlador } from "@/lib/fiscalPrinter/transport";
 import { accionDeTecla, ATAJOS_POS, medioSiguiente, type AccionPos } from "@/lib/posShortcuts";
@@ -1109,6 +1110,9 @@ export default function POSPage() {
   } | null>(null);
   const [controllerConfig, setControllerConfig] = useState<ConfigControlador | null>(null);
   const [controllerDialogOpen, setControllerDialogOpen] = useState(false);
+  // Autorización del encargado para descuentos sobre el máximo de la caja.
+  const approvalRef = useRef<string | null>(null);
+  const [approvalRequest, setApprovalRequest] = useState<number | null>(null);
   useEffect(() => { setControllerConfig(leerConfigControlador(activeOrg?.id)); }, [activeOrg?.id]);
   useEffect(() => {
     setReceipt(null);
@@ -1990,6 +1994,7 @@ export default function POSPage() {
   };
 
   const clearCart = () => {
+    approvalRef.current = null;
     setCart([]);
     setCustomer("");
     setPosCustomer(null);
@@ -2529,6 +2534,8 @@ export default function POSPage() {
           global_discount_ars: itemGlobalDiscount > 0 ? itemGlobalDiscount : null,
           coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
           coupon_code: couponResult?.valid ? couponResult.coupon.code : null,
+          // La base valida y descarta este id; sólo registra quién autorizó.
+          ...(approvalRef.current ? { autorizacion_id: approvalRef.current } : {}),
           location_id: selectedLocationId,
           seller_name: sellerName || null,
           notes: posNote.trim() || null,
@@ -2624,7 +2631,15 @@ export default function POSPage() {
         setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote, saleId: txSaleIds[0] || null, transactionId: null, invoice: null });
       }
     } catch (e: any) {
-      toast.error(e.message || "Error al registrar");
+      const message = String(e?.message ?? "");
+      const pct = esRechazoPorAutorizacion(message) ? porcentajeDelRechazo(message) : null;
+      if (pct !== null) {
+        // Sin autorización vigente: pedir el PIN del encargado y reintentar.
+        approvalRef.current = null;
+        setApprovalRequest(pct);
+      } else {
+        toast.error(message || "Error al registrar");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -4011,6 +4026,18 @@ export default function POSPage() {
               <Printer className="w-4 h-4" />
             </Button>
           )}
+          <SupervisorApprovalDialog
+            open={approvalRequest !== null}
+            orgId={activeOrg?.id}
+            porcentaje={approvalRequest ?? 0}
+            onClose={() => setApprovalRequest(null)}
+            onApproved={(autorizacion) => {
+              approvalRef.current = autorizacion.id;
+              setApprovalRequest(null);
+              toast.success(`Descuento autorizado por ${autorizacion.autorizadoPor}`);
+              void confirmSale();
+            }}
+          />
           <FiscalControllerDialog
             open={controllerDialogOpen}
             orgId={activeOrg?.id}

@@ -45,6 +45,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { buildPricingSettingsUpdate } from "@/lib/settingsPricing";
 
 import { plural } from "@/lib/plural";
+import PosSupervisorSettings from "@/components/settings/PosSupervisorSettings";
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
 function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {
   const storage = useStorageEstimate();
@@ -129,7 +130,7 @@ const DEFAULT_SMTP: SmtpForm = {
 export default function SettingsPage() {
   usePageTitle("Ajustes");
   const { user, session } = useAuth();
-  const { activeOrg: orgForTemplates } = useOrg();
+  const { activeOrg: orgForTemplates, activeRole: settingsRole } = useOrg();
   const [settingsSection, setSettingsSection] = usePersistedState(
     orgViewKey("settings.section", orgForTemplates?.id),
     "brand",
@@ -1370,6 +1371,8 @@ export default function SettingsPage() {
                 <Input id="discount-credit-percent" aria-describedby="pos-payment-discount-help" type="number" min="0" max="90" step="0.1" value={discountCredit} onChange={e => setDiscountCredit(e.target.value)} className="bg-muted border-border mt-1" /></div>
             </div>
           </div>
+
+          <PosSupervisorSettings orgId={orgForTemplates?.id} canManage={settingsRole === "owner" || settingsRole === "admin"} />
 
           {/* Volume / Wholesale discount */}
           <div className="settings-panel settings-panel--pricing bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
