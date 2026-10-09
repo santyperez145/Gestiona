@@ -34991,6 +34991,36 @@ export type Database = {
           },
         ]
       }
+      product_presentations: {
+        Row: {
+          barcode: string | null
+          created_at: string
+          factor: number
+          id: string
+          name: string
+          org_id: string
+          product_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          created_at?: string
+          factor: number
+          id?: string
+          name: string
+          org_id: string
+          product_id: string
+        }
+        Update: {
+          barcode?: string | null
+          created_at?: string
+          factor?: number
+          id?: string
+          name?: string
+          org_id?: string
+          product_id?: string
+        }
+        Relationships: []
+      }
       product_variants: {
         Row: {
           active: boolean

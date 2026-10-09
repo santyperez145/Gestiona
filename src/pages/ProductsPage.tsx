@@ -92,6 +92,7 @@ import {
 
 import { plural } from "@/lib/plural";
 import { daysSinceKnownDate } from "@/lib/dateFacts";
+import ProductPresentationsEditor from "@/components/products/ProductPresentationsEditor";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
 
@@ -3316,6 +3317,9 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           <Input value={sku} onChange={e => setSku(e.target.value)} placeholder="Ej: LAT-KHA-100" className="bg-muted border-border font-mono text-sm" />
         </div>
       </div>
+      {product?.id && orgId && (
+        <ProductPresentationsEditor orgId={orgId} productId={product.id} unidad={unidadMedida} canEdit />
+      )}
       {/* Logística — peso y dimensiones para cotizar envíos */}
       <div>
         <label className="text-sm text-muted-foreground">Peso y dimensiones</label>

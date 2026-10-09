@@ -12,11 +12,12 @@ import { accionDeTecla, ATAJOS_POS, medioSiguiente, type AccionPos } from "@/lib
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
 import { productMatchesCode } from "@/lib/productCodes";
+import { etiquetaPresentacion, presentacionPorCodigo, type ProductPresentation } from "@/lib/productPresentations";
 import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB, getSalesSinceDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB, getSalesSinceDB, getPresentationsWithBarcodeDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -964,6 +965,8 @@ export default function POSPage() {
   }, []);
 
   const [products, setProducts] = useState<any[]>([]);
+  // Cajas/bultos con código propio. Se guardan junto al catálogo para escanear sin señal.
+  const [presentaciones, setPresentaciones] = useState<ProductPresentation[]>([]);
   const [onlineReservations, setOnlineReservations] = useState<Record<string, number>>({});
   const [settings, setSettings] = useState<any>(null);
   const [activePromos, setActivePromos] = useState<Promotion[]>([]);
@@ -1630,12 +1633,38 @@ export default function POSPage() {
     if (prod) {
       addToCart(prod);
       toast.success(`Escaneado: ${prod.name}`);
+      return;
+    }
+    // Código de caja/bulto: suma las unidades que contiene.
+    const presentacion = presentacionPorCodigo(presentaciones, code);
+    const prodDeCaja = presentacion ? products.find(p => p.id === presentacion.product_id) : null;
+    if (presentacion && prodDeCaja) {
+      addToCart(prodDeCaja, undefined, Number(presentacion.factor));
+      toast.success(`Escaneado: ${prodDeCaja.name} · ${etiquetaPresentacion(presentacion, prodDeCaja.unidad_medida || "unidad")}`);
     } else {
       toast.error(`Código ${code} no encontrado`);
     }
-  }, [products]);
+  }, [products, presentaciones]);
 
   const { videoRef, scanning, start: startScan, stop: stopScan } = useBarcodeScanner(handleBarcode);
+
+  useEffect(() => {
+    const orgId = activeOrg?.id;
+    if (!orgId) return;
+    let vigente = true;
+    const clave = `gestiona.pos.presentations.${orgId}`;
+    getPresentationsWithBarcodeDB(orgId)
+      .then(filas => {
+        if (!vigente) return;
+        setPresentaciones(filas as ProductPresentation[]);
+        try { localStorage.setItem(clave, JSON.stringify(filas)); } catch { /* cuota llena */ }
+      })
+      .catch(() => {
+        if (!vigente) return;
+        try { setPresentaciones(JSON.parse(localStorage.getItem(clave) || '[]')); } catch { setPresentaciones([]); }
+      });
+    return () => { vigente = false; };
+  }, [activeOrg?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -1865,7 +1894,7 @@ export default function POSPage() {
     }
   };
 
-  const addToCart = useCallback((prod: any, variantOverride?: { id: string; name: string; stock: number; price?: number }) => {
+  const addToCart = useCallback((prod: any, variantOverride?: { id: string; name: string; stock: number; price?: number }, cantidad = 1) => {
     const cartKey = variantOverride ? `${prod.id}__${variantOverride.id}` : prod.id;
     const stockLimit = variantOverride ? variantOverride.stock : prod.stock;
     const unlimitedStock = prod.maneja_stock === false;
@@ -1878,11 +1907,11 @@ export default function POSPage() {
     setCart((prev) => {
       const idx = prev.findIndex((it) => it.productId === cartKey);
       if (idx >= 0) {
-        if (!unlimitedStock && prev[idx].quantity >= stockLimit && stockLimit > 0) {
+        if (!unlimitedStock && prev[idx].quantity + cantidad > stockLimit && stockLimit > 0) {
           toast.warning("Sin stock suficiente");
           return prev;
         }
-        const nextQuantity = prev[idx].quantity + 1;
+        const nextQuantity = prev[idx].quantity + cantidad;
         if (onlineReserved > 0 && nextQuantity > stockLimit - onlineReserved) {
           toast.warning(`${prod.name} tiene ${onlineReserved} u. reservada${onlineReserved === 1 ? "" : "s"} online`, {
             description: "Esta venta usaría stock apartado para un pedido que espera pago.",
@@ -1893,7 +1922,7 @@ export default function POSPage() {
         updated[idx] = { ...updated[idx], quantity: nextQuantity };
         return updated;
       }
-      if (onlineReserved > 0 && 1 > stockLimit - onlineReserved) {
+      if (onlineReserved > 0 && cantidad > stockLimit - onlineReserved) {
         toast.warning(`${prod.name} tiene ${onlineReserved} u. reservada${onlineReserved === 1 ? "" : "s"} online`, {
           description: "Esta venta usaría stock apartado para un pedido que espera pago.",
           duration: 6000,
@@ -1909,7 +1938,7 @@ export default function POSPage() {
         costARS: prod.cost_ars,
         costCurrency: prod.cost_currency,
         exchangeRate: cotizacionDe(settings) ?? 0,
-        quantity: 1,
+        quantity: cantidad,
         stock: stockLimit,
         imageUrl: prod.image_url || null,
         useDiscount: false,

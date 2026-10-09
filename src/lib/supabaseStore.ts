@@ -779,6 +779,17 @@ export async function getVariantsByUserDB(userId: string) {
   return variants.sort((a, b) => collator.compare(a.variant_name ?? '', b.variant_name ?? ''));
 }
 
+/** Presentaciones con código (cajas, bultos) de la organización, para escanear en caja. */
+export async function getPresentationsWithBarcodeDB(orgId: string) {
+  return selectAllRows<Pick<Database['public']['Tables']['product_presentations']['Row'], 'id' | 'product_id' | 'name' | 'factor' | 'barcode'>>(({ desde, hasta, despues, limite }) => {
+    let query = supabase.from('product_presentations').select('id, product_id, name, factor, barcode')
+      .eq('org_id', orgId).not('barcode', 'is', null).gte('id', desde).order('id').limit(limite);
+    if (hasta) query = query.lt('id', hasta);
+    if (despues) query = query.gt('id', despues);
+    return query;
+  });
+}
+
 /**
  * Productos de una organización, completos (sin el tope de 1.000 de
  * PostgREST) y ordenados por nombre. `columns` debe incluir `id`; `filtrar`

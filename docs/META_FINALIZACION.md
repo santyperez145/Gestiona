@@ -41,7 +41,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Descuento manual máximo y autorización del encargado con PIN, validados en la base.
 - [x] Fiado con límite de crédito por cliente: la base rechaza la deuda que lo supere; el POS muestra el disponible.
 - [x] Selectores de producto con búsqueda (50 resultados) en todas las pantallas: ningún `Select` dibuja el catálogo entero.
-- [ ] POS: presentación/caja y conversión entre unidades.
+- [x] Presentaciones (caja, bulto, pack) con código propio: escanearlas en el POS suma sus unidades.
+- [ ] Precio propio por presentación y recepción de compras por caja.
 
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.
