@@ -196,6 +196,12 @@ export async function saveProductAttributeValues(
   definitions: AttributeDefinition[],
   values: Record<string, unknown>,
 ): Promise<void> {
+  // La ficha sólo tiene autoridad sobre las definiciones que pudo cargar.
+  // Cambiar de tipo (o no tenerlo todavía) no borra los atributos históricos
+  // de otro tipo ni convierte una lectura vacía en una orden de limpieza.
+  if (!definitions.length) return;
+  const loadedDefinitionIds = [...new Set(definitions.map(definition => definition.id))];
+  const loadedDefinitions = new Set(loadedDefinitionIds);
   const rows = definitions
     .map(definition => toProductAttributeValue(
       definition,
@@ -215,12 +221,13 @@ export async function saveProductAttributeValues(
     .from("product_attribute_values")
     .select("attribute_definition_id")
     .eq("org_id", orgId)
-    .eq("product_id", productId);
+    .eq("product_id", productId)
+    .in("attribute_definition_id", loadedDefinitionIds);
   if (existingError) throw existingError;
   const keep = new Set(rows.map(row => row.attribute_definition_id));
   const staleIds = (existing || [])
     .map((row: { attribute_definition_id: string }) => row.attribute_definition_id)
-    .filter((id: string) => !keep.has(id));
+    .filter((id: string) => loadedDefinitions.has(id) && !keep.has(id));
   if (staleIds.length) {
     const { error: deleteError } = await db
       .from("product_attribute_values")

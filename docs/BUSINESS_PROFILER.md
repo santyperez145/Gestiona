@@ -1,6 +1,6 @@
 # Business Profiler
 
-**Corte:** 2026-08-28
+**Corte:** 2026-10-09
 
 **Estado:** infraestructura productiva; adopción externa todavía no medida.
 
@@ -28,6 +28,7 @@ metadatos editables para describir y filtrar productos.
 | Otro | Producto | marca, modelo o línea |
 | **Servicios** | Servicio *(no lleva stock)* | duración, modalidad, a cargo de |
 | **Gastronomía** | Plato *(no lleva stock)*, Insumo | sección de carta, apto para, porciones / unidad de compra, conservación |
+| Ferretería | Artículo de ferretería | modelo/referencia, material, medida, presentación |
 
 ⚠️ **Gastronomía tiene DOS tipos a propósito, y ahí está el punto: un
 restaurante no es un negocio sin stock.** El plato no se descuenta —se
@@ -44,6 +45,27 @@ que un preset suyo sería una promesa vacía.
 
 Talle y color con stock propio continúan como variantes. Lotes y vencimientos
 continúan en trazabilidad de inventario. El perfil no duplica esas funciones.
+Ferretería reutiliza `industry_presets` y el Blueprint: un tipo inicial claro
+permite su asignación automática al alta, tras elegir y confirmar el perfil.
+No deduce el rubro por nombre ni retipa artículos existentes; no duplica marca,
+SKU, proveedor, precio o stock. Presentación describe el envase/conjunto, no
+convierte unidades ni habilita ventas fraccionadas. Migración `20261009000000`.
+
+La ficha especializada se habilita por tipo explícito; sólo sin tipo admite
+categorías históricas de perfume/vaper. Un artículo de ferretería no recibe
+género ni contenido en ml por defecto. Las ediciones no envían ni vacían esos
+campos ocultos. Los atributos propios continúan editables por tipo. La columna
+histórica `gender` conserva por ahora su default de esquema: quitarlo exige
+una migración de consumidores, no borrar datos ni inventar otro valor.
+`content_ml` sigue siendo entero: un decimal se rechaza explícitamente, nunca
+se trunca. Volumen decimal, equivalentes duplicados marca/contenido, unidades
+fraccionadas y columnas configurables de atributos siguen pendientes.
+
+Guardar espera una lectura válida de tipos/atributos. Error permite reintentar
+sin limpiar datos; respuesta vieja de otro tipo se descarta. La limpieza de
+valores sólo alcanza definiciones explícitas de la edición actual: no borra
+atributos históricos de otros tipos ni interpreta una carga vacía como orden
+de eliminarlos.
 
 ## Contrato y autoridad
 
@@ -96,6 +118,7 @@ parecer que todo el onboarding falló.
 ~~~bash
 npx supabase db query --linked --file supabase/verificaciones/20260822_business_profiler.sql
 npx supabase db query --linked --file supabase/verificaciones/20260828_business_blueprint.sql
+npx supabase db query --linked --file supabase/verificaciones/20261009_hardware_business_profile.sql
 npx supabase db push --linked --dry-run
 ~~~
 

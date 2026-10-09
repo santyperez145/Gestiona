@@ -22,6 +22,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import CashDenominationCountDialog from "@/components/shared/CashDenominationCountDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { summarizePosCashSession } from "@/lib/posCashSession";
+import { escapePrintHtml } from "@/lib/saleReceipt";
 
 import { plural } from "@/lib/plural";
 // ── Export helpers ────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ function printCashReport(
 
   const html = `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><title>Cierre de Caja — ${orgName}</title>
+<head><meta charset="utf-8"><title>Cierre de Caja — ${escapePrintHtml(orgName)}</title>
 <style>
   body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; color: #1a1a1a; }
   h1 { font-size: 18px; margin: 0 0 2px; } .sub { color: #666; font-size: 11px; margin-bottom: 16px; }
@@ -71,7 +72,7 @@ function printCashReport(
 </head>
 <body>
 <h1>Cierre de Caja</h1>
-<p class="sub">${orgName} · ${format(new Date(session.opened_at), "EEEE d 'de' MMMM yyyy", { locale: es })}</p>
+<p class="sub">${escapePrintHtml(orgName)} · ${format(new Date(session.opened_at), "EEEE d 'de' MMMM yyyy", { locale: es })}</p>
 
 <div class="grid">
   <div class="card"><div class="card-label">Apertura</div><div class="card-value">${formatARS(session.opening_amount)}</div></div>
@@ -87,9 +88,9 @@ function printCashReport(
       const out = isOut(e.entry_type);
       return `<tr>
         <td>${format(new Date(e.created_at), "HH:mm")}</td>
-        <td>${LABELS[e.entry_type] || e.entry_type}</td>
-        <td>${e.description || "—"}</td>
-        <td>${e.payment_method || "efectivo"}</td>
+        <td>${escapePrintHtml(LABELS[e.entry_type] || e.entry_type)}</td>
+        <td>${escapePrintHtml(e.description || "—")}</td>
+        <td>${escapePrintHtml(e.payment_method || "efectivo")}</td>
         <td style="text-align:right" class="${out ? "out" : "in"}">${out ? "−" : "+"}${formatARS(Number(e.amount_ars))}</td>
       </tr>`;
     }).join("")}
@@ -100,12 +101,12 @@ function printCashReport(
   <table>
     <thead><tr><th colspan="2">Resumen por método de pago (ingresos)</th></tr></thead>
     <tbody>
-      ${Object.entries(byMethod).map(([m, v]) => `<tr><td>${m}</td><td class="in" style="text-align:right">${formatARS(v)}</td></tr>`).join("")}
+      ${Object.entries(byMethod).map(([m, v]) => `<tr><td>${escapePrintHtml(m)}</td><td class="in" style="text-align:right">${formatARS(v)}</td></tr>`).join("")}
       <tr><td><strong>Total ingresos</strong></td><td class="in" style="text-align:right"><strong>${formatARS(totalIn)}</strong></td></tr>
       <tr><td><strong>Total egresos</strong></td><td class="out" style="text-align:right"><strong>−${formatARS(totalOut)}</strong></td></tr>
     </tbody>
   </table>
-  ${session.notes ? `<p style="margin-top:12px;color:#6b7280;font-style:italic">Notas: ${session.notes}</p>` : ""}
+  ${session.notes ? `<p style="margin-top:12px;color:#6b7280;font-style:italic">Notas: ${escapePrintHtml(session.notes)}</p>` : ""}
 </div>
 
 <p style="margin-top:20px;font-size:10px;color:#9ca3af">Generado por Nerqia · ${new Date().toLocaleString("es-AR")}</p>

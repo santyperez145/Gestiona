@@ -1,6 +1,6 @@
 # Facturación y autoridad fiscal
 
-**Estado:** vigente, 2026-10-08. **Responsable:** Business Core / integración ARCA.
+**Estado:** vigente, 2026-10-09. **Responsable:** Business Core / integración ARCA.
 Este contrato describe cálculo, persistencia y representación. Configuración
 general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LEGAL.md).
 
@@ -123,6 +123,71 @@ El cero supuesto de otros impuestos en las representaciones actuales no es una
 certificación de transparencia fiscal completa.
 
 ## Decisión técnica y próximo cierre
+
+### Gestión argentina y espacio del contador — pendiente, no otra plataforma
+
+Auditoría de código del 2026-10-09, secuenciada en el roadmap:
+
+1. **Maestros fiscales únicos:** `customers` y `suppliers` todavía no tienen
+   identidad fiscal estructurada completa. Extender esas entidades, sin crear
+   copias fiscales: razón social, tipo/número de documento, condición IVA y
+   domicilio fiscal separado del domicilio de entrega; validación server-side,
+   permisos y diagnóstico por campo. Consultar padrón sólo con autorización;
+   no pedir clave fiscal ni inferir condición por CUIT/nombre. Facturación,
+   presupuestos, compras, POS y Commerce reutilizan el maestro, pero los
+   comprobantes conservan el snapshot original y nunca se reescriben por editar
+   un cliente. CUIT/DNI no se exportan a audiencias ni se exponen al público.
+2. **Presupuesto → venta:** la conversión actual envía una venta agregada sin
+   `product_id` y la autoridad POS la rechaza; pierde renglones/variantes y crea
+   una nueva key por intento. Reparar con transacción bloqueada por presupuesto,
+   replay idempotente, IDs de cliente/producto/variante, precio autorizado,
+   Kardex y permisos. Aceptar no significa cobrar ni emitir CAE; preservar
+   estados y reversas. No aflojar la validación de precio para aceptar ids nulos.
+3. **ND A/B/C:** no hay creación funcional de notas de débito en la pantalla
+   actual. Extender `invoices` con motivo, comprobante asociado, numeración,
+   renglones/IVA, saldo, autorización/idempotencia y outbox existentes. No copiar
+   la semántica negativa de una NC ni usar un ajuste interno como documento ARCA.
+4. **Paquete contador:** el CSV del libro diario es real; el CSV resumido de
+   facturas no acredita un archivo fiscal importable. Preparar período/emisor,
+   comprobantes emitidos/recibidos, alícuotas, NC/ND, CAE, faltantes y conciliación
+   con el ledger. Reproducir el diseño vigente de Portal IVA/IVA Simple, encoding,
+   tamaños y relación cabecera/alícuotas; pruebas golden y una importación
+   autorizada revisada por contador. Nunca completar otros tributos con ceros
+   supuestos. Un archivo generado no demuestra presentación ni aceptación.
+5. **Acceso contador:** reutilizar identidad/organizaciones/permisos y el ledger
+   existente; acceso explícito por comercio, lectura/export granular, selección
+   multiorganización, auditoría y revocación. No requiere ser Platform ni tener
+   facultad para cobrar, facturar o modificar stock. No crear otro ledger ni
+   copiar Finance; navegación y roles se completan antes de anunciar una ruta.
+6. **Caja versus X/Z:** `pos_cash_session_close` es un cierre operativo. X/Z y
+   reportes firmados de un controlador fiscal no se fabrican desde un CSV/PDF:
+   requieren identificar equipo/protocolo homologado, adapter, comandos,
+   relectura/reconciliación y prueba física autorizada. Sin ese conector la UI
+   debe decir “cierre de caja interno”, no “cierre fiscal”. Factura electrónica
+   Web Services y controlador fiscal son circuitos distintos, no sustitutos
+   declarados por el nombre del botón. El dueño informó Epson para el piloto;
+   faltan modelo exacto, generación fiscal, firmware e interfaz; la marca sola
+   tampoco acredita que sea un controlador fiscal y no una ticketera. No elegir un
+   driver por marca ni enviar comandos Z a ciegas. Quiere también Web Services
+   y Comprobantes en línea: mantener puntos de venta por sistema, registrar
+   origen e identificador fiscal del comprobante externo (CUIT emisor, punto
+   de venta, tipo y número), con CAE, para conciliar y evitar doble emisión.
+   No pedir ni almacenar la clave fiscal del portal. Comprobantes en línea
+   sigue siendo un circuito manual ARCA,
+   no una segunda emisión automática de la venta ya facturada por WS.
+
+Revisar también notas de proveedor/export Finance que hoy omiten el error de
+escritura y `TaxManagementPage` que registra presentación/pago manual sin acuse;
+separar registro interno, archivo exportado, aceptado y presentado. El reporte
+de caja ahora escapa texto no confiable antes de imprimir: eso corrige XSS,
+no certifica hardware ni un cierre X/Z.
+
+Referencias oficiales consultadas el 2026-10-09: [datos del comprobante](https://www.arca.gob.ar/fe/emision-autorizacion/datos-comprobantes.asp),
+[confección IVA Simple](https://www.arca.gob.ar/iva/iva-simple/confeccion-declaracion.asp),
+[diseños/importación](https://www.arca.gob.ar/iva/iva-simple/especificaciones-especiales.asp)
+y [controladores fiscales, RG 3561 vigente](https://biblioteca.arca.gob.ar/search/query/norma.aspx?p=t%3ARAG%7Cn%3A3561%7Co%3A3%7Ca%3A2013%7Cf%3A09%2F12%2F2013),
+con [puntos de venta diferenciados por sistema](https://www.arca.gob.ar/facturacion/documentos/puntos-de-venta.pdf).
+La revisión técnica no sustituye dictamen profesional ni homologación externa.
 
 Owner: integración ARCA. `fast-xml-parser` 5.11.2 reemplaza extracción regex
 para las lecturas de conexión en la autoridad existente `wsfeRespuesta`; no

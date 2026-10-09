@@ -219,7 +219,7 @@ export default function CategorySelect({
       value={value}
       onValueChange={v => { if (v === CREAR) setCreando(true); else onChange(v); }}
     >
-      <SelectTrigger className={className}>
+      <SelectTrigger aria-label="Categoría" className={className}>
         <SelectValue placeholder={
           cargando ? "Cargando…" : vacio ? "Todavía no hay categorías" : "Elegí una categoría"
         } />
