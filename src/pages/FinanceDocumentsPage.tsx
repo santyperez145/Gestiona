@@ -53,6 +53,8 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOrg } from '@/lib/orgContext';
 import { buildPurchaseOrderHandoffPath } from '@/lib/purchaseOrderHandoff';
 import { plural } from "@/lib/plural";
+import ProductCombobox from "@/components/shared/ProductCombobox";
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   approveFinanceDocumentDrafts,
   createFinanceDocumentDrafts,
@@ -883,17 +885,8 @@ function MatchingReviewDialog({ matching, supplierId, productIds, options, savin
                 <p className="mt-1 text-[11px] text-muted-foreground">SKU {line.sku || 'no detectado'} · {productMatchLabel(line.matchMethod, line.candidateCount)}</p>
               </div>
               <ReviewField label="Producto canónico">
-                <Select value={productIds[line.lineNumber] || '__unmatched'} onValueChange={value => onProductChange(line.lineNumber, value === '__unmatched' ? '' : value)}>
-                  <SelectTrigger><SelectValue placeholder="Elegí un producto" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__unmatched">Dejar sin vincular</SelectItem>
-                    {products.map(product => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.brand ? `${product.brand} · ` : ''}{product.name}{product.sku ? ` · ${product.sku}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ProductCombobox products={products} value={productIds[line.lineNumber] || ""} allowClear="Dejar sin vincular"
+                  onChange={id => onProductChange(line.lineNumber, id)} />
               </ReviewField>
             </div>
           ))}
@@ -981,14 +974,15 @@ function DraftApprovalDialog({ drafts, products, lineChoices, dueDate, exchangeR
                   </div>
                 ) : (
                   <ReviewField label="Tratamiento al recibir">
-                    <Select value={choice} onValueChange={value => onLineChoice(line.lineNumber, value)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__unresolved">Resolver antes de aprobar</SelectItem>
-                        <SelectItem value="__non_inventory">Cargo no inventariable</SelectItem>
-                        {products.map(product => <SelectItem key={product.id} value={product.id}>{product.brand ? `${product.brand} · ` : ''}{product.name}{product.sku ? ` · ${product.sku}` : ''}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <ProductCombobox products={products} value={choice === '__non_inventory' ? null : choice === '__unresolved' ? '' : choice}
+                        allowClear="Resolver antes de aprobar" placeholder={choice === '__non_inventory' ? 'Cargo no inventariable' : 'Vincular a un producto'}
+                        onChange={id => onLineChoice(line.lineNumber, id || '__unresolved')} />
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Checkbox checked={choice === '__non_inventory'} onCheckedChange={checked => onLineChoice(line.lineNumber, checked === true ? '__non_inventory' : '__unresolved')} />
+                        Cargo no inventariable
+                      </label>
+                    </div>
                   </ReviewField>
                 )}
               </div>

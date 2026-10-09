@@ -33,6 +33,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import KPICard from "@/components/shared/KPICard";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
 
+import ProductCombobox from "@/components/shared/ProductCombobox";
 interface SocialPost {
   id: string;
   title: string;
@@ -564,13 +565,8 @@ export default function PlannerView() {
                 <Sparkles className="w-3.5 h-3.5" />Generar copy con IA
               </p>
               <div className="flex gap-2">
-                <Select value={aiProductId || "__none"} onValueChange={v => setAiProductId(v === "__none" ? "" : v)}>
-                  <SelectTrigger className="flex-1 text-xs h-9"><SelectValue placeholder="Producto (opcional)" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">Sin producto — usar el título como tema</SelectItem>
-                    {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.brand ? ` · ${p.brand}` : ""}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <ProductCombobox className="h-9 flex-1 text-xs" products={products} value={aiProductId} onChange={id => setAiProductId(id)}
+                  placeholder="Producto (opcional)" allowClear="Sin producto — usar el título como tema" />
                 <Button type="button" size="sm" onClick={generateCopy} disabled={aiGenerating} className="shrink-0">
                   {aiGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                   <span className="ml-1">Generar</span>

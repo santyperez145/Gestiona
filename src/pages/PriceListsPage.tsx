@@ -48,6 +48,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
 
+import ProductCombobox from "@/components/shared/ProductCombobox";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PriceList {
@@ -322,17 +323,10 @@ function PLItemsDialog({ open, list, products, orgId, onClose }: PLItemsDialogPr
         <div className="flex gap-2 items-end border-b border-border pb-4">
           <div className="flex-1">
             <Label className="text-xs">Producto</Label>
-            <Select value={addProductId} onValueChange={v => {
-              setAddProductId(v);
-              const prod = products.find(p => p.id === v);
+            <ProductCombobox products={filteredProducts} value={addProductId === "none" ? "" : addProductId} onChange={(id, prod) => {
+              setAddProductId(id || "none");
               if (prod) setAddPrice(String(prod.price));
-            }}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Seleccionar...</SelectItem>
-                {filteredProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            }} />
           </div>
           <div className="w-32">
             <Label className="text-xs">Precio personalizado</Label>

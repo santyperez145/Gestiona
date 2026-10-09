@@ -20,6 +20,7 @@ import { useModulePermissions } from "@/lib/usePermissions";
 
 import { plural } from "@/lib/plural";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
+import ProductCombobox from "@/components/shared/ProductCombobox";
 /* ─────────────────────────── types ─────────────────────────── */
 interface ReturnReason { id: string; name: string; requires_photo: boolean; is_active: boolean; }
 interface ReturnRequest {
@@ -426,10 +427,8 @@ export default function ReturnsPortalTab() {
             </div>
             <div>
               <Label>Producto</Label>
-              <Select value={form.product_id} onValueChange={v => setForm(p => ({ ...p, product_id: v, product_name: products.find(pr => pr.id === v)?.name ?? p.product_name }))}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar producto…" /></SelectTrigger>
-                <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <ProductCombobox products={products} value={form.product_id}
+                onChange={(id, pr) => setForm(p => ({ ...p, product_id: id, product_name: pr?.name ?? p.product_name }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Nombre del producto *</Label><Input value={form.product_name} onChange={e => setForm(p => ({ ...p, product_name: e.target.value }))} /></div>

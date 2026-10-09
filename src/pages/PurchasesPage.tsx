@@ -61,6 +61,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 import { plural } from "@/lib/plural";
 import EmptyState from "@/components/shared/EmptyState";
+import ProductCombobox from "@/components/shared/ProductCombobox";
+import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
 const PAGE_SIZE = 20;
 
 export default function PurchasesPage() {
@@ -814,9 +816,8 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
         <Switch checked={isScheduled} onCheckedChange={setIsScheduled} />
       </div>
       <div><label className="text-sm text-muted-foreground">Producto</label>
-        <Select value={productId} onValueChange={setProductId}><SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-          <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({formatUSD(Number(p.cost_usd))})</SelectItem>)}</SelectContent>
-        </Select>
+        <ProductCombobox products={products} value={productId} onChange={id => setProductId(id)}
+          describe={p => `Costo ${formatUSD(Number(p.cost_usd))}`} />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div><label className="text-sm text-muted-foreground">Cantidad</label><Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="bg-muted border-border" /></div>
@@ -909,6 +910,8 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
   );
 }
 
+const ORDER_PAGE = 60;
+
 function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -916,6 +919,16 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
   const [loading, setLoading] = useState(true);
   const [restockLoading, setRestockLoading] = useState(false);
   const [restockDays, setRestockDays] = useState(30);
+  const [query, setQuery] = useState("");
+  const [visibles, setVisibles] = useState(ORDER_PAGE);
+  const indice = useMemo(() => crearIndiceBusqueda(products, p => camposProducto(p)), [products]);
+  // Con 11.000 productos se dibujan los que ya tienen cantidad y, debajo, 60 por vez.
+  const listado = useMemo(() => {
+    const base: any[] = query.trim() ? buscarLiteral(indice, query) : products;
+    const conCantidad = base.filter(p => (orders[p.id]?.qty || 0) > 0);
+    return [...conCantidad, ...base.filter(p => !((orders[p.id]?.qty || 0) > 0))];
+  }, [indice, products, query, orders]);
+  useEffect(() => { setVisibles(ORDER_PAGE); }, [query]);
 
   useEffect(() => {
     (async () => {
@@ -1021,8 +1034,13 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
         </div>
       </div>
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+        <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nombre, marca o código"
+          aria-label="Buscar producto para la orden" className="pl-9 bg-background border-border" />
+      </div>
       <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
-        {products.map(p => (
+        {listado.slice(0, visibles).map(p => (
           <div key={p.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${(orders[p.id]?.qty || 0) > 0 ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/30'}`}>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{p.name}</p>
@@ -1045,6 +1063,10 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
             />
           </div>
         ))}
+        {listado.length > visibles && <Button type="button" variant="ghost" size="sm" className="w-full text-xs" onClick={() => setVisibles(v => v + ORDER_PAGE)}>
+          Mostrar más ({listado.length - visibles} restantes)
+        </Button>}
+        {!listado.length && <p className="py-4 text-center text-sm text-muted-foreground">Ningún producto coincide.</p>}
       </div>
 
       {selectedProducts.length > 0 && (

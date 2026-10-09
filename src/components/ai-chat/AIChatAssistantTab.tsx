@@ -19,6 +19,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, setStockAb
 import { requireActiveOrgId } from "@/lib/orgContext";
 import KPICard from "@/components/shared/KPICard";
 
+import ProductCombobox from "@/components/shared/ProductCombobox";
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary" | "query_top_products" | "query_expense_summary" | "query_supplier";
 
@@ -521,17 +522,8 @@ function AdjustStockCard({ userId, onDone }: { userId: string; onDone: () => voi
       {loadingProducts ? (
         <p className="text-xs text-muted-foreground">Cargando productos...</p>
       ) : (
-        <Select value={selectedId || "__none"} onValueChange={value => setSelectedId(value === "__none" ? "" : value)}>
-          <SelectTrigger className="h-7 w-full text-xs" aria-label="Producto cuyo stock se ajustará">
-            <SelectValue placeholder="Seleccioná un producto..." />
-          </SelectTrigger>
-          <SelectContent>
-          <SelectItem value="__none">Seleccioná un producto...</SelectItem>
-          {products.map(p => (
-            <SelectItem key={p.id} value={p.id}>{p.name} (stock actual: {p.stock})</SelectItem>
-          ))}
-          </SelectContent>
-        </Select>
+        <ProductCombobox className="h-7 text-xs" ariaLabel="Producto cuyo stock se ajustará" products={products} value={selectedId}
+          onChange={id => setSelectedId(id)} describe={p => `Stock actual: ${p.stock}`} placeholder="Seleccioná un producto..." />
       )}
       <Input
         value={newStock}
@@ -617,17 +609,8 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
       {loadingProducts ? (
         <p className="text-xs text-muted-foreground">Cargando productos...</p>
       ) : (
-        <Select value={selectedId || "__none"} onValueChange={value => setSelectedId(value === "__none" ? "" : value)}>
-          <SelectTrigger className="h-7 w-full text-xs" aria-label="Producto de la venta">
-            <SelectValue placeholder="Seleccioná un producto *" />
-          </SelectTrigger>
-          <SelectContent>
-          <SelectItem value="__none">Seleccioná un producto *</SelectItem>
-          {products.map(p => (
-            <SelectItem key={p.id} value={p.id}>{p.name} — ${Number(p.sale_price_ars).toLocaleString('es-AR')}</SelectItem>
-          ))}
-          </SelectContent>
-        </Select>
+        <ProductCombobox className="h-7 text-xs" ariaLabel="Producto de la venta" products={products} value={selectedId}
+          onChange={id => setSelectedId(id)} describe={p => `$${Number(p.sale_price_ars).toLocaleString("es-AR")}`} placeholder="Seleccioná un producto *" />
       )}
       <div className="flex gap-2">
         <Input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="Cantidad *" className="h-7 text-xs w-20" type="number" min="1" />
@@ -715,17 +698,8 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
       <p className="text-xs font-medium text-primary flex items-center gap-1.5">
         <Package className="w-3.5 h-3.5" />Registrar compra
       </p>
-      <Select value={selectedId || "__none"} onValueChange={value => setSelectedId(value === "__none" ? "" : value)}>
-        <SelectTrigger className="h-7 w-full text-xs" aria-label="Producto de la compra">
-          <SelectValue placeholder="Seleccioná un producto *" />
-        </SelectTrigger>
-        <SelectContent>
-        <SelectItem value="__none">Seleccioná un producto *</SelectItem>
-        {products.map(p => (
-          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-        ))}
-        </SelectContent>
-      </Select>
+      <ProductCombobox className="h-7 text-xs" ariaLabel="Producto de la compra" products={products} value={selectedId}
+        onChange={id => setSelectedId(id)} placeholder="Seleccioná un producto *" />
       <div className="flex gap-2">
         <Input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="Cantidad *" className="h-7 text-xs w-20" type="number" min="1" />
         <Input value={costUSD} onChange={e => setCostUSD(e.target.value)} placeholder="Costo unit. USD" className="h-7 text-xs w-28" type="number" step="0.01" />

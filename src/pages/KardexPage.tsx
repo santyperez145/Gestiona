@@ -30,6 +30,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import StockCountTab from "@/components/inventory/StockCountTab";
 import StockReservationsTab from "@/components/inventory/StockReservationsTab";
 
+import ProductCombobox from "@/components/shared/ProductCombobox";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type MovementType =
@@ -395,17 +396,8 @@ export default function KardexPage() {
             </SelectContent>
           </Select>
 
-          <Select value={productFilter} onValueChange={setProductFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Producto" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los productos</SelectItem>
-              {products.map(p => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <ProductCombobox className="w-48" products={products} value={productFilter === "all" ? "" : productFilter}
+            onChange={id => setProductFilter(id || "all")} allowClear="Todos los productos" />
 
           <div className="flex gap-1">
             {DATE_PRESETS.map(d => (
@@ -593,22 +585,8 @@ export default function KardexPage() {
             {!adjustProduct && (
               <div>
                 <Label>Producto *</Label>
-                <Select onValueChange={v => {
-                  const p = products.find(x => x.id === v) ?? null;
-                  setAdjustProduct(p);
-                  setAdjustQty(p ? String(p.stock) : "");
-                }}>
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue placeholder="Seleccioná un producto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name} (stock: {p.stock})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ProductCombobox className="mt-1.5" products={products} value={adjustProduct?.id ?? null} describe={p => `Stock: ${p.stock}`}
+                  onChange={(_id, p) => { setAdjustProduct(p); setAdjustQty(p ? String(p.stock) : ""); }} />
               </div>
             )}
 
@@ -685,16 +663,8 @@ export default function KardexPage() {
           <div className="space-y-4 py-2">
             <div>
               <Label>Producto *</Label>
-              <Select value={movProduct?.id ?? ""} onValueChange={v => setMovProduct(products.find(x => x.id === v) ?? null)}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue placeholder="Seleccioná un producto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name} (stock: {p.stock})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ProductCombobox className="mt-1.5" products={products} value={movProduct?.id ?? null} describe={p => `Stock: ${p.stock}`}
+                onChange={(_id, p) => setMovProduct(p)} />
             </div>
 
             <div>

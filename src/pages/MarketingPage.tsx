@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { llamarIA } from "@/lib/ia";
 import { getMarketingPostsDB, addMarketingPostDB, updateMarketingPostDB, deleteMarketingPostDB, getProductsDB } from "@/lib/supabaseStore";
@@ -28,6 +28,7 @@ import { useOrg } from "@/lib/orgContext";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
+import ProductCombobox from "@/components/shared/ProductCombobox";
 export default function MarketingPage() {
   usePageTitle("Marketing");
   const { user } = useAuth();
@@ -385,6 +386,7 @@ function AIImageGenerator({ products }: { products: any[] }) {
   });
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
+  const productsWithStock = useMemo(() => products.filter(p => p.stock > 0), [products]);
   const style = IMG_STYLES.find(s => s.id === styleId) || IMG_STYLES[0];
 
   const buildPrompt = () => {
@@ -447,20 +449,8 @@ function AIImageGenerator({ products }: { products: any[] }) {
             {/* Product selector */}
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Producto (opcional)</label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                <SelectTrigger className="bg-background border-border">
-                  <SelectValue placeholder="Seleccioná un producto..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  <SelectItem value="__none__">Sin producto específico</SelectItem>
-                  {products.filter(p => p.stock > 0).map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.image_url && <img src={p.image_url} className="w-4 h-4 rounded object-cover inline mr-2" />}
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ProductCombobox className="bg-background" products={productsWithStock} value={selectedProductId === "__none__" ? "" : selectedProductId}
+                onChange={id => setSelectedProductId(id || "__none__")} allowClear="Sin producto específico" placeholder="Seleccioná un producto..." />
             </div>
 
             {/* Style selector */}

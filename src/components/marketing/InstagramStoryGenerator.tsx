@@ -15,6 +15,7 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { listStoryTemplates } from "@/lib/marketingExtraDB";
 
+import ProductCombobox from "@/components/shared/ProductCombobox";
 type Template = string;
 
 const FALLBACK_TEMPLATES: { id: Template; name: string; badge: string; emoji: string }[] = [
@@ -716,18 +717,8 @@ export function InstagramStoryGenerator() {
 
                 <div>
                   <label className="text-sm text-muted-foreground">Producto</label>
-                  <Select value={productId} onValueChange={setProductId}>
-                    <SelectTrigger className="bg-muted border-border">
-                      <SelectValue placeholder="Elegí un producto" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name} {p.brand ? `· ${p.brand}` : ""} {p.stock > 0 ? `(${p.stock})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ProductCombobox products={products} value={productId} onChange={id => setProductId(id)} placeholder="Elegí un producto"
+                    describe={p => (p.stock > 0 ? `Stock: ${p.stock}` : "Sin stock")} />
                 </div>
 
                 {/* Vaper flavors selector */}

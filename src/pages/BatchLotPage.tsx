@@ -17,6 +17,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import ProductCombobox from "@/components/shared/ProductCombobox";
 interface Product { id: string; name: string; sku: string | null; }
 
 interface ProductBatch {
@@ -227,13 +228,8 @@ export default function BatchLotPage() {
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <Select value={filterProduct} onValueChange={setFilterProduct}>
-          <SelectTrigger className="w-52"><SelectValue placeholder="Todos los productos" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los productos</SelectItem>
-            {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <ProductCombobox className="w-52" products={products} value={filterProduct === "all" ? "" : filterProduct}
+          onChange={id => setFilterProduct(id || "all")} allowClear="Todos los productos" />
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-40"><SelectValue placeholder="Todos los estados" /></SelectTrigger>
           <SelectContent>
@@ -344,12 +340,7 @@ export default function BatchLotPage() {
           <DialogHeader><DialogTitle>Nuevo lote</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div><Label>Producto *</Label>
-              <Select value={batchForm.product_id} onValueChange={v => setBatchForm(p => ({ ...p, product_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Seleccioná producto..." /></SelectTrigger>
-                <SelectContent>
-                  {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.sku ? ` (${p.sku})` : ""}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ProductCombobox products={products} value={batchForm.product_id} onChange={id => setBatchForm(p => ({ ...p, product_id: id }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>N° de lote *</Label>

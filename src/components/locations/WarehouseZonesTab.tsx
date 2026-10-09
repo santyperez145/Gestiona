@@ -20,6 +20,7 @@ import KPICard from "@/components/shared/KPICard";
 
 import { plural } from "@/lib/plural";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
+import ProductCombobox from "@/components/shared/ProductCombobox";
 interface WarehouseData {
   id: string;
   name: string;
@@ -475,12 +476,7 @@ export default function WarehouseZonesTab() {
             <p className="text-sm text-muted-foreground">Posición: <strong className="text-foreground">{bins.find(b => b.id === stockBinId)?.code ?? "—"}</strong></p>
             <div className="space-y-1">
               <Label>Producto *</Label>
-              <Select value={stockProductId} onValueChange={setStockProductId}>
-                <SelectTrigger><SelectValue placeholder="Buscar producto" /></SelectTrigger>
-                <SelectContent>
-                  {stockProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ProductCombobox products={stockProducts} value={stockProductId} onChange={id => setStockProductId(id)} />
             </div>
             <div className="space-y-1">
               <Label>Cantidad</Label>

@@ -40,6 +40,7 @@ import { ensureSaleTransactionInvoice, printFiscalInvoiceById } from "@/lib/sale
 import { escapePrintHtml, printSaleReceipt } from "@/lib/saleReceipt";
 
 import { plural } from "@/lib/plural";
+import ProductCombobox from "@/components/shared/ProductCombobox";
 const PAGE_SIZE = 20;
 
 const PAYMENT_METHODS = [
@@ -2261,6 +2262,7 @@ function LineItemRow({
   const hasVariants = productVariants.length > 0;
   const isPerfume = product ? productoEsPerfume(product, typeSlugById) : false;
   const contentMl = Number(product?.content_ml || 100);
+  const sellable = useMemo(() => products.filter(p => isEditMode || p.stock > 0), [products, isEditMode]);
 
   return (
     <div className="bg-muted/50 border border-border rounded-lg p-3 space-y-2 relative">
@@ -2279,14 +2281,9 @@ function LineItemRow({
       </div>
 
       {/* Product selector */}
-      <Select value={line.productId} onValueChange={v => onUpdate({ productId: v, variantId: '', customPrice: '', decantSize: 'full' })}>
-        <SelectTrigger className="bg-background border-border text-sm"><SelectValue placeholder="Seleccionar producto..." /></SelectTrigger>
-        <SelectContent>
-          {products.filter(p => isEditMode || p.stock > 0).map(p => (
-            <SelectItem key={p.id} value={p.id}>{p.name} ({getCategoryLabel(p.category)}) — Stock: {p.stock}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <ProductCombobox className="bg-background text-sm" products={sellable} value={line.productId} placeholder="Seleccionar producto..."
+        describe={p => `${getCategoryLabel(p.category)} — Stock: ${p.stock}`}
+        onChange={id => onUpdate({ productId: id, variantId: '', customPrice: '', decantSize: 'full' })} />
 
       {/* Variant selector for vapers or products with variants */}
       {product && hasVariants && (
