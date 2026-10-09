@@ -30,6 +30,7 @@ import { CONDICIONES_IVA, tipoDeComprobante, validarCuit, type CondicionIva } fr
 import { loadAssociatedFiscalInvoice, printFiscalInvoiceTicket } from "@/lib/saleInvoice";
 import { invoiceIvaGroups, invoiceDisplayLines } from "../../supabase/functions/_shared/invoiceIva";
 import { explicacionesDesdeMensaje } from "../../supabase/functions/_shared/arcaRechazos";
+import { GRUPOS_PENDIENTE_FISCAL, grupoPendienteFiscal, resumenPendientesFiscales, type GrupoPendienteFiscal } from "@/lib/fiscalExceptions";
 import { useModulePermissions } from "@/lib/usePermissions";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
@@ -428,6 +429,14 @@ export default function InvoicesPage() {
   const fromSaleId = useRef<string | null>(null);
   const sourceSaleParam = searchParams.get("from_sale");
   const requestedInvoiceId = searchParams.get("invoice");
+  // El grupo fiscal vive en la URL para enlazar la bandeja desde otras vistas.
+  const fiscalParam = searchParams.get("fiscal");
+  const fiscalGroup = fiscalParam && fiscalParam in GRUPOS_PENDIENTE_FISCAL ? fiscalParam as GrupoPendienteFiscal : null;
+  const setFiscalGroup = (group: GrupoPendienteFiscal | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (group) next.set("fiscal", group); else next.delete("fiscal");
+    setSearchParams(next, { replace: true });
+  };
   const afipOrgId = activeOrg?.id;
   const accountUserId = user?.id;
 
@@ -878,7 +887,10 @@ export default function InvoicesPage() {
     overdue: invoices.filter((i) => i.status === "overdue").length,
   };
 
+  const fiscalSummary = useMemo(() => resumenPendientesFiscales(invoices), [invoices]);
+
   const filteredInvoices = invoices.filter((inv) => {
+    if (fiscalGroup && grupoPendienteFiscal(inv) !== fiscalGroup) return false;
     if (filterStatus !== "all" && visibleInvoiceStatus(inv) !== filterStatus) return false;
     if (filterType !== "all") {
       if (filterType === "NC" && ![3, 8, 13].includes(inv.tipo_comprobante ?? 0)) return false;
@@ -944,6 +956,49 @@ export default function InvoicesPage() {
               : "Generar comprobantes"}
           </Button>
         </div>
+      )}
+
+      {/* Bandeja de pendientes fiscales: comprobantes sin CAE agrupados por la
+          acción que necesitan. Se filtra la lista; no se abre otra pantalla. */}
+      {!loading && !loadError && fiscalSummary.length > 0 && (
+        <section aria-label="Pendientes fiscales" className="rounded-[8px] border border-border bg-card p-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-500" />
+            <h2 className="font-semibold">Pendientes fiscales</h2>
+            <span className="text-xs text-muted-foreground">
+              {plural(fiscalSummary.reduce((total, g) => total + g.cantidad, 0), "comprobante")} sin CAE
+            </span>
+            {fiscalGroup && (
+              <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => setFiscalGroup(null)}>
+                Ver todas
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {fiscalSummary.map(({ grupo, cantidad }) => {
+              const config = GRUPOS_PENDIENTE_FISCAL[grupo];
+              const active = fiscalGroup === grupo;
+              return (
+                <button
+                  key={grupo}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setFiscalGroup(active ? null : grupo)}
+                  className={`inline-flex items-center gap-1.5 rounded-[5px] border px-2.5 py-1 text-xs transition-colors ${
+                    active
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : config.requiereAccion
+                        ? "border-amber-500/30 text-foreground hover:bg-amber-500/5"
+                        : "border-border text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <span className="font-semibold tabular-nums">{cantidad}</span>
+                  {config.titulo}
+                </button>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* AFIP not configured warning */}

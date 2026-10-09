@@ -78,6 +78,10 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   CAE válido no prueban rechazo: quedan `processing`. El SOAP crudo sólo va al log.
   Las advertencias de un CAE otorgado (p. ej. 10236, tope de Monotributo) se
   registran en el log; persistirlas para el comercio requiere columna propia.
+- La bandeja de pendientes fiscales (`fiscalExceptions.ts`) agrupa comprobantes
+  sin CAE por acción: conexión, datos del cliente, importes, contador, reintento,
+  listos para autorizar y en verificación. Sólo lee estado persistido y filtra
+  Facturas con `?fiscal=`; no autoriza ni corrige datos.
 - A4 y 80 mm muestran neto/IVA para A y NC A, precios finales para B/C y sus NC,
   transparencia, identidad congelada, CAE/QR y referencia de la NC. Homologación
   se identifica explícitamente y no es un comprobante productivo.

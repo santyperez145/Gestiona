@@ -12,6 +12,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [Guía de contribución](../CONTRIBUTING.md): reglas obligatorias de trabajo.
 - [Roadmap](../ROADMAP.md): estado y orden de ejecución.
 - [Roadmap de diseño](../DESIGNROADMAP.md): dirección visual.
+- [Meta de finalización](META_FINALIZACION.md): backlog del plan 2026-10-09 por experiencia.
 - [Guía del proyecto](GUIA.md): mapa para incorporarse.
 
 ## Producto y estrategia

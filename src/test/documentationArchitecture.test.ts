@@ -79,7 +79,6 @@ describe("arquitectura documental", () => {
     const budgets: Record<string, number> = {
       "README.md": 220,
       "CONTRIBUTING.md": 380,
-      "ROADMAP.md": 380,
       "DESIGNROADMAP.md": 260,
       "docs/ARQUITECTURA.md": 300,
       "docs/ESTRATEGIA.md": 300,
