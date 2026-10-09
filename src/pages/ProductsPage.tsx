@@ -2,6 +2,7 @@
 import Fuse from "fuse.js";
 import { useCallback } from "react";
 import { paginarPorMarca, PRODUCTOS_POR_PAGINA } from "@/lib/catalogPaging";
+import { UNIDADES_MEDIDA } from "@/lib/unidadMedida";
 import { selectAllRows } from "@/lib/selectAllRows";
 import ProductDuplicatesDialog from "@/components/products/ProductDuplicatesDialog";
 import { detectarDuplicados } from "@/lib/productDuplicates";
@@ -1962,6 +1963,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   const [costARS, setCostARS] = useState(product?.cost_ars?.toString() || '');
   const [salePriceARS, setSalePriceARS] = useState(product?.sale_price_ars?.toString() || '');
   const [supplierId, setSupplierId] = useState<string>(product?.supplier_id || '');
+  const [unidadMedida, setUnidadMedida] = useState<string>(product?.unidad_medida || 'unidad');
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
   // A8 — alicuota propia del producto. Vacio significa "la de la organizacion",
@@ -2428,6 +2430,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         is_active: isActive,
         expected_restock_at: expectedRestockAt || null,
         supplier_id: supplierId || null,
+        unidad_medida: unidadMedida,
         // Peso y dimensiones: los usa el cotizador de envíos de la tienda online.
         // Vacío = la tienda cotiza con su peso estimado por default.
         weight_kg: parseFloat(weightKg) || null,
@@ -3182,6 +3185,19 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
 
       {/* Precios por lista (mayorista / distribuidor) */}
       <ProductPriceListsSection productId={product?.id} orgId={orgId} salePriceARS={salePrice} />
+
+      <div>
+        <label className="text-sm text-muted-foreground">Se vende</label>
+        <Select value={unidadMedida} onValueChange={v => { markDirty(); setUnidadMedida(v); }}>
+          <SelectTrigger className="bg-muted border-border" aria-label="Unidad de venta"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {UNIDADES_MEDIDA.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <p className="text-[10px] text-muted-foreground mt-1">
+          Por kilo, metro, litro o m² el stock y las ventas admiten hasta tres decimales (ej.: 12,75 m de cable).
+        </p>
+      </div>
 
       {suppliers.length > 0 && (
         <div>

@@ -22,8 +22,8 @@ export function validateProductDraft(input: ProductDraftInput): { ok: boolean; e
     return { ok: false, error: 'El precio de venta tiene que ser mayor a 0. Sin eso no hay nada que cobrar.' };
   }
   if (input.manejaStock) {
-    const parsed = Number.parseInt(input.stockRaw, 10);
-    if (input.stockRaw.trim() === '' || !Number.isInteger(parsed) || parsed < 0) {
+    const parsed = Number(input.stockRaw.trim().replace(',', '.'));
+    if (input.stockRaw.trim() === '' || !Number.isFinite(parsed) || parsed < 0 || Math.round(parsed * 1000) / 1000 !== parsed) {
       return { ok: false, error: 'Indicá cuántas unidades hay, o marcá que no lleva stock.' };
     }
     if (input.firstUse && parsed === 0) {

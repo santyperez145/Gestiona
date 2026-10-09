@@ -4,6 +4,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { resolveSaleAttribution } from './businessCalc';
 import { nombreDeCategoria } from './storeCategories';
 import { selectAllRows } from '@/lib/selectAllRows';
+import { cantidadStockValida } from '@/lib/unidadMedida';
 type SettingsUpdate = Database['public']['Tables']['settings']['Update'];
 
 /** Resolve an explicit tenant first; legacy callers may still use the active context. */
@@ -116,8 +117,8 @@ export async function setStockAbsoluteDB({
   locationId?: string | null;
   notes?: string | null;
 }) {
-  if (!Number.isInteger(newStock) || newStock < 0) {
-    throw new Error('El stock debe ser un entero mayor o igual a cero');
+  if (!cantidadStockValida(newStock)) {
+    throw new Error('El stock debe ser mayor o igual a cero, con hasta tres decimales');
   }
   const activeOrgId = orgId || requireActiveOrgId();
   let actorId = userId ?? null;
@@ -180,8 +181,8 @@ export async function recordMemberStockMovementDB({
   notes?: string | null;
   userId?: string | null;
 }) {
-  if (!Number.isInteger(quantity) || quantity === 0) {
-    throw new Error('La cantidad del movimiento debe ser un entero distinto de cero');
+  if (!cantidadStockValida(quantity, { permitirCero: false })) {
+    throw new Error('La cantidad del movimiento debe ser distinta de cero, con hasta tres decimales');
   }
   let actorId = userId ?? null;
   if (!actorId) {
@@ -221,8 +222,8 @@ export async function recordMemberStockMovementDB({
 export async function addProductDB(product: any) {
   const orgId = product.org_id || requireActiveOrgId();
   const initialStock = product.stock === undefined ? 0 : Number(product.stock);
-  if (!Number.isInteger(initialStock) || initialStock < 0) {
-    throw new Error('El stock inicial debe ser un entero mayor o igual a cero');
+  if (!cantidadStockValida(initialStock)) {
+    throw new Error('El stock inicial debe ser mayor o igual a cero, con hasta tres decimales');
   }
   const { stock: _stock, ...productFields } = product;
   // El default de la base crea el producto en cero y el ajuste siguiente queda

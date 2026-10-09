@@ -12,6 +12,7 @@ import {
   CANCELAR_FACTURA_EPSON, interpretarLoteFactura, loteFacturaEpson,
   type CompradorControlador, type DocumentoControlador, type EpsonCommand, type PagoControlador,
 } from "@/lib/fiscalPrinter/epson";
+import { unidadControlador } from "@/lib/unidadMedida";
 import { enviarLoteEpson, guardarPendiente, leerPendiente, type ConfigControlador } from "@/lib/fiscalPrinter/transport";
 
 type LineaVenta = {
@@ -22,7 +23,7 @@ type LineaVenta = {
   payment_method: string | null;
   split_payments: { method: string; amount: number }[] | null;
   product_id: string | null;
-  products?: { sku: string | null; tax_rate: number | null } | null;
+  products?: { sku: string | null; tax_rate: number | null; unidad_medida?: string | null } | null;
 };
 
 const MEDIO: Record<string, PagoControlador["medio"]> = {
@@ -44,6 +45,7 @@ export function documentoDesdeLineas(
       precioUnitario: Math.round((total / cantidad) * 10_000) / 10_000,
       tasaIva: Number(l.fiscal_tax_rate ?? l.products?.tax_rate ?? opciones.tasaPorDefecto),
       codigo: l.products?.sku || String(l.product_id ?? "").slice(0, 13) || "S/C",
+      unidad: unidadControlador(l.products?.unidad_medida),
     };
   });
   const total = Math.round(lineas.reduce((s, l) => s + Number(l.total_ars), 0) * 100) / 100;
@@ -99,7 +101,7 @@ export async function emitirTicketEnControlador(params: {
   };
 
   const { data: lineas, error } = await supabase.from("sales")
-    .select("product_name, quantity, total_ars, fiscal_tax_rate, payment_method, split_payments, product_id, products(sku, tax_rate)")
+    .select("product_name, quantity, total_ars, fiscal_tax_rate, payment_method, split_payments, product_id, products(sku, tax_rate, unidad_medida)")
     .eq("org_id", orgId).eq("sale_transaction_id", transactionId).order("created_at");
   if (error || !lineas?.length) {
     await liberar();

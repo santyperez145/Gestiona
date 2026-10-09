@@ -35186,6 +35186,7 @@ export type Database = {
       }
       products: {
         Row: {
+          unidad_medida: string
           barcode: string | null
           barcode_aliases: string[]
           brand: string
@@ -35239,6 +35240,7 @@ export type Database = {
           width_cm: number | null
         }
         Insert: {
+          unidad_medida?: string
           barcode?: string | null
           barcode_aliases?: string[]
           brand?: string
@@ -35292,6 +35294,7 @@ export type Database = {
           width_cm?: number | null
         }
         Update: {
+          unidad_medida?: string
           barcode?: string | null
           barcode_aliases?: string[]
           brand?: string

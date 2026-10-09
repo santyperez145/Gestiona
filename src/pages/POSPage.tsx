@@ -3,6 +3,7 @@ import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalo
 import PosCustomerPicker, { etiquetaCliente, type PosCustomer } from "@/components/pos/PosCustomerPicker";
 import { letraParaCliente } from "@/lib/customerFiscal";
 import { esCondicionIva } from "@/lib/fiscalIdentity";
+import { cantidadMedida, etiquetaUnidad } from "@/lib/unidadMedida";
 import FiscalControllerDialog from "@/components/pos/FiscalControllerDialog";
 import { emitirTicketEnControlador } from "@/lib/fiscalPrinter/service";
 import { leerConfigControlador, type ConfigControlador } from "@/lib/fiscalPrinter/transport";
@@ -111,6 +112,8 @@ interface CartItem {
   discountPrice?: number | null;
   customPrice?: number | null;   // per-item price override set in cart
   category?: string;
+  /** 'unidad' o una medida (kg, metro, litro, m2): las medidas aceptan decimales. */
+  unidad?: string;
 }
 
 interface OnlineReservationRow {
@@ -1908,6 +1911,7 @@ export default function POSPage() {
         imageUrl: prod.image_url || null,
         useDiscount: false,
         category: prod.category || '',
+        unidad: prod.unidad_medida || 'unidad',
       }];
     });
     setShowCart(true);
@@ -1967,6 +1971,13 @@ export default function POSPage() {
   };
 
   const removeItem = (productId: string) => setCart((prev) => prev.filter((it) => it.productId !== productId));
+
+  /** Cantidad exacta para productos por medida (12,75 m · 1,250 kg). */
+  const setMeasuredQty = (productId: string, raw: string) => {
+    const value = cantidadMedida(raw);
+    if (value === null) return;
+    setCart((prev) => prev.map((it) => it.productId === productId ? { ...it, quantity: value } : it));
+  };
 
   const applyPriceOverride = (productId: string, raw: string) => {
     const num = parseFloat(raw.replace(",", "."));
@@ -2855,7 +2866,23 @@ export default function POSPage() {
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-8 text-center text-sm font-bold">{it.quantity}</span>
+                    {it.unidad && it.unidad !== "unidad" ? (
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          aria-label={`Cantidad en ${etiquetaUnidad(it.unidad)}`}
+                          defaultValue={String(it.quantity).replace(".", ",")}
+                          key={`${it.productId}-${it.quantity}`}
+                          onBlur={(e) => setMeasuredQty(it.productId, e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") setMeasuredQty(it.productId, (e.target as HTMLInputElement).value); }}
+                          className="h-10 w-16 rounded-lg border border-border bg-card text-center text-sm font-bold"
+                        />
+                        <span className="text-xs text-muted-foreground">{etiquetaUnidad(it.unidad)}</span>
+                      </label>
+                    ) : (
+                      <span className="w-8 text-center text-sm font-bold">{it.quantity}</span>
+                    )}
                     <button
                       onClick={() => changeQty(it.productId, 1)}
                       disabled={it.quantity >= it.stock && it.stock > 0}

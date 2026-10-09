@@ -37,7 +37,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] POS con catálogo grande: búsqueda indexada, grilla acotada, ventas/variantes completas.
 - [x] POS con atajos F1–F11 (cliente, medio de pago, cupón, ticket en espera, cobrar, factura).
 - [x] Revisar y unificar productos duplicados (stock por Kardex, códigos como alternativos, archivo si hay historia).
-- [ ] POS completo para mostrador: caja/turno, devoluciones, impresión y controlador fiscal.
+- [x] Vender por kilo, metro, litro o m² (stock y Kardex con tres decimales, sólo para productos por medida).
+- [ ] POS completo para mostrador: permisos por acción con autorización del encargado, presentación/caja.
 
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.
