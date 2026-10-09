@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -222,7 +223,7 @@ export default function ForecastView() {
     setLoading(true);
 
     const [prodRes, saleRes, cfgRes] = await Promise.all([
-      supabase.from("products").select("id,name,stock,price:sale_price_ars,category,min_stock:low_stock_threshold").eq("org_id", orgId).eq("is_active", true).order("name"),
+      fetchOrgProducts(orgId, "id,name,stock,price:sale_price_ars,category,min_stock:low_stock_threshold", (q) => q.eq("is_active", true)),
       supabase.from("sale_items")
         .select("product_id, quantity, sales!inner(org_id, created_at)")
         .eq("sales.org_id", orgId)

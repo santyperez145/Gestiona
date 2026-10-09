@@ -19,6 +19,7 @@ import { receiveStoreReturnRequest, runStorePaymentRefund } from "@/lib/paymentR
 import { useModulePermissions } from "@/lib/usePermissions";
 
 import { plural } from "@/lib/plural";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 /* ─────────────────────────── types ─────────────────────────── */
 interface ReturnReason { id: string; name: string; requires_photo: boolean; is_active: boolean; }
 interface ReturnRequest {
@@ -99,7 +100,7 @@ export default function ReturnsPortalTab() {
     const [rr, reaR, pr, fr] = await Promise.allSettled([
       supabase.from("return_requests").select("*, return_reasons(name), customers(name)").eq("org_id", orgId).order("created_at", { ascending: false }),
       supabase.from("return_reasons").select("*").eq("org_id", orgId).order("sort_order"),
-      supabase.from("products").select("id,name").eq("org_id", orgId).order("name"),
+      fetchOrgProducts(orgId, "id,name"),
       supabase.from("payment_refunds").select("return_request_id,status,failure_reason").eq("org_id", orgId),
     ]);
     if (rr.status === "fulfilled" && rr.value.error) toast.error(`No se pudieron cargar las solicitudes: ${rr.value.error.message}`);

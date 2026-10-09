@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 import { useUserRole } from "@/lib/useUserRole";
 import { toast } from "sonner";
 import {
@@ -90,8 +91,7 @@ export default function ProductBundlesPage() {
           product_bundle_items(id, bundle_id, product_id, quantity,
             products:product_id(name, sale_price_ars, stock, image_url))
         `).eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("products").select("id, name, sale_price_ars, stock, image_url, category")
-          .eq("org_id", activeOrg.id).order("name"),
+        fetchOrgProducts(activeOrg.id, "id, name, sale_price_ars, stock, image_url, category"),
       ]);
       if (bundlesRes.error) throw bundlesRes.error;
       if (productsRes.error) throw productsRes.error;

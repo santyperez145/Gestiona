@@ -2,7 +2,7 @@
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS } from "@/lib/supabaseStore";
+import { formatARS, fetchOrgProducts } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -154,11 +154,7 @@ export default function KardexPage() {
     setLoading(true);
     try {
       // Products list
-      const { data: prods } = await supabase
-        .from("products")
-        .select("id, name, stock")
-        .eq("org_id", activeOrg.id)
-        .order("name");
+      const { data: prods } = await fetchOrgProducts(activeOrg.id, "id, name, stock");
       setProducts(prods ?? []);
 
       // Summary view

@@ -788,6 +788,45 @@ export async function getVariantsByUserDB(userId: string) {
   return variants.sort((a, b) => collator.compare(a.variant_name ?? '', b.variant_name ?? ''));
 }
 
+/**
+ * Productos de una organización, completos (sin el tope de 1.000 de
+ * PostgREST) y ordenados por nombre. `columns` debe incluir `id`; `filtrar`
+ * agrega condiciones (activo, con stock, etc.) a cada página.
+ */
+export async function selectOrgProducts<T extends { id: string; name?: string | null }>(
+  orgId: string,
+  columns: string,
+  filtrar?: (query: any) => any,
+): Promise<T[]> {
+  const rows = await selectAllRows<T>(({ desde, hasta, despues, limite }) => {
+    let query: any = supabase.from('products').select(columns).eq('org_id', orgId);
+    if (filtrar) query = filtrar(query);
+    query = query.gte('id', desde).order('id').limit(limite);
+    if (hasta) query = query.lt('id', hasta);
+    if (despues) query = query.gt('id', despues);
+    return query as PromiseLike<{ data: T[] | null; error: unknown }>;
+  });
+  const collator = new Intl.Collator('es');
+  return rows.sort((a, b) => collator.compare(a.name ?? '', b.name ?? ''));
+}
+
+/**
+ * Igual que `selectOrgProducts` pero con la forma `{ data, error }` de una
+ * consulta Supabase, para reemplazar lecturas que se cortaban en 1.000 filas
+ * sin cambiar cómo las consume cada pantalla.
+ */
+export async function fetchOrgProducts<T extends { id: string; name?: string | null } = any>(
+  orgId: string,
+  columns: string,
+  filtrar?: (query: any) => any,
+): Promise<{ data: T[] | null; error: any }> {
+  try {
+    return { data: await selectOrgProducts<T>(orgId, columns, filtrar), error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+}
+
 /** Ventas desde una fecha, completas y de una sola organización. */
 export async function getSalesSinceDB<T extends { id: string }>(orgId: string, columns: string, since: string): Promise<T[]> {
   return selectAllRows<T>(({ desde, hasta, despues, limite }) => {

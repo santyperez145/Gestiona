@@ -29,6 +29,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,8 @@ export function useOrgCategories(orgId: string | null | undefined) {
     setSnapshot(null);
     if (!orgId) return;
     try {
-      const { data, error } = await supabase.from("products").select("category").eq("org_id", orgId);
+      // Completo: con más de 1.000 productos un rubro podía faltar en la lista.
+      const { data, error } = await fetchOrgProducts(orgId, "id, category");
       if (activeScope.current !== orgId || generation.current !== request) return;
       if (error) console.error('[OrgCategories] product categories unavailable', { orgId, code: error.code });
       setSnapshot({ scope: orgId, error: Boolean(error), slugs: error ? []

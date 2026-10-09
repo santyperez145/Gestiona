@@ -9,6 +9,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { csvCell } from "@/lib/csv";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 import { clearStockCountDraft, loadStockCountDraft, saveStockCountDraft } from "@/lib/stockCountDraft";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,11 +149,8 @@ export default function StockCountTab() {
     if (!activeOrg) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("id,name,category,stock,cost_usd,image_url,barcode,sku")
-        .eq("org_id", activeOrg.id)
-        .order("name");
+      // El conteo físico tiene que listar todo el catálogo, no los primeros 1.000.
+      const { data, error } = await fetchOrgProducts(activeOrg.id, "id,name,category,stock,cost_usd,image_url,barcode,sku");
       if (error) throw error;
       const fresh: CountRow[] = ((data || []) as Product[]).map(p => ({ product: p, counted: "" }));
       // Retomar el borrador local si hay uno: lo contado sobrevive a

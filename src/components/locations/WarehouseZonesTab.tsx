@@ -19,6 +19,7 @@ import { Warehouse, Plus, Star, Package, ChevronRight, ChevronDown, MapPin, Load
 import KPICard from "@/components/shared/KPICard";
 
 import { plural } from "@/lib/plural";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 interface WarehouseData {
   id: string;
   name: string;
@@ -113,7 +114,7 @@ export default function WarehouseZonesTab() {
       supabase.from("warehouse_zones").select("*").eq("org_id", orgId).eq("active", true).order("name"),
       supabase.from("warehouse_bins").select("*").eq("org_id", orgId).eq("active", true).order("code"),
       supabase.from("bin_stock").select("*, products(name, sku)").eq("org_id", orgId).order("quantity", { ascending: false }),
-      supabase.from("products").select("id, name").eq("org_id", orgId).order("name"),
+      fetchOrgProducts(orgId, "id, name"),
     ]);
     if (whRes.status === "fulfilled" && whRes.value.data) setWarehouses(whRes.value.data as WarehouseData[]);
     if (zRes.status === "fulfilled" && zRes.value.data) setZones(zRes.value.data as Zone[]);

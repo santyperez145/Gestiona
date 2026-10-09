@@ -2,7 +2,7 @@
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS } from "@/lib/supabaseStore";
+import { formatARS, fetchOrgProducts } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,7 +88,7 @@ export default function LoyaltyPointsTab() {
       const [{ data: pts }, { data: sett }, { data: prods }] = await Promise.all([
         supabase.from("loyalty_points").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         supabase.from("settings").select("loyalty_enabled,loyalty_points_per_1000,loyalty_points_value_ars,exchange_rate").eq("org_id", activeOrg.id).single(),
-        supabase.from("products").select("id,name,sale_price_ars,total_cost_usd,cost_usd,stock,image_url").eq("org_id", activeOrg.id).gt("stock", 0).order("name"),
+        fetchOrgProducts(activeOrg.id, "id,name,sale_price_ars,total_cost_usd,cost_usd,stock,image_url", (q) => q.gt("stock", 0)),
       ]);
       setEntries((pts || []) as LoyaltyEntry[]);
       setProducts(prods || []);

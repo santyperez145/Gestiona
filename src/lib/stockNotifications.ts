@@ -1,6 +1,7 @@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveOrgId } from '@/lib/orgContext';
+import { fetchOrgProducts } from '@/lib/supabaseStore';
 
 async function getThreshold(orgId: string): Promise<number> {
   const { data } = await supabase.from('settings').select('low_stock_threshold').eq('org_id', orgId).maybeSingle();
@@ -31,12 +32,7 @@ export async function checkAllLowStock(userId: string): Promise<Array<{ name: st
   const orgId = getActiveOrgId();
   if (!orgId) return [];
   const threshold = await getThreshold(orgId);
-  const { data: products } = await supabase
-    .from('products')
-    .select('name, stock')
-    .eq('org_id', orgId)
-    .lte('stock', threshold)
-    .order('stock', { ascending: true });
+  const { data: products } = await fetchOrgProducts(orgId, 'id, name, stock', (q) => q.lte('stock', threshold));
 
-  return products || [];
+  return (products || []).sort((a: { stock: number }, b: { stock: number }) => a.stock - b.stock);
 }

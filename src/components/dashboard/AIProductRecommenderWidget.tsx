@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { Brain, ArrowRight } from "lucide-react";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Product {
@@ -34,7 +35,7 @@ export default function AIProductRecommenderWidget() {
     if (!activeOrg?.id) return;
     setLoading(true);
     Promise.all([
-      supabase.from("products").select("id,name,sale_price_ars").eq("org_id", activeOrg.id),
+      fetchOrgProducts(activeOrg.id, "id,name,sale_price_ars"),
       supabase.from("product_cooccurrences").select("product_a_id,product_b_id,cooccurrence_count")
         .eq("org_id", activeOrg.id).order("cooccurrence_count", { ascending: false }).limit(5),
     ]).then(([prodRes, coRes]) => {

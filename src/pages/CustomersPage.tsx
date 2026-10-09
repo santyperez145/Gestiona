@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import {
   getSalesDB, getDebtsDB, getSettingsDB, formatARS,
   getCustomersDB, createCustomerDB, updateCustomerDB, deleteCustomerDB,
-  getCRMSegmentsDB, saveCRMSegmentsDB, type SavedCRMSegment,
+  getCRMSegmentsDB, saveCRMSegmentsDB, type SavedCRMSegment, fetchOrgProducts,
 } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeName, belongsToCustomer, rowsOfCustomer, type CustomerRef } from "@/lib/customerMatch";
@@ -1592,7 +1592,7 @@ export default function CustomersPage() {
       getSettingsDB(user.id),
       getCustomersDB(user.id).catch(() => [] as CustomerProfile[]),
       getCRMSegmentsDB(user.id).catch(() => [] as SavedCRMSegment[]),
-      supabase.from("products").select("id, name, brand, image_url, sale_price_ars, discount_price_ars, category, stock").eq("org_id", orgId),
+      fetchOrgProducts(orgId, "id, name, brand, image_url, sale_price_ars, discount_price_ars, category, stock"),
       supabase.from("product_perfume_details").select("*").eq("org_id", orgId),
     ]);
     setSales(s);

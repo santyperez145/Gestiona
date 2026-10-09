@@ -19,7 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
-import { formatARS, formatUSD } from "@/lib/supabaseStore";
+import { formatARS, formatUSD, fetchOrgProducts } from "@/lib/supabaseStore";
 import { toast } from "sonner";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
@@ -71,7 +71,7 @@ export default function SupplierPOModal({ open, onClose, supplierId }: Props) {
     if (!open || !activeOrg) return;
     Promise.all([
       supabase.from("suppliers").select("id, name, email, phone, contact").eq("org_id", activeOrg.id).order("name"),
-      supabase.from("products").select("id, name, stock, low_stock_threshold, cost_usd, supplier_id").eq("org_id", activeOrg.id),
+      fetchOrgProducts(activeOrg.id, "id, name, stock, low_stock_threshold, cost_usd, supplier_id"),
       supabase.from("settings").select("exchange_rate").eq("org_id", activeOrg.id).maybeSingle(),
     ]).then(([sRes, pRes, settRes]) => {
       setSuppliers(sRes.data ?? []);

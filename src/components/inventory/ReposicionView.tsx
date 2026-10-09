@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS } from "@/lib/supabaseStore";
+import { formatARS, fetchOrgProducts } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -147,7 +147,7 @@ export default function ReposicionView() {
 
       const hoy = new Date().toISOString().slice(0, 10);
       const [{ data: products }, abcRes, { data: sales7 }, { data: suppData }] = await Promise.all([
-        supabase.from("products").select("id,name,category,stock,cost_usd,supplier_id").eq("org_id", activeOrg.id).order("name"),
+        fetchOrgProducts(activeOrg.id, "id,name,category,stock,cost_usd,supplier_id"),
         supabase.from("inventory_abc")
           .select("product_id,total_units,days_on_hand,safety_stock,reorder_point,eoq")
           .eq("org_id", activeOrg.id).eq("analysis_date", hoy).eq("period_days", 30),

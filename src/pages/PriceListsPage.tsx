@@ -46,6 +46,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -415,7 +416,7 @@ export default function PriceListsPage() {
     setLoading(true);
     const [listRes, prodRes] = await Promise.all([
       supabase.from("price_lists").select("*").eq("org_id", orgId).order("is_default", { ascending: false }).order("name"),
-      supabase.from("products").select("id,name,price:sale_price_ars,category").eq("org_id", orgId).order("name"),
+      fetchOrgProducts(orgId, "id,name,price:sale_price_ars,category"),
     ]);
     setLists((listRes.data ?? []) as PriceList[]);
     setProducts((prodRes.data ?? []) as Product[]);

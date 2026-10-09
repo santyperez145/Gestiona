@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import KPICard from "@/components/shared/KPICard";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 
 interface SocialPost {
   id: string;
@@ -154,7 +155,7 @@ export default function PlannerView() {
       supabase.from("social_posts").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
       supabase.from("hashtag_sets").select("*").eq("org_id", orgId).order("name"),
       supabase.from("content_ideas").select("*").eq("org_id", orgId).order("priority", { ascending: false }),
-      supabase.from("products").select("id, name, brand, category").eq("org_id", orgId).order("name"),
+      fetchOrgProducts(orgId, "id, name, brand, category"),
     ]);
     setPosts((postsRes.data || []) as SocialPost[]);
     setHashtagSets((htRes.data || []) as HashtagSet[]);

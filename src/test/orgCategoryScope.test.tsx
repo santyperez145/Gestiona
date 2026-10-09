@@ -12,7 +12,7 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: (table: str
   const request = { table, org: undefined as string | undefined, resolve };
   state.requests.push(request);
   const query = {
-    select: () => query, order: () => query,
+    select: () => query, order: () => query, limit: () => query, gte: () => query, lt: () => query, gt: () => query,
     eq: (column: string, value: string) => { if (column === 'org_id') request.org = value; return query; },
     then: promise.then.bind(promise),
   };

@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import ImageUpload from "@/components/shared/ImageUpload";
 import { plural } from "@/lib/plural";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 import {
   slugDeNombre, validarNombre, validarPadre, arbolDeCategorias,
   type CategoriaTienda,
@@ -55,7 +56,7 @@ export default function CategoriesEditor() {
         .select("id, name, slug, parent_id, image_url, description, sort_order, is_active")
         .eq("org_id", orgId)
         .order("sort_order").order("name"),
-      supabase.from("products").select("category").eq("org_id", orgId).eq("is_active", true),
+      fetchOrgProducts(orgId, "id,category", (q) => q.eq("is_active", true)),
     ]);
     setLoading(false);
     // Sin `?? []`: vacío por permisos y "todavía no creó ninguna" se ven igual

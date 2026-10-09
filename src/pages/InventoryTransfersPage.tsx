@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type TransferStatus = 'draft' | 'pending' | 'in_transit' | 'completed' | 'cancelled';
@@ -105,7 +106,7 @@ export default function InventoryTransfersPage() {
         supabase.from("inventory_transfers").select(`
           *, inventory_transfer_items(*)
         `).eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("products").select("id, name, stock, sale_price_ars").eq("org_id", activeOrg.id).order("name"),
+        fetchOrgProducts(activeOrg.id, "id, name, stock, sale_price_ars"),
         supabase.from("locations").select("name").eq("org_id", activeOrg.id).order("name"),
       ]);
       if (transfersRes.data) {

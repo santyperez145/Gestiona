@@ -61,6 +61,7 @@ import PurchaseRequestsTab from "@/components/purchases/PurchaseRequestsTab";
 import { ScanLine } from "lucide-react";
 
 import { plural } from "@/lib/plural";
+import { fetchOrgProducts } from "@/lib/supabaseStore";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PurchaseOrder {
@@ -819,7 +820,7 @@ export default function PurchaseOrdersPage() {
       // La tabla real es `suppliers` (no `proveedores`), y en products el
       // costo/precio son cost_usd / sale_price_ars.
       supabase.from("suppliers").select("id,name,email").eq("org_id", orgId).order("name"),
-      supabase.from("products").select("id,name,sku,cost_usd,sale_price_ars").eq("org_id", orgId).order("name"),
+      fetchOrgProducts(orgId, "id,name,sku,cost_usd,sale_price_ars"),
     ]);
     if (request !== loadRequest.current || activeOrgIdRef.current !== orgId) return;
     if (ordRes.error) {

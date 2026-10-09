@@ -164,34 +164,24 @@ export default function CurrencyHistoryTab() {
       toast.error("Nombre y cotizaciones son requeridos"); return;
     }
     const pctChange = ((after - before) / before) * 100;
-    // Calculate multiplier: if rate went up 20%, increase prices by 20% (or custom margin)
-    const multiplier = bulkForm.margin_type === "fixed_pct"
-      ? 1 + Number(bulkForm.margin_value) / 100
-      : after / before;
-
-    // Update products
-    let query = supabase.from("products").select("id, sale_price_ars").eq("org_id", orgId);
-    if (bulkForm.apply_to === "category" && bulkForm.category) {
-      query = query.eq("category", bulkForm.category);
+    // Una sola transacción en la base: todo el catálogo (sin tope de 1.000),
+    // con permiso validado y registro exacto. Todo o nada.
+    const { data, error } = await supabase.rpc("actualizar_precios_por_cotizacion" as never, {
+      p_org: orgId,
+      p_nombre: bulkForm.name.trim(),
+      p_rate_before: before,
+      p_rate_after: after,
+      p_margin_type: bulkForm.margin_type,
+      p_margin_value: Number(bulkForm.margin_value) || 0,
+      p_category: bulkForm.apply_to === "category" && bulkForm.category ? bulkForm.category : null,
+    } as never) as { data: { updated?: number } | null; error: { message: string } | null };
+    if (error) {
+      console.error("[currency] actualizar_precios_por_cotizacion", error);
+      toast.error(error.message.replace(/^.*?:\s*/, "") || "No se pudo actualizar los precios");
+      return;
     }
-    const { data: prods } = await query;
-    if (!prods || prods.length === 0) { toast.error("Sin productos para actualizar"); return; }
-
-    // Batch update prices
-    const updates = prods.map(p => ({ id: p.id, sale_price_ars: Math.ceil((Number(p.sale_price_ars) || 0) * multiplier) }));
-    let count = 0;
-    for (const u of updates) {
-      const { error } = await supabase.from("products").update({ sale_price_ars: u.sale_price_ars }).eq("id", u.id);
-      if (!error) count++;
-    }
-
-    // Log the update
-    await supabase.from("currency_price_updates").insert({
-      org_id: orgId, name: bulkForm.name.trim(),
-      rate_before: before, rate_after: after,
-      products_updated: count, margin_type: bulkForm.margin_type,
-      margin_value: Number(bulkForm.margin_value),
-    });
+    const count = Number(data?.updated ?? 0);
+    if (count === 0) { toast.error("Sin productos para actualizar"); return; }
 
     toast.success(`Actualización aplicada: ${plural(count, "producto")} actualizados (+${pctChange.toFixed(1)}%)`);
     setBulkOpen(false);

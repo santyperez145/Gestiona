@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import { fetchOrgProducts } from '@/lib/supabaseStore';
 
 export const FINANCE_DOCUMENT_BUCKET = 'finance-documents';
 export const FINANCE_DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
@@ -587,7 +588,7 @@ export async function confirmFinanceDocumentMatching(
 export async function getFinanceMatchingOptions(orgId: string): Promise<FinanceMatchingOptions> {
   const [supplierResult, productResult] = await Promise.all([
     supabase.from('suppliers').select('id, name').eq('org_id', orgId).eq('active', true).order('name'),
-    supabase.from('products').select('id, name, brand, sku, supplier_id').eq('org_id', orgId).eq('is_active', true).order('name'),
+    fetchOrgProducts(orgId, "id, name, brand, sku, supplier_id", (q) => q.eq('is_active', true)),
   ]);
   if (supplierResult.error) throw supplierResult.error;
   if (productResult.error) throw productResult.error;

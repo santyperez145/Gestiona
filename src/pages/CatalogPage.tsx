@@ -4,7 +4,7 @@ import { useCuotasDelComercio, textoDeCuotas } from "@/lib/cuotasDelComercio";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { getActiveOrgId } from "@/lib/orgContext";
-import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
+import { formatARS, getCategoryLabel, getGenderLabel, fetchOrgProducts } from "@/lib/supabaseStore";
 import { loadActivePromotions, loadPublicPromotions, bestPromoPrice, type Promotion } from "@/lib/promotions";
 import { FAMILIAS_OLFATIVAS, NOTAS_COMUNES, OCASIONES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
@@ -82,7 +82,11 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     const orgId = getActiveOrgId();
     if (!orgId) return;
     const [pRes, sRes, storeRes] = await Promise.all([
-      supabase.from('products').select('*').eq('org_id', orgId).gt('stock', 0).order('category').order('name'),
+      // Completo (sin tope de 1.000) y agrupado por categoría como antes.
+      fetchOrgProducts(orgId, "*", (q) => q.gt('stock', 0)).then(result => ({
+        ...result,
+        data: result.data?.sort((a: any, b: any) => String(a.category ?? '').localeCompare(String(b.category ?? ''), 'es')) ?? null,
+      })),
       supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle(),
       supabase.from('ecommerce_stores').select('slug, is_active').eq('org_id', orgId)
         .order('is_active', { ascending: false }).order('is_primary', { ascending: false })
