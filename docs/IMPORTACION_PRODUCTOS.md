@@ -208,3 +208,14 @@ las filas de esa sesión, paginadas. Medir preparados/completados, tiempo total,
 filas inválidas, abandonos, causa de fallos e intervención de soporte. El listado
 compartido de productos usa páginas por ID para no truncar catálogos grandes;
 no promete que descargar todo el catálogo sea una búsqueda instantánea.
+
+## Duplicados
+
+Productos → Más acciones → Revisar duplicados agrupa productos activos con el
+mismo código (SKU, código de barras o alternativo) o el mismo nombre y marca
+normalizados. El comercio elige cuál conservar. `unificar_productos`
+(`20261009000400`, verificada con SQL reversible) traslada el stock por Kardex
+por sucursal, agrega los códigos del duplicado como alternativos, y elimina el
+duplicado sin historia o lo archiva (inactivo, sin códigos) si tiene ventas,
+compras, devoluciones, Kardex o documentos. Rechaza duplicados con variantes y
+el traslado a un producto que no maneja stock. El POS no vende archivados.

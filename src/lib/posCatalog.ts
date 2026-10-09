@@ -18,6 +18,7 @@ export type PosStockFlags = {
   stock?: number | null;
   allow_negative_stock?: boolean | null;
   maneja_stock?: boolean | null;
+  is_active?: boolean | null;
 };
 
 export type PosCatalogEmptyKind = 'loading' | 'none' | 'no-stock' | 'filtered';
@@ -33,6 +34,8 @@ export const POS_FIRST_SALE_BANNER = {
 };
 
 export function posProductIsSellable(p: PosStockFlags): boolean {
+  // Un producto archivado (p. ej. un duplicado unificado) no se vende.
+  if (p.is_active === false) return false;
   if (p.maneja_stock === false) return true;
   return Number(p.stock) > 0 || Boolean(p.allow_negative_stock);
 }

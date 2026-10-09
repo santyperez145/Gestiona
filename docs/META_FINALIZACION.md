@@ -34,6 +34,9 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [ ] Estudio funcional de test.scadi.com.ar y paridad de funciones útiles.
 - [x] Clientes con CUIT/DNI, condición IVA, razón social y domicilio fiscal; selector en POS y factura manual; factura A/B/C según cliente.
 - [x] POS con catálogo grande: búsqueda indexada, grilla acotada, ventas/variantes completas.
+- [x] POS con atajos F1–F11 (cliente, medio de pago, cupón, ticket en espera, cobrar, factura).
+- [x] Revisar y unificar productos duplicados (stock por Kardex, códigos como alternativos, archivo si hay historia).
+- [ ] POS completo para mostrador: caja/turno, devoluciones, impresión y controlador fiscal.
 
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.

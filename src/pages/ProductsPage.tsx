@@ -3,6 +3,8 @@ import Fuse from "fuse.js";
 import { useCallback } from "react";
 import { paginarPorMarca, PRODUCTOS_POR_PAGINA } from "@/lib/catalogPaging";
 import { selectAllRows } from "@/lib/selectAllRows";
+import ProductDuplicatesDialog from "@/components/products/ProductDuplicatesDialog";
+import { detectarDuplicados } from "@/lib/productDuplicates";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull, faltaCotizacion } from "@/lib/exchangeRate";
@@ -383,6 +385,7 @@ export default function ProductsPage() {
   const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product
   const [lastSaleDate, setLastSaleDate] = useState<Record<string, string>>({}); // last sale date per product id
   const [supplierNames, setSupplierNames] = useState<Record<string, string>>({});
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [productFormDirty, setProductFormDirty] = useState(false);
   const [discardProductChangesOpen, setDiscardProductChangesOpen] = useState(false);
@@ -895,6 +898,9 @@ export default function ProductsPage() {
     [filteredSorted, catalogPage.pagina],
   );
 
+  // Conteo para el menú; el diálogo recalcula al abrirse sobre el catálogo completo.
+  const duplicateGroupCount = useMemo(() => (canDelete ? detectarDuplicados(products).length : 0), [products, canDelete]);
+
   const totalStock = filtered.reduce((s, p) => s + p.stock, 0);
   const totalValue = filtered.reduce((s, p) => s + (Number(p.total_cost_usd) * p.stock), 0);
 
@@ -1086,6 +1092,11 @@ export default function ProductsPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
+                {canDelete && (
+                  <DropdownMenuItem onSelect={() => setDuplicatesOpen(true)}>
+                    <Copy className="mr-2 h-4 w-4" />Revisar duplicados{duplicateGroupCount > 0 ? ` (${duplicateGroupCount})` : ""}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuLabel>Exportar y etiquetar</DropdownMenuLabel>
                 <DropdownMenuItem onSelect={() => void exportProductsXLSX(filtered, settings)}>
                   <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar Excel
@@ -1822,6 +1833,14 @@ export default function ProductsPage() {
 
       </>
       )}
+
+      <ProductDuplicatesDialog
+        open={duplicatesOpen}
+        orgId={activeOrg?.id}
+        products={products}
+        onClose={() => setDuplicatesOpen(false)}
+        onMerged={() => void reload()}
+      />
 
       {/* Profit Calculator Modal */}
       <ProfitCalculatorModal
