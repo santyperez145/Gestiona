@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Estado:** canónico. **Revisión:** 2026-10-08. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-09. **Owner:** Producto / CTO.
 Decisiones activas y próximos cierres, no un diario: Git conserva la historia y [el índice](docs/INDICE.md) los contratos.
 
 ## Objetivo
@@ -84,8 +84,8 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; búsqueda unificada exacta/aproximada, filtros/teclado y links nombrados. PR19 `6644f613` READY, `lataffa` trae 27 productos; Enter repetido conserva texto. Console 2026-10-08 confirma ambas homes, sitemap Correcto y 7 clics/24 impresiones (02/09–05/10); www es alternativa canónica, no otra ficha. [UI](docs/INTERFAZ.md). | Cobertura restante, pago/fulfillment y conversión de campo; [evidencia SEO fechada](docs/SEO_INDEXACION.md). |
 | Migración | Worker Excel/CSV hasta 50.000 filas; detección y columna→destino visible/editable con ejemplos, omisión, conflictos, moneda y confirmación, incluyendo Shopify/Tiendanube sin perder variantes; sesión reanudable, staging/Kardex compartidos. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
 | Planes | Inicial gratuito persistente, Commerce ilimitado en planes estándar, ahorro anual real y cupo IA; catálogo/Platform/Mi plan conectados. | Cerrar las brechas por capacidad del [benchmark vigente](docs/PLANES.md), sin vender servicios ni paridad no certificados. |
-| Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
-| Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo persistido. | ND asociada a factura y saldo/IVA; ARCA A/B/C/NC/ND, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
+| Business | POS/offline, Kardex, compras y Graph; ficha según tipo sin ml/género universal, retry sin pérdida y Ferretería declarativa. Catálogo con permisos por acción/tenant activo; impresiones con texto escapado y QR local sin proveedor. Roles reales/replay/rollback verificados en Preview; [perfil](docs/BUSINESS_PROFILER.md). | Reparar presupuesto → venta, completar maestros fiscales y exportación por rubro/moneda; segunda organización, inventario fraccionado e impresión física sin corrección SQL. |
+| Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo persistido; el cierre de caja es interno, no X/Z. | Maestros fiscales únicos, ND, paquete contador/Portal IVA y adapter de controlador homologado; certificación ARCA/papel/recepción reales; [contrato](docs/FACTURACION.md). |
 | Finance | Inbox, aprobación versionada, comprometido/disponible, reembolsos/anticipos, dimensiones, conciliación CSV y export del ledger. | Documento y cierre reales; feeds de tarjetas externas y controles; [contrato](docs/FINANCE.md). |
 | Profit | Hechos por producto/SKU/canal/tienda; capital FIFO registrado en Kardex, capas/rotación, export y cierres org/día. Agregados completos, permisos y detalle paginado. | Adquisiciones/retornos con costo completo, conciliación física, primera operación explicable y decisión adoptada; Ads después. |
 | Growth | Clientes, pipeline, seguimiento, segmentos/RFM y campañas/automatizaciones existentes. | CRM cohesivo; luego inbox, builders y marketing con consentimiento. |
@@ -278,16 +278,16 @@ cierre idempotente/fiscal; los reportes asíncronos no prueban detección inmedi
    por merchant. FIFO analítico y cierres ya usan el Core; no política contable
    ni costo histórico reconstruido desde precios actuales. `/profit` es hoy alias
    de la vista Foundation; no anuncia la suite completa ni Ads certificados.
-6. Fiscal/ARCA: simplificar certificado, CUIT, representación y punto de venta
-   Web Services con guía, padrón autorizado y diagnóstico; contrastar el manual oficial WSFE vigente, no versiones supuestas. Completar
-   factura/ticket y nota de crédito desde POS y ventas, impresión y recepción,
-   sin anunciar autorización productiva hasta obtener y conciliar el CAE real.
-   La factura manual ya acepta IVA por renglón A/B, agrupa alicuotas en pantalla
-   y recalcula neto/IVA/total server-side; C fuerza cero y el borrador no fiscal
-   no inventa impuestos. La prueba ARCA queda ligada a la versión exacta del
-   CUIT/ambiente/punto/certificado y no acepta un resultado concurrente viejo.
-   Solicitud y aceptación de terceros ya tienen estados/cola separados; falta
-   certificación externa, una aceptación real y operación física.
+6. Gestión fiscal/contable: extender `customers`/`suppliers` con identidad fiscal
+   validada y reutilizarla en presupuestos, POS, compras y facturas con snapshots.
+   P1: conversión de presupuesto hoy pierde renglones/IDs y falla; reemplazarla
+   por una RPC atómica/idempotente, separando aceptación, venta, pago y factura.
+   Después ND asociada y saldo/IVA; archivo contador de compras/ventas/alícuotas
+   para Portal IVA/IVA Simple, validación/conciliación y acceso multiorg acotado.
+   X/Z requiere adapter + controlador homologado identificado, nunca renombrar
+   un cierre interno. Registro manual de impuestos no equivale a presentación.
+   Contrastar WSFE vigente y certificar CAE/NC/ND, acuse, papel y entrega reales;
+   [contrato fiscal y gates](docs/FACTURACION.md), sin otro ledger ni Finance duplicado.
 7. Canales nativos: compilar Windows en CI, habilitar redirect Supabase y
    certificar auth en instalador; después Android real. Navegación externa,
    impresión, descargas, cámara y scanner se migran por capacidad mínima antes

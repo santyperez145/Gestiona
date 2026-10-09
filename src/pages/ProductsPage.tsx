@@ -87,6 +87,7 @@ import {
 
 import { plural } from "@/lib/plural";
 import { daysSinceKnownDate } from "@/lib/dateFacts";
+import { escapePrintHtml } from "@/lib/saleReceipt";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
@@ -115,9 +116,9 @@ function exportPriceLabels(products: any[], businessName: string) {
     const originalPrice = Number(p.sale_price_ars);
     return `
       <div class="label">
-        <div class="biz">${businessName}</div>
-        <div class="name">${p.name.slice(0, 32)}${p.name.length > 32 ? '…' : ''}</div>
-        ${p.brand && p.brand !== p.name ? `<div class="brand">${p.brand}</div>` : ''}
+        <div class="biz">${escapePrintHtml(businessName)}</div>
+        <div class="name">${escapePrintHtml(p.name.slice(0, 32))}${p.name.length > 32 ? '…' : ''}</div>
+        ${p.brand && p.brand !== p.name ? `<div class="brand">${escapePrintHtml(p.brand)}</div>` : ''}
         ${hasDiscount ? `
           <div class="old-price">${fmtARS(originalPrice)}</div>
           <div class="price discount">${fmtARS(price)}</div>
@@ -125,10 +126,10 @@ function exportPriceLabels(products: any[], businessName: string) {
         ` : `
           <div class="price">${fmtARS(price)}</div>
         `}
-        ${p.sku || p.barcode ? `<div class="sku">${p.sku || p.barcode}</div>` : ''}
+        ${p.sku || p.barcode ? `<div class="sku">${escapePrintHtml(p.sku || p.barcode)}</div>` : ''}
       </div>`;
   }).join('');
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas de precio — ${businessName}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas de precio — ${escapePrintHtml(businessName)}</title>
 <style>
   @page { margin: 8mm; }
   body { font-family: Arial, sans-serif; margin: 0; background: #fff; }
@@ -152,35 +153,46 @@ function exportPriceLabels(products: any[], businessName: string) {
   }
   .sku { font-size: 6px; color: #bbb; font-family: monospace; margin-top: 1.5mm; }
 </style></head><body>
-<h2>${businessName} — Etiquetas de precio (${plural(items.length, "producto")})</h2>
+<h2>${escapePrintHtml(businessName)} — Etiquetas de precio (${plural(items.length, "producto")})</h2>
 <div class="grid">${rows}</div>
 </body></html>`;
   const w = window.open('', '_blank', 'width=900,height=700');
   if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
 }
 
-function exportQRLabels(products: any[], businessName: string) {
+async function exportQRLabels(products: any[], businessName: string) {
   const inStock = products.filter(p => p.stock > 0).slice(0, 60);
   if (!inStock.length) return;
-  const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
-  const rows = inStock.map(p => {
-    const price = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
-      ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
-    const qrData = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, price }));
-    return `
+  // Open synchronously from the click; awaiting generation first can block it.
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) {
+    toast.error('Permití las ventanas emergentes para imprimir las etiquetas QR.');
+    return;
+  }
+  try {
+    const QRCode = await import('qrcode');
+    const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+    const rows = (await Promise.all(inStock.map(async p => {
+      const price = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
+        ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+      // Catalog identifiers and prices never leave the browser to make a label.
+      const qrData = await QRCode.toDataURL(JSON.stringify({ id: p.id, name: p.name, price }), {
+        width: 160, margin: 1, errorCorrectionLevel: 'M',
+      });
+      return `
       <div class="label">
         <div class="qr-wrap">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${qrData}" alt="QR" width="80" height="80" />
+          <img src="${escapePrintHtml(qrData)}" alt="QR" width="80" height="80" />
         </div>
         <div class="info">
-          <div class="name">${p.name.slice(0, 28)}${p.name.length > 28 ? '…' : ''}</div>
-          ${p.brand ? `<div class="brand">${p.brand}</div>` : ''}
+          <div class="name">${escapePrintHtml(p.name.slice(0, 28))}${p.name.length > 28 ? '…' : ''}</div>
+          ${p.brand ? `<div class="brand">${escapePrintHtml(p.brand)}</div>` : ''}
           <div class="price">${fmtARS(price)}</div>
-          ${p.sku || p.barcode ? `<div class="sku">${p.sku || p.barcode}</div>` : ''}
+          ${p.sku || p.barcode ? `<div class="sku">${escapePrintHtml(p.sku || p.barcode)}</div>` : ''}
         </div>
       </div>`;
-  }).join('');
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas QR — ${businessName}</title>
+    }))).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas QR — ${escapePrintHtml(businessName)}</title>
 <style>
   @page { margin: 10mm; }
   body { font-family: Arial, sans-serif; margin: 0; background: #fff; }
@@ -194,18 +206,24 @@ function exportQRLabels(products: any[], businessName: string) {
   .price { font-size: 11px; font-weight: bold; color: #b8860b; margin-top: 2px; }
   .sku { font-size: 6px; color: #aaa; font-family: monospace; margin-top: 1px; }
 </style></head><body>
-<h2>${businessName} — Etiquetas QR (${plural(inStock.length, "producto")})</h2>
+<h2>${escapePrintHtml(businessName)} — Etiquetas QR (${plural(inStock.length, "producto")})</h2>
 <div class="grid">${rows}</div>
 </body></html>`;
-  const w = window.open('', '_blank', 'width=900,height=700');
-  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
+    if (w.closed) return;
+    w.document.write(html); w.document.close(); w.focus();
+    setTimeout(() => { if (!w.closed) w.print(); }, 800);
+  } catch (error: unknown) {
+    console.error('[Productos] no se pudieron generar las etiquetas QR', error);
+    if (!w.closed) w.close();
+    toast.error('No se pudieron generar las etiquetas QR. Reintentá; tus productos no se modificaron.');
+  }
 }
 
 function printAgingPDF(aged: { name: string; stock: number; daysSince: number; valueARS: number }[], businessName: string, exchangeRate: number) {
   const totalValue = aged.reduce((s, p) => s + p.valueARS, 0);
   const rows = aged.map(p => `
     <tr>
-      <td>${p.name}</td>
+      <td>${escapePrintHtml(p.name)}</td>
       <td style="text-align:center">${p.stock}</td>
       <td style="text-align:center">${p.daysSince >= 999 ? "Nunca" : p.daysSince + "d"}</td>
       <td style="text-align:right">U$S ${(p.valueARS / exchangeRate).toFixed(2)}</td>
@@ -217,7 +235,7 @@ function printAgingPDF(aged: { name: string; stock: number; daysSince: number; v
   <style>body{font-family:Arial,sans-serif;padding:20px;color:#111}h1{font-size:18px;margin-bottom:4px}p{font-size:12px;color:#555;margin-bottom:16px}
   table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f3f4f6;padding:8px;text-align:left;border-bottom:2px solid #e5e7eb}
   td{padding:6px 8px;border-bottom:1px solid #e5e7eb}tfoot td{font-weight:bold;border-top:2px solid #111}</style></head>
-  <body><h1>${businessName} — Inventario sin movimiento</h1>
+  <body><h1>${escapePrintHtml(businessName)} — Inventario sin movimiento</h1>
   <p>Generado el ${new Date().toLocaleDateString("es-AR")} · ${plural(aged.length, "producto")} · U$S ${(totalValue / exchangeRate).toFixed(0)} inmovilizado</p>
   <table><thead><tr><th>Producto</th><th>Stock</th><th>Sin venta</th><th>Costo estimado</th><th>Sugerencia</th></tr></thead>
   <tbody>${rows}</tbody>
@@ -238,10 +256,10 @@ function exportPriceListPDF(products: any[], businessName: string) {
   const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
   let rows = '';
   Object.entries(grouped).forEach(([cat, items]) => {
-    rows += `<tr class="cat-row"><td colspan="3">${cat}</td></tr>`;
+    rows += `<tr class="cat-row"><td colspan="3">${escapePrintHtml(cat)}</td></tr>`;
     items.forEach(p => {
       rows += `<tr>
-        <td>${p.name}${p.brand ? ` <span class="brand">${p.brand}</span>` : ''}${p.gender ? ` <span class="gender">${p.gender}</span>` : ''}</td>
+        <td>${escapePrintHtml(p.name)}${p.brand ? ` <span class="brand">${escapePrintHtml(p.brand)}</span>` : ''}${p.gender ? ` <span class="gender">${escapePrintHtml(p.gender)}</span>` : ''}</td>
         <td class="price">${formatARS(Number(p.sale_price_ars))}</td>
         <td class="price">${p.discount_price_ars ? formatARS(Number(p.discount_price_ars)) : '—'}</td>
       </tr>`;
@@ -263,7 +281,7 @@ function exportPriceListPDF(products: any[], businessName: string) {
   .footer{margin-top:16px;font-size:10px;color:#999;text-align:center}
   @media print{.no-print{display:none}}
 </style></head><body>
-<h1>${businessName}</h1>
+<h1>${escapePrintHtml(businessName)}</h1>
 <div class="sub">Lista de precios — ${date} · ${plural(inStock.length, "producto")} disponibles</div>
 <table>
   <thead><tr><th>Producto</th><th class="price">Precio</th><th class="price">Oferta</th></tr></thead>
@@ -1956,6 +1974,10 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(product?.custom_fields ?? {});
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
+  const [productTypesStatus, setProductTypesStatus] = useState<'loading' | 'ready' | 'error'>(orgId ? 'loading' : 'ready');
+  const [productTypesRetry, setProductTypesRetry] = useState(0);
+  const [attributesState, setAttributesState] = useState<{ key: string; status: 'loading' | 'ready' | 'error' }>({ key: '', status: 'loading' });
+  const [attributesRetry, setAttributesRetry] = useState(0);
   const [productTypeId, setProductTypeId] = useState<string>(product?.product_type_id || '');
   const [attributeDefinitions, setAttributeDefinitions] = useState<AttributeDefinition[]>([]);
   const [attributeValues, setAttributeValues] = useState<Record<string, unknown>>({});
@@ -2015,9 +2037,13 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
 
   useEffect(() => {
     if (!orgId) return;
+    let cancelled = false;
+    setProductTypesStatus('loading');
     listProductTypes(orgId)
       .then(types => {
+        if (cancelled) return;
         setProductTypes(types);
+        setProductTypesStatus('ready');
         if (product?.product_type_id && types.some(type => type.id === product.product_type_id)) {
           setProductTypeId(product.product_type_id);
           return;
@@ -2033,20 +2059,33 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           if (tipo) setManejaStock(tipo.maneja_stock !== false);
         }
       })
-      .catch((error: any) => toast.error(error?.message || 'No se pudieron cargar los tipos de producto'));
-  }, [orgId, product?.product_type_id]);
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.error('[Productos] no se pudieron cargar los tipos', error);
+        setProductTypesStatus('error');
+      });
+    return () => { cancelled = true; };
+  }, [orgId, product?.product_type_id, productTypesRetry]);
 
+  const attributesKey = `${orgId || ''}:${product?.id || 'new'}:${productTypeId}`;
+  const attributesReady = productTypesStatus === 'ready' && (!productTypeId || (attributesState.key === attributesKey && attributesState.status === 'ready'));
   useEffect(() => {
+    let cancelled = false;
     if (!orgId || !productTypeId) {
       setAttributeDefinitions([]);
       setAttributeValues({});
+      setAttributesState({ key: attributesKey, status: 'ready' });
       return;
     }
+    setAttributesState({ key: attributesKey, status: 'loading' });
+    setAttributeDefinitions([]);
+    setAttributeValues({});
     Promise.all([
       listAttributeDefinitions(orgId, productTypeId),
       product?.id ? listProductAttributeValues(orgId, product.id) : Promise.resolve([]),
     ])
       .then(([definitions, savedValues]) => {
+        if (cancelled) return;
         setAttributeDefinitions(definitions);
         const nextValues: Record<string, unknown> = {};
         (savedValues as any[]).forEach(value => {
@@ -2058,9 +2097,15 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             ?? '';
         });
         setAttributeValues(nextValues);
+        setAttributesState({ key: attributesKey, status: 'ready' });
       })
-      .catch((error: any) => toast.error(error?.message || 'No se pudieron cargar los atributos'));
-  }, [orgId, product?.id, productTypeId]);
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.error('[Productos] no se pudieron cargar los atributos del tipo', error);
+        setAttributesState({ key: attributesKey, status: 'error' });
+      });
+    return () => { cancelled = true; };
+  }, [orgId, product?.id, productTypeId, attributesKey, attributesRetry]);
 
   // Con dos depósitos, el stock de una variante no es un número global: hay
   // que ajustarlo desde Sucursales indicando el lugar físico. La base aplica la
@@ -2101,22 +2146,23 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   const { suggest: aiSuggest, loading: aiLoading, result: aiResult, query: aiQuery, error: aiSuggestionError, clear: aiClear } = useAIProductSuggest(orgId, aiEnabled);
   const [aiDismissed, setAiDismissed] = useState(false);
 
-  const productTypeSlug = productTypes.find(t => t.id === productTypeId)?.slug ?? null;
+  // An explicit type must never fall back to a legacy perfume category while loading.
+  const productTypeSlug = productTypeId ? productTypes.find(t => t.id === productTypeId)?.slug ?? '__unresolved' : null;
   const fichaPerfume = laFichaEsPerfume({ productTypeSlug, category });
   const fichaVaper = laFichaEsVaper({ productTypeSlug, category });
   const fichaTecnologia = laFichaEsTecnologia({ productTypeSlug, category });
   const isVaper = fichaVaper;
+  const muestraContenido = fichaPerfume || (fichaVaper && vaperSubtype !== 'desechable');
 
-  // Reset subtype and content_ml defaults when category/tipo change
+  // Cambiar la taxonomía dentro de una vertical no borra el volumen elegido.
   useEffect(() => {
     if (!product) {
       setVaperSubtype('');
-      if (fichaVaper || fichaTecnologia) setContentMl('');
+      setContentMl('');
       // Un producto nuevo no es un perfume de 100 ml. El contenido se elige
       // en la ficha de esa vertical; no se siembra en el resto del catálogo.
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, productTypeId]);
+  }, [product, fichaPerfume, fichaVaper]);
 
   // AI name suggestion — only for new products, after 3+ characters
   useEffect(() => {
@@ -2275,6 +2321,15 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (savingRef.current || !canSave) return;
+    if (!attributesReady) {
+      setSaveError('Esperá la carga de tipos y atributos, o reintentá si falló, antes de guardar.');
+      return;
+    }
+    // The persisted legacy volume is integer; never silently truncate a decimal.
+    if (muestraContenido && contentMl.trim() && (!Number.isInteger(Number(contentMl)) || Number(contentMl) <= 0)) {
+      setSaveError('El contenido debe ser un número entero de mililitros mayor que cero.');
+      return;
+    }
     const resolvedCost = enPesos ? costoPesos : cost;
     const draft = validateProductDraft({
       name,
@@ -2315,7 +2370,8 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         ? variants.reduce((s, v) => s + (v.stock || 0), 0)
         : parseInt(stock) || 0;
       const data = {
-        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category: category || null, gender: gender || 'unisex', description: description.trim() || null,
+        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category: category || null, description: description.trim() || null,
+        ...(fichaPerfume ? { gender: gender || 'unisex' } : {}),
         // ⚠️ La moneda va explícita: sin ella el resolver tiene que deducirla, y
         // deducir la moneda de un costo es deducir el margen.
         cost_usd: enPesos ? 0 : cost,
@@ -2329,17 +2385,14 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         // Se distingue el vacio del cero a proposito: `parseFloat('') || null`
         // convertiria un 0 legitimo en null y el exento pasaria a gravado.
         tax_rate: taxRate.trim() === '' ? null : Number(taxRate),
-        price_2x_ars: isVaper ? (parseFloat(price2xARS) || null) : null,
+        ...(isVaper ? { price_2x_ars: parseFloat(price2xARS) || null } : {}),
         profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
         image_url: imageUrl,
         image_urls: urls,
         featured,
         offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
         offer_stacks_payment: offerStacks,
-        content_ml: (() => {
-          const parsed = Number.parseInt(contentMl, 10);
-          return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-        })(),
+        ...(muestraContenido ? { content_ml: contentMl.trim() ? Number(contentMl) : null } : {}),
         // Campos que el form captura pero antes NO se persistían
         barcode: barcode.trim() || null,
         sku: sku.trim() || null,
@@ -2496,6 +2549,16 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-7 sm:py-7">
       {saveError && <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">{saveError}</p>}
+      {productTypesStatus === 'error' || (attributesState.key === attributesKey && attributesState.status === 'error') ? (
+        <div role="alert" className="space-y-2 rounded-md border border-destructive/30 p-3 text-sm">
+          <p>{productTypesStatus === 'error' ? 'No se pudieron cargar los tipos de producto.' : 'No se pudieron cargar los atributos del tipo.'}</p>
+          <p className="text-xs text-muted-foreground">Conservamos la ficha. No se puede guardar una edición incompleta ni borrar atributos por un error de carga.</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => {
+            if (productTypesStatus === 'error') setProductTypesRetry(value => value + 1);
+            else setAttributesRetry(value => value + 1);
+          }}>{productTypesStatus === 'error' ? 'Reintentar tipos' : 'Reintentar atributos'}</Button>
+        </div>
+      ) : !attributesReady ? <p role="status" className="text-sm text-muted-foreground">Cargando atributos del tipo…</p> : null}
       {creatingFirstProduct && (
         <div className="rounded-[10px] border border-primary/20 bg-primary/[0.05] p-3">
           <p className="text-sm font-semibold">Para cobrar hace falta esto</p>
@@ -2562,7 +2625,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             <Button type="button" variant="outline" size="sm" className="h-10 text-[11px]" disabled={imageItems.length >= 8} onClick={() => setImageSearchOpen(true)}>
               <Search className="mr-1.5 h-3.5 w-3.5" /> Buscar imagen
             </Button>
-            <span className="hidden text-[10px] text-muted-foreground/60 sm:inline">La primera es la principal · ordená con ◀ ▶</span>
+            <span className="hidden text-[10px] text-muted-foreground sm:inline">La primera es la principal · ordená con ◀ ▶</span>
           </div>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -2578,12 +2641,12 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
               {idx === 0 && (
                 <span className="absolute -top-1.5 -left-1.5 px-1.5 rounded bg-primary text-[9px] font-bold text-primary-foreground">PPAL</span>
               )}
-              <button type="button" onClick={() => removeImageAt(idx)} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center">
+              <button type="button" aria-label={`Quitar imagen ${idx + 1}`} onClick={() => removeImageAt(idx)} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center">
                 <X className="w-3 h-3" />
               </button>
               <div className="absolute bottom-0 inset-x-0 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition">
-                <button type="button" onClick={() => moveImage(idx, idx - 1)} className="text-[10px] bg-black/60 text-white rounded px-1">◀</button>
-                <button type="button" onClick={() => moveImage(idx, idx + 1)} className="text-[10px] bg-black/60 text-white rounded px-1">▶</button>
+                <button type="button" aria-label={`Mover imagen ${idx + 1} antes`} onClick={() => moveImage(idx, idx - 1)} className="text-[10px] bg-black/60 text-white rounded px-1">◀</button>
+                <button type="button" aria-label={`Mover imagen ${idx + 1} después`} onClick={() => moveImage(idx, idx + 1)} className="text-[10px] bg-black/60 text-white rounded px-1">▶</button>
               </div>
             </div>
           ))}
@@ -2595,7 +2658,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           )}
           <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
         </div>
-        <p className="text-[10px] text-muted-foreground/60 mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
       </div>
       <CatalogImagePicker open={imageSearchOpen} onOpenChange={setImageSearchOpen}
         orgId={orgId} productId={product?.id} name={name} brand={brand} onSelect={selectImageCandidate} />
@@ -2683,7 +2746,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         title="Escanear código de barras del producto"
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value.toUpperCase())} className="bg-muted border-border uppercase" /></div>
+        <div><label htmlFor="product-brand" className="text-sm text-muted-foreground">Marca</label><Input id="product-brand" value={brand} onChange={e => setBrand(e.target.value.toUpperCase())} className="bg-muted border-border uppercase" /></div>
         <div><label className="text-sm text-muted-foreground">Categoría</label>
           {/* Sale de `ecommerce_categories`, y deja crear una desde acá. Con las
               cuatro escritas a mano, el comercio podía crear "Ropa de verano"
@@ -2716,7 +2779,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             if (tipo) setManejaStock(tipo.maneja_stock !== false);
           }
         }}>
-          <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Sin tipo asignado" /></SelectTrigger>
+          <SelectTrigger id="product-type" aria-label="Tipo de producto" disabled={productTypesStatus !== 'ready'} className="bg-background border-border"><SelectValue placeholder="Sin tipo asignado" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none">Sin tipo asignado</SelectItem>
             {productTypes.map(type => <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>)}
@@ -2793,7 +2856,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             <div>
               <p className="text-[10px] text-muted-foreground mb-1.5">Capacidad del cartucho</p>
               <div className="flex flex-wrap gap-1.5">
-                {['1.8', '2', '2.5', '3', '5', '8', '10'].map(ml => (
+                {['2', '3', '5', '8', '10'].map(ml => (
                   <button key={ml} type="button"
                     className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
                     onClick={() => { markDirty(); setContentMl(ml); }}
@@ -2982,11 +3045,11 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><label className="text-sm text-muted-foreground">Género</label>
-          <Select value={gender} onValueChange={value => { markDirty(); setGender(value); }}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+        {fichaPerfume && <div><label htmlFor="product-gender" className="text-sm text-muted-foreground">Género</label>
+          <Select value={gender} onValueChange={value => { markDirty(); setGender(value); }}><SelectTrigger id="product-gender" className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem><SelectItem value="unisex">Unisex</SelectItem></SelectContent>
           </Select>
-        </div>
+        </div>}
         <div>
           <div className="flex items-center justify-between gap-2 mb-1">
             <label className="text-sm text-muted-foreground">Stock{manejaStock ? ' *' : ''}</label>
@@ -2998,7 +3061,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             </label>
           </div>
           {manejaStock ? (
-            <Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" />
+            <Input aria-label="Stock" type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" />
           ) : (
             <p className="text-[11px] text-muted-foreground rounded-[8px] border border-border/60 bg-muted/40 p-2">
               Se vende y se factura, pero no se descuenta nada. Para un servicio,
@@ -3030,6 +3093,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         {enPesos ? (
           <>
             <Input
+              aria-label="Costo ARS"
               type="number" step="0.01" min="0" value={costARS}
               onChange={e => { setCostARS(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }}
               className="bg-muted border-border"
@@ -3044,7 +3108,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           </>
         ) : (
           <>
-            <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" />
+            <Input aria-label="Costo USD" type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" />
             {cost > 0 && (
               <p className="text-[10px] text-muted-foreground mt-1">
                 {/* C28.1: el pasero/impuestos/aduana ya viaja dentro del costo
@@ -3069,7 +3133,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
               <button type="button" onClick={() => { markDirty(); setManualSalePrice(false); }} className="text-[10px] text-primary hover:underline">Auto</button>
             )}
           </div>
-          <Input type="number" min="0" value={salePriceARS} onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }} className="bg-muted border-border" />
+          <Input aria-label="Precio Venta ARS" type="number" min="0" value={salePriceARS} onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }} className="bg-muted border-border" />
         </div>
         <div>
           <div className="flex items-center justify-between">
@@ -3078,7 +3142,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
               <button type="button" onClick={() => { markDirty(); setManualDiscountPrice(false); }} className="text-[10px] text-primary hover:underline">Auto</button>
             )}
           </div>
-          <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
+          <Input aria-label="Precio con descuento ARS" type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
         </div>
 
         {/* A8 — la orden discriminaba IVA con una tasa unica para todo. Un
@@ -3086,6 +3150,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         <div>
           <label className="text-sm text-muted-foreground">Alícuota de IVA</label>
           <Input
+            aria-label="Alícuota de IVA"
             type="number" min="0" max="100" step="0.5" value={taxRate}
             onChange={e => setTaxRate(e.target.value)}
             placeholder="La de la organización"
@@ -3108,7 +3173,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         <div>
           <label className="text-sm text-muted-foreground">Proveedor</label>
           <Select value={supplierId || 'none'} onValueChange={v => { markDirty(); setSupplierId(v === 'none' ? '' : v); }}>
-            <SelectTrigger className="bg-muted border-border">
+            <SelectTrigger aria-label="Proveedor" className="bg-muted border-border">
               <SelectValue placeholder="Sin proveedor" />
             </SelectTrigger>
             <SelectContent>
@@ -3200,12 +3265,12 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           <label className="text-sm text-muted-foreground">Descripción</label>
           <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
         </div>
-        {!fichaTecnologia && !(fichaVaper && vaperSubtype === 'desechable') && (
+        {muestraContenido && (
           <div>
-            <label className="text-sm text-muted-foreground">
+            <label htmlFor="product-content-ml" className="text-sm text-muted-foreground">
               {fichaVaper ? 'Capacidad (ml)' : 'Contenido (ml)'}
             </label>
-            <Input type="number" min="0.1" step="0.1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border"
+            <Input id="product-content-ml" type="number" min="1" step="1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border"
               placeholder={fichaVaper ? 'Ej: 2, 5, 10...' : 'Ej: 100'} />
           </div>
         )}
@@ -3214,17 +3279,17 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="text-sm text-muted-foreground">Código de barras</label>
-          <Input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="EAN-13, UPC..." className="bg-muted border-border font-mono text-sm" />
+          <Input aria-label="Código de barras" value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="EAN-13, UPC..." className="bg-muted border-border font-mono text-sm" />
         </div>
         <div>
           <label className="text-sm text-muted-foreground">SKU interno</label>
-          <Input value={sku} onChange={e => setSku(e.target.value)} placeholder="Ej: LAT-KHA-100" className="bg-muted border-border font-mono text-sm" />
+          <Input aria-label="SKU interno" value={sku} onChange={e => setSku(e.target.value)} placeholder="Ej: ART-0001" className="bg-muted border-border font-mono text-sm" />
         </div>
       </div>
       {/* Logística — peso y dimensiones para cotizar envíos */}
       <div>
         <label className="text-sm text-muted-foreground">Peso y dimensiones</label>
-        <p className="text-[11px] text-muted-foreground/70 mb-1.5">
+        <p className="text-[11px] text-muted-foreground mb-1.5">
           Los usa tu tienda online para cotizar el envío. Si los dejás vacíos, se cotiza
           con el peso estimado que configuraste en la tienda.
         </p>
@@ -3247,7 +3312,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         </div>
         <div>
           <label className="text-sm text-muted-foreground">Fecha de vencimiento</label>
-          <Input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="bg-muted border-border text-sm" />
+          <Input aria-label="Fecha de vencimiento" type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="bg-muted border-border text-sm" />
         </div>
       </div>
       {/* Tags */}
@@ -3257,7 +3322,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           {tags.map(t => (
             <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/15 text-primary border border-primary/20">
               {t}
-              <button type="button" onClick={() => { markDirty(); setTags(tags.filter(x => x !== t)); }} className="hover:text-destructive ml-0.5">×</button>
+              <button type="button" aria-label={`Quitar etiqueta ${t}`} onClick={() => { markDirty(); setTags(tags.filter(x => x !== t)); }} className="hover:text-destructive ml-0.5">×</button>
             </span>
           ))}
         </div>
@@ -3276,7 +3341,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             placeholder="nuevo, importado, oferta... (Enter para agregar)"
             className="bg-muted border-border text-sm flex-1"
           />
-          <Button type="button" variant="outline" size="sm" onClick={() => {
+          <Button type="button" aria-label="Agregar etiqueta" variant="outline" size="sm" onClick={() => {
             const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúüñ-]/g, '');
             if (t && !tags.includes(t)) { markDirty(); setTags([...tags, t]); }
             setTagInput('');
@@ -3330,7 +3395,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           {showBulkImport && (
             <div className="space-y-2 rounded-lg border border-border/70 bg-card/70 p-3">
               <label htmlFor="product-variant-bulk" className="block text-xs font-medium text-muted-foreground">Variantes separadas por coma</label>
-              <Input id="product-variant-bulk" value={bulkVariants} onChange={e => setBulkVariants(e.target.value)} placeholder="Menta, Frutilla, Uva Ice, Sandía..." className="bg-muted border-border text-xs" />
+              <Input id="product-variant-bulk" value={bulkVariants} onChange={e => setBulkVariants(e.target.value)} placeholder={variantType === 'medida' ? '6 mm, 8 mm, 10 mm' : variantType === 'talle' ? 'S, M, L' : variantType === 'color' ? 'Negro, Blanco, Azul' : variantType === 'sabor' ? 'Menta, Frutilla, Uva' : 'Opción A, Opción B, Opción C'} className="bg-muted border-border text-xs" />
               <Button type="button" variant="outline" size="sm" className="w-full text-xs sm:w-auto" onClick={() => {
                 const names = bulkVariants.split(',').map(n => n.trim()).filter(Boolean);
                 const existing = new Set(variants.map(v => v.variant_name.toLowerCase()));
@@ -3459,7 +3524,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             value={offerStacks === null ? 'tienda' : offerStacks ? 'suma' : 'incluido'}
             onValueChange={v => { markDirty(); setOfferStacks(v === 'tienda' ? null : v === 'suma'); }}
           >
-            <SelectTrigger className="bg-muted border-border text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Descuento por transferencia o efectivo" className="bg-muted border-border text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="tienda">Como diga la tienda (por defecto)</SelectItem>
               <SelectItem value="incluido">La oferta YA es el precio con descuento</SelectItem>
@@ -3478,11 +3543,11 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="text-sm text-muted-foreground">Oferta hasta</label>
-          <Input type="datetime-local" value={offerExpiresAt} onChange={e => setOfferExpiresAt(e.target.value)} className="bg-muted border-border text-xs" />
+          <Input aria-label="Oferta hasta" type="datetime-local" value={offerExpiresAt} onChange={e => setOfferExpiresAt(e.target.value)} className="bg-muted border-border text-xs" />
         </div>
         <div>
           <label className="text-sm text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />Próximo ingreso</label>
-          <Input type="date" value={expectedRestockAt} onChange={e => setExpectedRestockAt(e.target.value)} className="bg-muted border-border text-xs" />
+          <Input aria-label="Próximo ingreso" type="date" value={expectedRestockAt} onChange={e => setExpectedRestockAt(e.target.value)} className="bg-muted border-border text-xs" />
         </div>
       </div>
       {cost > 0 && salePrice > 0 && (
@@ -3515,26 +3580,26 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             const setValue = (value: unknown) => setAttributeValues(values => ({ ...values, [definition.id]: value }));
             return (
               <div key={definition.id}>
-                <label className="text-sm text-muted-foreground block mb-1">
+                <label htmlFor={`product-attribute-${definition.id}`} className="text-sm text-muted-foreground block mb-1">
                   {definition.name}{definition.unit ? ` (${definition.unit})` : ""}
                   {definition.required && <span className="text-destructive ml-0.5">*</span>}
                 </label>
-                {definition.data_type === "text" && <Input value={String(displayValue)} onChange={event => setValue(event.target.value)} className="bg-muted border-border" />}
-                {definition.data_type === "number" && <Input type="number" value={String(displayValue)} onChange={event => setValue(event.target.value === "" ? "" : Number(event.target.value))} className="bg-muted border-border" />}
-                {definition.data_type === "date" && <Input type="date" value={String(displayValue)} onChange={event => setValue(event.target.value)} className="bg-muted border-border" />}
+                {definition.data_type === "text" && <Input id={`product-attribute-${definition.id}`} value={String(displayValue)} onChange={event => setValue(event.target.value)} className="bg-muted border-border" />}
+                {definition.data_type === "number" && <Input id={`product-attribute-${definition.id}`} type="number" value={String(displayValue)} onChange={event => setValue(event.target.value === "" ? "" : Number(event.target.value))} className="bg-muted border-border" />}
+                {definition.data_type === "date" && <Input id={`product-attribute-${definition.id}`} type="date" value={String(displayValue)} onChange={event => setValue(event.target.value)} className="bg-muted border-border" />}
                 {definition.data_type === "boolean" && (
                   <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <input type="checkbox" checked={rawValue === true} onChange={event => setValue(event.target.checked)} className="w-4 h-4 accent-primary" /> Activado
+                    <input id={`product-attribute-${definition.id}`} type="checkbox" checked={rawValue === true} onChange={event => setValue(event.target.checked)} className="w-4 h-4 accent-primary" /> Activado
                   </label>
                 )}
                 {definition.data_type === "select" && (
                   <Select value={String(displayValue)} onValueChange={value => { markDirty(); setValue(value); }}>
-                    <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccioná..." /></SelectTrigger>
+                    <SelectTrigger id={`product-attribute-${definition.id}`} className="bg-muted border-border"><SelectValue placeholder="Seleccioná..." /></SelectTrigger>
                     <SelectContent>{definition.options.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
                   </Select>
                 )}
                 {definition.data_type === "multiselect" && (
-                  <Input value={String(displayValue)} onChange={event => setValue(event.target.value.split(",").map(value => value.trim()).filter(Boolean))} placeholder="Separá los valores con coma" className="bg-muted border-border" />
+                  <Input id={`product-attribute-${definition.id}`} value={String(displayValue)} onChange={event => setValue(event.target.value.split(",").map(value => value.trim()).filter(Boolean))} placeholder="Separá los valores con coma" className="bg-muted border-border" />
                 )}
               </div>
             );
@@ -3621,7 +3686,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             ? 'Nombre, precio de venta y unidades. El costo puede esperar.'
             : 'El guardado actualiza la ficha canónica; el stock se asienta por Kardex.'}
         </p>
-        <Button type="submit" disabled={saving || uploading || !canSave} className="w-full min-w-44 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 sm:w-auto">
+        <Button type="submit" disabled={saving || uploading || !canSave || !attributesReady} className="w-full min-w-44 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 sm:w-auto">
           {saving ? 'Guardando producto…' : firstProductSubmitLabel({
             firstUse: creatingFirstProduct,
             uploading,

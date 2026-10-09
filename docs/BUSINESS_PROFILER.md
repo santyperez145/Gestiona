@@ -1,6 +1,6 @@
 # Business Profiler
 
-**Corte:** 2026-08-28
+**Corte:** 2026-10-09
 
 **Estado:** infraestructura productiva; adopción externa todavía no medida.
 
@@ -28,6 +28,7 @@ metadatos editables para describir y filtrar productos.
 | Otro | Producto | marca, modelo o línea |
 | **Servicios** | Servicio *(no lleva stock)* | duración, modalidad, a cargo de |
 | **Gastronomía** | Plato *(no lleva stock)*, Insumo | sección de carta, apto para, porciones / unidad de compra, conservación |
+| Ferretería | Artículo de ferretería | modelo/referencia, material, medida, presentación |
 
 ⚠️ **Gastronomía tiene DOS tipos a propósito, y ahí está el punto: un
 restaurante no es un negocio sin stock.** El plato no se descuenta —se
@@ -44,6 +45,39 @@ que un preset suyo sería una promesa vacía.
 
 Talle y color con stock propio continúan como variantes. Lotes y vencimientos
 continúan en trazabilidad de inventario. El perfil no duplica esas funciones.
+Ferretería reutiliza `industry_presets` y el Blueprint: un tipo inicial claro
+permite su asignación automática al alta, tras elegir y confirmar el perfil.
+No deduce el rubro por nombre ni retipa artículos existentes; no duplica marca,
+SKU, proveedor, precio o stock. Presentación describe el envase/conjunto, no
+convierte unidades ni habilita ventas fraccionadas. Migración `20261009000000`.
+
+La ficha especializada se habilita por tipo explícito; sólo sin tipo admite
+categorías históricas de perfume/vaper. Un artículo de ferretería no recibe
+género ni contenido en ml por defecto. Las ediciones no envían ni vacían esos
+campos ocultos. Los atributos propios continúan editables por tipo. La columna
+histórica `gender` conserva por ahora su default de esquema: quitarlo exige
+una migración de consumidores, no borrar datos ni inventar otro valor.
+`content_ml` sigue siendo entero: un decimal se rechaza explícitamente, nunca
+se trunca. Volumen decimal, equivalentes duplicados marca/contenido, unidades
+fraccionadas y columnas configurables de atributos siguen pendientes.
+
+Guardar espera una lectura válida de tipos/atributos. Error permite reintentar
+sin limpiar datos; respuesta vieja de otro tipo se descarta. La limpieza de
+valores sólo alcanza definiciones explícitas de la edición actual: no borra
+atributos históricos de otros tipos ni interpreta una carga vacía como orden
+de eliminarlos.
+
+Tipos y definiciones sólo se escriben con `products.edit`; los valores permiten
+alta con `products.create` para productos del propio autor, o con `edit`;
+modificación/baja requieren `edit`. La lectura
+requiere miembro activo y `products.view` o `sales.create`, para conservar el
+mostrador sin conceder edición. El `org_id` no se traslada, aun teniendo acceso
+a dos negocios. Las policies `FOR ALL` por simple membresía quedan reemplazadas
+por acción en `20261009000010`; los grants mínimos también forman parte del
+replay. La configuración del Blueprint mantiene su propio permiso owner/admin.
+Las etiquetas QR se generan localmente con `qrcode` ya instalado: no se envían
+ids/nombres/precios a un proveedor externo. Error o bloqueo de popup se informa
+sin modificar productos; etiquetas/listas y cierre de caja escapan texto HTML.
 
 ## Contrato y autoridad
 
@@ -96,6 +130,8 @@ parecer que todo el onboarding falló.
 ~~~bash
 npx supabase db query --linked --file supabase/verificaciones/20260822_business_profiler.sql
 npx supabase db query --linked --file supabase/verificaciones/20260828_business_blueprint.sql
+npx supabase db query --linked --file supabase/verificaciones/20261009_hardware_business_profile.sql
+npx supabase db query --linked --file supabase/verificaciones/20261009_catalog_attribute_permissions.sql
 npx supabase db push --linked --dry-run
 ~~~
 
@@ -108,6 +144,16 @@ rollback deliberado:
 - organización y ajustes: visibles juntos tras completar onboarding;
 - usuario externo: bloqueado;
 - restos de tipos, atributos, perfil y nombre `ZZ`: 0.
+
+El 2026-10-09, Preview de PR27 pasó el verifier de Ferretería y el harness
+con roles `authenticated` owner/viewer: un tipo/cuatro atributos, replay sin
+duplicados, tipo propio intacto y tenant ajeno bloqueado. El drill del catálogo
+pasó siete grupos de CRUD/permisos con roles SQL reales, incluso create-only
+limitado al autor, cajero sin edición, suspensión y servidor. Todos los
+usuarios/organizaciones fueron sintéticos y revertidos; readback: cero restos.
+El primer ensayo expuso grants ausentes del replay, no un fallo productivo de
+carga probado: se corrigieron en la migración, nunca en los fixtures. Ninguna
+prueba emitió facturas, movió dinero ni llamó proveedores o hardware.
 
 La prueba de Blueprint del 2026-08-28 agregó una falla controlada en el paso 4:
 los tres pasos previos quedaron compensados, el dominio quedó vacío, el retry
