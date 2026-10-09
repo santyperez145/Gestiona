@@ -1,6 +1,7 @@
-﻿import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
+﻿import { useState, useEffect, useRef, useMemo, useDeferredValue, type ReactNode } from "react";
 import Fuse from "fuse.js";
 import { useCallback } from "react";
+import { paginarPorMarca, PRODUCTOS_POR_PAGINA } from "@/lib/catalogPaging";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull, faltaCotizacion } from "@/lib/exchangeRate";
@@ -88,7 +89,6 @@ import {
 import { plural } from "@/lib/plural";
 import { daysSinceKnownDate } from "@/lib/dateFacts";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
-const PAGE_SIZE = 30;
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
 
 function productLoadErrorMessage(cause: unknown, fallback: string) {
@@ -706,7 +706,12 @@ export default function ProductsPage() {
     ignoreLocation: true,
   }), [products]);
 
+  // Con miles de productos el filtrado no debe bloquear el tipeo: el input usa
+  // `search` y la lista se recalcula con el valor diferido.
+  const deferredSearch = useDeferredValue(search);
+
   const searchMatchIds = useMemo(() => {
+    const search = deferredSearch;
     const q = normalizeText(search).trim();
     if (!q || q.length < 2) return null;
     // 1) Coincidencia literal: TODOS los términos tienen que aparecer en el
@@ -715,7 +720,7 @@ export default function ProductsPage() {
     if (literal.length > 0) return new Set(literal.map(p => p.id));
     // 2) Si no hubo ninguna, recién ahí buscamos difuso (tolera typos).
     return new Set(fuseIndex.search(q).map(r => r.item.id));
-  }, [products, fuseIndex, search]);
+  }, [products, fuseIndex, deferredSearch]);
 
   // La ficha técnica vive en otra tabla, así que se adjunta acá: la regla de
   // calidad recibe un producto plano y no sabe nada de cómo se carga.
@@ -749,7 +754,13 @@ export default function ProductsPage() {
     ? products.filter((p: any) => Number(p.cost_ars) <= 0 && Number(p.total_cost_usd || p.cost_usd) > 0).length
     : 0;
 
-  const filtered = products.filter(p => {
+  const filtered = useMemo(() => {
+    const search = deferredSearch;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const in30Days = new Date(today); in30Days.setDate(today.getDate() + 30);
+    const in90Days = new Date(today); in90Days.setDate(today.getDate() + 90);
+    return products.filter(p => {
     if (filterCalidad) {
       const regla = REGLAS.find(r => r.id === filterCalidad);
       const conFicha = calidadPorProducto.get(p.id) ?? p;
@@ -812,13 +823,22 @@ export default function ProductsPage() {
     }
     }
     return true;
-  });
+    });
+  }, [
+    products, deferredSearch, searchMatchIds, calidadPorProducto, filterCalidad, filterCat, filterStock,
+    filterExpiry, filterTag, filterMovement, lastSaleDate, filterMargin, cotizacion, filterDiscount,
+    operaPerfumes, filterMaxPrice, filterGenderFacet, filterFamilia, filterNotas, filterEstacion,
+    filterOcasion, perfumeDetailsByProduct,
+  ]);
 
   // Collect all unique tags from products for the filter dropdown
-  const allTags = Array.from(new Set(products.flatMap((p: any) => p.tags || []))).sort();
+  const allTags = useMemo(
+    () => Array.from(new Set(products.flatMap((p: any) => p.tags || []))).sort(),
+    [products],
+  );
 
   // Apply sort to filtered
-  const filteredSorted = [...filtered].sort((a, b) => {
+  const filteredSorted = useMemo(() => [...filtered].sort((a, b) => {
     const { col, dir } = productSort;
     let va: number | string = 0;
     let vb: number | string = 0;
@@ -838,24 +858,15 @@ export default function ProductsPage() {
     }
     const cmp = va < vb ? -1 : va > vb ? 1 : 0;
     return dir === "asc" ? cmp : -cmp;
-  });
+  }), [filtered, productSort, cotizacion]);
 
-  // Group first, then paginate by brand groups to avoid splitting a brand across pages
-  const allGrouped = filteredSorted.reduce<Record<string, any[]>>((acc, p) => {
-    const rawKey = p.brand || 'Sin marca';
-    const existingKey = Object.keys(acc).find(k => k.toLowerCase() === rawKey.toLowerCase());
-    const key = existingKey || rawKey;
-    (acc[key] = acc[key] || []).push(p);
-    return acc;
-  }, {});
-
-  const brandKeys = Object.keys(allGrouped).sort((a, b) => a.localeCompare(b, 'es'));
-  const totalPages = Math.ceil(brandKeys.length / PAGE_SIZE) || 1;
-  const pagedBrandKeys = brandKeys.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const grouped = pagedBrandKeys.reduce<Record<string, any[]>>((acc, key) => {
-    acc[key] = allGrouped[key];
-    return acc;
-  }, {});
+  // Página por filas: una marca con miles de productos ya no se dibuja entera.
+  const catalogPage = useMemo(() => paginarPorMarca(filteredSorted, page), [filteredSorted, page]);
+  const totalPages = catalogPage.totalPaginas;
+  const gridPageItems = useMemo(
+    () => filteredSorted.slice(catalogPage.pagina * PRODUCTOS_POR_PAGINA, (catalogPage.pagina + 1) * PRODUCTOS_POR_PAGINA),
+    [filteredSorted, catalogPage.pagina],
+  );
 
   const totalStock = filtered.reduce((s, p) => s + p.stock, 0);
   const totalValue = filtered.reduce((s, p) => s + (Number(p.total_cost_usd) * p.stock), 0);
@@ -1664,8 +1675,9 @@ export default function ProductsPage() {
             : clearProductFilters}
         />
       ) : productView === 'grid' ? (
+        <>
         <div className="workspace-products-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-          {filteredSorted.map((p: any) => (
+          {gridPageItems.map((p: any) => (
             <div key={p.id} className="workspace-products-grid-card group overflow-hidden">
               <div className="relative aspect-[4/5] bg-muted/25 overflow-hidden" style={{ borderRadius: 8 }}>
                 {p.image_url
@@ -1705,13 +1717,22 @@ export default function ProductsPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+          <DataPagination
+            page={catalogPage.pagina}
+            totalPages={totalPages}
+            totalItems={filteredSorted.length}
+            pageSize={PRODUCTOS_POR_PAGINA}
+            itemLabel="productos"
+            onPageChange={setPage}
+          />
+        </>
       ) : (
         <>
-          {Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([brand, items]) => (
+          {catalogPage.grupos.map(({ marca: brand, items, total, stockTotal }) => (
             <div key={brand} className="workspace-products-brand-group mb-6">
               <h2 className="text-sm font-display font-semibold text-foreground mb-2">
-                {brand} <span className="text-xs font-normal text-muted-foreground">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
+                {brand} <span className="text-xs font-normal text-muted-foreground">({total} · {stockTotal} uds{items.length < total ? ` · ${items.length} en esta página` : ""})</span>
               </h2>
               <ProductTableOwn
                 rows={items.map((p: any) => ({
@@ -1750,11 +1771,11 @@ export default function ProductsPage() {
             </div>
           ))}
           <DataPagination
-            page={page}
+            page={catalogPage.pagina}
             totalPages={totalPages}
-            totalItems={brandKeys.length}
-            pageSize={PAGE_SIZE}
-            itemLabel="marcas"
+            totalItems={filteredSorted.length}
+            pageSize={PRODUCTOS_POR_PAGINA}
+            itemLabel="productos"
             onPageChange={setPage}
           />
         </>

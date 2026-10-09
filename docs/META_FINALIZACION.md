@@ -24,6 +24,15 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.
 
+**0. Pedidos del dueño 2026-10-09 (prioridad)**
+- [x] Productos con 11.000 ítems: página de 60 filas en lista y grilla, agrupado lineal, filtros memorizados y búsqueda diferida.
+- [ ] Carga del catálogo más liviana (columnas necesarias, índices de búsqueda).
+- [ ] Importación: explicar cada error con su causa y arreglo sugerido; corregir automáticamente lo seguro.
+- [ ] Proveedor en cada producto: columna de importación, alta/asociación y visible en el listado.
+- [ ] Controladores fiscales (Epson TM-T900FA y otras marcas) vía app nativa, además de WSFE.
+- [ ] Todos los comprobantes electrónicos de ARCA (WSFE, WSMTXCA, WSFEX, FCE MiPyME).
+- [ ] Estudio funcional de test.scadi.com.ar y paridad de funciones útiles.
+
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.
 - [ ] AI Store Architect: propuesta revisable que produce configuración versionada.
