@@ -2,6 +2,7 @@
 import Fuse from "fuse.js";
 import { useCallback } from "react";
 import { paginarPorMarca, PRODUCTOS_POR_PAGINA } from "@/lib/catalogPaging";
+import { selectAllRows } from "@/lib/selectAllRows";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull, faltaCotizacion } from "@/lib/exchangeRate";
@@ -9,7 +10,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
-import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB, getVariantsByUserDB } from "@/lib/supabaseStore";
+import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB } from "@/lib/supabaseStore";
 import ProductPriceListsSection from "@/components/products/ProductPriceListsSection";
 import CatalogImagePicker from "@/components/products/CatalogImagePicker";
 import ProductTableOwn, { type ProductSortColumn } from "@/components/products/ProductTableOwn";
@@ -492,15 +493,22 @@ export default function ProductsPage() {
     const results = await Promise.allSettled([
       getProductsDB(user.id, orgId),
       getSettingsDB(user.id, orgId),
-      getVariantsByUserDB(user.id),
-      supabase.from('sales')
-        .select('product_id, quantity, date')
-        .eq('org_id', orgId)
-        .gte('date', since60.toISOString().slice(0, 10))
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data ?? [];
-        }),
+      // Sólo lo que usa esta pantalla, sin el tope silencioso de 1.000 filas.
+      selectAllRows<{ id: string; product_id: string }>(({ desde, hasta, despues, limite }) => {
+        let query = supabase.from('product_variants').select('id, product_id')
+          .eq('org_id', orgId).eq('active', true).gte('id', desde).order('id').limit(limite);
+        if (hasta) query = query.lt('id', hasta);
+        if (despues) query = query.gt('id', despues);
+        return query;
+      }),
+      selectAllRows<{ id: string; product_id: string | null; quantity: number | null; date: string }>(({ desde, hasta, despues, limite }) => {
+        let query = supabase.from('sales').select('id, product_id, quantity, date')
+          .eq('org_id', orgId).gte('date', since60.toISOString().slice(0, 10))
+          .gte('id', desde).order('id').limit(limite);
+        if (hasta) query = query.lt('id', hasta);
+        if (despues) query = query.gt('id', despues);
+        return query;
+      }),
       supabase.from('product_perfume_details')
         .select('*')
         .eq('org_id', orgId)

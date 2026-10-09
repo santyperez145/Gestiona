@@ -3,6 +3,7 @@ import { getActiveOrgId, requireActiveOrgId } from './orgContext';
 import type { Database } from '@/integrations/supabase/types';
 import { resolveSaleAttribution } from './businessCalc';
 import { nombreDeCategoria } from './storeCategories';
+import { selectAllRows } from '@/lib/selectAllRows';
 type SettingsUpdate = Database['public']['Tables']['settings']['Update'];
 
 /** Resolve an explicit tenant first; legacy callers may still use the active context. */
@@ -83,20 +84,15 @@ export async function recordFinancialMovement(params: {
 // ========= PRODUCTS =========
 export async function getProductsDB(userId: string, organizationId?: string) {
   const orgId = await orgIdFor(userId, organizationId);
-  const products: Database['public']['Tables']['products']['Row'][] = [];
-  let cursor: string | undefined;
-  // Keyset paging avoids PostgREST's 1,000-row cap and offset shifts on inserts.
-  while (true) {
-    let query = supabase.from('products').select('*').eq('org_id', orgId).order('id').limit(1000);
-    if (cursor) query = query.gt('id', cursor);
-    const { data, error } = await query;
-    if (error) throw error;
-    if (!data?.length) break;
-    products.push(...data);
-    cursor = data[data.length - 1].id;
-    if (data.length < 1000) break;
-  }
-  return products.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  // Keyset por rangos de UUID en paralelo: sin tope de 1.000 ni corrimientos.
+  const products = await selectAllRows<Database['public']['Tables']['products']['Row']>(({ desde, hasta, despues, limite }) => {
+    let query = supabase.from('products').select('*').eq('org_id', orgId).gte('id', desde).order('id').limit(limite);
+    if (hasta) query = query.lt('id', hasta);
+    if (despues) query = query.gt('id', despues);
+    return query;
+  });
+  const collator = new Intl.Collator('es');
+  return products.sort((a, b) => collator.compare(a.name, b.name));
 }
 
 /**
