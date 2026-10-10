@@ -803,9 +803,6 @@ Deno.serve(async (req) => {
         // Finance (opcionales: el buzon funciona sin extraccion automatica)
         "FINANCE_DOCUMENT_EXTRACTION_ENABLED", "FINANCE_DOCUMENT_MODEL",
         "FINANCE_DOCUMENT_SCANNER_URL", "FINANCE_DOCUMENT_SCANNER_TOKEN",
-        // Stripe: sigue leido por `stripe-webhook`, que no se borro porque un
-        // webhook puede tener un llamador externo que no se ve desde el codigo.
-        "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
       ];
       const secrets: Record<string, boolean> = {};
       for (const n of names) {

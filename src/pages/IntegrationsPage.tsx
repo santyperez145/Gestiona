@@ -15,7 +15,7 @@ import {
   ShoppingBag, RefreshCw, Unplug, CheckCircle2, AlertCircle,
   ExternalLink, Package, ShoppingCart, Loader2, Link2,
   Save, Webhook, KeyRound,
-  XCircle, Activity, WifiOff, ShieldCheck,
+  XCircle, Activity, WifiOff,
   MessageCircle, QrCode as QrCodeIcon,
   FileSpreadsheet,
 } from "lucide-react";
@@ -135,14 +135,6 @@ export default function IntegrationsPage() {
           lastSeen: fmtAge(latest.mercadopago?.created_at || null),
           message: latest.mercadopago?.message || null,
           configured: mpConectado,
-        },
-        stripe: {
-          integration: "stripe", label: "Stripe",
-          icon: <ShieldCheck className="w-4 h-4 text-primary" />,
-          status: buildStatus("stripe"),
-          lastSeen: fmtAge(latest.stripe?.created_at || null),
-          message: latest.stripe?.message || null,
-          configured: true, // always configured via env
         },
         afip: {
           integration: "afip", label: "AFIP",

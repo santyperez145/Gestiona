@@ -53,8 +53,8 @@ const PUBLICAS: Record<string, string> = {
     "secreto del proxy propio (X-Nerqia-Trust-Proxy) y valida la sesión con " +
     "auth.getUser; nunca toma claims del cuerpo.",
   "stripe-webhook":
-    "Webhook de un tercero: lo llama Stripe, no el cron. Valida el secreto de " +
-    "firma que Stripe manda en su propio header.",
+    "Retirado: responde 410 sin leer secretos ni tocar la base. Los cobros " +
+    "llegan por mercadopago-webhook.",
   "mercadopago-webhook":
     "Webhook de un tercero: lo llama MercadoPago. Valida firma HMAC y secreto. " +
     "Su firma dejó de validar una vez y toda compra quedaba pagada de un lado " +

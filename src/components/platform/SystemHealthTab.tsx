@@ -78,8 +78,6 @@ const DESCRIPCIONES: Record<string, Omit<SecretStatus, "configured" | "name">> =
   FINANCE_DOCUMENT_SCANNER_URL:        { required: false, category: "integrations", description: "Scanner de archivos subidos a Finance" },
   FINANCE_DOCUMENT_SCANNER_TOKEN:      { required: false, category: "integrations", description: "Auth del scanner de Finance" },
 
-  STRIPE_SECRET_KEY:         { required: false, category: "payments", description: "Sólo lo lee `stripe-webhook`. El cobro real es por MercadoPago" },
-  STRIPE_WEBHOOK_SECRET:     { required: false, category: "payments", description: "Sólo lo lee `stripe-webhook`. El cobro real es por MercadoPago" },
 };
 
 const CATEGORY_META: Record<SecretStatus["category"], { label: string; icon: typeof KeyRound; color: string }> = {

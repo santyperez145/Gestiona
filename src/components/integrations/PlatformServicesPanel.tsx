@@ -38,7 +38,7 @@ export default function PlatformServicesPanel() {
     {
       icon: CreditCard,
       label: "Cobros de suscripción",
-      description: "Tu plan de Nerqia se cobra por Stripe",
+      description: "Tu plan de Nerqia se cobra en pesos con Mercado Pago",
       color: "text-indigo-400",
       bg: "bg-indigo-500/10",
     },
