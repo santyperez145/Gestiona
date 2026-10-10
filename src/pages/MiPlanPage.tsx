@@ -22,6 +22,7 @@ import { annualSaving, limitesDelPlan, planPrice } from "@/lib/planOffer";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
+import LoQueReemplazaNerqia from "@/components/plan/LoQueReemplazaNerqia";
 import { Button } from "@/components/ui/button";
 import { plural } from "@/lib/plural";
 import {
@@ -225,6 +226,12 @@ export default function MiPlanPage() {
     : (ETIQUETA_ESTADO[estadoActual] ?? ETIQUETA_ESTADO.sin_suscripcion);
   const precio = (p: PlanContratable) =>
     planPrice(p, ciclo === 'anual');
+  // Contra qué se compara lo que el comercio paga hoy: el plan más barato con
+  // precio mensual (E5 de docs/TESIS.md ofrece Starter).
+  const planDeComparacion = planes
+    .map(p => ({ name: p.name, precioMensual: planPrice(p) }))
+    .filter(p => p.precioMensual != null && p.precioMensual > 0)
+    .sort((a, b) => (a.precioMensual ?? 0) - (b.precioMensual ?? 0))[0] ?? null;
 
   return (
     <div className="workspace-page space-y-5">
@@ -401,6 +408,10 @@ export default function MiPlanPage() {
           </div>
         )}
       </div>
+
+      {activeOrg && !loading && (
+        <LoQueReemplazaNerqia orgId={activeOrg.id} canEdit={canSubscribe} plan={planDeComparacion} />
+      )}
 
       {/* Planes */}
       <div>
