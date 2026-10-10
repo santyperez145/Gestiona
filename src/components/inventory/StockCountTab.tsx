@@ -26,7 +26,6 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 function useBarcodeScanner(onDetected: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const readerRef = useRef<any>(null);
   const [scanning, setScanning] = useState(false);
 

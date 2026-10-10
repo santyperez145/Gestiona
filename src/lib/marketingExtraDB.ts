@@ -131,7 +131,7 @@ export async function listPostTypes() {
 // ===== Marketing themes =====
 export async function listMarketingThemes(industryCode?: string | null) {
   const orgId = requireActiveOrgId();
-  let q = supabase.from('marketing_themes').select('*').or(`org_id.eq.${orgId},org_id.is.null`).eq('active', true).order('sort_order');
+  const q = supabase.from('marketing_themes').select('*').or(`org_id.eq.${orgId},org_id.is.null`).eq('active', true).order('sort_order');
   const { data, error } = await q;
   if (error) throw error;
   const rows = data || [];

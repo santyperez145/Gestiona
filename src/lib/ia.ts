@@ -25,7 +25,6 @@ import { mensajeDeEdgeFunction } from '@/lib/edgeErrors';
 // `invoke` devolvía `any` y las pantallas leen `data.content`, `data.title`,
 // etc. sin tipar. Mantener `any` como default hace que este helper sea un
 // reemplazo directo; tipar las siete respuestas de IA es otro trabajo.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function llamarIA<T = any>(
   nombre: string,
   opciones: { body: unknown },

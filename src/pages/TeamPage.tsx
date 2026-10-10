@@ -95,7 +95,7 @@ export default function TeamPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [activeOrg?.id]);
+  useEffect(() => { load(); }, [activeOrg?.id]);
 
   const invite = async () => {
     if (!activeOrg || !email.trim()) return;

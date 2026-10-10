@@ -161,7 +161,7 @@ export function useEntitlements(): Entitlements {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [activeOrg?.id]);
+  useEffect(() => { load(); }, [activeOrg?.id]);
 
   /**
    * ── Cuándo se vuelve a leer ───────────────────────────────────────────────

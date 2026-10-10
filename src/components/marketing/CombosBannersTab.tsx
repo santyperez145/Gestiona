@@ -385,7 +385,7 @@ function CombosTab() {
     const [c, p] = await Promise.all([listCombos(), getProductsDB(user.id)]);
     setCombos(c); setProducts(p);
   };
-  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [user]);
+  useEffect(() => { reload(); }, [user]);
 
   const handleDelete = async (id: string) => { await deleteCombo(id); toast.success("Combo eliminado"); reload(); };
   const toggleActive = async (c: any) => { await updateCombo(c.id, { active: !c.active }); reload(); };

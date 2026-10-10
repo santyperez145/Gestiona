@@ -19,7 +19,6 @@ import BusinessKPICard from "@/components/business/BusinessKPICard";
 import BusinessEmptyState from "@/components/business/BusinessEmptyState";
 function useBarcodeScanner(onDetected: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const readerRef = useRef<any>(null);
   const [scanning, setScanning] = useState(false);
 

@@ -189,7 +189,6 @@ const PAY_METHODS: { value: PayMethod; label: string; icon: typeof Banknote; col
 // ─────────────────────────────────────────────────────────────
 function useBarcodeScanner(onDetect: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const readerRef = useRef<any>(null);
   const [scanning, setScanning] = useState(false);
 
