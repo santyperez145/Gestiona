@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../..");
@@ -15,7 +15,6 @@ const invoiceImport = leer("src/components/products/InvoiceImportDialog.tsx");
 const catalogMigration = leer("src/lib/catalogMigration.ts");
 const storeCategories = leer("src/lib/storeCategories.ts");
 const banners = leer("src/components/ecommerce/StoreBannersEditor.tsx");
-const types = leer("src/lib/types.ts");
 const supaStore = leer("src/lib/supabaseStore.ts");
 const settingsPage = leer("src/pages/SettingsPage.tsx");
 const posPage = leer("src/pages/POSPage.tsx");
@@ -184,8 +183,11 @@ describe("la categoría no viene puesta en perfumería", () => {
  */
 describe("las listas de categorías salen del comercio, no del código", () => {
   it("ProductCategory deja de ser una unión cerrada de cuatro slugs", () => {
-    expect(soloCodigo(types)).toContain("export type ProductCategory = string");
-    expect(soloCodigo(types)).not.toContain("'perfume_arabe' |");
+    // 2026-10-09: `src/lib/types.ts` se borró junto con `seedData.ts`, su único
+    // importador —un catálogo de perfumes de ejemplo que ya nadie sembraba—.
+    // Que no vuelva un tipo cerrado con los slugs del negocio original:
+    expect(existsSync(resolve(ROOT, "src/lib/types.ts"))).toBe(false);
+    expect(existsSync(resolve(ROOT, "src/lib/seedData.ts"))).toBe(false);
   });
 
   it("getCategoryLabel deja de tener su propio mapa duplicado", () => {
@@ -244,7 +246,6 @@ const SLUG_DE_RUBRO = /["'](perfume_[a-z_\u00f1]+|vaper|liquido|electronico|acce
 
 const CONOCIDOS: Record<string, string> = {
   // Legítimos: el slug es dato del negocio original o una heurística de import.
-  "src/lib/seedData.ts": "catálogo sembrado del negocio original",
   "src/lib/storeCategories.ts": "NOMBRES_HEREDADOS, rótulo de un slug ya cargado",
   "src/lib/catalogIndustry.ts": "P0.1: decide si el workspace muestra chrome de perfumería o vapers; no es una lista de categorías a elegir",
   "src/lib/catalogIndustry.test.ts": "P0.1: prueba el helper; cita las categorías de perfume a propósito",

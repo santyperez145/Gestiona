@@ -894,7 +894,7 @@ export function InstagramStoryGenerator() {
                               <p className="text-xs text-muted-foreground">
                                 {p.brand ? `${p.brand} · ` : ""}
                                 Stock: {p.stock}
-                                {p.category === "vaper" ? " · 🌬️ vaper" : ""}
+                                {p.category === "vaper" ? " · con sabores" : ""}
                               </p>
                             </div>
                             {p.sale_price_ars && (
@@ -934,7 +934,7 @@ export function InstagramStoryGenerator() {
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">
-                Cada historia se descarga como un PNG separado · los vapers incluyen sus sabores automáticamente
+                Cada historia se descarga como un PNG separado{products.some((p: any) => p.category === "vaper") ? " · los productos con sabores los incluyen automáticamente" : ""}
               </p>
             </div>
           </TabsContent>

@@ -37,11 +37,6 @@ const STORE_PRODUCT_COLUMNS =
   'sale_price_ars,discount_price_ars,price_2x_ars,payment_base_price,promo_price,stock,content_ml,total_sold,' +
   'featured,offer_expires_at,created_at';
 
-/** Las mismas, más los precios de decant que sólo la vista puede calcular. */
-const PRODUCT_COLUMNS_WITH_DECANTS =
-  `${PRODUCT_COLUMNS},decant_price_10ml,decant_price_5ml,decant_price_2_5ml`;
-const STORE_PRODUCT_COLUMNS_WITH_DECANTS =
-  `${STORE_PRODUCT_COLUMNS},decant_price_10ml,decant_price_5ml,decant_price_2_5ml`;
 
 export type LecturaPublica<T> =
   | { ok: true; data: T }
@@ -86,9 +81,6 @@ export interface CatalogProduct {
   stock: number;
   sale_price_ars: number;
   discount_price_ars: number | null;
-  decant_price_10ml?: number | null;
-  decant_price_5ml?: number | null;
-  decant_price_2_5ml?: number | null;
   [key: string]: unknown;
 }
 
@@ -150,7 +142,7 @@ export async function fetchStoreProducts(
   // este archivo existe para evitar.
   const view = await retryAbortableRead(signal => supabase
     .from('store_catalog_products')
-    .select(STORE_PRODUCT_COLUMNS_WITH_DECANTS)
+    .select(STORE_PRODUCT_COLUMNS)
     .eq('org_id', orgId)
     .order('featured', { ascending: false })
     .order('name').abortSignal(signal), options);
@@ -164,7 +156,7 @@ export async function fetchStoreProducts(
   warnFallback('store_catalog_products');
   const previa = await retryAbortableRead(signal => supabase
     .from('catalog_products')
-    .select(PRODUCT_COLUMNS_WITH_DECANTS)
+    .select(PRODUCT_COLUMNS)
     .eq('org_id', orgId)
     .order('featured', { ascending: false })
     .order('name').abortSignal(signal), options);
@@ -193,15 +185,14 @@ export async function fetchStoreProducts(
 /**
  * Productos de un usuario, para el catálogo por WhatsApp.
  *
- * En modo fallback no hay precios de decant: los calcula la vista para no tener
- * que bajar el costo del producto al navegador. El catálogo simplemente no
- * ofrece fraccionado hasta que la migración esté aplicada — preferible a
- * publicar la estructura de costos.
+ * Ya no se piden los precios de decant: el fraccionado de perfume salió de la
+ * aplicación el 2026-10-09 (cero ventas en toda la historia). La vista los
+ * sigue calculando hasta que una migración la limpie; nadie los lee.
  */
 export async function fetchCatalogProducts(userId: string): Promise<LecturaPublica<CatalogProduct[]>> {
   const view = await retryPublicRead(() => supabase
     .from('catalog_products')
-    .select(PRODUCT_COLUMNS_WITH_DECANTS)
+    .select(PRODUCT_COLUMNS)
     .eq('user_id', userId)
     .gt('stock', 0)
     .order('category')
@@ -215,7 +206,7 @@ export async function fetchCatalogProducts(userId: string): Promise<LecturaPubli
     if (rows.length > 0) return { ok: true, data: rows };
     const byOrg = await retryPublicRead(() => supabase
       .from('catalog_products')
-      .select(PRODUCT_COLUMNS_WITH_DECANTS)
+      .select(PRODUCT_COLUMNS)
       .eq('org_id', userId)
       .gt('stock', 0)
       .order('category')

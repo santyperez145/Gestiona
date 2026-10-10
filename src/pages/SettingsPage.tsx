@@ -93,7 +93,7 @@ const SETTINGS_SECTIONS = [
   { id: "finance", label: "Finanzas", title: "Finanzas y cobros", description: "Dólar, costos de importación, cuenta bancaria, costo de cobrar y cuotas.", icon: DollarSign,
     keywords: ["dólar", "cotización", "tipo de cambio", "blue", "aduana", "importación", "markup", "margen", "categoría", "gastos", "cbu", "alias", "banco", "cuenta bancaria", "comisión", "cuotas", "tarjeta", "mercadopago"] },
   { id: "pricing", label: "Precios", title: "Precios y descuentos", description: "Descuentos por medio de pago, por volumen y el tope de descuento en caja.", icon: Tags,
-    keywords: ["descuento", "efectivo", "transferencia", "débito", "crédito", "mayorista", "volumen", "decant", "pin", "encargado", "supervisor", "autorización", "caja", "pos"] },
+    keywords: ["descuento", "efectivo", "transferencia", "débito", "crédito", "mayorista", "volumen", "pin", "encargado", "supervisor", "autorización", "caja", "pos"] },
   { id: "messaging", label: "Mensajería", title: "Mensajería y alertas", description: "WhatsApp del negocio, email propio, umbrales de alertas y reportes automáticos.", icon: MessageCircle,
     keywords: ["whatsapp", "resumen diario", "cumpleaños", "recordatorio", "saldo", "email", "smtp", "correo", "plantilla", "umbral", "alertas", "stock bajo", "venta grande", "reportes"] },
   { id: "inventory", label: "Inventario e IA", title: "Reposición e inteligencia", description: "Lote óptimo de compra, stock dormido y los límites de las ofertas con IA.", icon: Package,
@@ -274,10 +274,6 @@ export default function SettingsPage() {
   const [volumeThreshold, setVolumeThreshold] = useState('3');
   const [volumeDiscount, setVolumeDiscount] = useState('10');
 
-  // Decant margins
-  const [decantMargin10, setDecantMargin10] = useState('250');
-  const [decantMargin5, setDecantMargin5] = useState('350');
-  const [decantMargin2_5, setDecantMargin2_5] = useState('500');
 
 
   // La única plantilla que alguien lee. Ver src/lib/waTemplates.ts.
@@ -496,9 +492,6 @@ export default function SettingsPage() {
     setBankHolder(s.bank_holder || '');
     setVolumeThreshold(String(s.volume_discount_threshold ?? 3));
     setVolumeDiscount(String(s.volume_discount_percent ?? 10));
-    setDecantMargin10(String(s.decant_margin_10ml ?? 250));
-    setDecantMargin5(String(s.decant_margin_5ml ?? 350));
-    setDecantMargin2_5(String(s.decant_margin_2_5ml ?? 500));
     setCostoPorPedido(texto(s.costo_por_pedido));
     setCostoAlmacenamientoPct(texto(s.costo_almacenamiento_anual_pct));
     setStockDormidoDias(texto(s.stock_dormido_days));
@@ -572,9 +565,6 @@ export default function SettingsPage() {
     discountCredit,
     volumeThreshold,
     volumeDiscount,
-    decantMargin10,
-    decantMargin5,
-    decantMargin2_5,
   });
 
   /** El formulario en la forma de `settings`: lo que se guardaría ahora mismo. */

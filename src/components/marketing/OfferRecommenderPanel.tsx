@@ -33,7 +33,6 @@ const TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
   flash: { icon: Zap, color: 'bg-amber-500/20 text-amber-300', label: 'Flash sale' },
   destacado: { icon: Star, color: 'bg-primary/20 text-primary', label: 'Destacar' },
   mayorista: { icon: Package, color: 'bg-blue-500/20 text-blue-300', label: 'Mayorista' },
-  pack_decants: { icon: Package, color: 'bg-pink-500/20 text-pink-300', label: 'Pack decants' },
 };
 
 function fmt(n: number) {

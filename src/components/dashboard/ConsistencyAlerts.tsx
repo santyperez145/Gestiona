@@ -25,17 +25,6 @@ export default function ConsistencyAlerts({
           const { error } = await supabase.from('sales').update({ paid: true }).in('id', issue.ids);
           if (!error) fixed += issue.ids.length;
         }
-        if (issue.kind === 'outdated_cost' && issue.ids.length) {
-          const customs = Number(settings?.customs_percent || 15);
-          for (const id of issue.ids) {
-            const p = products.find(x => x.id === id);
-            if (!p) continue;
-            const newCost = Number(p.cost_usd) * (1 + customs / 100);
-            const newCustomsFee = Number(p.cost_usd) * (customs / 100);
-            await supabase.from('products').update({ total_cost_usd: newCost, customs_fee: newCustomsFee }).eq('id', id);
-            fixed++;
-          }
-        }
       }
       await logAudit(userId, 'update', 'settings', undefined, { auto_repair: true, count: fixed });
       toast.success(`${fixed} inconsistencias reparadas`);

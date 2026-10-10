@@ -11,9 +11,12 @@ describe("publicDataSource catalog columns", () => {
       source.indexOf("export interface CatalogSettings"),
     );
 
-    expect(catalogSection).toContain("PRODUCT_COLUMNS_WITH_DECANTS");
-    expect(catalogSection).not.toContain("STORE_PRODUCT_COLUMNS_WITH_DECANTS");
-    expect(source).toContain("const STORE_PRODUCT_COLUMNS_WITH_DECANTS");
+    // Los sufijos _WITH_DECANTS se fueron con el fraccionado (2026-10-09); la
+    // frontera sigue igual: el catálogo de WhatsApp no pide columnas de tienda.
+    expect(catalogSection).toContain("PRODUCT_COLUMNS");
+    expect(catalogSection).not.toContain("STORE_PRODUCT_COLUMNS");
+    expect(source).toContain("const STORE_PRODUCT_COLUMNS");
+    expect(source).not.toMatch(/decant_price/);
   });
 
   it("resuelve links heredados por usuario u organización sin vaciar la tienda", () => {

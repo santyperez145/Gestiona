@@ -91,9 +91,12 @@ describe("el workspace no se presenta como una vertical si el comercio no lo es"
     expect(pagina).toContain("laFichaEsTecnologia");
   });
 
-  it("Ventas habilita decants según el tipo tipado, no sólo la categoría", () => {
+  it("Ventas no decide nada por el rubro del negocio original", () => {
+    // Hasta 2026-10-09 habilitaba decants según el tipo del producto. El
+    // fraccionado salió de la aplicación (cero ventas en toda la historia y una
+    // venta de decant no descontaba stock), así que Ventas ya no pregunta.
     const pagina = leer("src/pages/SalesPage.tsx");
-    expect(pagina).toContain("productoEsPerfume");
+    expect(pagina).not.toMatch(/decant/i);
     expect(pagina).not.toContain("product.category === 'perfume_arabe' || product.category === 'perfume_diseñador'");
     expect(pagina).not.toContain("product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador'");
   });

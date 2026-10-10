@@ -228,18 +228,12 @@ export function detectConsistencyIssues(opts: {
     severity: 'warning',
   });
 
-  // Outdated cost
-  const customs = Number(settings?.customs_percent || 15);
-  const badCosts = products.filter(p => {
-    const expected = Number(p.cost_usd) * (1 + customs / 100);
-    return Number(p.cost_usd) > 0 && Math.abs(expected - Number(p.total_cost_usd)) > 0.01;
-  }).map(p => p.id);
-  if (badCosts.length) issues.push({
-    kind: 'outdated_cost',
-    label: `${badCosts.length} productos con total_cost_usd desactualizado`,
-    ids: badCosts,
-    severity: 'warning',
-  });
+  // ⚠️ Acá había un control «costo desactualizado»: marcaba todo producto cuyo
+  // total_cost_usd no fuera cost_usd × (1 + aduana), con un 15 % por defecto
+  // aunque el comercio tuviera 0. Desde C28.1 el costo cargado ya incluye la
+  // aduana, así que cualquier producto nuevo caía como «inconsistente» y el
+  // botón «Reparar» le sumaba un 15 % al costo. Se sacó: no hay una relación
+  // fija que controlar.
 
   return issues;
 }

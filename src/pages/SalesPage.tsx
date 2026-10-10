@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getSalesDB, addSaleDB, addSalesDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, addSalesDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateWholesalePrice, validateCouponDB, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -32,8 +32,6 @@ import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import KPICard from "@/components/shared/KPICard";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { buildSaleTicketDetail, type SaleTicketDetail } from "@/lib/saleTicketDetail";
-import { productoEsPerfume } from "@/lib/catalogIndustry";
-import { listProductTypes } from "@/lib/productTypes";
 import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { ensureSaleTransactionInvoice, printFiscalInvoiceById } from "@/lib/saleInvoice";
@@ -67,12 +65,11 @@ interface SaleLineItem {
   productId: string;
   variantId: string;
   quantity: number;
-  decantSize: string;
   customPrice: string;
 }
 
 function createLineItem(): SaleLineItem {
-  return { id: crypto.randomUUID(), productId: '', variantId: '', quantity: 1, decantSize: 'full', customPrice: '' };
+  return { id: crypto.randomUUID(), productId: '', variantId: '', quantity: 1, customPrice: '' };
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -1820,7 +1817,6 @@ function calcLineItem(
   settings: any,
   paymentMethod: string,
   couponResult: any,
-  typeSlugById: Record<string, string> = {},
 ) {
   const product = products.find(p => p.id === line.productId);
   if (!product) return null;
@@ -1828,23 +1824,15 @@ function calcLineItem(
   const methodConfig = PAYMENT_METHODS.find(m => m.value === paymentMethod);
   const usesDiscount = methodConfig?.usesDiscount ?? false;
   const isMayorista = paymentMethod === 'mayorista';
-  const isPerfume = productoEsPerfume(product, typeSlugById);
-  const contentMl = Number(product.content_ml || 100);
   const exchangeRate = (cotizacionDe(settings) ?? 0);
   const volumeThreshold = Number(settings?.volume_discount_threshold || 3);
   const volumeDiscountPct = Number(settings?.volume_discount_percent || 10);
 
-  const isDecant = line.decantSize !== 'full' && isPerfume;
-  const decantMl = line.decantSize === '10' ? 10 : line.decantSize === '5' ? 5 : line.decantSize === '2.5' ? 2.5 : 0;
-  const decantMargin = line.decantSize === '10' ? Number(settings?.decant_margin_10ml || 250) :
-    line.decantSize === '5' ? Number(settings?.decant_margin_5ml || 350) : Number(settings?.decant_margin_2_5ml || 500);
-  const decantPrice = isDecant ? calculateDecantPrice(Number(product.total_cost_usd || 0), contentMl, decantMl, decantMargin, exchangeRate) : 0;
-
   const discountPrice = product.discount_price_ars ? Number(product.discount_price_ars) : null;
   const normalPrice = Number(product.sale_price_ars) || 0;
-  const baseUnitPrice = isDecant ? decantPrice : (usesDiscount && discountPrice ? discountPrice : normalPrice);
+  const baseUnitPrice = usesDiscount && discountPrice ? discountPrice : normalPrice;
 
-  const applyVolume = (isMayorista || line.quantity >= volumeThreshold) && !isDecant;
+  const applyVolume = isMayorista || line.quantity >= volumeThreshold;
   let autoUnitPrice = baseUnitPrice;
   let volumeWarning = false;
   if (applyVolume) {
@@ -1861,7 +1849,7 @@ function calcLineItem(
 
   const unitPrice = line.customPrice ? (parseFloat(line.customPrice) || priceAfterCoupon) : priceAfterCoupon;
   const total = unitPrice * line.quantity;
-  const costPerUnitUSD = isDecant ? (Number(product.total_cost_usd || 0) / contentMl) * decantMl : Number(product.total_cost_usd || 0);
+  const costPerUnitUSD = Number(product.total_cost_usd || 0);
   const costPerUnitARS = costPerUnitUSD * exchangeRate;
   const profitARS = total - (costPerUnitARS * line.quantity);
   const profitUSD = exchangeRate > 0 ? profitARS / exchangeRate : 0;
@@ -1869,13 +1857,13 @@ function calcLineItem(
   const productVariants = allVariants.filter(v => v.product_id === line.productId && v.stock > 0);
   const selectedVariant = productVariants.find(v => v.id === line.variantId);
   const variantLabel = selectedVariant ? ` (${selectedVariant.variant_name})` : '';
-  const productLabel = isDecant ? `${product.name} (${line.decantSize}ml)` : `${product.name}${variantLabel}`;
+  const productLabel = `${product.name}${variantLabel}`;
 
   return {
-    product, productVariants, selectedVariant, isPerfume, isDecant,
+    product, productVariants, selectedVariant,
     unitPrice, total, costPerUnitUSD, profitARS, profitUSD,
     priceAfterCoupon, autoUnitPrice, volumeWarning, applyVolume,
-    productLabel, usesDiscount, discountPrice, normalPrice, decantPrice,
+    productLabel, usesDiscount, discountPrice, normalPrice,
     volumeDiscountPct,
   };
 }
@@ -1888,7 +1876,6 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [settings, setSettings] = useState<any>(null);
   const [customers, setCustomers] = useState<string[]>([]);
   const [allVariants, setAllVariants] = useState<any[]>([]);
-  const [typeSlugById, setTypeSlugById] = useState<Record<string, string>>({});
   const [locations, setLocations] = useState<Array<{ id: string; name: string; is_main: boolean }>>([]);
   const [locationId, setLocationId] = useState<string>(editItem?.location_id || '');
 
@@ -1896,7 +1883,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const isEditMode = !!editItem;
   const [lines, setLines] = useState<SaleLineItem[]>(
     editItem
-      ? [{ id: '1', productId: editItem.product_id || '', variantId: editItem.variant_id || '', quantity: editItem.quantity || 1, decantSize: 'full', customPrice: String(editItem.unit_price_ars || '') }]
+      ? [{ id: '1', productId: editItem.product_id || '', variantId: editItem.variant_id || '', quantity: editItem.quantity || 1, customPrice: String(editItem.unit_price_ars || '') }]
       : [createLineItem()]
   );
 
@@ -1916,17 +1903,6 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       setProducts(p); setSettings(s); setCustomers(c); setAllVariants(v);
     })();
   }, [userId]);
-
-  useEffect(() => {
-    if (!activeOrg?.id) { setTypeSlugById({}); return; }
-    listProductTypes(activeOrg.id)
-      .then(types => {
-        const map: Record<string, string> = {};
-        for (const t of types) map[t.id] = t.slug;
-        setTypeSlugById(map);
-      })
-      .catch(err => console.error("No se pudieron cargar los tipos para decants", err));
-  }, [activeOrg?.id]);
 
   // Load org locations for the optional location dropdown
   useEffect(() => {
@@ -1962,7 +1938,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   // Calculate all line items
   const lineCalcs = lines.map(line => ({
     line,
-    calc: calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult, typeSlugById),
+    calc: calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult),
   }));
 
   const grandTotal = lineCalcs.reduce((s, { calc }) => s + (calc?.total || 0), 0);
@@ -2046,7 +2022,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             if (line.variantId) await addSaleWithVariantDB(newSale, line.variantId);
             else await addSaleDB(newSale);
             await logAudit(userId, 'create', 'sale', saleId, { product: calc.productLabel, total: calc.total, addedToEdit: editItem.id });
-            if (line.productId && !calc.isDecant && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
+            if (line.productId && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
           }
         }
         toast.success(lineCalcs.length === 1 ? "Venta actualizada" : `Venta actualizada + ${lineCalcs.length - 1} línea(s) agregada(s)`);
@@ -2078,7 +2054,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         await addSalesDB(newSales.map(({ sale }) => sale), 'manual');
         for (const { sale, line, calc } of newSales) {
           await logAudit(userId, 'create', 'sale', sale.id, { product: calc.productLabel, total: calc.total, profit: calc.profitARS, paymentMethod });
-          if (line.productId && !calc.isDecant && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
+          if (line.productId && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
         }
         // La atribucion queda en el mismo commit servidor que el ticket.
         if (couponResult?.valid && couponResult.coupon?.discount_type === 'influencer' && couponResult.coupon?.influencer_exchange) {
@@ -2121,7 +2097,6 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             settings={settings}
             paymentMethod={paymentMethod}
             couponResult={couponResult}
-            typeSlugById={typeSlugById}
             canRemove={lines.length > 1 && (!isEditMode || idx > 0)}
             isEditMode={isEditMode && idx === 0}
             onUpdate={(updates) => updateLine(line.id, updates)}
@@ -2240,7 +2215,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
 
 // ============ SINGLE LINE ITEM ROW ============
 function LineItemRow({
-  line, index, products, allVariants, settings, paymentMethod, couponResult, typeSlugById,
+  line, index, products, allVariants, settings, paymentMethod, couponResult,
   canRemove, isEditMode, onUpdate, onRemove,
 }: {
   line: SaleLineItem;
@@ -2250,18 +2225,15 @@ function LineItemRow({
   settings: any;
   paymentMethod: string;
   couponResult: any;
-  typeSlugById: Record<string, string>;
   canRemove: boolean;
   isEditMode: boolean;
   onUpdate: (updates: Partial<SaleLineItem>) => void;
   onRemove: () => void;
 }) {
-  const calc = calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult, typeSlugById);
+  const calc = calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult);
   const product = products.find(p => p.id === line.productId);
   const productVariants = allVariants.filter(v => v.product_id === line.productId && v.stock > 0);
   const hasVariants = productVariants.length > 0;
-  const isPerfume = product ? productoEsPerfume(product, typeSlugById) : false;
-  const contentMl = Number(product?.content_ml || 100);
   const sellable = useMemo(() => products.filter(p => isEditMode || p.stock > 0), [products, isEditMode]);
 
   return (
@@ -2283,7 +2255,7 @@ function LineItemRow({
       {/* Product selector */}
       <ProductCombobox className="bg-background text-sm" products={sellable} value={line.productId} placeholder="Seleccionar producto..."
         describe={p => `${getCategoryLabel(p.category)} — Stock: ${p.stock}`}
-        onChange={id => onUpdate({ productId: id, variantId: '', customPrice: '', decantSize: 'full' })} />
+        onChange={id => onUpdate({ productId: id, variantId: '', customPrice: '' })} />
 
       {/* Variant selector for vapers or products with variants */}
       {product && hasVariants && (
@@ -2295,24 +2267,6 @@ function LineItemRow({
             ))}
           </SelectContent>
         </Select>
-      )}
-
-      {/* Decant selector for perfumes */}
-      {product && isPerfume && (
-        <div className="flex gap-1.5 flex-wrap">
-          {[
-            { value: 'full', label: `${contentMl}ml` },
-            { value: '10', label: '10ml' },
-            { value: '5', label: '5ml' },
-            { value: '2.5', label: '2.5ml' },
-          ].map(s => (
-            <button key={s.value} type="button"
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${line.decantSize === s.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-accent'}`}
-              onClick={() => onUpdate({ decantSize: s.value, customPrice: '' })}>
-              {s.label}
-            </button>
-          ))}
-        </div>
       )}
 
       <div className="grid grid-cols-2 gap-2">

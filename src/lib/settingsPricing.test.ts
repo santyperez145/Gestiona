@@ -8,9 +8,6 @@ const base = {
   discountCredit: '0',
   volumeThreshold: '3',
   volumeDiscount: '10',
-  decantMargin10: '250',
-  decantMargin5: '350',
-  decantMargin2_5: '500',
 };
 
 describe('configuración de precios del POS', () => {
@@ -29,16 +26,14 @@ describe('configuración de precios del POS', () => {
     });
   });
 
-  it('evita umbrales y márgenes negativos en la misma sección', () => {
+  it('evita umbrales y descuentos negativos en la misma sección', () => {
     expect(buildPricingSettingsUpdate({
       ...base,
       volumeThreshold: '1',
       volumeDiscount: '-10',
-      decantMargin10: '-1',
     })).toMatchObject({
       volume_discount_threshold: 2,
       volume_discount_percent: 0,
-      decant_margin_10ml: 0,
     });
   });
 });

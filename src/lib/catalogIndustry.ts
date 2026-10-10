@@ -69,7 +69,7 @@ export function laFichaEsTecnologia(args: {
 }
 
 /**
- * Resuelve si un producto (fila) admite chrome de perfume / decants.
+ * Resuelve si un producto (fila) es de tipo perfume (ficha olfativa).
  * `typeSlugById` mapea `product_types.id` → slug; vacío = sólo categoría.
  */
 export function productoEsPerfume(

@@ -482,7 +482,7 @@ function AIImageGenerator({ products }: { products: any[] }) {
               <textarea
                 value={customPrompt}
                 onChange={e => setCustomPrompt(e.target.value)}
-                placeholder="Ej: perfume bottle on marble surface, golden hour lighting, luxury feel..."
+                placeholder="Ej: producto sobre fondo neutro, luz natural, estilo catálogo..."
                 rows={3}
                 className="w-full text-xs bg-background border border-border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
               />
@@ -610,18 +610,18 @@ function CampaignCalendar({ onGeneratePost }: { onGeneratePost: (theme: string) 
   const year = now.getFullYear();
 
   const dates: CampaignDate[] = [
-    { date: new Date(year, 0, 1), name: 'Año Nuevo', emoji: '🎉', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10', ideas: ['Pack regalo de inicio de año', 'Oferta "Empezá el año con estilo"', 'Descuento especial primeros días de enero'] },
-    { date: new Date(year, 1, 14), name: 'San Valentín', emoji: '💕', color: 'text-pink-400 border-pink-500/30 bg-pink-500/10', ideas: ['Pack perfume en pareja', 'Gift set con lazo', 'Descuento para regalos de amor', '"El mejor regalo es oler bien"'] },
-    { date: new Date(year, 2, 8), name: 'Día de la Mujer', emoji: '💜', color: 'text-primary border-primary/30 bg-primary/10', ideas: ['Foco en fragancias femeninas', 'Mensaje de empoderamiento', 'Pack especial para regalar', 'Descuento en línea mujer'] },
-    { date: new Date(year, 3, 2), name: 'Día de los Veteranos', emoji: '🇦🇷', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10', ideas: ['Post institucional con respeto', 'Descuento por tiempo limitado', 'Mensaje de orgullo nacional'] },
-    { date: new Date(year, 4, 16), name: 'Hot Sale 🔥', emoji: '🛒', color: 'text-orange-400 border-orange-500/30 bg-orange-500/10', ideas: ['Descuentos de hasta 40%', 'Oferta flash de 48h', 'Pack ahorro multi-producto', '"Tu mejor compra del año"'] },
-    { date: new Date(year, 5, 20), name: 'Día del Padre', emoji: '👨', color: 'text-sky-400 border-sky-500/30 bg-sky-500/10', ideas: ['Perfumes masculinos en pack', 'Gift box elegante para papá', 'Fragancias orientales premium', '"El mejor regalo para papá"'] },
-    { date: new Date(year, 6, 9), name: 'Día de la Independencia', emoji: '🇦🇷', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10', ideas: ['Post patriótico con descuento', 'Celebramos siendo argentinos', 'Feriado = más tiempo para oler bien'] },
-    { date: new Date(year, 6, 20), name: 'Día del Amigo', emoji: '👫', color: 'text-green-400 border-green-500/30 bg-green-500/10', ideas: ['Comprá uno y regalá otro', '2x1 en decants', 'Pack duo para amigos', '"Para oler bien junto a tu mejor amigo"'] },
-    { date: getNthWeekdayOfMonth(year, 10, 0, 2), name: 'Día de la Madre', emoji: '💐', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10', ideas: ['Pack regalo especial mamá', 'Fragancias florales destacadas', 'Envío gratis por el día de la madre', '"El mejor perfume para la mejor mamá"'] },
-    { date: new Date(year, 9, 31), name: 'Halloween', emoji: '🎃', color: 'text-orange-500 border-orange-600/30 bg-orange-600/10', ideas: ['Fragancias oscuras y misteriosas', 'Pack "terror al precio viejo"', 'Descuento especial en perfumes exóticos', '"Olfato de miedo 👻"'] },
-    { date: new Date(year, 10, 3), name: 'Cyber Monday', emoji: '💻', color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10', ideas: ['Ofertas exclusivas online 24h', 'Descuento por pago digital', 'Flash sale relámpago', 'Catálogo online con precios especiales'] },
-    { date: new Date(year, 11, 25), name: 'Navidad', emoji: '🎄', color: 'text-red-400 border-red-500/30 bg-red-500/10', ideas: ['Pack regalo navideño', 'Descuento especial Diciembre', 'Envío gratis para regalos', '"El regalo que nunca falla"'] },
+    { date: new Date(year, 0, 1), name: 'Año Nuevo', emoji: '🎉', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10', ideas: ['Combo de inicio de año', 'Liquidación de stock del año anterior', 'Beneficio para clientes que vuelven en enero'] },
+    { date: new Date(year, 1, 14), name: 'San Valentín', emoji: '💕', color: 'text-pink-400 border-pink-500/30 bg-pink-500/10', ideas: ['Selección de regalos para dos', 'Envoltorio de regalo sin cargo', 'Descuento en compras para regalar'] },
+    { date: new Date(year, 2, 8), name: 'Día de la Mujer', emoji: '💜', color: 'text-primary border-primary/30 bg-primary/10', ideas: ['Mensaje institucional, sin oferta forzada', 'Destacar a las mujeres del equipo o de la comunidad', 'Colección de regalos seleccionados'] },
+    { date: new Date(year, 3, 2), name: 'Día de los Veteranos', emoji: '🇦🇷', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10', ideas: ['Mensaje institucional de memoria y respeto', 'Es una fecha de recordación, no comercial'] },
+    { date: new Date(year, 4, 16), name: 'Hot Sale', emoji: '🛒', color: 'text-orange-400 border-orange-500/30 bg-orange-500/10', ideas: ['Descuentos en las categorías con más stock', 'Oferta relámpago de 48 horas', 'Combos de varios productos', 'Envío sin cargo desde un monto'] },
+    { date: new Date(year, 5, 20), name: 'Día del Padre', emoji: '👨', color: 'text-sky-400 border-sky-500/30 bg-sky-500/10', ideas: ['Selección de regalos para papá', 'Combo regalo con envoltorio', 'Envío a tiempo para el domingo'] },
+    { date: new Date(year, 6, 9), name: 'Día de la Independencia', emoji: '🇦🇷', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10', ideas: ['Mensaje patrio institucional', 'Horario especial de atención del feriado', 'Beneficio de fin de semana largo'] },
+    { date: new Date(year, 6, 20), name: 'Día del Amigo', emoji: '👫', color: 'text-green-400 border-green-500/30 bg-green-500/10', ideas: ['Comprá uno y regalá otro', '2x1 en productos seleccionados', 'Descuento al venir con un amigo'] },
+    { date: getNthWeekdayOfMonth(year, 10, 0, 2), name: 'Día de la Madre', emoji: '💐', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10', ideas: ['Selección de regalos para mamá', 'Envío sin cargo por el Día de la Madre', 'Combo regalo con tarjeta'] },
+    { date: new Date(year, 9, 31), name: 'Halloween', emoji: '🎃', color: 'text-orange-500 border-orange-600/30 bg-orange-600/10', ideas: ['Oferta temática de fin de semana', 'Liquidación de productos de baja rotación', 'Ambientación del local y las redes'] },
+    { date: new Date(year, 10, 3), name: 'Cyber Monday', emoji: '💻', color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10', ideas: ['Ofertas exclusivas online por 24 horas', 'Descuento por pago digital', 'Catálogo online con precios especiales'] },
+    { date: new Date(year, 11, 25), name: 'Navidad', emoji: '🎄', color: 'text-red-400 border-red-500/30 bg-red-500/10', ideas: ['Combos de regalo navideños', 'Envío sin cargo para regalos', 'Horario extendido de diciembre', 'Tarjeta de regalo del negocio'] },
   ].map(d => ({ ...d, date: new Date(d.date.setHours(12, 0, 0, 0)) }))
    .sort((a, b) => {
      const daysA = Math.ceil((a.date.getTime() - now.getTime()) / 86400000);

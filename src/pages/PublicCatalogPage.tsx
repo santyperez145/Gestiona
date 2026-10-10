@@ -20,9 +20,7 @@ import {
   Clock,
   Copy,
   Flame,
-  Eye,
   ShoppingBag,
-  Droplets,
   Zap,
   Users,
   Plus,
@@ -63,16 +61,6 @@ function fmtARS(n: number) {
     currency: "ARS",
     maximumFractionDigits: 0,
   }).format(n);
-}
-
-function pseudoRandom(seed: string, min: number, max: number) {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) {
-    h = (h << 5) - h + seed.charCodeAt(i);
-    h |= 0;
-  }
-  const hour = new Date().getHours();
-  return min + Math.abs((h + hour) % (max - min + 1));
 }
 
 // ─── CountdownTimer ───────────────────────────────────────────────────────────
@@ -191,17 +179,16 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   const [fullSettings, setFullSettings] = useState<any>(null);
 
   // Cart
-  const [cart, setCart] = useState<{ id: string; name: string; price: number; qty: number; size?: string }[]>([]);
+  const [cart, setCart] = useState<{ id: string; name: string; price: number; qty: number }[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
 
-  const addToCart = (product: any, size?: string) => {
+  const addToCart = (product: any) => {
     const price = Number(product.discount_price_ars || product.sale_price_ars);
-    const key = size ? `${product.id}__${size}` : product.id;
     setCart((prev) => {
-      const idx = prev.findIndex((i) => i.id === key);
+      const idx = prev.findIndex((i) => i.id === product.id);
       if (idx >= 0) return prev.map((i, ix) => (ix === idx ? { ...i, qty: i.qty + 1 } : i));
-      return [...prev, { id: key, name: product.name + (size ? ` (${size}ml)` : ""), price, qty: 1, size }];
+      return [...prev, { id: product.id, name: product.name, price, qty: 1 }];
     });
   };
 
@@ -213,7 +200,6 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     setLoadError(false);
     const [pRes, sRes, fsRes] = await Promise.all([
       // Vistas públicas saneadas: sin costos, sin márgenes, sin credenciales.
-      // Los precios de decant vienen ya calculados desde la base.
       fetchCatalogProducts(userId),
       // Un link viejo puede traer user_id u org_name. La frontera pública
       // resuelve ambos sin pedirle a la página que lea settings por su cuenta.
@@ -404,13 +390,12 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     }
   };
 
-  const buildWhatsAppUrl = (product?: any, size?: string) => {
+  const buildWhatsAppUrl = (product?: any) => {
     if (!whatsappNumber) return "";
     const num = whatsappNumber.replace(/[^0-9]/g, "");
-    const sizeLabel = size && size !== "full" ? ` (${size}ml)` : "";
     const msg = product
-      ? `Hola! Me interesa: *${product.name}${sizeLabel}* — ${fmtARS(Number(product.discount_price_ars || product.sale_price_ars))} 🛍️`
-      : "Hola! Vi tu catálogo y me interesa consultar sobre un producto 🛍️";
+      ? `Hola, me interesa: *${product.name}* — ${fmtARS(Number(product.discount_price_ars || product.sale_price_ars))}`
+      : "Hola, vi tu catálogo y quiero consultar por un producto.";
     return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -884,7 +869,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
               fullSettings={fullSettings}
               onAddToCart={
                 whatsappNumber
-                  ? (product, size) => { addToCart(product, size); setDetailProduct(null); }
+                  ? (product) => { addToCart(product); setDetailProduct(null); }
                   : undefined
               }
             />
@@ -1045,7 +1030,6 @@ function ProductCard({
   const isPerfume = p.category === "perfume_arabe" || p.category === "perfume_diseñador";
   const genderInfo = GENDER_LABELS[p.gender];
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
-  const viewers = pseudoRandom(p.id || p.name, 2, 8);
   const volThreshold = Number(fullSettings?.volume_discount_threshold || 0);
   const volPercent = Number(fullSettings?.volume_discount_percent || 0);
   const displayPrice = Number(p.discount_price_ars || p.sale_price_ars);
@@ -1178,9 +1162,6 @@ function ProductCard({
                   <Users className="w-2.5 h-2.5" />{volThreshold}+ = -{volPercent}% OFF
                 </p>
               )}
-              <p className="text-[9px] text-white/20 flex items-center gap-0.5">
-                <Eye className="w-2.5 h-2.5" />{viewers} viendo
-              </p>
             </div>
           )}
         </div>
@@ -1219,14 +1200,13 @@ function ProductDetailModal({
   cuotas?: CuotaOfrecida[];
   primaryColor: string;
   whatsappNumber: string | null;
-  buildWhatsAppUrl: (p?: any, size?: string) => string;
+  buildWhatsAppUrl: (p?: any) => string;
   catalogUrl: string;
   onClose: () => void;
   settings: any;
   fullSettings?: any;
-  onAddToCart?: (product: any, size?: string) => void;
+  onAddToCart?: (product: any) => void;
 }) {
-  const [selectedSize, setSelectedSize] = useState<string>("full");
   const isVaper = p.category === "vaper";
   const [variants, setVariants] = useState<{ id: string; variant_name: string; stock: number; image_url?: string | null }[]>([]);
   const [variantsLoading, setVariantsLoading] = useState(false);
@@ -1248,28 +1228,11 @@ function ProductDetailModal({
   // ofrece el comercio, y eso lo dice la configuración, no el código.
   const textoCuota = textoDeCuotas(cuotas, Number(p.sale_price_ars), fmtARS);
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
-  const contentMl = Number(p.content_ml || 100);
-  const viewers = pseudoRandom(p.id || p.name, 3, 12);
-  // Los precios de decant llegan ya calculados desde `catalog_products`.
-  // Antes se calculaban acá, lo que obligaba a bajar al navegador el costo del
-  // producto y los márgenes de fraccionado — o sea, publicarlos.
-  const decantSizes = isPerfume
-    ? [
-        { value: "full", label: `${contentMl}ml`, sublabel: "Completo", price: Number(p.discount_price_ars || p.sale_price_ars) },
-        { value: "10",  label: "10ml",  sublabel: "Decant", price: Number(p.decant_price_10ml || 0) },
-        { value: "5",   label: "5ml",   sublabel: "Decant", price: Number(p.decant_price_5ml || 0) },
-        { value: "2.5", label: "2.5ml", sublabel: "Decant", price: Number(p.decant_price_2_5ml || 0) },
-      ].filter(s => s.value === "full" || s.price > 0)
-    : [];
-
-  const currentPrice =
-    selectedSize === "full"
-      ? Number(p.discount_price_ars || p.sale_price_ars)
-      : decantSizes.find((s) => s.value === selectedSize)?.price || Number(p.discount_price_ars || p.sale_price_ars);
+  const currentPrice = Number(p.discount_price_ars || p.sale_price_ars);
 
   const handleShareProduct = async () => {
-    const sizeLabel = selectedSize !== "full" ? ` (${selectedSize}ml)` : "";
-    const text = `${p.name}${sizeLabel} — ${fmtARS(currentPrice)} 🛍️\n${catalogUrl}`;
+    const text = `${p.name} — ${fmtARS(currentPrice)}
+${catalogUrl}`;
     if (navigator.share) { try { await navigator.share({ title: p.name, text }); } catch { return; } }
     else { await navigator.clipboard.writeText(text); }
   };
@@ -1279,8 +1242,7 @@ function ProductDetailModal({
     const num = whatsappNumber.replace(/[^0-9]/g, "");
     let msg = `Hola! Me interesa: *${p.name}*`;
     if (isVaper && selectedFlavor) msg += ` — sabor *${selectedFlavor}*`;
-    if (!isVaper && selectedSize !== "full") msg += ` (${selectedSize}ml)`;
-    msg += ` — ${fmtARS(currentPrice)} 🛍️`;
+    msg += ` — ${fmtARS(currentPrice)}`;
     return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
   })();
 
@@ -1419,49 +1381,12 @@ function ProductDetailModal({
           </div>
         )}
 
-        {/* Decant size selector */}
-        {isPerfume && decantSizes.length > 0 && (
-          <div>
-            <p className="text-[10px] font-bold text-white/35 uppercase tracking-wider mb-2.5 flex items-center gap-1">
-              <Droplets className="w-3 h-3" />Tamaño
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              {decantSizes.map((s) => (
-                <button
-                  key={s.value}
-                  onClick={() => setSelectedSize(s.value)}
-                  className={`flex flex-col items-center px-3.5 py-2 rounded-[9px] text-[11px] font-bold transition-all border ${
-                    selectedSize === s.value
-                      ? "text-black border-transparent scale-105 shadow-lg"
-                      : "bg-white/[0.05] text-white/55 hover:bg-white/[0.09] border-white/[0.07]"
-                  }`}
-                  style={selectedSize === s.value ? { background: primaryColor, boxShadow: `0 4px 14px ${primaryColor}45` } : {}}
-                >
-                  <span className="font-black">{s.label}</span>
-                  <span className={`text-[9px] font-medium ${selectedSize === s.value ? "text-black/60" : "text-white/30"}`}>{s.sublabel}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Price block */}
         <div
           className="rounded-[12px] p-4"
           style={{ background: `${primaryColor}0e`, border: `1px solid ${primaryColor}22` }}
         >
-          {selectedSize !== "full" ? (
-            <>
-              <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: `${primaryColor}80` }}>
-                Decant {selectedSize}ml
-              </p>
-              {currentPrice > 0 ? (
-                <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(currentPrice)}</p>
-              ) : (
-                <p className="text-sm text-white/35">Consultá el precio por WhatsApp</p>
-              )}
-            </>
-          ) : hasDiscount ? (
+          {hasDiscount ? (
             <>
               <div className="flex items-center gap-2 mb-1">
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" style={{ background: `${primaryColor}25`, color: primaryColor }}>
@@ -1525,16 +1450,13 @@ function ProductDetailModal({
               {p.stock <= 3 ? `¡Últimas ${plural(p.stock, "unidad", "unidades")} disponibles!` : "Quedan pocas unidades"}
             </p>
           )}
-          <p className="text-[10px] text-white/20 flex items-center gap-1">
-            <Eye className="w-3 h-3" />{viewers} personas viendo este producto ahora
-          </p>
         </div>
 
         {/* Action buttons */}
         <div className="flex gap-2 pt-1">
           {whatsappNumber && onAddToCart && (
             <button
-              onClick={() => { onAddToCart(p, selectedSize !== "full" ? selectedSize : undefined); onClose(); }}
+              onClick={() => { onAddToCart(p); onClose(); }}
               className="flex items-center justify-center gap-1.5 px-4 py-3.5 rounded-[11px] font-bold text-sm transition-all active:scale-95 shrink-0"
               style={{ background: `${primaryColor}20`, color: primaryColor, border: `1px solid ${primaryColor}30` }}
             >
@@ -1552,7 +1474,7 @@ function ProductDetailModal({
               <MessageCircle className="w-5 h-5" fill="white" />
               {isVaper
                 ? selectedFlavor ? `Pedir: ${selectedFlavor}` : "Consultar"
-                : selectedSize !== "full" ? `Decant ${selectedSize}ml` : "Consultar"}
+                : "Consultar"}
             </a>
           )}
           <button

@@ -35,8 +35,14 @@ export interface ProductoParaEvaluar {
   sku?: string | null;
   tags?: string[] | null;
   is_active?: boolean | null;
-  /** ¿Tiene la ficha técnica cargada con algo? (perfumes) */
+  /** ¿Tiene la ficha técnica cargada con algo? */
   tiene_ficha?: boolean;
+  /**
+   * ¿Su tipo de producto tiene ficha técnica? Hoy sólo perfumes. Si no, la
+   * regla «ficha» no aplica: antes un taladro perdía 10 puntos por no tener
+   * familia olfativa.
+   */
+  usa_ficha?: boolean;
 }
 
 export type ImpactoId =
@@ -50,6 +56,8 @@ export interface ReglaCalidad {
   porque: string;
   puntos: number;
   cumple: (p: ProductoParaEvaluar) => boolean;
+  /** A qué productos se le exige. Sin esto, a todos. */
+  aplica?: (p: ProductoParaEvaluar) => boolean;
 }
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
@@ -73,14 +81,14 @@ export const REGLAS: ReglaCalidad[] = [
   {
     id: "peso",
     label: "Peso del producto",
-    porque: "Sin peso el envío se cotiza con el valor por defecto (0,5 kg) y ese mismo número se declara en la etiqueta. Acá los perfumes pesan menos, así que el comprador paga un envío más caro del que corresponde.",
+    porque: "Sin peso el envío se cotiza con el valor por defecto (0,5 kg) y ese mismo número se declara en la etiqueta: si el producto pesa distinto, el comprador paga un envío que no corresponde.",
     puntos: 15,
     cumple: p => (Number(p.weight_kg) || 0) > 0,
   },
   {
     id: "fotos_extra",
     label: "Al menos 2 fotos",
-    porque: "La segunda foto —el frasco de atrás, la caja— es la que saca la duda de si es original.",
+    porque: "La segunda foto —otro ángulo, el empaque, un detalle— es la que saca la última duda antes de comprar.",
     puntos: 10,
     cumple: p => lista(p.image_urls).length >= 2,
   },
@@ -94,14 +102,15 @@ export const REGLAS: ReglaCalidad[] = [
   {
     id: "ficha",
     label: "Ficha técnica",
-    porque: "Familia olfativa, duración y notas: es lo que decide la compra de un perfume que no se puede oler.",
+    porque: "Los datos propios del tipo de producto —en perfumes, familia olfativa, duración y notas— deciden una compra que no se puede probar.",
     puntos: 10,
     cumple: p => p.tiene_ficha === true,
+    aplica: p => p.usa_ficha === true,
   },
   {
     id: "marca",
     label: "Marca",
-    porque: "La mitad de las búsquedas de perfume arrancan por la marca.",
+    porque: "Mucha gente busca por marca: sin ella el producto no aparece en esas búsquedas ni en los filtros.",
     puntos: 5,
     cumple: p => texto(p.brand) !== "",
   },
@@ -131,6 +140,11 @@ export const REGLAS: ReglaCalidad[] = [
 /** Suma de todos los puntos posibles. Se calcula, no se escribe a mano. */
 export const PUNTAJE_MAXIMO = REGLAS.reduce((s, r) => s + r.puntos, 0);
 
+/** Las reglas que se le exigen a este producto. */
+export function reglasQueAplican(p: ProductoParaEvaluar): ReglaCalidad[] {
+  return REGLAS.filter(r => !r.aplica || r.aplica(p));
+}
+
 export interface ItemEvaluado {
   id: ImpactoId;
   label: string;
@@ -156,13 +170,16 @@ export function nivelDePuntaje(puntaje: number): Evaluacion["nivel"] {
 }
 
 export function evaluarProducto(p: ProductoParaEvaluar): Evaluacion {
-  const items = REGLAS.map(r => ({
+  const items = reglasQueAplican(p).map(r => ({
     id: r.id, label: r.label, porque: r.porque, puntos: r.puntos,
     cumple: r.cumple(p),
   }));
 
+  // Sobre lo que se le exige a ESTE producto: un producto completo da 100
+  // aunque su tipo no tenga ficha técnica.
+  const posibles = items.reduce((s, i) => s + i.puntos, 0);
   const ganados = items.filter(i => i.cumple).reduce((s, i) => s + i.puntos, 0);
-  const puntaje = Math.round((ganados / PUNTAJE_MAXIMO) * 100);
+  const puntaje = posibles > 0 ? Math.round((ganados / posibles) * 100) : 100;
 
   return {
     puntaje,

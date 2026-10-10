@@ -19,6 +19,22 @@ const completo: ProductoParaEvaluar = {
   sku: "LAT-ASAD-100",
   tags: ["arabe", "nocturno"],
   tiene_ficha: true,
+  usa_ficha: true,
+};
+
+/** Un producto de otro rubro, completo: su tipo no tiene ficha técnica. */
+const taladro: ProductoParaEvaluar = {
+  id: "2",
+  name: "Taladro percutor 13 mm 750 W",
+  image_url: "https://x/t.jpg",
+  image_urls: ["https://x/t.jpg", "https://x/t2.jpg"],
+  description: "y".repeat(120),
+  brand: "Bosch",
+  category: "herramientas",
+  sale_price_ars: 89990,
+  weight_kg: 2.1,
+  sku: "BOS-GSB13",
+  tags: ["electricas"],
 };
 
 describe("las reglas", () => {
@@ -44,6 +60,34 @@ describe("las reglas", () => {
   });
 });
 
+describe("cualquier rubro, no sólo perfumes", () => {
+  it("un producto completo de otro rubro da 100 sin ficha olfativa", () => {
+    // Hasta 2026-10-09 la ficha se le exigía a todo: un taladro impecable
+    // quedaba en 90 por no tener familia olfativa.
+    const ev = evaluarProducto(taladro);
+    expect(ev.puntaje).toBe(100);
+    expect(ev.items.map(i => i.id)).not.toContain("ficha");
+  });
+
+  it("a un perfume sí se le exige la ficha", () => {
+    const ev = evaluarProducto({ ...completo, tiene_ficha: false });
+    expect(ev.puntaje).toBe(90);
+    expect(ev.faltantes.map(f => f.id)).toEqual(["ficha"]);
+  });
+
+  it("el resumen del catálogo no cuenta la ficha como faltante de otros rubros", () => {
+    const r = resumirCatalogo([taladro, { ...taladro, id: "3" }]);
+    expect(r.ranking.map(f => f.id)).not.toContain("ficha");
+    expect(r.puntajePromedio).toBe(100);
+  });
+
+  it("los textos no hablan de un solo rubro", () => {
+    for (const regla of REGLAS.filter(r => r.id !== "ficha")) {
+      expect(regla.porque, regla.id).not.toMatch(/perfum|frasco|olfativ/i);
+    }
+  });
+});
+
 describe("evaluarProducto", () => {
   it("un producto completo da 100", () => {
     const ev = evaluarProducto(completo);
@@ -52,10 +96,12 @@ describe("evaluarProducto", () => {
     expect(ev.nivel).toBe("completa");
   });
 
-  it("un producto vacío da 0 y lista todo lo que falta", () => {
+  it("un producto vacío da 0 y lista todo lo que se le exige", () => {
     const ev = evaluarProducto({});
     expect(ev.puntaje).toBe(0);
-    expect(ev.faltantes).toHaveLength(REGLAS.length);
+    // La ficha técnica no se le exige a un producto sin tipo con ficha.
+    expect(ev.faltantes).toHaveLength(REGLAS.length - 1);
+    expect(ev.faltantes.map(f => f.id)).not.toContain("ficha");
     expect(ev.nivel).toBe("incompleta");
   });
 

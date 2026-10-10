@@ -29,7 +29,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink, RefreshCw, MoreHorizontal } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
-import { elCatalogoOperaPerfumes, laFichaEsPerfume, laFichaEsTecnologia, laFichaEsVaper } from "@/lib/catalogIndustry";
+import { elCatalogoOperaPerfumes, laFichaEsPerfume, laFichaEsTecnologia, laFichaEsVaper, productoEsPerfume } from "@/lib/catalogIndustry";
 import { commerceHandoffPath, firstProductEmptyCopy, firstProductFormDescription, parseActivationHandoff, posHandoffPath } from "@/lib/activationHandoff";
 import {
   firstProductExpandCopy,
@@ -284,7 +284,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
   const { utils, writeFile } = await import('xlsx');
   const categories = [...new Set(products.map((p: any) => p.category))];
   const wb = utils.book_new();
-  
+
   for (const cat of categories) {
     const catProducts = products.filter((p: any) => p.category === cat);
     const rows = catProducts.map((p: any) => ({
@@ -304,7 +304,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
     ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
     utils.book_append_sheet(wb, ws, getCategoryLabel(cat).substring(0, 31));
   }
-  
+
   // All products sheet
   const allRows = products.map((p: any) => ({
     'Nombre': p.name, 'Marca': p.brand, 'Categoría': getCategoryLabel(p.category),
@@ -315,7 +315,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
   const wsAll = utils.json_to_sheet(allRows);
   wsAll['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
   utils.book_append_sheet(wb, wsAll, 'Todos');
-  
+
   writeFile(wb, `productos_exentry_${new Date().toISOString().slice(0, 10)}.xlsx`);
   toast.success('Excel exportado con hojas por categoría');
 }
@@ -761,6 +761,8 @@ export default function ProductsPage() {
       && Object.values(perfumeDetailsByProduct[p.id]).some(
         (v: any) => Array.isArray(v) ? v.length > 0 : (typeof v === 'string' && v.trim() !== ''),
       ),
+    // La ficha sólo se le pide a quien la tiene en su tipo (hoy, perfumes).
+    usa_ficha: !!perfumeDetailsByProduct[p.id] || productoEsPerfume(p),
   })), [products, perfumeDetailsByProduct]);
 
   const calidadPorProducto = useMemo(
@@ -795,7 +797,9 @@ export default function ProductsPage() {
     if (filterCalidad) {
       const regla = REGLAS.find(r => r.id === filterCalidad);
       const conFicha = calidadPorProducto.get(p.id) ?? p;
-      if (regla && regla.cumple(conFicha as never)) return false;
+      // «Le falta X» sólo a quien se le exige X: la ficha técnica no es un
+      // faltante de un producto cuyo tipo no la tiene.
+      if (regla && ((regla.aplica && !regla.aplica(conFicha as never)) || regla.cumple(conFicha as never))) return false;
     }
     if (search && search.length >= 2 && searchMatchIds && !searchMatchIds.has(p.id)) return false;
     if (search && search.length < 2 && !normalizeText(p.name).includes(normalizeText(search)) && !normalizeText(p.brand ?? '').includes(normalizeText(search))) return false;
@@ -1944,7 +1948,17 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   const [brand, setBrand] = useState(product?.brand || '');
   const [category, setCategory] = useState(product?.category || '');
   const [gender, setGender] = useState(product?.gender || 'unisex');
-  const [costUSD, setCostUSD] = useState(product?.cost_usd?.toString() || '');
+  // C28.1: el costo que se carga ya incluye flete, aduana e impuestos. Los
+  // productos de antes guardaban el costo de origen en `cost_usd` y el puesto
+  // en el local en `total_cost_usd` (+15 %). Se abre el puesto en el local:
+  // si se mostrara `cost_usd`, guardar sin tocar nada le bajaba el costo un
+  // 13 % en silencio —y la autoridad de precios usa justamente ese total—.
+  const [costUSD, setCostUSD] = useState(() => {
+    const origen = Number(product?.cost_usd) || 0;
+    const puesto = Number(product?.total_cost_usd) || 0;
+    const valor = puesto > origen ? puesto : origen;
+    return valor > 0 ? String(valor) : '';
+  });
   /**
    * ⚠️ En qué moneda se compra este producto.
    *

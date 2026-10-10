@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   calculateProductProfits,
-  calculateDecantPrice,
   calculateWholesalePrice,
   calculateTaxes,
   formatARS,
@@ -29,20 +28,6 @@ describe("calculateProductProfits", () => {
     const result = calculateProductProfits(10, 0, 2000, 1000);
     expect(result.customsFee).toBe(0);
     expect(result.totalCostUSD).toBe(10);
-  });
-});
-
-describe("calculateDecantPrice", () => {
-  it("calcula precio de decant proporcional con margen", () => {
-    // 100ml bottle at USD 20 total cost, decant 10ml, 50% margin, rate 1000
-    const price = calculateDecantPrice(20, 100, 10, 50, 1000);
-    // cost_prop = (20/100)*10 = 2 USD; price = 2 * 1000 * 1.5 = 3000
-    expect(price).toBe(3000);
-  });
-
-  it("retorna 0 si contentMl o decantMl es 0", () => {
-    expect(calculateDecantPrice(20, 0, 10, 50, 1000)).toBe(0);
-    expect(calculateDecantPrice(20, 100, 0, 50, 1000)).toBe(0);
   });
 });
 

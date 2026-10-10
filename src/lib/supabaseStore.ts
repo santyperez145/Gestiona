@@ -933,17 +933,6 @@ export function calculateProductProfits(costUSD: number, customsPercent: number,
   return { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD };
 }
 
-/** Calculate decant price based on proportional cost + margin */
-export function calculateDecantPrice(
-  totalCostUSD: number, contentMl: number, decantMl: number,
-  marginPercent: number, exchangeRate: number
-) {
-  if (contentMl <= 0 || decantMl <= 0) return 0;
-  const costPropUSD = (totalCostUSD / contentMl) * decantMl;
-  const priceARS = costPropUSD * exchangeRate * (1 + marginPercent / 100);
-  return Math.round(priceARS);
-}
-
 /** Calculate wholesale price with profitability floor */
 export function calculateWholesalePrice(
   discountPriceARS: number, salePriceARS: number,
@@ -1154,18 +1143,6 @@ export async function getOrgMembersWithProfilesDB(userId: string) {
     role: m.role,
     display_name: profileMap[m.user_id] || `Usuario ${m.user_id.slice(0, 6)}`,
   }));
-}
-
-// Seed products for a new user
-export async function seedProductsForUser(userId: string) {
-  const orgId = await orgIdFor(userId);
-  const { data: existing } = await supabase.from('products').select('id').eq('org_id', orgId).limit(1);
-  if (existing && existing.length > 0) return;
-  const { seedProductsList } = await import('./seedData');
-  const products = seedProductsList.map((p: any) => ({ ...p, user_id: userId, org_id: orgId, id: crypto.randomUUID() }));
-  for (let i = 0; i < products.length; i += 50) {
-    await supabase.from('products').insert(products.slice(i, i + 50));
-  }
 }
 
 // ========= LOYALTY POINTS =========

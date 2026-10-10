@@ -63,9 +63,6 @@ export const SECCION_DE_CAMPO: Record<string, SeccionAjustes> = {
   discount_credit_percent: 'pricing',
   volume_discount_threshold: 'pricing',
   volume_discount_percent: 'pricing',
-  decant_margin_10ml: 'pricing',
-  decant_margin_5ml: 'pricing',
-  decant_margin_2_5ml: 'pricing',
 
   whatsapp_number: 'messaging',
   whatsapp_digest_enabled: 'messaging',

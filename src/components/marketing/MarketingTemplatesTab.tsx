@@ -35,12 +35,15 @@ const POST_TYPES = [
 ];
 
 const INDUSTRIES = [
-  { value: "all", label: "Todas las industrias" },
-  { value: "perfumeria", label: "Perfumería" },
-  { value: "vaper", label: "Vaper / E-cigarette" },
-  { value: "electronico", label: "Electrónica" },
-  { value: "moda", label: "Moda / Ropa" },
+  // Los valores quedan como estaban: son los que ya tienen guardadas las
+  // plantillas de la comunidad. Lo que cambia es el orden —antes Perfumería y
+  // Vaper encabezaban la lista, que eran los rubros del negocio original—.
+  { value: "all", label: "Todos los rubros" },
   { value: "general", label: "General" },
+  { value: "moda", label: "Indumentaria y moda" },
+  { value: "electronico", label: "Tecnología" },
+  { value: "perfumeria", label: "Perfumería y cosmética" },
+  { value: "vaper", label: "Vapers" },
 ];
 
 const EMPTY_FORM = { title: "", content: "", post_type: "post", industry: "", tags: "", is_public: false };
@@ -105,7 +108,7 @@ function TemplateForm({
       </div>
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Tags (separados por coma)</label>
-        <Input value={form.tags} onChange={e => set("tags", e.target.value)} placeholder="oferta, verano, perfume" />
+        <Input value={form.tags} onChange={e => set("tags", e.target.value)} placeholder="oferta, verano, novedades" />
       </div>
       <label className="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" checked={form.is_public} onChange={e => set("is_public", e.target.checked)} className="rounded" />
