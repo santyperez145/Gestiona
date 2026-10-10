@@ -16,7 +16,7 @@ vi.mock('@/lib/usePermissions', () => ({ useModulePermissions: () => mocks.permi
 vi.mock('@/lib/useEntitlements', () => ({ useEntitlements: () => ({ productLimit: mocks.limit, plan: { name: 'Prueba' } }) }));
 vi.mock('@/lib/auditLog', () => ({ logAudit: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('@/lib/broadcastSync', () => ({ broadcastSync: vi.fn() }));
-vi.mock('sonner', () => ({ toast: { success: mocks.success, error: mocks.error } }));
+vi.mock('sonner', () => ({ toast: { success: mocks.success, error: mocks.error, loading: () => 'aviso' } }));
 vi.mock('@/hooks/useAIProductSuggest', () => ({ useAIProductSuggest: () => ({ suggest: vi.fn(), clear: vi.fn(), loading: false, result: null }) }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: () => {
   let single = false;
@@ -30,7 +30,7 @@ vi.mock('@/lib/supabaseStore', async importOriginal => ({
   getProductsDB: vi.fn(() => Promise.resolve([{ ...mocks.product }])),
   getSettingsDB: vi.fn().mockResolvedValue({ exchange_rate: 1000, business_name: 'Prueba' }),
   getVariantsByUserDB: vi.fn().mockResolvedValue([]), getVariantsDB: vi.fn().mockResolvedValue([]),
-  deleteProductDB: mocks.remove, updateProductDB: mocks.update, addProductDB: mocks.add, setStockAbsoluteDB: mocks.stock,
+  deleteProductsDB: mocks.remove, updateProductDB: mocks.update, addProductDB: mocks.add, setStockAbsoluteDB: mocks.stock,
 }));
 vi.mock('@/components/products/CategorySelect', () => ({
   default: () => null,
@@ -52,7 +52,8 @@ beforeEach(() => {
   mocks.org = { id: 'org', name: 'Prueba' };
   mocks.limit = null;
   Object.assign(mocks.permissions, { canCreate: true, canEdit: true, canDelete: true });
-  for (const mock of [mocks.remove, mocks.update, mocks.add, mocks.stock]) mock.mockReset().mockResolvedValue(undefined);
+  for (const mock of [mocks.update, mocks.add, mocks.stock]) mock.mockReset().mockResolvedValue(undefined);
+  mocks.remove.mockReset().mockResolvedValue({ eliminados: ['product'], pendientes: [] });
   mocks.success.mockClear(); mocks.error.mockClear();
   Element.prototype.scrollIntoView = vi.fn();
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} unobserve() {} });
@@ -116,7 +117,7 @@ describe('flujo real de Productos con backend simulado', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar Producto de prueba' }));
     confirmation = await screen.findByRole('alertdialog');
     fireEvent.click(within(confirmation).getByRole('button', { name: /Eliminar$/ }));
-    await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith('product', 'org'));
+    await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith(['product'], 'org', expect.any(Function)));
     await waitFor(() => expect(mocks.success).toHaveBeenCalled());
   });
   it('muestra error recuperable sin SQL ni exito falso al rechazar eliminacion', async () => {
@@ -126,7 +127,7 @@ describe('flujo real de Productos con backend simulado', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar Producto de prueba' }));
     const confirmation = await screen.findByRole('alertdialog');
     fireEvent.click(within(confirmation).getByRole('button', { name: /Eliminar$/ }));
-    expect(await screen.findByText(/Este producto tiene operaciones vinculadas/)).toBeVisible();
+    expect(await screen.findByText(/productos con operaciones vinculadas/)).toBeVisible();
     expect(screen.queryByText(/foreign_key/)).not.toBeInTheDocument();
     expect(mocks.success).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Eliminar Producto de prueba' })).not.toBeDisabled());

@@ -46,6 +46,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Presentaciones (caja, bulto, pack) con código propio: escanearlas en el POS suma sus unidades.
 - [x] Precio propio por presentación y recepción de compras por caja. La base decide el precio de caja (`precio_presentacion_autoritativo`, sólo mejora el precio y exige una caja entera) y el tope de descuento se mide contra él; la recepción convierte cajas con el factor guardado. `scripts/presentation-price-matrix.sql` 7/7 contra la base vinculada en transacción revertida. Aplicada en la base vinculada; la matriz pasó 7/7 contra la base migrada el 2026-10-10.
 
+- [x] Catálogo según el rubro: reglas de categorías por rubro (ferretería, 23 categorías), clasificación automática en cada alta e importación, «Ordenar categorías» con vista previa y deshacer, ficha sin género ni ml en rubros que no los usan, pistas de importación sin falsos positivos y borrado masivo por lotes.
+
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.
 - [ ] AI Store Architect: propuesta revisable que produce configuración versionada.

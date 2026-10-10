@@ -86,18 +86,27 @@ const NUMERIC_FIELDS = new Set<ProductImportField>([
   "low_stock_threshold",
 ]);
 
+// Pistas del primer rubro (perfumería/vapers). Van con límites de palabra:
+// sin ellos «PODADORA» era un vaper, «MANGUERA» masculino y «cemento» también.
+// Accesorio y ropa sólo se reconocen en la categoría que trae la planilla,
+// no en el nombre («ACCESORIO PILETA» es de una ferretería). Lo que no tenga
+// pista queda «otro» y lo clasifican las reglas del rubro en la base
+// (trg_products_categoria_por_rubro).
 const CATEGORY_HINTS: Array<[RegExp, string]> = [
-  [/perfum|fragran|eau de/i, "perfume_diseñador"],
-  [/arab|oud|attar/i, "perfume_arabe"],
-  [/vaper|vape|pod|cigarrillo elect/i, "vaper"],
-  [/accesorio|accessory/i, "accesorio"],
-  [/ropa|talle|indumentaria|prenda/i, "ropa"],
+  [/\b(perfum\w*|fragan\w*|eau de)\b/i, "perfume_diseñador"],
+  [/\b(arab\w*|oud|attar)\b/i, "perfume_arabe"],
+  [/\b(vaper?s?|vape|pods?|cigarrillos? electr\w*)\b/i, "vaper"],
+];
+
+const RAW_CATEGORY_HINTS: Array<[RegExp, string]> = [
+  [/\b(accesorios?|accessor(y|ies))\b/i, "accesorio"],
+  [/\b(ropa|indumentaria|prendas?)\b/i, "ropa"],
 ];
 
 const GENDER_HINTS: Array<[RegExp, string]> = [
-  [/femenin|mujer|woman|female|women/i, "femenino"],
-  [/masculin|hombre|man|male|men/i, "masculino"],
-  [/unisex|both/i, "unisex"],
+  [/\b(femenin[oa]s?|mujer(es)?|woman|women|female)\b/i, "femenino"],
+  [/\b(masculin[oa]s?|hombres?|man|men|male)\b/i, "masculino"],
+  [/\b(unisex|both)\b/i, "unisex"],
 ];
 
 export function normalizeImportHeader(value: string): string {
@@ -167,6 +176,9 @@ export function detectImportCategory(name: string, rawCategory: string): string 
   const combined = `${name} ${rawCategory}`;
   for (const [pattern, category] of CATEGORY_HINTS) {
     if (pattern.test(combined)) return category;
+  }
+  for (const [pattern, category] of RAW_CATEGORY_HINTS) {
+    if (pattern.test(rawCategory)) return category;
   }
   return rawCategory.trim().toLowerCase() || "otro";
 }

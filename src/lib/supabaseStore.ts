@@ -270,6 +270,31 @@ export async function deleteProductDB(id: string, orgId = requireActiveOrgId()) 
   if (error) throw error;
 }
 
+/**
+ * Borra productos por lotes (200 por pedido). Devuelve los ids que ya no
+ * existen al terminar: los borrados ahora y los que otro ya había borrado,
+ * para que una lista desactualizada no se muestre como error de permisos.
+ */
+export async function deleteProductsDB(
+  ids: string[],
+  orgId = requireActiveOrgId(),
+  onProgress?: (hechos: number, total: number) => void,
+): Promise<{ eliminados: string[]; pendientes: string[] }> {
+  const eliminados: string[] = [];
+  for (let i = 0; i < ids.length; i += 200) {
+    const lote = ids.slice(i, i + 200);
+    const { error } = await supabase.from('products').delete().in('id', lote).eq('org_id', orgId);
+    if (error) throw Object.assign(error, { eliminados });
+    const { data: siguen, error: readError } = await supabase.from('products').select('id').in('id', lote).eq('org_id', orgId).limit(lote.length);
+    if (readError) throw Object.assign(readError, { eliminados });
+    const vivos = new Set((siguen ?? []).map(row => row.id));
+    eliminados.push(...lote.filter(id => !vivos.has(id)));
+    onProgress?.(Math.min(i + lote.length, ids.length), ids.length);
+  }
+  const listos = new Set(eliminados);
+  return { eliminados, pendientes: ids.filter(id => !listos.has(id)) };
+}
+
 // ========= PURCHASES =========
 export async function getPurchasesDB(userId: string, organizationId?: string) {
   const orgId = await orgIdFor(userId, organizationId);

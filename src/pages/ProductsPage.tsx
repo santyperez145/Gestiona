@@ -5,6 +5,7 @@ import { paginarPorMarca, PRODUCTOS_POR_PAGINA } from "@/lib/catalogPaging";
 import { UNIDADES_MEDIDA } from "@/lib/unidadMedida";
 import { selectAllRows } from "@/lib/selectAllRows";
 import ProductDuplicatesDialog from "@/components/products/ProductDuplicatesDialog";
+import CategorizeProductsDialog from "@/components/products/CategorizeProductsDialog";
 import { detectarDuplicados } from "@/lib/productDuplicates";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -13,7 +14,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
-import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB } from "@/lib/supabaseStore";
+import { getProductsDB, addProductDB, updateProductDB, deleteProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB } from "@/lib/supabaseStore";
 import ProductPriceListsSection from "@/components/products/ProductPriceListsSection";
 import CatalogImagePicker from "@/components/products/CatalogImagePicker";
 import ProductTableOwn, { type ProductSortColumn } from "@/components/products/ProductTableOwn";
@@ -93,6 +94,7 @@ import {
 import { plural } from "@/lib/plural";
 import { daysSinceKnownDate } from "@/lib/dateFacts";
 import ProductPresentationsEditor from "@/components/products/ProductPresentationsEditor";
+import { camposDelRubro } from "@/lib/rubroCampos";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
 
@@ -388,6 +390,7 @@ export default function ProductsPage() {
   const [lastSaleDate, setLastSaleDate] = useState<Record<string, string>>({}); // last sale date per product id
   const [supplierNames, setSupplierNames] = useState<Record<string, string>>({});
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
+  const [categorizeOpen, setCategorizeOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [productFormDirty, setProductFormDirty] = useState(false);
   const [discardProductChangesOpen, setDiscardProductChangesOpen] = useState(false);
@@ -918,30 +921,45 @@ export default function ProductsPage() {
     deletingRef.current = true;
     setBulkDeleting(true);
     setDeleteError(null);
-    const deleted = new Set<string>();
+    // El avance y el resultado van en un aviso visible: el banner de error
+    // queda arriba de la página y la barra de selección está abajo.
+    const aviso = toast.loading(`Eliminando ${plural(ids.length, "producto")}…`);
+    let eliminados: string[] = [];
     try {
-      for (const id of ids) {
-        if (activeOrgIdRef.current !== orgId) break;
-        await deleteProductDB(id, orgId);
-        deleted.add(id);
-        const product = products.find(item => item.id === id);
-        if (user && product) await logAudit(user.id, 'delete', 'product', id, { name: product.name, bulk: ids.length > 1 });
+      const resultado = await deleteProductsDB(ids, orgId, (hechos, total) => {
+        if (total > 200) toast.loading(`Eliminando… ${hechos} de ${total}`, { id: aviso });
+      });
+      eliminados = resultado.eliminados;
+      if (resultado.pendientes.length) {
+        const message = `${plural(resultado.pendientes.length, "producto")} no se pudo eliminar. Revisá tus permisos o si tiene operaciones vinculadas.`;
+        toast.error(message, { id: aviso });
+        if (activeOrgIdRef.current === orgId) setDeleteError(message);
+      } else {
+        toast.success(`${plural(eliminados.length, "producto")} eliminado${eliminados.length === 1 ? '' : 's'}`, { id: aviso });
       }
-      if (activeOrgIdRef.current === orgId && deleted.size) toast.success(`${plural(deleted.size, "producto")} eliminado${deleted.size === 1 ? '' : 's'}`);
+      if (user && eliminados.length) {
+        await logAudit(user.id, 'delete', 'product', eliminados.length === 1 ? eliminados[0] : orgId, {
+          bulk: ids.length > 1, cantidad: eliminados.length,
+          nombres: eliminados.slice(0, 20).map(id => products.find(item => item.id === id)?.name).filter(Boolean),
+        });
+      }
     } catch (error) {
-      console.error('[ProductsPage] delete failed', { orgId, deleted: deleted.size, error });
+      eliminados = (error as { eliminados?: string[] })?.eliminados ?? [];
+      console.error('[ProductsPage] delete failed', { orgId, deleted: eliminados.length, error });
       const code = (error as { code?: string })?.code;
       const message = code === '23503'
-        ? 'Este producto tiene operaciones vinculadas. Desactivalo desde su ficha para conservar el historial.'
-        : code === '42501' || code === 'PGRST116'
-          ? 'No se pudo eliminar el producto. Revisá tus permisos y actualizá el catálogo.'
+        ? 'Hay productos con operaciones vinculadas que no se pueden borrar. Desactivalos desde su ficha para conservar el historial.'
+        : code === '42501'
+          ? 'No tenés permiso para eliminar productos. Pedíselo al dueño o a un administrador.'
           : 'No pudimos completar la eliminación. Los productos pendientes siguen seleccionados para reintentar.';
+      toast.error(message, { id: aviso });
       if (activeOrgIdRef.current === orgId) setDeleteError(message);
     } finally {
       deletingRef.current = false;
       setBulkDeleting(false);
       if (activeOrgIdRef.current === orgId) {
-        setSelectedIds(previous => new Set([...previous].filter(id => !deleted.has(id))));
+        const borrados = new Set(eliminados);
+        setSelectedIds(previous => new Set([...previous].filter(id => !borrados.has(id))));
         await reload();
       }
     }
@@ -1101,6 +1119,11 @@ export default function ProductsPage() {
                 {canDelete && (
                   <DropdownMenuItem onSelect={() => setDuplicatesOpen(true)}>
                     <Copy className="mr-2 h-4 w-4" />Revisar duplicados{duplicateGroupCount > 0 ? ` (${duplicateGroupCount})` : ""}
+                  </DropdownMenuItem>
+                )}
+                {canEdit && (
+                  <DropdownMenuItem onSelect={() => setCategorizeOpen(true)}>
+                    <Tag className="mr-2 h-4 w-4" />Ordenar categorías
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuLabel>Exportar y etiquetar</DropdownMenuLabel>
@@ -1840,6 +1863,13 @@ export default function ProductsPage() {
       </>
       )}
 
+      <CategorizeProductsDialog
+        open={categorizeOpen}
+        orgId={activeOrg?.id}
+        onClose={() => setCategorizeOpen(false)}
+        onApplied={() => void reload()}
+      />
+
       <ProductDuplicatesDialog
         open={duplicatesOpen}
         orgId={activeOrg?.id}
@@ -2202,6 +2232,8 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   const fichaVaper = laFichaEsVaper({ productTypeSlug, category });
   const fichaTecnologia = laFichaEsTecnologia({ productTypeSlug, category });
   const isVaper = fichaVaper;
+  // Los campos de la ficha siguen al rubro: una ferretería no ve género ni ml.
+  const campos = camposDelRubro(settings?.industry_code, { perfume: fichaPerfume, vaper: fichaVaper });
 
   // Reset subtype and content_ml defaults when category/tipo change
   useEffect(() => {
@@ -3080,11 +3112,11 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><label className="text-sm text-muted-foreground">Género</label>
+        {campos.genero && <div><label className="text-sm text-muted-foreground">Género</label>
           <Select value={gender} onValueChange={value => { markDirty(); setGender(value); }}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem><SelectItem value="unisex">Unisex</SelectItem></SelectContent>
           </Select>
-        </div>
+        </div>}
         <div>
           <div className="flex items-center justify-between gap-2 mb-1">
             <label className="text-sm text-muted-foreground">Stock{manejaStock ? ' *' : ''}</label>
@@ -3321,7 +3353,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           <label className="text-sm text-muted-foreground">Descripción</label>
           <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
         </div>
-        {!fichaTecnologia && !(fichaVaper && vaperSubtype === 'desechable') && (
+        {campos.contenidoMl && !fichaTecnologia && !(fichaVaper && vaperSubtype === 'desechable') && (
           <div>
             <label className="text-sm text-muted-foreground">
               {fichaVaper ? 'Capacidad (ml)' : 'Contenido (ml)'}

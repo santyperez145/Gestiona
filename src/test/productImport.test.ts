@@ -105,3 +105,15 @@ describe("productImportFormat", () => {
     expect(productImportFormat("catalogo.pdf")).toBeNull();
   });
 });
+
+describe("pistas de importación sin falsos positivos de otros rubros", () => {
+  it("una ferretería no recibe vapers, ropa ni géneros por coincidencias parciales", () => {
+    expect(buildProductImportRow({ Nombre: "PODADORA DE ALTURA 18V" }).category).toBe("otro");
+    expect(buildProductImportRow({ Nombre: "ACCESORIO PILETA DE LONA" }).category).toBe("otro");
+    expect(buildProductImportRow({ Nombre: "CASCO DE BICICLETA TALLE LARGE" }).category).toBe("otro");
+    expect(buildProductImportRow({ Nombre: "MANGUERA 1/2 x 25 m" }).gender).toBe("unisex");
+    expect(buildProductImportRow({ Nombre: "CEMENTO PORTLAND 50 KG" }).gender).toBe("unisex");
+    expect(buildProductImportRow({ Nombre: "Pods recargables", Categoría: "" }).category).toBe("vaper");
+    expect(buildProductImportRow({ Nombre: "Remera", Categoría: "Indumentaria" }).category).toBe("ropa");
+  });
+});
