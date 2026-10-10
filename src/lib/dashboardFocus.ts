@@ -36,6 +36,7 @@
  */
 
 import { storeFirstSaleSharePath } from "@/lib/storeFirstPublish";
+import { GRUPOS_PENDIENTE_FISCAL, type ResumenPendienteFiscal } from "@/lib/fiscalExceptions";
 
 export type Urgencia = "critico" | "atencion" | "normal";
 
@@ -134,6 +135,12 @@ export interface DatosFoco {
    * `undefined` = no se midió; no se inventa un horario.
    */
   retiroSinHorario?: boolean;
+  /**
+   * Comprobantes sin CAE agrupados por lo que hay que hacer — el mismo
+   * resumen que la bandeja fiscal de Facturas (`resumenPendientesFiscales`).
+   * `undefined` = no se midió.
+   */
+  facturacion?: ResumenPendienteFiscal[];
 }
 
 /**
@@ -314,6 +321,32 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       accion: "Ver",
       destino: "/deudas",
       urgencia: "normal",
+    });
+  }
+
+  // Una venta sin comprobante válido es un problema con ARCA, no un detalle:
+  // va con lo crítico. El destino es el grupo exacto de la bandeja fiscal,
+  // así el comercio cae en la acción y no en una lista de facturas.
+  const fiscales = d.facturacion ?? [];
+  const conProblema = fiscales.filter(r => r.grupo !== "sin_autorizar" && r.grupo !== "en_verificacion");
+  const nProblema = conProblema.reduce((t, r) => t + r.cantidad, 0);
+  if (nProblema > 0) {
+    lista.push({
+      id: "facturas-con-problema",
+      texto: `${nProblema} ${nProblema === 1 ? "factura que ARCA no autorizó" : "facturas que ARCA no autorizó"}`,
+      accion: GRUPOS_PENDIENTE_FISCAL[conProblema[0].grupo].titulo,
+      destino: `/facturas?fiscal=${conProblema[0].grupo}`,
+      urgencia: "critico",
+    });
+  }
+  const porAutorizar = fiscales.find(r => r.grupo === "sin_autorizar")?.cantidad ?? 0;
+  if (porAutorizar > 0) {
+    lista.push({
+      id: "facturas-por-autorizar",
+      texto: `${porAutorizar} ${porAutorizar === 1 ? "factura lista para autorizar" : "facturas listas para autorizar"}`,
+      accion: "Autorizar",
+      destino: "/facturas?fiscal=sin_autorizar",
+      urgencia: "atencion",
     });
   }
 

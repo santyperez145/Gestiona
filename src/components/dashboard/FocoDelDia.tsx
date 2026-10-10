@@ -27,6 +27,7 @@ import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
 import { countFulfillmentPulse } from "@/lib/storeOrderQueue";
 import { filterAbandonedCartsForQueue, type AbandonedCartRow } from "@/lib/abandonedCarts";
 import { countPendingStockAlerts, type StockAlertRow } from "@/lib/stockAlerts";
+import { resumenPendientesFiscales, type ComprobantePendienteFiscal, type ResumenPendienteFiscal } from "@/lib/fiscalExceptions";
 import { ArrowUp, ArrowDown, Minus, AlertTriangle, AlertCircle, Circle, Check, ArrowRight } from "lucide-react";
 
 const COLOR_URGENCIA: Record<Urgencia, string> = {
@@ -78,6 +79,7 @@ export default function FocoDelDia(p: Props) {
   const [sinConteo, setSinConteo] = useState(false);
   const [ofertasPendientes, setOfertasPendientes] = useState(0);
   const [carritosAbandonados, setCarritosAbandonados] = useState(0);
+  const [facturacion, setFacturacion] = useState<ResumenPendienteFiscal[] | undefined>(undefined);
   const [avisosReposicion, setAvisosReposicion] = useState(0);
   const [productosSinPeso, setProductosSinPeso] = useState(0);
   const [zonasSinTarifa, setZonasSinTarifa] = useState(0);
@@ -237,6 +239,30 @@ export default function FocoDelDia(p: Props) {
     return () => { cancelado = true; };
   }, [p.orgId]);
 
+  // Qué facturar: comprobantes sin CAE, con el mismo criterio que la bandeja
+  // fiscal de Facturas. Sin permiso para leer facturas (un vendedor) la
+  // consulta vuelve vacía y no aparece nada.
+  useEffect(() => {
+    if (!p.orgId) return;
+    let cancelado = false;
+    supabase
+      .from("invoices")
+      .select("status, cae, tipo_comprobante, afip_status, afip_error")
+      .eq("org_id", p.orgId)
+      .is("cae", null)
+      .not("tipo_comprobante", "is", null)
+      .neq("status", "canceled")
+      .limit(1000)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("FocoDelDia / facturación:", error);
+          return;
+        }
+        if (!cancelado) setFacturacion(resumenPendientesFiscales((data ?? []) as ComprobantePendienteFiscal[]));
+      });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
+
   // Señales ATM de conversión (pesos / tarifario) — mismas reglas que Tienda.
   useEffect(() => {
     if (!p.orgId) return;
@@ -310,6 +336,7 @@ export default function FocoDelDia(p: Props) {
     tiendaPublicada: p.tiendaPublicada,
     ordenesOnlinePagas: p.ordenesOnlinePagas,
     retiroSinHorario,
+    facturacion,
   };
 
   const pendientes = construirPendientes(datos);

@@ -16,7 +16,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
 import { countFulfillmentPulse } from "@/lib/storeOrderQueue";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles, ScanLine, ShoppingCart } from "lucide-react";
+import { ChevronDown, Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles, ScanLine, ShoppingCart } from "lucide-react";
 import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
@@ -490,6 +490,11 @@ export default function Dashboard() {
   const [activeDashboardSection, setActiveDashboardSection] = usePersistedState(
     orgViewKey("dashboard.section", activeOrg?.id),
     "dashboard-overview",
+  );
+  // «Más indicadores» arranca plegado: el Inicio muestra primero qué hacer.
+  const [verMasIndicadores, setVerMasIndicadores] = usePersistedState(
+    orgViewKey("dashboard.mas-indicadores", activeOrg?.id),
+    false,
   );
   const visibleDashboardSection = isDashboardViewId(activeDashboardSection)
     ? activeDashboardSection
@@ -1190,7 +1195,7 @@ export default function Dashboard() {
     const projectedMonthlyProfitARS = avgDailyProfitARS * 30;
     const avgMonthlyPurchasesARS = totalPurchasesARS > 0 ? totalPurchasesARS / Math.max(Object.keys(monthMap).length, 1) : 0;
     const projectedCashFlowARS = projectedMonthlySalesARS - avgMonthlyPurchasesARS;
-    
+
     // Break-even
     const avgMarginPerUnit = sales.length > 0 ? grossProfitARS / sales.reduce((s: number, v: any) => s + v.quantity, 0) : 0;
     const fixedCostsEstimate = avgMonthlyPurchasesARS;
@@ -1755,62 +1760,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* USD Rates Banner */}
-      {dolarRates && (dolarRates.blue > 0 || dolarRates.oficial > 0) && (
-        <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-2.5 bg-card border border-border rounded-xl">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Dólar hoy</span>
-          {dolarRates.oficial > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Oficial</span>
-              <span className="text-sm font-bold font-mono">${dolarRates.oficial.toLocaleString('es-AR')}</span>
-            </div>
-          )}
-          {dolarRates.blue > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Blue</span>
-              <span className="text-sm font-bold font-mono text-primary">${dolarRates.blue.toLocaleString('es-AR')}</span>
-            </div>
-          )}
-          {dolarRates.mep > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">MEP</span>
-              <span className="text-sm font-bold font-mono text-blue-400">${dolarRates.mep.toLocaleString('es-AR')}</span>
-            </div>
-          )}
-          {liveExchangeRates?.ccl > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">CCL</span>
-              <span className="text-sm font-bold font-mono text-amber-400">${liveExchangeRates.ccl.toLocaleString('es-AR')}</span>
-            </div>
-          )}
-          {rawData?.settings?.exchange_rate && dolarRates.blue > 0 && (
-            <div className="ml-auto flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] text-muted-foreground">Tu TC:</span>
-              <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-emerald-400'}`}>
-                ${Number(rawData.settings.exchange_rate).toLocaleString('es-AR')}
-              </span>
-              {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && user && (
-                <button
-                  onClick={async () => {
-                    await saveSettingsDB(user.id, { exchange_rate: dolarRates.blue });
-                    toast.success(`TC actualizado a $${dolarRates.blue.toLocaleString('es-AR')} (blue)`);
-                    // Refresh rawData to reflect change
-                    setReloadKey(k => k + 1);
-                  }}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary hover:bg-primary/25 transition-colors font-semibold border border-primary/30"
-                  title="Sincronizar mi tipo de cambio al dólar blue actual"
-                >
-                  ↑ Sincronizar al blue
-                </button>
-              )}
-              <button onClick={refreshRates} title="Actualizar cotizaciones" className="text-muted-foreground hover:text-primary transition-colors ml-1">
-                <ArrowUp className="w-3 h-3 rotate-45" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ── Lo primero que se ve ──────────────────────────────────────────
           Antes el panel abría con la cotización y los accesos rápidos, y las
           ventas del mes aparecían recién scrolleando. Este bloque contesta las
@@ -1948,6 +1897,262 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Today detail panel */}
+      {showTodayDetail && todayDetail && (
+        <div className="mb-5 bg-card border border-emerald-500/30 rounded-xl p-4 shadow-card animate-in slide-in-from-top-2">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-emerald-400" />Detalle de hoy
+            </h3>
+            <button onClick={() => setShowTodayDetail(false)} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-muted/40 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ventas</p>
+              <p className="text-xl font-bold font-display text-emerald-400 mt-0.5">{todayDetail.count}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ticket promedio</p>
+              <p className="text-xl font-bold font-display mt-0.5">{formatARS(todayDetail.avgTicket)}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Método dominante</p>
+              <p className="text-sm font-bold font-display mt-0.5 capitalize">{todayDetail.dominantMethod || "—"}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Top producto</p>
+              <p className="text-sm font-semibold mt-0.5 truncate" title={todayDetail.topProduct}>{todayDetail.topProduct || "—"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Suspense fallback={<DashboardModuleFallback label="Cargando salud operativa" />}>
+        {/* Consistency Alerts (auto-repair) */}
+        {user && <ConsistencyAlerts
+          sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
+          userId={user.id}
+          onRepair={() => setReloadKey(k => k + 1)}
+        />}
+
+        {/* AI Proactive Suggestions */}
+        {activeOrg && !entitlementsLoading && canUseAI && <AIProactiveWidget
+          orgId={activeOrg.id}
+          hasBusinessData={stats.products.length > 0 || stats.rawSales.length > 0}
+        />}
+      </Suspense>
+
+      {/* Tasks Due Today Widget */}
+      {todayTasks.length > 0 && (
+        <div className="mb-5 bg-card border border-blue-500/20 rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Bell className="w-4 h-4 text-blue-400" />Pendientes de hoy · {todayTasks.length}
+            </h3>
+            <Link to="/tareas" className="text-[10px] text-primary hover:underline">Ver todas →</Link>
+          </div>
+          <div className="space-y-1.5">
+            {todayTasks.map(task => (
+              <div key={task.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10 text-sm">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                  task.priority === 'urgent' ? 'bg-destructive' :
+                  task.priority === 'high' ? 'bg-orange-400' :
+                  task.priority === 'medium' ? 'bg-yellow-400' : 'bg-muted-foreground'
+                }`} />
+                <span className="flex-1 truncate text-xs font-medium">{task.title}</span>
+                <span className="text-[10px] shrink-0 text-blue-400 font-medium capitalize">{task.priority}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Urgent Tasks Widget */}
+      {urgentTasks.length > 0 && (
+        <div className="mb-5 bg-card border border-orange-500/20 rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-orange-400" />Tareas urgentes / altas
+            </h3>
+            <Link to="/tareas" className="text-[10px] text-primary hover:underline">Ver todas →</Link>
+          </div>
+          <div className="space-y-1.5">
+            {urgentTasks.map(task => {
+              const today = new Date().toISOString().slice(0, 10);
+              const isOverdue = task.due_date && task.due_date < today;
+              return (
+                <div key={task.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${isOverdue ? "bg-destructive/10 border border-destructive/20" : "bg-muted/30"}`}>
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${task.priority === "urgent" ? "bg-destructive" : "bg-orange-400"}`} />
+                  <span className="flex-1 truncate text-xs font-medium">{task.title}</span>
+                  {task.due_date && (
+                    <span className={`text-[10px] shrink-0 ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                      {isOverdue ? "⚠️ " : ""}{new Date(task.due_date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Smart Alerts Banner — un panel con jerarquía, no banners sueltos.
+          Cada alerta es operativa: dice qué pasa y manda directo a resolverlo. */}
+      {stats.smartAlerts && stats.smartAlerts.length > 0 && (
+        <div className="mb-5 rounded-xl border border-border/70 bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/70">
+            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <Bell className="h-3.5 w-3.5 text-destructive" />
+              Requieren atención ({stats.smartAlerts.length})
+            </span>
+            <Link to="/alertas" className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0">
+              Configurar →
+            </Link>
+          </div>
+          <div className="divide-y divide-border/60">
+            {stats.smartAlerts.map((a: any, i: number) => {
+              const Icon = a.icon;
+              return (
+                <Link
+                  key={i}
+                  to={a.link ?? "#"}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/30 ${
+                    a.type === 'destructive'
+                      ? 'text-destructive'
+                      : 'text-orange-500 dark:text-orange-400'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 font-medium">{a.msg}</span>
+                  <span className="text-xs text-primary shrink-0 font-semibold">Resolver →</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Productos por vencer */}
+      {(stats.products || []).length > 0 && (() => {
+        const today = new Date();
+        const in30 = new Date(today); in30.setDate(today.getDate() + 30);
+        const expiring = (stats.products as any[])
+          .filter(p => p.expiry_date && p.stock > 0)
+          .map(p => ({ ...p, exp: new Date(p.expiry_date + "T12:00:00") }))
+          .filter(p => p.exp <= in30)
+          .sort((a, b) => a.exp.getTime() - b.exp.getTime());
+        if (expiring.length === 0) return null;
+        const expired = expiring.filter(p => p.exp < today);
+        return (
+          <div className="mb-5 bg-card border border-orange-500/30 rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-orange-400" />
+                Productos por vencer
+              </h3>
+              {expired.length > 0 && (
+                <span className="text-[10px] font-semibold bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">
+                  {expired.length} vencido{expired.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              {expiring.slice(0, 5).map((p: any) => {
+                const daysLeft = Math.ceil((p.exp.getTime() - today.getTime()) / 86400000);
+                const isExpired = daysLeft < 0;
+                const isUrgent = daysLeft <= 7;
+                return (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isExpired ? 'bg-destructive' : isUrgent ? 'bg-orange-400' : 'bg-yellow-400'}`} />
+                    <span className="text-xs flex-1 truncate">{p.name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{p.stock} uds</span>
+                    <span className={`text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded ${isExpired ? 'bg-destructive/20 text-destructive' : isUrgent ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {isExpired ? `Vencido` : `${daysLeft}d`}
+                    </span>
+                  </div>
+                );
+              })}
+              {expiring.length > 5 && (
+                <p className="text-[10px] text-muted-foreground text-center pt-1">+{expiring.length - 5} más</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+
+      {/* Más indicadores: análisis del negocio, no tareas del día. Antes iban
+          sueltos entre lo urgente —el mejor día de la semana al lado de una
+          deuda vencida—; ahora esperan plegados y se abren cuando se buscan. */}
+      <section className="mt-8" aria-labelledby="dashboard-mas-indicadores">
+        <button
+          type="button"
+          id="dashboard-mas-indicadores"
+          aria-expanded={verMasIndicadores}
+          onClick={() => setVerMasIndicadores(!verMasIndicadores)}
+          className="flex w-full items-center justify-between rounded-[10px] border border-border/60 bg-card px-4 py-3 text-left text-sm font-medium hover:bg-muted/40"
+        >
+          <span>Más indicadores del negocio<span className="ml-2 text-xs font-normal text-muted-foreground">comparaciones, objetivos, mejores días y horarios, gastos y clientes</span></span>
+          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${verMasIndicadores ? "rotate-180" : ""}`} />
+        </button>
+        {verMasIndicadores && (
+        <div className="mt-4">
+      {/* USD Rates Banner */}
+      {dolarRates && (dolarRates.blue > 0 || dolarRates.oficial > 0) && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-2.5 bg-card border border-border rounded-xl">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Dólar hoy</span>
+          {dolarRates.oficial > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Oficial</span>
+              <span className="text-sm font-bold font-mono">${dolarRates.oficial.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {dolarRates.blue > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Blue</span>
+              <span className="text-sm font-bold font-mono text-primary">${dolarRates.blue.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {dolarRates.mep > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">MEP</span>
+              <span className="text-sm font-bold font-mono text-blue-400">${dolarRates.mep.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {liveExchangeRates?.ccl > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">CCL</span>
+              <span className="text-sm font-bold font-mono text-amber-400">${liveExchangeRates.ccl.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {rawData?.settings?.exchange_rate && dolarRates.blue > 0 && (
+            <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-muted-foreground">Tu TC:</span>
+              <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-emerald-400'}`}>
+                ${Number(rawData.settings.exchange_rate).toLocaleString('es-AR')}
+              </span>
+              {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && user && (
+                <button
+                  onClick={async () => {
+                    await saveSettingsDB(user.id, { exchange_rate: dolarRates.blue });
+                    toast.success(`TC actualizado a $${dolarRates.blue.toLocaleString('es-AR')} (blue)`);
+                    // Refresh rawData to reflect change
+                    setReloadKey(k => k + 1);
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary hover:bg-primary/25 transition-colors font-semibold border border-primary/30"
+                  title="Sincronizar mi tipo de cambio al dólar blue actual"
+                >
+                  ↑ Sincronizar al blue
+                </button>
+              )}
+              <button onClick={refreshRates} title="Actualizar cotizaciones" className="text-muted-foreground hover:text-primary transition-colors ml-1">
+                <ArrowUp className="w-3 h-3 rotate-45" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Monthly summary card */}
       {monthlySummary && !monthlySummaryDismissed && (
         <div className="mb-4 bg-card border border-primary/20 rounded-xl p-3 flex items-start gap-3">
@@ -2000,51 +2205,6 @@ export default function Dashboard() {
         agingCount30={stats.agingCount30}
         rawDebts={stats.rawDebts}
       />
-
-      {/* Today detail panel */}
-      {showTodayDetail && todayDetail && (
-        <div className="mb-5 bg-card border border-emerald-500/30 rounded-xl p-4 shadow-card animate-in slide-in-from-top-2">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-emerald-400" />Detalle de hoy
-            </h3>
-            <button onClick={() => setShowTodayDetail(false)} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-muted/40 rounded-lg p-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ventas</p>
-              <p className="text-xl font-bold font-display text-emerald-400 mt-0.5">{todayDetail.count}</p>
-            </div>
-            <div className="bg-muted/40 rounded-lg p-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ticket promedio</p>
-              <p className="text-xl font-bold font-display mt-0.5">{formatARS(todayDetail.avgTicket)}</p>
-            </div>
-            <div className="bg-muted/40 rounded-lg p-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Método dominante</p>
-              <p className="text-sm font-bold font-display mt-0.5 capitalize">{todayDetail.dominantMethod || "—"}</p>
-            </div>
-            <div className="bg-muted/40 rounded-lg p-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Top producto</p>
-              <p className="text-sm font-semibold mt-0.5 truncate" title={todayDetail.topProduct}>{todayDetail.topProduct || "—"}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <Suspense fallback={<DashboardModuleFallback label="Cargando salud operativa" />}>
-        {/* Consistency Alerts (auto-repair) */}
-        {user && <ConsistencyAlerts
-          sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
-          userId={user.id}
-          onRepair={() => setReloadKey(k => k + 1)}
-        />}
-
-        {/* AI Proactive Suggestions */}
-        {activeOrg && !entitlementsLoading && canUseAI && <AIProactiveWidget
-          orgId={activeOrg.id}
-          hasBusinessData={stats.products.length > 0 || stats.rawSales.length > 0}
-        />}
-      </Suspense>
 
       {/* At-risk customers widget */}
       {atRiskCustomers.length > 0 && (
@@ -2218,60 +2378,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Tasks Due Today Widget */}
-      {todayTasks.length > 0 && (
-        <div className="mb-5 bg-card border border-blue-500/20 rounded-xl p-4 shadow-card">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-              <Bell className="w-4 h-4 text-blue-400" />Pendientes de hoy · {todayTasks.length}
-            </h3>
-            <Link to="/tareas" className="text-[10px] text-primary hover:underline">Ver todas →</Link>
-          </div>
-          <div className="space-y-1.5">
-            {todayTasks.map(task => (
-              <div key={task.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10 text-sm">
-                <span className={`w-2 h-2 rounded-full shrink-0 ${
-                  task.priority === 'urgent' ? 'bg-destructive' :
-                  task.priority === 'high' ? 'bg-orange-400' :
-                  task.priority === 'medium' ? 'bg-yellow-400' : 'bg-muted-foreground'
-                }`} />
-                <span className="flex-1 truncate text-xs font-medium">{task.title}</span>
-                <span className="text-[10px] shrink-0 text-blue-400 font-medium capitalize">{task.priority}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Urgent Tasks Widget */}
-      {urgentTasks.length > 0 && (
-        <div className="mb-5 bg-card border border-orange-500/20 rounded-xl p-4 shadow-card">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-orange-400" />Tareas urgentes / altas
-            </h3>
-            <Link to="/tareas" className="text-[10px] text-primary hover:underline">Ver todas →</Link>
-          </div>
-          <div className="space-y-1.5">
-            {urgentTasks.map(task => {
-              const today = new Date().toISOString().slice(0, 10);
-              const isOverdue = task.due_date && task.due_date < today;
-              return (
-                <div key={task.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${isOverdue ? "bg-destructive/10 border border-destructive/20" : "bg-muted/30"}`}>
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${task.priority === "urgent" ? "bg-destructive" : "bg-orange-400"}`} />
-                  <span className="flex-1 truncate text-xs font-medium">{task.title}</span>
-                  {task.due_date && (
-                    <span className={`text-[10px] shrink-0 ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
-                      {isOverdue ? "⚠️ " : ""}{new Date(task.due_date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Overdue Debts Widget */}
       {(() => {
         const today = new Date().toISOString().slice(0, 10);
@@ -2320,42 +2426,6 @@ export default function Dashboard() {
           </div>
         );
       })()}
-
-      {/* Smart Alerts Banner — un panel con jerarquía, no banners sueltos.
-          Cada alerta es operativa: dice qué pasa y manda directo a resolverlo. */}
-      {stats.smartAlerts && stats.smartAlerts.length > 0 && (
-        <div className="mb-5 rounded-xl border border-border/70 bg-card overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/70">
-            <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <Bell className="h-3.5 w-3.5 text-destructive" />
-              Requieren atención ({stats.smartAlerts.length})
-            </span>
-            <Link to="/alertas" className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0">
-              Configurar →
-            </Link>
-          </div>
-          <div className="divide-y divide-border/60">
-            {stats.smartAlerts.map((a: any, i: number) => {
-              const Icon = a.icon;
-              return (
-                <Link
-                  key={i}
-                  to={a.link ?? "#"}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/30 ${
-                    a.type === 'destructive'
-                      ? 'text-destructive'
-                      : 'text-orange-500 dark:text-orange-400'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span className="flex-1 font-medium">{a.msg}</span>
-                  <span className="text-xs text-primary shrink-0 font-semibold">Resolver →</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Anomaly Detection Panel */}
       {stats.anomalies && stats.anomalies.length > 0 && (
@@ -2675,54 +2745,6 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* Productos por vencer */}
-      {(stats.products || []).length > 0 && (() => {
-        const today = new Date();
-        const in30 = new Date(today); in30.setDate(today.getDate() + 30);
-        const expiring = (stats.products as any[])
-          .filter(p => p.expiry_date && p.stock > 0)
-          .map(p => ({ ...p, exp: new Date(p.expiry_date + "T12:00:00") }))
-          .filter(p => p.exp <= in30)
-          .sort((a, b) => a.exp.getTime() - b.exp.getTime());
-        if (expiring.length === 0) return null;
-        const expired = expiring.filter(p => p.exp < today);
-        return (
-          <div className="mb-5 bg-card border border-orange-500/30 rounded-xl p-4 shadow-card">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-                <Package className="w-4 h-4 text-orange-400" />
-                Productos por vencer
-              </h3>
-              {expired.length > 0 && (
-                <span className="text-[10px] font-semibold bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">
-                  {expired.length} vencido{expired.length !== 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              {expiring.slice(0, 5).map((p: any) => {
-                const daysLeft = Math.ceil((p.exp.getTime() - today.getTime()) / 86400000);
-                const isExpired = daysLeft < 0;
-                const isUrgent = daysLeft <= 7;
-                return (
-                  <div key={p.id} className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isExpired ? 'bg-destructive' : isUrgent ? 'bg-orange-400' : 'bg-yellow-400'}`} />
-                    <span className="text-xs flex-1 truncate">{p.name}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{p.stock} uds</span>
-                    <span className={`text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded ${isExpired ? 'bg-destructive/20 text-destructive' : isUrgent ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                      {isExpired ? `Vencido` : `${daysLeft}d`}
-                    </span>
-                  </div>
-                );
-              })}
-              {expiring.length > 5 && (
-                <p className="text-[10px] text-muted-foreground text-center pt-1">+{expiring.length - 5} más</p>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
       {/* End of day widget */}
       {stats.rawSales && (
         <EndOfDayWidget
@@ -2893,6 +2915,10 @@ export default function Dashboard() {
           </div>
         );
       })()}
+
+        </div>
+        )}
+      </section>
 
       </div>
         )}

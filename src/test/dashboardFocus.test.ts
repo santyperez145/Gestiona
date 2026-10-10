@@ -308,3 +308,36 @@ describe("nivelDelDia", () => {
     expect(nivelDelDia(construirPendientes(VACIO))).toBe("normal");
   });
 });
+
+describe("qué facturar", () => {
+  it("las facturas que ARCA no autorizó van con lo crítico y llevan a la acción exacta", () => {
+    const p = construirPendientes({
+      ...VACIO,
+      facturacion: [{ grupo: "datos_cliente", cantidad: 2 }, { grupo: "reintentar", cantidad: 1 }],
+    });
+    const f = p.find(x => x.id === "facturas-con-problema");
+    expect(f?.texto).toBe("3 facturas que ARCA no autorizó");
+    expect(f?.accion).toBe("Corregir datos del cliente");
+    expect(f?.destino).toBe("/facturas?fiscal=datos_cliente");
+    expect(f?.urgencia).toBe("critico");
+  });
+
+  it("las listas para autorizar son atención, y lo que ARCA está verificando no molesta", () => {
+    const p = construirPendientes({
+      ...VACIO,
+      facturacion: [{ grupo: "sin_autorizar", cantidad: 1 }, { grupo: "en_verificacion", cantidad: 4 }],
+    });
+    expect(p.find(x => x.id === "facturas-por-autorizar")?.texto).toBe("1 factura lista para autorizar");
+    expect(p.find(x => x.id === "facturas-con-problema")).toBeUndefined();
+  });
+
+  it("sin medir no se inventa nada", () => {
+    const p = construirPendientes({ ...VACIO });
+    expect(p.some(x => x.id.startsWith("facturas"))).toBe(false);
+  });
+
+  it("el Foco usa el mismo criterio que la bandeja de Facturas", () => {
+    const foco = readFileSync(resolve(process.cwd(), "src/components/dashboard/FocoDelDia.tsx"), "utf8");
+    expect(foco).toContain("resumenPendientesFiscales(");
+  });
+});
