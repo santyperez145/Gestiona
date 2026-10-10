@@ -38,3 +38,23 @@ describe('gestión: escriben dueño y admin', () => {
     expect(matriz.trim().endsWith('ROLLBACK;')).toBe(true);
   });
 });
+
+describe('las tablas hijas siguen a su padre (20261010000500)', () => {
+  const hijas = leer('supabase/migrations/20261010000500_hijas_escriben_encargados.sql');
+  const sql = hijas.slice(hijas.indexOf('DO $$'));
+
+  it('cubre las seis hijas sin org_id', () => {
+    for (const t of ['plm_quality_checks', 'plm_stage_history', 'plm_versions', 'portal_ticket_messages', 'purchase_request_items', 'recipe_ingredients']) {
+      expect(sql).toContain(`('${t}',`);
+    }
+  });
+
+  it('resuelve el rol en la organización del padre', () => {
+    expect(sql).toContain("public.has_org_role(p.org_id, auth.uid(), ARRAY['owner', 'admin'])");
+    expect(sql).not.toMatch(/FOR ALL/);
+  });
+
+  it('la matriz incluye una hija', () => {
+    expect(leer('scripts/management-writes-matrix.sql')).toContain("'vendedor borra un ingrediente (hija)'");
+  });
+});

@@ -258,7 +258,8 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    criterio medido —sin escritores con rol de usuario ni rutas de vendedor—;
    aplicada y verificada con `scripts/management-writes-matrix.sql`. Quedan
    las de uso compartido (clientes, tareas, ventas, entregas), 19 escritas por
-   funciones INVOKER y 6 tablas hijas sin org_id (2026-10-10).
+   funciones INVOKER (2026-10-10). Las 6 hijas sin org_id siguen a su padre
+   desde `20261010000500`, aplicada y en la misma matriz.
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
    honestos, alerts accionables y soporte con correlación sanitizada.
 4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con

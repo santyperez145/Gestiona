@@ -16,7 +16,7 @@ GRANT ALL ON zz_gestion TO authenticated;
 
 DO $d$
 DECLARE
-  v_owner uuid; v_vend uuid; v_org uuid; v_n int; v_prov uuid;
+  v_owner uuid; v_vend uuid; v_org uuid; v_n int; v_prov uuid; v_receta uuid;
 BEGIN
   SELECT id INTO v_owner FROM auth.users ORDER BY created_at LIMIT 1;
   SELECT id INTO v_vend FROM auth.users WHERE id <> v_owner ORDER BY created_at LIMIT 1;
@@ -25,6 +25,9 @@ BEGIN
   INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_owner, 'owner'), (v_org, v_vend, 'vendedor');
   INSERT INTO public.suppliers (org_id, name) VALUES (v_org, 'ZZ proveedor') RETURNING id INTO v_prov;
   INSERT INTO public.email_suppressions (org_id, email) VALUES (v_org, 'zz-baja@invalid.test');
+  -- Tabla hija sin org_id (20261010000500): sigue a su padre.
+  INSERT INTO public.recipes (org_id, name) VALUES (v_org, 'ZZ receta') RETURNING id INTO v_receta;
+  INSERT INTO public.recipe_ingredients (recipe_id, ingredient_name) VALUES (v_receta, 'ZZ harina');
 
   -- ── Vendedor ────────────────────────────────────────────────────────────
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_vend, 'role', 'authenticated')::text, true);
@@ -35,6 +38,8 @@ BEGIN
   INSERT INTO zz_gestion VALUES ('vendedor borra una baja de email', v_n, '');
   UPDATE public.suppliers SET name = 'ZZ cambiado' WHERE id = v_prov; GET DIAGNOSTICS v_n = ROW_COUNT;
   INSERT INTO zz_gestion VALUES ('vendedor edita un proveedor', v_n, '');
+  DELETE FROM public.recipe_ingredients WHERE recipe_id = v_receta; GET DIAGNOSTICS v_n = ROW_COUNT;
+  INSERT INTO zz_gestion VALUES ('vendedor borra un ingrediente (hija)', v_n, '');
   BEGIN
     INSERT INTO public.product_types (org_id, name, slug) VALUES (v_org, 'ZZ tipo', 'zz-tipo');
     INSERT INTO zz_gestion VALUES ('vendedor crea un tipo de producto', 1, '');
@@ -52,6 +57,8 @@ BEGIN
   INSERT INTO zz_gestion VALUES ('dueño edita un proveedor', v_n, '');
   DELETE FROM public.email_suppressions WHERE org_id = v_org; GET DIAGNOSTICS v_n = ROW_COUNT;
   INSERT INTO zz_gestion VALUES ('dueño borra una baja de email', v_n, '');
+  DELETE FROM public.recipe_ingredients WHERE recipe_id = v_receta; GET DIAGNOSTICS v_n = ROW_COUNT;
+  INSERT INTO zz_gestion VALUES ('dueño borra un ingrediente (hija)', v_n, '');
   RESET ROLE;
 END $d$;
 
