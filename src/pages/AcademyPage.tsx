@@ -6,19 +6,32 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useTutorials } from "@/components/tutorial/TutorialProvider";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { CAMINOS, TUTORIALES, avanceCamino } from "@/lib/tutorials";
+import { ROUTES } from "@/app/routeManifest";
+import { CAMINOS, TUTORIALES, avanceCamino, type CaminoAprendizaje } from "@/lib/tutorials";
+import { useUserRole } from "@/lib/useUserRole";
 
 /** Academia: caminos de aprendizaje con el avance de cada usuario. */
 export default function AcademyPage() {
   usePageTitle("Academia");
   const navigate = useNavigate();
   const { progreso } = useTutorials();
+  const { role } = useUserRole();
+  // Sólo lecciones de pantallas que este rol puede abrir.
+  const caminos = useMemo<CaminoAprendizaje[]>(() => {
+    const permitida = (id: string) => {
+      const t = TUTORIALES[id];
+      const r = t && ROUTES.find(route => route.path === t.ruta);
+      return !!t && (!r || !role || r.roles.includes(role));
+    };
+    return CAMINOS.map(c => ({ ...c, lecciones: c.lecciones.filter(permitida) })).filter(c => c.lecciones.length > 0);
+  }, [role]);
+  const lecciones = useMemo(() => [...new Set(caminos.flatMap(c => c.lecciones))], [caminos]);
   const vistos = useMemo(
     () => new Set([...(progreso ?? new Map()).entries()].filter(([, estado]) => estado === "completado").map(([id]) => id)),
     [progreso],
   );
-  const total = Object.keys(TUTORIALES).length;
-  const hechos = Object.keys(TUTORIALES).filter(id => vistos.has(id)).length;
+  const total = lecciones.length;
+  const hechos = lecciones.filter(id => vistos.has(id)).length;
 
   const abrir = (id: string) => {
     const tutorial = TUTORIALES[id];
@@ -31,7 +44,7 @@ export default function AcademyPage() {
       badge={{ label: `${hechos} de ${total} lecciones`, variant: hechos === total ? "success" : "default" }} />
 
     <div className="grid gap-4 md:grid-cols-2">
-      {CAMINOS.map(camino => {
+      {caminos.map(camino => {
         const avance = avanceCamino(camino, vistos);
         const siguiente = camino.lecciones.find(id => !vistos.has(id));
         return <section key={camino.id} className="rounded-[12px] border border-border/60 bg-card p-4" aria-labelledby={`camino-${camino.id}`}>
