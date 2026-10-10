@@ -454,7 +454,7 @@ function OrganizationScope() {
 }
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="gestiona-theme">
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="gestiona-theme">
   <Sentry.ErrorBoundary fallback={({ error }) => {
     if (hasPendingAppUpdate() || isStaleBuildError(error)) {
       return (

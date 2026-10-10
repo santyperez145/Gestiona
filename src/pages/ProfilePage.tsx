@@ -16,6 +16,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { QRCodeSVG } from 'qrcode.react';
 import PageHeader from '@/components/shared/PageHeader';
 import TrustedDevicesSection from '@/components/auth/TrustedDevicesSection';
+import SesionesPerfil from '@/components/profile/SesionesPerfil';
+import { AparienciaPerfil, NotificacionesPerfil } from '@/components/profile/PreferenciasPerfil';
 import { authErrorForCustomer, checkPassword, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 import { getOptionalEnv } from '@/lib/env';
 
@@ -29,7 +31,7 @@ interface MfaFactor {
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  owner: 'Dueño', admin: 'Administrador', vendedor: 'Vendedor', viewer: 'Viewer',
+  owner: 'Dueño', admin: 'Administrador', vendedor: 'Vendedor', viewer: 'Sólo lectura',
 };
 const ROLE_COLOR: Record<string, string> = {
   owner: 'bg-primary/15 text-primary border-primary/20',
@@ -41,7 +43,7 @@ const ROLE_COLOR: Record<string, string> = {
 export default function ProfilePage() {
   usePageTitle("Mi Perfil");
   const { user } = useAuth();
-  const { memberships, isPlatformAdmin } = useOrg();
+  const { memberships, isPlatformAdmin, activeOrg } = useOrg();
   const currentProfileUser = useRef(user);
   currentProfileUser.current = user;
 
@@ -421,9 +423,17 @@ export default function ProfilePage() {
         icon={User}
         eyebrow="Nerqia / Cuenta"
         title="Mi perfil"
-        description="Administrá tu información personal, organizaciones y seguridad de acceso."
+        description="Tu cuenta, tu seguridad y tus preferencias. Lo del negocio está en Ajustes."
       />
 
+      <nav aria-label="Secciones del perfil" className="flex flex-wrap gap-2">
+        {[["cuenta", "Cuenta"], ["seguridad", "Seguridad"], ["preferencias", "Preferencias"], ["organizaciones", "Organizaciones"]].map(([id, etiqueta]) => (
+          <a key={id} href={`#${id}`} className="rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground hover:border-border hover:text-foreground">{etiqueta}</a>
+        ))}
+      </nav>
+
+      <h2 id="cuenta" className="scroll-mt-20 pt-3 font-display text-[15px] font-semibold tracking-tight">Cuenta</h2>
+      <p className="-mt-3 text-[12px] text-muted-foreground">Cómo te ven los demás en el equipo y con qué email entrás.</p>
       {/* Avatar + Name */}
       <div className="relative space-y-5 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
@@ -515,6 +525,26 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Account info */}
+      <div className="relative space-y-3 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información de cuenta</p>
+        <div className="space-y-0">
+          <div className="info-row">
+            <span>ID de usuario</span>
+            <span className="font-mono text-[11px] text-muted-foreground/60 truncate max-w-[200px]">{user?.id}</span>
+          </div>
+          <div className="info-row">
+            <span>Cuenta creada</span>
+            <span className="font-mono text-[11px] text-muted-foreground/60">
+              {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-AR', { dateStyle: 'long' }) : '—'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="seguridad" className="scroll-mt-20 pt-3 font-display text-[15px] font-semibold tracking-tight">Seguridad</h2>
+      <p className="-mt-3 text-[12px] text-muted-foreground">Contraseña, verificación en dos pasos, dispositivos y sesiones abiertas.</p>
       {/* Password change */}
       <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
@@ -573,36 +603,6 @@ export default function ProfilePage() {
           <Lock className="w-3.5 h-3.5 mr-1.5" />
           {savingPassword ? 'Actualizando...' : 'Actualizar contraseña'}
         </Button>
-      </div>
-
-      {/* Memberships */}
-      <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
-          <Building2 className="w-3 h-3" /> Mis organizaciones
-        </p>
-        {memberships.length === 0
-          ? <p className="text-[12px] text-muted-foreground/55">No pertenecés a ninguna organización.</p>
-          : (
-            <div className="space-y-1.5">
-              {memberships.map(m => (
-                <div key={m.org_id} className="flex items-center justify-between rounded-[8px] border border-border/40 bg-muted/10 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-[5px] bg-primary/10 flex items-center justify-center">
-                      <Building2 className="w-3.5 h-3.5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{m.organization.name}</p>
-                      <p className="text-xs text-muted-foreground">/{m.organization.slug}</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className={`text-xs ${ROLE_COLOR[m.role] || ROLE_COLOR.viewer}`}>
-                    {ROLE_LABEL[m.role] || m.role}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
       </div>
 
       {/* MFA / 2FA */}
@@ -740,28 +740,47 @@ export default function ProfilePage() {
         onRequireFreshMfa={() => requireRecentMfa('recordar este navegador')}
       />}
 
-      {/* Account info */}
-      <div className="relative space-y-3 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
+      <SesionesPerfil ultimoAcceso={user?.last_sign_in_at} />
+
+      <h2 id="preferencias" className="scroll-mt-20 pt-3 font-display text-[15px] font-semibold tracking-tight">Preferencias</h2>
+      <p className="-mt-3 text-[12px] text-muted-foreground">Se guardan en este navegador: cada dispositivo puede tener las suyas.</p>
+      <AparienciaPerfil />
+
+      <NotificacionesPerfil />
+
+      <h2 id="organizaciones" className="scroll-mt-20 pt-3 font-display text-[15px] font-semibold tracking-tight">Organizaciones</h2>
+      <p className="-mt-3 text-[12px] text-muted-foreground">Los negocios a los que tenés acceso y con qué rol.</p>
+      {/* Memberships */}
+      <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información de cuenta</p>
-        <div className="space-y-0 pb-12">
-          <div className="info-row">
-            <span>ID de usuario</span>
-            <span className="font-mono text-[11px] text-muted-foreground/60 truncate max-w-[200px]">{user?.id}</span>
-          </div>
-          <div className="info-row">
-            <span>Cuenta creada</span>
-            <span className="font-mono text-[11px] text-muted-foreground/60">
-              {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-AR', { dateStyle: 'long' }) : '—'}
-            </span>
-          </div>
-          <div className="info-row">
-            <span>Último acceso</span>
-            <span className="font-mono text-[11px] text-muted-foreground/60">
-              {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
-            </span>
-          </div>
-        </div>
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
+          <Building2 className="w-3 h-3" /> Mis organizaciones
+        </p>
+        {memberships.length === 0
+          ? <p className="text-[12px] text-muted-foreground/55">No pertenecés a ninguna organización.</p>
+          : (
+            <div className="space-y-1.5">
+              {memberships.map(m => (
+                <div key={m.org_id} className="flex items-center justify-between rounded-[8px] border border-border/40 bg-muted/10 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-[5px] bg-primary/10 flex items-center justify-center">
+                      <Building2 className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        {m.organization.name}
+                        {activeOrg?.id === m.org_id && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">En uso</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground">/{m.organization.slug}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={`text-xs ${ROLE_COLOR[m.role] || ROLE_COLOR.viewer}`}>
+                    {ROLE_LABEL[m.role] || m.role}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
       </div>
 
       <Dialog open={securityPrompt !== null} onOpenChange={open => { if (!open && !securityVerifying) finishSecurityPrompt(false); }}>

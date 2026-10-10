@@ -22,24 +22,9 @@ import { plural } from "@/lib/plural";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import EmptyState from "@/components/shared/EmptyState";
-const DEFAULT_DEBT_TEMPLATE = "Hola {{nombre}}! 👋 Te recordamos que tenés una deuda pendiente de {{monto}}. Cuando puedas, coordenemos el pago. ¡Muchas gracias!";
-
-function getWaDebtTemplate(orgId?: string): string {
-  try {
-    const key = `gestiona.wa_templates.${orgId || 'default'}`;
-    const saved = JSON.parse(localStorage.getItem(key) || "{}");
-    return saved.debt || DEFAULT_DEBT_TEMPLATE;
-  } catch { return DEFAULT_DEBT_TEMPLATE; }
-}
-
-function buildDebtMsg(d: any, template: string): string {
-  const name = d.customer_name ? d.customer_name.split(" ")[0] : "cliente";
-  const amount = formatARS(Number(d.remaining_ars));
-  return template.replace(/\{\{nombre\}\}/g, name).replace(/\{\{monto\}\}/g, amount);
-}
-
+import { mensajeDeuda, plantillaDeuda } from "@/lib/waTemplates";
 function waDebtLink(d: any, orgId?: string) {
-  const msg = buildDebtMsg(d, getWaDebtTemplate(orgId));
+  const msg = mensajeDeuda(plantillaDeuda(orgId), d.customer_name, formatARS(Number(d.remaining_ars)));
   return `https://wa.me/?text=${encodeURIComponent(msg)}`;
 }
 
@@ -382,17 +367,17 @@ export default function DebtsPage() {
                   return age >= 31 && d.phone;
                 });
                 if (over30.length === 0) return null;
-                const template = getWaDebtTemplate(activeOrg?.id);
+                const template = plantillaDeuda(activeOrg?.id);
                 return (
                   <button
                     className="flex items-center gap-1.5 text-xs bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-lg px-2.5 py-1.5 transition-colors"
                     onClick={() => {
-                      const msgs = over30.map(d => buildDebtMsg(d, template));
+                      const msgs = over30.map(d => mensajeDeuda(template, d.customer_name, formatARS(Number(d.remaining_ars))));
                       navigator.clipboard.writeText(msgs.join("\n\n---\n\n"));
                       toast.success(`${over30.length} mensajes copiados al portapapeles`);
                       // Open WhatsApp for first debtor
                       if (over30[0]?.phone) {
-                        window.open(`https://wa.me/${over30[0].phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(buildDebtMsg(over30[0], template))}`, "_blank");
+                        window.open(`https://wa.me/${over30[0].phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(mensajeDeuda(template, over30[0].customer_name, formatARS(Number(over30[0].remaining_ars))))}`, "_blank");
                       }
                     }}
                   >
@@ -587,8 +572,8 @@ export default function DebtsPage() {
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => {
             const selected = pending.filter(d => selectedIds.has(d.id));
-            const template = getWaDebtTemplate(activeOrg?.id);
-            const msg = selected.map(d => buildDebtMsg(d, template)).join('\n\n---\n\n');
+            const template = plantillaDeuda(activeOrg?.id);
+            const msg = selected.map(d => mensajeDeuda(template, d.customer_name, formatARS(Number(d.remaining_ars)))).join('\n\n---\n\n');
             navigator.clipboard?.writeText(msg).then(() => toast.success(`${selected.length} mensajes copiados al portapapeles`)).catch(() => {
               const firstDebt = selected[0];
               if (firstDebt) window.open(waDebtLink(firstDebt, activeOrg?.id), '_blank');

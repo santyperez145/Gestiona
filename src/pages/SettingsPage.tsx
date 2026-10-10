@@ -6,7 +6,6 @@ import { useAuth } from "@/lib/auth";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
 import { hardReload } from "@/lib/hardReload";
-import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSupported } from "@/lib/pushNotifications";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { getSettingsDB, saveSettingsDB, getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +35,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { buildPricingSettingsUpdate } from "@/lib/settingsPricing";
 import { borrarBorrador, camposCambiados, claveBorrador, guardarBorrador, leerBorrador, seccionesConCambios, soloCambios, type BorradorAjustes } from "@/lib/settingsDraft";
 import { erroresInventarioIA } from "@/lib/inventarioIA";
+import { PLANTILLA_DEUDA_POR_DEFECTO, guardarPlantillaDeuda, mensajeDeuda, plantillaDeuda } from "@/lib/waTemplates";
 import PosSupervisorSettings from "@/components/settings/PosSupervisorSettings";
 import InventarioIASettings from "@/components/settings/InventarioIASettings";
 
@@ -94,8 +94,8 @@ const SETTINGS_SECTIONS = [
     keywords: ["dólar", "cotización", "tipo de cambio", "blue", "aduana", "importación", "markup", "margen", "categoría", "gastos", "cbu", "alias", "banco", "cuenta bancaria", "comisión", "cuotas", "tarjeta", "mercadopago"] },
   { id: "pricing", label: "Precios", title: "Precios y descuentos", description: "Descuentos por medio de pago, por volumen y el tope de descuento en caja.", icon: Tags,
     keywords: ["descuento", "efectivo", "transferencia", "débito", "crédito", "mayorista", "volumen", "decant", "pin", "encargado", "supervisor", "autorización", "caja", "pos"] },
-  { id: "messaging", label: "Mensajería", title: "Mensajería y alertas", description: "WhatsApp, email propio, avisos y notificaciones del equipo.", icon: MessageCircle,
-    keywords: ["whatsapp", "resumen diario", "cumpleaños", "email", "smtp", "correo", "notificaciones", "push", "plantillas", "avisos", "alertas"] },
+  { id: "messaging", label: "Mensajería", title: "Mensajería y alertas", description: "WhatsApp del negocio, email propio, umbrales de alertas y reportes automáticos.", icon: MessageCircle,
+    keywords: ["whatsapp", "resumen diario", "cumpleaños", "recordatorio", "saldo", "email", "smtp", "correo", "plantilla", "umbral", "alertas", "stock bajo", "venta grande", "reportes"] },
   { id: "inventory", label: "Inventario e IA", title: "Reposición e inteligencia", description: "Lote óptimo de compra, stock dormido y los límites de las ofertas con IA.", icon: Package,
     keywords: ["lote óptimo", "eoq", "wilson", "costo por pedido", "almacenamiento", "stock dormido", "sobrestock", "ia", "inteligencia", "ofertas", "tono", "reposición"] },
   { id: "billing", label: "Impuestos", title: "Impuestos y facturación", description: "IVA, ingresos brutos, monotributo, identificación del comprador y tu plan.", icon: Receipt,
@@ -279,69 +279,10 @@ export default function SettingsPage() {
   const [decantMargin5, setDecantMargin5] = useState('350');
   const [decantMargin2_5, setDecantMargin2_5] = useState('500');
 
-  // Push notification state
-  const [pushSubscribed, setPushSubscribed] = useState<boolean>(false);
-  const [pushLoading, setPushLoading] = useState(false);
-  const [pushSupported] = useState(() => isPushSupported());
 
-  const checkPushStatus = useCallback(async () => {
-    const sub = await getCurrentSubscription();
-    setPushSubscribed(!!sub);
-  }, []);
-
-  useEffect(() => { checkPushStatus(); }, [checkPushStatus]);
-
-  // Notification preferences (localStorage per org)
-  const handlePushToggle = async () => {
-    if (!orgForTemplates) return;
-    setPushLoading(true);
-    try {
-      if (pushSubscribed) {
-        await unsubscribeFromPush(orgForTemplates.id);
-        setPushSubscribed(false);
-        toast.success("Notificaciones push desactivadas");
-      } else {
-        const ok = await subscribeToPush(orgForTemplates.id);
-        if (ok) { setPushSubscribed(true); toast.success("Notificaciones push activadas"); }
-        else toast.error("No se pudo activar. Asegurate de que el navegador tenga permiso.");
-      }
-    } finally {
-      setPushLoading(false);
-    }
-  };
-  const notifKey = `gestiona.notif_prefs.${orgForTemplates?.id || 'default'}`;
-  const DEFAULT_NOTIF_PREFS = { low_stock: true, overdue_debt: true, monthly_goal_risk: true, birthday: true, new_customer: false, large_sale: false };
-  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>(() => {
-    try { return { ...DEFAULT_NOTIF_PREFS, ...JSON.parse(localStorage.getItem(notifKey) || "{}") }; } catch { return DEFAULT_NOTIF_PREFS; }
-  });
-  const toggleNotif = (key: string) => {
-    const next = { ...notifPrefs, [key]: !notifPrefs[key] };
-    setNotifPrefs(next);
-    localStorage.setItem(notifKey, JSON.stringify(next));
-  };
-  const waTemplateKey = `gestiona.wa_templates.${orgForTemplates?.id || 'default'}`;
-  const DEFAULT_WA_TEMPLATES = {
-    sale: "Hola {{nombre}}, registramos tu compra por {{monto}}. Gracias por elegirnos.",
-    debt: "Hola {{nombre}}, te recordamos que tenés un saldo pendiente de {{monto}}. Avisanos cuándo te queda cómodo y lo coordinamos. Gracias.",
-    birthday: "¡Feliz cumpleaños, {{nombre}}! Tenemos un beneficio especial para vos este mes. Escribinos y te contamos.",
-    reactivation: "Hola {{nombre}}, hace un tiempo que no te vemos. Tenemos novedades que pueden interesarte. ¿Querés que te las mandemos?",
-    pickup: "Hola {{nombre}}, tu pedido está listo para retirar. Podés pasar en nuestro horario de atención.",
-  };
-  const [waTemplates, setWaTemplates] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem(waTemplateKey) || "{}"); } catch { return {}; }
-  });
-  const getTemplate = (key: string) => waTemplates[key] ?? DEFAULT_WA_TEMPLATES[key as keyof typeof DEFAULT_WA_TEMPLATES] ?? "";
-  const setTemplate = (key: string, value: string) => {
-    const next = { ...waTemplates, [key]: value };
-    setWaTemplates(next);
-    localStorage.setItem(waTemplateKey, JSON.stringify(next));
-  };
-  const resetTemplate = (key: string) => {
-    const next = { ...waTemplates };
-    delete next[key];
-    setWaTemplates(next);
-    localStorage.setItem(waTemplateKey, JSON.stringify(next));
-  };
+  // La única plantilla que alguien lee. Ver src/lib/waTemplates.ts.
+  const [plantillaSaldo, setPlantillaSaldo] = useState(() => plantillaDeuda(orgForTemplates?.id));
+  useEffect(() => { setPlantillaSaldo(plantillaDeuda(orgForTemplates?.id)); }, [orgForTemplates?.id]);
 
   // SMTP config — la clave entra por Edge y nunca vuelve al navegador.
   const [smtpConfig, setSmtpConfig] = useState<SmtpForm>(DEFAULT_SMTP);
@@ -1180,36 +1121,35 @@ export default function SettingsPage() {
 
           {/* WhatsApp message templates */}
           {settingsSection === "messaging" && (
-          <div id="settings-whatsapp" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div id="settings-whatsapp" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-green-400" />Borradores de WhatsApp
+                <MessageCircle className="w-4 h-4 text-green-400" />Recordatorio de saldo por WhatsApp
               </h2>
-              <p className="text-xs text-muted-foreground mt-1">Textos de trabajo para deudas y seguimiento. Los envíos proactivos por Meta usan plantillas aprobadas por Plataforma, no texto libre. Usá <code className="bg-muted px-1 rounded">{"{{nombre}}"}</code> y <code className="bg-muted px-1 rounded">{"{{monto}}"}</code> como variables.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                El texto que arma el botón de WhatsApp en <Link to="/deudas" className="underline underline-offset-2 hover:text-foreground">Deudas</Link>.
+                Usá <code className="font-mono">{"{{nombre}}"}</code> y <code className="font-mono">{"{{monto}}"}</code>: se reemplazan por el primer nombre y el saldo.
+              </p>
             </div>
-            {([
-              { key: "sale",        label: "Venta confirmada" },
-              { key: "debt",        label: "Recordatorio de saldo" },
-              { key: "birthday",    label: "Cumpleaños" },
-              { key: "reactivation",label: "Reactivación" },
-              { key: "pickup",      label: "Pedido listo" },
-            ] as const).map(({ key, label }) => (
-              <div key={key}>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-sm text-muted-foreground">{label}</label>
-                  {waTemplates[key] && (
-                    <button onClick={() => resetTemplate(key)} className="text-[10px] text-muted-foreground hover:text-destructive">Restablecer</button>
-                  )}
-                </div>
-                <Textarea
-                  value={getTemplate(key)}
-                  onChange={e => setTemplate(key, e.target.value)}
-                  rows={2}
-                  className="bg-muted border-border text-xs resize-none"
-                />
-              </div>
-            ))}
-            <p className="text-[10px] text-muted-foreground">Los cambios se guardan automáticamente en este dispositivo.</p>
+            <Textarea
+              value={plantillaSaldo}
+              onChange={e => { setPlantillaSaldo(e.target.value); guardarPlantillaDeuda(orgForTemplates?.id, e.target.value); }}
+              rows={3}
+              aria-label="Texto del recordatorio de saldo"
+              className="bg-muted border-border text-sm resize-none"
+            />
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] text-muted-foreground">
+                Vista previa: {mensajeDeuda(plantillaSaldo, "Laura Gómez", "$ 12.500")}
+              </p>
+              {plantillaSaldo !== PLANTILLA_DEUDA_POR_DEFECTO && (
+                <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground shrink-0"
+                  onClick={() => { setPlantillaSaldo(PLANTILLA_DEUDA_POR_DEFECTO); guardarPlantillaDeuda(orgForTemplates?.id, null); }}>
+                  Volver al texto original
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Se guarda al escribir, en este navegador.</p>
           </div>
           )}
 
@@ -1230,63 +1170,8 @@ export default function SettingsPage() {
           </div>
           )}
 
-          {settingsSection === "messaging" && (
-          <div id="settings-notifications" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
-            <div>
-              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-                <Bell className="w-4 h-4 text-primary" />Notificaciones
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">Activá o desactivá cada tipo de alerta. Los cambios aplican inmediatamente en este dispositivo.</p>
-            </div>
-            {([
-              { key: "low_stock",         label: "Stock bajo",              desc: "Cuando un producto llega al umbral de reposición" },
-              { key: "overdue_debt",      label: "Deuda vencida",           desc: "Cuando un cliente tiene deuda con due_date vencido" },
-              { key: "monthly_goal_risk", label: "Meta mensual en riesgo",  desc: "Cuando quedan ≤7 días y llevas <60% del objetivo" },
-              { key: "birthday",          label: "Cumpleaños de clientes",  desc: "Clientes con cumpleaños en los próximos 7 días" },
-              { key: "new_customer",      label: "Nuevo cliente",           desc: "Al registrar un nuevo cliente en el sistema" },
-              { key: "large_sale",        label: "Venta grande",            desc: "Cuando una venta supera el doble del ticket promedio" },
-            ] as const).map(({ key, label, desc }) => (
-              <div key={key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                <div className="min-w-0 mr-3">
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="text-[10px] text-muted-foreground">{desc}</p>
-                </div>
-                <Switch checked={!!notifPrefs[key]} onCheckedChange={() => toggleNotif(key)} />
-              </div>
-            ))}
-          </div>
-          )}
 
           {/* Push notifications */}
-          {settingsSection === "messaging" && (
-          <div id="settings-push" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
-            <div>
-              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-primary" />Notificaciones Push (PWA)
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">Recibí alertas en tu dispositivo aunque la app esté cerrada. Requiere tener la app instalada como PWA.</p>
-            </div>
-            {!pushSupported ? (
-              <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground flex items-center gap-2">
-                <XCircle className="w-4 h-4 shrink-0" />
-                Este navegador no soporta notificaciones push.
-              </div>
-            ) : (
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <p className="text-sm font-medium">{pushSubscribed ? "Notificaciones push activas" : "Notificaciones push inactivas"}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {pushSubscribed ? "Recibirás alertas de stock, deudas y más en este dispositivo." : "Activá para recibir alertas en este dispositivo."}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {pushLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-                  <Switch checked={pushSubscribed} onCheckedChange={handlePushToggle} disabled={pushLoading} />
-                </div>
-              </div>
-            )}
-          </div>
-          )}
 
           {/* SMTP propio: estado saneado + secreto administrado por Edge. */}
           {settingsSection === "messaging" && (
