@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,32 +11,23 @@ import {
 } from "@/lib/supabaseStore";
 import { useAuth } from "@/lib/auth";
 import { useModulePerms } from "@/lib/permissionsContext";
-import { listInfluencers, listInfluencerContracts, listDeliverables, createDeliverable, updateDeliverable, deleteDeliverable, listPayments, listBrandPortals, type Influencer } from "@/lib/influencersDB";
+import { listInfluencerSales, listInfluencers, listInfluencerContracts, listDeliverables, createDeliverable, updateDeliverable, deleteDeliverable, listPayments, listBrandPortals, type Influencer } from "@/lib/influencersDB";
 import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 import CommerceKPICard from "@/components/commerce/CommerceKPICard";
 import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
-import { Activity, BarChart3, BarChart4, Bell, Building2, Calendar, CheckCircle, CheckCircle2, Copy, DollarSign, ExternalLink, Eye, FileSpreadsheet, Gift, Instagram, Link2, Mail, Megaphone, RefreshCw, Send, Shield, Sparkles, Store, Target, Trash2, Users, Wallet, Zap } from "lucide-react";
+import { BarChart3, CheckCircle, Copy, DollarSign, ExternalLink, Gift, Link2, Megaphone, Target } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useMemo } from "react";
 import { calcInfluencerROI, calcCPM, calcFulfillmentRate } from "@/lib/businessCalc";
+import { ventasDelCanje, ventasMedidasPorCanje, type VentaAtribuida } from "@/lib/ventasDeCanje";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { TrendingUp } from "lucide-react";
-import { Activity as ActivityIcon } from "lucide-react";
-import { BarChart as BarChartIcon } from "lucide-react";
-import { BarChart3 as BarChart3Icon } from "lucide-react";
-import { RefreshCw as RefreshCw2 } from "lucide-react";
-import { FileSpreadsheet as FileSpreadsheetIcon } from "lucide-react";
-import { Tag as TagIcon } from "lucide-react";
-import { Link2 as Link2Icon } from "lucide-react";
-import { ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
 import { useParams } from "react-router-dom";
 import { useCallback } from "react";
-import { Gift as GiftIcon } from "lucide-react";
 
 /**
  * Canjes & Influencers — gestión completa de campañas, contratos, entregables, pagos y brand portal.
@@ -63,6 +53,7 @@ export default function InfluencerExchangesPage() {
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [brandProfiles, setBrandProfiles] = useState<any[]>([]);
+  const [ventasAtribuidas, setVentasAtribuidas] = useState<VentaAtribuida[]>([]);
   const [searchContract, setSearchContract] = useState("");
   const [searchDeliverable, setSearchDeliverable] = useState("");
 
@@ -99,9 +90,13 @@ export default function InfluencerExchangesPage() {
         setDeliverables(d);
         setPayments(pmts);
         setBrandProfiles(bp);
+        // Las ventas atribuidas por código no bloquean la pantalla: sin ellas
+        // se muestra lo cargado a mano, rotulado como tal.
+        listInfluencerSales().then(setVentasAtribuidas).catch(err => console.error('[Canjes] ventas atribuidas', err));
       }
-    } catch {
-      // swallow
+    } catch (err) {
+      console.error('[Canjes] no se pudieron cargar los datos', err);
+      toast.error('No se pudieron cargar los canjes. Reintentá en un momento.');
     } finally {
       setLoading(false);
     }
@@ -132,7 +127,10 @@ export default function InfluencerExchangesPage() {
 
   // KPIs from real data
   const totalInversion = exchanges.reduce((s, e) => s + Number(e.product_value_ars) * e.quantity, 0);
-  const totalSalesGenerated = exchanges.reduce((s, e) => s + Number(e.sales_generated_ars || 0), 0);
+  const ventasMedidas = useMemo(() => ventasMedidasPorCanje(exchanges, ventasAtribuidas), [exchanges, ventasAtribuidas]);
+  const ventasDe = (e: (typeof exchanges)[number]) => ventasDelCanje(e, ventasMedidas);
+  const totalSalesGenerated = exchanges.reduce((s, e) => s + ventasDe(e).monto, 0);
+  const algunaMedida = exchanges.some(e => ventasDe(e).fuente === "medido");
   const totalReach = exchanges.reduce((s, e) => s + (e.influencer_followers || 0) * (e.actual_posts || e.expected_posts || 1), 0);
   const totalExpected = exchanges.reduce((s, e) => s + (e.expected_posts || 0), 0);
   const totalActual = exchanges.reduce((s, e) => s + (e.actual_posts || 0), 0);
@@ -419,7 +417,9 @@ export default function InfluencerExchangesPage() {
                         <td className="p-3">{ex.product_name}</td>
                         <td className="p-3 text-center font-mono text-xs">{ex.discount_code || "—"}</td>
                         <td className="p-3 text-right font-medium">{_fmt(Number(ex.product_value_ars) * ex.quantity)}</td>
-                        <td className="p-3 text-right">{_fmt(Number(ex.sales_generated_ars || 0))}</td>
+                        <td className="p-3 text-right">
+                          {(() => { const v = ventasDe(ex); return v.fuente === "sin_dato" ? <span className="text-muted-foreground">—</span> : <>{_fmt(v.monto)}<p className="text-[10px] text-muted-foreground">{v.fuente === "medido" ? "medido por código" : "cargado a mano"}</p></>; })()}
+                        </td>
                         <td className="p-3 text-center">{ex.actual_posts || 0}/{ex.expected_posts || 0}</td>
                         <td className="p-3 text-center">{ex.status}</td>
                         <td className="p-3 text-right">
@@ -466,7 +466,7 @@ export default function InfluencerExchangesPage() {
       {(pageTab === "canjes" || pageTab === "dashboard") && exchanges.length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <CommerceKPICard title="Inversión (costo)" value={_fmt(totalInversion)} icon={Target} description="Lo que realmente costó" />
-          <CommerceKPICard title="Ventas generadas" value={totalSalesGenerated > 0 ? _fmt(totalSalesGenerated) : "Sin datos"} icon={DollarSign} description={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%` : "Cargá ventas atribuidas"} />
+          <CommerceKPICard title="Ventas generadas" value={totalSalesGenerated > 0 ? _fmt(totalSalesGenerated) : "Sin datos"} icon={DollarSign} description={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%${algunaMedida ? ' · medido por código' : ''}` : "Sin ventas con código del creador"} />
           <CommerceKPICard title="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} description={`${totalActual}/${totalExpected} posts`} />
           <CommerceKPICard title="CPM" value={cpm !== null ? _fmt(cpm) : "—"} icon={Megaphone} description={`${(totalReach / 1000).toFixed(1)}K alcance`} />
         </div>
@@ -494,12 +494,12 @@ export default function InfluencerExchangesPage() {
             </div>
           </div>
           {/* ROI Chart */}
-          {exchanges.filter(e => Number(e.sales_generated_ars || 0) > 0).length > 0 && (() => {
+          {exchanges.filter(e => ventasDe(e).monto > 0).length > 0 && (() => {
             const chartData = exchanges
               .filter(e => Number(e.product_value_ars) * e.quantity > 0)
               .map(e => {
                 const inv = Number(e.product_value_ars) * e.quantity;
-                const sales = Number(e.sales_generated_ars || 0);
+                const sales = ventasDe(e).monto;
                 const roi = inv > 0 && sales > 0 ? ((sales - inv) / inv * 100) : 0;
                 return { name: (e.influencer_name || "").split(' ')[0], roi: parseFloat(roi.toFixed(1)), inv, sales };
               })
