@@ -268,7 +268,7 @@ test("Profit real: alias, canonical RPC and honest contribution", async ({ page 
   expect(period.coverage.lines).toBeGreaterThanOrEqual(0);
   expect(period.operations.length).toBeLessThanOrEqual(period.pageSize);
   expect(period.filters).toEqual({ storeId: null, channel: null, groupBy: "product" });
-  await expect(page).toHaveURL(/\/analytics\?.*vista=rentabilidad/);
+  await expect(page).toHaveURL(/\/reportes\?.*vista=rentabilidad/);
   await expect(page.getByRole("heading", { name: "Rentabilidad del período" })).toBeVisible();
   if (period.coverage.lines > 0) {
     await expect(page.getByText(`${period.operationCount} operaciones · ${period.coverage.lines} líneas`, { exact: true })).toBeVisible();

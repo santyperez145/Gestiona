@@ -38,12 +38,14 @@ export default function TutorialHelp({ ruta, inmersiva }: { ruta: RutaParaTutori
     if (elegido) window.setTimeout(() => iniciar(elegido), 400);
   }, [params, setParams, tutorial, iniciar]);
 
-  const ofrecer = !!tutorial && !!progreso && !activo && !progreso.has(tutorial.id)
+  // En las pantallas inmersivas (la caja) la oferta flotante tapaba el carrito
+  // y el cobro en pantallas chicas: ahí el recorrido queda en el botón de ayuda.
+  const ofrecer = !inmersiva && !!tutorial && !!progreso && !activo && !progreso.has(tutorial.id)
     && ofertaCerrada !== tutorial.id && !params.get("tutorial");
 
   return <>
     {ofrecer && tutorial && <div role="status"
-      className={`fixed z-40 w-[min(20rem,calc(100vw-2rem))] rounded-[12px] border border-border bg-card p-3 shadow-lg ${inmersiva ? "right-4 top-14" : "bottom-20 right-4"}`}>
+      className="fixed bottom-20 right-4 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-[12px] border border-border bg-card p-3 shadow-lg">
       <p className="text-sm font-semibold">Recorrido: {tutorial.titulo}</p>
       <p className="mt-1 text-xs text-muted-foreground">{tutorial.resumen} Te lo muestro en {tutorial.minutos} min.</p>
       <div className="mt-2 flex justify-end gap-2">

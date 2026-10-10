@@ -99,7 +99,7 @@ test("synthetic Profit: complete population, pagination, keyboard, persistence a
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   const calls = await mockProfit(page);
   await page.goto("/profit?df=2026-09-01&dt=2026-09-30");
-  await expect(page).toHaveURL(/\/analytics\?.*vista=rentabilidad/);
+  await expect(page).toHaveURL(/\/reportes\?.*vista=rentabilidad/);
   await expect(page.getByRole("heading", { name: "Rentabilidad del período" })).toBeVisible();
   await expect(page.getByText("27 operaciones · 1007 líneas", { exact: true })).toBeVisible();
   expect(calls[0]).toMatchObject({ p_org_id: orgId, p_from: "2026-09-01", p_to: "2026-09-30", p_page_size: 25 });
