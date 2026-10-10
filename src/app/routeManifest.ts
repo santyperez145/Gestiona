@@ -64,7 +64,7 @@ import {
   Scale, ScanBarcode, ScanLine, ScanSearch, Settings, Share2,
   Shield, ShoppingBag, ShoppingCart, Sparkles, Star, Tag,
   TrendingUp, Trophy, Truck, UserCircle, UserPlus, Users,
-  Users2, Wallet, Warehouse, Zap, Target, Search,
+  Users2, Wallet, ArrowDownUp, Warehouse, Zap, Target, Search,
   GraduationCap,
 } from "lucide-react";
 import { lazy } from "react";
@@ -245,7 +245,10 @@ export const ROUTES: RouteDefinition[] = [
   { id: "cash_flow", path: "/finance/flujo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CashFlowPage")), module: "finance", aliases: [{ path: "/cash-flow", redirectTo: "/finance/flujo" }], status: "canonical", productSurface: "finance", nav: { label: "Flujo de caja", icon: BarChart3, group: "finance", keywords: ["cash flow", "proyección de plata", "liquidez"] } },
   { id: "pl_dashboard", path: "/finance/resultados", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PLDashboardPage")), module: "finance", aliases: [{ path: "/pl-dashboard", redirectTo: "/finance/resultados" }, { path: "/escenarios-financieros", redirectTo: "/finance/resultados" }], status: "canonical", productSurface: "finance", nav: { label: "Resultados", icon: TrendingUp, group: "finance", keywords: ["p&l", "pl", "ganancias y pérdidas", "rentabilidad", "estado de resultados"] } },
   { id: "banco", path: "/finance/banco", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BankReconciliationPage")), module: "finance", aliases: [{ path: "/banco", redirectTo: "/finance/banco" }, { path: "/finance/banco/reconciliacion", redirectTo: "/finance/banco" }], status: "canonical", productSurface: "finance", nav: { label: "Banco", icon: Landmark, group: "finance", keywords: ["conciliar", "extracto", "movimientos bancarios", "reconciliación", "match bancario", "estado cuenta", "exportación contable", "ARCA"] } },
-  { id: "movimientos", path: "/movimientos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinancialMovementsPage")), module: "payments", status: "canonical", nav: { label: "Movimientos operativos", icon: BookOpen, group: "finance", keywords: ["libro mayor", "movimientos", "caja", "asientos", "financial movements"] } },
+  // «Movimientos operativos» tenía «libro mayor» entre sus palabras y se
+  // confundía con /finance/libro. Es la lista de entradas y salidas de plata
+  // con saldo corrido; el libro mayor es el resultado contable.
+  { id: "movimientos", path: "/movimientos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinancialMovementsPage")), module: "payments", status: "canonical", nav: { label: "Entradas y salidas", icon: ArrowDownUp, group: "finance", keywords: ["movimientos", "movimientos operativos", "libro mayor", "caja", "entradas", "salidas", "ingresos", "egresos", "saldo", "flujo diario"] } },
   { id: "cheques", path: "/cheques", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ChequesPage")), module: "finance", status: "canonical", nav: { label: "Cheques", icon: FileText, group: "finance", keywords: ["echeq", "valores", "cartera"] } },
   { id: "comisiones", path: "/comisiones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SellerCommissionsPage")), module: "finance", status: "canonical", nav: { label: "Comisiones", icon: Receipt, group: "finance", keywords: ["vendedores", "aranceles", "mercadopago"] } },
   { id: "impuestos", path: "/impuestos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/TaxManagementPage")), module: "finance", status: "canonical", nav: { label: "Impuestos", icon: Scale, group: "finance", keywords: ["iva", "ingresos brutos", "retenciones", "arca"] } },

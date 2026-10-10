@@ -94,7 +94,7 @@ export function marginGapAction(
         code,
         label,
         href: "/movimientos",
-        note: "Revisá costos de cobro y liquidaciones en Movimientos operativos.",
+        note: "Revisá costos de cobro y liquidaciones en Entradas y salidas.",
       };
     case "iva":
       return {

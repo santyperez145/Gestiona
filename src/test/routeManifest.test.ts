@@ -226,7 +226,8 @@ describe("la página que dice ser el libro mayor lo es", () => {
     // Lee `financial_movements`, no el ledger. Dos pantallas con el mismo
     // nombre y distinta fuente es como se llega a dos verdades financieras.
     const mov = navRoutes().find(r => r.path === "/movimientos");
-    expect(mov?.nav?.label).toBe("Movimientos operativos");
+    // 2026-10-10: «Entradas y salidas», que es lo que muestra.
+    expect(mov?.nav?.label).toBe("Entradas y salidas");
     // Pero quien busque "libro mayor" tiene que seguir encontrándola.
     expect(mov?.nav?.keywords).toContain("libro mayor");
   });
