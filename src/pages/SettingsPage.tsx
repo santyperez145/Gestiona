@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, CreditCard, MessageCircle, ShoppingBag, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package, Tag, ExternalLink } from "lucide-react";
+import { LayoutList, RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, CreditCard, MessageCircle, ShoppingBag, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package, Tag, ExternalLink } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
@@ -35,6 +35,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { buildPricingSettingsUpdate } from "@/lib/settingsPricing";
 import { borrarBorrador, camposCambiados, claveBorrador, guardarBorrador, leerBorrador, seccionesConCambios, soloCambios, type BorradorAjustes } from "@/lib/settingsDraft";
 import { erroresInventarioIA } from "@/lib/inventarioIA";
+import { PERFILES_MENU, esPerfilMenu, type PerfilMenu } from "@/lib/navigation";
 import { PLANTILLA_DEUDA_POR_DEFECTO, guardarPlantillaDeuda, mensajeDeuda, plantillaDeuda } from "@/lib/waTemplates";
 import PosSupervisorSettings from "@/components/settings/PosSupervisorSettings";
 import InventarioIASettings from "@/components/settings/InventarioIASettings";
@@ -100,8 +101,8 @@ const SETTINGS_SECTIONS = [
     keywords: ["lote óptimo", "eoq", "wilson", "costo por pedido", "almacenamiento", "stock dormido", "sobrestock", "ia", "inteligencia", "ofertas", "tono", "reposición"] },
   { id: "billing", label: "Impuestos", title: "Impuestos y facturación", description: "IVA, ingresos brutos, monotributo, identificación del comprador y tu plan.", icon: Receipt,
     keywords: ["iva", "iibb", "ingresos brutos", "monotributo", "arca", "afip", "factura", "cuit", "dni", "consumidor final", "plan", "suscripción"] },
-  { id: "system", label: "Sistema", title: "Seguridad y datos", description: "Doble factor, respaldos, exportación y accesos de soporte.", icon: Shield,
-    keywords: ["seguridad", "2fa", "doble factor", "mfa", "respaldo", "backup", "exportar", "excel", "json", "soporte", "auditoría", "caché", "permisos"] },
+  { id: "system", label: "Sistema", title: "Menú, seguridad y datos", description: "Qué se ve en el menú, doble factor, respaldos, exportación y accesos de soporte.", icon: Shield,
+    keywords: ["menú", "perfil", "emprendedor", "avanzado", "más herramientas", "seguridad", "2fa", "doble factor", "mfa", "respaldo", "backup", "exportar", "excel", "json", "soporte", "auditoría", "caché", "permisos"] },
 ] as const;
 
 type SettingsSectionId = typeof SETTINGS_SECTIONS[number]["id"];
@@ -211,6 +212,7 @@ export default function SettingsPage() {
   }, [opcionesCategoria, categoriasOrg, categoryPricing]);
   const [taxEnabled, setTaxEnabled] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [perfilMenu, setPerfilMenu] = useState<PerfilMenu | null>(null);
   const [taxIva, setTaxIva] = useState('21');
   const [taxPricesIncludeIva, setTaxPricesIncludeIva] = useState(true);
   const [taxIibb, setTaxIibb] = useState('3.5');
@@ -468,6 +470,7 @@ export default function SettingsPage() {
     setCategoryPricing((s.category_pricing as Record<string, { markup?: number; discount?: number }>) || {});
     setTaxEnabled(!!s.tax_enabled);
     setMfaRequired(!!s.mfa_required);
+    setPerfilMenu(esPerfilMenu(s.perfil_menu) ? s.perfil_menu : null);
     setTaxIva(String(s.tax_iva_percent ?? 21));
     setTaxPricesIncludeIva(s.tax_prices_include_iva !== false);
     setTaxIibb(String(s.tax_iibb_percent ?? 3.5));
@@ -579,6 +582,7 @@ export default function SettingsPage() {
     category_pricing: categoryPricing,
     tax_enabled: taxEnabled,
     mfa_required: mfaRequired,
+    perfil_menu: perfilMenu,
     tax_iva_percent: num(taxIva, 21),
     tax_prices_include_iva: taxPricesIncludeIva,
     tax_iibb_percent: num(taxIibb, 3.5),
@@ -679,6 +683,8 @@ export default function SettingsPage() {
       setFila(prev => ({ ...(prev ?? {}), ...update }));
       setUltimoGuardado(new Date());
       borrarBorrador(clave);
+      // El menú y la cabecera leen la configuración una vez: se les avisa.
+      window.dispatchEvent(new CustomEvent("nerqia:ajustes-guardados"));
       toast.success(cambios.length === 1 ? "Cambio guardado" : `${cambios.length} cambios guardados`, {
         description: seccionesSucias.map(id => ETIQUETA_DE_SECCION[id]).filter(Boolean).join(" · "),
       });
@@ -1507,6 +1513,36 @@ export default function SettingsPage() {
                 if (cambio.tonoIa !== undefined) setTonoIa(cambio.tonoIa);
               }}
             />
+          </div>
+          )}
+
+          {/* Perfil del menú (META §3, perfiles progresivos) */}
+          {settingsSection === "system" && (
+          <div id="settings-menu" className="settings-panel settings-panel--system bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+              <LayoutList className="w-4 h-4 text-primary" />Qué se ve en el menú
+            </h2>
+            <p className="text-[12px] text-muted-foreground">
+              Elegí según cómo trabaja el negocio. Lo que no entra en tu perfil queda en «Más herramientas», al final del menú, y en el buscador (Ctrl+K). Vale para todo el equipo.
+            </p>
+            <div role="radiogroup" aria-label="Perfil del menú" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {PERFILES_MENU.map(perfil => {
+                const elegido = (perfilMenu ?? "avanzado") === perfil.id;
+                return (
+                  <button
+                    key={perfil.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={elegido}
+                    onClick={() => setPerfilMenu(perfil.id)}
+                    className={`rounded-[8px] border p-3 text-left transition-colors ${elegido ? "border-primary bg-primary/10" : "border-border/60 hover:border-border"}`}
+                  >
+                    <p className="text-sm font-medium">{perfil.label}{perfil.id === "avanzado" && perfilMenu === null ? " (actual)" : ""}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{perfil.descripcion}</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           )}
 

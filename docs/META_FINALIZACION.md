@@ -78,7 +78,8 @@ Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast
 
 **3. Operar todo en Nerqia**
 - [x] Tutoriales en toda la plataforma: recorrido guiado por pantalla (propio o generado desde el menú y sus consejos), botón de ayuda único, oferta en la primera visita y Academia (`/aprender`) con progreso por usuario (`tutorial_progress`).
-- [ ] Perfiles progresivos (emprendedor / establecido / avanzado) y packs verticales sin forks.
+- [x] Perfil del menú (emprendedor / establecido / avanzado) en Ajustes › Sistema: cada destino declara su nivel (`NIVEL_DE_DESTINO`, un test lo exige), lo que no entra va a «Más herramientas» y al buscador, la página actual siempre se ve y sin perfil elegido el menú es completo (`settings.perfil_menu`, 20261010001400, aplicada).
+- [ ] Packs verticales sin forks: qué pantallas y defaults trae cada rubro (además de las categorías, que ya son por rubro).
 - [ ] Merchant health rojo/ámbar/verde y colas operativas en Platform.
 - [ ] Eventos versionados con idempotencia, replay, DLQ y correlación.
 - [ ] Apps nativas: firma, distribución, updater, impresión y hardware POS.

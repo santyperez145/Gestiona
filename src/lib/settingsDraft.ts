@@ -83,6 +83,7 @@ export const SECCION_DE_CAMPO: Record<string, SeccionAjustes> = {
   fiscal_id_required_above: 'billing',
 
   mfa_required: 'system',
+  perfil_menu: 'system',
 };
 
 /**

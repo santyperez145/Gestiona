@@ -33,7 +33,7 @@ import PlatformHeader from "@/components/platform/PlatformHeader";
 import { usePermissionsResolver, useRefreshPermissions } from "@/lib/permissionsContext";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import { moduleForRoute } from "@/lib/moduleMap";
-import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta } from "@/lib/navigation";
+import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta, apareceEnPerfil } from "@/lib/navigation";
 import { ROUTES } from "@/app/routeManifest";
 
 import { plural } from "@/lib/plural";
@@ -168,7 +168,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const refreshPermissions = useRefreshPermissions();
   // Sólo en desarrollo, la galería /__diseno muestra el menú completo sin sesión.
   const vistaPreviaDiseno = import.meta.env.DEV && pathname === '/__diseno';
-  const navItems = useMemo(() => {
+  const permitidos = useMemo(() => {
     return allNavItems.filter(item => {
       if (vistaPreviaDiseno) return true;
       if (!item.roles.includes(role)) return false;
@@ -176,6 +176,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return !mod || forModule(mod).canView;
     });
   }, [role, forModule, vistaPreviaDiseno]);
+
+  // El perfil del comercio (Ajustes) decide qué queda a la vista. Lo demás
+  // va a «Más herramientas»; la página actual siempre se ve.
+  const navItems = useMemo(
+    () => permitidos.filter(item => item.to === pathname || apareceEnPerfil(item.to, config.perfilMenu)),
+    [permitidos, pathname, config.perfilMenu],
+  );
+  const masHerramientas = useMemo(
+    () => permitidos.filter(item => !navItems.includes(item)),
+    [permitidos, navItems],
+  );
 
   // Pages with "Nuevo" guide tips that haven't been seen yet
   const unseenNewPages = useMemo(() => {
@@ -197,13 +208,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // algoritmo anterior asumía contigüidad, renderizaba Sistema dos veces y
     // React advertía claves duplicadas. NAV_GROUPS es la autoridad de orden.
     return NAV_GROUPS
-      .map(group => ({
+      .map((group): { section: string; label: string; items: typeof navItems } => ({
         section: group.id,
         label: group.label,
         items: navItems.filter(item => item.section === group.id),
       }))
-      .filter(group => group.items.length > 0);
-  }, [navItems]);
+      .filter(group => group.items.length > 0)
+      .concat(masHerramientas.length
+        ? [{ section: 'mas', label: `Más herramientas (${masHerramientas.length})`, items: masHerramientas }]
+        : []);
+  }, [navItems, masHerramientas]);
 
   const handleLogout = async () => {
     await signOut();

@@ -54,7 +54,7 @@ export interface NavGroup {
 export const NAV_GROUPS: NavGroup[] = [
   { id: "diario",    label: "",            hint: "Lo de todos los días — Inicio, Tienda y Pedidos online primero" },
   { id: "commerce",  label: "Venta online", hint: "Tienda online, pedidos, envíos y cobros online" },
-  { id: "business",  label: "Operación y stock", hint: "Caja, inventario, compras y proveedores" },
+  { id: "business",  label: "Stock y compras", hint: "Inventario, compras, proveedores y sucursales" },
   { id: "marketing", label: "Marketing",    hint: "Campañas, email, WhatsApp y fidelización" },
   { id: "finance",   label: "Cobros y facturación", hint: "Cuentas por cobrar, facturas ARCA e impuestos" },
   { id: "reportes",  label: "Reportes",    hint: "Ventas, márgenes y estadísticas del negocio" },
@@ -173,4 +173,63 @@ export function buscarItems(consulta: string, roles?: NavRole): NavItem[] {
     .filter(x => x.p !== Infinity)
     .sort((a, b) => a.p - b.p || a.i.label.localeCompare(b.i.label))
     .map(x => x.i);
+}
+
+// ─── Perfil del menú ─────────────────────────────────────────────────────────
+//
+// Un comercio que recién empieza veía las mismas ~50 entradas que uno con
+// sucursales, cheques y multi-moneda. El perfil decide qué queda a la vista;
+// lo demás va a «Más herramientas» al final del menú y sigue en Ctrl+K. Nada
+// se pierde, y la página en la que estás siempre se ve.
+//
+// Sin perfil elegido (o sin la columna todavía) el menú es el completo: un
+// comercio que ya trabaja no pierde de vista nada que usa.
+
+export type PerfilMenu = "emprendedor" | "establecido" | "avanzado";
+
+export const PERFILES_MENU: Array<{ id: PerfilMenu; label: string; descripcion: string }> = [
+  { id: "emprendedor", label: "Emprendedor", descripcion: "Lo esencial: vender, cobrar, productos, clientes y facturas." },
+  { id: "establecido", label: "Establecido", descripcion: "Suma compras, stock, promociones, envíos, marketing e impuestos." },
+  { id: "avanzado", label: "Avanzado", descripcion: "Todo: sucursales, lotes, cheques, multi-moneda, inteligencia y administración." },
+];
+
+/**
+ * En qué perfil aparece cada destino: 1 emprendedor, 2 establecido, 3
+ * avanzado. Explícito para todos los destinos del menú —lo exige un test—:
+ * una pantalla nueva tiene que decidir dónde aparece.
+ */
+export const NIVEL_DE_DESTINO: Record<string, 1 | 2 | 3> = {
+  // Lo de todos los días
+  "/": 1, "/caja": 1, "/ventas": 1, "/productos": 1, "/clientes": 1,
+  "/tienda-online": 1, "/pedidos-online": 1,
+  // Cobros y facturación
+  "/facturas": 1, "/deudas": 1,
+  "/afip": 2, "/presupuestos": 2, "/cuotas": 2, "/devoluciones": 2, "/billetera": 2, "/impuestos": 2,
+  "/movimientos": 3, "/cheques": 3, "/comisiones": 3, "/multi-divisa": 3, "/suscripciones": 3,
+  // Stock y compras
+  "/compras": 1, "/proveedores": 1,
+  "/kardex": 2, "/ordenes-compra": 2, "/planificacion": 2, "/sucursales": 2, "/listas-precios": 2,
+  "/transferencias": 3, "/lotes": 3, "/bundles": 3, "/valuacion-inventario": 3,
+  // Venta online
+  "/envios": 2, "/links-de-pago": 2, "/cupones": 2, "/promociones": 2,
+  // Marketing
+  "/marketing": 2, "/email-campaigns": 2, "/whatsapp-campaigns": 2, "/fidelidad": 2,
+  // Reportes
+  "/reportes": 1, "/analytics": 2, "/ia": 3,
+  // Configuración y ayuda
+  "/ajustes": 1, "/equipo": 1, "/mi-plan": 1, "/perfil": 1, "/soporte": 1, "/aprender": 1,
+  "/integraciones": 2, "/alertas": 2, "/tareas": 2, "/calendario": 2,
+  "/calidad-datos": 3, "/admin": 3,
+};
+
+const TOPE_DE_PERFIL: Record<PerfilMenu, 1 | 2 | 3> = { emprendedor: 1, establecido: 2, avanzado: 3 };
+
+export function esPerfilMenu(valor: unknown): valor is PerfilMenu {
+  return valor === "emprendedor" || valor === "establecido" || valor === "avanzado";
+}
+
+/** ¿El destino queda a la vista con este perfil? Sin perfil: todo a la vista. */
+export function apareceEnPerfil(path: string, perfil: PerfilMenu | null | undefined): boolean {
+  if (!perfil) return true;
+  return (NIVEL_DE_DESTINO[path] ?? 2) <= TOPE_DE_PERFIL[perfil];
 }
