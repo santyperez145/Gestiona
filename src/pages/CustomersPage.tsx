@@ -22,6 +22,7 @@ import { NOTAS_COMUNES, taxLabel } from "@/lib/scentTaxonomy";
 import { elCatalogoOperaPerfumes, elCatalogoOperaVapers } from "@/lib/catalogIndustry";
 import { recommendForPreferences } from "@/lib/perfumeMatch";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
+import { leerArchivoDeClientes, type FormatoClientes } from "@/lib/customerImportFile";
 import { useContactPicker } from "@/hooks/useContactPicker";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -1525,7 +1526,7 @@ export default function CustomersPage() {
   const [formModal, setFormModal] = useState<{ open: boolean; profile?: Partial<CustomerProfile> }>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
-  const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; mapping: Record<string, string> } | null>(null);
+  const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; mapping: Record<string, string>; formato: FormatoClientes; hoja: string | null } | null>(null);
   const [showRFM, setShowRFM] = useState(false);
   const [rfmSort, setRfmSort] = useState<"rfmScore" | "rScore" | "fScore" | "mScore">("rfmScore");
   const [csvPreviewOpen, setCsvPreviewOpen] = useState(false);
@@ -2199,20 +2200,6 @@ export default function CustomersPage() {
     await loadData();
   };
 
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') { inQuotes = !inQuotes; continue; }
-      if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; continue; }
-      current += ch;
-    }
-    result.push(current.trim());
-    return result;
-  };
-
   const CSV_FIELD_OPTIONS = [
     { value: '', label: '— Ignorar —' },
     { value: 'name', label: 'Nombre' },
@@ -2242,25 +2229,22 @@ export default function CustomersPage() {
   const handleCsvImport = async (file: File) => {
     if (!file || !user) return;
     try {
-      const text = await file.text();
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) { toast.error("El CSV está vacío o mal formateado"); return; }
-      const headers = parseCSVLine(lines[0]);
-      const dataRows = lines.slice(1).map(l => parseCSVLine(l)).filter(r => r.some(c => c));
-      const mapping = autoDetectMapping(headers);
+      const archivo = await leerArchivoDeClientes(file);
+      const mapping = autoDetectMapping(archivo.encabezados);
       // Se conservan todas las filas: el servidor valida, matchea y aplica en
-      // una transacción. Antes se cortaba en 200 y se escribía una por una.
-      setCsvPreview({ headers, rows: dataRows.slice(0, 20000), mapping });
+      // una transacción.
+      setCsvPreview({ headers: archivo.encabezados, rows: archivo.filas, mapping, formato: archivo.formato, hoja: archivo.hoja });
       setCsvPreviewOpen(true);
-    } catch {
-      toast.error("Error al leer el archivo CSV");
+    } catch (error) {
+      console.error('[Clientes] no se pudo leer el archivo', error);
+      toast.error(error instanceof Error ? error.message : "No pudimos leer el archivo");
     }
   };
 
   const handleCsvConfirmImport = async () => {
     if (!csvPreview || !user || !activeOrg) return;
     setImporting(true);
-    const { headers, rows, mapping } = csvPreview;
+    const { headers, rows, mapping, formato, hoja } = csvPreview;
     try {
       // Normalización y mapeo en el navegador; la autoridad es el servidor:
       // staging auditado → aprobación → aplicación atómica e idempotente. El
@@ -2290,8 +2274,8 @@ export default function CustomersPage() {
 
       const { data: staged, error: stageError } = await supabase.rpc("stage_customer_import", {
         p_org_id: activeOrg.id,
-        p_filename: `${headers.length} columnas · ${payload.length} filas`,
-        p_source_format: "csv",
+        p_filename: `${hoja ? hoja + " · " : ""}${headers.length} columnas · ${payload.length} filas`,
+        p_source_format: formato,
         p_rows: payload as never,
         p_source_system: "generic",
       });
@@ -2474,8 +2458,8 @@ export default function CustomersPage() {
             </Button>
             <FilePicker
               mode="button"
-              accept=".csv,text/csv"
-              title="Importar CSV"
+              accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+              title="Importar Excel o CSV"
               busy={importing}
               busyLabel="Importando…"
               onFile={handleCsvImport}
@@ -3332,13 +3316,13 @@ export default function CustomersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* CSV Import Preview Dialog */}
+      {/* Vista previa de la importación (Excel o CSV) */}
       <Dialog open={csvPreviewOpen} onOpenChange={o => { if (!importing) setCsvPreviewOpen(o); }}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="w-4 h-4 text-primary" />
-              Importar CSV — {csvPreview?.rows.length ?? 0} contactos detectados
+              Importar clientes — {csvPreview?.rows.length ?? 0} detectados{csvPreview?.hoja ? ` en «${csvPreview.hoja}»` : ""}
             </DialogTitle>
           </DialogHeader>
           {csvPreview && (
