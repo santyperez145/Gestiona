@@ -30,6 +30,8 @@ $noJwt = @(
     "shipping-quote",
     "store-pay",
     "store-order-email",
+    # Cuotas de MercadoPago en la ficha y el checkout: las consulta el comprador anónimo.
+    "mp-installments",
     # Links publicos de un solo uso
     "drip-unsubscribe",
     "email-campaign-unsubscribe",
@@ -51,7 +53,6 @@ $noJwt = @(
     "send-scheduled-campaigns",
     # El scheduler usa secreto de cron; el envío manual valida JWT dentro de la función.
     "send-email-campaign",
-    "auto-recurring-expenses",
     "customer-reactivation-alerts",
     "fetch-usd-rate",
     "precio-suscripcion",
@@ -64,7 +65,12 @@ $noJwt = @(
     "send-push",
     # Despacha la cola de notificaciones consentidas del chat marca↔creador;
     # exige el secreto de cron como el resto de los jobs.
-    "campaign-chat-dispatcher"
+    "campaign-chat-dispatcher",
+    # Medido 2026-10-10 contra producción: sin JWT de gateway, validan la sesión
+    # o el secreto de cron por su cuenta (ver deploy-functions.sh).
+    "afip-authorize",
+    "reconcile-store-refunds",
+    "trusted-device"
 )
 
 Write-Host ""

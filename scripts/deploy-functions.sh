@@ -96,6 +96,8 @@ NO_JWT=(
   "stripe-webhook" "mercadopago-webhook" "resend-webhook" "meli-webhook"
   # Storefront publico — el comprador no tiene sesion
   "shipping-quote" "store-pay" "store-order-email"
+  # Cuotas de MercadoPago en la ficha y el checkout: las consulta el comprador anónimo.
+  "mp-installments"
   # Links publicos de un solo uso
   "drip-unsubscribe" "email-campaign-unsubscribe" "whatsapp-unsubscribe"
   # API publica con su propio esquema de api keys
@@ -104,12 +106,19 @@ NO_JWT=(
   "check-alerts" "execute-automations" "run-automation-flows"
   "check-overdue-debts" "check-stock-alerts" "daily-kpi-alert"
   "weekly-performance-digest" "send-scheduled-campaigns" "send-email-campaign"
-  "auto-recurring-expenses" "customer-reactivation-alerts" "fetch-usd-rate"
+  "customer-reactivation-alerts" "fetch-usd-rate"
   "precio-suscripcion" "avisos-por-correo"
   "recover-abandoned-carts" "notify-back-in-stock" "send-drip-emails" "send-birthday-whatsapp"
   "daily-whatsapp-digest" "send-push"
   # Despacha la cola de notificaciones consentidas del chat marca↔creador.
   "campaign-chat-dispatcher"
+  # Medido 2026-10-10 contra producción (`supabase functions list`): estas se
+  # publican sin JWT de gateway y validan la sesión o el secreto de cron por su
+  # cuenta. El script las publicaba CON JWT: un despliegue completo les
+  # cambiaba la autenticación. auto-recurring-expenses va al revés (con JWT;
+  # el cron manda la clave anónima, que es un JWT válido) y salió de la lista.
+  "afip-authorize" "migrar-imagenes" "dispatch-outbound-webhook"
+  "reconcile-store-refunds" "trusted-device"
 )
 
 is_public() {
