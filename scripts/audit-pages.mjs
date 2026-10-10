@@ -70,7 +70,7 @@ function propio(archivo) {
  *              la página lee o escribe, nada más. Sin esto `/finance/documentos`
  *              —2157 líneas— daba «no lee datos» porque consulta vía `lib/`.
  */
-function arbol(entrada) {
+export function arbol(entrada) {
   const vista = new Set();
   const datos = new Set();
   const pila = [entrada];

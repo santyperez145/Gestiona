@@ -251,8 +251,14 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    de API y configuración de cobros (políticas `FOR ALL` con USING de miembro).
    Corregido en `20261010000200` y `20261010000300`, con
    `scripts/shipping-config-matrix.sql` y `scripts/sensitive-writes-matrix.sql`.
-   **Pendiente: aplicar ambas.** Quedan ~135 tablas (2026-10-10) operativas con escritura
+   Aplicadas; las dos matrices pasan contra la base migrada (2026-10-10). Quedan ~135 tablas (2026-10-10) operativas con escritura
    para cualquier miembro, a revisar por dominio (no todas son un error).
+   Segunda vuelta (2026-10-10): `20261010000400` restringe 65 tablas de gestión
+   (proveedores, bajas de email, tipos de producto, activos, depósitos…) con un
+   criterio medido —sin escritores con rol de usuario ni rutas de vendedor—;
+   aplicada y verificada con `scripts/management-writes-matrix.sql`. Quedan
+   las de uso compartido (clientes, tareas, ventas, entregas), 19 escritas por
+   funciones INVOKER y 6 tablas hijas sin org_id (2026-10-10).
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
    honestos, alerts accionables y soporte con correlación sanitizada.
 4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con
