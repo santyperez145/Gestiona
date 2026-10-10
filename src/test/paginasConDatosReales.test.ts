@@ -59,5 +59,8 @@ describe('ninguna página del menú muestra datos inventados', () => {
     expect(existsSync(resolve(raiz, 'src/components/business/BusinessAIInsights.tsx')), 'volvió BusinessAIInsights').toBe(false);
     expect(existsSync(resolve(raiz, 'src/components/commerce/CommerceAIInsights.tsx')), 'volvió CommerceAIInsights').toBe(false);
     expect(existsSync(resolve(raiz, 'src/components/commerce/DynamicPricing.tsx')), 'volvió DynamicPricing').toBe(false);
+    // 2026-10-10: «Registrar Influencer» tenía un botón «Confirmar verificación
+    // (simulado)» y seguía como si nada cuando el guardado fallaba.
+    expect(existsSync(resolve(raiz, 'src/pages/InfluencerRegistrationPage.tsx')), 'volvió InfluencerRegistrationPage').toBe(false);
   });
 });

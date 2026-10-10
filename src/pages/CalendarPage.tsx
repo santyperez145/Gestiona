@@ -68,6 +68,9 @@ export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date(_getToday().getFullYear(), _getToday().getMonth(), 1));
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  // Qué fuentes no se pudieron leer. El calendario sigue mostrando el resto,
+  // pero dice qué falta: un día vacío tiene que significar «no hay nada».
+  const [fallidas, setFallidas] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(isoDate(_getToday()));
 
   function _getToday(): Date { return new Date(); }
@@ -75,116 +78,134 @@ export default function CalendarPage() {
   const load = useCallback(async () => {
     if (!activeOrg) return;
     setLoading(true);
+    try {
+      // Load 3 months of data: prev + current + next
+      const rangeStart = addMonths(currentMonth, -1);
+      const rangeEnd   = addMonths(currentMonth, 2);
 
-    // Load 3 months of data: prev + current + next
-    const rangeStart = addMonths(currentMonth, -1);
-    const rangeEnd   = addMonths(currentMonth, 2);
+      const [tasksRes, dealsRes, followupsRes, debtsRes, expensesRes] = await Promise.all([
+        supabase
+          .from("tasks")
+          .select("id, title, due_date, priority, status")
+          .eq("org_id", activeOrg.id)
+          .not("status", "eq", "completed")
+          .not("due_date", "is", null)
+          .gte("due_date", isoDate(rangeStart))
+          .lte("due_date", isoDate(rangeEnd)),
+        supabase
+          .from("deals")
+          .select("id, title, expected_close, stage, value_ars")
+          .eq("org_id", activeOrg.id)
+          .not("expected_close", "is", null)
+          .not("stage", "in", '("cerrado","perdido")')
+          .gte("expected_close", isoDate(rangeStart))
+          .lte("expected_close", isoDate(rangeEnd)),
+        supabase
+          .from("crm_followups")
+          .select("id, customer_name, follow_up_date, notes, status")
+          .eq("org_id", activeOrg.id)
+          .neq("status", "done")
+          .gte("follow_up_date", isoDate(rangeStart))
+          .lte("follow_up_date", isoDate(rangeEnd)),
+        // La tabla real es `debts`; el saldo pendiente es remaining_ars (no `paid`)
+        supabase
+          .from("debts")
+          .select("id, customer_name, amount_ars, due_date, remaining_ars")
+          .eq("org_id", activeOrg.id)
+          .gt("remaining_ars", 0)
+          .not("due_date", "is", null)
+          .gte("due_date", isoDate(rangeStart))
+          .lte("due_date", isoDate(rangeEnd)),
+        supabase
+          .from("expenses")
+          .select("id, description, amount_ars, date, category, recurring")
+          .eq("org_id", activeOrg.id)
+          .eq("recurring", true)
+          .gte("date", isoDate(rangeStart))
+          .lte("date", isoDate(rangeEnd)),
+      ]);
 
-    const [tasksRes, dealsRes, followupsRes, debtsRes, expensesRes] = await Promise.all([
-      supabase
-        .from("tasks")
-        .select("id, title, due_date, priority, status")
-        .eq("org_id", activeOrg.id)
-        .not("status", "eq", "completed")
-        .not("due_date", "is", null)
-        .gte("due_date", isoDate(rangeStart))
-        .lte("due_date", isoDate(rangeEnd)),
-      supabase
-        .from("deals")
-        .select("id, title, expected_close, stage, value_ars")
-        .eq("org_id", activeOrg.id)
-        .not("expected_close", "is", null)
-        .not("stage", "in", '("cerrado","perdido")')
-        .gte("expected_close", isoDate(rangeStart))
-        .lte("expected_close", isoDate(rangeEnd)),
-      supabase
-        .from("crm_followups")
-        .select("id, customer_name, follow_up_date, notes, status")
-        .eq("org_id", activeOrg.id)
-        .neq("status", "done")
-        .gte("follow_up_date", isoDate(rangeStart))
-        .lte("follow_up_date", isoDate(rangeEnd)),
-      // La tabla real es `debts`; el saldo pendiente es remaining_ars (no `paid`)
-      supabase
-        .from("debts")
-        .select("id, customer_name, amount_ars, due_date, remaining_ars")
-        .eq("org_id", activeOrg.id)
-        .gt("remaining_ars", 0)
-        .not("due_date", "is", null)
-        .gte("due_date", isoDate(rangeStart))
-        .lte("due_date", isoDate(rangeEnd)),
-      supabase
-        .from("expenses")
-        .select("id, description, amount_ars, date, category, recurring")
-        .eq("org_id", activeOrg.id)
-        .eq("recurring", true)
-        .gte("date", isoDate(rangeStart))
-        .lte("date", isoDate(rangeEnd)),
-    ]);
+      // Antes nadie miraba `.error`: una consulta caída borraba sus eventos sin
+      // aviso, y el calendario mostraba un día tranquilo con un vencimiento.
+      const fuentes: Array<[string, { error: unknown }]> = [
+        ["Tareas", tasksRes], ["Oportunidades", dealsRes], ["Seguimientos", followupsRes],
+        ["Saldos a cobrar", debtsRes], ["Gastos recurrentes", expensesRes],
+      ];
+      const conError = fuentes.filter(([, res]) => res.error);
+      conError.forEach(([nombre, res]) => console.error(`[calendario] ${nombre}`, res.error));
+      setFallidas(conError.map(([nombre]) => nombre));
 
-    const allEvents: CalEvent[] = [];
+      const allEvents: CalEvent[] = [];
 
-    (tasksRes.data || []).forEach((t: any) => {
-      if (!t.due_date) return;
-      allEvents.push({
-        id: `task-${t.id}`,
-        date: t.due_date.slice(0, 10),
-        title: t.title,
-        type: "task",
-        priority: t.priority,
-        link: "/tareas",
+      (tasksRes.data || []).forEach((t: any) => {
+        if (!t.due_date) return;
+        allEvents.push({
+          id: `task-${t.id}`,
+          date: t.due_date.slice(0, 10),
+          title: t.title,
+          type: "task",
+          priority: t.priority,
+          link: "/tareas",
+        });
       });
-    });
 
-    (dealsRes.data || []).forEach((d: any) => {
-      if (!d.expected_close) return;
-      allEvents.push({
-        id: `deal-${d.id}`,
-        date: d.expected_close.slice(0, 10),
-        title: d.title,
-        type: "deal",
-        amount: d.value_ars,
-        link: "/clientes?vista=pipeline",
+      (dealsRes.data || []).forEach((d: any) => {
+        if (!d.expected_close) return;
+        allEvents.push({
+          id: `deal-${d.id}`,
+          date: d.expected_close.slice(0, 10),
+          title: d.title,
+          type: "deal",
+          amount: d.value_ars,
+          link: "/clientes?vista=pipeline",
+        });
       });
-    });
 
-    (followupsRes.data || []).forEach((f: any) => {
-      if (!f.follow_up_date) return;
-      allEvents.push({
-        id: `fu-${f.id}`,
-        date: f.follow_up_date.slice(0, 10),
-        title: `Follow-up: ${f.customer_name}`,
-        type: "followup",
-        link: "/clientes?vista=seguimientos",
+      (followupsRes.data || []).forEach((f: any) => {
+        if (!f.follow_up_date) return;
+        allEvents.push({
+          id: `fu-${f.id}`,
+          date: f.follow_up_date.slice(0, 10),
+          title: `Seguimiento: ${f.customer_name}`,
+          type: "followup",
+          link: "/clientes?vista=seguimientos",
+        });
       });
-    });
 
-    (debtsRes.data || []).forEach((d: any) => {
-      if (!d.due_date || Number(d.remaining_ars) <= 0) return;
-      allEvents.push({
-        id: `debt-${d.id}`,
-        date: d.due_date.slice(0, 10),
-        title: `Cobrar a ${d.customer_name}`,
-        type: "debt",
-        amount: d.amount_ars,
-        link: "/deudas",
+      (debtsRes.data || []).forEach((d: any) => {
+        if (!d.due_date || Number(d.remaining_ars) <= 0) return;
+        allEvents.push({
+          id: `debt-${d.id}`,
+          date: d.due_date.slice(0, 10),
+          title: `Cobrar a ${d.customer_name}`,
+          type: "debt",
+          // Lo que falta cobrar, no el total original de la deuda.
+          amount: d.remaining_ars,
+          link: "/deudas",
+        });
       });
-    });
 
-    (expensesRes.data || []).forEach((e: any) => {
-      if (!e.date) return;
-      allEvents.push({
-        id: `exp-${e.id}`,
-        date: e.date.slice(0, 10),
-        title: e.description || e.category || "Gasto recurrente",
-        type: "expense",
-        amount: e.amount_ars,
-        link: "/finance/gastos",
+      (expensesRes.data || []).forEach((e: any) => {
+        if (!e.date) return;
+        allEvents.push({
+          id: `exp-${e.id}`,
+          date: e.date.slice(0, 10),
+          title: e.description || e.category || "Gasto recurrente",
+          type: "expense",
+          amount: e.amount_ars,
+          link: "/finance/gastos",
+        });
       });
-    });
 
-    setEvents(allEvents);
-    setLoading(false);
+      setEvents(allEvents);
+    } catch (err) {
+      // Sin conexión, Promise.all rechaza: antes el calendario quedaba
+      // cargando para siempre.
+      console.error("[calendario] no se pudo cargar", err);
+      setFallidas(["todas las fuentes"]);
+    } finally {
+      setLoading(false);
+    }
   }, [activeOrg, currentMonth]);
 
   useEffect(() => { load(); }, [load]);
@@ -316,6 +337,15 @@ export default function CalendarPage() {
                 </div>
               ))}
             </div>
+
+            {fallidas.length > 0 && !loading && (
+              <div role="alert" className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2 text-xs">
+                <span>No se pudo leer: <strong>{fallidas.join(", ")}</strong>. Lo que ves puede estar incompleto.</span>
+                <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => void load()}>
+                  <RefreshCw className="w-3 h-3 mr-1" />Reintentar
+                </Button>
+              </div>
+            )}
 
             {/* Days grid */}
             {loading ? (

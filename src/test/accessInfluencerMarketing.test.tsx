@@ -47,6 +47,8 @@ describe('acceso y rutas de Influencers', () => {
     expect(aliases.get('/brief-composer')).toBe('/influencer-marketing/campanas?nueva=1');
     expect(aliases.get('/canjes')).toBe('/influencer-marketing/canjes');
     expect(aliases.get('/brand-portal')).toBe('/influencer-marketing/creadores');
+    // La página de registro simulaba la verificación: ahora abre el alta real.
+    expect(aliases.get('/influencer-marketing/registro')).toBe('/influencer-marketing/creadores?nuevo=1');
   });
   it('incluye las rutas canónicas de paridad Go-Marz', () => {
     const paths = influencerMarketingProductRoutes().map(r => r.path);
@@ -54,7 +56,6 @@ describe('acceso y rutas de Influencers', () => {
     expect(paths).toContain('/influencer-marketing/campanas');
     expect(paths).toContain('/influencer-marketing/descubrimiento');
     expect(paths).toContain('/influencer-marketing/creadores');
-    expect(paths).toContain('/influencer-marketing/registro');
     expect(paths).toContain('/influencer-marketing/entregables');
     expect(paths).toContain('/influencer-marketing/contratos');
     expect(paths).toContain('/influencer-marketing/pagos');

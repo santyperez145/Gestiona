@@ -134,6 +134,10 @@ function auditar(ruta) {
   // Una página de sólo lectura no necesita permisos de escritura ni éxito;
   // una estática —términos, privacidad— no tiene datos que puedan fallar.
   let exigibles = escribe ? SENALES : SENALES.filter(s => !['permisos', 'exito'].includes(s.id));
+  // Una ruta sólo-admin no se monta para un vendedor (`businessRoutes(role)`),
+  // y un admin puede todo: ahí no hay botón que esconder. Marcarla daba 14
+  // falsos positivos de 17.
+  if (ruta.roles === 'SOLO_ADMIN' || ruta.roles === 'PUBLICO') exigibles = exigibles.filter(s => s.id !== 'permisos');
   if (!lee) exigibles = exigibles.filter(s => !['carga', 'vacío', 'error', 'offline'].includes(s.etiqueta));
   const castigo = faltan.filter(s => exigibles.includes(s)).reduce((t, s) => t + s.peso, 0);
   const total = exigibles.reduce((t, s) => t + s.peso, 0);
@@ -160,7 +164,12 @@ export function rutasDelManifiesto() {
   RUTA_RX.lastIndex = 0;
   while ((m = RUTA_RX.exec(manifiesto))) {
     const archivo = resolve(SRC, 'pages', `${m[3]}.tsx`);
-    if (existsSync(archivo)) rutas.push({ id: m[1], path: m[2], componente: m[3], status: m[4], archivo });
+    // Los roles van después del path, en la misma entrada del manifiesto.
+    // m.index cae en la entrada anterior cuando el regex es perezoso entre
+    // entradas, así que se busca el `roles:` más cercano al path, no al match.
+    const desdePath = manifiesto.indexOf(`path: "${m[2]}"`);
+    const roles = /roles:\s*(\w+)/.exec(manifiesto.slice(desdePath, desdePath + 400))?.[1] ?? null;
+    if (existsSync(archivo)) rutas.push({ id: m[1], path: m[2], componente: m[3], status: m[4], roles, archivo });
   }
   return rutas;
 }

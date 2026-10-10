@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Edit, Mail, Plus, Search, Trash2, Users } from 'lucide-react';
@@ -31,6 +31,15 @@ export default function InfluencersPage() {
   const [deleting, setDeleting] = useState<Influencer | null>(null);
   const [busy, setBusy] = useState(false);
   const deletingRef = useRef(false);
+  // `?nuevo=1` abre el alta: es el destino de la vieja página de registro,
+  // que simulaba la verificación y se tragaba el error de guardado.
+  useEffect(() => {
+    if (params.get('nuevo') !== '1' || permissions.loading) return;
+    if (permissions.canCreate) setEditing('new');
+    const resto = new URLSearchParams(params);
+    resto.delete('nuevo');
+    setParams(resto, { replace: true });
+  }, [params, permissions.loading, permissions.canCreate, setParams]);
   const refresh = () => client.invalidateQueries({ queryKey: ['influencer-creators', orgId] });
   const copyLink = async (creator: Influencer) => {
     try {
