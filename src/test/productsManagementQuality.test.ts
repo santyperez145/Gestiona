@@ -28,14 +28,12 @@ describe("mejoras y correcciones en la gestión de productos", () => {
     expect(productsPage).toContain("<PriceHistoryModal");
   });
 
-  it("ajuste masivo valida cotización ANTES del loop para no dejar el catálogo a medias", () => {
-    // El bug anterior tenía `if (cotizacionInline === null ...) return` dentro
-    // del loop, abortando la actualización a mitad de camino.
-    const handleApplyIdx = productsPage.indexOf("const handleApply = async () => {");
-    const loopIdx = productsPage.indexOf("for (const p of toUpdate) {", handleApplyIdx);
-    const checkIdx = productsPage.indexOf("if (cotizacionInline === null)", handleApplyIdx);
-    expect(checkIdx).toBeGreaterThan(handleApplyIdx);
-    expect(checkIdx).toBeLessThan(loopIdx);
+  it("el ajuste masivo no puede dejar el catálogo a medias", () => {
+    // Antes era un loop fila por fila en el navegador: un error a mitad de
+    // camino dejaba parte del catálogo con el precio nuevo. Ahora es una sola
+    // transacción en la base (ajustar_precios_en_bloque).
+    expect(productsPage).not.toContain("const handleApply = async () => {");
+    expect(productsPage).toContain("<AjustePreciosEnBloque");
   });
 
   it("el servidor valida el cupo de todo el archivo antes de aprobar el primer lote", () => {

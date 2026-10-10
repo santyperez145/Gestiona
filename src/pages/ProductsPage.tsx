@@ -43,6 +43,8 @@ import {
 import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePriceSinPasero, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
+import AjustePreciosEnBloque from "@/components/products/AjustePreciosEnBloque";
+import { marcasDelCatalogo } from "@/lib/ajustePreciosEnBloque";
 import PageHeader from "@/components/shared/PageHeader";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import DataPagination from "@/components/shared/DataPagination";
@@ -1382,10 +1384,13 @@ export default function ProductsPage() {
 
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="font-display">Ajuste Masivo de Precios</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display">Ajustar precios en bloque</DialogTitle></DialogHeader>
           {/* Las categorías bajan por prop: la página ya las tiene cargadas y
               volver a pedirlas acá sería la misma consulta dos veces. */}
-          <BulkPriceAdjust userId={user!.id} settings={settings} categorias={opcionesCategoria} onDone={() => { setBulkOpen(false); reload(); }} />
+          <BulkPriceAdjust userId={user!.id} orgId={activeOrg!.id} settings={settings} categorias={opcionesCategoria}
+            marcas={marcasDelCatalogo(products)}
+            proveedores={Object.entries(supplierNames).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, "es"))}
+            onDone={() => { setBulkOpen(false); reload(); }} />
         </DialogContent>
       </Dialog>
 
@@ -3964,10 +3969,8 @@ function MercadoLibrePublishCard({ productId, orgId, productCategory }: {
   );
 }
 
-function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: string; settings: any; categorias: OpcionCategoria[]; onDone: () => void }) {
+function BulkPriceAdjust({ userId, orgId, settings, categorias, marcas, proveedores, onDone }: { userId: string; orgId: string; settings: any; categorias: OpcionCategoria[]; marcas: string[]; proveedores: { id: string; name: string }[]; onDone: () => void }) {
   const [category, setCategory] = useState('all');
-  const [percent, setPercent] = useState('');
-  const [field, setField] = useState('both');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'percent' | 'recalc'>('percent');
   const [newExchangeRate, setNewExchangeRate] = useState(String(settings?.exchange_rate || 1700));
@@ -4016,53 +4019,6 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
     }
   };
 
-  const handleApply = async () => {
-    const pct = parseFloat(percent);
-    if (!pct || pct === 0) { toast.error("Ingresá un porcentaje válido"); return; }
-    // El chequeo de cotización va ANTES del loop: un `return` adentro del
-    // `for` con `await` por fila abortaba el ajuste dejando la mitad del
-    // catálogo con el precio nuevo y la otra mitad con el viejo.
-    const cotizacionInline = cotizacionDe(settings);
-    if (cotizacionInline === null) {
-      toast.error("No hay cotización USD configurada. Cargala en Configuración antes de ajustar precios en bloque.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const products = await getProductsDB(userId);
-      const toUpdate = category === 'all' ? products : products.filter(p => p.category === category);
-      let count = 0;
-      for (const p of toUpdate) {
-        const updates: any = {};
-        if ((field === 'sale' || field === 'both') && Number(p.sale_price_ars) > 0) {
-          updates.sale_price_ars = Math.round(Number(p.sale_price_ars) * (1 + pct / 100));
-        }
-        if ((field === 'discount' || field === 'both') && Number(p.discount_price_ars) > 0) {
-          updates.discount_price_ars = Math.round(Number(p.discount_price_ars) * (1 + pct / 100));
-        }
-        // Recalculate profits
-        if (updates.sale_price_ars !== undefined) {
-          // C28.1: sin pasero aparte — el costo cargado ya lo lleva incluido.
-          const costARS = Number(p.cost_usd) * cotizacionInline;
-          const profitPerUnitARS = updates.sale_price_ars - costARS;
-          const profitPerUnitUSD = cotizacionInline > 0 ? profitPerUnitARS / cotizacionInline : 0;
-          updates.profit_per_unit_ars = profitPerUnitARS;
-          updates.profit_per_unit_usd = profitPerUnitUSD;
-        }
-        if (Object.keys(updates).length > 0) {
-          await updateProductDB(p.id, updates);
-          count++;
-        }
-      }
-      toast.success(`${plural(count, "producto")} actualizados (${pct > 0 ? '+' : ''}${pct}%)`);
-      onDone();
-    } catch (err: any) {
-      toast.error("Error: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-4 pb-12">
       {/* Mode switcher */}
@@ -4072,19 +4028,19 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
           onClick={() => setMode('percent')}
           className={`flex-1 text-xs py-1.5 px-3 rounded-md font-medium transition-colors ${mode === 'percent' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
         >
-          % Ajuste porcentual
+          Por porcentaje
         </button>
         <button
           type="button"
           onClick={() => setMode('recalc')}
           className={`flex-1 text-xs py-1.5 px-3 rounded-md font-medium transition-colors ${mode === 'recalc' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
         >
-          Recalcular por TC
+          Costo en dólares
         </button>
       </div>
 
-      {/* Category selector (shared by both modes) */}
-      <div>
+      {/* El ajuste por porcentaje trae sus propios filtros (proveedor, marca, categoría). */}
+      {mode === 'recalc' && <div>
         <label className="text-sm text-muted-foreground">Categoría</label>
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
@@ -4099,29 +4055,10 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </div>}
 
       {mode === 'percent' ? (
-        <>
-          <div>
-            <label className="text-sm text-muted-foreground">Campo a modificar</label>
-            <Select value={field} onValueChange={setField}>
-              <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="both">Venta + Descuento</SelectItem>
-                <SelectItem value="sale">Solo Precio Venta</SelectItem>
-                <SelectItem value="discount">Solo Precio Descuento</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Porcentaje (+ para subir, - para bajar)</label>
-            <Input type="number" value={percent} onChange={e => setPercent(e.target.value)} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
-          </div>
-          <Button onClick={handleApply} disabled={loading} className="w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90">
-            {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
-          </Button>
-        </>
+        <AjustePreciosEnBloque orgId={orgId} categorias={categorias} marcas={marcas} proveedores={proveedores} onDone={onDone} />
       ) : (
         <>
           <p className="text-xs text-muted-foreground leading-relaxed">
