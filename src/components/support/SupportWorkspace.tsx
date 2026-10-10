@@ -13,8 +13,8 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { safeChannel } from "@/lib/realtimeChannel";
 import { supabase } from "@/integrations/supabase/client";
+import { topicOrg, useTopicEvent } from "@/lib/orgRealtime";
 import {
   createPlatformSupportThread, listPlatformSupportMessages, listPlatformSupportThreads,
   markPlatformSupportThreadRead, sendPlatformSupportMessage, updatePlatformSupportThread,
@@ -117,21 +117,10 @@ export default function SupportWorkspace({ audience, orgId }: SupportWorkspacePr
     else setMessages([]);
   }, [selectedId, loadMessages]);
 
-  useEffect(() => {
-    const scope = isPlatform ? "platform" : orgId;
-    if (!scope) return;
-    const channel = safeChannel("platform-support", scope)
-      .on("postgres_changes", { event: "*", schema: "public", table: "platform_support_threads" }, () => {
-        void loadThreads();
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "platform_support_messages" }, payload => {
-        const message = payload.new as { thread_id?: string };
-        if (message.thread_id === selectedId) void loadMessages(selectedId);
-        void loadThreads();
-      })
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [isPlatform, orgId, loadMessages, loadThreads, selectedId]);
+  useTopicEvent(isPlatform ? "plataforma:soporte" : topicOrg(orgId), "soporte", payload => {
+    if (selectedId && payload.thread_id === selectedId) void loadMessages(selectedId);
+    void loadThreads();
+  });
 
   const filtered = useMemo(() => threads.filter(thread => {
     const matchesStatus = statusFilter === "all"

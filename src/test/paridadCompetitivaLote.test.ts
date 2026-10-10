@@ -141,8 +141,8 @@ describe("paridad competitiva: Mendel — circuito completo del gasto", () => {
     expect(bandeja).toContain("Registrar pago");
     expect(bandeja).toContain("pagado");
     // Realtime: la bandeja se actualiza sola.
-    expect(bandeja).toContain("postgres_changes");
-    expect(bandeja).toContain("finance-solicitudes-");
+    expect(bandeja).toContain('useTopicEvent(topicOrg(activeOrg?.id), "solicitud"');
+    expect(readFileSync("supabase/migrations/20261010001100_realtime_broadcast.sql", "utf8")).toContain("ON public.finance_expense_requests");
   });
 
   it("la tabla está en la publicación realtime", () => {

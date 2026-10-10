@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { safeChannel } from "@/lib/realtimeChannel";
 import { formatARS } from "@/lib/supabaseStore";
 import {
   ShoppingCart, Users, TrendingUp, AlertTriangle, CheckSquare,
@@ -10,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+import { topicOrg, useTopicEvent, type VentaAviso } from "@/lib/orgRealtime";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type EventType = "sale" | "customer" | "deal" | "task" | "alert" | "automation";
@@ -197,31 +197,20 @@ export default function ActivityFeedTab() {
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
   // Realtime: listen for new sales
-  useEffect(() => {
-    if (!activeOrg) return;
-    const ch = safeChannel("activity-feed-rt", activeOrg.id)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "sales",
-        filter: `org_id=eq.${activeOrg.id}`,
-      }, payload => {
-        const s = payload.new as any;
-        const newEvent: FeedEvent = {
-          id: `sale-${s.id}`,
-          type: "sale",
-          title: `Venta — ${s.product_name}`,
-          description: s.customer_name ? `Cliente: ${s.customer_name}` : "Venta en POS",
-          amount: s.total_ars,
-          customer: s.customer_name,
-          ts: s.created_at,
-        };
-        setEvents(prev => [newEvent, ...prev].slice(0, 200));
-        setNewCount(n => n + 1);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [activeOrg]);
+  useTopicEvent(topicOrg(activeOrg?.id), "venta", payload => {
+    const nuevos: FeedEvent[] = ((payload.ventas as VentaAviso[] | undefined) ?? []).map(s => ({
+      id: `sale-${s.id}`,
+      type: "sale",
+      title: `Venta — ${s.product_name}`,
+      description: s.customer_name ? `Cliente: ${s.customer_name}` : "Venta en POS",
+      amount: Number(s.total_ars ?? 0),
+      customer: s.customer_name ?? undefined,
+      ts: s.created_at ?? new Date().toISOString(),
+    }));
+    if (!nuevos.length) return;
+    setEvents(prev => [...nuevos, ...prev].slice(0, 200));
+    setNewCount(n => n + nuevos.length);
+  });
 
   const filtered = filter === "all" ? events : events.filter(e => e.type === filter);
   const grouped = groupByDate(filtered);

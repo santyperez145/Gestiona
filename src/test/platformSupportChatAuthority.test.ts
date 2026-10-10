@@ -52,8 +52,8 @@ describe("chat de soporte comercio-plataforma", () => {
 
   it("la UI ofrece bandeja, conversación, estados y tiempo real", () => {
     expect(workspace).toContain('audience: "merchant" | "platform"');
-    expect(workspace).toContain('table: "platform_support_threads"');
-    expect(workspace).toContain('table: "platform_support_messages"');
+    expect(workspace).toContain('useTopicEvent(isPlatform ? "plataforma:soporte" : topicOrg(orgId), "soporte"');
+    expect(readFileSync("supabase/migrations/20261010001100_realtime_broadcast.sql", "utf8")).toContain("AFTER INSERT ON public.platform_support_messages");
     expect(workspace).toContain("Tomar caso");
     expect(workspace).toContain("Enviar mensaje");
     expect(workspace).toContain("No compartas contraseñas ni claves privadas");

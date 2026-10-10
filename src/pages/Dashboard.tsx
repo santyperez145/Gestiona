@@ -9,7 +9,6 @@ import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
 import { useSalesForecaster } from "@/hooks/useSalesForecaster";
 import { useRealtimeKPIs } from "@/hooks/useRealtimeKPIs";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { safeChannel } from "@/lib/realtimeChannel";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +67,7 @@ const InfluencerROIWidget = lazy(() => import("@/components/dashboard/Influencer
 
 import { chartColors, chartPalette as CHART_COLORS, chartTooltipStyle } from "@/lib/chartTheme";
 
+import { topicOrg, useTopicEvent, type VentaAviso } from "@/lib/orgRealtime";
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
 
 type DashboardData = {
@@ -540,7 +540,6 @@ export default function Dashboard() {
   );
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetInput, setTargetInput] = useState("");
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [dolarRates, setDolarRates] = useState<{ blue: number; oficial: number; mep: number } | null>(null);
   const [openCashSession, setOpenCashSession] = useState<{ id: string; opened_at: string } | null>(null);
   const [noSalesDismissed, setNoSalesDismissed] = usePersistedState(
@@ -924,31 +923,15 @@ export default function Dashboard() {
   }, [activeOrg?.id]);
 
   // Realtime: subscribe to today's sales updates
-  useEffect(() => {
-    if (!activeOrg?.id) return;
+  useTopicEvent(topicOrg(activeOrg?.id), 'venta', payload => {
     const today = new Date().toISOString().slice(0, 10);
-
-    // subscribe
-    const channel = safeChannel('dashboard-sales-realtime', activeOrg.id)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'sales',
-        filter: `org_id=eq.${activeOrg.id}`,
-      }, (payload) => {
-        const row = payload.new as { date?: string; total_ars?: number };
-        const rowDate = row.date ? String(row.date).slice(0, 10) : '';
-        if (rowDate !== today) return;
-        setLiveTodaySales(prev => {
-          const base = prev ?? { total: 0, count: 0 };
-          return { total: base.total + Number(row.total_ars || 0), count: base.count + 1 };
-        });
-      })
-      .subscribe();
-
-    channelRef.current = channel;
-    return () => { supabase.removeChannel(channel); };
-  }, [activeOrg?.id]);
+    const deHoy = ((payload.ventas as VentaAviso[] | undefined) ?? []).filter(row => String(row.date ?? '').slice(0, 10) === today);
+    if (!deHoy.length) return;
+    setLiveTodaySales(prev => {
+      const base = prev ?? { total: 0, count: 0 };
+      return { total: base.total + deHoy.reduce((sum, row) => sum + Number(row.total_ars || 0), 0), count: base.count + deHoy.length };
+    });
+  });
 
   // Check for open cash session
   useEffect(() => {

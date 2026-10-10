@@ -71,7 +71,7 @@ describe("dashboard operativo", () => {
 
   it("aísla widgets, realtime y preferencias por organizacion", () => {
     expect(dashboard).toContain(".eq('org_id', activeOrg.id)");
-    expect(dashboard).toContain("filter: `org_id=eq.${activeOrg.id}`");
+    expect(dashboard).toContain("useTopicEvent(topicOrg(activeOrg?.id), 'venta'");
     expect(dashboard).toContain('orgViewKey("dashboard.weekly_target", activeOrg?.id)');
     expect(dashboard).toContain('orgViewKey(`dashboard.monthly_target.${currentYearMonth}`, activeOrg?.id)');
     expect(dashboard).not.toContain("noSalesAlertDismissed");

@@ -1,16 +1,12 @@
 /**
- * useRealtimeKPIs — Live dashboard KPIs via Supabase Realtime Postgres Changes.
+ * useRealtimeKPIs — KPIs en vivo con los avisos de la base (Broadcast).
  *
- * Subscribes to INSERT/UPDATE events on `sales`, `debts`, `products`.
- * Returns callbacks to register "on change" handlers so any page
- * can reactively update without polling.
- *
- * Usage:
- *   const { salesCount, todayRevenue } = useRealtimeKPIs(orgId);
+ * Escucha venta · stock · deuda en el topic privado de la organización. Una
+ * venta de varios renglones llega como un solo aviso.
  */
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { toast } from "sonner";
+import { topicOrg, useTopicEvent, type VentaAviso } from "@/lib/orgRealtime";
 
 interface LiveKPIs {
   lastSale: { amount: number; product: string; customer: string } | null;
@@ -24,65 +20,23 @@ export function useRealtimeKPIs(orgId: string | undefined): LiveKPIs {
   const [saleEventCount, setSaleEventCount] = useState(0);
   const [stockEventCount, setStockEventCount] = useState(0);
   const [debtEventCount, setDebtEventCount] = useState(0);
+  const topic = topicOrg(orgId);
 
-  useEffect(() => {
-    if (!orgId) return;
-
-    const channelName = `kpi-realtime-${orgId}`;
-    const stale = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
-    if (stale) supabase.removeChannel(stale);
-
-    const channel = supabase
-      .channel(channelName)
-      // ── New sale ─────────────────────────────────────────────────────────
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "sales", filter: `org_id=eq.${orgId}` },
-        (payload) => {
-          const sale = payload.new as any;
-          const amount = Number(sale.total_ars || 0);
-          const product = sale.product_name || "Venta";
-          const customer = sale.customer_name || "Cliente";
-
-          setLastSale({ amount, product, customer });
-          setSaleEventCount(n => n + 1);
-
-          // Live toast — non-intrusive
-          toast.success(`💰 Nueva venta: $${Math.round(amount).toLocaleString("es-AR")}`, {
-            description: `${product} · ${customer}`,
-            duration: 4000,
-          });
-        }
-      )
-      // ── Stock movement ────────────────────────────────────────────────────
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "stock_movements", filter: `org_id=eq.${orgId}` },
-        (payload) => {
-          const mv = payload.new as any;
-          setStockEventCount(n => n + 1);
-
-          // Only alert on low stock
-          if (mv.qty_after !== undefined && Number(mv.qty_after) <= 2 && Number(mv.qty_after) >= 0) {
-            toast.warning(`⚠️ Stock bajo: ${mv.product_name || "Producto"}`, {
-              description: `Quedan ${mv.qty_after} unidades`,
-              duration: 6000,
-            });
-          }
-        }
-      )
-      // ── New debt ──────────────────────────────────────────────────────────
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "debts", filter: `org_id=eq.${orgId}` },
-        () => {
-          setDebtEventCount(n => n + 1);
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [orgId]);
+  useTopicEvent(topic, "venta", payload => {
+    const ventas = (payload.ventas as VentaAviso[] | undefined) ?? [];
+    const total = Number(payload.total ?? 0);
+    const primera = ventas[0];
+    const product = primera?.product_name || "Venta";
+    const customer = primera?.customer_name || "Cliente";
+    setLastSale({ amount: total, product, customer });
+    setSaleEventCount(n => n + 1);
+    toast.success(`💰 Nueva venta: $${Math.round(total).toLocaleString("es-AR")}`, {
+      description: ventas.length > 1 ? `${ventas.length} productos · ${customer}` : `${product} · ${customer}`,
+      duration: 4000,
+    });
+  });
+  useTopicEvent(topic, "stock", () => setStockEventCount(n => n + 1));
+  useTopicEvent(topic, "deuda", () => setDebtEventCount(n => n + 1));
 
   return { lastSale, saleEventCount, stockEventCount, debtEventCount };
 }

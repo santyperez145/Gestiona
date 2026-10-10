@@ -2,7 +2,6 @@
 import { useParams } from "react-router-dom";
 import { useCuotasDelComercio, textoDeCuotas, type CuotaOfrecida } from "@/lib/cuotasDelComercio";
 import { supabase } from "@/integrations/supabase/client";
-import { safeChannel } from "@/lib/realtimeChannel";
 import { loadPublicPromotions, bestPromoPrice } from "@/lib/promotions";
 import { nombreDeCategoria } from "@/lib/storeCategories";
 import {
@@ -260,13 +259,13 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
 
   useEffect(() => { void fetchData(); }, [fetchData]);
 
+  // El catálogo público se actualiza al volver a la pestaña. Antes escuchaba
+  // todos los productos de todas las organizaciones y recargaba con cada uno.
   useEffect(() => {
     if (!userId || !valid) return;
-    const channel = safeChannel("public-catalog-rt", userId)
-      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => fetchData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => fetchData())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const alVolver = () => { if (document.visibilityState === "visible") void fetchData(); };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => document.removeEventListener("visibilitychange", alVolver);
   }, [userId, valid, fetchData]);
 
   useEffect(() => {

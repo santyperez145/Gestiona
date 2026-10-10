@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+import { topicUsuario, useTopicEvent } from "@/lib/orgRealtime";
 const TYPE_CONFIG: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
   stock_bajo: { icon: Package, color: 'text-orange-400', bg: 'bg-orange-500/10' },
   deuda_vencida: { icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-500/10' },
@@ -82,27 +83,12 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   // Realtime subscription
-  useEffect(() => {
-    if (!user) return;
-    const channelName = `notifications-rt-${user.id}`;
-    // Remove any stale channel with the same name before subscribing
-    const stale = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
-    if (stale) supabase.removeChannel(stale);
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        const n = payload.new as Notification;
-        setNotifications(prev => [n, ...prev].slice(0, 30));
-        setUnreadCount(prev => prev + 1);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  useTopicEvent(topicUsuario(user?.id), 'notificacion', payload => {
+    const nuevas = (payload.notificaciones as Notification[] | undefined) ?? [];
+    if (!nuevas.length) return;
+    setNotifications(prev => [...nuevas, ...prev.filter(n => !nuevas.some(x => x.id === n.id))].slice(0, 30));
+    setUnreadCount(prev => prev + nuevas.length);
+  });
 
   const markAllRead = async () => {
     if (!user) return;

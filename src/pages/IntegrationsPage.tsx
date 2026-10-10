@@ -7,7 +7,6 @@ import PaymentConnectionsPanel from "@/components/integrations/PaymentConnection
 import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { safeChannel } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,6 +28,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 import { plural } from "@/lib/plural";
+import { topicOrg, useTopicEvent } from "@/lib/orgRealtime";
 // ── Integration health types ──────────────────────────────────────────────────
 type IntegrationStatus = "ok" | "error" | "warning" | "unknown";
 
@@ -196,19 +196,7 @@ export default function IntegrationsPage() {
   }, [activeOrg]);
 
   // Realtime: re-load health whenever a new integration_log is inserted
-  useEffect(() => {
-    if (!activeOrg) return;
-    const ch = safeChannel("integration-logs-rt", activeOrg.id)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "integration_logs",
-        filter: `org_id=eq.${activeOrg.id}`,
-      }, () => { loadHealth(); })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeOrg]);
+  useTopicEvent(topicOrg(activeOrg?.id), "integracion", () => { loadHealth(); });
 
   // Auto-refresh health every 60 seconds (background poll)
   useEffect(() => {

@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { safeChannel } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +32,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { redactarCampana, type CopyCampaignInput } from "@/lib/campaignCopy";
+import { topicOrg, useTopicEvent } from "@/lib/orgRealtime";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -342,20 +342,10 @@ export default function EmailCampaignsPage() {
   useEffect(() => { load(); }, [activeOrg]);
 
   // Live metric updates: when resend-webhook increments open/click counts, refresh campaigns
-  useEffect(() => {
-    if (!activeOrg) return;
-    const ch = safeChannel("email-campaigns-rt", activeOrg.id)
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "email_campaigns",
-        filter: `org_id=eq.${activeOrg.id}`,
-      }, payload => {
-        setCampaigns(prev => prev.map(c => c.id === (payload.new as any).id ? { ...c, ...(payload.new as any) } : c));
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [activeOrg]);
+  useTopicEvent(topicOrg(activeOrg?.id), "campana", payload => {
+    const filas = (payload.campanas as any[] | undefined) ?? [];
+    setCampaigns(prev => prev.map(c => { const nueva = filas.find(f => f.id === c.id); return nueva ? { ...c, ...nueva } : c; }));
+  });
 
   // ── Segment audiences ────────────────────────────────────────────────────────
 

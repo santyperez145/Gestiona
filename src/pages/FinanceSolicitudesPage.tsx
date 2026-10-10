@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import ApprovalPolicyPanel from "@/components/finance/ApprovalPolicyPanel";
 
+import { topicOrg, useTopicEvent } from "@/lib/orgRealtime";
 const DOCUMENT_TYPES = ["supplier_invoice", "receipt", "purchase_order", "other"] as const;
 type DocumentType = (typeof DOCUMENT_TYPES)[number];
 
@@ -140,19 +141,7 @@ export default function FinanceSolicitudesPage() {
 
   // Realtime: la bandeja se refresca sola cuando alguien aprueba/revisa desde
   // otra pestaña o dispositivo (paridad Mendel: bandeja viva, no stale).
-  useEffect(() => {
-    if (!activeOrg?.id) return;
-    const channel = supabase
-      .channel(`finance-solicitudes-${activeOrg.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "finance_expense_requests", filter: `org_id=eq.${activeOrg.id}` },
-        () => { void loadRequests(); },
-      )
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeOrg?.id]);
+  useTopicEvent(topicOrg(activeOrg?.id), "solicitud", () => { void loadRequests(); });
 
   const handleCreate = async () => {
     if (!newRequest.title.trim() || newRequest.amount <= 0) return;

@@ -19,7 +19,6 @@ import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
-import { safeChannel } from "@/lib/realtimeChannel";
 import {
   Bell, CheckSquare, Clock, TrendingUp, AlertTriangle, Users,
   RefreshCw, Phone, MessageCircle, Mail, ChevronRight, Flame,
