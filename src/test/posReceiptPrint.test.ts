@@ -76,3 +76,30 @@ describe("canonical POS receipts", () => {
     expect(document.querySelector("iframe")).toBeNull();
   });
 });
+
+describe("sello «Hecho con Nerqia» en el ticket (TESIS §5)", () => {
+  it("va al pie, escapado, sólo si viene", () => {
+    const con = posReceiptHtml({ ...receipt(), sello: "Hecho con Nerqia · nerqia.app/?ref=zz-<b>" });
+    expect(con).toContain('<p class="notice">Hecho con Nerqia · nerqia.app/?ref=zz-&lt;b&gt;</p>');
+    expect(posReceiptHtml(receipt())).not.toContain("Hecho con");
+    expect(posReceiptHtml({ ...receipt(), sello: null })).not.toContain("Hecho con");
+  });
+  it("se decide con org_entitlements y ante la duda no va", async () => {
+    const { selloDelTicket } = await import("@/lib/posReceiptPrint");
+    const { supabase } = await import("@/integrations/supabase/client");
+    const slug = { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { slug: "ZZ-Ferre" }, error: null }) }) }) };
+    mocks.from.mockReturnValue(slug);
+    const rpc = vi.fn();
+    (supabase as unknown as { rpc: typeof rpc }).rpc = rpc;
+    rpc.mockResolvedValueOnce({ data: { branding: false }, error: null });
+    await expect(selloDelTicket("org")).resolves.toBe("Hecho con Nerqia · nerqia.app/?ref=zz-ferre");
+    rpc.mockResolvedValueOnce({ data: { branding: true }, error: null });
+    await expect(selloDelTicket("org")).resolves.toBeNull();
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "x" } });
+    await expect(selloDelTicket("org")).resolves.toBeNull();
+    rpc.mockRejectedValueOnce(new Error("sin red"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(selloDelTicket("org")).resolves.toBeNull();
+    expect(rpc).toHaveBeenCalledWith("org_entitlements", { p_org: "org" });
+  });
+});

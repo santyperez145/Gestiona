@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { BRAND_DOMAIN, BRAND_NAME } from "@/lib/brand";
 
 export interface PosReceiptSnapshot {
   id: string;
@@ -7,6 +8,8 @@ export interface PosReceiptSnapshot {
   customer: string;
   paid: boolean;
   lines: Array<{ name: string; quantity: number; total: number; method: string }>;
+  /** «Hecho con Nerqia · nerqia.app/?ref=…»; null con marca propia vigente. */
+  sello?: string | null;
 }
 
 const escape = (value: string) => value.replace(/[&<>"']/g, (char) => ({
@@ -40,7 +43,7 @@ export function posReceiptHtml(receipt: PosReceiptSnapshot): string {
     <p>${receipt.paid ? "COBRO REGISTRADO" : "PAGO PENDIENTE O PARCIAL"}</p><p>${escape(methods)}</p>
     <p class="notice">Importes finales con los descuentos registrados en la venta.</p>
     <p class="notice">No es un comprobante fiscal. La factura ARCA se emite por separado.</p>
-    <p>¡Gracias por tu compra!</p></body></html>`;
+    <p>¡Gracias por tu compra!</p>${receipt.sello ? `<p class="notice">${escape(receipt.sello)}</p>` : ""}</body></html>`;
 }
 
 /** Isolated document, no popup dependency or remote content. Opens OS dialog. */
@@ -77,6 +80,28 @@ export async function printReceiptHtml(html: string): Promise<void> {
   });
 }
 
+/**
+ * Sello «Hecho con Nerqia» del ticket (TESIS §5: distribución en tiendas y
+ * tickets). Lleva el slug del comercio para medir altas referidas
+ * (`origen_de_alta`). Con marca propia vigente (`org_entitlements.branding`,
+ * la misma fuente que la tienda) no va; ante cualquier error, tampoco.
+ */
+export async function selloDelTicket(orgId: string): Promise<string | null> {
+  try {
+    const [derechos, org] = await Promise.all([
+      supabase.rpc("org_entitlements", { p_org: orgId }),
+      supabase.from("organizations").select("slug").eq("id", orgId).maybeSingle(),
+    ]);
+    const branding = (derechos.data as { branding?: boolean } | null)?.branding;
+    const slug = (org.data as { slug?: string } | null)?.slug;
+    if (derechos.error || org.error || branding !== false || !slug) return null;
+    return `Hecho con ${BRAND_NAME} · ${BRAND_DOMAIN}/?ref=${slug.toLowerCase()}`;
+  } catch (cause) {
+    console.error("[POS] receipt seal:", cause);
+    return null;
+  }
+}
+
 export async function loadPosReceipt(orgId: string, transactionId: string, businessName: string): Promise<PosReceiptSnapshot> {
   const { data: transaction, error: transactionError } = await supabase.from("sale_transactions")
     .select("id, occurred_at, source").eq("org_id", orgId).eq("id", transactionId).maybeSingle();
@@ -91,8 +116,9 @@ export async function loadPosReceipt(orgId: string, transactionId: string, busin
     console.error("[POS] receipt lines lookup:", linesError);
     throw new Error("No se pudo cargar el ticket completo. No se imprimió un recibo parcial.");
   }
+  const sello = await selloDelTicket(orgId);
   return {
-    id: transaction.id, date: transaction.occurred_at, businessName,
+    id: transaction.id, date: transaction.occurred_at, businessName, sello,
     customer: lines[0].customer_name || "", paid: lines.every((line) => line.paid === true),
     lines: lines.map((line) => ({ name: line.product_name, quantity: Number(line.quantity),
       total: line.total_ars == null ? Number.NaN : Number(line.total_ars), method: line.payment_method || "Medio no informado" })),
