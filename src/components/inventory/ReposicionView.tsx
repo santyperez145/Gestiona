@@ -4,6 +4,7 @@
 // El contenido es idéntico — PageHeader y acciones incluidas — porque este
 // paso mueve superficies, no reescribe cálculos: unificar los tres motores
 // en una autoridad server-side es INV-001, y va aparte a propósito.
+import { Link } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -491,7 +492,12 @@ export default function ReposicionView() {
                     <TableCell className="text-right text-xs hidden lg:table-cell" title={`EOQ: ${item.eoq}u (pedido óptimo)`}>
                       {item.eoq > 0 ? (
                         <span className="text-blue-400 font-mono">{item.eoq}u</span>
-                      ) : <span className="text-muted-foreground">—</span>}
+                      ) : (
+                        // Sin costo por pedido y de almacenamiento el EOQ queda NULL a
+                        // propósito. Antes era un «—» sin explicar de dónde salía.
+                        <Link to="/ajustes#inventory" className="text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
+                          title="Cargá el costo por pedido y el de almacenamiento en Ajustes → Inventario e IA">—</Link>
+                      )}
                     </TableCell>
                     <TableCell className="text-right text-xs hidden lg:table-cell" title={`ROP: pedir cuando el stock llegue a ${item.rop}u · SS: ${item.safetyStock}u`}>
                       {item.rop > 0 ? (

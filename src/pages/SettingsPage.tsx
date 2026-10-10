@@ -8,9 +8,9 @@ import { useOrg } from "@/lib/orgContext";
 import { hardReload } from "@/lib/hardReload";
 import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSupported } from "@/lib/pushNotifications";
 import { useEntitlements } from "@/lib/useEntitlements";
-import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
+import { getSettingsDB, saveSettingsDB, getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
-import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
+import { getCategoryMarkup } from "@/lib/pricing";
 import { useOrgCategories } from "@/components/products/CategorySelect";
 import { nombreDeCategoria } from "@/lib/storeCategories";
 import { Button } from "@/components/ui/button";
@@ -20,38 +20,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package, Tag , ExternalLink } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, CreditCard, MessageCircle, ShoppingBag, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package, Tag, ExternalLink } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { SupportAccessAuditSection } from "@/components/settings/SupportAccessAuditSection";
 import PageHeader from "@/components/shared/PageHeader";
 import CostoDeCobrar from "@/components/settings/CostoDeCobrar";
 import PlanesDeCuotas from "@/components/settings/PlanesDeCuotas";
-import {
-  backupTrustLabel,
-  createOrganizationBackup,
-  downloadOrganizationBackup,
-  formatBackupBytes,
-  listOrganizationBackups,
-  verifyOrganizationBackup,
-  type OrganizationBackup,
-} from "@/lib/orgBackups";
+import { backupTrustLabel, createOrganizationBackup, downloadOrganizationBackup, formatBackupBytes, listOrganizationBackups, verifyOrganizationBackup, type OrganizationBackup } from "@/lib/orgBackups";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { buildPricingSettingsUpdate } from "@/lib/settingsPricing";
-
-import { plural } from "@/lib/plural";
+import { borrarBorrador, camposCambiados, claveBorrador, guardarBorrador, leerBorrador, seccionesConCambios, soloCambios, type BorradorAjustes } from "@/lib/settingsDraft";
+import { erroresInventarioIA } from "@/lib/inventarioIA";
 import PosSupervisorSettings from "@/components/settings/PosSupervisorSettings";
+import InventarioIASettings from "@/components/settings/InventarioIASettings";
+
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
 function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {
   const storage = useStorageEstimate();
   const perms = usePermissionStatus(["notifications", "camera", "microphone", "geolocation"]);
 
-  const permLabel = (s: string) => s === "granted" ? "✓ Activo" : s === "denied" ? "✗ Bloqueado" : s === "prompt" ? "Sin respuesta" : "—";
+  const permLabel = (s: string) => s === "granted" ? "Permitido" : s === "denied" ? "Bloqueado" : s === "prompt" ? "Sin respuesta" : "—";
   const permColor = (s: string) => s === "granted" ? "text-emerald-400" : s === "denied" ? "text-destructive" : "text-muted-foreground";
 
   return (
@@ -77,30 +70,60 @@ function SystemInfoSection({ businessName, productCount, userEmail }: { business
           )}
         </div>
       )}
-      <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-emerald-400">Cloud ☁️</span></div>
-      <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-emerald-400">Activo ✓</span></div>
-      <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-emerald-400">Activo ✓</span></div>
-      <div className="flex justify-between"><span className="text-muted-foreground">Auditoría:</span><span className="font-medium text-emerald-400">Activo ✓</span></div>
       {perms.notifications !== "unsupported" && (
         <div className="flex justify-between"><span className="text-muted-foreground">Notificaciones:</span><span className={`font-medium text-xs ${permColor(perms.notifications)}`}>{permLabel(perms.notifications)}</span></div>
       )}
       {perms.camera !== "unsupported" && (
         <div className="flex justify-between"><span className="text-muted-foreground">Cámara:</span><span className={`font-medium text-xs ${permColor(perms.camera)}`}>{permLabel(perms.camera)}</span></div>
       )}
-      <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">8.5</span></div>
       <div className="flex justify-between"><span className="text-muted-foreground">Usuario:</span><span className="font-medium text-xs truncate max-w-[150px]">{userEmail}</span></div>
     </div>
   );
 }
 
+/**
+ * Las pestañas, en el orden en que un comercio nuevo las recorre: quién soy,
+ * cuánto me cuesta, a cuánto vendo, cómo aviso, cómo repongo, qué tributo y
+ * cómo protejo la cuenta. `keywords` alimenta la búsqueda: son las palabras
+ * con las que alguien busca lo que está adentro, no los títulos.
+ */
 const SETTINGS_SECTIONS = [
-  { id: "brand", label: "Tienda", title: "Identidad de tienda", description: "Marca, catálogo público y datos visibles para tus compradores.", icon: Building2 },
-  { id: "finance", label: "Finanzas", title: "Finanzas y costos", description: "Tipo de cambio, márgenes, gastos y reglas de precio.", icon: DollarSign },
-  { id: "messaging", label: "Mensajería", title: "Mensajería y alertas", description: "Plantillas, avisos, email y notificaciones del equipo.", icon: MessageCircle },
-  { id: "pricing", label: "Precios", title: "Precios y descuentos", description: "Descuentos por cobro, volumen y presentaciones.", icon: Tags },
-  { id: "billing", label: "Suscripción", title: "Suscripción e impuestos", description: "Plan, facturación e impuestos aplicables al negocio.", icon: CreditCard },
-  { id: "system", label: "Sistema", title: "Sistema y herramientas", description: "Seguridad, respaldos, AFIP, sucursales y utilidades.", icon: Database },
+  { id: "brand", label: "Tienda", title: "Identidad de tienda", description: "Nombre, logo, ticket y la apariencia que ven tus compradores.", icon: Building2,
+    keywords: ["nombre", "logo", "marca", "ticket", "recibo", "pie", "colores", "paleta", "catálogo", "apariencia", "diseño"] },
+  { id: "finance", label: "Finanzas", title: "Finanzas y cobros", description: "Dólar, costos de importación, cuenta bancaria, costo de cobrar y cuotas.", icon: DollarSign,
+    keywords: ["dólar", "cotización", "tipo de cambio", "blue", "aduana", "importación", "markup", "margen", "categoría", "gastos", "cbu", "alias", "banco", "cuenta bancaria", "comisión", "cuotas", "tarjeta", "mercadopago"] },
+  { id: "pricing", label: "Precios", title: "Precios y descuentos", description: "Descuentos por medio de pago, por volumen y el tope de descuento en caja.", icon: Tags,
+    keywords: ["descuento", "efectivo", "transferencia", "débito", "crédito", "mayorista", "volumen", "decant", "pin", "encargado", "supervisor", "autorización", "caja", "pos"] },
+  { id: "messaging", label: "Mensajería", title: "Mensajería y alertas", description: "WhatsApp, email propio, avisos y notificaciones del equipo.", icon: MessageCircle,
+    keywords: ["whatsapp", "resumen diario", "cumpleaños", "email", "smtp", "correo", "notificaciones", "push", "plantillas", "avisos", "alertas"] },
+  { id: "inventory", label: "Inventario e IA", title: "Reposición e inteligencia", description: "Lote óptimo de compra, stock dormido y los límites de las ofertas con IA.", icon: Package,
+    keywords: ["lote óptimo", "eoq", "wilson", "costo por pedido", "almacenamiento", "stock dormido", "sobrestock", "ia", "inteligencia", "ofertas", "tono", "reposición"] },
+  { id: "billing", label: "Impuestos", title: "Impuestos y facturación", description: "IVA, ingresos brutos, monotributo, identificación del comprador y tu plan.", icon: Receipt,
+    keywords: ["iva", "iibb", "ingresos brutos", "monotributo", "arca", "afip", "factura", "cuit", "dni", "consumidor final", "plan", "suscripción"] },
+  { id: "system", label: "Sistema", title: "Seguridad y datos", description: "Doble factor, respaldos, exportación y accesos de soporte.", icon: Shield,
+    keywords: ["seguridad", "2fa", "doble factor", "mfa", "respaldo", "backup", "exportar", "excel", "json", "soporte", "auditoría", "caché", "permisos"] },
 ] as const;
+
+type SettingsSectionId = typeof SETTINGS_SECTIONS[number]["id"];
+
+const ETIQUETA_DE_SECCION: Record<string, string> = Object.fromEntries(
+  SETTINGS_SECTIONS.map(section => [section.id, section.label]),
+);
+
+/** Normaliza para buscar sin que importen tildes ni mayúsculas. */
+function sinTildes(texto: string): string {
+  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+/** Pestañas que contienen lo que se busca, por título, descripción o palabras clave. */
+function seccionesQueCoinciden(consulta: string): SettingsSectionId[] {
+  const q = sinTildes(consulta.trim());
+  if (!q) return [];
+  return SETTINGS_SECTIONS
+    .filter(section => [section.label, section.title, section.description, ...section.keywords]
+      .some(texto => sinTildes(texto).includes(q)))
+    .map(section => section.id);
+}
 
 type StorefrontPalette = {
   id: string;
@@ -160,7 +183,7 @@ export default function SettingsPage() {
   const fetchBlueRate = async () => {
     await fetchBlueRateRaw();
     if (liveRatesData) {
-      toast.success(`💵 Dólar blue: $${liveRatesData.blue.toLocaleString('es-AR')} · Oficial: $${liveRatesData.oficial.toLocaleString('es-AR')}`);
+      toast.success(`Dólar blue: $${liveRatesData.blue.toLocaleString('es-AR')} · Oficial: $${liveRatesData.oficial.toLocaleString('es-AR')}`);
     }
   };
 
@@ -195,6 +218,30 @@ export default function SettingsPage() {
   const [productCount, setProductCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+
+  // ── Lo guardado vs lo que se ve ─────────────────────────────────────────
+  // `fila` es la última versión persistida (lo que vino de la base más lo que
+  // se guardó después); `guardado` es esa misma verdad en la forma del update.
+  // La diferencia contra el formulario es la barra de «cambios sin guardar».
+  const [fila, setFila] = useState<Record<string, any> | null>(null);
+  const [guardado, setGuardado] = useState<BorradorAjustes | null>(null);
+  const [ultimoGuardado, setUltimoGuardado] = useState<Date | null>(null);
+  const [borradorRecuperable, setBorradorRecuperable] = useState<BorradorAjustes | null>(null);
+  const clave = claveBorrador(orgForTemplates?.id);
+
+  // Ajustes que el sistema ya consumía y ninguna pantalla dejaba cargar.
+  // NULL es un estado real en los seis: «no lo cargué», y cada consumidor
+  // tiene su comportamiento declarado para ese caso. Por eso vacío ≠ 0.
+  const [costoPorPedido, setCostoPorPedido] = useState('');
+  const [costoAlmacenamientoPct, setCostoAlmacenamientoPct] = useState('');
+  const [stockDormidoDias, setStockDormidoDias] = useState('');
+  const [maxSobrestock, setMaxSobrestock] = useState('');
+  const [maxDescuentoIa, setMaxDescuentoIa] = useState('');
+  const [tonoIa, setTonoIa] = useState('');
+  const [umbralIdentificacion, setUmbralIdentificacion] = useState('');
+  const [industryCode, setIndustryCode] = useState<string | null>(null);
 
   const [businessName, setBusinessName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -255,7 +302,7 @@ export default function SettingsPage() {
         toast.success("Notificaciones push desactivadas");
       } else {
         const ok = await subscribeToPush(orgForTemplates.id);
-        if (ok) { setPushSubscribed(true); toast.success("Notificaciones push activadas 🔔"); }
+        if (ok) { setPushSubscribed(true); toast.success("Notificaciones push activadas"); }
         else toast.error("No se pudo activar. Asegurate de que el navegador tenga permiso.");
       }
     } finally {
@@ -274,11 +321,11 @@ export default function SettingsPage() {
   };
   const waTemplateKey = `gestiona.wa_templates.${orgForTemplates?.id || 'default'}`;
   const DEFAULT_WA_TEMPLATES = {
-    sale: "Hola {{nombre}}! 🎉 Tu compra de {{monto}} fue registrada. ¡Gracias por elegirnos!",
-    debt: "Hola {{nombre}}! 👋 Te recordamos que tenés una deuda pendiente de {{monto}}. Cuando puedas coordenamos. ¡Gracias!",
-    birthday: "¡Feliz cumpleaños {{nombre}}! 🎂 Tenemos un regalo especial para vos. Visitanos o escribinos para reclamar tu descuento.",
-    reactivation: "Hola {{nombre}}! 😊 Hace un tiempo que no te vemos. Tenemos novedades que te van a encantar. ¿Querés que te cuente?",
-    pickup: "Hola {{nombre}}! 📦 Tu pedido está listo para retirar. Podés pasarlo cuando quieras. ¡Hasta pronto!",
+    sale: "Hola {{nombre}}, registramos tu compra por {{monto}}. Gracias por elegirnos.",
+    debt: "Hola {{nombre}}, te recordamos que tenés un saldo pendiente de {{monto}}. Avisanos cuándo te queda cómodo y lo coordinamos. Gracias.",
+    birthday: "¡Feliz cumpleaños, {{nombre}}! Tenemos un beneficio especial para vos este mes. Escribinos y te contamos.",
+    reactivation: "Hola {{nombre}}, hace un tiempo que no te vemos. Tenemos novedades que pueden interesarte. ¿Querés que te las mandemos?",
+    pickup: "Hola {{nombre}}, tu pedido está listo para retirar. Podés pasar en nuestro horario de atención.",
   };
   const [waTemplates, setWaTemplates] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem(waTemplateKey) || "{}"); } catch { return {}; }
@@ -438,72 +485,116 @@ export default function SettingsPage() {
       accent: catalogAccent,
     };
     const updated = [...brandPalettes, newPal];
-    setBrandPalettes(updated);
-    setNewPaletteName('');
-    if (user) await saveSettingsDB(user.id, { brand_palettes: updated }).catch(() => {});
+    const ok = await persistirPaletas(updated);
     setSavingPalette(false);
+    if (!ok) return;
+    setNewPaletteName('');
     toast.success(`Paleta "${name}" guardada`);
   };
 
   const deletePalette = async (id: string) => {
-    const updated = brandPalettes.filter(p => p.id !== id);
-    setBrandPalettes(updated);
-    if (user) await saveSettingsDB(user.id, { brand_palettes: updated }).catch(() => {});
+    const nombre = brandPalettes.find(p => p.id === id)?.name;
+    if (await persistirPaletas(brandPalettes.filter(p => p.id !== id))) {
+      toast.success(nombre ? `Paleta "${nombre}" eliminada` : "Paleta eliminada");
+    }
   };
 
-  // Track original values for auto-recalculate prompt
-  const [origRate, setOrigRate] = useState('');
-  const [origCustoms, setOrigCustoms] = useState('');
-  const [origDiscount, setOrigDiscount] = useState('');
-  const [origCategoryPricing, setOrigCategoryPricing] = useState('{}');
+  /**
+   * Las paletas se guardan al momento, no esperan la barra. ⚠️ Antes el error
+   * se tragaba con `.catch(() => {})` y el toast decía «guardada» igual: la
+   * paleta desaparecía al recargar sin que nadie supiera por qué.
+   */
+  const persistirPaletas = async (paletas: StorefrontPalette[]): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      await saveSettingsDB(user.id, { brand_palettes: paletas });
+      setBrandPalettes(paletas);
+      setGuardado(prev => prev && { ...prev, brand_palettes: paletas });
+      setFila(prev => ({ ...(prev ?? {}), brand_palettes: paletas }));
+      return true;
+    } catch (err: any) {
+      console.error('[SettingsPage] No se pudieron guardar las paletas', err);
+      toast.error("No se guardó la paleta: " + (err?.message || "error desconocido"));
+      return false;
+    }
+  };
 
-  useEffect(() => {
+
+  /** Vuelca una fila de `settings` en el formulario. La usan la carga y «Descartar». */
+  const aplicarAjustes = useCallback((s: Record<string, any>) => {
+    // ⚠️ `String(null)` es "null": así se mostraba la cotización de un comercio
+    // que todavía no la cargó, que desde 20260826000030 es un NULL legítimo.
+    const texto = (v: unknown) => (v === null || v === undefined ? '' : String(v));
+    setExchangeRate(texto(s.exchange_rate));
+    setCustomsPercent(texto(s.customs_percent));
+    setDefaultDiscountPercent(texto(s.default_discount_percent));
+    setCategoryPricing((s.category_pricing as Record<string, { markup?: number; discount?: number }>) || {});
+    setTaxEnabled(!!s.tax_enabled);
+    setMfaRequired(!!s.mfa_required);
+    setTaxIva(String(s.tax_iva_percent ?? 21));
+    setTaxPricesIncludeIva(s.tax_prices_include_iva !== false);
+    setTaxIibb(String(s.tax_iibb_percent ?? 3.5));
+    setTaxMonotributo(String(s.tax_monotributo_monthly ?? 0));
+    setBusinessName(s.business_name || '');
+    setLogoUrl(s.logo_url || '');
+    setReceiptFooter(s.receipt_footer || '¡Gracias por su compra!');
+    setCatalogBg(s.catalog_bg_color || 'hsl(var(--background))');
+    setCatalogCard(s.catalog_card_color || 'hsl(var(--card))');
+    setCatalogAccent(s.catalog_accent_color || s.primary_color || 'hsl(var(--primary))');
+    setBrandPalettes(Array.isArray(s.brand_palettes) ? s.brand_palettes : []);
+    setDiscountCash(String(s.discount_cash_percent ?? 10));
+    setDiscountTransfer(String(s.discount_transfer_percent ?? 5));
+    setDiscountDebit(String(s.discount_debit_percent ?? 0));
+    setDiscountCredit(String(s.discount_credit_percent ?? 0));
+    setWhatsappNumber(s.whatsapp_number || '');
+    setWhatsappDigestEnabled(!!s.whatsapp_digest_enabled);
+    setWhatsappBirthdayEnabled(s.whatsapp_birthday_enabled === true);
+    setBankCbu(s.bank_cbu || '');
+    setBankAlias(s.bank_alias || '');
+    setBankName(s.bank_name || '');
+    setBankHolder(s.bank_holder || '');
+    setVolumeThreshold(String(s.volume_discount_threshold ?? 3));
+    setVolumeDiscount(String(s.volume_discount_percent ?? 10));
+    setDecantMargin10(String(s.decant_margin_10ml ?? 250));
+    setDecantMargin5(String(s.decant_margin_5ml ?? 350));
+    setDecantMargin2_5(String(s.decant_margin_2_5ml ?? 500));
+    setCostoPorPedido(texto(s.costo_por_pedido));
+    setCostoAlmacenamientoPct(texto(s.costo_almacenamiento_anual_pct));
+    setStockDormidoDias(texto(s.stock_dormido_days));
+    setMaxSobrestock(texto(s.max_overstock_units));
+    setMaxDescuentoIa(texto(s.max_ai_discount_percent));
+    setTonoIa(s.ai_tone || '');
+    setUmbralIdentificacion(texto(s.fiscal_id_required_above));
+    setIndustryCode(s.industry_code ?? null);
+  }, []);
+
+  const cargar = useCallback(async () => {
     if (!user) return;
-    (async () => {
+    setLoading(true);
+    setErrorCarga(null);
+    try {
       const s: any = await getSettingsDB(user.id);
-      setExchangeRate(String(s.exchange_rate));
-      setCustomsPercent(String(s.customs_percent));
-      setDefaultDiscountPercent(String(s.default_discount_percent));
-      setCategoryPricing((s.category_pricing as Record<string, { markup?: number; discount?: number }>) || {});
-      setTaxEnabled(!!s.tax_enabled);
-      setMfaRequired(!!s.mfa_required);
-      setTaxIva(String(s.tax_iva_percent ?? 21));
-      setTaxPricesIncludeIva((s as any).tax_prices_include_iva !== false);
-      setTaxPricesIncludeIva(s.tax_prices_include_iva !== false);
-      setTaxIibb(String(s.tax_iibb_percent ?? 3.5));
-      setTaxMonotributo(String(s.tax_monotributo_monthly ?? 0));
-      setBusinessName(s.business_name || '');
-      setLogoUrl(s.logo_url || '');
-      setReceiptFooter(s.receipt_footer || '¡Gracias por su compra!');
-      setCatalogBg(s.catalog_bg_color || 'hsl(var(--background))');
-      setCatalogCard(s.catalog_card_color || 'hsl(var(--card))');
-      setCatalogAccent(s.catalog_accent_color || s.primary_color || 'hsl(var(--primary))');
-      setBrandPalettes(Array.isArray(s.brand_palettes) ? s.brand_palettes : []);
-      setDiscountCash(String(s.discount_cash_percent ?? 10));
-      setDiscountTransfer(String(s.discount_transfer_percent ?? 5));
-      setDiscountDebit(String(s.discount_debit_percent ?? 0));
-      setDiscountCredit(String(s.discount_credit_percent ?? 0));
-      setWhatsappNumber(s.whatsapp_number || '');
-      setWhatsappDigestEnabled(!!s.whatsapp_digest_enabled);
-      setWhatsappBirthdayEnabled(s.whatsapp_birthday_enabled === true);
-      setBankCbu(s.bank_cbu || '');
-      setBankAlias(s.bank_alias || '');
-      setBankName(s.bank_name || '');
-      setBankHolder(s.bank_holder || '');
-      setVolumeThreshold(String(s.volume_discount_threshold ?? 3));
-      setVolumeDiscount(String(s.volume_discount_percent ?? 10));
-      setDecantMargin10(String(s.decant_margin_10ml ?? 250));
-      setDecantMargin5(String(s.decant_margin_5ml ?? 350));
-      setDecantMargin2_5(String(s.decant_margin_2_5ml ?? 500));
-      setOrigRate(String(s.exchange_rate));
-      setOrigCustoms(String(s.customs_percent));
-      setOrigDiscount(String(s.default_discount_percent));
-      setOrigCategoryPricing(JSON.stringify(s.category_pricing || {}));
-      const products = await getProductsDB(user.id);
-      setProductCount(products.length);
+      aplicarAjustes(s);
+      setFila(s);
+      // Se cuentan, no se descargan: traer el catálogo entero para mostrar
+      // un número costaba una consulta por cada 1.000 productos.
+      if (orgForTemplates?.id) {
+        const { count } = await supabase.from('products')
+          .select('id', { count: 'exact', head: true })
+          .eq('org_id', orgForTemplates.id);
+        setProductCount(count ?? 0);
+      }
+      setGuardado(null); // la toma el efecto de abajo con el formulario ya volcado
       setLoading(false);
-    })();
-  }, [user]);
+    } catch (err: any) {
+      console.error('[SettingsPage] No se pudo cargar la configuración', err);
+      // Antes no había catch: un error dejaba el esqueleto girando para siempre.
+      setErrorCarga(err?.message || 'Error desconocido');
+      setLoading(false);
+    }
+  }, [user, orgForTemplates?.id, aplicarAjustes]);
+
+  useEffect(() => { void cargar(); }, [cargar]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -524,179 +615,151 @@ export default function SettingsPage() {
     }
   };
 
+  /** Número o NULL: vacío es «no lo cargué», no cero. */
+  const numONulo = (valor: string): number | null => {
+    const limpio = valor.trim().replace(',', '.');
+    if (!limpio) return null;
+    const n = Number(limpio);
+    return Number.isFinite(n) ? n : null;
+  };
+  const num = (val: string, fallback: number) => { const n = parseFloat(val); return isNaN(n) ? fallback : n; };
+
+  const pricingSettings = buildPricingSettingsUpdate({
+    discountCash,
+    discountTransfer,
+    discountDebit,
+    discountCredit,
+    volumeThreshold,
+    volumeDiscount,
+    decantMargin10,
+    decantMargin5,
+    decantMargin2_5,
+  });
+
+  /** El formulario en la forma de `settings`: lo que se guardaría ahora mismo. */
+  const borrador: BorradorAjustes = {
+    // ⚠️ Vacío guarda NULL, no 1695. Desde 20260826000030 la columna no
+    // tiene DEFAULT y NULL significa "el comercio todavía no cargó la
+    // cotización" — un estado real, como el NULL de `products.tax_rate`.
+    // Meter un número acá le fijaría al comercio un dólar que nunca eligió.
+    exchange_rate: cotizacionDe({ exchange_rate: exchangeRate }),
+    customs_percent: num(customsPercent, 15),
+    default_discount_percent: num(defaultDiscountPercent, 20),
+    category_pricing: categoryPricing,
+    tax_enabled: taxEnabled,
+    mfa_required: mfaRequired,
+    tax_iva_percent: num(taxIva, 21),
+    tax_prices_include_iva: taxPricesIncludeIva,
+    tax_iibb_percent: num(taxIibb, 3.5),
+    tax_monotributo_monthly: num(taxMonotributo, 0),
+    fiscal_id_required_above: numONulo(umbralIdentificacion),
+    business_name: businessName,
+    logo_url: logoUrl || null,
+    receipt_footer: receiptFooter || null,
+    catalog_bg_color: catalogBg,
+    catalog_card_color: catalogCard,
+    catalog_accent_color: catalogAccent,
+    brand_palettes: brandPalettes,
+    ...pricingSettings,
+    whatsapp_number: whatsappNumber || null,
+    whatsapp_digest_enabled: whatsappDigestEnabled,
+    whatsapp_birthday_enabled: whatsappBirthdayEnabled,
+    bank_cbu: bankCbu || null,
+    bank_alias: bankAlias || null,
+    bank_name: bankName || null,
+    bank_holder: bankHolder || null,
+    costo_por_pedido: numONulo(costoPorPedido),
+    costo_almacenamiento_anual_pct: numONulo(costoAlmacenamientoPct),
+    stock_dormido_days: numONulo(stockDormidoDias),
+    max_overstock_units: numONulo(maxSobrestock),
+    max_ai_discount_percent: numONulo(maxDescuentoIa),
+    ai_tone: tonoIa.trim() || null,
+  };
+
+  const cambios = camposCambiados(guardado, borrador);
+  const seccionesSucias = seccionesConCambios(cambios);
+  const hayCambios = cambios.length > 0;
+  const firmaCambios = cambios.length ? JSON.stringify(soloCambios(borrador, cambios)) : "";
+  const erroresInventario = erroresInventarioIA({
+    costoPorPedido, costoAlmacenamientoPct, stockDormidoDias, maxSobrestock, maxDescuentoIa, tonoIa,
+  });
+
+  // La foto de «lo guardado» se toma una vez que el formulario ya muestra la
+  // fila: así la barra nace vacía y sólo aparece cuando alguien toca algo.
+  useEffect(() => {
+    if (loading || errorCarga || guardado !== null || !fila) return;
+    setGuardado(borrador);
+    // Un borrador de una visita anterior en esta pestaña se ofrece, no se
+    // impone: puede ser viejo, y la base pudo cambiar desde otra computadora.
+    const previo = leerBorrador(clave);
+    if (previo && camposCambiados(borrador, { ...borrador, ...previo }).length > 0) {
+      setBorradorRecuperable(previo);
+    } else {
+      borrarBorrador(clave);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, errorCarga, guardado, fila]);
+
+  // Lo que no se guardó sobrevive a un click en el menú lateral.
+  useEffect(() => {
+    if (guardado === null) return;
+    if (firmaCambios) guardarBorrador(clave, JSON.parse(firmaCambios));
+    else borrarBorrador(clave);
+  }, [firmaCambios, guardado, clave]);
+
+  // Y cerrar la pestaña o recargar pregunta antes.
+  useEffect(() => {
+    if (!hayCambios) return;
+    const avisar = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', avisar);
+    return () => window.removeEventListener('beforeunload', avisar);
+  }, [hayCambios]);
+
+  const descartarCambios = () => {
+    if (!fila) return;
+    aplicarAjustes(fila);
+    borrarBorrador(clave);
+    toast("Cambios descartados", { description: "Volviste a lo último guardado." });
+  };
+
+  const recuperarBorrador = () => {
+    if (!fila || !borradorRecuperable) return;
+    aplicarAjustes({ ...fila, ...borradorRecuperable });
+    setBorradorRecuperable(null);
+    toast.success("Recuperaste los cambios que no habías guardado", { description: "Revisalos y guardá." });
+  };
+
   const handleSave = async () => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      const num = (val: string, fallback: number) => { const n = parseFloat(val); return isNaN(n) ? fallback : n; };
-      const pricingSettings = buildPricingSettingsUpdate({
-        discountCash,
-        discountTransfer,
-        discountDebit,
-        discountCredit,
-        volumeThreshold,
-        volumeDiscount,
-        decantMargin10,
-        decantMargin5,
-        decantMargin2_5,
-      });
-      await saveSettingsDB(user.id, {
-        // ⚠️ Vacío guarda NULL, no 1695. Desde 20260826000030 la columna no
-        // tiene DEFAULT y NULL significa "el comercio todavía no cargó la
-        // cotización" — un estado real, como el NULL de `products.tax_rate`.
-        // Meter un número acá le fijaría al comercio un dólar que nunca eligió.
-        exchange_rate: cotizacionDe({ exchange_rate: exchangeRate }),
-        customs_percent: num(customsPercent, 15),
-        default_discount_percent: num(defaultDiscountPercent, 20),
-        category_pricing: categoryPricing,
-        tax_enabled: taxEnabled,
-        mfa_required: mfaRequired,
-        tax_iva_percent: num(taxIva, 21),
-        tax_prices_include_iva: taxPricesIncludeIva,
-        tax_iibb_percent: num(taxIibb, 3.5),
-        tax_monotributo_monthly: num(taxMonotributo, 0),
-        business_name: businessName,
-        logo_url: logoUrl || null,
-        receipt_footer: receiptFooter || null,
-        catalog_bg_color: catalogBg,
-        catalog_card_color: catalogCard,
-        catalog_accent_color: catalogAccent,
-        brand_palettes: brandPalettes,
-        ...pricingSettings,
-        whatsapp_number: whatsappNumber || null,
-        whatsapp_digest_enabled: whatsappDigestEnabled,
-        whatsapp_birthday_enabled: whatsappBirthdayEnabled,
-        bank_cbu: bankCbu || null,
-        bank_alias: bankAlias || null,
-        bank_name: bankName || null,
-        bank_holder: bankHolder || null,
-      });
-      await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
-      toast.success("Configuración guardada correctamente");
-
-      // Check if pricing-related settings changed → prompt recalculate
-      // (incluye el markup/descuento por categoría: si cambia el markup, los
-      // precios ya cargados quedan viejos hasta recalcular)
-      const catPricingChanged = JSON.stringify(categoryPricing) !== origCategoryPricing;
-      if (exchangeRate !== origRate || customsPercent !== origCustoms || defaultDiscountPercent !== origDiscount || catPricingChanged) {
-        toast(catPricingChanged ? "Cambiaron los precios por categoría" : "Los parámetros financieros cambiaron", {
-          description: "¿Recalcular los precios de todos los productos con los nuevos valores?",
-          action: { label: "Recalcular", onClick: () => handleRecalculate() },
-          duration: 10000,
-        });
-      }
-      setOrigRate(exchangeRate);
-      setOrigCustoms(customsPercent);
-      setOrigDiscount(defaultDiscountPercent);
-      setOrigCategoryPricing(JSON.stringify(categoryPricing));
-    } catch (err: any) {
-      console.error('[SettingsPage] No se pudo guardar la configuración', err);
-      toast.error("Error al guardar: " + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSavePricing = async () => {
-    if (!user) return;
-    setSaving(true);
-    const pricingSettings = buildPricingSettingsUpdate({
-      discountCash,
-      discountTransfer,
-      discountDebit,
-      discountCredit,
-      volumeThreshold,
-      volumeDiscount,
-      decantMargin10,
-      decantMargin5,
-      decantMargin2_5,
-    });
-
-    try {
-      await saveSettingsDB(user.id, pricingSettings);
-      await logAudit(
-        user.id,
-        'settings_change',
-        'settings',
-        undefined,
-        { section: 'pricing', ...pricingSettings },
-        {
-          entityLabel: 'Precios y descuentos',
-          newValues: { ...pricingSettings },
-          tags: ['settings', 'pricing', 'pos'],
-        },
-      );
-      toast.success('Precios y descuentos guardados', {
-        description: 'Caja usará estos valores desde la próxima venta.',
-      });
-    } catch (err: any) {
-      console.error('[SettingsPage] No se pudieron guardar los precios y descuentos', err);
-      toast.error('No se pudieron guardar los precios y descuentos: ' + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleRecalculate = async () => {
-    if (!user) return;
-    const products = await getProductsDB(user.id);
-    // ⚠️ Esto reescribe el precio de **todos** los productos. Hacerlo con una
-    // cotización inventada sería cambiar los precios del comercio contra un
-    // dólar que no es el suyo, y sin que se entere. Se frena.
-    const rate = cotizacionDe({ exchange_rate: exchangeRate });
-    if (rate === null) {
-      toast.error('Cargá el tipo de cambio antes de recalcular: los precios en pesos salen de ahí.');
+    if (!user || !hayCambios) return;
+    if (erroresInventario.length) {
+      setSettingsSection("inventory");
+      toast.error("Revisá Inventario e IA", { description: erroresInventario[0] });
       return;
     }
-    const customs = parseFloat(customsPercent) || 15;
-    // Se usa el markup/descuento de CADA categoría (settings.category_pricing),
-    // no un ×2 fijo — así cambiar el markup de una categoría se refleja acá.
-    const settingsForCalc = { category_pricing: categoryPricing, default_discount_percent: parseFloat(defaultDiscountPercent) };
-    const eligible = products.filter(p => Number(p.cost_usd) > 0);
-    const nowMs = Date.now();
+    setSaving(true);
+    // Sólo lo que cambió. Mandar el formulario entero pisaba lo que otra
+    // computadora hubiera guardado en el medio —y en este negocio se trabaja
+    // desde dos PCs a la vez.
+    const update = soloCambios(borrador, cambios);
+    try {
+      await saveSettingsDB(user.id, update);
+      await logAudit(user.id, 'settings_change', 'settings', undefined, { campos: cambios, secciones: seccionesSucias });
+      setGuardado(borrador);
+      setFila(prev => ({ ...(prev ?? {}), ...update }));
+      setUltimoGuardado(new Date());
+      borrarBorrador(clave);
+      toast.success(cambios.length === 1 ? "Cambio guardado" : `${cambios.length} cambios guardados`, {
+        description: seccionesSucias.map(id => ETIQUETA_DE_SECCION[id]).filter(Boolean).join(" · "),
+      });
 
-    const updates = eligible.map(p => {
-      const costUsd = Number(p.cost_usd);
-      const markup = getCategoryMarkup(settingsForCalc, p.category);
-      const newSalePrice = calcAutoSalePrice(costUsd, customs, rate, markup);
-
-      // Si el producto tiene una oferta vigente, se preserva su % de descuento
-      // real (para no pisar una promo activa con el descuento por defecto).
-      const oldSale = Number(p.sale_price_ars) || 0;
-      const oldDisc = Number(p.discount_price_ars) || 0;
-      const hasLiveOffer = p.offer_expires_at ? new Date(p.offer_expires_at).getTime() > nowMs : false;
-      const oldDiscPct = oldSale > 0 && oldDisc > 0 && oldDisc < oldSale
-        ? (1 - oldDisc / oldSale) * 100
-        : null;
-      const discPct = hasLiveOffer && oldDiscPct !== null
-        ? oldDiscPct
-        : getCategoryDiscount(settingsForCalc, p.category);
-      const newDiscountPrice = calcAutoDiscountPrice(newSalePrice, discPct);
-
-      const { customsFee, totalCostUSD, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(
-        costUsd, customs, newSalePrice, rate
-      );
-      return {
-        id: p.id,
-        payload: {
-          customs_fee: customsFee, total_cost_usd: totalCostUSD,
-          sale_price_ars: newSalePrice,
-          discount_price_ars: newDiscountPrice,
-          profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
-        },
-      };
-    });
-
-    // En tandas de 25 para no disparar cientos de requests en serie.
-    let count = 0;
-    for (let i = 0; i < updates.length; i += 25) {
-      const chunk = updates.slice(i, i + 25);
-      await Promise.all(chunk.map(u => supabase.from('products').update(u.payload).eq('id', u.id)));
-      count += chunk.length;
+    } catch (err: any) {
+      console.error('[SettingsPage] No se pudo guardar la configuración', err);
+      toast.error("No se guardó: " + err.message, { description: "Tus cambios siguen en pantalla. Probá de nuevo." });
+    } finally {
+      setSaving(false);
     }
-    setProductCount(count);
-    toast.success(`${plural(count, "producto")} recalculados con TC $${rate}, aduana ${customs}% y el markup de cada categoría`);
   };
+
 
   if (loading) return (
     <div>
@@ -710,39 +773,100 @@ export default function SettingsPage() {
     </div>
   );
 
+  if (errorCarga) return (
+    <div>
+      <PageHeader icon={Building2} eyebrow="Commerce · Configuración" title="Ajustes" description="No pudimos leer tu configuración." />
+      <div role="alert" className="max-w-xl rounded-[10px] border border-destructive/40 bg-destructive/5 p-5 space-y-3">
+        <p className="flex items-center gap-2 font-medium"><AlertTriangle className="w-4 h-4 text-destructive" />La configuración no cargó</p>
+        <p className="text-sm text-muted-foreground">
+          No se mostró nada para que no edites sobre datos vacíos: guardar ahí pisaría tu configuración real.
+        </p>
+        <p className="text-xs font-mono text-muted-foreground break-all">{errorCarga}</p>
+        <Button onClick={() => void cargar()}><RefreshCw className="w-4 h-4 mr-1.5" />Reintentar</Button>
+      </div>
+    </div>
+  );
+
+  const seccionActual = SETTINGS_SECTIONS.find(section => section.id === settingsSection) ?? SETTINGS_SECTIONS[0];
+  const coincidencias = seccionesQueCoinciden(busqueda);
+  const pestanas = busqueda.trim()
+    ? SETTINGS_SECTIONS.filter(section => coincidencias.includes(section.id))
+    : SETTINGS_SECTIONS;
+  const estadoGuardado = saving
+    ? "Guardando…"
+    : hayCambios
+      ? `${cambios.length} ${cambios.length === 1 ? "cambio" : "cambios"} sin guardar`
+      : ultimoGuardado
+        ? `Guardado ${ultimoGuardado.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`
+        : "Todo guardado";
+
   return (
-    <div className="pb-12">
+    <div className="pb-28">
       <PageHeader
         icon={Building2}
         eyebrow="Commerce · Configuración"
         title="Ajustes"
-        description={`Identidad, cobros y operación de ${businessName} — misma verdad que la tienda.`}
-        actions={(
-          <div className="workspace-shortcut-hint hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-            <Keyboard className="w-3 h-3" />Ctrl+K búsqueda rápida
-          </div>
-        )}
+        description={`Identidad, cobros y operación de ${businessName || "tu negocio"} — misma verdad que la tienda.`}
       />
+
+      {borradorRecuperable && (
+        <div role="status" className="mb-4 flex flex-col gap-3 rounded-[10px] border border-amber-500/40 bg-amber-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm">
+            <strong>Tenés cambios que no guardaste</strong> la última vez que estuviste acá
+            ({seccionesConCambios(Object.keys(borradorRecuperable)).map(id => ETIQUETA_DE_SECCION[id]).filter(Boolean).join(", ") || "varias secciones"}).
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => { borrarBorrador(clave); setBorradorRecuperable(null); }}>Descartarlos</Button>
+            <Button size="sm" onClick={recuperarBorrador}>Recuperar</Button>
+          </div>
+        </div>
+      )}
 
       <div className="workspace-settings-layout">
         <div className="workspace-settings-content" data-settings-view={settingsSection}>
           <div className="workspace-settings-tabs-head">
             <div>
               <p className="workspace-settings-tabs-head__eyebrow">Configuración del negocio</p>
-              <h2 className="workspace-settings-tabs-head__title">
-                {SETTINGS_SECTIONS.find(section => section.id === settingsSection)?.title || "Ajustes"}
-              </h2>
-              <p className="workspace-settings-tabs-head__description">
-                {SETTINGS_SECTIONS.find(section => section.id === settingsSection)?.description}
-              </p>
+              <h2 className="workspace-settings-tabs-head__title">{seccionActual.title}</h2>
+              <p className="workspace-settings-tabs-head__description">{seccionActual.description}</p>
             </div>
-            <span className="workspace-settings-tabs-head__status">Cambios guardados por sección</span>
+            <span
+              className={`workspace-settings-tabs-head__status ${hayCambios ? "text-amber-500" : ""}`}
+              aria-live="polite"
+            >
+              {estadoGuardado}
+            </span>
+          </div>
+
+          <div className="relative mb-3 max-w-md">
+            <Input
+              type="search"
+              value={busqueda}
+              onChange={e => {
+                setBusqueda(e.target.value);
+                // Un solo resultado: se abre directo, como en un buscador.
+                const unica = seccionesQueCoinciden(e.target.value);
+                if (unica.length === 1) setSettingsSection(unica[0]);
+              }}
+              onKeyDown={e => { if (e.key === "Escape") setBusqueda(""); }}
+              placeholder="Buscar un ajuste: dólar, CBU, IVA, logo, 2FA…"
+              aria-label="Buscar en ajustes"
+              className="bg-muted border-border"
+            />
+            {busqueda.trim() && (
+              <p className="mt-1 text-[11px] text-muted-foreground" aria-live="polite">
+                {pestanas.length
+                  ? `${pestanas.length} ${pestanas.length === 1 ? "sección" : "secciones"} con «${busqueda.trim()}»`
+                  : `Nada con «${busqueda.trim()}». Probá con otra palabra.`}
+              </p>
+            )}
           </div>
 
           <div className="workspace-settings-tabs" role="tablist" aria-label="Secciones de ajustes">
-            {SETTINGS_SECTIONS.map(section => {
+            {pestanas.map(section => {
               const Icon = section.icon;
               const isActive = settingsSection === section.id;
+              const sucia = (seccionesSucias as string[]).includes(section.id);
               return (
                 <button
                   key={section.id}
@@ -756,6 +880,7 @@ export default function SettingsPage() {
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
                   <span>{section.label}</span>
+                  {sucia && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="con cambios sin guardar" />}
                 </button>
               );
             })}
@@ -769,6 +894,7 @@ export default function SettingsPage() {
         >
           <div className="space-y-4 md:space-y-6 workspace-settings-column">
             {/* Brand */}
+          {settingsSection === "brand" && (
           <div id="settings-brand" className="settings-panel settings-panel--brand bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />Identidad del negocio y la tienda
@@ -904,34 +1030,17 @@ export default function SettingsPage() {
               </p>
             </div>
 
+          </div>
+          )}
+
+          {/* ⚠️ Acá y no en Nerqia Finance: esa superficie es gestión de
+              gastos corporativos (ADR 001) y no lleva nada más. Lo que cuesta
+              cobrar es configuración del comercio, y afecta el margen — por eso
+              va en "Finanzas y costos", junto al tipo de cambio. */}
+          {/* Estaba al pie de «Tienda». Es a dónde te pagan: va con los cobros. */}
+          {settingsSection === "finance" && (
+          <div id="settings-banco" className="settings-panel settings-panel--finance bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
             <div>
-              <label className="text-sm text-muted-foreground flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />WhatsApp (catálogo público)</label>
-              <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="+5491112345678" className="bg-muted border-border mt-1" />
-              <p className="text-[10px] text-muted-foreground mt-1">Número con código de país. Aparecerá como botón flotante en tu catálogo público.</p>
-            </div>
-            <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
-              <div>
-                <p className="text-sm font-medium flex items-center gap-1.5">
-                  <MessageCircle className="w-4 h-4 text-green-400" />Resumen diario por WhatsApp
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Recibí un mensaje con las ventas del día a las 17hs. Requiere Evolution API configurada y número de WhatsApp arriba.
-                </p>
-              </div>
-              <Switch checked={whatsappDigestEnabled} onCheckedChange={setWhatsappDigestEnabled} />
-            </div>
-            <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
-              <div>
-                <p className="text-sm font-medium flex items-center gap-1.5">
-                  <MessageCircle className="w-4 h-4 text-pink-400" />🎂 Felicitación de cumpleaños
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Autorizá el saludo cuando Nerqia tenga un canal Meta y una plantilla aprobada. Sólo alcanza a clientes con fecha y consentimiento vigentes.
-                </p>
-              </div>
-              <Switch checked={whatsappBirthdayEnabled} onCheckedChange={setWhatsappBirthdayEnabled} />
-            </div>
-            <div className="border-t border-border pt-4">
               <label className="text-sm font-medium flex items-center gap-1.5 mb-3"><CreditCard className="w-3.5 h-3.5 text-primary" />Cuenta bancaria (para links de pago)</label>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -954,18 +1063,19 @@ export default function SettingsPage() {
               <p className="text-[10px] text-muted-foreground mt-1.5">Aparecerá en los links de pago que generés para tus presupuestos.</p>
             </div>
           </div>
+          )}
 
-          {/* ⚠️ Acá y no en Nerqia Finance: esa superficie es gestión de
-              gastos corporativos (ADR 001) y no lleva nada más. Lo que cuesta
-              cobrar es configuración del comercio, y afecta el margen — por eso
-              va en "Finanzas y costos", junto al tipo de cambio. */}
+          {settingsSection === "finance" && (
           <div id="settings-costo-cobrar" className="settings-panel settings-panel--finance">
             <CostoDeCobrar orgId={orgForTemplates?.id} />
           </div>
+          )}
 
+          {settingsSection === "finance" && (
           <div id="settings-cuotas" className="settings-panel settings-panel--finance">
             <PlanesDeCuotas orgId={orgForTemplates?.id} />
           </div>
+          )}
 
           {/* Financial params */}
           {/**
@@ -974,6 +1084,7 @@ export default function SettingsPage() {
             * parámetros de plata: quien viene a configurar cuánto vale el dólar no
             * lo busca al lado de los backups.
             */}
+          {settingsSection === "finance" && (
           <div className="settings-panel settings-panel--finance space-y-4 md:space-y-6">
             <USDQuoteSection
               userId={user!.id}
@@ -982,7 +1093,9 @@ export default function SettingsPage() {
             />
             <ExpenseCategoriesSection userId={user!.id} />
           </div>
+          )}
 
+          {settingsSection === "finance" && (
           <div id="settings-finance" className="settings-panel settings-panel--finance bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4 md:space-y-5">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
@@ -1023,65 +1136,50 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-            <div>
-              <label className="text-sm text-muted-foreground">Aduana y traslado (%)</label>
-              <Input type="number" value={customsPercent} onChange={e => setCustomsPercent(e.target.value)} className="bg-muted border-border mt-1" />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground">Descuento por Defecto (%)</label>
-              <Input type="number" value={defaultDiscountPercent} onChange={e => setDefaultDiscountPercent(e.target.value)} className="bg-muted border-border mt-1" />
-              <p className="text-[10px] text-muted-foreground mt-1">Se aplica al calcular precio c/descuento: Venta × (1 - {defaultDiscountPercent}%)</p>
-            </div>
 
-            {/* ── Precios por categoría ─────────────────────────────── */}
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Precios por categoría</p>
-              <p className="text-[10px] text-muted-foreground mb-3">Markup y descuento propios de cada categoría. Si quedan vacíos, se usa el markup ×2 y el descuento por defecto de arriba.</p>
-              {/* Las categorías del comercio, no cuatro slugs de perfumería.
-                  Hasta 2026-08-26 esta lista estaba escrita a mano, así que un
-                  comercio de otro rubro **no podía configurar el markup de
-                  ninguna de sus categorías** — y este es el número con el que
-                  se calcula el precio de venta. */}
-              {categoriasDePrecio.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground">
-                  Todavía no hay categorías. Creá la primera desde la ficha de un producto
-                  y volvé acá para ponerle markup.
+
+          </div>
+          )}
+
+          {/* Número, resumen diario y cumpleaños vivían en «Tienda», entre los
+              colores y el CBU. Son mensajería: van con las plantillas. */}
+          {settingsSection === "messaging" && (
+          <div id="settings-whatsapp-numero" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-green-400" />WhatsApp del negocio
+            </h2>
+            <div>
+              <label className="text-sm text-muted-foreground flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />Número de WhatsApp del negocio</label>
+              <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="+5491112345678" className="bg-muted border-border mt-1" />
+              <p className="text-[10px] text-muted-foreground mt-1">Número con código de país. Aparecerá como botón flotante en tu catálogo público.</p>
+            </div>
+            <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
+              <div>
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <MessageCircle className="w-4 h-4 text-green-400" />Resumen diario por WhatsApp
                 </p>
-              ) : (
-              <div className="space-y-2">
-                {categoriasDePrecio.map(({ slug: cat, label }) => {
-                  const cp = categoryPricing[cat] || {};
-                  return (
-                    <div key={cat} className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
-                      <span className="text-xs font-medium truncate">{label}</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground">markup ×</span>
-                        <Input type="number" step="0.1" min="0" value={cp.markup ?? ''} placeholder="2.0"
-                          onChange={e => setCategoryPricing(prev => ({ ...prev, [cat]: { ...prev[cat], markup: e.target.value === '' ? undefined : Number(e.target.value) } }))}
-                          className="bg-muted border-border h-8 w-16 text-xs" />
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground">desc %</span>
-                        <Input type="number" min="0" max="100" value={cp.discount ?? ''} placeholder={defaultDiscountPercent || '20'}
-                          onChange={e => setCategoryPricing(prev => ({ ...prev, [cat]: { ...prev[cat], discount: e.target.value === '' ? undefined : Number(e.target.value) } }))}
-                          className="bg-muted border-border h-8 w-16 text-xs" />
-                      </div>
-                    </div>
-                  );
-                })}
+                <p className="text-[11px] text-muted-foreground">
+                  Recibí un mensaje con las ventas del día a las 17hs. Requiere Evolution API configurada y número de WhatsApp arriba.
+                </p>
               </div>
-              )}
+              <Switch checked={whatsappDigestEnabled} onCheckedChange={setWhatsappDigestEnabled} />
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button onClick={handleSave} disabled={saving} className="font-semibold flex-1">
-                {saving ? 'Guardando...' : 'Guardar Configuración'}
-              </Button>
-              <Button variant="outline" onClick={handleRecalculate}><RefreshCw className="w-4 h-4 mr-2" />Recalcular Todo</Button>
+            <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
+              <div>
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <MessageCircle className="w-4 h-4 text-pink-400" />Saludo de cumpleaños
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Autorizá el saludo cuando Nerqia tenga un canal Meta y una plantilla aprobada. Sólo alcanza a clientes con fecha y consentimiento vigentes.
+                </p>
+              </div>
+              <Switch checked={whatsappBirthdayEnabled} onCheckedChange={setWhatsappBirthdayEnabled} />
             </div>
           </div>
+          )}
 
           {/* WhatsApp message templates */}
+          {settingsSection === "messaging" && (
           <div id="settings-whatsapp" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
@@ -1090,15 +1188,15 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground mt-1">Textos de trabajo para deudas y seguimiento. Los envíos proactivos por Meta usan plantillas aprobadas por Plataforma, no texto libre. Usá <code className="bg-muted px-1 rounded">{"{{nombre}}"}</code> y <code className="bg-muted px-1 rounded">{"{{monto}}"}</code> como variables.</p>
             </div>
             {([
-              { key: "sale",        label: "Venta confirmada",   emoji: "🛍️" },
-              { key: "debt",        label: "Recordatorio deuda", emoji: "💳" },
-              { key: "birthday",    label: "Cumpleaños",         emoji: "🎂" },
-              { key: "reactivation",label: "Reactivación",       emoji: "😊" },
-              { key: "pickup",      label: "Pedido listo",       emoji: "📦" },
-            ] as const).map(({ key, label, emoji }) => (
+              { key: "sale",        label: "Venta confirmada" },
+              { key: "debt",        label: "Recordatorio de saldo" },
+              { key: "birthday",    label: "Cumpleaños" },
+              { key: "reactivation",label: "Reactivación" },
+              { key: "pickup",      label: "Pedido listo" },
+            ] as const).map(({ key, label }) => (
               <div key={key}>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-sm text-muted-foreground">{emoji} {label}</label>
+                  <label className="text-sm text-muted-foreground">{label}</label>
                   {waTemplates[key] && (
                     <button onClick={() => resetTemplate(key)} className="text-[10px] text-muted-foreground hover:text-destructive">Restablecer</button>
                   )}
@@ -1113,6 +1211,7 @@ export default function SettingsPage() {
             ))}
             <p className="text-[10px] text-muted-foreground">Los cambios se guardan automáticamente en este dispositivo.</p>
           </div>
+          )}
 
           {/* Notification preferences */}
           {/**
@@ -1124,11 +1223,14 @@ export default function SettingsPage() {
             *  - Los reportes automáticos **mandan** los resúmenes. Es lo mismo que
             *    hay en esta pestaña, sólo que programado.
             */}
+          {settingsSection === "messaging" && (
           <div className="settings-panel settings-panel--messaging space-y-4 md:space-y-6">
             <ThresholdsSection userId={user!.id} />
             <AutomatedReportsSection />
           </div>
+          )}
 
+          {settingsSection === "messaging" && (
           <div id="settings-notifications" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
@@ -1153,8 +1255,10 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
+          )}
 
           {/* Push notifications */}
+          {settingsSection === "messaging" && (
           <div id="settings-push" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
@@ -1182,8 +1286,10 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* SMTP propio: estado saneado + secreto administrado por Edge. */}
+          {settingsSection === "messaging" && (
           <div id="settings-email" className="settings-panel settings-panel--messaging bg-card border border-blue-500/20 rounded-[10px] p-4 md:p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1353,8 +1459,10 @@ export default function SettingsPage() {
               <a className="inline-flex items-center gap-1 text-primary hover:underline" href="https://learn.microsoft.com/es-es/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth" target="_blank" rel="noreferrer">Guía de Microsoft <ExternalLink className="h-3 w-3" /></a>
             </p>
           </div>
+          )}
 
           {/* Payment method discounts */}
+          {settingsSection === "pricing" && (
           <div id="settings-pricing" className="settings-panel settings-panel--pricing bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />Descuentos por Medio de Pago
@@ -1371,10 +1479,12 @@ export default function SettingsPage() {
                 <Input id="discount-credit-percent" aria-describedby="pos-payment-discount-help" type="number" min="0" max="90" step="0.1" value={discountCredit} onChange={e => setDiscountCredit(e.target.value)} className="bg-muted border-border mt-1" /></div>
             </div>
           </div>
+          )}
 
           <PosSupervisorSettings orgId={orgForTemplates?.id} canManage={settingsRole === "owner" || settingsRole === "admin"} />
 
           {/* Volume / Wholesale discount */}
+          {settingsSection === "pricing" && (
           <div className="settings-panel settings-panel--pricing bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-primary" />Descuento Mayorista
@@ -1387,40 +1497,72 @@ export default function SettingsPage() {
                 <Input type="number" step="0.5" value={volumeDiscount} onChange={e => setVolumeDiscount(e.target.value)} className="bg-muted border-border mt-1" /></div>
             </div>
           </div>
+          )}
 
-          {/* Decant margins */}
-          <div className="settings-panel settings-panel--pricing bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
-            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-              <Droplets className="w-4 h-4 text-primary" />Márgenes de Decants
-            </h2>
-            <p className="text-xs text-muted-foreground">Margen (%) sobre el costo proporcional por ml. El precio se calcula: (costo/ml × tamaño) × TC × (1 + margen%).</p>
-            <div className="grid grid-cols-3 gap-3">
-              <div><label className="text-sm text-muted-foreground">10ml (%)</label>
-                <Input type="number" value={decantMargin10} onChange={e => setDecantMargin10(e.target.value)} className="bg-muted border-border mt-1" /></div>
-              <div><label className="text-sm text-muted-foreground">5ml (%)</label>
-                <Input type="number" value={decantMargin5} onChange={e => setDecantMargin5(e.target.value)} className="bg-muted border-border mt-1" /></div>
-              <div><label className="text-sm text-muted-foreground">2.5ml (%)</label>
-                <Input type="number" value={decantMargin2_5} onChange={e => setDecantMargin2_5(e.target.value)} className="bg-muted border-border mt-1" /></div>
-            </div>
-          </div>
 
-          <div className="settings-panel settings-panel--pricing flex flex-col gap-3 rounded-[10px] border border-primary/20 bg-primary/[0.04] p-4 md:flex-row md:items-center md:justify-between md:p-5">
-            <div>
-              <p className="text-sm font-semibold">Aplicar la configuración en Caja</p>
-              <p className="text-xs text-muted-foreground">Guarda únicamente esta sección, sin modificar los ajustes ocultos de otras pestañas.</p>
-            </div>
-            <Button onClick={handleSavePricing} disabled={saving} className="min-h-11 w-full shrink-0 font-semibold md:w-auto">
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              {saving ? 'Guardando...' : 'Guardar precios y descuentos'}
-            </Button>
-          </div>
         </div>
 
         <div className="space-y-4 md:space-y-6 workspace-settings-column">
           {/* Subscription */}
+          {/* Markup y oferta rápida estaban en Finanzas, mezclados con el dólar y
+              un «Recalcular» que reescribía todo el catálogo. Son reglas de precio. */}
+          {settingsSection === "pricing" && (
+          <div id="settings-markup" className="settings-panel settings-panel--pricing bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+              <Tag className="w-4 h-4 text-primary" />Markup y oferta rápida
+            </h2>
+            <div>
+              <label className="text-sm text-muted-foreground">Descuento de la «oferta rápida» (%)</label>
+              <Input type="number" value={defaultDiscountPercent} onChange={e => setDefaultDiscountPercent(e.target.value)} className="bg-muted border-border mt-1" />
+              <p className="text-[10px] text-muted-foreground mt-1">El que pone el botón de oferta rápida en Productos cuando una categoría no tiene el suyo. No descuenta nada por sí solo.</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Precios por categoría</p>
+              <p className="text-[10px] text-muted-foreground mb-3">Markup y descuento propios de cada categoría. El markup sugiere el precio de venta al cargar un producto (costo × markup); vacío usa ×2. El descuento es el de la oferta rápida.</p>
+              {/* Las categorías del comercio, no cuatro slugs de perfumería.
+                  Hasta 2026-08-26 esta lista estaba escrita a mano, así que un
+                  comercio de otro rubro **no podía configurar el markup de
+                  ninguna de sus categorías** — y este es el número con el que
+                  se calcula el precio de venta. */}
+              {categoriasDePrecio.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Todavía no hay categorías. Creá la primera desde la ficha de un producto
+                  y volvé acá para ponerle markup.
+                </p>
+              ) : (
+              <div className="space-y-2">
+                {categoriasDePrecio.map(({ slug: cat, label }) => {
+                  const cp = categoryPricing[cat] || {};
+                  return (
+                    <div key={cat} className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                      <span className="text-xs font-medium truncate">{label}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">markup ×</span>
+                        <Input type="number" step="0.1" min="0" value={cp.markup ?? ''} placeholder="2.0"
+                          onChange={e => setCategoryPricing(prev => ({ ...prev, [cat]: { ...prev[cat], markup: e.target.value === '' ? undefined : Number(e.target.value) } }))}
+                          className="bg-muted border-border h-8 w-16 text-xs" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">desc %</span>
+                        <Input type="number" min="0" max="100" value={cp.discount ?? ''} placeholder={defaultDiscountPercent || '20'}
+                          onChange={e => setCategoryPricing(prev => ({ ...prev, [cat]: { ...prev[cat], discount: e.target.value === '' ? undefined : Number(e.target.value) } }))}
+                          className="bg-muted border-border h-8 w-16 text-xs" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              )}
+            </div>
+          </div>
+          )}
+
+          {settingsSection === "billing" && (
           <div id="settings-subscription" className="settings-panel settings-panel--billing"><SuscripcionPuntero /></div>
+          )}
 
           {/* Taxes */}
+          {settingsSection === "billing" && (
           <div id="settings-taxes" className="settings-panel settings-panel--billing bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2"><Receipt className="w-4 h-4 text-primary" />Impuestos (Argentina)</h2>
@@ -1451,13 +1593,57 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">Activá esta opción para descontar impuestos de tus ganancias.</p>
             )}
           </div>
+          )}
+
+          {/* `fiscal_id_required_above` lo usa el checkout desde 20260811000010
+              y ninguna pantalla dejaba cargarlo: el umbral nunca se exigía. */}
+          {settingsSection === "billing" && (
+          <div id="settings-identificacion" className="settings-panel settings-panel--billing bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+              <FileCheck className="w-4 h-4 text-primary" />Identificación del comprador
+            </h2>
+            <p className="text-[12px] text-muted-foreground">
+              Desde qué monto la tienda online le pide DNI o CUIT a un consumidor final antes de cobrar, como exige ARCA.
+              Vacío: no se pide. El emisor y los puntos de venta se configuran en{" "}
+              <Link to="/afip" className="underline underline-offset-2 hover:text-foreground">ARCA y factura electrónica</Link>.
+            </p>
+            <div className="max-w-xs">
+              <label className="text-sm text-muted-foreground" htmlFor="umbral-identificacion">Pedir identificación desde ($)</label>
+              <Input id="umbral-identificacion" inputMode="decimal" value={umbralIdentificacion}
+                onChange={e => setUmbralIdentificacion(e.target.value)}
+                placeholder="Sin exigir" className="bg-muted border-border mt-1" />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Consultá el monto vigente con tu contador: ARCA lo actualiza y un número viejo frena compras legítimas.
+            </p>
+          </div>
+          )}
+
+          {settingsSection === "inventory" && (
+          <div id="settings-inventario" className="settings-panel settings-panel--inventory">
+            <InventarioIASettings
+              form={{ costoPorPedido, costoAlmacenamientoPct, stockDormidoDias, maxSobrestock, maxDescuentoIa, tonoIa }}
+              onChange={cambio => {
+                if (cambio.costoPorPedido !== undefined) setCostoPorPedido(cambio.costoPorPedido);
+                if (cambio.costoAlmacenamientoPct !== undefined) setCostoAlmacenamientoPct(cambio.costoAlmacenamientoPct);
+                if (cambio.stockDormidoDias !== undefined) setStockDormidoDias(cambio.stockDormidoDias);
+                if (cambio.maxSobrestock !== undefined) setMaxSobrestock(cambio.maxSobrestock);
+                if (cambio.maxDescuentoIa !== undefined) setMaxDescuentoIa(cambio.maxDescuentoIa);
+                if (cambio.tonoIa !== undefined) setTonoIa(cambio.tonoIa);
+              }}
+            />
+          </div>
+          )}
 
           {/* System info */}
+          {settingsSection === "system" && (
           <div id="settings-system" className="settings-panel settings-panel--system bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
             <h2 className="font-display font-semibold text-[14px] tracking-tight mb-3 flex items-center gap-2"><Database className="w-4 h-4 text-primary" />Sistema</h2>
             <SystemInfoSection businessName={businessName} productCount={productCount} userEmail={user?.email} />
           </div>
+          )}
 
+          {settingsSection === "system" && (
           <div className="settings-panel settings-panel--system bg-card border border-emerald-500/30 rounded-[10px] p-4 md:p-6">
             <h2 className="font-display font-semibold text-[14px] tracking-tight mb-2 flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />Seguridad
@@ -1493,9 +1679,11 @@ export default function SettingsPage() {
               </Button>
             </div>
           </div>
+          )}
 
           <SupportAccessAuditSection />
 
+          {settingsSection === "system" && (
           <div id="settings-tools" className="settings-panel settings-panel--system space-y-4 md:space-y-6">
           {/**
             * Respaldos: tres cosas distintas, un solo tema.
@@ -1586,10 +1774,39 @@ export default function SettingsPage() {
             />
           </div>
           </div>
+          )}
         </div>
       </div>
       </div>
       </div>
+
+      {/* Una sola barra para toda la página. Antes el único «Guardar» vivía en
+          Finanzas y Tienda o Impuestos no tenían con qué guardar. */}
+      {(hayCambios || saving) && (
+        <div
+          role="region"
+          aria-label="Cambios sin guardar"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur px-4 py-3"
+          style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+        >
+          <div className="mx-auto flex max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm">
+              <strong>{cambios.length} {cambios.length === 1 ? "cambio sin guardar" : "cambios sin guardar"}</strong>
+              {seccionesSucias.length > 0 && (
+                <span className="text-muted-foreground"> en {seccionesSucias.map(id => ETIQUETA_DE_SECCION[id]).join(", ")}</span>
+              )}
+              {erroresInventario.length > 0 && <span className="block text-xs text-destructive">{erroresInventario[0]}</span>}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={descartarCambios} disabled={saving}>Descartar</Button>
+              <Button onClick={() => void handleSave()} disabled={saving || erroresInventario.length > 0} className="font-semibold min-w-[9rem]">
+                {saving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Save className="w-4 h-4 mr-1.5" />}
+                {saving ? "Guardando…" : "Guardar cambios"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

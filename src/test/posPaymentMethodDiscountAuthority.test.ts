@@ -46,8 +46,13 @@ describe("autoridad del descuento por medio de pago en Caja", () => {
   });
 
   it("la sección Precios conserva una acción de guardado alcanzable y rotulada", () => {
-    expect(settings).toContain("onClick={handleSavePricing}");
-    expect(settings).toContain("Guardar precios y descuentos");
+    // Desde 2026-10-09 el guardado es una barra fija para toda la página (ver
+    // ajustesPagina.test.ts): aparece en Precios —y en cualquier pestaña—
+    // apenas hay un cambio, y manda sólo las columnas que cambiaron, así que
+    // el botón propio de Precios ya no hace falta para no pisar otras pestañas.
+    expect(settings).toContain('aria-label="Cambios sin guardar"');
+    expect(settings).toContain("Guardar cambios");
+    expect(settings).toContain("soloCambios(borrador, cambios)");
     expect(settings.match(/htmlFor="discount-[^"]+-percent"/g)?.length).toBe(4);
   });
 
