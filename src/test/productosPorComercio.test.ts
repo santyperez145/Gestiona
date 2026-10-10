@@ -47,3 +47,18 @@ describe("productos Nerqia por comercio (TESIS §6, E2, E5)", () => {
     expect(panel).toContain("console.error(\"platform_org_productos_nerqia\"");
   });
 });
+
+describe("cómo llegó cada comercio (E4)", () => {
+  it("describe el origen con nombres legibles y sin inventar", async () => {
+    const { describirOrigen } = await import("@/lib/origenDeAlta");
+    const nombres = new Map([["m", "ZZ Marca"]]);
+    const base = { org_id: "o", codigo: null, utm_campaign: null, utm_source: null, sitio_origen: null, referido_por_org: null };
+    expect(describirOrigen(undefined, nombres)).toBe("Sin dato (alta anterior a la medición)");
+    expect(describirOrigen({ ...base, canal: "comercio", referido_por_org: "m" }, nombres)).toBe("Referido por ZZ Marca");
+    expect(describirOrigen({ ...base, canal: "influencer", referido_por_org: "m", codigo: "zzinf" }, nombres)).toBe("Influencer de ZZ Marca (zzinf)");
+    expect(describirOrigen({ ...base, canal: "codigo", codigo: "abc" }, nombres)).toBe("Código abc (sin dueño)");
+    expect(describirOrigen({ ...base, canal: "campania", utm_source: "google" }, nombres)).toBe("Campaña google");
+    expect(describirOrigen({ ...base, canal: "sitio", sitio_origen: "x.com" }, nombres)).toBe("Desde x.com");
+    expect(describirOrigen({ ...base, canal: "directo" }, nombres)).toBe("Directo");
+  });
+});

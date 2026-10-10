@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { almacenLocal, origenParaAlta } from '@/lib/origenDeAlta';
 import {
   authRedirectTo,
   completeNativeAuthCallback,
@@ -100,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, name?: string, accountType?: 'creator' | 'store_customer') => {
+    const origen = accountType ? null : origenParaAlta(almacenLocal());
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -107,7 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // `account_type` decide el provisionamiento server-side: un creador no
         // recibe organización ni trial (paridad Go-Marz), un comprador de
         // tienda tampoco. Sin el campo, el flujo de negocio queda intacto.
-        data: { full_name: name, ...(accountType ? { account_type: accountType } : {}) },
+        // Sólo el alta de comercio lleva su primer contacto (`origen_de_alta`).
+        data: {
+          full_name: name,
+          ...(accountType ? { account_type: accountType } : {}),
+          ...(origen ? { origen } : {}),
+        },
         emailRedirectTo: authEmailRedirectTo(),
       },
     });

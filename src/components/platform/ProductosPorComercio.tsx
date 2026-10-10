@@ -11,6 +11,7 @@ import {
   PRODUCTOS_NERQIA, normalizarUso, productoEnUso, resumirProductosPorComercio,
   type ProductosDeComercio,
 } from "@/lib/loQueReemplaza";
+import { describirOrigen, type OrigenFila } from "@/lib/origenDeAlta";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
 const NOMBRE = Object.fromEntries(PRODUCTOS_NERQIA.map(p => [p.id, p.nombre]));
@@ -19,8 +20,13 @@ export default function ProductosPorComercio() {
   const [filas, setFilas] = useState<ProductosDeComercio[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sinVista, setSinVista] = useState(false);
+  const [origenes, setOrigenes] = useState<Map<string, OrigenFila>>(new Map());
 
   const cargar = useCallback(async () => {
+    const origen = await supabase.from("origen_de_alta" as never)
+      .select("org_id, canal, codigo, utm_campaign, utm_source, sitio_origen, referido_por_org");
+    if (origen.error && !isMissingRelation(origen.error)) console.error("origen_de_alta", origen.error);
+    setOrigenes(new Map(((origen.data ?? []) as OrigenFila[]).map(o => [o.org_id, o])));
     const { data, error: queryError } = await supabase
       .from("platform_org_productos_nerqia" as never)
       .select("*")
@@ -58,10 +64,12 @@ export default function ProductosPorComercio() {
   }
 
   const resumen = resumirProductosPorComercio(filas);
+  const nombres = new Map(filas.map(f => [f.org_id, f.org_name]));
+  const referidas = [...origenes.values()].filter(o => o.canal === "comercio" || o.canal === "influencer").length;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 text-sm">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 text-sm">
         <div className="border border-border p-3">
           <p className="text-xs text-muted-foreground">Productos por comercio activo</p>
           <p className="text-xl font-semibold tabular-nums">{resumen.promedioProductosActivos ?? "—"}</p>
@@ -75,6 +83,10 @@ export default function ProductosPorComercio() {
           <p className="text-xl font-semibold tabular-nums">{resumen.comerciosConMontos}</p>
         </div>
         <div className="border border-border p-3">
+          <p className="text-xs text-muted-foreground">Altas referidas (comercio o influencer)</p>
+          <p className="text-xl font-semibold tabular-nums">{referidas} de {origenes.size} medidas</p>
+        </div>
+        <div className="border border-border p-3">
           <p className="text-xs text-muted-foreground">Pagan hoy en herramientas sueltas</p>
           <p className="text-xl font-semibold tabular-nums">{formatARS(resumen.pagaHoyTotal)}<span className="text-xs font-normal text-muted-foreground"> / mes</span></p>
         </div>
@@ -85,6 +97,7 @@ export default function ProductosPorComercio() {
           <thead>
             <tr className="border-b border-border text-xs text-muted-foreground">
               <th className="px-3 py-2 text-left font-medium">Comercio</th>
+              <th className="px-3 py-2 text-left font-medium">Cómo llegó</th>
               <th className="px-3 py-2 text-left font-medium">Productos en uso</th>
               <th className="px-3 py-2 text-left font-medium">Lo que paga hoy</th>
               <th className="px-3 py-2 text-right font-medium">Total / mes</th>
@@ -92,7 +105,7 @@ export default function ProductosPorComercio() {
           </thead>
           <tbody>
             {filas.length === 0 && (
-              <tr><td colSpan={4} className="px-3 py-4 text-center text-muted-foreground">Sin comercios.</td></tr>
+              <tr><td colSpan={5} className="px-3 py-4 text-center text-muted-foreground">Sin comercios.</td></tr>
             )}
             {filas.map(f => {
               const usados = f.productos.filter(productoEnUso).map(p => NOMBRE[p.producto]);
@@ -100,6 +113,7 @@ export default function ProductosPorComercio() {
               return (
                 <tr key={f.org_id} className="border-b border-border/50 last:border-0 align-top">
                   <td className="px-3 py-2 font-medium">{f.org_name}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{describirOrigen(origenes.get(f.org_id), nombres)}</td>
                   <td className="px-3 py-2">
                     <span className="tabular-nums">{f.productos_en_uso} de 6</span>
                     {usados.length > 0 && <span className="text-xs text-muted-foreground"> · {usados.join(", ")}</span>}

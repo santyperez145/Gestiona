@@ -6,10 +6,14 @@ import { validateEnv } from "./lib/env";
 import { announceUpdateAvailable, setupServiceWorkerUpdates } from "./lib/swUpdate";
 import { isStaleBuildError } from "./lib/staleBuildRecovery";
 import { isNativeRuntime } from "./lib/nativeRuntime";
+import { almacenLocal, capturarPrimerContacto } from "./lib/origenDeAlta";
 
 validateEnv();
 initSentry();
 if (!isNativeRuntime()) setupServiceWorkerUpdates();
+// Primer contacto (ref, utm, sitio de origen) para saber cómo llega cada
+// comercio nuevo: TESIS §6 y E4.
+capturarPrimerContacto(window.location.href, document.referrer, almacenLocal());
 
 // Cuando Vite despliega, los hashes anteriores desaparecen. Conservamos la
 // pantalla actual y ofrecemos la actualización; nunca interrumpimos el trabajo.
