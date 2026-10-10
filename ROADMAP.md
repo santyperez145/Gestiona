@@ -246,6 +246,13 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    game day autorizado. El auto-deploy continúa.
 2. Revisar funciones expuestas, permisos RPC/RLS (acciones/contexto válidos), cron, secretos,
    archivo/libro de migraciones y restauración reproducible.
+   Avance 2026-10-10: barrido de `pg_policies` con prueba como vendedor real. Un
+   vendedor borraba zonas/tarifas de envío, comprobantes de ARCA, y creaba claves
+   de API y configuración de cobros (políticas `FOR ALL` con USING de miembro).
+   Corregido en `20261010000200` y `20261010000300`, con
+   `scripts/shipping-config-matrix.sql` y `scripts/sensitive-writes-matrix.sql`.
+   **Pendiente: aplicar ambas.** Quedan ~135 tablas (2026-10-10) operativas con escritura
+   para cualquier miembro, a revisar por dominio (no todas son un error).
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
    honestos, alerts accionables y soporte con correlación sanitizada.
 4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con
