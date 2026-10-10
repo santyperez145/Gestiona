@@ -65,7 +65,7 @@ export default function ProductosPorComercio() {
 
   const resumen = resumirProductosPorComercio(filas);
   const nombres = new Map(filas.map(f => [f.org_id, f.org_name]));
-  const referidas = [...origenes.values()].filter(o => o.canal === "comercio" || o.canal === "influencer").length;
+  const referidas = [...origenes.values()].filter(o => o.canal === "comercio" || o.canal === "influencer" || o.canal === "creador").length;
 
   return (
     <div className="space-y-4">
@@ -83,7 +83,7 @@ export default function ProductosPorComercio() {
           <p className="text-xl font-semibold tabular-nums">{resumen.comerciosConMontos}</p>
         </div>
         <div className="border border-border p-3">
-          <p className="text-xs text-muted-foreground">Altas referidas (comercio o influencer)</p>
+          <p className="text-xs text-muted-foreground">Altas referidas (comercio, influencer o creador)</p>
           <p className="text-xl font-semibold tabular-nums">{referidas} de {origenes.size} medidas</p>
         </div>
         <div className="border border-border p-3">

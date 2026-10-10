@@ -83,3 +83,24 @@ describe("sello «Hecha con Nerqia» (TESIS §5)", () => {
     expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.marca_nerqia_de_tienda(text) TO anon, authenticated;");
   });
 });
+
+describe("creadores que traen marcas (E4)", () => {
+  it("el enlace del creador lleva @slug y la captura lo conserva", async () => {
+    const { enlaceInvitacionCreador, leerContacto, describirOrigen } = await import("@/lib/origenDeAlta");
+    const url = enlaceInvitacionCreador(" Lu-Moda ", "https://nerqia.app");
+    expect(url).toBe("https://nerqia.app/?ref=%40lu-moda&utm_source=creador&utm_medium=invitacion");
+    expect(leerContacto(url, "", ahora)?.ref).toBe("@lu-moda");
+    expect(describirOrigen({ org_id: "o", canal: "creador", codigo: "@lu-moda", utm_campaign: null, utm_source: null, sitio_origen: null, referido_por_org: null }, new Map()))
+      .toBe("Invitado por el creador @lu-moda");
+  });
+
+  it("el portal muestra la tarjeta y la base resuelve @slug antes que comercios", () => {
+    const portal = readFileSync(resolve(process.cwd(), "src/pages/CreatorPortalPage.tsx"), "utf8");
+    const card = readFileSync(resolve(process.cwd(), "src/components/creator/InvitarMarcasCard.tsx"), "utf8");
+    const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20261010002400_creadores_traen_marcas.sql"), "utf8");
+    expect(portal).toContain('<InvitarMarcasCard activa={tab === "perfil"} />');
+    expect(card).toContain('"marcas_que_trajo_el_creador"');
+    expect(migration.indexOf("IF v_codigo LIKE '@%' THEN")).toBeLessThan(migration.indexOf("ELSIF v_codigo IS NOT NULL THEN"));
+    expect(migration).toContain("WHERE a.referido_por_creador = auth.uid()");
+  });
+});

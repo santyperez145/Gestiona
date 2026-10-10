@@ -11,6 +11,7 @@ import ChatNotifyCard from "@/components/influencers/ChatNotifyCard";
 import { CreatorFoco } from "@/components/creator/CreatorFoco";
 import CreatorMetricReportsCard from "@/components/creator/CreatorMetricReportsCard";
 import CreatorExchangesSection from "@/components/creator/CreatorExchangesSection";
+import InvitarMarcasCard from "@/components/creator/InvitarMarcasCard";
 import { creatorOperationError } from "@/lib/creatorOperationError";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { Button } from "@/components/ui/button";
@@ -860,7 +861,7 @@ function CreatorPortalContent() {
 
           </TabsContent>
         </OnboardingGate>
-        <TabsContent forceMount hidden={tab !== "perfil"} value="perfil" className="mt-5 space-y-6"><ProfileSection /><ChatNotifyCard /></TabsContent>
+        <TabsContent forceMount hidden={tab !== "perfil"} value="perfil" className="mt-5 space-y-6"><ProfileSection /><InvitarMarcasCard activa={tab === "perfil"} /><ChatNotifyCard /></TabsContent>
         </Tabs>
       </main>
 

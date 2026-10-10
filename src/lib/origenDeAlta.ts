@@ -86,7 +86,7 @@ export function almacenLocal(): Almacen | null {
 /** Fila de `origen_de_alta` (lectura de Platform). */
 export interface OrigenFila {
   org_id: string;
-  canal: "comercio" | "influencer" | "codigo" | "campania" | "sitio" | "directo";
+  canal: "comercio" | "influencer" | "creador" | "codigo" | "campania" | "sitio" | "directo";
   codigo: string | null;
   utm_campaign: string | null;
   utm_source: string | null;
@@ -101,6 +101,7 @@ export function describirOrigen(o: OrigenFila | undefined, nombres: Map<string, 
   switch (o.canal) {
     case "comercio": return `Referido por ${referente}`;
     case "influencer": return `Influencer de ${referente}${o.codigo ? ` (${o.codigo})` : ""}`;
+    case "creador": return `Invitado por el creador ${o.codigo ?? ""}`.trim();
     case "codigo": return `Código ${o.codigo} (sin dueño)`;
     case "campania": return `Campaña ${o.utm_campaign ?? o.utm_source ?? ""}`.trim();
     case "sitio": return `Desde ${o.sitio_origen}`;
@@ -114,5 +115,14 @@ export function enlaceSelloNerqia(ref: string, origin = BRAND_ORIGIN): string {
   url.searchParams.set("ref", ref.trim().toLowerCase());
   url.searchParams.set("utm_source", "tienda");
   url.searchParams.set("utm_medium", "sello");
+  return url.toString();
+}
+
+/** Enlace con el que un creador invita marcas: `ref=@<slug público>`. */
+export function enlaceInvitacionCreador(slug: string, origin = BRAND_ORIGIN): string {
+  const url = new URL("/", origin);
+  url.searchParams.set("ref", `@${slug.trim().toLowerCase()}`);
+  url.searchParams.set("utm_source", "creador");
+  url.searchParams.set("utm_medium", "invitacion");
   return url.toString();
 }
