@@ -100,7 +100,8 @@ Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast
 - [ ] Developer Platform: OAuth apps, scopes, webhooks, versiones y MCP.
 
 **4. Saber qué hacer para ganar más**
-- [ ] Profit: landed cost, fees de marketplace/pago, alertas y Margin Guardian.
+- [ ] Profit: landed cost, fees de marketplace/pago, alertas y Margin Guardian. (Comisiones de Mercado Pago y MercadoLibre ya entran al margen: liquidaciones POS confirmadas, `fee_details` del webhook y `sale_fee_ars` de MercadoLibre.)
+- [x] Creators ↔ Profit (2026-10-10, décima corrida): «Ganancia real» en Canjes = margen de contribución de las ventas atribuidas por código (`sale_margin_facts`, la fuente de Profit) − comisiones del creador − inversión del canje. Antes sólo había ROI sobre ventas brutas, que puede mostrar ganancia donde se pierde plata. Sin costo cargado o sin permiso de analítica no hay número: dice cuántas ventas faltan.
 - [ ] Ads read-only (Meta/Google/TikTok) y ROAS de contribución.
 - [ ] Growth: inbox unificado, empresas/pipelines, formularios/landings, WhatsApp Commerce, email A/B.
 - [ ] Pay: certificación real, settlement y segundo rail.

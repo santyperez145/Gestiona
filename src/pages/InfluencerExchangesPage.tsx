@@ -11,18 +11,19 @@ import {
 } from "@/lib/supabaseStore";
 import { useAuth } from "@/lib/auth";
 import { useModulePerms } from "@/lib/permissionsContext";
-import { listInfluencerSales, listInfluencers, listInfluencerContracts, listDeliverables, createDeliverable, updateDeliverable, deleteDeliverable, listPayments, listBrandPortals, type Influencer } from "@/lib/influencersDB";
+import { listInfluencerSales, margenDeVentas, listInfluencers, listInfluencerContracts, listDeliverables, createDeliverable, updateDeliverable, deleteDeliverable, listPayments, listBrandPortals, type Influencer } from "@/lib/influencersDB";
 import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 import CommerceKPICard from "@/components/commerce/CommerceKPICard";
 import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
-import { BarChart3, CheckCircle, Copy, DollarSign, ExternalLink, Gift, Link2, Megaphone, Target } from "lucide-react";
+import { BarChart3, CheckCircle, Copy, DollarSign, ExternalLink, Gift, Link2, Megaphone, Target, TrendingUp } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useMemo } from "react";
 import { calcInfluencerROI, calcCPM, calcFulfillmentRate } from "@/lib/businessCalc";
-import { ventasDelCanje, ventasMedidasPorCanje, type VentaAtribuida } from "@/lib/ventasDeCanje";
+import { gananciaRealDeCanjes, ventasDelCanje, ventasMedidasPorCanje, type VentaAtribuida } from "@/lib/ventasDeCanje";
+import { plural } from "@/lib/plural";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
@@ -54,6 +55,7 @@ export default function InfluencerExchangesPage() {
   const [payments, setPayments] = useState<any[]>([]);
   const [brandProfiles, setBrandProfiles] = useState<any[]>([]);
   const [ventasAtribuidas, setVentasAtribuidas] = useState<VentaAtribuida[]>([]);
+  const [margenVentas, setMargenVentas] = useState<Map<string, number | null>>(new Map());
   const [searchContract, setSearchContract] = useState("");
   const [searchDeliverable, setSearchDeliverable] = useState("");
 
@@ -92,7 +94,13 @@ export default function InfluencerExchangesPage() {
         setBrandProfiles(bp);
         // Las ventas atribuidas por código no bloquean la pantalla: sin ellas
         // se muestra lo cargado a mano, rotulado como tal.
-        listInfluencerSales().then(setVentasAtribuidas).catch(err => console.error('[Canjes] ventas atribuidas', err));
+        listInfluencerSales()
+          .then(async ventas => {
+            setVentasAtribuidas(ventas);
+            // Ganancia real (Creators ↔ Profit): margen de esas ventas.
+            setMargenVentas(await margenDeVentas(ventas.map((v: VentaAtribuida) => v.sale_id ?? "")));
+          })
+          .catch(err => console.error('[Canjes] ventas atribuidas', err));
       }
     } catch (err) {
       console.error('[Canjes] no se pudieron cargar los datos', err);
@@ -137,6 +145,10 @@ export default function InfluencerExchangesPage() {
   const fulfillmentRate = calcFulfillmentRate(totalActual, totalExpected);
   const uniqueInfluencers = new Set(exchanges.map(e => e.influencer_instagram || e.influencer_name)).size;
   const roiPct = calcInfluencerROI(totalSalesGenerated, totalInversion);
+  const gananciaReal = useMemo(
+    () => gananciaRealDeCanjes(exchanges, ventasAtribuidas, margenVentas,
+      c => Number((c as (typeof exchanges)[number]).product_value_ars) * (c as (typeof exchanges)[number]).quantity),
+    [exchanges, ventasAtribuidas, margenVentas]);
   const cpm = calcCPM(totalInversion, totalReach);
 
   const pendingDeliverables = deliverables.filter((d: any) => d.status === "pendiente" || d.status === "en_progreso").length;
@@ -464,9 +476,18 @@ export default function InfluencerExchangesPage() {
 
       {/* KPIs para canjes y dashboard */}
       {(pageTab === "canjes" || pageTab === "dashboard") && exchanges.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <CommerceKPICard title="Inversión (costo)" value={_fmt(totalInversion)} icon={Target} description="Lo que realmente costó" />
           <CommerceKPICard title="Ventas generadas" value={totalSalesGenerated > 0 ? _fmt(totalSalesGenerated) : "Sin datos"} icon={DollarSign} description={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%${algunaMedida ? ' · medido por código' : ''}` : "Sin ventas con código del creador"} />
+          <CommerceKPICard
+            title="Ganancia real"
+            value={gananciaReal.ganancia !== null ? _fmt(gananciaReal.ganancia) : "Sin datos"}
+            icon={TrendingUp}
+            description={gananciaReal.canjesMedidos === 0
+              ? "Sin ventas medidas por código"
+              : gananciaReal.ventasSinMargen > 0
+                ? `Falta el costo en ${plural(gananciaReal.ventasSinMargen, "venta")}: completalo en Productos`
+                : `Margen ${_fmt(gananciaReal.margen)} − comisiones ${_fmt(gananciaReal.comisiones)} − inversión ${_fmt(gananciaReal.inversion)}`} />
           <CommerceKPICard title="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} description={`${totalActual}/${totalExpected} posts`} />
           <CommerceKPICard title="CPM" value={cpm !== null ? _fmt(cpm) : "—"} icon={Megaphone} description={`${(totalReach / 1000).toFixed(1)}K alcance`} />
         </div>

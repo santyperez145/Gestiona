@@ -385,6 +385,29 @@ export async function listInfluencerSales(influencerId?: string): Promise<any[]>
   return (data || []) as any[];
 }
 
+/**
+ * Margen de contribución de las ventas atribuidas a creadores, de
+ * `sale_margin_facts` (la fuente de Profit). Sin fila o sin margen conocido,
+ * la venta queda en null: nunca se completa con cero. La vista exige permiso
+ * de analítica; sin él no devuelve filas y todo queda «sin dato».
+ */
+export async function margenDeVentas(saleIds: string[]): Promise<Map<string, number | null>> {
+  const orgId = requireActiveOrgId();
+  const ids = [...new Set(saleIds.filter(Boolean))];
+  const margen = new Map<string, number | null>();
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await sb.from('sale_margin_facts')
+      .select('sale_id, contribution_margin_ars').eq('org_id', orgId).in('sale_id', ids.slice(i, i + 150));
+    if (error) throw error;
+    for (const fila of (data || []) as { sale_id: string; contribution_margin_ars: number | string | null }[]) {
+      const previo = margen.get(fila.sale_id);
+      const valor = fila.contribution_margin_ars === null ? null : Number(fila.contribution_margin_ars);
+      margen.set(fila.sale_id, previo === null || valor === null || !Number.isFinite(valor) ? null : (previo ?? 0) + valor);
+    }
+  }
+  return margen;
+}
+
 /** ─── Payouts (liquidaciones) ─── */
 export async function listPayouts(): Promise<any[]> {
   const orgId = requireActiveOrgId();
