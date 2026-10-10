@@ -23,7 +23,6 @@ import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import PlatformAnnouncementBanner from "@/components/shared/PlatformAnnouncementBanner";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
-import PageGuide from "@/components/shared/PageGuide";
 import PresenceAvatars from "@/components/shared/PresenceAvatars";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import BrandLogo from "@/components/shared/BrandLogo";
@@ -39,6 +38,8 @@ import { ROUTES } from "@/app/routeManifest";
 
 import { plural } from "@/lib/plural";
 
+import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
+import TutorialHelp from "@/components/tutorial/TutorialHelp";
 const CommandPalette = lazy(() => import("@/components/shared/CommandPalette"));
 
 /**
@@ -209,6 +210,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const currentNavItem = allNavItems.find(item => item.to === pathname);
   const currentRoute = ROUTES.find(route => route.path === pathname);
   const immersiveRoute = currentRoute?.surface === "immersive";
+  const tutorialRoute = useMemo(() => currentRoute ? {
+    id: currentRoute.id,
+    path: currentRoute.path,
+    label: currentRoute.nav?.label ?? (currentRoute.path === "/" ? "Inicio" : "Esta pantalla"),
+    areaHint: NAV_GROUPS.find(group => group.id === currentRoute.nav?.group)?.hint,
+    keywords: currentRoute.nav?.keywords,
+  } : null, [currentRoute]);
   const currentPageLabel = currentNavItem?.label ?? (pathname === '/' ? 'Resumen' : 'Nerqia');
   const currentSectionLabel = currentNavItem ? SECTION_LABELS[currentNavItem.section] : 'Operacion';
 
@@ -220,6 +228,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     : 'bg-muted text-muted-foreground border-border';
 
   return (
+    <TutorialProvider>
     <div className="workspace-shell flex min-h-screen">
       {/* ── Idle session lock overlay ────────────────────────────── */}
       <Dialog open={idleLocked}>
@@ -643,8 +652,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </div>
-        {/* Floating page guide — rendered per-route, no-op if no guide exists */}
-        <PageGuide />
+        {/* Ayuda unificada: recorrido guiado, consejos y Academia en toda la plataforma. */}
+        <TutorialHelp ruta={tutorialRoute} inmersiva={immersiveRoute} />
       </main>
 
       {/* ── Global command palette — Ctrl+K anywhere ──────────────── */}
@@ -652,5 +661,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <CommandPalette />
       </Suspense>
     </div>
+    </TutorialProvider>
   );
 }

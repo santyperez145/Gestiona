@@ -76,7 +76,7 @@ describe("el manifest no deja rutas sin decidir", () => {
       .filter(i => moduleForPath(i.to) === "")
       .map(i => i.to);
     // Las únicas abiertas son las que lo declaran a propósito.
-    expect(abiertas.sort()).toEqual(["/", "/alertas", "/calendario", "/perfil", "/tareas"]);
+    expect(abiertas.sort()).toEqual(["/", "/alertas", "/aprender", "/calendario", "/perfil", "/tareas"]);
   });
 
   it("todo módulo referenciado existe en la lista de permisos", () => {

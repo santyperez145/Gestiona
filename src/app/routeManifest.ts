@@ -65,6 +65,7 @@ import {
   Shield, ShoppingBag, ShoppingCart, Sparkles, Star, Tag,
   TrendingUp, Trophy, Truck, UserCircle, UserPlus, Users,
   Users2, Wallet, Warehouse, Zap, Target, Search,
+  GraduationCap,
 } from "lucide-react";
 import { lazy } from "react";
 import type { ComponentType, LazyExoticComponent } from "react";
@@ -296,6 +297,7 @@ export const ROUTES: RouteDefinition[] = [
     nav: { label: "Inteligencia", icon: Sparkles, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis", "chat", "preguntar", "copiloto", "asistente"] },
   },
   { id: "alertas", path: "/alertas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartAlertsPage")), module: null, openReason: "Avisos derivados de otros modulos: ocultarlos dejaria al usuario sin enterarse de lo que si puede ver.", aliases: [{ path: "/alertas-inteligentes", redirectTo: "/alertas" }], status: "canonical", nav: { label: "Alertas", icon: AlertTriangle, group: "sistema", keywords: ["avisos", "notificaciones", "reglas"] } },
+  { id: "aprender", path: "/aprender", roles: AMBOS, component: lazy(() => import("@/pages/AcademyPage")), module: null, openReason: "Academia: tutoriales de uso para cualquier usuario; no muestra datos del negocio.", status: "canonical", nav: { label: "Academia", icon: GraduationCap, group: "sistema", keywords: ["tutorial", "aprender", "cómo se usa", "guía", "capacitación", "ayuda", "curso", "lecciones"] } },
   { id: "soporte", path: "/soporte", roles: AMBOS, component: lazy(() => import("@/pages/SupportPage")), module: "support", status: "canonical", nav: { label: "Soporte", icon: Headphones, group: "sistema", keywords: ["ayuda", "chat", "contactar", "ticket", "problema", "asistencia"] } },
   { id: "integraciones", path: "/integraciones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/IntegrationsPage")), module: "settings", aliases: [{ path: "/api-keys", redirectTo: "/integraciones?tab=apikeys" }, { path: "/webhooks", redirectTo: "/integraciones?tab=webhooks" }], status: "canonical", nav: { label: "Integraciones", icon: Plug, group: "sistema", keywords: ["api", "mercadolibre", "mercadopago", "conectar", "webhooks", "envios", "andreani", "correo", "mercado"] } },
   { id: "equipo", path: "/equipo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/TeamPage")), module: "team", status: "canonical", nav: { label: "Equipo", icon: Users, group: "sistema", keywords: ["usuarios", "permisos", "empleados", "invitar"] } },

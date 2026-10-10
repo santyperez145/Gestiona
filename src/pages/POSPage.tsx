@@ -3067,7 +3067,7 @@ export default function POSPage() {
           </div>
         )}
         <div className="flex items-center gap-1.5">
-          <Button type="button" size="sm" variant="outline" className="h-8 shrink-0 text-xs" onClick={() => setCustomerPickerOpen(true)}>
+          <Button type="button" size="sm" variant="outline" className="h-8 shrink-0 text-xs" data-tour="pos-cliente" onClick={() => setCustomerPickerOpen(true)}>
             <User className="mr-1 h-3.5 w-3.5" />{posCustomer ? "Cambiar cliente" : "Elegir cliente"}<kbd className="ml-1 text-[9px] opacity-60">F3</kbd>
           </Button>
           {posCustomer ? (
@@ -3614,6 +3614,7 @@ export default function POSPage() {
           type="button"
           onClick={() => setWantArcaInvoice((open) => !open)}
           aria-pressed={wantArcaInvoice}
+          data-tour="pos-factura"
           className={`w-full flex items-start gap-2 px-3 py-2 rounded-[8px] border text-left text-xs transition-all ${
             wantArcaInvoice
               ? "border-primary/40 bg-primary/5 text-foreground"
@@ -4077,6 +4078,7 @@ export default function POSPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
+              data-tour="pos-buscar"
               value={voiceActive ? voiceTranscript || '🎤 Escuchando...' : search}
               onChange={(e) => !voiceActive && setSearch(e.target.value)}
               placeholder={voiceActive ? '🎤 Hablá ahora...' : 'Buscar producto… (F2 · 🎤 voz)'}

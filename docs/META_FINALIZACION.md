@@ -55,6 +55,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [ ] Suscripciones; Core Web Vitals medidos.
 
 **3. Operar todo en Nerqia**
+- [x] Tutoriales en toda la plataforma: recorrido guiado por pantalla (propio o generado desde el menú y sus consejos), botón de ayuda único, oferta en la primera visita y Academia (`/aprender`) con progreso por usuario (`tutorial_progress`).
 - [ ] Perfiles progresivos (emprendedor / establecido / avanzado) y packs verticales sin forks.
 - [ ] Merchant health rojo/ámbar/verde y colas operativas en Platform.
 - [ ] Eventos versionados con idempotencia, replay, DLQ y correlación.

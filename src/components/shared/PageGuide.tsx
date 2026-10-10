@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { HelpCircle, ChevronRight, Sparkles, Lightbulb } from "lucide-react";
-import { PAGE_GUIDES } from "@/data/pageGuides";
+import { ChevronRight, Sparkles, Lightbulb } from "lucide-react";
+import { PAGE_GUIDES, type GuideConfig } from "@/data/pageGuides";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
@@ -13,97 +13,31 @@ const TAG_STYLES: Record<string, string> = {
   Tip:    "bg-blue-500/15 text-blue-400 border-blue-500/30",
 };
 
-// ── Storage helpers ───────────────────────────────────────────────────────────
-const SEEN_KEY = "gestiona.guide.seen";
-
-function getSeenPages(): Set<string> {
-  try {
-    const raw = localStorage.getItem(SEEN_KEY);
-    return new Set(raw ? JSON.parse(raw) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function markPageSeen(path: string) {
-  try {
-    const seen = getSeenPages();
-    seen.add(path);
-    localStorage.setItem(SEEN_KEY, JSON.stringify([...seen]));
-  } catch { /* noop */ }
+/** Consejos de la pantalla actual (exacta o por prefijo), o null. */
+export function guiaDeRuta(pathname: string): GuideConfig | null {
+  return PAGE_GUIDES[pathname]
+    ?? PAGE_GUIDES[Object.keys(PAGE_GUIDES).find((k) => k !== "/" && pathname.startsWith(k)) ?? ""]
+    ?? null;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function PageGuide() {
+/**
+ * Panel de consejos de la pantalla. Lo abre el botón de ayuda unificado
+ * (TutorialHelp), junto al recorrido guiado y la Academia; ya no tiene botón
+ * propio para no apilar dos «?» en la misma esquina.
+ */
+export default function PageGuide({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { pathname } = useLocation();
-  const [open, setOpen] = useState(false);
-  const [isNew, setIsNew] = useState(false);
+  const guide = guiaDeRuta(pathname);
 
-  // Find guide for current page (exact match, then prefix match)
-  const guide =
-    PAGE_GUIDES[pathname] ??
-    PAGE_GUIDES[Object.keys(PAGE_GUIDES).find((k) => k !== "/" && pathname.startsWith(k)) ?? ""] ??
-    null;
-
-  // When route changes, check if this guide is unseen
-  useEffect(() => {
-    if (!guide) { setIsNew(false); return; }
-    const seen = getSeenPages();
-    setIsNew(!seen.has(pathname));
-    setOpen(false); // close when navigating
-  }, [pathname, guide]);
-
-  // Mark seen when opened
-  const handleOpen = () => {
-    setOpen(true);
-    setIsNew(false);
-    markPageSeen(pathname);
-  };
-
-  // `?` key opens/closes guide (skip if focus is in an input/textarea)
-  useEffect(() => {
-    if (!guide) return;
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable) return;
-      if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        setOpen((o) => {
-          if (!o) { setIsNew(false); markPageSeen(pathname); }
-          return !o;
-        });
-      }
-      if (e.key === "Escape" && open) setOpen(false);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [guide, open, pathname]);
+  // Al navegar se cierra.
+  useEffect(() => { onOpenChange(false); }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!guide) return null;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      {/* ── Floating trigger button ─────────────────────────────────────── */}
-      <button
-        onClick={handleOpen}
-        title="Guía de esta pantalla"
-        className={cn(
-          "fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full shadow-lg flex items-center justify-center transition-all duration-200",
-          "bg-card border border-border/60 hover:border-primary/50 hover:shadow-xl hover:scale-105",
-          open && "opacity-0 pointer-events-none",
-        )}
-        aria-label="Abrir guía"
-      >
-        <HelpCircle className="w-5 h-5 text-muted-foreground" />
-        {/* "Nuevo" pulse dot */}
-        {isNew && (
-          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary shadow-[0_0_0_2px_hsl(var(--background))]">
-            <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
-          </span>
-        )}
-      </button>
-
+    <Sheet open={open} onOpenChange={onOpenChange}>
       {/* ── Sheet panel ─────────────────────────────────────────────────── */}
           <SheetContent side="right" className="w-full sm:max-w-[360px] p-0 flex flex-col">
 
@@ -164,11 +98,6 @@ export default function PageGuide() {
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] text-muted-foreground/70">
                   ¿Más dudas? Usá el <span className="text-primary font-medium">Chat IA</span>.
-                </p>
-                <p className="text-[10px] text-muted-foreground/40 mt-0.5">
-                  Atajo de teclado:{" "}
-                  <kbd className="px-1 py-0.5 rounded border border-border text-[9px] font-mono">?</kbd>
-                  {" "}para abrir esta guía
                 </p>
               </div>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />

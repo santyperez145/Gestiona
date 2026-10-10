@@ -190,6 +190,7 @@ describe("estructura de la navegación", () => {
       "/perfil",
       "/tareas",
       "/calendario",
+      "/aprender",
     ]);
   });
 });

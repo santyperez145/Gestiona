@@ -35024,6 +35024,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tutorial_progress: {
+        Row: {
+          estado: string
+          tutorial_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          estado: string
+          tutorial_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          estado?: string
+          tutorial_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_variants: {
         Row: {
           active: boolean
