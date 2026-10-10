@@ -44,7 +44,7 @@ export default function TutorialHelp({ ruta, inmersiva }: { ruta: RutaParaTutori
   return <>
     {ofrecer && tutorial && <div role="status"
       className={`fixed z-40 w-[min(20rem,calc(100vw-2rem))] rounded-[12px] border border-border bg-card p-3 shadow-lg ${inmersiva ? "right-4 top-14" : "bottom-20 right-4"}`}>
-      <p className="text-sm font-semibold">¿Primera vez en {tutorial.titulo}?</p>
+      <p className="text-sm font-semibold">Recorrido: {tutorial.titulo}</p>
       <p className="mt-1 text-xs text-muted-foreground">{tutorial.resumen} Te lo muestro en {tutorial.minutos} min.</p>
       <div className="mt-2 flex justify-end gap-2">
         <Button type="button" size="sm" variant="ghost" onClick={() => { setOfertaCerrada(tutorial.id); marcar(tutorial.id, "omitido"); }}>Ahora no</Button>

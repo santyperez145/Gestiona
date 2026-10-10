@@ -1548,9 +1548,9 @@ export default function Dashboard() {
   }
 
   const kpiCards = [
-    { label: "Hoy", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${plural(liveTodaySales?.count ?? 0, "venta")}`; const pct = ((today - lw) / lw) * 100; return `${plural(liveTodaySales?.count ?? 0, "venta")} · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, tone: "green", live: true },
-    { label: "Ganancia bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, tone: stats.grossProfitARS >= 0 ? "green" : "red" },
-    { label: "Resultado neto", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, tone: stats.netMonthProfitARS >= 0 ? "green" : "red" },
+    { label: "Hoy", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${plural(liveTodaySales?.count ?? 0, "venta")}`; const pct = ((today - lw) / lw) * 100; return `${plural(liveTodaySales?.count ?? 0, "venta")} · vs. el ${new Date().toLocaleDateString('es-AR', { weekday: 'long' })} pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, tone: "green", live: true },
+    { label: "Ganancia bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)} en dólares`, icon: TrendingUp, tone: stats.grossProfitARS >= 0 ? "green" : "red" },
+    { label: "Resultado neto del mes", value: formatARS(stats.netMonthProfitARS), sub: `Ganancia del mes − gastos${stats.taxEnabled ? ' − impuestos' : ''}`, icon: Zap, tone: stats.netMonthProfitARS >= 0 ? "green" : "red" },
     { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${plural(stats.totalSalesCount, "venta")}`, icon: DollarSign, tone: "amber" },
     { label: "Gastos del mes", value: formatARS(stats.totalMonthExpenses), sub: `${plural(stats.expensesChartData.length, "categoría")}`, icon: Wallet, tone: "yellow" },
     { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, tone: "yellow" },
@@ -1669,11 +1669,11 @@ export default function Dashboard() {
       {/* Encabezado operativo: lectura rapida, filtros y acceso a Commerce. */}
       <CommerceDashboardHeader
         icon={ShoppingBag}
-        title="Dashboard de Commerce"
+        title="Inicio"
         greeting={greeting}
         description={filterCat === 'all'
           ? (activationReadiness?.effectiveGoal === 'online'
-            ? 'Pedidos, stock y cobro en una sola lectura. Publicá y operá la tienda sin salir del Business Core.'
+            ? 'Pedidos, stock y cobro en una sola lectura. Publicá y atendé la tienda desde el mismo lugar.'
             : 'Ventas, stock y caja. La tienda online queda a un clic cuando el canal esté listo.')
           : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
         storeLink={activationReadiness?.effectiveGoal === 'online' ? "/tienda-online" : undefined}
@@ -1775,7 +1775,7 @@ export default function Dashboard() {
           ventasMes={stats.monthSalesARS}
           ventasMesAnterior={stats.prevSalesARS}
           gananciaNetaMes={stats.netMonthProfitARS}
-          margenPct={stats.profitMargin}
+          margenPct={stats.monthSalesARS > 0 ? (stats.monthGrossProfit / stats.monthSalesARS) * 100 : null}
           sinStock={stats.outOfStock}
           stockBajo={stats.lowStock}
           deudasPendientes={stats.pendingDebts}

@@ -49,7 +49,8 @@ interface Props {
   /** Ventas del mes anterior, para comparar. */
   ventasMesAnterior: number;
   gananciaNetaMes: number;
-  margenPct: number;
+  /** Margen bruto del mes; null si el mes no tiene ventas. */
+  margenPct: number | null;
   sinStock: number;
   stockBajo: number;
   deudasPendientes: number;
@@ -374,7 +375,7 @@ export default function FocoDelDia(p: Props) {
           <span className="text-sm font-semibold tabular-nums">
             {formatARS(p.gananciaNetaMes)}
             <span className="text-xs text-muted-foreground font-normal ml-1.5">
-              {Math.round(p.margenPct)}% margen
+              {p.margenPct === null ? "sin ventas este mes" : `${Math.round(p.margenPct)}% margen bruto`}
             </span>
           </span>
         </div>

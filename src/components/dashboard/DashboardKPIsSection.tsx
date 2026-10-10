@@ -33,7 +33,7 @@ export default function DashboardKPIsSection({
           <p className="text-[10px] font-bold uppercase text-primary">Pulso comercial</p>
           <h2 id="dashboard-kpis-title" className="text-base font-semibold">Indicadores para decidir ahora</h2>
         </div>
-        <p className="hidden text-xs text-muted-foreground sm:block">Datos de la organizacion activa</p>
+        <p className="hidden text-xs text-muted-foreground sm:block">Datos del negocio activo</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {kpiCards.slice(0, 4).map((card, index) => {

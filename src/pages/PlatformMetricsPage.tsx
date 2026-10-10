@@ -450,7 +450,7 @@ export default function PlatformMetricsPage() {
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
-                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Precision por organizacion</h2><p className="mt-1 text-xs text-muted-foreground">Ordenado por cantidad de productos descuadrados para orientar soporte y el proximo conteo fisico.</p></div>
+                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Precisión por organización</h2><p className="mt-1 text-xs text-muted-foreground">Ordenado por cantidad de productos descuadrados para orientar soporte y el próximo conteo físico.</p></div>
                 {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando salud de inventario...</div> : stockMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavia no hay organizaciones para analizar.</div> : (
                   <div className="divide-y divide-border/50">
                     {stockMetrics.rows.slice(0, 30).map(row => (
@@ -497,7 +497,7 @@ export default function PlatformMetricsPage() {
                 </div>
 
                 <div className="rounded-[10px] border border-border/60 bg-card p-5">
-                  <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10"><Activity className="h-4 w-4 text-emerald-400" /></div><div><h2 className="font-semibold">Adopcion por canal</h2><p className="mt-1 text-xs text-muted-foreground">Una organizacion cuenta como omnicanal cuando tiene al menos una venta POS y una orden online confirmada.</p></div></div>
+                  <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10"><Activity className="h-4 w-4 text-emerald-400" /></div><div><h2 className="font-semibold">Adopción por canal</h2><p className="mt-1 text-xs text-muted-foreground">Una organización cuenta como omnicanal cuando tiene al menos una venta POS y una orden online confirmada.</p></div></div>
                   <div className="space-y-4">
                     <FunnelStep label="Publicacion instrumentada" value={channelMetrics.organizationsWithStorePublished} total={channelMetrics.totalOrganizations} tone="bg-primary" />
                     <FunnelStep label="Primera venta en cualquier canal" value={channelMetrics.activatedOrganizations} total={channelMetrics.totalOrganizations} tone="bg-teal-500" />
@@ -509,7 +509,7 @@ export default function PlatformMetricsPage() {
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
-                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Detalle por organizacion</h2><p className="mt-1 text-xs text-muted-foreground">Los contadores diferencian actividad online confirmada de ventas POS explicitamente marcadas.</p></div>
+                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Detalle por organización</h2><p className="mt-1 text-xs text-muted-foreground">Los contadores diferencian actividad online confirmada de ventas POS explícitamente marcadas.</p></div>
                 {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando adopcion...</div> : channelMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavia no hay datos para analizar.</div> : (
                   <div className="divide-y divide-border/50">
                     {channelMetrics.rows.slice(0, 30).map(row => (
