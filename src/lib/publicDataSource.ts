@@ -65,6 +65,18 @@ export function isMissingFunction(error: PgError | null): boolean {
   return /could not find the function|function .* does not exist/i.test(error.message ?? '');
 }
 
+/**
+ * ¿Una columna nueva todavía no existe? Pasa entre que se publica el código y
+ * se aplica la migración a mano. Postgres responde 42703; PostgREST, PGRST204
+ * cuando la columna no está en su caché.
+ */
+export function isMissingColumn(error: PgError | null): boolean {
+  if (!error) return false;
+  if (error.code === '42703') return true;      // undefined_column (Postgres)
+  if (error.code === 'PGRST204') return true;   // PostgREST: columna fuera de caché
+  return /column .* does not exist|could not find the .* column/i.test(error.message ?? '');
+}
+
 function warnFallback(relation: string) {
   console.warn(
     `[catálogo] La vista ${relation} no existe todavía — leyendo la tabla con ` +

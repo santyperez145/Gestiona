@@ -12,7 +12,7 @@ import { accionDeTecla, ATAJOS_POS, medioSiguiente, type AccionPos } from "@/lib
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
 import { productMatchesCode } from "@/lib/productCodes";
-import { etiquetaPresentacion, presentacionPorCodigo, type ProductPresentation } from "@/lib/productPresentations";
+import { etiquetaPresentacion, precioDeCajaQueAplica, presentacionPorCodigo, type ProductPresentation } from "@/lib/productPresentations";
 import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
@@ -116,6 +116,14 @@ interface CartItem {
   category?: string;
   /** 'unidad' o una medida (kg, metro, litro, m2): las medidas aceptan decimales. */
   unidad?: string;
+  /**
+   * La caja/bulto escaneado. El renglón viaja con `presentation_id` y la base
+   * decide si cobra el precio de caja (20261009001500); acá sólo se muestra
+   * el mismo número con `precioDeCajaQueAplica`.
+   */
+  presentationId?: string | null;
+  presentationFactor?: number;
+  presentationPrice?: number | null;
 }
 
 interface OnlineReservationRow {
@@ -149,6 +157,16 @@ interface PosCashSessionStatus {
 // reservas evita confundir el stock de un sabor/tamaño con el del producto base.
 const reservationKey = (productId: string, variantId?: string | null) =>
   variantId ? `${productId}__${variantId}` : productId;
+
+/**
+ * La clave de un renglón del carrito es `producto`, `producto__variante` o,
+ * para una caja, `producto__variante__presentación` (variante puede ir vacía).
+ * Todo lo que necesite el producto o la reserva sale de acá, no de la clave.
+ */
+const partesDeClave = (clave: string) => {
+  const [productId, variantId, presentationId] = clave.split("__");
+  return { productId, variantId: variantId || null, presentationId: presentationId || null };
+};
 
 type PayMethod = "efectivo" | "transferencia" | "debito" | "credito" | "qr" | "mayorista" | "fiado";
 
@@ -1642,7 +1660,7 @@ export default function POSPage() {
     const presentacion = presentacionPorCodigo(presentaciones, code);
     const prodDeCaja = presentacion ? products.find(p => p.id === presentacion.product_id) : null;
     if (presentacion && prodDeCaja) {
-      addToCart(prodDeCaja, undefined, Number(presentacion.factor));
+      addToCart(prodDeCaja, undefined, Number(presentacion.factor), presentacion);
       toast.success(`Escaneado: ${prodDeCaja.name} · ${etiquetaPresentacion(presentacion, prodDeCaja.unidad_medida || "unidad")}`);
     } else {
       toast.error(`Código ${code} no encontrado`);
@@ -1828,7 +1846,7 @@ export default function POSPage() {
     if (item.customPrice != null && item.customPrice > 0) return null;
     const baseDiscount = item.discountPrice && item.discountPrice > 0 ? item.discountPrice : null;
     return bestPromoPrice(
-      { id: item.productId, category: item.category, sale_price_ars: item.price, discount_price_ars: baseDiscount },
+      { id: partesDeClave(item.productId).productId, category: item.category, sale_price_ars: item.price, discount_price_ars: baseDiscount },
       activePromos,
     );
   };
@@ -1837,7 +1855,19 @@ export default function POSPage() {
     if (item.customPrice != null && item.customPrice > 0) return item.customPrice;
     const manual = item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
     const promo = promoFor(item);
-    return promo ? promo.price : manual;
+    const base = promo ? promo.price : manual;
+    // Espejo de la base: la caja sólo baja el precio, y sólo llevándose una
+    // caja entera. Así la pantalla muestra lo que la venta va a cobrar y el
+    // precio de caja no aparece como descuento manual.
+    if (item.presentationId && item.presentationFactor) {
+      const caja = precioDeCajaQueAplica(
+        { factor: item.presentationFactor, price_ars: item.presentationPrice ?? null },
+        item.quantity,
+        base,
+      );
+      if (caja !== null) return caja;
+    }
+    return base;
   };
 
   const priceFor = (item: CartItem) => posPriceForPayment(
@@ -1897,15 +1927,19 @@ export default function POSPage() {
     }
   };
 
-  const addToCart = useCallback((prod: any, variantOverride?: { id: string; name: string; stock: number; price?: number }, cantidad = 1) => {
-    const cartKey = variantOverride ? `${prod.id}__${variantOverride.id}` : prod.id;
+  const addToCart = useCallback((prod: any, variantOverride?: { id: string; name: string; stock: number; price?: number }, cantidad = 1, presentacion?: ProductPresentation) => {
+    // La caja va en su propio renglón: con precio propio no se puede mezclar
+    // con las unidades sueltas del mismo producto.
+    const cartKey = presentacion
+      ? `${prod.id}__${variantOverride?.id ?? ''}__${presentacion.id}`
+      : variantOverride ? `${prod.id}__${variantOverride.id}` : prod.id;
     const stockLimit = variantOverride ? variantOverride.stock : prod.stock;
     const unlimitedStock = prod.maneja_stock === false;
     const onlineReserved = Number(onlineReservations[reservationKey(prod.id, variantOverride?.id)] ?? 0);
     // Use price list adjusted price if a customer with a list is selected
     const basePrice = variantOverride?.price ?? Number(prod.sale_price_ars);
     const price = customerPriceListId ? getPrice({ id: prod.id, sale_price_ars: basePrice }) : (basePrice || 0);
-    const displayName = variantOverride ? `${prod.name} · ${variantOverride.name}` : prod.name;
+    const displayName = [prod.name, variantOverride?.name, presentacion?.name].filter(Boolean).join(' · ');
     vibrateTap();
     setCart((prev) => {
       const idx = prev.findIndex((it) => it.productId === cartKey);
@@ -1947,6 +1981,11 @@ export default function POSPage() {
         useDiscount: false,
         category: prod.category || '',
         unidad: prod.unidad_medida || 'unidad',
+        ...(presentacion ? {
+          presentationId: presentacion.id,
+          presentationFactor: Number(presentacion.factor),
+          presentationPrice: presentacion.price_ars != null ? Number(presentacion.price_ars) : null,
+        } : {}),
       }];
     });
     setShowCart(true);
@@ -2474,12 +2513,16 @@ export default function POSPage() {
     if (!user || !activeOrg || !cart.length) return;
 
     const reservationConflicts = cart.filter((item) => {
-      const onlineReserved = Number(onlineReservations[item.productId] ?? 0);
+      const { productId, variantId } = partesDeClave(item.productId);
+      const onlineReserved = Number(onlineReservations[reservationKey(productId, variantId)] ?? 0);
       return onlineReserved > 0 && item.quantity > item.stock - onlineReserved;
     });
     if (reservationConflicts.length) {
       const detail = reservationConflicts
-        .map((item) => `${item.name}: ${onlineReservations[item.productId]} reservada(s) online`)
+        .map((item) => {
+          const { productId, variantId } = partesDeClave(item.productId);
+          return `${item.name}: ${onlineReservations[reservationKey(productId, variantId)]} reservada(s) online`;
+        })
         .join("\n");
       if (!(await ask({
         title: "¿Confirmar venta?",
@@ -2523,7 +2566,7 @@ export default function POSPage() {
       const offlineTransactionId = crypto.randomUUID();
 
       for (const item of cart) {
-        const [baseProductId, variantId] = item.productId.split("__");
+        const { productId: baseProductId, variantId } = partesDeClave(item.productId);
         const unitPrice = priceFor(item);
         const lineTotal = unitPrice * item.quantity;
         const proportion = cartTotal > 0 ? lineTotal / cartSubtotal : 0;
@@ -2555,6 +2598,8 @@ export default function POSPage() {
           org_id: orgId,
           product_id: baseProductId,
           variant_id: variantId || null,
+          // Cuál caja, no cuánto sale: el precio de caja lo decide la base.
+          presentation_id: item.presentationId ?? null,
           product_name: item.name,
           quantity: item.quantity,
           unit_price_ars: finalUnitPrice,
@@ -3111,10 +3156,10 @@ export default function POSPage() {
         {/* Frequently bought together recommendations */}
         {cart.length > 0 && recSales.length > 0 && (() => {
           // Aggregate recommendations for all items in cart
-          const cartIds = new Set(cart.map(c => c.productId));
+          const cartIds = new Set(cart.map(c => partesDeClave(c.productId).productId));
           const recMap = new Map<string, { name: string; count: number }>();
           cart.forEach(item => {
-            getRecommendations(item.productId).forEach(r => {
+            getRecommendations(partesDeClave(item.productId).productId).forEach(r => {
               if (cartIds.has(r.product_id)) return; // already in cart
               const cur = recMap.get(r.product_id);
               recMap.set(r.product_id, { name: r.product_name, count: (cur?.count ?? 0) + r.coCount });

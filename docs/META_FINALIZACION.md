@@ -43,7 +43,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Fiado con límite de crédito por cliente: la base rechaza la deuda que lo supere; el POS muestra el disponible.
 - [x] Selectores de producto con búsqueda (50 resultados) en todas las pantallas: ningún `Select` dibuja el catálogo entero.
 - [x] Presentaciones (caja, bulto, pack) con código propio: escanearlas en el POS suma sus unidades.
-- [ ] Precio propio por presentación y recepción de compras por caja.
+- [x] Precio propio por presentación y recepción de compras por caja. La base decide el precio de caja (`precio_presentacion_autoritativo`, sólo mejora el precio y exige una caja entera) y el tope de descuento se mide contra él; la recepción convierte cajas con el factor guardado. `scripts/presentation-price-matrix.sql` 7/7 contra la base vinculada en transacción revertida. **Pendiente: aplicar `20261009001500`** — hasta entonces el cliente sigue funcionando como antes.
 
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.

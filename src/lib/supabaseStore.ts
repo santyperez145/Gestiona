@@ -4,6 +4,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { resolveSaleAttribution } from './businessCalc';
 import { nombreDeCategoria } from './storeCategories';
 import { selectAllRows } from '@/lib/selectAllRows';
+import { isMissingColumn, type PgError } from '@/lib/publicDataSource';
 import { cantidadStockValida } from '@/lib/unidadMedida';
 type SettingsUpdate = Database['public']['Tables']['settings']['Update'];
 
@@ -781,13 +782,24 @@ export async function getVariantsByUserDB(userId: string) {
 
 /** Presentaciones con código (cajas, bultos) de la organización, para escanear en caja. */
 export async function getPresentationsWithBarcodeDB(orgId: string) {
-  return selectAllRows<Pick<Database['public']['Tables']['product_presentations']['Row'], 'id' | 'product_id' | 'name' | 'factor' | 'barcode'>>(({ desde, hasta, despues, limite }) => {
-    let query = supabase.from('product_presentations').select('id, product_id, name, factor, barcode')
+  type Fila = Pick<Database['public']['Tables']['product_presentations']['Row'], 'id' | 'product_id' | 'name' | 'factor' | 'barcode'>
+    & { price_ars?: number | null };
+  const leer = (columnas: string) => selectAllRows<Fila>(({ desde, hasta, despues, limite }) => {
+    let query = supabase.from('product_presentations').select(columnas)
       .eq('org_id', orgId).not('barcode', 'is', null).gte('id', desde).order('id').limit(limite);
     if (hasta) query = query.lt('id', hasta);
     if (despues) query = query.gt('id', despues);
-    return query;
+    return query as never;
   });
+  try {
+    return await leer('id, product_id, name, factor, barcode, price_ars');
+  } catch (error) {
+    // `price_ars` llega con 20261009001500, que se aplica a mano. Hasta
+    // entonces la caja sigue siendo un atajo de cantidad, como antes.
+    if (!isMissingColumn(error as PgError)) throw error;
+    console.warn('[presentaciones] product_presentations.price_ars no existe todavía: aplicá 20261009001500 para cobrar precio por caja.');
+    return leer('id, product_id, name, factor, barcode');
+  }
 }
 
 /**

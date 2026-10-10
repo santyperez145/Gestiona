@@ -3343,7 +3343,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         </div>
       </div>
       {product?.id && orgId && (
-        <ProductPresentationsEditor orgId={orgId} productId={product.id} unidad={unidadMedida} canEdit />
+        <ProductPresentationsEditor orgId={orgId} productId={product.id} unidad={unidadMedida} canEdit precioSuelto={salePrice} />
       )}
       {/* Logística — peso y dimensiones para cotizar envíos */}
       <div>

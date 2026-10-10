@@ -465,12 +465,30 @@ function ReceiveDialog({ order, open, online, onOpenChange, onDone }: {
   const [guardando, setGuardando] = useState(false);
   const [sucursales, setSucursales] = useState<Array<{ id: string; name: string }>>([]);
   const [sucursalId, setSucursalId] = useState("");
+  // Recibir por caja: por renglón, en qué se cuenta lo que llega. "" = unidades.
+  const [cajas, setCajas] = useState<Array<{ id: string; product_id: string; name: string; factor: number }>>([]);
+  const [contarEn, setContarEn] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open) {
       setCantidades(Object.fromEntries(items.map(i => [i.id, String(pendienteDe(i))])));
+      setContarEn({});
       setNotas("");
     }
+  }, [open, order.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Las presentaciones de los productos de la orden. Si falla no se bloquea
+  // nada: se sigue recibiendo por unidad, como siempre.
+  useEffect(() => {
+    if (!open) return;
+    const ids = [...new Set(items.map(i => i.product_id).filter((id): id is string => !!id))];
+    if (!ids.length) { setCajas([]); return; }
+    supabase.from("product_presentations").select("id, product_id, name, factor")
+      .eq("org_id", order.org_id).in("product_id", ids).order("factor")
+      .then(({ data, error }) => {
+        if (error) { console.error("[recepción] presentaciones", error); setCajas([]); return; }
+        setCajas((data ?? []).map(c => ({ ...c, factor: Number(c.factor) })));
+      });
   }, [open, order.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A qué sucursal entra la mercadería. Sólo se pregunta si la organización
@@ -497,11 +515,28 @@ function ReceiveDialog({ order, open, online, onOpenChange, onDone }: {
   // legítima: necesita su propia clave.
   useEffect(() => { if (!open) claveIdem.current = null; }, [open]);
 
+  /** Unidades que representa lo tipeado en el renglón, según en qué se cuenta. */
+  const unidadesDe = (itemId: string): number => {
+    const tipeado = Number(cantidades[itemId] ?? 0);
+    const caja = cajas.find(c => c.id === contarEn[itemId]);
+    return caja ? tipeado * caja.factor : tipeado;
+  };
+
+  // Por caja se mandan las dos formas: `presentation_id` + `bultos`, que la
+  // base convierte con el factor guardado (20261009001500), y `quantity`, que
+  // es lo que entiende la versión anterior mientras la migración no esté
+  // aplicada. Sin `quantity`, la vieja salteaba el renglón sin avisar.
   const aRecibir = items
-    .map(i => ({ item_id: i.id, quantity: Number(cantidades[i.id] ?? 0) }))
+    .map(i => {
+      const caja = cajas.find(c => c.id === contarEn[i.id]);
+      const cantidad = unidadesDe(i.id);
+      return caja
+        ? { item_id: i.id, quantity: cantidad, presentation_id: caja.id, bultos: Number(cantidades[i.id] ?? 0) }
+        : { item_id: i.id, quantity: cantidad };
+    })
     .filter(x => x.quantity > 0);
 
-  const excedido = items.some(i => Number(cantidades[i.id] ?? 0) > pendienteDe(i));
+  const excedido = items.some(i => unidadesDe(i.id) > pendienteDe(i));
 
   /**
    * I6a — clave de idempotencia de este intento de recepción.
@@ -566,7 +601,9 @@ function ReceiveDialog({ order, open, online, onOpenChange, onDone }: {
             <tbody className="divide-y divide-border">
               {items.map(i => {
                 const falta = pendienteDe(i);
-                const valor = Number(cantidades[i.id] ?? 0);
+                const valor = unidadesDe(i.id);
+                const delProducto = cajas.filter(c => c.product_id === i.product_id);
+                const caja = delProducto.find(c => c.id === contarEn[i.id]);
                 return (
                   <tr key={i.id} className={falta === 0 ? "opacity-50" : ""}>
                     <td className="px-3 py-2">{i.product_name}</td>
@@ -574,12 +611,37 @@ function ReceiveDialog({ order, open, online, onOpenChange, onDone }: {
                     <td className="px-3 py-2 text-right">{i.quantity_received}</td>
                     <td className="px-3 py-2 text-right font-medium">{falta}</td>
                     <td className="px-3 py-2 text-right">
-                      <Input
-                        type="number" min={0} max={falta} disabled={falta === 0}
-                        value={cantidades[i.id] ?? ""}
-                        onChange={e => setCantidades(p => ({ ...p, [i.id]: e.target.value }))}
-                        className={`h-7 text-xs text-right ${valor > falta ? "border-destructive" : ""}`}
-                      />
+                      <div className="flex items-center justify-end gap-1">
+                        <Input
+                          type="number" min={0} max={caja ? Math.floor(falta / caja.factor) : falta} disabled={falta === 0}
+                          value={cantidades[i.id] ?? ""}
+                          onChange={e => setCantidades(p => ({ ...p, [i.id]: e.target.value }))}
+                          aria-label={`Cantidad que llega de ${i.product_name}`}
+                          className={`h-7 w-20 text-xs text-right ${valor > falta ? "border-destructive" : ""}`}
+                        />
+                        {delProducto.length > 0 && falta > 0 && (
+                          <Select
+                            value={contarEn[i.id] || "u"}
+                            onValueChange={valor => {
+                              const nueva = delProducto.find(c => c.id === valor);
+                              setContarEn(p => ({ ...p, [i.id]: nueva ? valor : "" }));
+                              // Al cambiar de unidad se propone lo que falta en la nueva unidad.
+                              setCantidades(p => ({ ...p, [i.id]: String(nueva ? Math.floor(falta / nueva.factor) : falta) }));
+                            }}
+                          >
+                            <SelectTrigger aria-label={`Contar ${i.product_name} en`} className="h-7 w-auto min-w-[3.5rem] px-2 text-[11px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="u">u.</SelectItem>
+                              {delProducto.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                      {caja && valor > 0 && (
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">= {valor.toLocaleString("es-AR")} u.</p>
+                      )}
                     </td>
                   </tr>
                 );
