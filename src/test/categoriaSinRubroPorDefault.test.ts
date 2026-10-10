@@ -294,3 +294,23 @@ describe("ningún archivo nuevo hardcodea el rubro", () => {
     expect(Object.keys(CONOCIDOS).filter(f => !actuales.has(f))).toEqual([]);
   });
 });
+
+describe("los rubros son de cualquier comercio", () => {
+  const sql = readFileSync(resolve(ROOT, "supabase/migrations/20261009001600_rubros_de_cualquier_comercio.sql"), "utf8");
+
+  it("agrega los rubros que faltaban, con tipos de producto propios", () => {
+    for (const codigo of ["ferreteria", "hogar", "libreria", "mascotas", "deportes", "jugueteria", "autopartes"]) {
+      expect(sql).toContain(`('${codigo}', `);
+    }
+  });
+
+  it("los rubros del negocio original dejan de encabezar la lista", () => {
+    expect(sql).toMatch(/SET sort_order = 14\s+WHERE code = 'perfumes'/);
+    expect(sql).toMatch(/SET sort_order = 15\s+WHERE code = 'vapers'/);
+  });
+
+  it("la migración se verifica aplicando cada rubro y sin dejar restos", () => {
+    expect(sql).toContain("PERFORM public.configure_business_profile(v_org, v_codigo);");
+    expect(sql).toContain("ASSERT v_restos = 0");
+  });
+});
