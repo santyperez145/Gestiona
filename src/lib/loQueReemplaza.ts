@@ -128,3 +128,37 @@ export function resumirAhorro(
       : Math.round((pagaHoy - precioPlanMensual) * 100) / 100,
   };
 }
+
+/** Fila de `platform_org_productos_nerqia` (sólo administradores de plataforma). */
+export interface ProductosDeComercio {
+  org_id: string;
+  org_name: string;
+  org_creada: string;
+  productos: UsoDeProducto[];
+  productos_en_uso: number;
+  herramientas: HerramientaReemplazada[];
+  paga_hoy_ars: number;
+  herramientas_cargadas: number;
+}
+
+export interface ResumenProductosPorComercio {
+  comercios: number;
+  /** Promedio de productos usados entre los comercios con al menos uno. */
+  promedioProductosActivos: number | null;
+  comerciosConDosOMas: number;
+  comerciosConMontos: number;
+  pagaHoyTotal: number;
+}
+
+/** Métrica «productos Nerqia por comercio» de docs/TESIS.md §6. */
+export function resumirProductosPorComercio(filas: ProductosDeComercio[]): ResumenProductosPorComercio {
+  const activos = filas.filter(f => Number(f.productos_en_uso) > 0);
+  const total = activos.reduce((s, f) => s + Number(f.productos_en_uso), 0);
+  return {
+    comercios: filas.length,
+    promedioProductosActivos: activos.length === 0 ? null : Math.round((total / activos.length) * 10) / 10,
+    comerciosConDosOMas: filas.filter(f => Number(f.productos_en_uso) >= 2).length,
+    comerciosConMontos: filas.filter(f => Number(f.herramientas_cargadas) > 0).length,
+    pagaHoyTotal: Math.round(filas.reduce((s, f) => s + Number(f.paga_hoy_ars || 0), 0) * 100) / 100,
+  };
+}

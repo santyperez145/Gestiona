@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import ProductosPorComercio from "@/components/platform/ProductosPorComercio";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { isMissingRelation } from "@/lib/publicDataSource";
@@ -117,7 +118,7 @@ export default function PlatformMetricsPage() {
   const [cohortViewUnavailable, setCohortViewUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels" | "stock" | "ai" | "risk" | "operations">("gestiona.view.platform.metrics-tab", "funnel");
+  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels" | "products" | "stock" | "ai" | "risk" | "operations">("gestiona.view.platform.metrics-tab", "funnel");
   const [search, setSearch] = usePersistedState("gestiona.view.platform.metrics-search", "");
   const [signalFilter, setSignalFilter] = usePersistedState("gestiona.view.platform.metrics-signal", "all");
 
@@ -295,6 +296,7 @@ export default function PlatformMetricsPage() {
           <TabsTrigger value="health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Salud por organización</TabsTrigger>
           <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Cohortes de activación</TabsTrigger>
           <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Canales</TabsTrigger>
+          <TabsTrigger value="products" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Productos por comercio</TabsTrigger>
           <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Inventario</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Recomendaciones IA</TabsTrigger>
           <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Riesgo</TabsTrigger>
@@ -604,6 +606,10 @@ export default function PlatformMetricsPage() {
               </div>
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="products" className="mt-5">
+          {tab === "products" && <ProductosPorComercio />}
         </TabsContent>
 
         <TabsContent value="operations" className="mt-5 space-y-5">
