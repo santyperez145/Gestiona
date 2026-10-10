@@ -277,10 +277,12 @@ function TrackingModal({ delivery, onClose, onUpdate }: {
   async function addEvent() {
     if (!newDesc.trim()) return;
     setAdding(true);
-    await supabase.from("delivery_events").insert({
+    const { error } = await supabase.from("delivery_events").insert({
       delivery_id: delivery.id, status: delivery.status, description: newDesc.trim(),
     });
-    setNewDesc(""); setAdding(false);
+    setAdding(false);
+    if (error) { toast.error("No se guardó la novedad: " + error.message); return; }
+    setNewDesc("");
     const { data } = await supabase.from("delivery_events").select("*")
       .eq("delivery_id", delivery.id).order("created_at", { ascending: false });
     setEvents(data || []);
@@ -294,11 +296,15 @@ function TrackingModal({ delivery, onClose, onUpdate }: {
     const update: Record<string, unknown> = { status: next };
     if (next === "picked_up") update.picked_up_at = new Date().toISOString();
     if (next === "delivered") update.delivered_at = new Date().toISOString();
-    await supabase.from("deliveries").update(update).eq("id", delivery.id);
-    await supabase.from("delivery_events").insert({
+    // Antes no se miraba el error: el estado no cambiaba y la pantalla decía
+    // que sí. El evento sólo se registra si el cambio de estado se guardó.
+    const { error } = await supabase.from("deliveries").update(update).eq("id", delivery.id);
+    if (error) { toast.error("No se pudo cambiar el estado: " + error.message); return; }
+    const { error: errorEvento } = await supabase.from("delivery_events").insert({
       delivery_id: delivery.id, status: next,
       description: `Estado actualizado a: ${STATUS_CFG[next]?.label}`,
     });
+    if (errorEvento) console.error("[envíos] el estado cambió pero no se registró el evento", errorEvento);
     toast.success(`Estado: ${STATUS_CFG[next]?.label}`);
     onUpdate(); onClose();
   }
@@ -389,8 +395,11 @@ function TrackingModal({ delivery, onClose, onUpdate }: {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function DeliveryTrackingPage() {
   usePageTitle("Seguimiento de Envíos");
-  const { activeOrg } = useOrg();
+  const { activeOrg, activeRole } = useOrg();
   const orgId = activeOrg?.id ?? "";
+  // Zonas, tarifas y transportistas los configuran dueño y admin: la base no
+  // le deja tocarlos a un vendedor (20261010000200), así que no se le muestran.
+  const configuraEnvios = activeRole === "owner" || activeRole === "admin";
   const { ask, dialog } = useConfirmDialog();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
@@ -402,7 +411,8 @@ export default function DeliveryTrackingPage() {
   const [filterDriver, setFilterDriver] = useState("all");
   // ?tab= para poder linkear directo a la configuración de envíos
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") || "entregas";
+  const pedida = searchParams.get("tab") || "entregas";
+  const tab = configuraEnvios || pedida === "entregas" ? pedida : "entregas";
   const setTab = (next: string) => setSearchParams(next === "entregas" ? {} : { tab: next });
 
   async function loadData() {
@@ -418,7 +428,8 @@ export default function DeliveryTrackingPage() {
 
   async function deleteDelivery(id: string) {
     if (!(await ask({ title: "¿Eliminar este envío?", confirmText: "Eliminar", variant: "destructive" }))) return;
-    await supabase.from("deliveries").delete().eq("id", id);
+    const { error } = await supabase.from("deliveries").delete().eq("id", id);
+    if (error) { toast.error("No se eliminó el envío: " + error.message); return; }
     toast.success("Envío eliminado");
     loadData();
   }
@@ -458,17 +469,21 @@ export default function DeliveryTrackingPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="bg-muted/50">
           <TabsTrigger value="entregas" className="gap-2"><Truck className="w-3.5 h-3.5" /> Entregas</TabsTrigger>
-          <TabsTrigger value="zonas" className="gap-2"><MapPin className="w-3.5 h-3.5" /> Zonas y tarifas</TabsTrigger>
-          <TabsTrigger value="transportistas" className="gap-2"><Package className="w-3.5 h-3.5" /> Transportistas</TabsTrigger>
+          {configuraEnvios && <>
+            <TabsTrigger value="zonas" className="gap-2"><MapPin className="w-3.5 h-3.5" /> Zonas y tarifas</TabsTrigger>
+            <TabsTrigger value="transportistas" className="gap-2"><Package className="w-3.5 h-3.5" /> Transportistas</TabsTrigger>
+          </>}
         </TabsList>
 
-        <TabsContent value="zonas" className="mt-4">
-          <ShippingZonesTab />
-        </TabsContent>
+        {configuraEnvios && <>
+          <TabsContent value="zonas" className="mt-4">
+            <ShippingZonesTab />
+          </TabsContent>
 
-        <TabsContent value="transportistas" className="mt-4">
-          <CarriersTab />
-        </TabsContent>
+          <TabsContent value="transportistas" className="mt-4">
+            <CarriersTab />
+          </TabsContent>
+        </>}
 
         <TabsContent value="entregas" className="mt-4 space-y-6">
       {/* KPIs */}
