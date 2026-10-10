@@ -154,7 +154,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         : "/tienda-online";
       const routes: Record<string, string> = {
         "1": "/", "2": venderHoy, "3": "/productos", "4": "/ventas", "5": "/clientes",
-        "6": "/tareas", "7": "/movimientos", "8": "/analytics", "9": "/integraciones",
+        "6": "/tareas", "7": "/movimientos", "8": "/reportes", "9": "/integraciones",
       };
       if (routes[e.key]) { e.preventDefault(); navigate(routes[e.key]); }
     };

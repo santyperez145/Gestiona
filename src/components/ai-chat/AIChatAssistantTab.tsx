@@ -1880,8 +1880,8 @@ function TopProductsCard({ userId, initialSort, onDone }: {
         </div>
       )}
       <div className="flex gap-2 pt-1">
-        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { navigate("/analytics"); onDone(); }}>
-          Ver analytics →
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { navigate("/reportes"); onDone(); }}>
+          Ver reportes →
         </Button>
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
       </div>
@@ -2113,7 +2113,7 @@ const QUICK_ACTIONS = [
   { label: "Ir al POS", icon: ShoppingCart, path: "/pos" },
   { label: "Ver Inventario", icon: Package, path: "/products" },
   { label: "Ver Clientes", icon: Users, path: "/customers" },
-  { label: "Ver Analytics", icon: BarChart2, path: "/analytics" },
+  { label: "Ver reportes", icon: BarChart2, path: "/reportes" },
   { label: "Ver Finanzas", icon: DollarSign, path: "/debts" },
   { label: "Ver Reportes", icon: Zap, path: "/reports" },
 ];

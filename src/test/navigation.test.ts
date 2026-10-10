@@ -163,7 +163,6 @@ describe("estructura de la navegación", () => {
   it("ordena Reportes por lectura de negocio", () => {
     expect(itemsDe("reportes").map(i => i.to)).toEqual([
       "/reportes",
-      "/analytics",
       "/ia",
     ]);
   });

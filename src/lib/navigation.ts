@@ -63,13 +63,13 @@ export const NAV_GROUPS: NavGroup[] = [
 
 const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
   diario: ["/", "/tienda-online", "/pedidos-online", "/caja", "/ventas", "/productos", "/clientes"],
-  commerce: ["/tienda-online", "/pedidos-online", "/productos", "/analytics", "/envios", "/links-de-pago", "/cupones", "/promociones"],
+  commerce: ["/tienda-online", "/pedidos-online", "/productos", "/envios", "/links-de-pago", "/cupones", "/promociones"],
   business: ["/caja", "/ventas", "/compras", "/ordenes-compra", "/proveedores", "/kardex", "/transferencias", "/sucursales", "/lotes", "/bundles", "/listas-precios", "/valuacion-inventario"],
   marketing: ["/marketing", "/email-campaigns", "/whatsapp-campaigns", "/fidelidad", "/catalogo", "/afiliados", "/referidos"],
   influencers: ["/influencers", "/canjes", "/brief-composer", "/campaign-matching"],
   "influencer-marketing": ["/influencer-marketing"],
   finance: ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones", "/billetera", "/movimientos", "/comisiones", "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones"],
-  reportes: ["/reportes", "/analytics", "/ia"],
+  reportes: ["/reportes", "/ia"],
   sistema: ["/soporte", "/alertas", "/integraciones", "/equipo", "/ajustes", "/admin", "/calidad-datos", "/mi-plan", "/perfil"],
 };
 
@@ -215,7 +215,7 @@ export const NIVEL_DE_DESTINO: Record<string, 1 | 2 | 3> = {
   // Marketing
   "/marketing": 2, "/email-campaigns": 2, "/whatsapp-campaigns": 2, "/fidelidad": 2,
   // Reportes
-  "/reportes": 1, "/analytics": 2, "/ia": 3,
+  "/reportes": 1, "/ia": 3,
   // Configuración y ayuda
   "/ajustes": 1, "/equipo": 1, "/mi-plan": 1, "/perfil": 1, "/soporte": 1, "/aprender": 1,
   "/integraciones": 2, "/alertas": 2, "/tareas": 2, "/calendario": 2,

@@ -637,18 +637,18 @@ export default function ReportsPage() {
           <TabsTrigger value="taxes">Impuestos</TabsTrigger>
           <TabsTrigger value="budget">Presupuesto</TabsTrigger>
           <TabsTrigger value="categories">Por Categoría</TabsTrigger>
-          <TabsTrigger value="brands">🏷️ Marcas</TabsTrigger>
+          <TabsTrigger value="brands">Marcas</TabsTrigger>
           <TabsTrigger value="cashflow">Flujo de Caja</TabsTrigger>
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
           <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
           <TabsTrigger value="compare">Comparativa</TabsTrigger>
           <TabsTrigger value="sucursales">Sucursales</TabsTrigger>
-          <TabsTrigger value="margin_trend">📈 Tendencia</TabsTrigger>
+          <TabsTrigger value="margin_trend">Tendencia</TabsTrigger>
           <TabsTrigger value="customers">Clientes</TabsTrigger>
-          <TabsTrigger value="weekly_trend">📅 Por día</TabsTrigger>
-          <TabsTrigger value="by_week">📊 Semanas</TabsTrigger>
-          <TabsTrigger value="forecast">🔮 Proyección</TabsTrigger>
-          <TabsTrigger value="scheduled">✉️ Programados</TabsTrigger>
+          <TabsTrigger value="weekly_trend">Por día</TabsTrigger>
+          <TabsTrigger value="by_week">Semanas</TabsTrigger>
+          <TabsTrigger value="forecast">Proyección</TabsTrigger>
+          <TabsTrigger value="scheduled">Programados</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 pb-12">
@@ -3482,7 +3482,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
   .kpi-item{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 14px;min-width:120px;text-align:center}
   .kpi-item .val{font-size:18px;font-weight:bold;color:#b8860b}.kpi-item .lbl{font-size:9px;color:#777;margin-top:2px}
 </style></head><body>
-<h1>📈 Tendencia de Márgenes — Últimos ${plural(months, "mes", "meses")}</h1>
+<h1>Tendencia de Márgenes — Últimos ${plural(months, "mes", "meses")}</h1>
 <p class="sub">Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
 <div class="kpi">
   <div class="kpi-item"><div class="val">${avgGrossMargin.toFixed(1)}%</div><div class="lbl">Margen bruto promedio</div></div>
@@ -4591,7 +4591,7 @@ function ForecastTab({ sales, products }: { sales: any[]; products: any[] }) {
       {stockRisk.length > 0 && (
         <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2">
           <p className="text-xs font-semibold text-amber-500 flex items-center gap-1.5">
-            ⚠️ Riesgo de quiebre de stock antes de los {horizon} días proyectados
+            Riesgo de quiebre de stock antes de los {horizon} días proyectados
           </p>
           <div className="space-y-1">
             {stockRisk.slice(0, 5).map((p: any) => (
@@ -4711,7 +4711,7 @@ function ForecastTab({ sales, products }: { sales: any[]; products: any[] }) {
 
       {/* Methodology note */}
       <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-1.5">
-        <p className="text-xs font-semibold text-primary flex items-center gap-1.5">🔬 Metodología</p>
+        <p className="text-xs font-semibold text-primary flex items-center gap-1.5">Metodología</p>
         <p className="text-xs text-muted-foreground">
           Regresión lineal OLS (Ordinary Least Squares) sobre los últimos <strong>{lookback} días</strong> de ventas diarias.
           R² = <strong className={r2Color}>{(r2 * 100).toFixed(1)}%</strong> — indica qué tan bien el modelo se ajusta a los datos históricos.

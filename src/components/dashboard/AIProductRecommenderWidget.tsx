@@ -62,7 +62,7 @@ export default function AIProductRecommenderWidget() {
         <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
           <Brain className="w-4 h-4" />AI Recomendador — Cross-sell
         </h2>
-        <Link to="/analytics" className="text-xs text-primary hover:underline flex items-center gap-1">
+        <Link to="/reportes" className="text-xs text-primary hover:underline flex items-center gap-1">
           Ver detalle <ArrowRight className="w-3 h-3" />
         </Link>
       </div>

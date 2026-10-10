@@ -47,7 +47,9 @@ describe("moduleForRoute", () => {
     expect(moduleForRoute("/ventas")).toBe("sales");
     expect(moduleForRoute("/ajustes")).toBe("settings");
     expect(moduleForRoute("/deudas")).toBe("sales");
-    expect(moduleForRoute("/analytics")).toBe("analytics");
+    // Desde 2026-10-10 Analytics es una vista de Reportes (módulo reports; sus
+    // vistas de análisis exigen además `analytics`, ver AnalyticsPage).
+    expect(moduleForRoute("/reportes")).toBe("reports");
     expect(moduleForRoute("/proveedores")).toBe("purchases");
   });
 

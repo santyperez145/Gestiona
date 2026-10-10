@@ -16,7 +16,7 @@ beforeEach(() => { state.loading = false; state.canView = true; state.error = nu
 afterEach(cleanup);
 
 describe('barrera compartida de modulos', () => {
-  it.each(['/productos', '/ventas', '/tienda-online', '/mi-plan', '/analytics'])('no monta %s ni dispara lecturas mientras verifica permisos', path => {
+  it.each(['/productos', '/ventas', '/tienda-online', '/mi-plan', '/reportes'])('no monta %s ni dispara lecturas mientras verifica permisos', path => {
     state.loading = true;
     view(path);
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');

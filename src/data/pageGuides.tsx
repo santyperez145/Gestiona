@@ -197,30 +197,15 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   // ── Reportes ─────────────────────────────────────────────────
   "/reportes": {
     title: "Reportes",
-    subtitle: "Análisis financiero completo",
+    subtitle: "Cómo viene el negocio, qué deja margen y qué exportar",
     color: "text-primary",
     tips: [
-      { icon: FileBarChart, title: "Estado de Resultados (P&L)", desc: "El tab 'Resumen' muestra ingresos, COGS, ganancia bruta, gastos y neto con comparativa del período anterior." },
-      { icon: PieChart, title: "Rentabilidad por producto", desc: "El tab 'Productos' rankea cada artículo por ganancia, margen y unidades vendidas. Con top-5 bar chart y exportación CSV." },
-      { icon: CalendarDays, title: "Comparativa de dos períodos", desc: "En el tab 'Tendencia de margen' podés comparar dos meses directamente con Δ en todas las métricas (ingresos, ganancia, márgenes)." },
-      { icon: FileText, title: "PDF para contador", desc: "El tab 'Impuestos' tiene un botón 'PDF Contador' que genera un documento profesional con IVA, IIBB y resultados por mes." },
-      { icon: BarChart3, title: "Por categoría y por día", desc: "Los tabs 'Por categoría' y 'Por día' muestran heatmaps y barras con participación de cada categoría y día de la semana." },
-    ],
-  },
-
-  // ── Analytics ────────────────────────────────────────────────
-  "/analytics": {
-    title: "Analytics",
-    subtitle: "Inteligencia de negocio avanzada",
-    color: "text-primary",
-    tips: [
-      { icon: LineChart, title: "Predicción de demanda", desc: "El tab 'Demanda' proyecta los próximos 30 días por producto usando velocidad de ventas. Semáforo de urgencia para reposición.", tag: "IA" },
-      { icon: Activity, title: "Análisis de cohortes", desc: "El tab 'Cohorts' muestra la retención de clientes por mes de primera compra en un heatmap de 12 × 7. Verde = retención alta." },
-      { icon: PieChart, title: "ABC Analysis", desc: "Clasifica productos en A (~80% del ingreso), B y C. Priorizá stock en A; revisá liquidar o descontinuar C.", tag: "Tip" },
-      { icon: Target, title: "Conversión de presupuestos", desc: "Seguí presupuestos a las 48–72 hs e incluí link de pago. El funnel muestra dónde se cae el cierre.", tag: "Tip" },
-      { icon: Users, title: "Nuevos vs Recurrentes", desc: "El tab 'Clientes' tiene el gráfico apilado de nuevos vs recurrentes por mes para medir la fidelización." },
-      { icon: BarChart2, title: "Pareto de clientes", desc: "El widget Pareto muestra qué % de clientes genera el 80% de los ingresos. Alerta si la concentración es demasiado alta." },
-      { icon: DollarSign, title: "Canales de venta", desc: "El tab 'Canales' muestra el donut y trend mensual de ingresos por método de pago (efectivo, transferencia, etc.)." },
+      { icon: BarChart3, title: "Resumen", desc: "Ventas, ganancia y margen del período con la comparación contra el anterior." },
+      { icon: PieChart, title: "Rentabilidad", desc: "Qué productos, canales y operaciones dejan margen y cuáles lo comen, con el costo real de cada venta." },
+      { icon: Target, title: "Tableros y KPIs", desc: "Tus indicadores y objetivos en un tablero propio, con alertas cuando se desvían." },
+      { icon: Activity, title: "Cohortes y BI", desc: "Retención de clientes por mes de primera compra y cortes por categoría, canal o vendedor." },
+      { icon: LineChart, title: "Pronóstico", desc: "Cuánto vas a vender las próximas semanas según tu propio ritmo de ventas." },
+      { icon: FileText, title: "Informes para descargar", desc: "Estado de resultados, impuestos con PDF para el contador, inventario valorado y exportación a Excel." },
     ],
   },
 

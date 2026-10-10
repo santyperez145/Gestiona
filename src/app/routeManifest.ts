@@ -266,22 +266,25 @@ export const ROUTES: RouteDefinition[] = [
   { id: "influencer-contracts", path: "/influencer-marketing/contratos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerContractsPage")), module: "influencers", aliases: [{ path: "/influencer-contracts", redirectTo: "/influencer-marketing/contratos" }], status: "canonical", nav: { label: "Contratos", icon: FileText, group: "influencers", keywords: ["contratos", "acuerdos", "legal"] }, productSurface: "influencer-marketing" },
   { id: "influencer-deliverables", path: "/influencer-marketing/entregables", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerDeliverablesPage")), module: "influencers", aliases: [{ path: "/influencer-deliverables", redirectTo: "/influencer-marketing/entregables" }], status: "canonical", nav: { label: "Entregables", icon: Calendar, group: "influencers", keywords: ["entregables", "fechas", "entregas"] }, productSurface: "influencer-marketing" },
   { id: "influencer-payments", path: "/influencer-marketing/pagos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerPaymentsPage")), module: "influencers", aliases: [{ path: "/influencer-payments", redirectTo: "/influencer-marketing/pagos" }, { path: "/liquidaciones", redirectTo: "/influencer-marketing/pagos" }], status: "canonical", nav: { label: "Comisiones y pagos", icon: DollarSign, group: "influencers", keywords: ["pagos", "comisiones", "liquidaciones"] }, productSurface: "influencer-marketing" },
-  { id: "reportes", path: "/reportes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ReportsPage")), module: "reports", status: "canonical", nav: { label: "Reportes", icon: TrendingUp, group: "reportes", keywords: ["informes", "exportar", "excel"] } },
   {
-    id: "analytics", path: "/analytics", roles: SOLO_ADMIN,
-    component: lazy(() => import("@/pages/AnalyticsPage")), module: "analytics",
-    // Consolidación 2026-08-27: KPIs, Reportes avanzados y Proyección de ventas
-    // eran páginas propias compitiendo por ser el centro analítico. Ahora son
-    // vistas de este workspace; el KPI Registry (ANA-001) va aparte.
+    id: "reportes", path: "/reportes", roles: SOLO_ADMIN,
+    component: lazy(() => import("@/pages/AnalyticsPage")), module: "reports",
+    // 2026-10-10: Reportes y Analytics eran dos destinos con Resumen,
+    // Rentabilidad y Proyección repetidos. Ahora es uno: el espacio de
+    // análisis, con los informes descargables como una vista más. Las vistas
+    // de análisis exigen además el permiso `analytics` (ver AnalyticsPage).
+    // Antes, 2026-08-27: KPIs, Reportes avanzados y Proyección de ventas ya se
+    // habían vuelto vistas de Analytics. El KPI Registry (ANA-001) va aparte.
     aliases: [
-      { path: "/analytics-ia", redirectTo: "/analytics" },
-      { path: "/profit", redirectTo: "/analytics?vista=rentabilidad", preserveSearch: ["df", "dt", "profit_store", "profit_channel", "profit_mode"] },
-      { path: "/kpi-dashboard", redirectTo: "/analytics?vista=tableros" },
-      { path: "/bi-reportes", redirectTo: "/analytics?vista=cohortes" },
-      { path: "/forecast", redirectTo: "/analytics?vista=pronostico" },
+      { path: "/analytics", redirectTo: "/reportes", preserveSearch: ["vista", "df", "dt", "profit_store", "profit_channel", "profit_mode"] },
+      { path: "/analytics-ia", redirectTo: "/reportes" },
+      { path: "/profit", redirectTo: "/reportes?vista=rentabilidad", preserveSearch: ["df", "dt", "profit_store", "profit_channel", "profit_mode"] },
+      { path: "/kpi-dashboard", redirectTo: "/reportes?vista=tableros" },
+      { path: "/bi-reportes", redirectTo: "/reportes?vista=cohortes" },
+      { path: "/forecast", redirectTo: "/reportes?vista=pronostico" },
     ],
     status: "canonical",
-    nav: { label: "Analytics", icon: BarChart3, group: "reportes", keywords: ["métricas", "estadísticas", "gráficos", "kpis", "indicadores", "objetivos", "metas", "bi", "business intelligence", "cohortes", "drilldown", "forecast", "pronóstico", "cuánto voy a vender"] },
+    nav: { label: "Reportes", icon: TrendingUp, group: "reportes", keywords: ["informes", "exportar", "excel", "analytics", "métricas", "estadísticas", "gráficos", "kpis", "indicadores", "objetivos", "metas", "bi", "business intelligence", "cohortes", "drilldown", "forecast", "pronóstico", "cuánto voy a vender", "rentabilidad", "margen"] },
   },
   {
     id: "ia", path: "/ia", roles: SOLO_ADMIN,

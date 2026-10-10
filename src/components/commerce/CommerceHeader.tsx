@@ -20,7 +20,7 @@ const COMMERCE_TABS = [
   { to: "/tienda-online", label: "Mi Tienda", icon: LayoutDashboard },
   { to: "/pedidos-online", label: "Pedidos", icon: Package },
   { to: "/productos", label: "Catálogo", icon: ShoppingCart },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/reportes", label: "Reportes", icon: BarChart3 },
 ] as const;
 
 const COMMERCE_ROUTES = new Set([
@@ -31,7 +31,7 @@ const COMMERCE_ROUTES = new Set([
   "/cupones",
   "/promociones",
   "/productos",
-  "/analytics",
+  "/reportes",
 ]);
 
 export default function CommerceHeader() {
