@@ -89,8 +89,6 @@ describe("estructura de la navegación", () => {
       "/links-de-pago",
       "/cupones",
       "/promociones",
-      "/ia-commerce",
-      "/pricing-dinamico",
     ]);
   });
 
@@ -113,7 +111,6 @@ describe("estructura de la navegación", () => {
       "/listas-precios",
       "/valuacion-inventario",
       "/planificacion",
-      "/ia-business",
     ]);
   });
 

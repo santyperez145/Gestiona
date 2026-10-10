@@ -20,7 +20,6 @@ const COMMERCE_TABS = [
   { to: "/tienda-online", label: "Mi Tienda", icon: LayoutDashboard },
   { to: "/pedidos-online", label: "Pedidos", icon: Package },
   { to: "/productos", label: "Catálogo", icon: ShoppingCart },
-  { to: "/ia-commerce", label: "IA Tienda", icon: Sparkles },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
 ] as const;
 

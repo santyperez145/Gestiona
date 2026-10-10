@@ -26,6 +26,7 @@
     "test:watch": "vitest",
     "check:functions": "node scripts/check-edge-functions.mjs",
     "check:migrations": "node scripts/check-migration-syntax.mjs",
+    "audit:pages": "node scripts/audit-pages.mjs",
     "check:dependencies": "node scripts/audit-dependencies.mjs",
     "deploy:functions": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-functions.ps1",
     "deploy:functions:sh": "bash scripts/deploy-functions.sh",

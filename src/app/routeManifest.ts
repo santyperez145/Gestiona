@@ -170,11 +170,16 @@ export const ROUTES: RouteDefinition[] = [
   { id: "finance_inicio", path: "/finance", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinanceOverviewPage")), module: "finance", aliases: [{ path: "/ia-finance", redirectTo: "/finance" }], status: "canonical", productSurface: "finance", nav: { label: "Resumen", icon: LayoutDashboard, group: "finance", keywords: ["finance", "gastos", "control", "mendel"] } },
   { id: "finance_documentos", path: "/finance/documentos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinanceDocumentsPage")), module: "finance", status: "canonical", productSurface: "finance", nav: { label: "Documentos", icon: FileText, group: "finance", keywords: ["comprobantes", "tickets", "ocr", "facturas de compra"] } },
   { id: "finance_solicitudes", path: "/finance/solicitudes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinanceSolicitudesPage")), module: "finance", status: "canonical", productSurface: "finance", nav: { label: "Solicitudes", icon: FileClock, group: "finance", keywords: ["aprobacion", "gasto", "presupuesto", "compromiso"] } },
-  { id: "tienda_online", path: "/tienda-online", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EcommerceStorePage")), module: "ecommerce", status: "canonical", nav: { label: "Tienda online", icon: ShoppingBag, group: "diario", keywords: ["ecommerce", "web", "vitrina", "storefront", "diseño tienda", "commerce"] } },
+  // `/ia-commerce` («IA Tienda») mostraba recomendaciones fijas de precio,
+  // timing y competencia sin leer un solo dato del comercio. El dominio es
+  // este; que vuelva como vista cuando tenga datos atrás.
+  { id: "tienda_online", path: "/tienda-online", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EcommerceStorePage")), module: "ecommerce", aliases: [{ path: "/ia-commerce", redirectTo: "/tienda-online" }], status: "canonical", nav: { label: "Tienda online", icon: ShoppingBag, group: "diario", keywords: ["ecommerce", "web", "vitrina", "storefront", "diseño tienda", "commerce"] } },
   { id: "pedidos_online", path: "/pedidos-online", roles: AMBOS, component: lazy(() => import("@/pages/StoreOrdersPage")), module: "ecommerce", aliases: [{ path: "/tienda-online/pedidos", redirectTo: "/pedidos-online" }], status: "canonical", nav: { label: "Pedidos", icon: ShoppingCart, group: "diario", keywords: ["pedidos", "pedidos online", "ecommerce orders", "despachar", "tienda web", "checkout", "ordenes tienda", "carritos", "recuperacion", "abandono"] } },
   { id: "caja", path: "/caja", roles: AMBOS, component: lazy(() => import("@/pages/POSPage")), module: "pos", status: "canonical", surface: "immersive", nav: { label: "Vender", icon: ScanLine, group: "diario", keywords: ["pos", "caja", "mostrador", "cobrar", "ticket", "punto de venta"] } },
   { id: "ventas", path: "/ventas", roles: AMBOS, component: lazy(() => import("@/pages/SalesPage")), module: "sales", status: "canonical", nav: { label: "Ventas", icon: DollarSign, group: "diario", keywords: ["facturación", "vendido", "historial de ventas", "tickets"] } },
-  { id: "productos", path: "/productos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProductsPage")), module: "products", status: "canonical", nav: { label: "Productos", icon: Package, group: "diario", keywords: ["stock", "catálogo", "precios", "artículos", "mercadería"] } },
+  // `/pricing-dinamico` recomendaba cambios de precio desde una lista fija,
+  // sin mirar ventas, costo ni margen. El precio se fija acá.
+  { id: "productos", path: "/productos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProductsPage")), module: "products", aliases: [{ path: "/pricing-dinamico", redirectTo: "/productos" }], status: "canonical", nav: { label: "Productos", icon: Package, group: "diario", keywords: ["stock", "catálogo", "precios", "artículos", "mercadería"] } },
   {
     id: "clientes", path: "/clientes", roles: AMBOS,
     component: lazy(() => import("@/pages/CustomersPage")), module: "customers",
@@ -210,6 +215,11 @@ export const ROUTES: RouteDefinition[] = [
       { path: "/restock", redirectTo: "/planificacion?vista=reposicion" },
       { path: "/forecast-inventario", redirectTo: "/planificacion?vista=forecast" },
       { path: "/inventario-inteligente", redirectTo: "/planificacion?vista=analisis" },
+      // 2026-10-09, misma consolidación: `/ia-business` («IA Inventario»)
+      // prometía predicción de stock, forecast de demanda y rotación —esto
+      // mismo— pero renderizaba una lista fija que hablaba de «producto X»,
+      // con cero accesos a datos. La versión real vive acá.
+      { path: "/ia-business", redirectTo: "/planificacion?vista=forecast" },
     ],
     status: "canonical",
     nav: { label: "Planificación", icon: RefreshCw, group: "business", keywords: ["restock", "qué reponer", "sugerencias de compra", "forecast", "cuánto voy a necesitar", "quiebre de stock", "abc", "rotación", "optimizar stock"] },
@@ -286,9 +296,6 @@ export const ROUTES: RouteDefinition[] = [
     status: "canonical",
     nav: { label: "Inteligencia", icon: Sparkles, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis", "chat", "preguntar", "copiloto", "asistente"] },
   },
-  { id: "ia_commerce", path: "/ia-commerce", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CommerceAIPage")), module: "marketing", status: "canonical", nav: { label: "IA Tienda", icon: Sparkles, group: "commerce", keywords: ["pricing", "timing", "producto", "stock", "competencia", "optimizacion"] } },
-  { id: "ia_business", path: "/ia-business", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BusinessAIPage")), module: "purchases", status: "canonical", nav: { label: "IA Inventario", icon: Sparkles, group: "business", keywords: ["stock", "reposicion", "forecast", "rotacion", "proveedores", "transferencia"] } },
-  { id: "pricing_dinamico", path: "/pricing-dinamico", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DynamicPricingPage")), module: "marketing", status: "canonical", nav: { label: "Pricing Dinámico", icon: DollarSign, group: "commerce", keywords: ["precios", "dynamic pricing", "optimizacion", "revenue", "margen"] } },
   { id: "alertas", path: "/alertas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartAlertsPage")), module: null, openReason: "Avisos derivados de otros modulos: ocultarlos dejaria al usuario sin enterarse de lo que si puede ver.", aliases: [{ path: "/alertas-inteligentes", redirectTo: "/alertas" }], status: "canonical", nav: { label: "Alertas", icon: AlertTriangle, group: "sistema", keywords: ["avisos", "notificaciones", "reglas"] } },
   { id: "soporte", path: "/soporte", roles: AMBOS, component: lazy(() => import("@/pages/SupportPage")), module: "support", status: "canonical", nav: { label: "Soporte", icon: Headphones, group: "sistema", keywords: ["ayuda", "chat", "contactar", "ticket", "problema", "asistencia"] } },
   { id: "integraciones", path: "/integraciones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/IntegrationsPage")), module: "settings", aliases: [{ path: "/api-keys", redirectTo: "/integraciones?tab=apikeys" }, { path: "/webhooks", redirectTo: "/integraciones?tab=webhooks" }], status: "canonical", nav: { label: "Integraciones", icon: Plug, group: "sistema", keywords: ["api", "mercadolibre", "mercadopago", "conectar", "webhooks", "envios", "andreani", "correo", "mercado"] } },
