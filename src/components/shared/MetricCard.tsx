@@ -62,7 +62,7 @@ export default function MetricCard({
               </span>
             )}
           </div>
-          <p className={cn("workspace-metric-card__value mt-2 truncate font-display text-[1.5rem] font-bold leading-none tracking-[-0.03em]", colors.value)}>
+          <p className={cn("workspace-metric-card__value mt-2 truncate font-display text-[1.5rem] font-bold leading-none tracking-[-0.013em]", colors.value)}>
             {value}
           </p>
           {sub && <p className="mt-2 truncate text-[11px] leading-snug text-muted-foreground/75">{sub}</p>}

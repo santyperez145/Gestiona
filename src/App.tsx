@@ -71,6 +71,8 @@ const PlatformAnnouncementsPage = lazy(() => import("@/pages/PlatformAnnouncemen
 const PlatformMessagingPage = lazy(() => import("@/pages/PlatformMessagingPage"));
 const PlatformSecurityPage = lazy(() => import("@/pages/PlatformSecurityPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
+// Galería del sistema visual: sólo en desarrollo, nunca en el bundle de producción.
+const DesignShowcasePage = import.meta.env.DEV ? lazy(() => import("@/pages/DesignShowcasePage")) : () => null;
 
 // ── Page-level loading fallback ─────────────────────────────────────────────
 function PageLoader() {
@@ -395,6 +397,7 @@ function ApplicationRoutes() {
       {/* `/login` no sale del manifest: AuthPage no es lazy —es la
           primera pantalla y cargarla en dos pasos se ve peor. */}
       <Route path="/login" element={<AuthPage />} />
+      {import.meta.env.DEV && <Route path="/__diseno" element={<DesignShowcasePage />} />}
       {publicPages().map(r => (
         <Route key={r.id} path={r.path} element={<r.component />} />
       ))}

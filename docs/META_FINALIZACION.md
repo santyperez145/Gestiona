@@ -1,6 +1,6 @@
 # Meta de finalización
 
-**Estado:** vigente, 2026-10-09. **Owner:** Producto / CTO.
+**Estado:** vigente, actualizado 2026-10-10. **Owner:** Producto / CTO.
 Propósito: convertir el plan estratégico del 2026-10-09 en un backlog verificable;
 no repite estado ni evidencias, que viven en el [roadmap](../ROADMAP.md) y en cada contrato.
 
@@ -49,6 +49,23 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Catálogo según el rubro: reglas de categorías por rubro (ferretería, 23 categorías), clasificación automática en cada alta e importación, «Ordenar categorías» con vista previa y deshacer, ficha sin género ni ml en rubros que no los usan, pistas de importación sin falsos positivos y borrado masivo por lotes.
 
 - [x] Rendimiento de base y app: realtime por Broadcast (sin lectura del WAL), cron sólo con trabajo pendiente, índices en todas las FK a products y catálogo con caché local incremental (medido 2026-10-10: 8,7 MB por apertura con 7.378 productos).
+
+- [x] Cara nueva, primera vuelta (2026-10-10): tipografía Plus Jakarta Sans + Inter, grises neutros en lugar de azul marino, tarjetas blancas planas, radios más suaves, espaciado de títulos ajustado; etiqueta «secondary» legible (usaba el color de fondo como texto); menú con el nombre del comercio primero y grupos en castellano llano; barra superior con una sola ruta legible.
+- [x] Galería visual de desarrollo `/__diseno` (sólo `import.meta.env.DEV`; `?shell=1` la dibuja dentro del marco real con el menú completo) para revisar el diseño sin sesión.
+
+**Qué sigue — retomar acá (2026-10-10)**
+
+Pedido del dueño: «cambiar la cara» también en lo funcional y en la organización, y terminar todo. Orden sugerido:
+
+1. **Reimportar el catálogo de Ferreteria Famatina** (los productos se borraron el 2026-10-10 a pedido; copia en `public.zz_backup_productos_famatina`, borrarla cuando la reimportación esté confirmada). La importación ya categoriza sola por rubro; revisar el resultado con «Ordenar categorías».
+2. **Organización funcional del menú:** hoy hay ~70 destinos. Agrupar por tarea del comercio (Vender · Catálogo y stock · Clientes · Cobros y facturación · Tienda online · Marketing · Reportes · Configuración), esconder lo avanzado detrás de «Más herramientas» según el rubro y el perfil (emprendedor / establecido / avanzado), y unificar pantallas duplicadas (Ventas vs Movimientos, Reportes vs Analytics vs Inteligencia).
+3. **Inicio (Dashboard) por tarea:** qué vender hoy, qué reponer, qué cobrar, qué facturar; menos widgets decorativos. Revisarlo en `/__diseno?shell=1` o con sesión real.
+4. **Productos y caja con la cara nueva:** tabla densa, filtros como chips, acciones masivas visibles; caja a pantalla completa con teclado (F1–F10) como protagonista.
+5. **Revisar pantalla por pantalla con sesión real**: el dueño inicia sesión en el navegador integrado y se recorren las páginas principales en claro y oscuro.
+6. Pendientes de la meta de esta lista (alta fiscal guiada del emisor, WSMTXCA/WSFEX/FCE, controlador fiscal con el equipo real, estudio de test.scadi.com.ar con sesión del dueño, B2B, OMS, Studio, Growth, Profit, Developer Platform).
+7. Acciones que sólo puede hacer el dueño: asociar el certificado de la plataforma a `ws_sr_constancia_inscripcion` en ARCA (padrón), crear `VERCEL_TOKEN`, cargar secretos de Stripe / WhatsApp / Mercado Pago plataforma / Resend.
+
+Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast desde la base (topics `org:<id>`, `user:<id>`, `plataforma:soporte`; ver `src/lib/orgRealtime.ts`), catálogo con caché local incremental (`src/lib/catalogCache.ts`), cron condicionados a trabajo pendiente, índices en todas las FK hacia `products`, categorías por rubro como datos (`rubro_reglas_categoria`).
 
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.

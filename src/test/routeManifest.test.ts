@@ -49,7 +49,8 @@ describe("el router sale del manifest, no de una lista a mano", () => {
     // `/tienda/:slug/*`, `/platform/*`, `/finance/*`… El manifest todavía no
     // modela parámetros, y fingir que sí sería peor que dejarlas afuera.
     const sospechosas = rutasLiteralesDelRouter()
-      .filter(p => !p.includes(":") && !p.includes("*") && p !== "/login");
+      // `/__diseno` es la galería visual: sólo existe con import.meta.env.DEV.
+      .filter(p => !p.includes(":") && !p.includes("*") && p !== "/login" && p !== "/__diseno");
     expect(sospechosas).toEqual([]);
   });
 

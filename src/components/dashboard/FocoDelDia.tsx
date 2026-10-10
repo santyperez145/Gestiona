@@ -329,7 +329,7 @@ export default function FocoDelDia(p: Props) {
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary font-display">
           Ventas del mes
         </p>
-        <p className="mt-2 text-3xl font-display font-bold tracking-[-0.03em] tabular-nums">{formatARS(p.ventasMes)}</p>
+        <p className="mt-2 text-3xl font-display font-bold tracking-[-0.013em] tabular-nums">{formatARS(p.ventasMes)}</p>
 
         <p className={`text-sm mt-1.5 flex items-center gap-1 ${colorVariacion}`}>
           <FlechaVariacion className="w-4 h-4" />

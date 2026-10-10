@@ -53,12 +53,12 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   { id: "diario",    label: "",            hint: "Lo de todos los días — Inicio, Tienda y Pedidos online primero" },
-  { id: "commerce",  label: "Commerce — Adquisición", hint: "Tienda online, pedidos, catálogo y conversión" },
-  { id: "business",  label: "Business — Operación", hint: "POS, inventario, clientes y compras" },
-  { id: "marketing", label: "Marketing",    hint: "Campañas, email y growth" },
-  { id: "finance",   label: "Cobros y fiscal", hint: "Cuentas por cobrar, facturación e impuestos del comercio" },
-  { id: "reportes",  label: "Reportes",    hint: "Analytics y reportes del negocio" },
-  { id: "sistema",   label: "Sistema",     hint: "Configuración, equipo e integraciones" },
+  { id: "commerce",  label: "Venta online", hint: "Tienda online, pedidos, envíos y cobros online" },
+  { id: "business",  label: "Operación y stock", hint: "Caja, inventario, compras y proveedores" },
+  { id: "marketing", label: "Marketing",    hint: "Campañas, email, WhatsApp y fidelización" },
+  { id: "finance",   label: "Cobros y facturación", hint: "Cuentas por cobrar, facturas ARCA e impuestos" },
+  { id: "reportes",  label: "Reportes",    hint: "Ventas, márgenes y estadísticas del negocio" },
+  { id: "sistema",   label: "Configuración", hint: "Ajustes, equipo, integraciones y ayuda" },
 ];
 
 const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {

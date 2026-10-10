@@ -166,13 +166,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // sin esto los toggles de la mayoría de los módulos no hacían nada.
   const { forModule, error: permissionError } = usePermissionsResolver();
   const refreshPermissions = useRefreshPermissions();
+  // Sólo en desarrollo, la galería /__diseno muestra el menú completo sin sesión.
+  const vistaPreviaDiseno = import.meta.env.DEV && pathname === '/__diseno';
   const navItems = useMemo(() => {
     return allNavItems.filter(item => {
+      if (vistaPreviaDiseno) return true;
       if (!item.roles.includes(role)) return false;
       const mod = moduleForRoute(item.to, item.section);
       return !mod || forModule(mod).canView;
     });
-  }, [role, forModule]);
+  }, [role, forModule, vistaPreviaDiseno]);
 
   // Pages with "Nuevo" guide tips that haven't been seen yet
   const unseenNewPages = useMemo(() => {
@@ -218,7 +221,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     keywords: currentRoute.nav?.keywords,
   } : null, [currentRoute]);
   const currentPageLabel = currentNavItem?.label ?? (pathname === '/' ? 'Resumen' : 'Nerqia');
-  const currentSectionLabel = currentNavItem ? SECTION_LABELS[currentNavItem.section] : 'Operacion';
+  const currentSectionLabel = currentNavItem ? SECTION_LABELS[currentNavItem.section] : '';
 
   const roleLabel = role === 'admin' ? 'Administrador' : role === 'vendedor' ? 'Vendedor' : 'Viewer';
   const roleBadgeClass = role === 'admin'
@@ -269,16 +272,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <BrandLogo compact decorative eager markClassName="h-8 w-8" />
             {!effectiveCollapsed && (
               <div className="min-w-0 animate-fade-in">
-                <p className="text-[14px] font-display font-bold text-foreground truncate tracking-tight leading-none">
-                  Nerqia
+                {/* El comercio primero: es su negocio, Nerqia es la herramienta. */}
+                <p className="text-[14px] font-display font-bold text-foreground truncate leading-tight" title={config.businessName}>
+                  {config.businessName}
                 </p>
-                <div className="mt-1.5 flex min-w-0 flex-col gap-0.5">
-                  <span className="truncate text-[9px] uppercase tracking-[0.14em] text-primary font-semibold">Commerce OS</span>
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <span className="truncate text-[10px] text-muted-foreground/80" title={config.businessName}>{config.businessName}</span>
-                    <span className={`inline-flex shrink-0 items-center rounded-[3px] border px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-wide ${roleBadgeClass}`}>{roleLabel}</span>
-                  </div>
-                </div>
+                <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="truncate">Nerqia</span>
+                  <span aria-hidden>·</span>
+                  <span className={`inline-flex shrink-0 items-center rounded-full border px-1.5 text-[10px] font-medium ${roleBadgeClass}`}>{roleLabel}</span>
+                </p>
               </div>
             )}
           </div>
@@ -401,8 +403,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
           {!effectiveCollapsed && (
             <div className="px-1 py-1">
-              <p className="text-[11px] text-muted-foreground/55 truncate font-mono">{user?.email}</p>
-              <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest font-mono">Commerce OS</p>
+              <p className="text-[11px] text-muted-foreground/70 truncate">{user?.email}</p>
             </div>
           )}
           <button
@@ -426,18 +427,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className={`workspace-main flex-1 w-full bg-background transition-all duration-300 ${immersiveRoute ? 'flex h-dvh min-h-0 flex-col overflow-hidden' : 'min-h-screen overflow-auto'} ${effectiveCollapsed ? 'md:ml-[78px]' : 'md:ml-[248px]'} ${collapsed ? 'lg:ml-[78px]' : 'lg:ml-[248px]'}`}>
         {/* Desktop command bar: a stable orientation point across every module. */}
         {!immersiveRoute && <header className="workspace-topbar hidden md:flex sticky top-0 z-30 h-14 items-center gap-4 border-b border-border/70 px-6 topbar-surface">
-          <div className="workspace-topbar__context min-w-0 flex-1">
-            <div className="workspace-topbar__workspace flex items-center gap-2">
-              <span className="workspace-topbar__workspace-dot" aria-hidden="true" />
-              <span className="workspace-topbar__workspace-label">Tienda y operación</span>
-              <span className="workspace-topbar__workspace-name truncate">{config.businessName}</span>
+          <nav className="workspace-topbar__context min-w-0 flex-1" aria-label="Ubicación">
+            <div className="workspace-topbar__breadcrumb flex items-center gap-1.5 text-[13px]">
+              {currentSectionLabel && <>
+                <span className="text-muted-foreground">{currentSectionLabel}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" aria-hidden />
+              </>}
+              <span className="truncate font-medium text-foreground">{currentPageLabel}</span>
             </div>
-            <div className="workspace-topbar__breadcrumb flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/65">
-              <span>{currentSectionLabel}</span>
-              <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
-              <span className="truncate text-foreground/85">{currentPageLabel}</span>
-            </div>
-          </div>
+          </nav>
 
           <button
             type="button"

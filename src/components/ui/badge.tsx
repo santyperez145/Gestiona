@@ -15,7 +15,7 @@ interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const badgeVariants = {
   default: "border bg-primary/15 text-primary",
-  secondary: "border bg-secondary/15 text-secondary",
+  secondary: "border bg-secondary text-secondary-foreground",
   destructive: "border bg-destructive/15 text-destructive",
   outline: "border border-border/60 text-muted-foreground bg-transparent",
   success: "border bg-success/15 text-success",
