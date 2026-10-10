@@ -2,7 +2,7 @@
 
 **Estado:** contrato vigente, verificado internamente. **Corte:** 2026-10-08.
 **Owner:** Commerce / Ingeniería. La certificación comercial vive en
-[C22.2](C222_CERTIFICAR_MIGRACION.md), no en los fixtures.
+C22.2, no en los fixtures.
 
 ## Flujo y límites
 

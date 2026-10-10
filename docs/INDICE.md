@@ -31,8 +31,6 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [Margen](MARGIN_FACTS.md): hechos, confianza y acciones.
 - [Nerqia Intelligence](NERQIA_INTELLIGENCE.md): control plane, autonomía
   gobernada y enriquecimiento de catálogo.
-- [Auditoría funcional](AUDITORIA_FUNCIONAL.md): matriz vigente por ruta,
-  hallazgos productivos y límites de certificación.
 
 ## Decisiones
 
@@ -65,15 +63,8 @@ los reemplaza con otro ADR.
 - [POS operativo](POS_OPERACION.md): piloto de ferretería, cobro verificable,
   ticket guardado, seguridad y gates de hardware/transferencias.
 - [Facturación](FACTURACION.md): renglones, IVA, NC, impresión y autoridad ARCA.
-- [Mercado Pago diferencial](MP_DIFERENCIAL.md): estrategia de fees, split y conciliación.
 - [Mercado Libre](MERCADOLIBRE.md): canal y sincronización.
 - [Google OAuth](GOOGLE_OAUTH_SETUP.md): configuración de acceso.
-- [Estados de checkout](C20_ESTADOS_CHECKOUT.md): matriz de estados y recuperación.
-- [Certificación de migración](C222_CERTIFICAR_MIGRACION.md): protocolo de corte.
-- [Primer documento Finance](F5_1_PRIMER_DOCUMENTO_FINANCE_REAL.md): protocolo de certificación, no evidencia de adopción.
-- [Margen explicado](P3_MARGEN_EXPLICADO.md): desglose canónico por canal.
-- [Contratos de acción](A1_CONTRATOS_ACCION.md): transiciones server-side.
-- [Contratos de acción por estado](A1_CONTRATOS_ACCION_ESTADO.md): máquinas de estado.
 
 ## Calidad, soporte y recuperación
 

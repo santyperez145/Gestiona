@@ -85,7 +85,6 @@ Los cortes de septiembre comprobaron 93 contextos de ruta y 70 escenarios
 públicos responsive; corrigieron títulos, `NaNd`, ceros transitorios y onboarding.
 Proveedores/Pagos tienen tabla, filtros y recuperación; pagos simples/masivos
 conservan intento, progreso y mensajes sanitizados sin duplicar ante retries.
-Alcance y gates en [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md).
 
 Pedidos conserva su cola; Tienda sólo publicación, catálogo visible, contenido,
 diseño, pagos/envíos. El gate no reconstruye páginas duplicadas retiradas.

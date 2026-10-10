@@ -231,7 +231,7 @@ export del 2026-09-25 prueban contratos con rollback, no operación externa.
 ## Próximos cierres
 
 1. Certificar original privado → Edge/proveedor → revisión → efecto aprobado;
-   protocolo [F5.1](F5_1_PRIMER_DOCUMENTO_FINANCE_REAL.md), sin hardcodear confianza.
+   protocolo F5.1, sin hardcodear confianza.
 2. Configurar política/presupuesto del negocio y validar solicitud real.
 3. Certificar reembolso/anticipo con evidencia bancaria y rendición/reversa.
 4. Extracto/export reales; después feed de tarjeta externa y controles preventivos.

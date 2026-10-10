@@ -82,7 +82,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 | Dominio | Base implementada / comprobación interna | Próximo gate |
 |---|---|---|
 | Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; búsqueda unificada exacta/aproximada, filtros/teclado y links nombrados. PR19 `6644f613` READY, `lataffa` trae 27 productos; Enter repetido conserva texto. Console 2026-10-08 confirma ambas homes, sitemap Correcto y 7 clics/24 impresiones (02/09–05/10); www es alternativa canónica, no otra ficha. [UI](docs/INTERFAZ.md). | Cobertura restante, pago/fulfillment y conversión de campo; [evidencia SEO fechada](docs/SEO_INDEXACION.md). |
-| Migración | Worker Excel/CSV hasta 50.000 filas; detección y columna→destino visible/editable con ejemplos, omisión, conflictos, moneda y confirmación, incluyendo Shopify/Tiendanube sin perder variantes; sesión reanudable, staging/Kardex compartidos. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), [C22.2](docs/C222_CERTIFICAR_MIGRACION.md). |
+| Migración | Worker Excel/CSV hasta 50.000 filas; detección y columna→destino visible/editable con ejemplos, omisión, conflictos, moneda y confirmación, incluyendo Shopify/Tiendanube sin perder variantes; sesión reanudable, staging/Kardex compartidos. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), C22.2. |
 | Planes | Inicial gratuito persistente, Commerce ilimitado en planes estándar, ahorro anual real y cupo IA; catálogo/Platform/Mi plan conectados. | Cerrar las brechas por capacidad del [benchmark vigente](docs/PLANES.md), sin vender servicios ni paridad no certificados. |
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |
 | Fiscal | Factura/NC/POS con renglones, IVA, reserva/CAE y correo persistido. | ND asociada a factura y saldo/IVA; ARCA A/B/C/NC/ND, impresión y recepción reales; [contrato](docs/FACTURACION.md). |
@@ -111,7 +111,7 @@ Consulta agregada a la base vinculada el 2026-10-01:
 documentos Finance = 0, políticas = 0, lotes contables = 0. Reproducir con
 `supabase/verificaciones/20261001_finance_product_evidence.sql`.
 Esto no determina si un secreto/proveedor está configurado. Sí impide declarar
-adopción a partir de fixtures. El [protocolo F5.1](docs/F5_1_PRIMER_DOCUMENTO_FINANCE_REAL.md)
+adopción a partir de fixtures. El protocolo F5.1
 sigue abierto como certificación operacional.
 
 ### Calidad y release
