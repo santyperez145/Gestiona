@@ -79,14 +79,14 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
   };
 
   const monto = (n: number | null, moneda: string) =>
-    n == null ? "—" : moneda === "USD" ? formatUSD(n) : formatARS(n);
+    n == null ? "—" : moneda === "USD" ? `US${formatUSD(n)}` : formatARS(n);
 
   return (
     <div className="space-y-4">
       <div>
         <label className="text-sm text-muted-foreground">Qué cambia</label>
         <Select value={que} onValueChange={cambiar((v: string) => setQue(v as QueAjustar))}>
-          <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="Qué cambia" className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
             {QUE_AJUSTAR.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
           </SelectContent>
@@ -97,7 +97,7 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
         <div>
           <label className="text-sm text-muted-foreground">Proveedor</label>
           <Select value={proveedor} onValueChange={cambiar(setProveedor)}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Proveedor" className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={TODAS}>Todos</SelectItem>
               {proveedores.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
@@ -107,7 +107,7 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
         <div>
           <label className="text-sm text-muted-foreground">Marca</label>
           <Select value={marca} onValueChange={cambiar(setMarca)}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Marca" className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={TODAS}>Todas</SelectItem>
               {marcas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
@@ -117,7 +117,7 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
         <div>
           <label className="text-sm text-muted-foreground">Categoría</label>
           <Select value={categoria} onValueChange={cambiar(setCategoria)}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Categoría" className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={TODAS}>Todas</SelectItem>
               {categorias.map(c => <SelectItem key={c.slug} value={c.slug}>{c.label}</SelectItem>)}
@@ -129,12 +129,12 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="text-sm text-muted-foreground">Porcentaje (+ sube, − baja)</label>
-          <Input inputMode="decimal" value={porcentaje} onChange={e => cambiar(setPorcentaje)(e.target.value)} placeholder="Ej: 8 o -5" className="bg-muted border-border" />
+          <Input aria-label="Porcentaje" inputMode="decimal" value={porcentaje} onChange={e => cambiar(setPorcentaje)(e.target.value)} placeholder="Ej: 8 o -5" className="bg-muted border-border" />
         </div>
         <div>
           <label className="text-sm text-muted-foreground">Redondear precios a</label>
           <Select value={redondeo} onValueChange={cambiar(setRedondeo)}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Redondear precios a" className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
               {REDONDEOS.map(r => <SelectItem key={r.value} value={String(r.value)}>{r.label}</SelectItem>)}
             </SelectContent>
@@ -145,16 +145,17 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
       {vista && (
         <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
           <p className="font-semibold">
-            {vista.afectados === 0 ? "Ningún producto coincide con ese filtro." : `Cambian ${plural(vista.afectados, "producto")}.`}
+            {vista.afectados === 0 ? "Ningún producto coincide con ese filtro." : `Cambian ${plural(vista.afectados, "producto")}.${vista.afectados > vista.muestra.length ? ` Primeros ${vista.muestra.length}:` : ""}`}
           </p>
           {vista.muestra.length > 0 && (
             <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
               {vista.muestra.map(m => (
-                <li key={m.id} className="flex justify-between gap-3">
-                  <span className="truncate">{m.nombre}</span>
-                  <span className="shrink-0 tabular-nums">
-                    {que !== "costo" && <>precio {formatARS(m.precio_antes ?? 0)} → <span className="text-foreground">{formatARS(m.precio_despues ?? 0)}</span></>}
-                    {que !== "precio" && <> · costo {monto(m.costo_antes, m.moneda)} → <span className="text-foreground">{monto(m.costo_despues, m.moneda)}</span></>}
+                <li key={m.id} className="border-t border-border/50 pt-1 first:border-0 first:pt-0">
+                  <span className="block truncate text-foreground" title={m.nombre}>{m.nombre}</span>
+                  <span className="block tabular-nums">
+                    {que !== "costo" && <>Precio {formatARS(m.precio_antes ?? 0)} → <span className="text-foreground">{formatARS(m.precio_despues ?? 0)}</span></>}
+                    {que === "costo_y_precio" && " · "}
+                    {que !== "precio" && <>Costo {monto(m.costo_antes, m.moneda)} → <span className="text-foreground">{monto(m.costo_despues, m.moneda)}</span></>}
                   </span>
                 </li>
               ))}
