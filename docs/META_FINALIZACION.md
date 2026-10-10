@@ -48,6 +48,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 
 - [x] Catálogo según el rubro: reglas de categorías por rubro (ferretería, 23 categorías), clasificación automática en cada alta e importación, «Ordenar categorías» con vista previa y deshacer, ficha sin género ni ml en rubros que no los usan, pistas de importación sin falsos positivos y borrado masivo por lotes.
 
+- [x] Rendimiento de base y app: realtime por Broadcast (sin lectura del WAL), cron sólo con trabajo pendiente, índices en todas las FK a products y catálogo con caché local incremental (medido 2026-10-10: 8,7 MB por apertura con 7.378 productos).
+
 **2. Abrir mi tienda en minutos (P1)**
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.
 - [ ] AI Store Architect: propuesta revisable que produce configuración versionada.

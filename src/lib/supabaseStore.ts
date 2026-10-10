@@ -6,6 +6,7 @@ import { nombreDeCategoria } from './storeCategories';
 import { selectAllRows } from '@/lib/selectAllRows';
 import { isMissingColumn, type PgError } from '@/lib/publicDataSource';
 import { cantidadStockValida } from '@/lib/unidadMedida';
+import { almacenIndexedDb, sincronizarCatalogo } from '@/lib/catalogCache';
 type SettingsUpdate = Database['public']['Tables']['settings']['Update'];
 
 /** Resolve an explicit tenant first; legacy callers may still use the active context. */
@@ -84,17 +85,41 @@ export async function recordFinancialMovement(params: {
 }
 
 // ========= PRODUCTS =========
-export async function getProductsDB(userId: string, organizationId?: string) {
-  const orgId = await orgIdFor(userId, organizationId);
-  // Keyset por rangos de UUID en paralelo: sin tope de 1.000 ni corrimientos.
-  const products = await selectAllRows<Database['public']['Tables']['products']['Row']>(({ desde, hasta, despues, limite }) => {
+type ProductRow = Database['public']['Tables']['products']['Row'];
+
+/** Catálogo completo de una organización: keyset por rangos de UUID, sin tope de 1.000. */
+function leerCatalogoCompleto(orgId: string, cambiosDesde?: string) {
+  return selectAllRows<ProductRow>(({ desde, hasta, despues, limite }) => {
     let query = supabase.from('products').select('*').eq('org_id', orgId).gte('id', desde).order('id').limit(limite);
+    if (cambiosDesde) query = query.gte('updated_at', cambiosDesde);
     if (hasta) query = query.lt('id', hasta);
     if (despues) query = query.gt('id', despues);
     return query;
   });
+}
+
+/**
+ * Productos de la organización, con caché local e incremental (ver
+ * catalogCache.ts): después de la primera carga sólo baja lo que cambió.
+ */
+export async function getProductsDB(userId: string, organizationId?: string) {
+  const orgId = await orgIdFor(userId, organizationId);
+  const { filas } = await sincronizarCatalogo<ProductRow>(`productos:${orgId}:${userId}`, {
+    leerTodo: () => leerCatalogoCompleto(orgId),
+    leerCambiosDesde: desde => leerCatalogoCompleto(orgId, desde),
+    contar: async () => {
+      const { count, error } = await supabase.from('products').select('id', { count: 'exact', head: true }).eq('org_id', orgId);
+      return error ? null : count ?? null;
+    },
+    leerIds: async () => (await selectAllRows<{ id: string }>(({ desde, hasta, despues, limite }) => {
+      let query = supabase.from('products').select('id').eq('org_id', orgId).gte('id', desde).order('id').limit(limite);
+      if (hasta) query = query.lt('id', hasta);
+      if (despues) query = query.gt('id', despues);
+      return query;
+    })).map(row => row.id),
+  }, almacenIndexedDb<ProductRow>());
   const collator = new Intl.Collator('es');
-  return products.sort((a, b) => collator.compare(a.name, b.name));
+  return [...filas].sort((a, b) => collator.compare(a.name, b.name));
 }
 
 /**
