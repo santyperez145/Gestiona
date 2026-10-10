@@ -38,6 +38,20 @@ const DEPLOY = join(process.cwd(), "scripts", "deploy-functions.ps1");
  * protege. «Es pública» no es un motivo: es la descripción del riesgo.
  */
 const PUBLICAS: Record<string, string> = {
+  // Las tres siguientes se publican sin JWT de gateway en producción (medido
+  // 2026-10-10 con `supabase functions list`) y no son tareas de cron.
+  "mp-installments":
+    "Storefront público: el comprador anónimo consulta las cuotas de la ficha y " +
+    "el checkout. Resuelve la organización por el slug, nunca devuelve la clave " +
+    "de MercadoPago y no escribe nada.",
+  "afip-authorize":
+    "Dos callers: el outbox fiscal presenta el secreto de cron (esLlamadaDeCron) " +
+    "y el panel manda la sesión, que la función valida con auth.getUser, " +
+    "membresía y has_permission(invoices, edit) antes de hablar con ARCA.",
+  "trusted-device":
+    "Transporte backend a backend: rechaza cualquier pedido con Origin, exige el " +
+    "secreto del proxy propio (X-Nerqia-Trust-Proxy) y valida la sesión con " +
+    "auth.getUser; nunca toma claims del cuerpo.",
   "stripe-webhook":
     "Webhook de un tercero: lo llama Stripe, no el cron. Valida el secreto de " +
     "firma que Stripe manda en su propio header.",
