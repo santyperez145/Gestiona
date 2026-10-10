@@ -411,7 +411,7 @@ function CustomerFormModal({
               className="bg-muted"
             />
           </div>
-          <CustomerFiscalFields value={fiscal} onChange={setFiscal} />
+          <CustomerFiscalFields value={fiscal} onChange={setFiscal} onPersona={p => setForm(f => (f.name.trim() ? f : { ...f, name: p.nombre }))} />
           <div>
             <label htmlFor="customer-credit-limit" className="text-xs text-muted-foreground mb-1 block">Límite de fiado (ARS)</label>
             <Input

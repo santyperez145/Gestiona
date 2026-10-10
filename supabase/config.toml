@@ -90,3 +90,6 @@ verify_jwt = false
 # desplegada el 2026-10-09 porque nunca había entrado al repo.
 [functions.reconcile-store-refunds]
 verify_jwt = false
+
+[functions.arca-padron]
+verify_jwt = true

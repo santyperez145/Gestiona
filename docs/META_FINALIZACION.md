@@ -17,7 +17,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Vigencia del certificado de plataforma con aviso a 60/30/7 días y vencido en Platform.
 - [x] Observaciones de ARCA con CAE otorgado guardadas en la factura (sólo el servicio las escribe) y visibles en Facturas.
 - [x] Nota de Débito asociada a factura autorizada (A/B/C), con CbtesAsoc en WSFE.
-- [ ] Alta fiscal guiada: padrón (`ws_sr_constancia_inscripcion`), delegación paso a paso, detección de puntos CAE, autotest y factura de homologación.
+- [x] Padrón de ARCA (A5): CUIT → nombre, condición IVA y domicilio en la ficha del cliente y el alta rápida del POS (Edge `arca-padron`, certificado de la plataforma, cache 30 días, tope diario). Requiere asociar el certificado de la plataforma a `ws_sr_constancia_inscripcion` en ARCA.
+- [ ] Alta fiscal guiada del comercio: padrón del emisor, delegación paso a paso, detección de puntos CAE, autotest y factura de homologación.
 - [x] POS: "Facturar todas las ventas" por organización; un cliente con CUIT activa la factura del ticket.
 - [x] Commerce: cada pedido pagado genera su factura y se autoriza en ARCA vía outbox (`orden.pagada` → `facturar_orden_pagada` → `factura.creada` → `afip-authorize`); el lote muestra el resultado y qué hacer por pedido.
 - [ ] Asistente de renovación de certificado (generar CSR y cargar CRT guiado).

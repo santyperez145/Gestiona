@@ -134,7 +134,7 @@ export default function PosCustomerPicker({ open, orgId, userId, emisor, onClose
           <div className="space-y-1"><Label htmlFor="pos-new-customer-name" className="text-xs text-muted-foreground">Nombre *</Label><Input id="pos-new-customer-name" autoFocus value={draftName} onChange={e => setDraftName(e.target.value)} /></div>
           <div className="space-y-1"><Label htmlFor="pos-new-customer-phone" className="text-xs text-muted-foreground">Teléfono</Label><Input id="pos-new-customer-phone" value={draftPhone} onChange={e => setDraftPhone(e.target.value)} /></div>
         </div>
-        <CustomerFiscalFields value={fiscal} onChange={setFiscal} idPrefix="pos-new-customer" />
+        <CustomerFiscalFields value={fiscal} onChange={setFiscal} idPrefix="pos-new-customer" onPersona={p => setDraftName(n => n.trim() ? n : p.nombre)} />
         <p className="text-xs text-muted-foreground">Comprobante que corresponde: <strong>Factura {letraParaCliente(emisor, fiscal.vat_condition)}</strong></p>
       </div>}
       <DialogFooter className="gap-2">
