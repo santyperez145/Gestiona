@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { catalogImportChunks, applyCatalogImportChunk, approveCatalogImport, getCatalogImportSession, stageCatalogImportChunk, startCatalogImport, catalogImportErrorMessage } from "@/lib/catalogImportSession";
+import { catalogImportChunks, applyCatalogImportChunk, approveCatalogImport, getCatalogImportSession, stageCatalogImportChunk, startCatalogImport, catalogImportErrorMessage, isTransientCatalogImportError } from "@/lib/catalogImportSession";
 import { productMatchesCode } from "@/lib/productCodes";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
@@ -41,6 +41,33 @@ describe("sesión de importación", () => {
     await expect(getCatalogImportSession("session")).rejects.toBe(error);
     await expect(approveCatalogImport("session", true)).rejects.toBe(error);
     await expect(applyCatalogImportChunk("session", 250)).rejects.toBe(error);
+  });
+  it("reintenta una vez un lote cortado por tiempo o por la red, y nada más", async () => {
+    const timeout = { code: "57014", message: "canceling statement due to statement timeout" };
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: timeout }).mockResolvedValueOnce({ data: { ok: true, id: "session", applied: 500 }, error: null });
+    await expect(applyCatalogImportChunk("session", 250, 0)).resolves.toMatchObject({ applied: 500 });
+    expect(mocks.rpc).toHaveBeenCalledTimes(2);
+    expect(mocks.rpc).toHaveBeenLastCalledWith("apply_catalog_import_chunk", { p_session_id: "session", p_position: 250 });
+
+    mocks.rpc.mockReset();
+    mocks.rpc.mockResolvedValue({ data: null, error: timeout });
+    await expect(applyCatalogImportChunk("session", 250, 0)).rejects.toBe(timeout);
+    expect(mocks.rpc).toHaveBeenCalledTimes(2);
+
+    mocks.rpc.mockReset();
+    const datos = { message: "No se pudo aplicar el lote que empieza en la fila 5501; los lotes anteriores se conservan. Motivo: x" };
+    mocks.rpc.mockResolvedValue({ data: null, error: datos });
+    await expect(applyCatalogImportChunk("session", 5500, 0)).rejects.toBe(datos);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+  });
+  it("el motivo real de un lote que no se aplica llega al comercio", () => {
+    const motivo = "No se pudo aplicar el lote que empieza en la fila 5501; los lotes anteriores se conservan. Motivo: El catálogo cambió desde la validación: «TORNILLO» ya existe; revisá nuevamente el archivo";
+    expect(catalogImportErrorMessage({ message: motivo }, "Reintentá")).toBe(motivo);
+    const tecnico = "No se pudo aplicar el lote que empieza en la fila 1; los lotes anteriores se conservan. Motivo: duplicate key value violates unique constraint \"products_pkey\" 2b9c1f0e-1111-2222-3333-444455556666";
+    expect(catalogImportErrorMessage({ message: tecnico }, "Reintentá")).toBe("No se pudo aplicar el lote que empieza en la fila 1; los lotes anteriores se conservan. Motivo: un error interno al guardar. Reintentá; si se repite, escribinos desde Ayuda.");
+    expect(isTransientCatalogImportError(new TypeError("Failed to fetch"))).toBe(true);
+    expect(isTransientCatalogImportError({ message: motivo })).toBe(false);
+    expect(isTransientCatalogImportError(null)).toBe(false);
   });
 });
 describe("códigos del catálogo", () => {

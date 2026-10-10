@@ -6,8 +6,15 @@ export { catalogImportChunks } from "@/lib/productImport";
 
 export function catalogImportErrorMessage(cause: unknown, fallback: string): string {
   const message = cause && typeof cause === "object" && "message" in cause && typeof cause.message === "string" ? cause.message : "";
-  const domainMessage = /^(El catálogo supera el límite|El archivo (cambió|debe|supera)|El máximo por archivo|La hoja (seleccionada|supera)|La lectura se interrumpió|Las exportaciones de plataforma|No encontramos una fila|No tenés (permiso|acceso)|No pudimos (leer|recuperar|aplicar)|La importación (necesita|no terminó)|El servidor no confirmó|Seleccioná el mismo archivo|Un producto supera|Volvé a seleccionar)/;
-  return domainMessage.test(message) ? message : fallback;
+  const domainMessage = /^(No se pudo aplicar el lote que empieza en la fila \d+|El catálogo supera el límite|El archivo (cambió|debe|supera)|El máximo por archivo|La hoja (seleccionada|supera)|La lectura se interrumpió|Las exportaciones de plataforma|No encontramos una fila|No tenés (permiso|acceso)|No pudimos (leer|recuperar|aplicar)|La importación (necesita|no terminó)|El servidor no confirmó|Seleccioná el mismo archivo|Un producto supera|Volvé a seleccionar)/;
+  if (!domainMessage.test(message)) return fallback;
+  // El motivo de un lote viene de la base: si es un error técnico (SQL,
+  // restricciones, identificadores) se cambia por uno legible.
+  const [lote, motivo] = message.split(" Motivo: ");
+  if (motivo !== undefined && /violates|constraint|relation|column|syntax|function|[0-9a-f]{8}-[0-9a-f]{4}-/i.test(motivo)) {
+    return `${lote} Motivo: un error interno al guardar. Reintentá; si se repite, escribinos desde Ayuda.`;
+  }
+  return message;
 }
 
 export type CatalogImportOptions = {
@@ -58,10 +65,30 @@ export async function approveCatalogImport(id: string, skipInvalid: boolean) {
   return data as unknown as CatalogImportSession;
 }
 
-export async function applyCatalogImportChunk(id: string, position: number) {
-  const { data, error } = await supabase.rpc("apply_catalog_import_chunk", { p_session_id: id, p_position: position });
-  if (error) throw error;
-  return data as unknown as CatalogImportSession;
+/**
+ * Un lote que se corta por tiempo (la app corta cada consulta a los 8 s) o
+ * por un corte de red momentáneo se reintenta una vez antes de mostrar error.
+ * Medido 2026-10-10 con la sesión real de Ferretería Famatina: el primer lote
+ * en una conexión fría tarda ~6 s y los siguientes 1–2 s, así que el
+ * reintento casi siempre pasa. Es seguro: cada lote es una transacción, y si
+ * el primer intento sí se guardó y sólo se perdió la respuesta, la base
+ * devuelve el estado sin volver a aplicarlo.
+ */
+export function isTransientCatalogImportError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String((error as { code?: unknown }).code ?? "") : "";
+  const message = "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  return code === "57014"
+    || /statement timeout|canceling statement|Failed to fetch|NetworkError|Load failed|network request failed/i.test(message);
+}
+
+export async function applyCatalogImportChunk(id: string, position: number, retryDelayMs = 1500) {
+  for (let attempt = 0; ; attempt++) {
+    const { data, error } = await supabase.rpc("apply_catalog_import_chunk", { p_session_id: id, p_position: position });
+    if (!error) return data as unknown as CatalogImportSession;
+    if (attempt >= 1 || !isTransientCatalogImportError(error)) throw error;
+    await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+  }
 }
 
 export async function cancelCatalogImport(id: string) {
