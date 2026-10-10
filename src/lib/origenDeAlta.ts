@@ -7,6 +7,8 @@
 // 📌 Sólo datos de marketing (código, utm, sitio de origen, página de
 // entrada). Nada personal; la base recorta y valida todo de nuevo.
 
+import { BRAND_ORIGIN } from "@/lib/brand";
+
 export const CLAVE_ORIGEN = "nerqia.origen_de_alta";
 
 export interface OrigenDeAlta {
@@ -104,4 +106,13 @@ export function describirOrigen(o: OrigenFila | undefined, nombres: Map<string, 
     case "sitio": return `Desde ${o.sitio_origen}`;
     default: return "Directo";
   }
+}
+
+/** Enlace del sello «Hecha con Nerqia»: la landing con el ref del comercio. */
+export function enlaceSelloNerqia(ref: string, origin = BRAND_ORIGIN): string {
+  const url = new URL("/", origin);
+  url.searchParams.set("ref", ref.trim().toLowerCase());
+  url.searchParams.set("utm_source", "tienda");
+  url.searchParams.set("utm_medium", "sello");
+  return url.toString();
 }

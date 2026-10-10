@@ -30,6 +30,7 @@ import {
 } from "@/lib/storeCartProvince";
 import StoreTrackingConsent from "./StoreTrackingConsent";
 import StoreNewsletter from "./StoreNewsletter";
+import SelloNerqia from "./SelloNerqia";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -550,6 +551,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </p>
           <StoreTrackingConsent enabled={trackingConfigurado} />
           <p>© {new Date().getFullYear()} {store?.name}</p>
+          <SelloNerqia slug={store?.slug} />
         </div>
       </footer>
 

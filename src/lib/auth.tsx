@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { almacenLocal, origenParaAlta } from '@/lib/origenDeAlta';
 import {
   authRedirectTo,
   completeNativeAuthCallback,
@@ -101,7 +100,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, name?: string, accountType?: 'creator' | 'store_customer') => {
-    const origen = accountType ? null : origenParaAlta(almacenLocal());
+    // Se carga en diferido: `auth` va en la carga inicial de la landing.
+    const origen = accountType ? null : await import('@/lib/origenDeAlta')
+      .then(({ almacenLocal, origenParaAlta }) => origenParaAlta(almacenLocal()))
+      .catch(() => null);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

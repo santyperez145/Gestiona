@@ -6,14 +6,18 @@ import { validateEnv } from "./lib/env";
 import { announceUpdateAvailable, setupServiceWorkerUpdates } from "./lib/swUpdate";
 import { isStaleBuildError } from "./lib/staleBuildRecovery";
 import { isNativeRuntime } from "./lib/nativeRuntime";
-import { almacenLocal, capturarPrimerContacto } from "./lib/origenDeAlta";
 
 validateEnv();
 initSentry();
 if (!isNativeRuntime()) setupServiceWorkerUpdates();
 // Primer contacto (ref, utm, sitio de origen) para saber cómo llega cada
-// comercio nuevo: TESIS §6 y E4.
-capturarPrimerContacto(window.location.href, document.referrer, almacenLocal());
+// comercio nuevo: TESIS §6 y E4. La URL y el sitio de origen se leen ya; el
+// código se carga aparte para no sumar un archivo a la carga inicial de la
+// landing (presupuesto de `elCompradorNoBajaElPanel`).
+const contactoUrl = window.location.href;
+const contactoReferrer = document.referrer;
+void import("./lib/origenDeAlta").then(({ almacenLocal, capturarPrimerContacto }) =>
+  capturarPrimerContacto(contactoUrl, contactoReferrer, almacenLocal()));
 
 // Cuando Vite despliega, los hashes anteriores desaparecen. Conservamos la
 // pantalla actual y ofrecemos la actualización; nunca interrumpimos el trabajo.
