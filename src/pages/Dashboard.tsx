@@ -500,9 +500,7 @@ export default function Dashboard() {
     ? activeDashboardSection
     : "dashboard-overview";
   const visibleDashboardViewKey = dashboardViewKey(visibleDashboardSection);
-  const motivoIA = motivoDeCorte === "cancelado"
-    ? "La suscripción está cancelada. Reactivala desde Mi plan."
-    : motivoDeCorte === "impago"
+  const motivoIA = motivoDeCorte === "impago"
       ? "Hay un pago pendiente. Regularizalo desde Mi plan."
       : motivoDeCorte === "pausado"
         ? "La suscripción está pausada. Reanudala desde Mi plan."

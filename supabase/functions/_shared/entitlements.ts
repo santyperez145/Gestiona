@@ -31,7 +31,7 @@ export type Beneficio = "ia" | "backups" | "branding";
 export interface Entitlements {
   plan: string | null;
   vigente: boolean;
-  motivo_de_corte: "impago" | "cancelado" | "pausado" | null;
+  motivo_de_corte: "impago" | "pausado" | "sin_pagar" | "prueba_finalizada" | null;
   dias_de_gracia: number;
   estado: string | null;
   ia: boolean;
@@ -52,8 +52,6 @@ function motivoLegible(e: Entitlements): string {
   switch (e.motivo_de_corte) {
     case "impago":
       return "Tu suscripción tiene un pago pendiente. Regularizala desde Mi plan y la función vuelve enseguida.";
-    case "cancelado":
-      return "Tu suscripción está cancelada. Podés reactivarla desde Mi plan.";
     case "pausado":
       return "Tu suscripción está pausada. Reanudala desde Mi plan.";
     default:

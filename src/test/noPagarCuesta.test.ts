@@ -104,7 +104,7 @@ describe("el aviso dice qué pasó de verdad", () => {
 
   it("Mi plan distingue el comercio gratuito del estado legacy de impago", () => {
     const page = soloCodigo(readFileSync(resolve(ROOT, "src/pages/MiPlanPage.tsx"), "utf8"));
-    expect(page).toMatch(/motivoDeCorte === 'prueba_finalizada' \? 'commerce_free'/);
+    expect(page).toMatch(/motivoDeCorte === 'prueba_finalizada' || sub?.estado === 'plan_gratis' ? 'commerce_free'/);
     expect(page).toContain('Comercio gratuito, sin débito periódico.');
     expect(page).toContain('!esInicial && canSubscribe && !sub?.cancela_al_final');
   });

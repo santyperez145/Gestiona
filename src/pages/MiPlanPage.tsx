@@ -213,7 +213,7 @@ export default function MiPlanPage() {
   };
 
   const esInicial = sub?.plan?.code === 'trial';
-  const estadoActual = motivoDeCorte === 'prueba_finalizada' ? 'commerce_free' : (sub?.estado ?? "sin_suscripcion");
+  const estadoActual = motivoDeCorte === 'prueba_finalizada' || sub?.estado === 'plan_gratis' ? 'commerce_free' : (sub?.estado ?? "sin_suscripcion");
   /**
    * ⚠️ El cartel decía «Pago pendiente» a quien acababa de darse de baja. El
    * estado en la base sigue siendo `past_due` hasta que el barrido horario lo

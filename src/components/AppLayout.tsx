@@ -579,7 +579,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           if (motivoDeCorte === 'prueba_finalizada') return (
             <div className="bg-primary/5 border-b border-border px-4 py-2.5 flex items-center gap-3">
-              <p className="text-sm flex-1">Tu comercio sigue gratis. La prueba de los extras terminó; tus datos, ventas y stock siguen intactos.</p>
+              <p className="text-sm flex-1">Estás en el plan Inicial, gratis: ventas, stock, caja y tienda siguen funcionando. La IA, los respaldos y la marca propia vienen con los planes pagos.</p>
               <Button size="sm" variant="outline" asChild><Link to="/mi-plan">Ver planes</Link></Button>
               <button aria-label="Cerrar aviso de plan" onClick={() => setBannerDismissed(true)}><XIcon className="w-4 h-4" /></button>
             </div>
@@ -591,8 +591,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <span className="font-semibold">
                   {motivoDeCorte === 'impago' ? 'Tu suscripción tiene un pago pendiente.'
                     : motivoDeCorte === 'pausado' ? 'Tu suscripción está pausada.'
-                    : motivoDeCorte === 'sin_pagar' ? 'La contratación del plan no se confirmó.'
-                    : 'Tu suscripción está cancelada.'}
+                    : 'La contratación del plan no se confirmó.'}
                 </span>{' '}
                 Se apagaron los extras del plan. Tu comercio sigue gratis y tus datos, ventas y stock siguen intactos.
               </p>

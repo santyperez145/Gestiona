@@ -54,7 +54,7 @@ interface Entitlements {
   /** El plan está pago (o en trial): los beneficios se aplican. */
   planVigente: boolean;
   /** Por qué se cortaron, si se cortaron. `null` cuando está todo bien. */
-  motivoDeCorte: 'impago' | 'cancelado' | 'pausado' | 'sin_pagar' | 'prueba_finalizada' | null;
+  motivoDeCorte: 'impago' | 'pausado' | 'sin_pagar' | 'prueba_finalizada' | null;
   /** Días de gracia que quedan antes de cortar por falta de pago. */
   diasDeGracia: number;
   /**
@@ -229,7 +229,9 @@ export function useEntitlements(): Entitlements {
     : 0;
 
   const motivoLocal: Entitlements['motivoDeCorte'] =
-    sub?.status === 'canceled' ? 'cancelado'
+    // Una baja vuelve sola al plan Inicial (gratis): sólo se corta lo que
+    // corta el plan gratis, es decir, los extras cuando la prueba terminó.
+    sub?.status === 'canceled' ? ((!activeOrg?.trial_ends_at || new Date(activeOrg.trial_ends_at) <= new Date()) ? 'prueba_finalizada' : null)
     : sub?.status === 'paused' ? 'pausado'
     : sub?.status === 'past_due' && graciaLocal === 0 && plan?.code !== 'trial' ? 'impago'
     : plan?.code === 'trial' && (!activeOrg?.trial_ends_at || new Date(activeOrg.trial_ends_at) <= new Date()) ? 'prueba_finalizada'
