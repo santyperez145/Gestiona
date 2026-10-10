@@ -81,3 +81,31 @@ describe('sin legado de un solo rubro', () => {
     expect(soloCodigo(leer('src/lib/supabaseStore.ts'))).not.toContain('seedProductsForUser');
   });
 });
+
+describe('el demo del onboarding es del rubro elegido', () => {
+  const migracion = leer('supabase/migrations/20261010000100_demo_segun_rubro.sql');
+  // Sólo la función: la cabecera cuenta la historia y nombra lo que había.
+  const sql = migracion.slice(migracion.indexOf('CREATE OR REPLACE FUNCTION'));
+  const catalogo = sql.slice(sql.indexOf('$catalogo${'), sql.lastIndexOf('}$catalogo$'));
+
+  it('no carga perfumes de marca ni renombra la tienda', () => {
+    // Antes: BACCARAT ROUGE 540, GOOD GIRL, SAUVAGE EDP y «Mi Perfumería»,
+    // para cualquier rubro.
+    expect(sql).not.toMatch(/baccarat|sauvage|good girl|Mi Perfumería/i);
+    expect(sql).not.toContain('INSERT INTO public.settings');
+  });
+
+  it('tiene catálogo para cada rubro que ofrece el onboarding', () => {
+    const rubros = leer('supabase/migrations/20261009001600_rubros_de_cualquier_comercio.sql');
+    const codigos = new Set([
+      'alimentos', 'indumentaria', 'tecnologia', 'cosmetica', 'gastronomia', 'servicios', 'perfumes', 'vapers', 'otro',
+      ...[...rubros.matchAll(/\('([a-z]+)', '/g)].map(m => m[1]),
+    ]);
+    for (const codigo of codigos) expect(catalogo, codigo).toContain(`"${codigo}": [`);
+  });
+
+  it('lo que no se stockea no queda con stock negativo', () => {
+    expect(catalogo).toMatch(/"servicios": \[[\s\S]*?"s": false/);
+    expect(sql).toContain("(v_item ->> 's')::boolean");
+  });
+});
