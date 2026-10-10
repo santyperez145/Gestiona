@@ -9,11 +9,10 @@ import { Link } from "react-router-dom";
 import { useStore } from "./storeContext";
 import { sugerenciasParaElCarrito, TEXTO_MOTIVO } from "@/lib/crossSell";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
-import { quoteStoreShipping } from "@/lib/publicDataSource";
 import {
   guardarProvinciaCarrito,
   leerProvinciaCarrito,
-  resumenEnvioCarrito,
+  cotizarEnvioCarrito,
 } from "@/lib/storeCartProvince";
 import { etiquetaProvinciaCheckout, textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
@@ -49,32 +48,10 @@ export default function StoreCart() {
     let cancelado = false;
     setCotizandoCarrito(true);
     setCotizacionError(null);
-    quoteStoreShipping({
-      slug: store.slug,
-      province: provinciaCarrito,
-      postalCode: null,
-      items: cart.map((l) => ({
-        product_id: l.productId,
-        variant_id: l.variantId ?? null,
-        quantity: l.qty,
-      })),
-    }).then((rows) => {
+    cotizarEnvioCarrito(store.slug, provinciaCarrito, cart).then((resumen) => {
       if (cancelado) return;
       setCotizandoCarrito(false);
-      if (!rows) {
-        setResumenCotizacion(null);
-        return;
-      }
-      setResumenCotizacion(
-        resumenEnvioCarrito(
-          (rows as Array<{ carrier?: string; price?: number; is_free?: boolean; label?: string }>).map((r) => ({
-            carrier: String(r.carrier ?? ""),
-            price: Number(r.price) || 0,
-            is_free: !!r.is_free,
-            label: String(r.label ?? ""),
-          })),
-        ),
-      );
+      setResumenCotizacion(resumen);
     }, (error: unknown) => {
       if (cancelado) return;
       console.error("[carrito] no se pudo cotizar el envío:", error);

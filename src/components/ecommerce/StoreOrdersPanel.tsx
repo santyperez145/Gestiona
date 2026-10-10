@@ -449,6 +449,20 @@ export default function StoreOrdersPanel({
   );
 }
 
+/** La fila (escritorio) y la tarjeta (celular) muestran el mismo pedido. */
+type OrderItemProps = {
+  order: StoreOrderQueueRow;
+  selected: boolean;
+  bulkSelected: boolean;
+  canBulkEdit: boolean;
+  bulkBusy: boolean;
+  confirmingPaid: boolean;
+  onToggle: (orderId: string) => void;
+  onInspect: (order: StoreOrderQueueRow) => void;
+  onPrepare: (order: StoreOrderQueueRow) => void;
+  onConfirmPaid?: (order: StoreOrderQueueRow) => void;
+};
+
 function OrderRow({
   order: o,
   selected,
@@ -460,18 +474,7 @@ function OrderRow({
   onInspect,
   onPrepare,
   onConfirmPaid,
-}: {
-  order: StoreOrderQueueRow;
-  selected: boolean;
-  bulkSelected: boolean;
-  canBulkEdit: boolean;
-  bulkBusy: boolean;
-  confirmingPaid: boolean;
-  onToggle: (orderId: string) => void;
-  onInspect: (order: StoreOrderQueueRow) => void;
-  onPrepare: (order: StoreOrderQueueRow) => void;
-  onConfirmPaid?: (order: StoreOrderQueueRow) => void;
-}) {
+}: OrderItemProps) {
   const canShip = canFulfillStoreOrder(o.payment_status);
   const canConfirmPaid = Boolean(onConfirmPaid) && canConfirmManualStorePayment(o);
   const payLabel = storeOrderManualPayActionLabel(o);
@@ -564,18 +567,7 @@ function OrderCard({
   onInspect,
   onPrepare,
   onConfirmPaid,
-}: {
-  order: StoreOrderQueueRow;
-  selected: boolean;
-  bulkSelected: boolean;
-  canBulkEdit: boolean;
-  bulkBusy: boolean;
-  confirmingPaid: boolean;
-  onToggle: (orderId: string) => void;
-  onInspect: (order: StoreOrderQueueRow) => void;
-  onPrepare: (order: StoreOrderQueueRow) => void;
-  onConfirmPaid?: (order: StoreOrderQueueRow) => void;
-}) {
+}: OrderItemProps) {
   const canShip = canFulfillStoreOrder(o.payment_status);
   const canConfirmPaid = Boolean(onConfirmPaid) && canConfirmManualStorePayment(o);
   const payLabel = storeOrderManualPayActionLabel(o);

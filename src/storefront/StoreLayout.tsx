@@ -23,11 +23,10 @@ import { parseStorefrontLayout, textoDeAnuncio } from "@/lib/storeHomeLayout";
 import { textoCoberturaDomicilio, etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
 import { hrefWhatsAppConsultar, parseStoreSocial } from "@/lib/storeSocial";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
-import { quoteStoreShipping } from "@/lib/publicDataSource";
 import {
   guardarProvinciaCarrito,
   leerProvinciaCarrito,
-  resumenEnvioCarrito,
+  cotizarEnvioCarrito,
 } from "@/lib/storeCartProvince";
 import StoreTrackingConsent from "./StoreTrackingConsent";
 import StoreNewsletter from "./StoreNewsletter";
@@ -142,32 +141,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
     let cancelado = false;
     setCotizandoCarrito(true);
-    quoteStoreShipping({
-      slug: store.slug,
-      province: provinciaCarrito,
-      postalCode: null,
-      items: cart.map((l) => ({
-        product_id: l.productId,
-        variant_id: l.variantId ?? null,
-        quantity: l.qty,
-      })),
-    }).then((rows) => {
+    cotizarEnvioCarrito(store.slug, provinciaCarrito, cart).then((resumen) => {
       if (cancelado) return;
       setCotizandoCarrito(false);
-      if (!rows) {
-        setResumenCotizacion(null);
-        return;
-      }
-      setResumenCotizacion(
-        resumenEnvioCarrito(
-          (rows as Array<{ carrier?: string; price?: number; is_free?: boolean; label?: string }>).map((r) => ({
-            carrier: String(r.carrier ?? ""),
-            price: Number(r.price) || 0,
-            is_free: !!r.is_free,
-            label: String(r.label ?? ""),
-          })),
-        ),
-      );
+      setResumenCotizacion(resumen);
     }, () => {
       if (cancelado) return;
       setCotizandoCarrito(false);

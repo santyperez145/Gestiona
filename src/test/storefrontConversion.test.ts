@@ -64,7 +64,8 @@ describe("recorrido de compra a 360 px", () => {
     // ESTANDAR §5.10: costo/plazo de envío antes de pedir datos innecesarios.
     const layout = leer("src/storefront/StoreLayout.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");
-    expect(layout).toContain("quoteStoreShipping");
+    expect(layout).toContain("cotizarEnvioCarrito");
+    expect(leer("src/lib/storeCartProvince.ts")).toContain("quoteStoreShipping");
     expect(layout).toContain("Provincia para cotizar el envío");
     expect(layout).toContain("guardarProvinciaCarrito");
     expect(checkout).toContain("leerProvinciaCarrito");

@@ -6,6 +6,8 @@
  * formulario; la autoridad del precio sigue siendo `quote_store_shipping`.
  */
 
+import { quoteStoreShipping } from "@/lib/publicDataSource";
+
 const KEY = (slug: string) => `gestiona.store.province.${slug}`;
 
 export function leerProvinciaCarrito(slug: string | null | undefined): string {
@@ -60,4 +62,27 @@ export function resumenEnvioCarrito(
     amount: Math.max(0, Number(retiro.price) || 0),
     subtitle: String(retiro.label || "Retiro en tienda"),
   };
+}
+
+/** Cotiza el envío del carrito y lo resume para la línea Envío; null si no hay opciones. */
+export async function cotizarEnvioCarrito(
+  slug: string,
+  province: string,
+  cart: ReadonlyArray<{ productId: string; variantId?: string | null; qty: number }>,
+): Promise<{ amount: number; subtitle: string } | null> {
+  const rows = await quoteStoreShipping({
+    slug,
+    province,
+    postalCode: null,
+    items: cart.map((l) => ({ product_id: l.productId, variant_id: l.variantId ?? null, quantity: l.qty })),
+  });
+  if (!rows) return null;
+  return resumenEnvioCarrito(
+    (rows as Array<{ carrier?: string; price?: number; is_free?: boolean; label?: string }>).map((r) => ({
+      carrier: String(r.carrier ?? ""),
+      price: Number(r.price) || 0,
+      is_free: !!r.is_free,
+      label: String(r.label ?? ""),
+    })),
+  );
 }

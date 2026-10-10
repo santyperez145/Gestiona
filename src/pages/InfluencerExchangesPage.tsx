@@ -203,15 +203,9 @@ export default function InfluencerExchangesPage() {
   // Tab content component
   const renderTab = () => {
     switch (pageTab) {
+      // El resumen va arriba, junto a los indicadores que comparte con «Canjes».
       case "dashboard":
-        return (
-          <div className="grid gap-4 md:grid-cols-4">
-            <CommerceKPICard title="Inversión" value={_fmt(totalInversion)} icon={Target} description="Costo real" />
-            <CommerceKPICard title="Ventas generadas" value={totalSalesGenerated > 0 ? _fmt(totalSalesGenerated) : "Sin datos"} icon={DollarSign} description={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%` : "Cargá ventas atribuidas"} />
-            <CommerceKPICard title="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} description={`${totalActual}/${totalExpected} posts`} />
-            <CommerceKPICard title="CPM" value={cpm !== null ? _fmt(cpm) : "—"} icon={Megaphone} description={`${(totalReach / 1000).toFixed(1)}K alcance`} />
-          </div>
-        );
+        return null;
       case "liquidaciones":
         return (
           <div className="space-y-4">
