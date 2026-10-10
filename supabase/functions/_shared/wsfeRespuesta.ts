@@ -32,13 +32,36 @@ export function leerUltimoAutorizadoWsfe(xml: string): number {
   return Number(value);
 }
 
-export function assertEnabledPoint(xml: string, number: number): void {
+/** Un punto de venta de `FEParamGetPtosVenta` sirve para pedir CAE por WSFE. */
+function habilitadoParaCae(point: Record<string, unknown>): boolean {
+  return point.EmisionTipo === "CAE" && point.Bloqueado === "N" && (!point.FchBaja || point.FchBaja === "NULL");
+}
+
+/**
+ * Los puntos de venta habilitados para CAE, ordenados. Es la «detección de
+ * puntos» del alta fiscal: si el configurado no sirve, el comercio ve cuáles
+ * sí, en vez de adivinar un número.
+ */
+export function puntosHabilitadosCae(xml: string): number[] {
   const response = result(xml, "FEParamGetPtosVenta");
   const records = (response.ResultGet as { PtoVenta?: unknown })?.PtoVenta;
-  const points = Array.isArray(records) ? records : records ? [records] : [];
-  const point = points.find(value => Number(value.Nro) === number);
-  if (!point || point.EmisionTipo !== "CAE" || point.Bloqueado !== "N" || (point.FchBaja && point.FchBaja !== "NULL")) {
-    throw new ArcaReadError("point_not_enabled", "El punto de venta no está habilitado para emitir con CAE. Revisá su alta, sistema y estado en ARCA.");
+  const points = (Array.isArray(records) ? records : records ? [records] : []) as Record<string, unknown>[];
+  return points
+    .filter(habilitadoParaCae)
+    .map(point => Number(point.Nro))
+    .filter(n => Number.isSafeInteger(n) && n > 0)
+    .sort((a, b) => a - b);
+}
+
+export function assertEnabledPoint(xml: string, number: number): void {
+  const habilitados = puntosHabilitadosCae(xml);
+  if (!habilitados.includes(number)) {
+    const cuales = habilitados.length === 0
+      ? "Tu CUIT no tiene ningún punto de venta habilitado para Web Services con CAE: dalo de alta en ARCA (Administración de puntos de venta y domicilios)."
+      : habilitados.length === 1
+        ? `El que tenés habilitado para CAE es el ${habilitados[0]}.`
+        : `Los habilitados para CAE son: ${habilitados.join(", ")}.`;
+    throw new ArcaReadError("point_not_enabled", `El punto de venta ${number} no está habilitado para emitir con CAE. ${cuales}`);
   }
 }
 

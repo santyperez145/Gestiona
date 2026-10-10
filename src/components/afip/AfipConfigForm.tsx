@@ -34,6 +34,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileCheck, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { mensajeIdentidadFiscalFaltante } from "@/lib/fiscalIdentity";
+import { consultarPadron, domicilioPadron } from "@/lib/arcaPadron";
+import { tipoEmisorDesdePadron } from "@/lib/emisorPadron";
 
 interface Props {
   canEdit: boolean;
@@ -62,6 +64,36 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
    * apretaría "Guardar" sin mirar y el campo quedaría mal igual.
    */
   const [tipoEmisor, setTipoEmisor] = useState("");
+  const [consultandoPadron, setConsultandoPadron] = useState(false);
+  const [avisoPadron, setAvisoPadron] = useState<string | null>(null);
+
+  /**
+   * Padrón del emisor: con el CUIT, ARCA devuelve razón social, domicilio y
+   * condición frente al IVA. Completa sin pisar lo que ARCA no informa, y
+   * no guarda: el comercio revisa y guarda como siempre.
+   */
+  const completarConArca = async () => {
+    if (!activeOrg?.id) return;
+    setConsultandoPadron(true);
+    setAvisoPadron(null);
+    const r = await consultarPadron(activeOrg.id, cuit);
+    setConsultandoPadron(false);
+    if (r.ok === false) {
+      setAvisoPadron(r.error);
+      return;
+    }
+    const p = r.persona;
+    if (p.nombre) setRazonSocial(p.nombre);
+    const domicilioArca = domicilioPadron(p);
+    if (domicilioArca) setDomicilio(domicilioArca);
+    const tipo = tipoEmisorDesdePadron(p);
+    if (tipo) setTipoEmisor(tipo);
+    const avisos = [
+      tipo ? null : "ARCA no informa inscripción en IVA ni monotributo: elegí el tipo de emisor a mano.",
+      p.estadoClave && p.estadoClave !== "ACTIVO" ? `La clave del CUIT figura «${p.estadoClave}» en ARCA.` : null,
+    ].filter(Boolean);
+    setAvisoPadron(avisos.length ? avisos.join(" ") : "Datos traídos de ARCA. Revisalos y guardá.");
+  };
 
   const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
   /**
@@ -223,7 +255,14 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
       <fieldset disabled={!canEdit || saving} className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label htmlFor="arca-cuit" className="text-xs text-muted-foreground mb-1 block">CUIT del emisor</label>
-          <Input id="arca-cuit" value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
+          <div className="flex gap-2">
+            <Input id="arca-cuit" value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
+            <Button type="button" variant="outline" className="shrink-0" disabled={consultandoPadron || cuit.replace(/\D/g, "").length !== 11}
+              onClick={() => void completarConArca()} title="Trae razón social, domicilio y condición frente al IVA del padrón de ARCA">
+              {consultandoPadron ? <Loader2 className="h-4 w-4 animate-spin" /> : "Completar con ARCA"}
+            </Button>
+          </div>
+          {avisoPadron && <p className="mt-1 text-[11px] text-muted-foreground">{avisoPadron}</p>}
         </div>
         <div>
           <label htmlFor="arca-name" className="text-xs text-muted-foreground mb-1 block">Razón social</label>

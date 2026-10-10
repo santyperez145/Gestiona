@@ -40,7 +40,7 @@ import {
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
 import { invoiceIvaXml } from "../_shared/invoiceIva.ts";
-import { ArcaReadError, assertEnabledPoint, leerSolicitudCaeWsfe, leerUltimoAutorizadoWsfe, type MensajeWsfe } from "../_shared/wsfeRespuesta.ts";
+import { ArcaReadError, assertEnabledPoint, leerSolicitudCaeWsfe, puntosHabilitadosCae, leerUltimoAutorizadoWsfe, type MensajeWsfe } from "../_shared/wsfeRespuesta.ts";
 import { ArcaAutorizacionError, resumirRechazoArca } from "../_shared/arcaRechazos.ts";
 
 const supabase = createClient(
@@ -356,10 +356,14 @@ Deno.serve(async (req) => {
       // viva, y con certificado compartido eso choca apenas haya dos comercios
       // verificando el mismo día.
       // El reuso y el candado los resuelve `ticketCompartido`.
+      // Qué puntos sirven para CAE: se devuelven siempre, así el alta fiscal
+      // puede ofrecer el correcto cuando el configurado no está habilitado.
+      let puntosCae: number[] = [];
       try {
         const ta1 = await ticketCompartido(cred, body.org_id, wsaaUrl);
         const token = ta1.token, sign = ta1.sign;
         const points = await wsfeCall(wsfeUrl, wsfeSoap("FEParamGetPtosVenta", "", { token, sign, cuit: cred.cuit }), "FEParamGetPtosVenta");
+        puntosCae = puntosHabilitadosCae(points);
         assertEnabledPoint(points, cred.punto_venta);
         await getUltimoAutorizado(
           wsfeUrl, token, sign, cred.cuit, cred.punto_venta, defaultTipoCbte(cred.tipo_emisor ?? ""));
@@ -372,7 +376,7 @@ Deno.serve(async (req) => {
           if (confirmed.error || !confirmed.ok) return ok({ ok: false, code: confirmed.code || "persistence_failed",
             error: confirmed.error || "La configuración fiscal cambió durante la consulta. Actualizá el estado y volvé a verificar." });
         }
-        return ok({ ok: false, code, error: detalle });
+        return ok({ ok: false, code, error: detalle, puntos_habilitados: puntosCae });
       }
 
       const marcado = await confirmarContextoFiscal(body.org_id, cred.conexion_version, cred.environment, true, null, platformAdmin ? actorId : null);
@@ -389,7 +393,7 @@ Deno.serve(async (req) => {
           code: marcado.code,
         });
       }
-      return ok({ ok: true, environment: isProd ? "produccion" : "homologacion", punto_venta: cred.punto_venta });
+      return ok({ ok: true, environment: isProd ? "produccion" : "homologacion", punto_venta: cred.punto_venta, puntos_habilitados: puntosCae });
     }
 
     if (body.action === "test_connection") {

@@ -29,10 +29,11 @@ beforeEach(() => {
     from: (table: string) => { reads.push(table); const query = { select: () => query, eq: () => query, in: () => query,
       maybeSingle: async () => ({ data: table === "memberships" ? member ? { role: "owner" } : null
         : table === "platform_admins" ? staff ? { user_id: "zz-actor", role: staff } : null : { cuit: platformCuit }, error: null }) }; return query; } };
-  new Function("createClient", "Deno", "resolverCredencialesAfip", "esLlamadaDeCron", "ArcaReadError", "assertEnabledPoint", "leerUltimoAutorizadoWsfe", "fetch", "console", executable)(
+  new Function("createClient", "Deno", "resolverCredencialesAfip", "esLlamadaDeCron", "ArcaReadError", "assertEnabledPoint", "puntosHabilitadosCae", "leerUltimoAutorizadoWsfe", "fetch", "console", executable)(
     () => admin, { env: { get: () => "ZZ test environment" }, serve: (serve: typeof handler) => { handler = serve; } },
     async () => resolveFailure ? { error: "ZZ secret database error" } : { cred }, () => false, ReadError,
     () => { if (pointFailure) throw new ReadError("point_not_enabled", "Punto de venta no habilitado"); },
+    () => (pointFailure ? [3] : [12]),
     () => 0, provider, { error: vi.fn() },
   );
 });
@@ -42,7 +43,7 @@ const request = () => new Request("https://example.invalid/arca", { method: "POS
 describe("actual ARCA verification handler with controlled dependencies", () => {
   it("checks CAE point and issuer class, then persists the exact connection revision without issuing", async () => {
     const response = await handler(request()); expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, environment: "homologacion", punto_venta: 12 });
+    expect(await response.json()).toEqual({ ok: true, environment: "homologacion", punto_venta: 12, puntos_habilitados: [12] });
     expect(provider).toHaveBeenCalledTimes(2);
     expect(provider.mock.calls[0][1].headers.SOAPAction).toContain("FEParamGetPtosVenta");
     expect(provider.mock.calls[1][1].body).toContain("<ar:CbteTipo>6</ar:CbteTipo>");

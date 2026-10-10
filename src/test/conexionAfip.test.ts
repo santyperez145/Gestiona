@@ -95,7 +95,9 @@ describe("conexión guiada a AFIP", () => {
   });
 
   it("devuelve diagnóstico accionable sin SOAP ni detalles internos", () => {
-    expect(fn).toContain("return ok({ ok: false, code, error: detalle })");
+    // Desde 2026-10-10 suma los números de punto de venta habilitados: sólo
+    // números, nada del SOAP.
+    expect(fn).toContain("return ok({ ok: false, code, error: detalle, puntos_habilitados: puntosCae })");
     expect(fn).toContain('code === "point_not_enabled"');
     expect(fn).toContain("assertEnabledPoint(points, cred.punto_venta)");
     expect(fn).toContain("leerUltimoAutorizadoWsfe(xml)");
