@@ -17,6 +17,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 
 ## Producto y estrategia
 
+- [Tesis](TESIS.md): secreto, nicho, hipótesis y experimentos (Lean Startup + Zero to One); gobierna la prioridad.
 - [Estrategia](ESTRATEGIA.md): categoría, benchmarks y secuencia.
 - [Arquitectura](ARQUITECTURA.md): autoridades, límites y seguridad.
 - [Capacidad Finance](FINANCE.md): contrato de producto y paridad Mendel-class.
