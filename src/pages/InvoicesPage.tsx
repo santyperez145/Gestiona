@@ -55,6 +55,7 @@ import {
 
 import { plural } from "@/lib/plural";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { resultadoLote, type ResultadoLote } from "@/lib/loteFacturacion";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -660,6 +661,7 @@ export default function InvoicesPage() {
    */
   const [pendientes, setPendientes] = useState<{ cantidad: number; monto: number } | null>(null);
   const [facturandoPend, setFacturandoPend] = useState(false);
+  const [lote, setLote] = useState<ResultadoLote | null>(null);
 
   const cargarPendientes = useCallback(async () => {
     if (!activeOrg) return;
@@ -686,19 +688,12 @@ export default function InvoicesPage() {
 
     if (error) { toast.error(error.message.replace(/^.*?:\s*/, "")); return; }
 
-    const res = data as { creadas: number; fallas: { orden: string; error: string }[] } | null;
-    const creadas = Number(res?.creadas ?? 0);
-    const fallas = res?.fallas ?? [];
-
-    if (creadas > 0) {
-      toast.success(`${creadas} comprobante${creadas > 1 ? "s" : ""} generado${creadas > 1 ? "s" : ""}. Falta autorizarlos en ARCA.`);
-    }
-    // Las fallas se muestran con el número de orden: un contador sin el motivo
-    // obliga a mirar logs que el dueño no tiene.
-    for (const f of fallas.slice(0, 3)) {
-      toast.error(`Orden ${f.orden}: ${f.error}`);
-    }
-    if (fallas.length > 3) toast.error(`y ${fallas.length - 3} más`);
+    // Resultado pedido por pedido: lo creado se autoriza en ARCA en segundo
+    // plano (factura.creada → afip-authorize); las fallas dicen qué hacer.
+    const res = resultadoLote(data);
+    if (res.fallas.length) setLote(res);
+    else if (res.creadas > 0) toast.success(`${res.creadas} comprobante${res.creadas > 1 ? "s" : ""} generado${res.creadas > 1 ? "s" : ""}. Se autorizan en ARCA en segundo plano.`);
+    else toast.info("No había ventas cobradas para facturar");
 
     await Promise.all([load(), cargarPendientes()]);
   };
@@ -994,6 +989,26 @@ export default function InvoicesPage() {
           </Button>
         </div>
       )}
+
+      <Dialog open={lote !== null} onOpenChange={open => { if (!open) setLote(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Resultado de la facturación por lote</DialogTitle></DialogHeader>
+          {lote && <div className="space-y-3 text-sm">
+            <p>
+              <strong>{lote.creadas}</strong> generado{lote.creadas === 1 ? "" : "s"} (se autorizan en ARCA en segundo plano)
+              {lote.sinImporte > 0 && <> · {lote.sinImporte} sin importe</>} · <strong>{lote.fallas.length}</strong> con problema
+            </p>
+            <ul className="max-h-80 space-y-2 overflow-y-auto">
+              {lote.fallas.map(f => <li key={f.orden} className="rounded-[8px] border border-border/60 p-2">
+                <p className="font-medium">Pedido {f.orden}</p>
+                <p className="text-xs text-muted-foreground">{f.motivo}</p>
+                <p className="mt-1 text-xs">{f.queHacer}</p>
+              </li>)}
+            </ul>
+          </div>}
+          <DialogFooter><Button variant="outline" onClick={() => setLote(null)}>Cerrar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Bandeja de pendientes fiscales: comprobantes sin CAE agrupados por la
           acción que necesitan. Se filtra la lista; no se abre otra pantalla. */}

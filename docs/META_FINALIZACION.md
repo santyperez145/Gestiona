@@ -19,7 +19,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Nota de Débito asociada a factura autorizada (A/B/C), con CbtesAsoc en WSFE.
 - [ ] Alta fiscal guiada: padrón (`ws_sr_constancia_inscripcion`), delegación paso a paso, detección de puntos CAE, autotest y factura de homologación.
 - [x] POS: "Facturar todas las ventas" por organización; un cliente con CUIT activa la factura del ticket.
-- [ ] Facturación automática de Commerce y por lote con resultado por pedido.
+- [x] Commerce: cada pedido pagado genera su factura y se autoriza en ARCA vía outbox (`orden.pagada` → `facturar_orden_pagada` → `factura.creada` → `afip-authorize`); el lote muestra el resultado y qué hacer por pedido.
 - [ ] Asistente de renovación de certificado (generar CSR y cargar CRT guiado).
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
