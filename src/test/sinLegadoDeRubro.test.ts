@@ -68,6 +68,15 @@ describe('sin legado de un solo rubro', () => {
     expect(malvinas).not.toMatch(/descuento|oferta|promo/i);
   });
 
+  it('un producto nuevo no nace con oferta', () => {
+    // El formulario completaba solo el precio c/descuento con el 20 % por
+    // defecto, y la autoridad de precios cobra ese precio cuando es menor.
+    const productos = soloCodigo(leer('src/pages/ProductsPage.tsx'));
+    expect(productos).not.toContain('if (!manualDiscountPrice) setDiscountPriceARS(autoDiscountPrice.toString());');
+    expect(productos).toContain('Precio de oferta (opcional)');
+    expect(productos).toContain('placeholder="Sin oferta"');
+  });
+
   it('el seed de perfumes de ejemplo no volvió', () => {
     expect(soloCodigo(leer('src/lib/supabaseStore.ts'))).not.toContain('seedProductsForUser');
   });

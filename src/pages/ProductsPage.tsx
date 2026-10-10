@@ -2271,10 +2271,11 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
     if (!manualSalePrice) setSalePriceARS(autoSalePrice.toString());
   }, [cost, exchangeRate, manualSalePrice, autoSalePrice]);
 
-  useEffect(() => {
-    if (currentSaleForDiscount <= 0) return;
-    if (!manualDiscountPrice) setDiscountPriceARS(autoDiscountPrice.toString());
-  }, [currentSaleForDiscount, defaultDiscount, manualDiscountPrice, autoDiscountPrice]);
+  // ⚠️ Acá había un efecto que completaba solo el «precio c/descuento» con el
+  // descuento por defecto (20 % de fábrica) en todo producto nuevo. Como
+  // `precio_pos_autoritativo` cobra ese precio cuando es menor, cada producto
+  // creado a mano nacía vendiéndose 20 % abajo, para siempre. La oferta ahora
+  // es opt-in: el campo arranca vacío y el % configurado es una sugerencia.
 
   // La ganancia se calcula con el costo cargado tal cual — sin pasero aparte.
   const totalCostUSD = enPesos ? costoPesos / (exchangeRate || 1) : cost;
@@ -3170,12 +3171,22 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         </div>
         <div>
           <div className="flex items-center justify-between">
-            <label className="text-sm text-muted-foreground">Precio c/Desc. ARS</label>
-            {manualDiscountPrice && currentSaleForDiscount > 0 && (
-              <button type="button" onClick={() => { markDirty(); setManualDiscountPrice(false); }} className="text-[10px] text-primary hover:underline">Auto</button>
+            <label className="text-sm text-muted-foreground">Precio de oferta (opcional)</label>
+            {!discountPriceARS && currentSaleForDiscount > 0 && defaultDiscount > 0 && (
+              <button type="button" onClick={() => { markDirty(); setDiscountPriceARS(autoDiscountPrice.toString()); setManualDiscountPrice(true); }} className="text-[10px] text-primary hover:underline">
+                Aplicar {defaultDiscount}% → {formatARS(autoDiscountPrice)}
+              </button>
+            )}
+            {!!discountPriceARS && (
+              <button type="button" onClick={() => { markDirty(); setDiscountPriceARS(''); setManualDiscountPrice(true); }} className="text-[10px] text-muted-foreground hover:text-foreground">
+                Quitar oferta
+              </button>
             )}
           </div>
-          <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
+          <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Sin oferta" className="bg-muted border-border" />
+          {!!discountPriceARS && Number(discountPriceARS) < currentSaleForDiscount && (
+            <p className="text-[10px] text-muted-foreground mt-1">Caja y la tienda cobran este precio mientras esté cargado.</p>
+          )}
         </div>
 
         {/* A8 — la orden discriminaba IVA con una tasa unica para todo. Un
