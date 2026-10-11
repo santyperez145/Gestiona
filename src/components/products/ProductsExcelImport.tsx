@@ -8,7 +8,7 @@ import { catalogMigrationSourceLabel } from "@/lib/catalogMigration";
 import type { WorkbookImportOptions, WorkbookImportResult } from "@/lib/productImportWorkbook";
 import { createProductImportReader } from "@/lib/productImportReader";
 import {
-  applyCatalogImportChunk, approveCatalogImport, cancelCatalogImport, catalogImportChunks, catalogImportErrorMessage,
+  anterioresSinTerminar, applyCatalogImportChunk, approveCatalogImport, cancelCatalogImport, catalogImportChunks, catalogImportErrorMessage,
   getCatalogImportSession, stageCatalogImportChunk, startCatalogImport, type CatalogImportSession,
 } from "@/lib/catalogImportSession";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -58,6 +58,7 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
   const [stage, setStage] = useState<CatalogImportSession | null>(null);
   const [stagedRows, setStagedRows] = useState<StagedRow[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rowLoading, setRowLoading] = useState(false);
   const [error, setError] = useState("");
@@ -289,6 +290,23 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
     stop.current = true; setWorkbook(null); setFileName(""); setStage(null); setStagedRows([]); setSkipInvalid(false); setPage(0); setError(""); setStep("upload"); setColumnsConfirmed(false); setCurrencyConfirmed(false);
     reader.current?.dispose(); reader.current = null; setMirrorState({ busy: false, mirrored: 0, remaining: false, failed: 0, done: false });
   }
+  // Descartar las importaciones sin terminar anteriores a la última: lo que
+  // ya cargaron queda (cancelar no borra productos) y la base libera sus
+  // filas preparadas a los 7 días (`podar_datos_operativos`).
+  async function descartarAnteriores() {
+    if (!orgId || busy) return;
+    const ids = anterioresSinTerminar(history);
+    if (!ids.length) return;
+    const expectedOrg = orgId; setBusy(true); setError("");
+    try {
+      for (const id of ids) await cancelCatalogImport(id);
+      if (validContext(expectedOrg)) {
+        toast.success(ids.length === 1 ? "Se descartó la importación anterior" : `Se descartaron ${ids.length} importaciones anteriores`);
+        await loadHistory(expectedOrg);
+      }
+    } catch (cause) { if (validContext(expectedOrg)) reportError(cause, "No pudimos descartar las importaciones anteriores. Reintentá."); }
+    finally { if (validContext(expectedOrg)) { setBusy(false); setConfirmarDescarte(false); } }
+  }
   async function discard() {
     if (!stage || busy) return;
     const expectedOrg = stage.org_id; setBusy(true); setError("");
@@ -332,7 +350,7 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
         {stage?.status === "preparing" && <Alert variant="info"><FileCheck2 className="h-4 w-4" /><div><AlertTitle>Validación pendiente: {stage.filename}</AlertTitle><AlertDescription className="text-foreground opacity-100">Seleccioná el mismo archivo para continuar. Las opciones originales se conservan; todavía no se cambió el catálogo.</AlertDescription></div></Alert>}
         <FilePicker accept=".xlsx,.xls,.csv" title={stage ? "Seleccionar archivo original" : "Seleccionar exportación de productos"} description="Excel o CSV · hasta 50.000 productos y 50 MB" icon={FileSpreadsheet} busy={busy} busyLabel="Leyendo catálogo" onFile={parseFile} />
         <div className="flex flex-wrap justify-between gap-2"><Button variant="outline" size="sm" disabled={busy} onClick={() => void downloadTemplate().catch(cause => reportError(cause, "No pudimos generar la plantilla."))}><Download className="mr-2 h-4 w-4" />Plantilla</Button>{stage && <Button variant="outline" size="sm" disabled={busy} onClick={() => void discard()}>Cancelar importación pendiente</Button>}</div>
-        {!stage && history.length > 0 && <section className="space-y-2"><h4 className="text-sm font-semibold">Importaciones recientes</h4>{history.map(item => <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border py-3"><div className="min-w-0"><p className="break-words text-sm font-medium">{item.filename}</p><p className="text-xs text-muted-foreground">{statusLabels[item.status]} · {item.applied} / {item.total.toLocaleString("es-AR")}</p></div><Button variant="outline" size="sm" disabled={busy} onClick={() => void resume(item.id)}>{item.status === "completed" ? "Ver resultado" : "Retomar"}</Button></div>)}</section>}
+        {!stage && history.length > 0 && <section className="space-y-2"><h4 className="text-sm font-semibold">Importaciones recientes</h4>{anterioresSinTerminar(history).length > 0 && <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 p-3 text-xs"><span>{anterioresSinTerminar(history).length === 1 ? "Hay una importación sin terminar anterior a la última." : `Hay ${anterioresSinTerminar(history).length} importaciones sin terminar anteriores a la última.`} Lo que ya cargaron se queda.</span>{confirmarDescarte ? <span className="flex gap-2"><Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmarDescarte(false)}>No</Button><Button size="sm" variant="destructive" disabled={busy} onClick={() => void descartarAnteriores()}>Sí, descartarlas</Button></span> : <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirmarDescarte(true)}>Descartar las anteriores</Button>}</div>}{history.map(item => <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border py-3"><div className="min-w-0"><p className="break-words text-sm font-medium">{item.filename}</p><p className="text-xs text-muted-foreground">{statusLabels[item.status]} · {item.applied} / {item.total.toLocaleString("es-AR")}</p></div><Button variant="outline" size="sm" disabled={busy} onClick={() => void resume(item.id)}>{item.status === "completed" ? "Ver resultado" : "Retomar"}</Button></div>)}</section>}
       </section>}
       {step === "preview" && workbook && <section className="space-y-4">
         <p className="text-xs text-muted-foreground">{workbook.parsed.sourceRows.toLocaleString("es-AR")} filas de origen agrupadas</p>

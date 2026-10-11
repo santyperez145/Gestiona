@@ -95,3 +95,14 @@ export async function cancelCatalogImport(id: string) {
   const { error } = await supabase.rpc("cancel_catalog_import", { p_session_id: id });
   if (error) throw error;
 }
+
+/**
+ * Importaciones sin terminar anteriores a la más reciente (la lista viene de
+ * la más nueva a la más vieja). Medido 2026-10-11: Famatina tenía 8 sin
+ * terminar del mismo archivo, cada una con «Retomar»; sólo la última sirve y
+ * las demás ocupaban ~150 MB de filas preparadas.
+ */
+export function anterioresSinTerminar(historial: { id: string; status: string }[]): string[] {
+  const sinTerminar = historial.filter(h => h.status !== "completed" && h.status !== "cancelled");
+  return sinTerminar.slice(1).map(h => h.id);
+}
