@@ -52,7 +52,11 @@ export interface Pendiente {
 }
 
 export interface DatosFoco {
-  /** Productos en cero: cortan la venta hoy. */
+  /**
+   * Productos en cero **que se vendieron en el período**: cortan la venta
+   * hoy. Los que nunca se venden y no se tienen en stock (lo normal en un
+   * catálogo grande) no son un pendiente.
+   */
   sinStock: number;
   /** Productos por debajo del umbral: cortan la venta esta semana. */
   stockBajo: number;
@@ -337,7 +341,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
   if (d.sinStock > 0) {
     lista.push({
       id: "sin-stock",
-      texto: `${d.sinStock} ${d.sinStock === 1 ? "producto sin stock" : "productos sin stock"}`,
+      texto: `${d.sinStock.toLocaleString("es-AR")} ${d.sinStock === 1 ? "producto que se vende quedó sin stock" : "productos que se venden quedaron sin stock"}`,
       accion: "Reponer",
       destino: "/planificacion?vista=reposicion",
       urgencia: "critico",

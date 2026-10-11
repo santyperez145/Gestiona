@@ -1147,6 +1147,11 @@ export default function Dashboard() {
     const expenseRatioAlertPct = Number(settings.expense_ratio_alert_percent ?? 40);
     const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= lowStockThreshold);
     const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
+    // Para el Foco: sin stock y con ventas en el período. En un catálogo
+    // grande la mayoría de los artículos no se tiene en stock (Famatina:
+    // 4.723 de 5.500 en cero, ninguno vendido) y avisar de todos es ruido.
+    const vendidos = new Set(sales.map((s: any) => s.product_id).filter(Boolean));
+    const outOfStockSelling = outOfStockProducts.filter((p: any) => vendidos.has(p.id)).length;
     // Productos nuevos (creados en los últimos 30 días) + próximos ingresos
     const newProdSince = new Date(); newProdSince.setDate(newProdSince.getDate() - 30);
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -1411,6 +1416,7 @@ export default function Dashboard() {
       pendingDebts: pendingDebts.length,
       lowStock: lowStockProducts.length,
       outOfStock: outOfStockProducts.length,
+      outOfStockSelling,
       lowStockProducts, outOfStockProducts, restockSuggestions,
       newProductsCount: newProducts.length,
       newProductNames: newProducts.slice(0, 3).map((p: any) => p.name),
@@ -1785,7 +1791,7 @@ export default function Dashboard() {
           ventasMesAnterior={stats.prevSalesARS}
           gananciaNetaMes={stats.netMonthProfitARS}
           margenPct={stats.monthSalesARS > 0 ? (stats.monthGrossProfit / stats.monthSalesARS) * 100 : null}
-          sinStock={stats.outOfStock}
+          sinStock={stats.outOfStockSelling}
           stockBajo={stats.lowStock}
           deudasPendientes={stats.pendingDebts}
           deudaTotalARS={stats.totalDebtsARS}

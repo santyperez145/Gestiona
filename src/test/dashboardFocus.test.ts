@@ -85,8 +85,8 @@ describe("construirPendientes", () => {
   });
 
   it("usa singular y plural donde corresponde", () => {
-    expect(construirPendientes({ ...VACIO, sinStock: 1 })[0].texto).toContain("1 producto sin stock");
-    expect(construirPendientes({ ...VACIO, sinStock: 2 })[0].texto).toContain("2 productos sin stock");
+    expect(construirPendientes({ ...VACIO, sinStock: 1 })[0].texto).toBe("1 producto que se vende quedó sin stock");
+    expect(construirPendientes({ ...VACIO, sinStock: 2 })[0].texto).toBe("2 productos que se venden quedaron sin stock");
   });
 
   it("sin operación y canal POS, empuja el mostrador y la toma física", () => {
@@ -403,5 +403,19 @@ describe("retomar la importación en un paso", () => {
     const efecto = importador.slice(importador.indexOf("const abrioInicial"), importador.indexOf("[orgId, canImport, sesionInicial, contextLoading]"));
     expect(efecto).toContain("void resume(sesionInicial);");
     expect(efecto).not.toContain("apply(");
+  });
+});
+
+describe("sin stock sólo de lo que se vende", () => {
+  it("el Inicio pasa al Foco los productos en cero con ventas en el período, no todo el catálogo en cero", () => {
+    const inicio = readFileSync(resolve(process.cwd(), "src/pages/Dashboard.tsx"), "utf8");
+    expect(inicio).toContain("sinStock={stats.outOfStockSelling}");
+    expect(inicio).toContain("const outOfStockSelling = outOfStockProducts.filter((p: any) => vendidos.has(p.id)).length;");
+  });
+
+  it("con miles en cero y ninguno vendido no hay pendiente de stock", () => {
+    const base = { ...VACIO, sinStock: 0 };
+    expect(construirPendientes(base).some(p => p.id === "sin-stock")).toBe(false);
+    expect(construirPendientes({ ...base, sinStock: 1234 })[0].texto).toBe("1.234 productos que se venden quedaron sin stock");
   });
 });
