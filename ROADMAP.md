@@ -282,6 +282,10 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    marketing, cobros, ventas, ajustes); leer sigue igual. Quedan tasks, deals,
    deal_outcomes (el vendedor cierra tareas sin «editar» en CRM: regla propia),
    integration_logs y team_messages. `scripts/escrituras-por-modulo-matrix.sql`.
+   Sexta vuelta (2026-10-11): `20261011001700` tareas, tratos y resultados de
+   tratos con permiso de CRM; editar también lo propio (tarea asignada o creada,
+   trato cargado por la persona). Quedan integration_logs y team_messages (uso
+   legítimo de cualquier miembro). `scripts/tareas-tratos-matrix.sql`.
    Lectura (2026-10-11): las funciones con privilegios de sólo lectura que ejecuta
    un anónimo verifican quién llama, salvo tres públicas a propósito
    (`confirm_payment_link_transfer`, el «ya transferí» de un link de pago, y
