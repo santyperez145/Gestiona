@@ -90,15 +90,23 @@ export function sugerenciasDeBusqueda(
     limite?: number;
     /** Resuelve el nombre visible de una categoría. */
     nombreCategoria?: (slug: string) => string;
+    /** Productos que trae un sinónimo del comercio para esta búsqueda. */
+    porSinonimo?: Set<string>;
   } = {},
 ): Sugerencia[] {
-  const { limite = 7, nombreCategoria = (s) => s } = opciones;
+  const { limite = 7, nombreCategoria = (s) => s, porSinonimo } = opciones;
 
   const q = normalizeText(query).trim();
   if (q.length < MIN_LARGO) return [];
 
   const tokens = queryTokens(query);
-  const matches = buscarProductosDeTienda(query, productos, nombreCategoria).productos;
+  const directos = buscarProductosDeTienda(query, productos, nombreCategoria).productos;
+  // Lo que el comercio vinculó a esta palabra («lo buscan como X, lo tengo
+  // como Y») va después de lo que coincide por nombre.
+  const ya = new Set(directos.map(p => p.id));
+  const matches = porSinonimo?.size
+    ? [...directos, ...productos.filter(p => porSinonimo.has(p.id) && !ya.has(p.id))]
+    : directos;
   const conStock = matches.filter(p => (Number(p.stock) || 0) > 0);
   // Sin stock igual se sugiere si no hay nada más: la ficha existe y ofrece
   // avisar cuando vuelva, que es mejor que "no encontramos nada".

@@ -360,6 +360,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             base={base}
             productos={products}
             nombreCategoria={nombreCat}
+            slug={store?.slug}
             className="ml-auto hidden sm:block flex-1 min-w-0 max-w-[9rem] lg:max-w-[13rem]"
           />
 
@@ -435,6 +436,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 base={base}
                 productos={products}
                 nombreCategoria={nombreCat}
+                slug={store?.slug}
                 variante="panel"
                 onNavegar={() => setMenuOpen(false)}
               />

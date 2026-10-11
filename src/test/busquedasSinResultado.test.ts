@@ -75,7 +75,7 @@ describe("las llamadas opcionales de la tienda no ensucian la consola al navegar
     expect(isTransientPublicError({ message: "TypeError: Failed to fetch", code: "" } as never)).toBe(true);
     const datos = readFileSync(resolve(process.cwd(), "src/lib/publicDataSource.ts"), "utf8");
     const sello = readFileSync(resolve(process.cwd(), "src/storefront/SelloNerqia.tsx"), "utf8");
-    expect(datos).toContain("else if (!isTransientPublicError(error)) console.error('[tienda] no se pudieron leer los sinónimos de búsqueda:'");
+    expect(datos).toContain("if (!isTransientPublicError(error)) console.error('[tienda] no se pudieron leer los sinónimos de búsqueda:'");
     expect(datos).toContain("if (isTransientPublicError(error)) return;\n  console.error('[tienda] no se pudo registrar la búsqueda sin resultados:'");
     expect(sello).toContain('if (!isTransientPublicError(error)) console.error("marca_nerqia_de_tienda", error);');
   });

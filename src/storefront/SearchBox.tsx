@@ -16,6 +16,8 @@ import {
   sugerenciasDeBusqueda, destinoSugerencia, moverSeleccion,
   type ProductoBuscable, type Sugerencia,
 } from "@/lib/searchSuggest";
+import { productosPorSinonimo, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
+import { getStoreSearchSynonyms } from "@/lib/publicDataSource";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 interface Props {
@@ -26,6 +28,8 @@ interface Props {
   /** El header y el menú del celular lo pintan distinto. */
   variante?: "header" | "panel";
   onNavegar?: () => void;
+  /** Slug de la tienda: con él, las sugerencias usan los sinónimos del comercio. */
+  slug?: string | null;
 }
 
 const ETIQUETA_TIPO: Record<Sugerencia["tipo"], string> = {
@@ -35,7 +39,7 @@ const ETIQUETA_TIPO: Record<Sugerencia["tipo"], string> = {
 };
 
 export default function SearchBox({
-  base, productos, nombreCategoria, className = "", variante = "header", onNavegar,
+  base, productos, nombreCategoria, className = "", variante = "header", onNavegar, slug,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,9 +50,24 @@ export default function SearchBox({
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = `sugerencias-busqueda-${useId()}`;
 
+  // Los sinónimos se piden recién cuando el cliente empieza a buscar.
+  const [sinonimos, setSinonimos] = useState<SinonimoDeBusqueda[]>([]);
+  const pidioSinonimos = useRef(false);
+  const pedirSinonimos = () => {
+    if (!slug || pidioSinonimos.current) return;
+    pidioSinonimos.current = true;
+    void getStoreSearchSynonyms(slug).then(lista => {
+      setSinonimos(lista);
+      if (lista.length === 0) pidioSinonimos.current = false;
+    });
+  };
+
   const sugerencias = useMemo(
-    () => sugerenciasDeBusqueda(q, productos, { nombreCategoria }),
-    [q, productos, nombreCategoria],
+    () => sugerenciasDeBusqueda(q, productos, {
+      nombreCategoria,
+      porSinonimo: sinonimos.length ? productosPorSinonimo(q, sinonimos) : undefined,
+    }),
+    [q, productos, nombreCategoria, sinonimos],
   );
 
   // Back/forward and external navigation must close stale suggestions too.
@@ -127,7 +146,7 @@ export default function SearchBox({
           ref={inputRef}
           value={q}
           onChange={e => { setQ(e.target.value); setAbierto(true); setSel(-1); }}
-          onFocus={() => setAbierto(true)}
+          onFocus={() => { setAbierto(true); pedirSinonimos(); }}
           onClick={() => setAbierto(true)}
           onKeyDown={onKeyDown}
           placeholder="Buscar..."

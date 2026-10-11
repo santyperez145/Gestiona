@@ -176,3 +176,32 @@ describe("moverSeleccion", () => {
     expect(moverSeleccion(-1, -1, 0)).toBe(-1);
   });
 });
+
+describe("sugerencias con sinónimos del comercio", () => {
+  const productos = [
+    p({ id: "esmeriladora", name: "Esmeriladora angular 115" }),
+    p({ id: "amoladora-chica", name: "Amoladora mini" }),
+  ];
+
+  it("suma lo vinculado por sinónimo después de lo que coincide por nombre", () => {
+    const s = sugerenciasDeBusqueda("amoladora", productos, { porSinonimo: new Set(["esmeriladora", "amoladora-chica"]) });
+    expect(s.filter(x => x.tipo === "producto").map(x => x.valor)).toEqual(["amoladora-chica", "esmeriladora"]);
+  });
+
+  it("sin sinónimos es lo de siempre", () => {
+    const s = sugerenciasDeBusqueda("amoladora", productos);
+    expect(s.filter(x => x.tipo === "producto").map(x => x.valor)).toEqual(["amoladora-chica"]);
+  });
+
+  it("el buscador del header pide los sinónimos al enfocar y la tienda le pasa el slug", async () => {
+    const { readFileSync } = await import("node:fs");
+    const caja = readFileSync("src/storefront/SearchBox.tsx", "utf8");
+    const layout = readFileSync("src/storefront/StoreLayout.tsx", "utf8");
+    const fuente = readFileSync("src/lib/publicDataSource.ts", "utf8");
+    expect(caja).toContain("onFocus={() => { setAbierto(true); pedirSinonimos(); }}");
+    expect(caja).toContain("porSinonimo: sinonimos.length ? productosPorSinonimo(q, sinonimos) : undefined");
+    expect(layout.match(/slug=\{store\?\.slug\}/g)?.length).toBeGreaterThanOrEqual(3);
+    // Una consulta por tienda; un error no queda guardado.
+    expect(fuente).toContain("if (lista === null) sinonimosPorTienda.delete(slug);");
+  });
+});

@@ -930,14 +930,31 @@ export async function recordStoreSearch(slug: string, termino: string, evento: '
   console.error('[tienda] no se pudo registrar la búsqueda:', error.message);
 }
 
-/** Sinónimos de búsqueda de una tienda (migración 20261011000600); [] si no hay o falta la función. */
+/**
+ * Sinónimos de búsqueda de una tienda (migración 20261011000600); [] si no hay
+ * o falta la función. Una sola consulta por tienda y visita: los comparten el
+ * catálogo y el buscador del header. Un error no queda guardado.
+ */
+const sinonimosPorTienda = new Map<string, Promise<{ termino: string; product_id: string }[] | null>>();
 export async function getStoreSearchSynonyms(slug: string): Promise<{ termino: string; product_id: string }[]> {
+  let pedido = sinonimosPorTienda.get(slug);
+  if (!pedido) {
+    pedido = leerSinonimosDeTienda(slug);
+    sinonimosPorTienda.set(slug, pedido);
+  }
+  const lista = await pedido;
+  if (lista === null) sinonimosPorTienda.delete(slug);
+  return lista ?? [];
+}
+
+async function leerSinonimosDeTienda(slug: string): Promise<{ termino: string; product_id: string }[] | null> {
   const { data, error } = await (supabase.rpc('get_store_search_synonyms' as never, { p_slug: slug } as never) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>);
   if (error) {
-    if (isMissingFunction(error)) warnFallback('get_store_search_synonyms()');
-    // Un corte de red (p. ej. al cambiar de página) no es un error: sin sinónimos.
-    else if (!isTransientPublicError(error)) console.error('[tienda] no se pudieron leer los sinónimos de búsqueda:', error.message);
-    return [];
+    if (isMissingFunction(error)) { warnFallback('get_store_search_synonyms()'); return []; }
+    // Un corte de red (p. ej. al cambiar de página) no es un error: sin
+    // sinónimos por ahora y se vuelve a pedir la próxima vez.
+    if (!isTransientPublicError(error)) console.error('[tienda] no se pudieron leer los sinónimos de búsqueda:', error.message);
+    return null;
   }
   return Array.isArray(data) ? (data as { termino: string; product_id: string }[]) : [];
 }
