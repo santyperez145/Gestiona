@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { retryRead as retryPublicRead, retryAbortableRead, retryIdempotentWrite, isTransientReadError as isTransientPublicError, type AbortableReadOptions, type PgError } from '@/lib/transientRead';
+import { esNavegadorAutomatizado } from '@/lib/vitalesTienda';
 
 export { retryPublicRead, retryIdempotentWrite };
 export { isTransientReadError as isTransientPublicError, type PgError } from '@/lib/transientRead';
@@ -903,6 +904,8 @@ export async function fetchCatalogVariants(productId: string) {
  * Sin datos del visitante; si la función no existe todavía, no hace nada.
  */
 export async function recordStoreSearchGap(slug: string, termino: string): Promise<void> {
+  // Un navegador automatizado (E2E, bots) no es un cliente buscando.
+  if (esNavegadorAutomatizado()) return;
   const { error } = await (supabase.rpc('registrar_busqueda_sin_resultado' as never, {
     p_slug: slug, p_termino: termino,
   } as never) as unknown as PromiseLike<{ error: PgError | null }>);
@@ -919,6 +922,7 @@ export async function recordStoreSearchGap(slug: string, termino: string): Promi
  * (`registrar_clic_de_busqueda`). Opcional: si falla, la tienda sigue igual.
  */
 export async function recordStoreSearch(slug: string, termino: string, evento: 'busqueda' | 'clic'): Promise<void> {
+  if (esNavegadorAutomatizado()) return;
   const fn = evento === 'clic' ? 'registrar_clic_de_busqueda' : 'registrar_busqueda';
   const { error } = await (supabase.rpc(fn as never, {
     p_slug: slug, p_termino: termino,

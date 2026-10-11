@@ -55,3 +55,19 @@ describe("velocidad de tiendas en Platform", () => {
     expect(r.map(c => [c.org_id, c.estado])).toEqual([["b", "no_pasa"], ["c", "pocos_datos"], ["a", "pasa"]]);
   });
 });
+
+describe("los navegadores automatizados no cuentan", () => {
+  it("vitales, búsquedas y búsquedas sin resultado se saltean con navigator.webdriver", async () => {
+    const { esNavegadorAutomatizado } = await import("@/lib/vitalesTienda");
+    const original = Object.getOwnPropertyDescriptor(navigator, "webdriver");
+    Object.defineProperty(navigator, "webdriver", { value: true, configurable: true });
+    expect(esNavegadorAutomatizado()).toBe(true);
+    Object.defineProperty(navigator, "webdriver", { value: false, configurable: true });
+    expect(esNavegadorAutomatizado()).toBe(false);
+    if (original) Object.defineProperty(navigator, "webdriver", original);
+    const datos = readFileSync(resolve(process.cwd(), "src/lib/publicDataSource.ts"), "utf8");
+    const lib = readFileSync(resolve(process.cwd(), "src/lib/vitalesTienda.ts"), "utf8");
+    expect(datos.match(/if \(esNavegadorAutomatizado\(\)\) return;/g)?.length).toBe(2);
+    expect(lib).toContain('typeof PerformanceObserver === "undefined" || esNavegadorAutomatizado()) return;');
+  });
+});

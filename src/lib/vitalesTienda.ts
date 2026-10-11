@@ -54,6 +54,19 @@ export function clsDeCambios(cambios: { startTime: number; value: number }[]): n
 
 let iniciado = false;
 
+/**
+ * Un navegador manejado por un programa (Playwright, Selenium, bots que se
+ * declaran): no es un visitante. Medido 2026-10-11: las primeras 14 visitas
+ * medidas eran del E2E del CI, que navega la tienda real.
+ */
+export function esNavegadorAutomatizado(): boolean {
+  try {
+    return typeof navigator !== "undefined" && navigator.webdriver === true;
+  } catch {
+    return false;
+  }
+}
+
 function observar(tipo: string, alRecibir: (lista: PerformanceEntry[]) => void, extra: Record<string, unknown> = {}) {
   try {
     if (!PerformanceObserver.supportedEntryTypes?.includes(tipo)) return;
@@ -66,7 +79,7 @@ function observar(tipo: string, alRecibir: (lista: PerformanceEntry[]) => void, 
 
 /** Empieza a medir la visita. Una sola vez por carga de página. */
 export function iniciarVitalesTienda(slug: string, pagina: PaginaDeTienda): void {
-  if (iniciado || typeof window === "undefined" || typeof PerformanceObserver === "undefined") return;
+  if (iniciado || typeof window === "undefined" || typeof PerformanceObserver === "undefined" || esNavegadorAutomatizado()) return;
   iniciado = true;
 
   let lcp: number | null = null;
