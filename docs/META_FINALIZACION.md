@@ -83,6 +83,8 @@ Hecho (decimocuarta corrida, 2026-10-10, E2): **Platform › Métricas › «Ent
 
 Hecho (decimoquinta corrida, 2026-10-10, E3): **Platform › Métricas › «Importaciones».** Por comercio: intentos, terminadas, trabadas (sin terminar y sin avance hace más de 30 minutos), hasta dónde llegó y la importación terminada más rápida contra la meta de E3 (< 30 min). Vista `platform_importaciones_catalogo`, sólo plataforma (migración 20261010002700, `scripts/platform-importaciones-matrix.sql` 3/3). Hoy muestra a Famatina con 12 intentos, 0 terminadas y 8 trabadas: el problema que antes sólo se vio revisando la base.
 
+Hecho (decimosexta corrida, 2026-10-10, TESIS §8 y E1): **Platform › Métricas › «Escalera de la tesis»** (primera pestaña). Los cuatro escalones en vivo con su meta (10 comercios activos → 8 tiendas → 5 con venta online → 3 vendiendo todas las semanas), cuál manda ahora, la fecha de revisión (2026-12-15) y las ventas por semana de cada comercio en 8 semanas contra la meta de E1 (≥ 20). `platform_escalera_tesis()`, sólo plataforma (migración 20261010002800, `scripts/escalera-tesis-matrix.sql` 5/5). Medido hoy: 1 tienda publicada; Famatina 2 ventas esta semana. Las metas se copian de TESIS.md y un test exige que coincidan.
+
 Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast desde la base (topics `org:<id>`, `user:<id>`, `plataforma:soporte`; ver `src/lib/orgRealtime.ts`), catálogo con caché local incremental (`src/lib/catalogCache.ts`), cron condicionados a trabajo pendiente, índices en todas las FK hacia `products`, categorías por rubro como datos (`rubro_reglas_categoria`).
 
 **2. Abrir mi tienda en minutos (P1)**
