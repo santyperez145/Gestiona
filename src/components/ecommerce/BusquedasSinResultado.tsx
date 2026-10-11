@@ -4,8 +4,9 @@
  * «Agregar a un producto» vincula el término (sinónimo de búsqueda) y la
  * tienda lo encuentra desde la próxima búsqueda. Arriba, el resumen de la
  * analítica: cuánto buscan, cuánto no encuentran, cuánto abren un producto y
- * lo que más buscan. Ver `src/lib/busquedasSinResultado.ts` y las migraciones
- * 20261011000500/0600/0700.
+ * lo que más buscan. Abajo, los clientes que dejaron su email para que les
+ * avisen («Copiar emails» y «Ya les avisé»; sólo quien edita la tienda). Ver
+ * `src/lib/busquedasSinResultado.ts` y las migraciones 20261011000500 a 0800.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { useHasPermission } from "@/lib/usePermissions";
 import { isMissingRelation } from "@/lib/publicDataSource";
 import { getProductsDB } from "@/lib/supabaseStore";
-import { resumenDeBusquedas, topBusquedas, type FilaBusqueda, type FilaBusquedaConResultado, type ResumenDeBusquedas, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
+import { avisosPorTermino, resumenDeBusquedas, topBusquedas, type AvisoDeBusqueda, type FilaBusqueda, type FilaBusquedaConResultado, type ResumenDeBusquedas, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
 import ProductCombobox, { type ProductoOpcion } from "@/components/shared/ProductCombobox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
   const puedeEditar = useHasPermission("ecommerce", "edit");
   const [top, setTop] = useState<FilaBusqueda[] | null>(null);
   const [resumen, setResumen] = useState<ResumenDeBusquedas | null>(null);
+  const [avisos, setAvisos] = useState<AvisoDeBusqueda[]>([]);
   const [vinculos, setVinculos] = useState<SinonimoDeBusqueda[]>([]);
   const [productos, setProductos] = useState<ProductoOpcion[] | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -49,6 +51,40 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
     });
     return () => { activo = false; };
   }, [orgId]);
+
+  // Los emails son datos personales: sólo los ve quien edita la tienda.
+  useEffect(() => {
+    if (!orgId || !puedeEditar) return;
+    let activo = true;
+    void supabase.from("store_avisos_de_busqueda" as never).select("id, termino, email, created_at")
+      .eq("org_id", orgId).order("created_at", { ascending: false }).limit(1000)
+      .then(({ data, error }) => {
+        if (!activo) return;
+        if (error && !isMissingRelation(error)) console.error("store_avisos_de_busqueda", error);
+        setAvisos((data ?? []) as AvisoDeBusqueda[]);
+      });
+    return () => { activo = false; };
+  }, [orgId, puedeEditar]);
+
+  const copiarEmails = async (emails: string[]) => {
+    try {
+      await navigator.clipboard.writeText(emails.join(", "));
+      toast.success(emails.length === 1 ? "Email copiado" : `${emails.length} emails copiados`);
+    } catch {
+      toast.error("No se pudieron copiar los emails");
+    }
+  };
+
+  const yaLesAvise = async (termino: string, ids: string[]) => {
+    const { error } = await supabase.from("store_avisos_de_busqueda" as never).delete().in("id", ids);
+    if (error) {
+      console.error("store_avisos_de_busqueda delete", error);
+      toast.error("No se pudo marcar como avisado");
+      return;
+    }
+    setAvisos(a => a.filter(x => !ids.includes(x.id)));
+    toast.success(`Listo: «${termino}» sale de la lista`);
+  };
 
   const abrir = async (termino: string) => {
     setAbierto(termino);
@@ -100,6 +136,22 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
               Lo que más buscan: {resumen.top.map(f => `«${f.termino}» (${f.veces})`).join(", ")}
             </p>
           )}
+        </div>
+      )}
+      {avisos.length > 0 && (
+        <div className="mt-3 space-y-2" aria-label="Pidieron aviso">
+          <p className="text-xs font-medium">Pidieron que les avises</p>
+          <ul className="space-y-1.5">
+            {avisosPorTermino(avisos).map(g => (
+              <li key={g.termino} className="flex flex-wrap items-center justify-between gap-2">
+                <span>«{g.termino}» <span className="tabular-nums text-muted-foreground">· {g.emails.length} {g.emails.length === 1 ? "cliente" : "clientes"}</span></span>
+                <span className="flex gap-1">
+                  <Button type="button" size="sm" variant="outline" onClick={() => void copiarEmails(g.emails)}>Copiar emails</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => void yaLesAvise(g.termino, g.ids)}>Ya les avisé</Button>
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {top.length === 0 ? (

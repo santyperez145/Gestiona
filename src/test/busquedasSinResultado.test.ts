@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { debeRegistrar, debeRegistrarConResultados, productosPorSinonimo, resumenDeBusquedas, terminoNormalizado, topBusquedas } from "@/lib/busquedasSinResultado";
+import { avisosPorTermino, debeRegistrar, debeRegistrarConResultados, productosPorSinonimo, resumenDeBusquedas, terminoNormalizado, topBusquedas } from "@/lib/busquedasSinResultado";
 
 describe("lo que buscan y no encuentran", () => {
   it("normaliza igual que la base y descarta lo corto", () => {
@@ -125,5 +125,31 @@ describe("analítica de búsqueda", () => {
     expect(tarjeta).toContain("resumenDeBusquedas(");
     expect(migration).toContain("REVOKE ALL ON FUNCTION public._busqueda_de_tienda(text, text) FROM PUBLIC, anon, authenticated;");
     expect(migration).toContain("REVOKE INSERT, UPDATE, DELETE ON public.store_busquedas FROM authenticated;");
+  });
+});
+
+describe("avisame si lo consiguen", () => {
+  it("agrupa por término sin repetir emails, el más pedido primero", () => {
+    const g = avisosPorTermino([
+      { id: "1", termino: "taladro", email: "a@x.com", created_at: "" },
+      { id: "2", termino: "pintura", email: "b@x.com", created_at: "" },
+      { id: "3", termino: "pintura", email: "c@x.com", created_at: "" },
+      { id: "4", termino: "pintura", email: "c@x.com", created_at: "" },
+    ]);
+    expect(g).toEqual([
+      { termino: "pintura", emails: ["b@x.com", "c@x.com"], ids: ["2", "3", "4"] },
+      { termino: "taladro", emails: ["a@x.com"], ids: ["1"] },
+    ]);
+    expect(avisosPorTermino([])).toEqual([]);
+  });
+
+  it("la tienda lo ofrece sólo si la búsqueda no encontró nada y el panel sólo a quien edita", () => {
+    const tienda = readFileSync(resolve(process.cwd(), "src/storefront/StoreProducts.tsx"), "utf8");
+    const tarjeta = readFileSync(resolve(process.cwd(), "src/components/ecommerce/BusquedasSinResultado.tsx"), "utf8");
+    const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20261011000800_aviso_de_busqueda.sql"), "utf8");
+    expect(tienda).toContain("{sinResultados === 0 && terminoNormalizado(q) && (");
+    expect(tarjeta).toContain("if (!orgId || !puedeEditar) return;");
+    expect(migration).toContain("USING (public.has_permission(org_id, 'ecommerce', 'edit') AND retener_hasta > now());");
+    expect(migration).toContain("REVOKE INSERT, UPDATE ON public.store_avisos_de_busqueda FROM authenticated;");
   });
 });

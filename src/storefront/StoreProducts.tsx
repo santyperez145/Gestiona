@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEven
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
+import AvisoDeBusquedaForm from "./AvisoDeBusquedaForm";
 import {
   menuDeCategorias, nombreDeCategoria, arbolDeCategorias, slugsDeRama,
 } from "@/lib/storeCategories";
@@ -387,6 +388,11 @@ export default function StoreProducts() {
                 >
                   Limpiar filtros
                 </button>
+              )}
+              {/* La búsqueda en sí no encontró nada (no son los filtros): que
+                  el cliente pueda dejar su email antes de irse. */}
+              {sinResultados === 0 && terminoNormalizado(q) && (
+                <AvisoDeBusquedaForm termino={q.trim()} />
               )}
             </div>
           ) : (

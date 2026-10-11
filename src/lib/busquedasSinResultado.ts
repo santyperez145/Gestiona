@@ -107,3 +107,22 @@ export function resumenDeBusquedas(
     top: filas.sort((a, b) => b.veces - a.veces || a.termino.localeCompare(b.termino)).slice(0, limite),
   };
 }
+
+export interface AvisoDeBusqueda {
+  id: string;
+  termino: string;
+  email: string;
+  created_at: string;
+}
+
+/** Pedidos de aviso agrupados por término, el más pedido primero (migración 20261011000800). */
+export function avisosPorTermino(avisos: AvisoDeBusqueda[]): { termino: string; emails: string[]; ids: string[] }[] {
+  const grupos = new Map<string, { termino: string; emails: string[]; ids: string[] }>();
+  for (const a of avisos) {
+    const g = grupos.get(a.termino) ?? { termino: a.termino, emails: [], ids: [] };
+    if (!g.emails.includes(a.email)) g.emails.push(a.email);
+    g.ids.push(a.id);
+    grupos.set(a.termino, g);
+  }
+  return [...grupos.values()].sort((a, b) => b.emails.length - a.emails.length || a.termino.localeCompare(b.termino));
+}
