@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, useRef } from "react"; import { Link, useLocation } from "react-router-dom";
 import { captureStoreReferral } from "@/lib/storeReferral";
+import { iniciarVitalesTienda, tipoDePagina } from "@/lib/vitalesTienda";
 import { useStore } from "./storeContext";
 import {
   menuDeCategorias, arbolDeCategorias, nombreDeCategoria,
@@ -68,6 +69,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     if (!store?.slug) return;
     captureStoreReferral(store.slug, search);
   }, [store?.slug, search]);
+
+  // Core Web Vitals de la página por la que entró el visitante (una vez por
+  // carga; ver `vitalesTienda.ts`).
+  const paginaDeEntrada = useRef(pathname);
+  useEffect(() => {
+    if (!store?.slug) return;
+    iniciarVitalesTienda(store.slug, tipoDePagina(paginaDeEntrada.current, base));
+  }, [store?.slug, base]);
 
   const theme = useMemo(
     () => resolveTheme(store?.theme, store?.primary_color),
