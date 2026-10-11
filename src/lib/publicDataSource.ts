@@ -935,6 +935,21 @@ export async function recordStoreSearch(slug: string, termino: string, evento: '
 }
 
 /**
+ * Las búsquedas con las que el cliente abrió productos terminaron en un
+ * pedido (migración 20261011001100). Opcional y best-effort.
+ */
+export async function recordStoreSearchOrder(slug: string, terminos: string[]): Promise<void> {
+  if (terminos.length === 0 || esNavegadorAutomatizado()) return;
+  const { error } = await (supabase.rpc('registrar_pedido_de_busqueda' as never, {
+    p_slug: slug, p_terminos: terminos,
+  } as never) as unknown as PromiseLike<{ error: PgError | null }>);
+  if (!error) return;
+  if (isMissingFunction(error)) { warnFallback('registrar_pedido_de_busqueda()'); return; }
+  if (isTransientPublicError(error)) return;
+  console.error('[tienda] no se pudo registrar el pedido de la búsqueda:', error.message);
+}
+
+/**
  * Sinónimos de búsqueda de una tienda (migración 20261011000600); [] si no hay
  * o falta la función. Una sola consulta por tienda y visita: los comparten el
  * catálogo y el buscador del header. Un error no queda guardado.

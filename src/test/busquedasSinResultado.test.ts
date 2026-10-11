@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { avisosPorTermino, debeRegistrar, debeRegistrarConResultados, productosPorSinonimo, resumenDeBusquedas, terminoNormalizado, topBusquedas } from "@/lib/busquedasSinResultado";
+import { anotarBusquedaQueAbrio, avisosPorTermino, debeRegistrar, MAX_TERMINOS_POR_PEDIDO, tomarBusquedasQueAbrieron, debeRegistrarConResultados, productosPorSinonimo, resumenDeBusquedas, terminoNormalizado, topBusquedas } from "@/lib/busquedasSinResultado";
 
 describe("lo que buscan y no encuentran", () => {
   it("normaliza igual que la base y descarta lo corto", () => {
@@ -105,8 +105,8 @@ describe("analítica de búsqueda", () => {
     expect(r.pctSinResultado).toBe(25);
     expect(r.pctConClic).toBe(33);
     expect(r.top).toEqual([
-      { termino: "taladro", veces: 10, con_clic: 5 },
-      { termino: "pintura", veces: 5, con_clic: 0 },
+      { termino: "taladro", veces: 10, con_clic: 5, con_pedido: 0 },
+      { termino: "pintura", veces: 5, con_clic: 0, con_pedido: 0 },
     ]);
   });
 
@@ -163,5 +163,40 @@ describe("el aviso sale solo al vincular", () => {
     expect(migration).toContain("REVOKE ALL ON FUNCTION public._avisos_de_busqueda_a_stock() FROM PUBLIC, anon, authenticated;");
     expect(tarjeta).toContain("setAvisos(a => a.filter(x => x.termino !== termino));");
     expect(tarjeta).toContain("un email cuando haya stock");
+  });
+});
+
+describe("búsquedas que terminan en pedido", () => {
+  it("cuenta pedidos sin pasar nunca a las búsquedas", () => {
+    const r = resumenDeBusquedas([
+      { termino: "taladro", veces: 10, con_clic: 4, con_pedido: 2 },
+      { termino: "x y", veces: 1, con_clic: 1, con_pedido: 5 },
+    ], []);
+    expect(r.pctConPedido).toBe(27);
+    expect(resumenDeBusquedas([], []).pctConPedido).toBeNull();
+  });
+
+  it("recuerda los términos de la visita una vez, con tope, y se borran al tomarlos", () => {
+    const datos = new Map<string, string>();
+    const almacen = {
+      getItem: (k: string) => datos.get(k) ?? null,
+      setItem: (k: string, v: string) => { datos.set(k, v); },
+      removeItem: (k: string) => { datos.delete(k); },
+    } as unknown as Storage;
+    anotarBusquedaQueAbrio("t", "taladro", almacen);
+    anotarBusquedaQueAbrio("t", "taladro", almacen);
+    for (let i = 0; i < 12; i++) anotarBusquedaQueAbrio("t", `x${i}`, almacen);
+    const t = tomarBusquedasQueAbrieron("t", almacen);
+    expect(t).toHaveLength(MAX_TERMINOS_POR_PEDIDO);
+    expect(t).not.toContain("taladro");
+    expect(tomarBusquedasQueAbrieron("t", almacen)).toEqual([]);
+    expect(tomarBusquedasQueAbrieron("t", null)).toEqual([]);
+  });
+
+  it("la tienda anota al abrir y manda al crear el pedido", () => {
+    const tienda = readFileSync(resolve(process.cwd(), "src/storefront/StoreProducts.tsx"), "utf8");
+    const checkout = readFileSync(resolve(process.cwd(), "src/storefront/StoreCheckout.tsx"), "utf8");
+    expect(tienda).toContain("anotarBusquedaQueAbrio(slugTienda, termino);");
+    expect(checkout).toContain("void recordStoreSearchOrder(store!.slug, tomarBusquedasQueAbrieron(store!.slug));");
   });
 });

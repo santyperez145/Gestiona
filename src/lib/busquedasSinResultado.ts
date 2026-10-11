@@ -71,6 +71,8 @@ export interface FilaBusquedaConResultado {
   termino: string;
   veces: number;
   con_clic: number;
+  /** Migración 20261011001100; falta en filas leídas antes de aplicarla. */
+  con_pedido?: number;
 }
 
 export interface ResumenDeBusquedas {
@@ -80,6 +82,8 @@ export interface ResumenDeBusquedas {
   pctSinResultado: number | null;
   /** De las que encontraron algo, porcentaje que terminó en abrir un producto. */
   pctConClic: number | null;
+  /** De las que encontraron algo, porcentaje que terminó en un pedido. */
+  pctConPedido: number | null;
   top: FilaBusquedaConResultado[];
 }
 
@@ -89,14 +93,16 @@ export function resumenDeBusquedas(
 ): ResumenDeBusquedas {
   const porTermino = new Map<string, FilaBusquedaConResultado>();
   for (const f of conResultado) {
-    const a = porTermino.get(f.termino) ?? { termino: f.termino, veces: 0, con_clic: 0 };
+    const a = porTermino.get(f.termino) ?? { termino: f.termino, veces: 0, con_clic: 0, con_pedido: 0 };
     a.veces += Number(f.veces) || 0;
     a.con_clic += Number(f.con_clic) || 0;
+    a.con_pedido = (a.con_pedido ?? 0) + (Number(f.con_pedido) || 0);
     porTermino.set(f.termino, a);
   }
   const filas = [...porTermino.values()];
   const conRes = filas.reduce((n, f) => n + f.veces, 0);
   const clics = filas.reduce((n, f) => n + Math.min(f.con_clic, f.veces), 0);
+  const pedidos = filas.reduce((n, f) => n + Math.min(f.con_pedido ?? 0, f.veces), 0);
   const sin = sinResultado.reduce((n, f) => n + (Number(f.veces) || 0), 0);
   const total = conRes + sin;
   return {
@@ -104,6 +110,7 @@ export function resumenDeBusquedas(
     sinResultado: sin,
     pctSinResultado: total > 0 ? Math.round((sin / total) * 100) : null,
     pctConClic: conRes > 0 ? Math.round((clics / conRes) * 100) : null,
+    pctConPedido: conRes > 0 ? Math.round((pedidos / conRes) * 100) : null,
     top: filas.sort((a, b) => b.veces - a.veces || a.termino.localeCompare(b.termino)).slice(0, limite),
   };
 }
@@ -125,4 +132,53 @@ export function avisosPorTermino(avisos: AvisoDeBusqueda[]): { termino: string; 
     grupos.set(a.termino, g);
   }
   return [...grupos.values()].sort((a, b) => b.emails.length - a.emails.length || a.termino.localeCompare(b.termino));
+}
+
+/**
+ * Términos con los que el cliente abrió un producto en esta visita (migración
+ * 20261011001100). Viven sólo en `sessionStorage` del navegador: al crear el
+ * pedido se mandan una vez y se borran. Nunca rompe: sin almacenamiento, no
+ * se cuenta.
+ */
+const claveTerminos = (slug: string) => `nerqia.busquedas-abiertas.${slug}`;
+export const MAX_TERMINOS_POR_PEDIDO = 10;
+
+export function anotarBusquedaQueAbrio(slug: string, termino: string, almacen: Storage | null = sesion()): void {
+  if (!almacen) return;
+  try {
+    const actuales = leerTerminos(slug, almacen);
+    if (actuales.includes(termino)) return;
+    almacen.setItem(claveTerminos(slug), JSON.stringify([...actuales, termino].slice(-MAX_TERMINOS_POR_PEDIDO)));
+  } catch {
+    // Almacenamiento lleno o bloqueado: no se cuenta.
+  }
+}
+
+/** Devuelve los términos de la visita y los borra (se mandan una sola vez). */
+export function tomarBusquedasQueAbrieron(slug: string, almacen: Storage | null = sesion()): string[] {
+  if (!almacen) return [];
+  try {
+    const t = leerTerminos(slug, almacen);
+    almacen.removeItem(claveTerminos(slug));
+    return t;
+  } catch {
+    return [];
+  }
+}
+
+function leerTerminos(slug: string, almacen: Storage): string[] {
+  try {
+    const v = JSON.parse(almacen.getItem(claveTerminos(slug)) ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function sesion(): Storage | null {
+  try {
+    return typeof window !== "undefined" ? window.sessionStorage : null;
+  } catch {
+    return null;
+  }
 }

@@ -38,7 +38,7 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
     void Promise.all([
       supabase.from("store_busquedas_sin_resultado" as never).select("termino, veces").eq("org_id", orgId).gte("dia", desde).limit(2000),
       supabase.from("store_search_synonyms" as never).select("termino, product_id").eq("org_id", orgId).limit(2000),
-      supabase.from("store_busquedas" as never).select("termino, veces, con_clic").eq("org_id", orgId).gte("dia", desde).limit(5000),
+      supabase.from("store_busquedas" as never).select("termino, veces, con_clic, con_pedido").eq("org_id", orgId).gte("dia", desde).limit(5000),
     ]).then(([busquedas, sinonimos, conResultado]) => {
       if (!activo) return;
       if (busquedas.error && !isMissingRelation(busquedas.error)) console.error("store_busquedas_sin_resultado", busquedas.error);
@@ -136,6 +136,7 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
             <span className="font-medium tabular-nums">{resumen.total}</span> {resumen.total === 1 ? "búsqueda" : "búsquedas"} en 30 días
             {resumen.pctSinResultado !== null && <> · <span className="tabular-nums">{resumen.pctSinResultado}%</span> sin resultados</>}
             {resumen.pctConClic !== null && <> · <span className="tabular-nums">{resumen.pctConClic}%</span> de las que encontraron algo terminaron en abrir un producto</>}
+            {resumen.pctConPedido !== null && <> y <span className="tabular-nums">{resumen.pctConPedido}%</span> en un pedido</>}
           </p>
           {resumen.top.length > 0 && (
             <p className="mt-1 text-muted-foreground">

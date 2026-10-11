@@ -6,7 +6,8 @@ import { useStoreAuth } from "./storeAuth";
 import { Loader2, ShoppingBag, Lock, Tag, Truck, ShieldCheck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
-import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError, startStoreCheckout } from "@/lib/publicDataSource";
+import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError, recordStoreSearchOrder, startStoreCheckout } from "@/lib/publicDataSource";
+import { tomarBusquedasQueAbrieron } from "@/lib/busquedasSinResultado";
 import { orderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
 import { trackBeginCheckout } from "./tracking";
 import { useStoreTrackingRuntimeReady } from "./trackingConsent";
@@ -500,6 +501,9 @@ export default function StoreCheckout() {
       if (persistedAttempt) {
         markStoreCheckoutOrderCreated(checkoutAttemptStorage(), persistedAttempt, orderNumber);
       }
+      // Analítica de búsqueda: lo que buscó y abrió en esta visita terminó en
+      // un pedido. Una sola vez (se borra al tomarlo); nunca frena la compra.
+      void recordStoreSearchOrder(store!.slug, tomarBusquedasQueAbrieron(store!.slug));
       setProcessingStage("securing_order");
       const access = await getStoreOrderSecure({
         slug: store!.slug,

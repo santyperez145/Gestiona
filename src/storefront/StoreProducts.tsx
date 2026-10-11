@@ -1,4 +1,4 @@
-import { debeRegistrar, debeRegistrarConResultados, productosPorSinonimo, terminoNormalizado, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
+import { anotarBusquedaQueAbrio, debeRegistrar, debeRegistrarConResultados, productosPorSinonimo, terminoNormalizado, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
 import { getStoreSearchSynonyms, recordStoreSearch, recordStoreSearchGap } from "@/lib/publicDataSource";
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -142,6 +142,7 @@ export default function StoreProducts() {
     clicsEnviados.current.add(termino);
     busquedasEnviadas.current.add(termino);
     void recordStoreSearch(slugTienda, termino, "clic");
+    anotarBusquedaQueAbrio(slugTienda, termino);
   };
 
   const filtrados = useMemo(() => {
