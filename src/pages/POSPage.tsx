@@ -11,6 +11,7 @@ import { leerConfigControlador, type ConfigControlador } from "@/lib/fiscalPrint
 import { accionDeTecla, ATAJOS_POS, medioSiguiente, type AccionPos } from "@/lib/posShortcuts";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
+import { seVendeBajoCosto } from "@/lib/guardianDeMargen";
 import { productMatchesCode } from "@/lib/productCodes";
 import { etiquetaPresentacion, precioDeCajaQueAplica, presentacionPorCodigo, type ProductPresentation } from "@/lib/productPresentations";
 import { useOrg } from "@/lib/orgContext";
@@ -1939,6 +1940,15 @@ export default function POSPage() {
     const basePrice = variantOverride?.price ?? Number(prod.sale_price_ars);
     const price = customerPriceListId ? getPrice({ id: prod.id, sale_price_ars: basePrice }) : (basePrice || 0);
     const displayName = [prod.name, variantOverride?.name, presentacion?.name].filter(Boolean).join(' · ');
+    // Guardián de margen: cobrar por debajo del costo pierde plata (misma regla
+    // que el Inicio y Productos). Avisa, no bloquea: puede ser una liquidación.
+    if (!presentacion && seVendeBajoCosto({ sale_price_ars: price, total_cost_usd: prod.total_cost_usd, cost_ars: prod.cost_ars, cost_currency: prod.cost_currency }, cotizacionDe(settings))) {
+      toast.warning(`${prod.name}: el precio está por debajo del costo`, {
+        id: `bajo-costo-${prod.id}`,
+        description: `Se cobra ${formatARS(price)}. Esta venta pierde plata; revisá el precio en Productos.`,
+        duration: 8000,
+      });
+    }
     vibrateTap();
     setCart((prev) => {
       const idx = prev.findIndex((it) => it.productId === cartKey);

@@ -60,3 +60,14 @@ describe("el ajuste en bloque avisa si deja productos bajo costo", () => {
     expect(ui).toContain("if (aviso) toast.warning(aviso);");
   });
 });
+
+describe("la caja avisa al cobrar por debajo del costo", () => {
+  it("usa la misma regla con el precio que se cobra, avisa una vez por producto y no bloquea", () => {
+    const pos = readFileSync(resolve(process.cwd(), "src/pages/POSPage.tsx"), "utf8");
+    const bloque = pos.slice(pos.indexOf("// Guardián de margen: cobrar por debajo del costo"), pos.indexOf("vibrateTap();", pos.indexOf("// Guardián de margen: cobrar")));
+    expect(bloque).toContain("seVendeBajoCosto({ sale_price_ars: price,");
+    expect(bloque).toContain("id: `bajo-costo-${prod.id}`");
+    expect(bloque).toContain("toast.warning(");
+    expect(bloque).not.toContain("return");
+  });
+});
