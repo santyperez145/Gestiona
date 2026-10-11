@@ -153,3 +153,15 @@ describe("avisame si lo consiguen", () => {
     expect(migration).toContain("REVOKE INSERT, UPDATE ON public.store_avisos_de_busqueda FROM authenticated;");
   });
 });
+
+describe("el aviso sale solo al vincular", () => {
+  it("la base pasa los pedidos al aviso de stock y el panel lo dice", () => {
+    const tarjeta = readFileSync(resolve(process.cwd(), "src/components/ecommerce/BusquedasSinResultado.tsx"), "utf8");
+    const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20261011000900_aviso_de_busqueda_automatico.sql"), "utf8");
+    expect(migration).toContain("AFTER INSERT ON public.store_search_synonyms");
+    expect(migration).toContain("ON CONFLICT (product_id, variant_id, email) DO NOTHING;");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public._avisos_de_busqueda_a_stock() FROM PUBLIC, anon, authenticated;");
+    expect(tarjeta).toContain("setAvisos(a => a.filter(x => x.termino !== termino));");
+    expect(tarjeta).toContain("un email cuando haya stock");
+  });
+});

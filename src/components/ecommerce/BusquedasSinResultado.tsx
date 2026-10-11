@@ -112,7 +112,13 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
     }
     setVinculos(v => [...v, { termino, product_id: elegido }]);
     setAbierto(null);
-    toast.success("Listo: la tienda lo va a encontrar con esa palabra");
+    // La base pasa los pedidos de aviso de ese término a esperar el producto
+    // (migración 20261011000900): les llega un email cuando haya stock.
+    const esperaban = new Set(avisos.filter(a => a.termino === termino).map(a => a.email)).size;
+    setAvisos(a => a.filter(x => x.termino !== termino));
+    toast.success(esperaban > 0
+      ? `Listo: la tienda lo va a encontrar con esa palabra y ${esperaban === 1 ? "el cliente que pidió aviso recibe" : `los ${esperaban} clientes que pidieron aviso reciben`} un email cuando haya stock`
+      : "Listo: la tienda lo va a encontrar con esa palabra");
   };
 
   if (!top) return null;
@@ -141,6 +147,7 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
       {avisos.length > 0 && (
         <div className="mt-3 space-y-2" aria-label="Pidieron aviso">
           <p className="text-xs font-medium">Pidieron que les avises</p>
+          <p className="text-xs text-muted-foreground">Si lo tenés con otro nombre, agregá la palabra a ese producto: les llega un email solo cuando haya stock.</p>
           <ul className="space-y-1.5">
             {avisosPorTermino(avisos).map(g => (
               <li key={g.termino} className="flex flex-wrap items-center justify-between gap-2">
