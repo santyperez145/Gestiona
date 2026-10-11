@@ -141,7 +141,11 @@ export async function listInfluencerContracts(): Promise<InfluencerContract[]> {
     .from('influencer_contract_status')
     .select('*')
     .eq('org_id', orgId)
-    .order('created_at', { ascending: false })
+    // ⚠️ La vista no tiene `created_at`: ordenar por esa columna hacía fallar
+    // la consulta y la lista de contratos no cargaba nunca (medido
+    // 2026-10-11 con el barrido de columnas). Lo más reciente primero.
+    .order('valid_from', { ascending: false, nullsFirst: false })
+    .order('version', { ascending: false })
     .limit(200);
   if (error) throw error;
   return (data || []) as InfluencerContract[];
