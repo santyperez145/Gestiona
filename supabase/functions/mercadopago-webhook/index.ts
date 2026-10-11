@@ -499,6 +499,9 @@ Deno.serve(async (req) => {
           headers: { "Content-Type": "application/json" },
         });
       }
+      if (resultado.sinAnotar > 0) {
+        throw new ReintentarWebhook(`payout ${paymentId}: ${resultado.sinAnotar} escrituras sin anotar`);
+      }
       console.log(`MP payout ${paymentId}: ${resultado.status} (${resultado.aprobados} aprobados)`);
       return new Response(JSON.stringify({ payoutId: paymentId, ...resultado }), {
         headers: { "Content-Type": "application/json" },

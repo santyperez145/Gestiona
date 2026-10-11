@@ -9,6 +9,8 @@ const ARCHIVOS = [
   "supabase/functions/store-pay/index.ts",
   "supabase/functions/mercadopago-pos-qr/index.ts",
   "supabase/functions/_shared/mpToken.ts",
+  "supabase/functions/mp-payouts/index.ts",
+  "supabase/functions/_shared/mpPayoutsSync.ts",
 ];
 
 function escriturasSueltas(fuente: string): number[] {
@@ -39,6 +41,13 @@ describe("cobros del servidor: las escrituras miran el error", () => {
     expect(s).toContain("throw new ReintentarWebhook(`sales:");
     const captura = s.slice(s.indexOf("if (e instanceof ReintentarWebhook)"));
     expect(captura.slice(0, 200)).toContain("status: 500");
+  });
+
+  it("una conciliación de pagos a creadores a medias pide reintento", () => {
+    const sync = fs.readFileSync("supabase/functions/_shared/mpPayoutsSync.ts", "utf8");
+    expect(sync).toContain("ok: sinAnotar === 0");
+    const s = fs.readFileSync("supabase/functions/mercadopago-webhook/index.ts", "utf8");
+    expect(s).toMatch(/resultado\.sinAnotar > 0\) \{\s*throw new ReintentarWebhook/);
   });
 
   it("sólo actualiza ventas cuando la referencia es un id, para no reintentar para siempre", () => {

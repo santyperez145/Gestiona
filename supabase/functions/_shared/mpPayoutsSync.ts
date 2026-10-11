@@ -31,6 +31,8 @@ export interface SyncResultado {
   aprobados: number;
   rechazados: number;
   revertidos: number;
+  /** Escrituras que la base rechazó; si es > 0 hay que volver a conciliar. */
+  sinAnotar: number;
 }
 
 /**
@@ -75,6 +77,9 @@ export async function sincronizarLotePayouts(
   const mpItems: any[] = payload?.transactions ?? [];
   let aprobados = 0;
   let rechazados = 0;
+  // Escrituras que la base rechazó: la conciliación se puede volver a correr,
+  // pero quien la llama tiene que saber que quedó a medias.
+  let sinAnotar = 0;
   let revertidos = 0;
   const procesados = new Set<string>();
 
@@ -118,7 +123,7 @@ export async function sincronizarLotePayouts(
       rechazados += 1;
     }
 
-    await admin.from("influencer_payout_batch_items")
+    const { error: itemError } = await admin.from("influencer_payout_batch_items")
       .update({
         status: localStatus,
         mp_transaction_id: t?.id ? String(t.id) : null,
@@ -127,6 +132,7 @@ export async function sincronizarLotePayouts(
       })
       .eq("batch_id", batchId)
       .eq("withdrawal_id", withdrawalId);
+    if (itemError) { sinAnotar += 1; console.error(`[mp-payouts] no se anotó el retiro ${withdrawalId}`, itemError); }
   }
 
   const expectedItems = expectedIds.size;
@@ -138,13 +144,14 @@ export async function sincronizarLotePayouts(
     ? (expectedItems > 0 && aprobados === expectedItems && procesados.size === expectedItems ? "completed" : "processing")
     : (aprobados > 0 ? "partially_completed" : "failed");
 
-  await admin.from("influencer_payout_batches")
+  const { error: loteError } = await admin.from("influencer_payout_batches")
     .update({
       status: batchStatus,
       updated_at: new Date().toISOString(),
       completed_at: batchStatus === "completed" ? new Date().toISOString() : null,
     })
     .eq("id", batchId);
+  if (loteError) { sinAnotar += 1; console.error(`[mp-payouts] no se anotó el estado del lote ${batchId}`, loteError); }
 
-  return { ok: true, status: batchStatus, aprobados, rechazados, revertidos };
+  return { ok: sinAnotar === 0, status: batchStatus, aprobados, rechazados, revertidos, sinAnotar };
 }

@@ -205,9 +205,10 @@ Deno.serve(async (req) => {
       // Credenciales MP de la org (OAuth, cifradas en reposo).
       const creds = await getMpCredentials(admin, orgId);
       if (!creds) {
-        await admin.from("influencer_payout_batches")
+        const { error: sinConexionError } = await admin.from("influencer_payout_batches")
           .update({ status: "failed", last_error: "Mercado Pago no está conectado para esta organización", updated_at: new Date().toISOString() })
           .eq("id", batchId);
+        if (sinConexionError) console.error("[mp-payouts] no se marcó el lote como fallido (sin conexión)", sinConexionError);
         return json({ error: "Conectá Mercado Pago antes de pagar (Configuración → Cobros)" }, 400);
       }
 
@@ -218,9 +219,10 @@ Deno.serve(async (req) => {
         { p_batch_id: batchId },
       );
       if (payloadError || !dispatchPayload) {
-        await admin.from("influencer_payout_batches")
+        const { error: destinoError } = await admin.from("influencer_payout_batches")
           .update({ status: "failed", last_error: "El destino del lote no es válido", updated_at: new Date().toISOString() })
           .eq("id", batchId);
+        if (destinoError) console.error("[mp-payouts] no se marcó el lote como fallido (destino)", destinoError);
         return json({ error: "Revisá los destinos de cobro del lote", batch_id: batchId }, 400);
       }
 
@@ -264,9 +266,10 @@ Deno.serve(async (req) => {
       } catch (networkError) {
         // El proveedor pudo haber aceptado el POST antes del timeout. No se
         // crea otro lote: el operador reenvía ESTE batch con la misma llave.
-        await admin.from("influencer_payout_batches")
+        const { error: pendienteError } = await admin.from("influencer_payout_batches")
           .update({ status: "awaiting_confirmation", last_error: "Resultado pendiente de confirmación del proveedor", updated_at: new Date().toISOString() })
           .eq("id", batchId);
+        if (pendienteError) console.error("[mp-payouts] no se marcó el lote como pendiente de confirmación", pendienteError);
         return json({
           error: "Mercado Pago no confirmó el resultado. Reintentá el mismo lote; no se duplicará el pago.",
           code: "payout_confirmation_pending",
@@ -277,13 +280,15 @@ Deno.serve(async (req) => {
 
       if (!res.ok) {
         const ambiguous = res.status === 409 || res.status >= 500;
-        await admin.from("influencer_payout_batches")
+        const { error: rechazoError } = await admin.from("influencer_payout_batches")
           .update({ status: ambiguous ? "awaiting_confirmation" : "failed", last_error: extractErrorMessage(mpPayload), updated_at: new Date().toISOString() })
           .eq("id", batchId);
+        if (rechazoError) console.error("[mp-payouts] no se anotó el rechazo del lote", rechazoError);
         if (!ambiguous) {
-          await admin.from("influencer_payout_batch_items")
+          const { error: itemsRechazoError } = await admin.from("influencer_payout_batch_items")
             .update({ status: "failed", failure_reason: extractErrorMessage(mpPayload), updated_at: new Date().toISOString() })
             .eq("batch_id", batchId);
+          if (itemsRechazoError) console.error("[mp-payouts] no se anotó el rechazo de los retiros", itemsRechazoError);
         }
         return json({
           error: ambiguous
@@ -295,9 +300,10 @@ Deno.serve(async (req) => {
       }
 
       if (!mpPayload?.id) {
-        await admin.from("influencer_payout_batches")
+        const { error: sinIdError } = await admin.from("influencer_payout_batches")
           .update({ status: "awaiting_confirmation", last_error: "Mercado Pago respondió sin identificar el lote", updated_at: new Date().toISOString() })
           .eq("id", batchId);
+        if (sinIdError) console.error("[mp-payouts] no se marcó el lote sin identificador", sinIdError);
         return json({
           error: "Mercado Pago recibió el lote pero todavía no confirmó su identificador. Reintentá el mismo lote.",
           code: "payout_confirmation_pending",
@@ -305,16 +311,18 @@ Deno.serve(async (req) => {
         }, 202);
       }
 
-      await admin.from("influencer_payout_batches")
+      const { error: enviadoError } = await admin.from("influencer_payout_batches")
         .update({
           mp_payout_id: String(mpPayload?.id ?? ""),
           status: "processing",
           updated_at: new Date().toISOString(),
         })
         .eq("id", batchId);
-      await admin.from("influencer_payout_batch_items")
+      if (enviadoError) console.error("[mp-payouts] MP aceptó el lote pero no se guardó su id; se concilia con la misma clave", enviadoError);
+      const { error: itemsEnviadosError } = await admin.from("influencer_payout_batch_items")
         .update({ status: "processing", updated_at: new Date().toISOString() })
         .eq("batch_id", batchId);
+      if (itemsEnviadosError) console.error("[mp-payouts] MP aceptó el lote pero no se marcaron los retiros", itemsEnviadosError);
 
       return json({
         ok: true,
