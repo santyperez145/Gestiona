@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { topicUsuario, useTopicEvent } from "@/lib/orgRealtime";
+import { toast } from "sonner";
 const TYPE_CONFIG: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
   stock_bajo: { icon: Package, color: 'text-orange-400', bg: 'bg-orange-500/10' },
   deuda_vencida: { icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-500/10' },
@@ -92,20 +93,36 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
+    // ⚠️ Antes no se miraba el error: si la base rechazaba, la campanita
+    // mostraba todo leído y al recargar volvían todas.
+    const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
+    if (error) {
+      console.error('[notificaciones] no se pudieron marcar como leídas:', error);
+      toast.error('No se pudieron marcar como leídas. Probá de nuevo.');
+      return;
+    }
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
   };
 
   const markOneRead = async (id: string) => {
-    await supabase.from('notifications').update({ read: true }).eq('id', id);
+    const { error } = await supabase.from('notifications').update({ read: true }).eq('id', id);
+    if (error) {
+      console.error('[notificaciones] no se pudo marcar como leída:', error);
+      return;
+    }
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   const clearAll = async () => {
     if (!user) return;
-    await supabase.from('notifications').delete().eq('user_id', user.id);
+    const { error } = await supabase.from('notifications').delete().eq('user_id', user.id);
+    if (error) {
+      console.error('[notificaciones] no se pudieron borrar:', error);
+      toast.error('No se pudieron borrar las notificaciones. Probá de nuevo.');
+      return;
+    }
     setNotifications([]);
     setUnreadCount(0);
   };
