@@ -85,6 +85,8 @@ Hecho (decimoquinta corrida, 2026-10-10, E3): **Platform › Métricas › «Imp
 
 Hecho (decimosexta corrida, 2026-10-10, TESIS §8 y E1): **Platform › Métricas › «Escalera de la tesis»** (primera pestaña). Los cuatro escalones en vivo con su meta (10 comercios activos → 8 tiendas → 5 con venta online → 3 vendiendo todas las semanas), cuál manda ahora, la fecha de revisión (2026-12-15) y las ventas por semana de cada comercio en 8 semanas contra la meta de E1 (≥ 20). `platform_escalera_tesis()`, sólo plataforma (migración 20261010002800, `scripts/escalera-tesis-matrix.sql` 5/5). Medido hoy: 1 tienda publicada; Famatina 2 ventas esta semana. Las metas se copian de TESIS.md y un test exige que coincidan.
 
+Hecho (decimoséptima corrida, 2026-10-10, E5): **la oferta de Starter aparece sola a las 4 semanas.** En el Inicio, al dueño o administrador de un comercio con 4 semanas desde el alta que todavía no paga (la prueba no cuenta como pago): «Ya llevás N semanas con Nerqia» → «Ver la cuenta» abre Mi plan en «Lo que Nerqia reemplaza». «Más adelante» la esconde 14 días. Famatina la va a ver desde el 2026-10-30. La conversión se lee en suscripciones pagas por comercio con 4+ semanas (meta E5: ≥ 30%).
+
 Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast desde la base (topics `org:<id>`, `user:<id>`, `plataforma:soporte`; ver `src/lib/orgRealtime.ts`), catálogo con caché local incremental (`src/lib/catalogCache.ts`), cron condicionados a trabajo pendiente, índices en todas las FK hacia `products`, categorías por rubro como datos (`rubro_reglas_categoria`).
 
 **2. Abrir mi tienda en minutos (P1)**

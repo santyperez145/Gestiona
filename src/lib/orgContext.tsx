@@ -24,6 +24,8 @@ export interface Organization {
   trial_ends_at: string | null;
   onboarding_completed: boolean;
   onboarding_goal: 'pos' | 'online' | 'explore';
+  /** Alta del comercio (la consulta trae la fila completa). */
+  created_at?: string;
 }
 
 export interface Membership {

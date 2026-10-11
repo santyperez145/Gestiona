@@ -47,6 +47,7 @@ import DashboardTooltip from "@/components/analytics/DashboardTooltip";
 
 import { plural } from "@/lib/plural";
 import { contarBajoCosto } from "@/lib/guardianDeMargen";
+import OfertaStarterE5 from "@/components/dashboard/OfertaStarterE5";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import CommerceQuickActions from "@/components/commerce/CommerceQuickActions";
 import CommercePeriodComparison from "@/components/commerce/CommercePeriodComparison";
@@ -1769,6 +1770,8 @@ export default function Dashboard() {
           ventas del mes aparecían recién scrolleando. Este bloque contesta las
           dos preguntas con las que se abre el sistema a la mañana: cómo viene
           el mes, y qué hay para hacer ahora. */}
+      <OfertaStarterE5 />
+
       {stats && (
         /* ⚠️ `deudasVencidas30` recibía `agingCount30`, que cuenta PRODUCTOS sin
            movimiento en 30 días. El panel decía "42 deudas vencidas hace más de

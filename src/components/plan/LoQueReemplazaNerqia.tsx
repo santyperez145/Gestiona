@@ -62,6 +62,14 @@ export default function LoQueReemplazaNerqia({ orgId, canEdit, plan }: Props) {
 
   useEffect(() => { void cargar(); }, [cargar]);
 
+  // La oferta de E5 en el Inicio enlaza a `#lo-que-reemplaza`: el panel carga
+  // después, así que el navegador no baja solo.
+  const cargado = Boolean(uso);
+  useEffect(() => {
+    if (!cargado || window.location.hash !== "#lo-que-reemplaza") return;
+    document.getElementById("lo-que-reemplaza")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [cargado]);
+
   const guardar = async (producto: ProductoNerqia) => {
     if (!borrador) return;
     const monto = parsearMontoMensual(borrador[producto].monto);
