@@ -126,19 +126,21 @@ export default function TasksPage() {
   const updateStatus = async (task: Task, status: Task["status"]) => {
     const update: any = { status };
     if (status === "done") update.completed_at = new Date().toISOString();
-    await supabase.from("tasks").update(update).eq("id", task.id);
+    const { error } = await supabase.from("tasks").update(update).eq("id", task.id);
+    if (error) { toast.error("No se pudo cambiar la tarea: " + error.message); return; }
     await load();
     if (status === "done") toast.success(`"${task.title}" completada`);
   };
 
   const deleteTask = async (task: Task) => {
-    await supabase.from("tasks").delete().eq("id", task.id);
+    const { error } = await supabase.from("tasks").delete().eq("id", task.id);
+    if (error) { toast.error("No se pudo borrar la tarea: " + error.message); return; }
     await load();
   };
 
   const createSubtask = async (parentId: string) => {
     if (!subtaskInput.trim() || !activeOrg) return;
-    await supabase.from("tasks").insert({
+    const { error } = await supabase.from("tasks").insert({
       org_id: activeOrg.id,
       created_by: user?.id,
       title: subtaskInput.trim(),
@@ -146,6 +148,7 @@ export default function TasksPage() {
       status: "pending",
       parent_id: parentId,
     } as any);
+    if (error) { toast.error("No se pudo crear la subtarea: " + error.message); return; }
     setSubtaskInput("");
     setAddingSubtaskFor(null);
     setExpandedSubtasks(prev => new Set([...prev, parentId]));

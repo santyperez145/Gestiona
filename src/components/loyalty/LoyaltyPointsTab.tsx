@@ -134,11 +134,12 @@ export default function LoyaltyPointsTab() {
     if (!activeOrg) return;
     setSavingSettings(true);
     try {
-      await supabase.from("settings").update({
+      const { error } = await supabase.from("settings").update({
         loyalty_enabled: enabled,
         loyalty_points_per_1000: Number(pointsPer1000) || 1,
         loyalty_points_value_ars: Number(pointValueArs) || 100,
       }).eq("org_id", activeOrg.id);
+      if (error) throw error;
       toast.success("Configuración guardada");
       await load();
     } catch { toast.error("Error al guardar"); }
@@ -151,12 +152,13 @@ export default function LoyaltyPointsTab() {
     if (isNaN(delta) || delta === 0) { toast.error("Ingresá un número distinto de 0"); return; }
     setAdjusting(true);
     try {
-      await supabase.from("loyalty_points").insert({
+      const { error } = await supabase.from("loyalty_points").insert({
         org_id: activeOrg.id,
         customer_name: adjCustomer.trim(),
         delta,
         reason: adjReason.trim() || "manual",
       });
+      if (error) throw error;
       toast.success(`${delta > 0 ? "+" : ""}${delta} puntos a ${adjCustomer}`);
       setAdjCustomer(""); setAdjDelta(""); setAdjReason("");
       await load();
@@ -182,12 +184,13 @@ export default function LoyaltyPointsTab() {
     }
     setRedeemSaving(true);
     try {
-      await supabase.from("loyalty_points").insert({
+      const { error } = await supabase.from("loyalty_points").insert({
         org_id: activeOrg.id,
         customer_name: redeemCustomer.trim(),
         delta: -ptsNeeded,
         reason: "redeem",
       });
+      if (error) throw error;
       toast.success(`Canje registrado: −${ptsNeeded} puntos a ${redeemCustomer.trim()} por "${prod.name}"`);
       setRedeemProductId("");
       setRedeemCustomer("");

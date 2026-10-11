@@ -213,17 +213,19 @@ function ActivityPanel({
     if (!content.trim()) return;
     setSaving(true);
     try {
-      await supabase.from("deal_activities").insert({
+      const { error: actError } = await supabase.from("deal_activities").insert({
         org_id: orgId,
         deal_id: deal.id,
         user_id: userId,
         type: actType,
         content: content.trim(),
       });
+      if (actError) throw actError;
       setContent("");
       await loadActivities();
       // Touch the deal's updated_at
-      await supabase.from("deals").update({ updated_at: new Date().toISOString() }).eq("id", deal.id);
+      const { error: touchError } = await supabase.from("deals").update({ updated_at: new Date().toISOString() }).eq("id", deal.id);
+      if (touchError) console.warn("[Pipeline] no se actualizó la fecha del negocio", touchError);
     } catch (e: any) {
       toast.error(e.message || "Error al guardar");
     } finally {
@@ -387,7 +389,7 @@ function ActivityPanel({
               onClick={async () => {
                 await onStageChange(deal, s.value);
                 // Log stage change activity
-                await supabase.from("deal_activities").insert({
+                const { error: stageLogError } = await supabase.from("deal_activities").insert({
                   org_id: orgId,
                   deal_id: deal.id,
                   user_id: userId,
@@ -395,6 +397,7 @@ function ActivityPanel({
                   content: `Etapa cambiada: ${stageInfo.label} → ${s.label}`,
                   meta: { from_stage: deal.stage, to_stage: s.value },
                 });
+                if (stageLogError) toast.error("Se movió de etapa, pero no quedó en el historial: " + stageLogError.message);
                 await loadActivities();
               }}
               className={`text-[10px] px-2.5 py-1 rounded-full border transition-all hover:opacity-80 ${s.bg} ${s.color} border-current/20`}
@@ -928,7 +931,7 @@ export default function PipelineKanbanTab() {
         nextSendAt.setDate(nextSendAt.getDate() + (firstStep?.day_offset ?? 1));
 
         // Insert ignoring conflicts (unique sequence_id, customer_email)
-        await supabase.from("drip_enrollments").insert({
+        const { error: dripError } = await supabase.from("drip_enrollments").insert({
           sequence_id:    seq.id,
           org_id:         activeOrg.id,
           customer_email: customer.email,
@@ -939,6 +942,7 @@ export default function PipelineKanbanTab() {
           status:         "active",
           next_send_at:   nextSendAt.toISOString(),
         });
+        if (dripError && dripError.code !== "23505") console.warn("[Pipeline] no se inscribió en la secuencia", dripError);
       }
     } catch {
       // Silent — drip enrollment is best-effort, don't block deal close
@@ -948,11 +952,12 @@ export default function PipelineKanbanTab() {
   const commitMove = async (deal: Deal, stage: Stage, reason: string | null) => {
     try {
       const closedAt = new Date().toISOString();
-      await supabase.from("deals").update({
+      const { error: closeError } = await supabase.from("deals").update({
         stage,
         win_loss_reason: reason || null,
         updated_at: closedAt,
       }).eq("id", deal.id);
+      if (closeError) throw closeError;
       setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, stage, win_loss_reason: reason } : d));
       const stageLabel = STAGES.find(s => s.value === stage)?.label ?? stage;
       void fireStageAutomations(deal, stageLabel);
@@ -962,7 +967,7 @@ export default function PipelineKanbanTab() {
         const daysInPipeline = Math.floor(
           (Date.now() - new Date(deal.created_at).getTime()) / 86_400_000,
         );
-        await supabase.from("deal_outcomes").insert({
+        const { error: outcomeError } = await supabase.from("deal_outcomes").insert({
           org_id:           activeOrg.id,
           deal_id:          deal.id,
           deal_title:       deal.title,
@@ -975,6 +980,7 @@ export default function PipelineKanbanTab() {
           days_in_pipeline: daysInPipeline,
           closed_at:        closedAt,
         });
+        if (outcomeError) console.warn("[Pipeline] no se guardó el resultado para el análisis", outcomeError);
 
         // ── Auto-enroll lost-deal customers in re-engagement drip ──────────
         if (stage === "perdido" && deal.customer_name) {
@@ -1029,7 +1035,7 @@ export default function PipelineKanbanTab() {
         if (flow.action_type === "create_task") {
           const dueDate = new Date();
           dueDate.setDate(dueDate.getDate() + Number(actionCfg.task_due_days ?? 1));
-          await supabase.from("tasks").insert({
+          const { error: taskError } = await supabase.from("tasks").insert({
             org_id: activeOrg.id,
             title: actionCfg.message
               ? `${actionCfg.message} — ${deal.title}`
@@ -1038,6 +1044,7 @@ export default function PipelineKanbanTab() {
             due_date: dueDate.toISOString().slice(0, 10),
             status: "pending",
           });
+          if (taskError) { console.warn("[Pipeline] la automatización no creó la tarea", taskError); continue; }
           fired++;
         } else if (flow.action_type === "notification") {
           // Show a toast as in-app notification (no notifications table required)
@@ -1059,7 +1066,8 @@ export default function PipelineKanbanTab() {
       confirmText: "Eliminar",
     }))) return;
     try {
-      await supabase.from("deals").delete().eq("id", deal.id);
+      const { error: deleteError } = await supabase.from("deals").delete().eq("id", deal.id);
+      if (deleteError) throw deleteError;
       setDeals(prev => prev.filter(d => d.id !== deal.id));
     } catch {
       toast.error("Error al eliminar");

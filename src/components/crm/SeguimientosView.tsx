@@ -200,9 +200,10 @@ export default function SeguimientosView() {
       toast.error("Error al guardar nota");
     } else {
       // Also update deal.updated_at so it's no longer stale
-      await supabase.from("deals")
+      const { error: touchError } = await supabase.from("deals")
         .update({ updated_at: new Date().toISOString() })
         .eq("id", noteDialog.dealId);
+      if (touchError) console.warn("[Seguimientos] no se actualizó la fecha del negocio", touchError);
       toast.success("Seguimiento registrado");
       setNoteDialog(null);
       setNoteText("");
@@ -213,16 +214,18 @@ export default function SeguimientosView() {
 
   // Mark CRM follow-up as done
   const markFollowUpDone = async (id: string) => {
-    await supabase.from("crm_followups").update({ status: "done" }).eq("id", id);
+    const { error } = await supabase.from("crm_followups").update({ status: "done" }).eq("id", id);
+    if (error) { toast.error("No se pudo completar el seguimiento: " + error.message); return; }
     setStaleCustomers(prev => prev.filter(c => c.id !== id));
     toast.success("Follow-up marcado como completado");
   };
 
   // Mark task as completed
   const completeTask = async (id: string) => {
-    await supabase.from("tasks")
+    const { error } = await supabase.from("tasks")
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("id", id);
+    if (error) { toast.error("No se pudo completar la tarea: " + error.message); return; }
     setOverdueTasks(prev => prev.filter(t => t.id !== id));
     toast.success("Tarea completada");
   };

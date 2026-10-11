@@ -1065,7 +1065,8 @@ function CommunicationsLog({ orgId, userId, customer }: { orgId: string; userId:
   };
 
   const markOutcome = async (id: string, outcome: string) => {
-    await supabase.from("customer_communications").update({ outcome }).eq("id", id);
+    const { error } = await supabase.from("customer_communications").update({ outcome }).eq("id", id);
+    if (error) { toast.error("No se pudo actualizar el resultado: " + error.message); return; }
     setEntries(prev => prev.map(e => e.id === id ? { ...e, outcome } : e));
     toast.success(outcome === "completed" ? "✅ Seguimiento completado" : "Resultado actualizado");
   };
