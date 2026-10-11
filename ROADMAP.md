@@ -304,6 +304,11 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    `stock_disponible`/`stock_en_vitrina`, que la tienda muestra igual). Sin cambios.
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
    honestos, alerts accionables y soporte con correlación sanitizada.
+   Avance 2026-10-11: LCP/INP/CLS de visitas reales (`20261011001000`, Platform ›
+   «Velocidad»). Errores: producción no tenía DSN de Sentry, así que nada se
+   registraba; ahora la app guarda los suyos agrupados por día y huella, sin
+   usuario, comercio ni IP (`20261011002000`, Platform › «Errores», retención 30
+   días). Configurar Sentry sigue siendo acción del dueño (`VITE_SENTRY_DSN`).
 4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con
    evidencia autorizada; ningún simulacro mueve dinero o envía campañas.
    Conexiones guiadas para el cliente: requisitos, permiso, estado, diagnóstico,

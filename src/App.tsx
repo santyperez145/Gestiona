@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect } from "react";
 import * as Sentry from "@sentry/react";
+import { registrarError } from "@/lib/registroDeErrores";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Route, Routes, Navigate, useLocation, useNavigationType } from "react-router-dom";
@@ -458,7 +459,7 @@ function OrganizationScope() {
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="gestiona-theme">
-  <Sentry.ErrorBoundary fallback={({ error }) => {
+  <Sentry.ErrorBoundary onError={error => { if (!isStaleBuildError(error)) registrarError(error); }} fallback={({ error }) => {
     if (hasPendingAppUpdate() || isStaleBuildError(error)) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">

@@ -15,6 +15,7 @@ import EntrevistasE2 from "@/components/platform/EntrevistasE2";
 import ImportacionesPlataforma from "@/components/platform/ImportacionesPlataforma";
 import VelocidadTiendas from "@/components/platform/VelocidadTiendas";
 import ExperimentosTesis from "@/components/platform/ExperimentosTesis";
+import ErroresApp from "@/components/platform/ErroresApp";
 import EscaleraTesis from "@/components/platform/EscaleraTesis";
 import SemaforoComercios from "@/components/platform/SemaforoComercios";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -124,7 +125,7 @@ export default function PlatformMetricsPage() {
   const [cohortViewUnavailable, setCohortViewUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = usePersistedState<"thesis" | "experiments" | "traffic" | "funnel" | "health" | "activation" | "channels" | "products" | "interviews" | "imports" | "speed" | "stock" | "ai" | "risk" | "operations">("gestiona.view.platform.metrics-tab", "funnel");
+  const [tab, setTab] = usePersistedState<"thesis" | "experiments" | "traffic" | "funnel" | "health" | "activation" | "channels" | "products" | "interviews" | "imports" | "speed" | "errors" | "stock" | "ai" | "risk" | "operations">("gestiona.view.platform.metrics-tab", "funnel");
   const [search, setSearch] = usePersistedState("gestiona.view.platform.metrics-search", "");
   const [signalFilter, setSignalFilter] = usePersistedState("gestiona.view.platform.metrics-signal", "all");
 
@@ -309,6 +310,7 @@ export default function PlatformMetricsPage() {
           <TabsTrigger value="interviews" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Entrevistas E2</TabsTrigger>
           <TabsTrigger value="imports" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Importaciones</TabsTrigger>
           <TabsTrigger value="speed" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Velocidad</TabsTrigger>
+          <TabsTrigger value="errors" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Errores</TabsTrigger>
           <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Inventario</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Recomendaciones IA</TabsTrigger>
           <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-border">Riesgo</TabsTrigger>
@@ -633,6 +635,9 @@ export default function PlatformMetricsPage() {
         </TabsContent>
         <TabsContent value="experiments" className="mt-5">
           {tab === "experiments" && <ExperimentosTesis />}
+        </TabsContent>
+        <TabsContent value="errors" className="mt-5">
+          {tab === "errors" && <ErroresApp />}
         </TabsContent>
         <TabsContent value="speed" className="mt-5">
           {tab === "speed" && <VelocidadTiendas />}

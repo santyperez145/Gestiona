@@ -6,6 +6,7 @@ import { validateEnv } from "./lib/env";
 import { announceUpdateAvailable, setupServiceWorkerUpdates } from "./lib/swUpdate";
 import { isStaleBuildError } from "./lib/staleBuildRecovery";
 import { isNativeRuntime } from "./lib/nativeRuntime";
+import { registrarError } from "./lib/registroDeErrores";
 
 validateEnv();
 initSentry();
@@ -28,9 +29,15 @@ window.addEventListener("vite:preloadError", (event) => {
   event.preventDefault();
 });
 
+// Errores no atrapados: quedan medidos aunque no haya Sentry (P0.3). Una
+// versión vieja que se actualiza no es un error de la app.
+window.addEventListener("error", (event) => {
+  if (!isStaleBuildError(event.error)) registrarError(event.error ?? event.message);
+});
+
 // Fallback para navegadores donde el fallo sólo aparece como promesa rechazada.
 window.addEventListener("unhandledrejection", (event) => {
-  if (!isStaleBuildError(event.reason)) return;
+  if (!isStaleBuildError(event.reason)) { registrarError(event.reason); return; }
   announceUpdateAvailable();
   event.preventDefault();
 });
