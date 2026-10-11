@@ -290,7 +290,8 @@ export default function WhatsAppCampaignsPage() {
       load();
     } catch (err: any) {
       toast.error("Error al enviar: " + (err?.message || String(err)));
-      await supabase.from("whatsapp_campaigns").update({ status: "failed" }).eq("id", camp.id);
+      const { error: marcarError } = await supabase.from("whatsapp_campaigns").update({ status: "failed" }).eq("id", camp.id);
+      if (marcarError) console.warn("[WhatsApp] no se marcó la campaña como fallida", marcarError);
       load();
     } finally {
       setSending(null);
@@ -304,7 +305,8 @@ export default function WhatsAppCampaignsPage() {
       confirmText: "Eliminar",
     }))) return;
     setDeleting(id);
-    await supabase.from("whatsapp_campaigns").delete().eq("id", id);
+    const { error } = await supabase.from("whatsapp_campaigns").delete().eq("id", id);
+    if (error) { setDeleting(null); toast.error("No se pudo eliminar la campaña: " + error.message); return; }
     setCampaigns(prev => prev.filter(c => c.id !== id));
     setDeleting(null);
   };

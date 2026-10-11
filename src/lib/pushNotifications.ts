@@ -87,11 +87,12 @@ export async function unsubscribeFromPush(orgId: string): Promise<void> {
   await sub.unsubscribe();
 
   // Remove from DB
-  await supabase
+  const { error } = await supabase
     .from("push_subscriptions" as any)
     .delete()
     .eq("endpoint", endpoint)
     .eq("org_id", orgId);
+  if (error) console.warn("[Push] no se borró la suscripción", error);
 }
 
 async function saveSubscription(sub: PushSubscription, orgId: string): Promise<void> {

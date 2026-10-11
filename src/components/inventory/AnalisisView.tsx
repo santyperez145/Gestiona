@@ -148,7 +148,8 @@ export default function AnalisisView() {
   }
 
   async function resolveSignal(id: string) {
-    await supabase.from("demand_signals").update({ is_resolved: true, resolved_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("demand_signals").update({ is_resolved: true, resolved_at: new Date().toISOString() }).eq("id", id);
+    if (error) { toast.error("No se pudo resolver la señal: " + error.message); return; }
     toast.success("Señal marcada como resuelta");
     load();
   }

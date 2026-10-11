@@ -232,7 +232,8 @@ export default function DripSequencesTab() {
   // ── Toggle active ─────────────────────────────────────────
   const toggleActive = async (seq: DripSequence) => {
     try {
-      await supabase.from("drip_sequences").update({ active: !seq.active }).eq("id", seq.id);
+      const { error } = await supabase.from("drip_sequences").update({ active: !seq.active }).eq("id", seq.id);
+      if (error) throw error;
       setSequences(prev => prev.map(s => s.id === seq.id ? { ...s, active: !s.active } : s));
       toast.success(seq.active ? "Secuencia pausada" : "Secuencia activada");
     } catch (e: any) {
@@ -247,7 +248,8 @@ export default function DripSequencesTab() {
       confirmText: "Eliminar",
     }))) return;
     try {
-      await supabase.from("drip_sequences").delete().eq("id", id);
+      const { error } = await supabase.from("drip_sequences").delete().eq("id", id);
+      if (error) throw error;
       setSequences(prev => prev.filter(s => s.id !== id));
       toast.success("Secuencia eliminada");
     } catch (e: any) {

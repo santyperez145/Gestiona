@@ -236,7 +236,8 @@ export default function CohortesView() {
 
   const runReport = async (id: string) => {
     setRunningId(id);
-    await supabase.from("saved_reports").update({ run_count: (savedReports.find(r => r.id === id)?.runs ?? 0) + 1, last_run_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("saved_reports").update({ run_count: (savedReports.find(r => r.id === id)?.runs ?? 0) + 1, last_run_at: new Date().toISOString() }).eq("id", id);
+    if (error) console.warn("[Reportes] no se contó la ejecución", error);
     setSavedReports(prev => prev.map(r => r.id === id ? { ...r, runs: r.runs + 1, last_run: "ahora" } : r));
     setTimeout(() => { setRunningId(null); toast.success("Reporte ejecutado — descarga lista"); }, 1800);
   };

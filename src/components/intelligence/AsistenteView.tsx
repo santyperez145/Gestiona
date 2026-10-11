@@ -192,7 +192,8 @@ export default function AsistenteView() {
     // Update session title after first message
     if (activeSession.message_count === 0) {
       const title = userContent.slice(0, 60) + (userContent.length > 60 ? "…" : "");
-      await supabase.from("ai_chat_sessions").update({ title }).eq("id", activeSession.id);
+      const { error } = await supabase.from("ai_chat_sessions").update({ title }).eq("id", activeSession.id);
+      if (error) console.warn("[Asistente] no se guardó el título", error);
       setActiveSession(p => p ? { ...p, title } : p);
       setSessions(p => p.map(s => s.id === activeSession.id ? { ...s, title } : s));
     }
@@ -329,12 +330,14 @@ export default function AsistenteView() {
   }
 
   async function pinSession(s: ChatSession) {
-    await supabase.from("ai_chat_sessions").update({ is_pinned: !s.is_pinned }).eq("id", s.id);
+    const { error } = await supabase.from("ai_chat_sessions").update({ is_pinned: !s.is_pinned }).eq("id", s.id);
+    if (error) { toast.error("No se pudo fijar la conversación: " + error.message); return; }
     setSessions(p => p.map(sess => sess.id === s.id ? { ...sess, is_pinned: !s.is_pinned } : sess));
   }
 
   async function archiveSession(id: string) {
-    await supabase.from("ai_chat_sessions").update({ is_archived: true }).eq("id", id);
+    const { error } = await supabase.from("ai_chat_sessions").update({ is_archived: true }).eq("id", id);
+    if (error) { toast.error("No se pudo archivar la conversación: " + error.message); return; }
     setSessions(p => p.filter(s => s.id !== id));
     if (activeSession?.id === id) { setActiveSession(null); setMessages([]); }
     toast.success("Conversación archivada");

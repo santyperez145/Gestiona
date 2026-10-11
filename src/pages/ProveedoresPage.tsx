@@ -277,7 +277,8 @@ export default function ProveedoresPage() {
   const openEdit = (s: Supplier) => { setEditing(s); setForm({ ...s }); setOpen(true); };
 
   const saveNote = async (id: string, note: string) => {
-    await supabase.from("suppliers").update({ notes: note }).eq("id", id);
+    const { error } = await supabase.from("suppliers").update({ notes: note }).eq("id", id);
+    if (error) { toast.error("No se pudo guardar la nota: " + error.message); return; }
     setSuppliers(prev => prev.map(s => s.id === id ? { ...s, notes: note } : s));
     setEditingNote(null);
     toast.success("Nota guardada");

@@ -450,7 +450,8 @@ export default function LocationsPage() {
 
   const deleteLoc = async (loc: Location) => {
     if (!(await ask({ title: `¿Eliminar "${loc.name}"?`, confirmText: "Eliminar", variant: "destructive" }))) return;
-    await supabase.from("locations").update({ active: false }).eq("id", loc.id);
+    const { error } = await supabase.from("locations").update({ active: false }).eq("id", loc.id);
+    if (error) { toast.error("No se pudo eliminar el local: " + error.message); return; }
     await load();
     toast.success("Local eliminado");
   };

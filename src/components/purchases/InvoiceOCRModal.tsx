@@ -106,12 +106,13 @@ export default function InvoiceOCRModal({ open, onOpenChange, onUseData }: Invoi
       const { error: storageErr } = await supabase.storage.from("documents").upload(path, file, { upsert: false });
       if (storageErr) { toast.error(`Error subiendo ${file.name}`); continue; }
       const { data: url } = supabase.storage.from("documents").getPublicUrl(path);
-      await supabase.from("ocr_documents").insert({
+      const { error } = await supabase.from("ocr_documents").insert({
         org_id: orgId, uploaded_by: user.id, filename: file.name,
         file_url: url.publicUrl, file_size: file.size,
         mime_type: file.type || "application/pdf",
         ocr_status: "pending", ocr_provider: "google_vision",
       });
+      if (error) { toast.error(`Error registrando ${file.name}: ${error.message}`); continue; }
       const newDoc: any = {
         id: Date.now().toString(), filename: file.name,
         status: "processing", confidence: null,
@@ -294,7 +295,8 @@ export default function InvoiceOCRModal({ open, onOpenChange, onUseData }: Invoi
                           <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-red-400 border-red-400/30 hover:bg-red-400/10"
                             onClick={async () => {
                               setDocs(prev => prev.filter(d => d.id !== doc.id));
-                              await supabase.from("ocr_documents").delete().eq("id", doc.id);
+                              const { error } = await supabase.from("ocr_documents").delete().eq("id", doc.id);
+                              if (error) { toast.error("No se pudo eliminar el documento: " + error.message); return; }
                               toast.success("Documento eliminado");
                             }}>
                             <Trash2 className="w-3 h-3" />Eliminar

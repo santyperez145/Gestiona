@@ -235,13 +235,15 @@ export default function PlannerView() {
       title: "¿Eliminar post?",
       confirmText: "Eliminar",
     }))) return;
-    await supabase.from("social_posts").delete().eq("id", id);
+    const { error } = await supabase.from("social_posts").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar el post: " + error.message); return; }
     toast.success("Post eliminado");
     loadData();
   }
 
   async function publishPost(id: string) {
-    await supabase.from("social_posts").update({ status: "published", published_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("social_posts").update({ status: "published", published_at: new Date().toISOString() }).eq("id", id);
+    if (error) { toast.error("No se pudo marcar como publicado: " + error.message); return; }
     toast.success("Marcado como publicado");
     loadData();
   }
@@ -298,7 +300,8 @@ export default function PlannerView() {
   }
 
   async function deleteHashtagSet(id: string) {
-    await supabase.from("hashtag_sets").delete().eq("id", id);
+    const { error } = await supabase.from("hashtag_sets").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar el set: " + error.message); return; }
     toast.success("Set eliminado");
     loadData();
   }
@@ -316,7 +319,8 @@ export default function PlannerView() {
   }
 
   async function convertIdeaToPost(idea: ContentIdea) {
-    await supabase.from("content_ideas").update({ converted_to_post: true }).eq("id", idea.id);
+    const { error } = await supabase.from("content_ideas").update({ converted_to_post: true }).eq("id", idea.id);
+    if (error) { toast.error("No se pudo convertir la idea: " + error.message); return; }
     setPostForm({ ...EMPTY_POST, content: idea.idea });
     setTab("posts");
     setPostOpen(true);
@@ -324,7 +328,8 @@ export default function PlannerView() {
   }
 
   async function deleteIdea(id: string) {
-    await supabase.from("content_ideas").delete().eq("id", id);
+    const { error } = await supabase.from("content_ideas").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar la idea: " + error.message); return; }
     toast.success("Idea eliminada");
     loadData();
   }

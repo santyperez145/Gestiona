@@ -35,7 +35,7 @@ export async function logAudit(
 ) {
   try {
     const { data: userRes } = await supabase.auth.getUser();
-    await supabase.from('audit_logs').insert({
+    const { error } = await supabase.from('audit_logs').insert({
       user_id: userId,
       org_id: getActiveOrgId() || null,
       action,
@@ -50,6 +50,7 @@ export async function logAudit(
       tags: options?.tags ?? [],
       metadata: (options?.metadata ?? {}) as any,
     });
+    if (error) console.warn("[Auditoría] no se registró la acción", error);
   } catch {
     // Silently fail - audit logging should never break the app
   }

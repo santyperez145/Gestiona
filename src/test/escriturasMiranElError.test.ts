@@ -1,34 +1,21 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
+import path from "node:path";
 
-// Las escrituras que mueven plata o stock (cobrar una deuda, un cheque, una
-// cuota, un link de pago, conciliar el banco; lotes, transferencias, órdenes de
-// compra, devoluciones, facturas; negocios, seguimientos, tareas y puntos de fidelidad; cupones, promociones, combos y listas de precios) no pueden ignorar lo que contesta la base: si
-// RLS o un trigger las rechaza, la pantalla decía «cobrada» o «guardada» y no lo
-// estaba. Mismo criterio que `scripts/escrituras-sin-error.mjs`; cada área que
-// se cierra se suma a esta lista.
-const ARCHIVOS = [
-  "src/lib/supabaseStore.ts",
-  "src/pages/ChequesPage.tsx",
-  "src/pages/CuotasPage.tsx",
-  "src/pages/BankReconciliationPage.tsx",
-  "src/pages/PaymentLinksPage.tsx",
-  "src/pages/BatchLotPage.tsx",
-  "src/pages/InventoryTransfersPage.tsx",
-  "src/pages/PurchaseOrdersPage.tsx",
-  "src/pages/POSPage.tsx",
-  "src/pages/InvoicesPage.tsx",
-  "src/components/crm/PipelineKanbanTab.tsx",
-  "src/components/crm/SeguimientosView.tsx",
-  "src/components/loyalty/LoyaltyPointsTab.tsx",
-  "src/pages/CustomersPage.tsx",
-  "src/pages/TasksPage.tsx",
-  "src/components/marketing/CombosBannersTab.tsx",
-  "src/pages/CouponsPage.tsx",
-  "src/pages/PriceListsPage.tsx",
-  "src/pages/ProductBundlesPage.tsx",
-  "src/pages/PromotionsPage.tsx",
-];
+// Ninguna escritura del front (insert/update/delete/upsert) puede ignorar lo
+// que contesta la base: si RLS o un trigger la rechaza, la pantalla decía
+// «cobrada», «guardada» o «eliminada» y no lo estaba. Eran 92 al 2026-10-11 y
+// se cerraron por áreas (plata, stock, clientes, precios, el resto). Mismo
+// criterio que `scripts/escrituras-sin-error.mjs`, sobre todo `src/`.
+function archivos(dir: string, out: string[] = []): string[] {
+  for (const f of fs.readdirSync(dir)) {
+    const p = path.join(dir, f);
+    if (fs.statSync(p).isDirectory()) {
+      if (!/node_modules|[\\/]test$|integrations/.test(p)) archivos(p, out);
+    } else if (/\.(ts|tsx)$/.test(f) && !/\.test\./.test(f)) out.push(p);
+  }
+  return out;
+}
 
 function escriturasSueltas(fuente: string): number[] {
   const lineas = fuente.split("\n");
@@ -41,20 +28,28 @@ function escriturasSueltas(fuente: string): number[] {
   return sueltas;
 }
 
-describe("plata, stock, clientes y precios: las escrituras miran el error", () => {
+describe("las escrituras a la base miran el error", () => {
   it("el detector encuentra una escritura suelta y deja pasar la que asigna", () => {
     expect(escriturasSueltas(`  await supabase.from("x").update({ a: 1 }).eq("id", id);`)).toEqual([1]);
     expect(escriturasSueltas(`  const { error } = await supabase.from("x").update({ a: 1 });`)).toEqual([]);
   });
 
-  for (const archivo of ARCHIVOS) {
-    it(`${archivo} no tiene escrituras sin mirar el error`, () => {
-      expect(escriturasSueltas(fs.readFileSync(archivo, "utf8"))).toEqual([]);
-    });
-  }
+  it("no queda ninguna escritura suelta en src/", () => {
+    const sueltas = archivos("src").flatMap(f =>
+      escriturasSueltas(fs.readFileSync(f, "utf8")).map(n => `${f.split(path.sep).join("/")}:${n}`),
+    );
+    expect(sueltas).toEqual([]);
+  });
 
   it("el pago de una deuda falla si no se pudo guardar el comprobante", () => {
     const s = fs.readFileSync("src/lib/supabaseStore.ts", "utf8");
     expect(s).toContain("if (ledgerError) throw ledgerError;");
+  });
+
+  it("las metas mensuales se guardan en la configuración del negocio, no del creador", () => {
+    const s = fs.readFileSync("src/pages/ReportsPage.tsx", "utf8");
+    const guardar = s.slice(s.indexOf("monthly_targets: {"), s.indexOf('toast.success("Metas guardadas")'));
+    expect(guardar).toContain('.eq("org_id", activeOrg.id)');
+    expect(guardar).not.toContain('.eq("user_id"');
   });
 });

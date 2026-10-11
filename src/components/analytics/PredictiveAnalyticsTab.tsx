@@ -144,13 +144,15 @@ export default function PredictiveAnalyticsTab() {
 
   const ackAnomaly = async (id: string) => {
     setAckedIds(prev => new Set([...prev, id]));
-    await supabase.from("anomaly_detections").update({ is_acknowledged: true }).eq("id", id);
+    const { error } = await supabase.from("anomaly_detections").update({ is_acknowledged: true }).eq("id", id);
+    if (error) { toast.error("No se pudo marcar la anomalía: " + error.message); return; }
     toast.success("Anomalía marcada como revisada");
   };
 
   const handleRec = async (id: string, accepted: boolean) => {
     setDismissedRecs(prev => new Set([...prev, id]));
-    await supabase.from("ai_recommendations").update({ status: accepted ? "accepted" : "dismissed" }).eq("id", id);
+    const { error } = await supabase.from("ai_recommendations").update({ status: accepted ? "accepted" : "dismissed" }).eq("id", id);
+    if (error) { toast.error("No se pudo guardar la respuesta: " + error.message); return; }
     toast.success(accepted ? "Recomendación aceptada — creando tarea..." : "Recomendación descartada");
   };
 

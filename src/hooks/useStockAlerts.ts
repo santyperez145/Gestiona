@@ -39,7 +39,7 @@ async function insertNotification(orgId: string, title: string, message: string)
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("notifications").insert({
+    const { error } = await supabase.from("notifications").insert({
       user_id: user.id,
       org_id: orgId,
       title,
@@ -47,6 +47,7 @@ async function insertNotification(orgId: string, title: string, message: string)
       type: "stock_bajo",
       read: false,
     });
+    if (error) console.warn("[Stock] no se guardó el aviso", error);
   } catch { /* non-critical — ignore insert errors */ }
 }
 

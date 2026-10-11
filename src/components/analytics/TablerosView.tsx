@@ -369,7 +369,8 @@ export default function TablerosView() {
     load();
   }
   async function deleteDash(d: Dashboard) {
-    await supabase.from("kpi_dashboards").delete().eq("id", d.id);
+    const { error } = await supabase.from("kpi_dashboards").delete().eq("id", d.id);
+    if (error) { toast.error("No se pudo eliminar el tablero: " + error.message); return; }
     toast.success("Dashboard eliminado");
     if (activeDashId === d.id) setActiveDashId(null);
     load();
@@ -407,12 +408,14 @@ export default function TablerosView() {
     load();
   }
   async function deleteWidget(id: string) {
-    await supabase.from("kpi_widgets").delete().eq("id", id);
+    const { error } = await supabase.from("kpi_widgets").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar el indicador: " + error.message); return; }
     toast.success("Widget eliminado");
     load();
   }
   async function toggleWidgetVisibility(w: Widget) {
-    await supabase.from("kpi_widgets").update({ is_visible: !w.is_visible }).eq("id", w.id);
+    const { error } = await supabase.from("kpi_widgets").update({ is_visible: !w.is_visible }).eq("id", w.id);
+    if (error) { toast.error("No se pudo cambiar el indicador: " + error.message); return; }
     load();
   }
 
@@ -470,7 +473,8 @@ export default function TablerosView() {
     load();
   }
   async function toggleAlert(a: Alert) {
-    await supabase.from("kpi_alerts").update({ is_active: !a.is_active }).eq("id", a.id);
+    const { error } = await supabase.from("kpi_alerts").update({ is_active: !a.is_active }).eq("id", a.id);
+    if (error) { toast.error("No se pudo cambiar la alerta: " + error.message); return; }
     load();
   }
 

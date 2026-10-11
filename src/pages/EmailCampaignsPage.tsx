@@ -486,7 +486,8 @@ export default function EmailCampaignsPage() {
       load();
     } catch (error) {
       if (createdIds.length) {
-        await supabase.from("email_campaigns").delete().eq("org_id", activeOrg.id).in("id", createdIds);
+        const { error: limpiarError } = await supabase.from("email_campaigns").delete().eq("org_id", activeOrg.id).in("id", createdIds);
+        if (limpiarError) console.warn("[Campañas] no se borraron las campañas a medio crear", limpiarError);
       }
       toast.error(error instanceof Error ? error.message : "Error al guardar campaña");
     } finally {
@@ -565,7 +566,8 @@ export default function EmailCampaignsPage() {
     }))) return;
     setDeleting(id);
     try {
-      await supabase.from("email_campaigns").delete().eq("id", id);
+      const { error } = await supabase.from("email_campaigns").delete().eq("id", id);
+      if (error) { toast.error("No se pudo eliminar la campaña: " + error.message); return; }
       setCampaigns(prev => prev.filter(c => c.id !== id));
     } finally {
       setDeleting(null);

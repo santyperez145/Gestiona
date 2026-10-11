@@ -139,10 +139,11 @@ export default function SmartAlertsPage() {
 
   const acknowledge = async (id: string) => {
     const now = new Date().toISOString();
-    await supabase
+    const { error } = await supabase
       .from("alert_events")
       .update({ acknowledged_at: now, acknowledged_by: (await supabase.auth.getUser()).data.user?.id })
       .eq("id", id);
+    if (error) { toast.error("No se pudo reconocer la alerta: " + error.message); return; }
     setEvents(prev => prev.map(e => e.id === id ? { ...e, acknowledged_at: now } : e));
     toast.success("Alerta reconocida");
   };
@@ -151,10 +152,11 @@ export default function SmartAlertsPage() {
     const rule = rules.find(r => r.id === id);
     if (!rule) return;
     const newActive = !rule.is_active;
-    await supabase
+    const { error } = await supabase
       .from("smart_alert_rules")
       .update({ is_active: newActive })
       .eq("id", id);
+    if (error) { toast.error("No se pudo cambiar la regla: " + error.message); return; }
     setRules(prev => prev.map(r => r.id === id ? { ...r, is_active: newActive } : r));
   };
 
@@ -292,11 +294,12 @@ export default function SmartAlertsPage() {
               <Button variant="outline" size="sm" onClick={async () => {
                 const now = new Date().toISOString();
                 if (activeOrg) {
-                  await supabase
+                  const { error } = await supabase
                     .from("alert_events")
                     .update({ acknowledged_at: now })
                     .eq("org_id", activeOrg.id)
                     .is("acknowledged_at", null);
+                  if (error) { toast.error("No se pudieron reconocer las alertas: " + error.message); return; }
                 }
                 setEvents(prev => prev.map(e => ({ ...e, acknowledged_at: e.acknowledged_at ?? now })));
                 toast.success("Todas las alertas reconocidas");

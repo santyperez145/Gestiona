@@ -297,7 +297,7 @@ export default function ReposicionView() {
       for (const item of itemsForOrder) {
         const qty = overrides[item.product.id] ?? item.suggestedQty;
         if (qty <= 0) continue;
-        await supabase.from("purchases").insert({
+        const { error } = await supabase.from("purchases").insert({
           org_id: activeOrg.id,
           user_id: user.id,
           product_id: item.product.id,
@@ -311,6 +311,7 @@ export default function ReposicionView() {
           is_scheduled: true,
           notes: "Generado por Auto-Restock",
         });
+        if (error) throw error;
       }
       toast.success(`Borrador de compra creado (${plural(itemsForOrder.length, "producto")})`);
       setOrderOpen(false);

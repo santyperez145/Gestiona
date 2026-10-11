@@ -152,7 +152,8 @@ export default function MarketingTemplatesTab() {
 
   const handleSave = async (data: any) => {
     if (!activeOrg || !user) return;
-    await supabase.from("marketing_templates").insert({ ...data, org_id: activeOrg.id, created_by: user.id });
+    const { error } = await supabase.from("marketing_templates").insert({ ...data, org_id: activeOrg.id, created_by: user.id });
+    if (error) { toast.error("No se pudo guardar la plantilla: " + error.message); return; }
     toast.success("Template guardado");
     await load();
   };

@@ -48,7 +48,8 @@ export default function InvitationAcceptPage() {
     if (memErr && !memErr.message.includes('duplicate')) {
       toast.error(memErr.message); setAccepting(false); return;
     }
-    await supabase.from('org_invitations').update({ accepted_at: new Date().toISOString() }).eq('id', invite.id);
+    const { error } = await supabase.from('org_invitations').update({ accepted_at: new Date().toISOString() }).eq('id', invite.id);
+    if (error) console.warn("[Invitación] no se marcó como aceptada", error);
     localStorage.setItem('gestiona.activeOrgId', invite.org_id);
     await refreshOrganizations();
     toast.success(`¡Bienvenido a ${org?.name}!`);

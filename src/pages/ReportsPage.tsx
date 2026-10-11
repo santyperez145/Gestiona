@@ -877,7 +877,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="budget">
-          <BudgetTab sales={data.sales} expenses={data.expenses} settings={settings} userId={user?.id || ""} />
+          <BudgetTab sales={data.sales} expenses={data.expenses} settings={settings} />
         </TabsContent>
 
         <TabsContent value="categories">
@@ -1776,7 +1776,11 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
 // ─────────────────────────────────────────────────────────────
 // Presupuesto Tab — Meta mensual vs. Real
 // ─────────────────────────────────────────────────────────────
-function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expenses: any[]; settings: any; userId: string }) {
+function BudgetTab({ sales, expenses, settings }: { sales: any[]; expenses: any[]; settings: any }) {
+  // La configuración es una fila por negocio: filtrar por `user_id` sólo
+  // encontraba la del que creó el negocio, y para cualquier otro miembro el
+  // guardado no tocaba nada y decía «Metas guardadas».
+  const { activeOrg } = useOrg();
   const [targets, setTargets] = useState({
     sales_ars: String(settings?.monthly_targets?.sales_ars || ""),
     profit_ars: String(settings?.monthly_targets?.profit_ars || ""),
@@ -1787,15 +1791,18 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
   const handleSave = async () => {
     setSaving(true);
     try {
-      await supabase.from("settings").update({
+      if (!activeOrg) throw new Error("Elegí un negocio");
+      const { data: guardadas, error } = await supabase.from("settings").update({
         monthly_targets: {
           sales_ars: Number(targets.sales_ars) || null,
           profit_ars: Number(targets.profit_ars) || null,
           expenses_ars: Number(targets.expenses_ars) || null,
         },
-      }).eq("user_id", userId);
+      }).eq("org_id", activeOrg.id).select("org_id");
+      if (error) throw error;
+      if (!guardadas?.length) throw new Error("No se encontró la configuración del negocio");
       toast.success("Metas guardadas");
-    } catch { toast.error("Error al guardar metas"); }
+    } catch (e) { toast.error(e instanceof Error ? `No se pudieron guardar las metas: ${e.message}` : "Error al guardar metas"); }
     finally { setSaving(false); }
   };
 

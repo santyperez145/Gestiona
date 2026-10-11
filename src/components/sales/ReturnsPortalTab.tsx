@@ -528,7 +528,8 @@ export default function ReturnsPortalTab() {
             <Button variant="outline" onClick={() => setShowReasonDialog(false)}>Cancelar</Button>
             <Button onClick={async () => {
               if (!orgId || !reasonForm.name.trim()) return;
-              await supabase.from("return_reasons").insert({ org_id: orgId, name: reasonForm.name, requires_photo: reasonForm.requires_photo, sort_order: reasons.length });
+              const { error } = await supabase.from("return_reasons").insert({ org_id: orgId, name: reasonForm.name, requires_photo: reasonForm.requires_photo, sort_order: reasons.length });
+              if (error) { toast.error("No se pudo guardar la razón: " + error.message); return; }
               toast.success("Razón guardada"); setShowReasonDialog(false); load();
             }}>Guardar</Button>
           </DialogFooter>
