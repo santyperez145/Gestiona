@@ -103,7 +103,8 @@ Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast
 - [x] Tutoriales en toda la plataforma: recorrido guiado por pantalla (propio o generado desde el menú y sus consejos), botón de ayuda único, oferta en la primera visita y Academia (`/aprender`) con progreso por usuario (`tutorial_progress`).
 - [x] Perfil del menú (emprendedor / establecido / avanzado) en Ajustes › Sistema: cada destino declara su nivel (`NIVEL_DE_DESTINO`, un test lo exige), lo que no entra va a «Más herramientas» y al buscador, la página actual siempre se ve y sin perfil elegido el menú es completo (`settings.perfil_menu`, 20261010001400, aplicada).
 - [ ] Packs verticales sin forks: qué pantallas y defaults trae cada rubro (además de las categorías, que ya son por rubro).
-- [ ] Merchant health rojo/ámbar/verde y colas operativas en Platform.
+- [x] Merchant health rojo/ámbar/verde (2026-10-11, vigesimosegunda corrida): Platform › Métricas › «Semáforo de comercios». Rojo: importación trabada, productos bajo costo, sin ventas en 7 días (con más de 14 de alta). Ámbar: comprobantes con error de ARCA, sin tienda publicada, prueba por vencer sin plan pago. Cada motivo dice en qué pantalla del comercio se resuelve. `platform_salud_comercios()`, sólo plataforma (migración 20261010002900, `scripts/salud-comercios-matrix.sql` 5/5). Hoy: Famatina en rojo.
+- [ ] Colas operativas en Platform (outbox, cron y funciones fallidas en una sola vista de trabajo).
 - [ ] Eventos versionados con idempotencia, replay, DLQ y correlación.
 - [ ] Apps nativas: firma, distribución, updater, impresión y hardware POS.
 - [ ] Developer Platform: OAuth apps, scopes, webhooks, versiones y MCP.
