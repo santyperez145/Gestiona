@@ -159,6 +159,8 @@ export interface DatosFoco {
 export const MIN_PRODUCTOS_PARA_TIENDA = 20;
 
 export interface ImportacionSinTerminar {
+  /** Para abrir directo esa importación desde el Foco. */
+  id?: string;
   status: "preparing" | "ready" | "applying";
   total: number;
   aplicadas: number;
@@ -173,7 +175,7 @@ export function pendienteDeImportacion(i: ImportacionSinTerminar): Pendiente {
       ? `Tu catálogo quedó a mitad: ${n(i.aplicadas)} de ${n(i.total)} productos cargados`
       : `Una importación de ${n(i.total)} productos quedó sin terminar`,
     accion: "Retomar",
-    destino: "/productos?importar=1",
+    destino: i.id ? `/productos?importar=1&sesion=${encodeURIComponent(i.id)}` : "/productos?importar=1",
     urgencia: "critico",
   };
 }

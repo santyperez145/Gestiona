@@ -400,6 +400,7 @@ export default function ProductsPage() {
   const [productTypesOpen, setProductTypesOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [sesionDeImportacion, setSesionDeImportacion] = useState<string | null>(null);
   const [search, setSearch] = usePersistedState(orgViewKey("products.search", activeOrg?.id), '');
   const [filterCat, setFilterCat] = usePersistedState(orgViewKey("products.category-filter", activeOrg?.id), 'all');
   const [filterStock, setFilterStock] = usePersistedState(orgViewKey("products.stock-filter", activeOrg?.id), 'all');
@@ -678,9 +679,13 @@ export default function ProductsPage() {
 
   useEffect(() => {
     if (identityParams.get("importar") !== "1") return;
-    if (activeRole === "owner" || activeRole === "admin") setImportOpen(true);
+    if (activeRole === "owner" || activeRole === "admin") {
+      setSesionDeImportacion(identityParams.get("sesion"));
+      setImportOpen(true);
+    }
     const next = new URLSearchParams(identityParams);
     next.delete("importar");
+    next.delete("sesion");
     setIdentityParams(next, { replace: true });
   }, [activeRole, identityParams, setIdentityParams]);
 
@@ -1428,7 +1433,7 @@ export default function ProductsPage() {
               Cargá un archivo Excel o CSV, revisá la validación y aprobá los cambios antes de aplicarlos.
             </DialogDescription>
           </DialogHeader>
-          <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
+          <ProductsExcelImport onClose={() => { setImportOpen(false); setSesionDeImportacion(null); }} onImported={reload} sesionInicial={sesionDeImportacion} />
         </DialogContent>
       </Dialog>
 

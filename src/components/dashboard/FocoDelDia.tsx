@@ -99,7 +99,7 @@ export default function FocoDelDia(p: Props) {
     if (!p.orgId || !puedeImportar) { setImportacionSinTerminar(null); return; }
     let cancelado = false;
     void supabase.from("catalog_import_sessions")
-      .select("status, total, applied")
+      .select("id, status, total, applied")
       .eq("org_id", p.orgId).neq("status", "cancelled")
       .order("created_at", { ascending: false }).limit(1)
       .then(({ data, error }) => {
@@ -108,9 +108,9 @@ export default function FocoDelDia(p: Props) {
           return;
         }
         if (cancelado) return;
-        const ultima = data?.[0] as { status: string; total: number; applied: number } | undefined;
+        const ultima = data?.[0] as { id: string; status: string; total: number; applied: number } | undefined;
         setImportacionSinTerminar(ultima && ["preparing", "ready", "applying"].includes(ultima.status)
-          ? { status: ultima.status as ImportacionSinTerminar["status"], total: Number(ultima.total) || 0, aplicadas: Number(ultima.applied) || 0 }
+          ? { id: ultima.id, status: ultima.status as ImportacionSinTerminar["status"], total: Number(ultima.total) || 0, aplicadas: Number(ultima.applied) || 0 }
           : null);
       });
     return () => { cancelado = true; };

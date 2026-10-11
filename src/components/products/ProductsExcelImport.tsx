@@ -48,7 +48,7 @@ function Pagination({ page, total, onPage, disabled }: { page: number; total: nu
   </div>;
 }
 
-export default function ProductsExcelImport({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+export default function ProductsExcelImport({ onClose, onImported, sesionInicial }: { onClose: () => void; onImported: () => void; sesionInicial?: string | null }) {
   const { activeOrg, activeRole } = useOrg();
   const permissions = useModulePermissions("products");
   const orgId = activeOrg?.id;
@@ -161,6 +161,17 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
     // Permissions and organization are the only owners of this context lifecycle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, canImport]);
+
+  // «Retomar» desde el Inicio abre directo esa importación (una vez, con los
+  // destinos ya cargados): el comercio queda frente a «Reanudar aplicación»,
+  // que sigue siendo decisión suya. Antes eran tres pasos desde el Inicio.
+  const abrioInicial = useRef(false);
+  useEffect(() => {
+    if (!orgId || !canImport || !sesionInicial || contextLoading || abrioInicial.current) return;
+    abrioInicial.current = true;
+    void resume(sesionInicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, canImport, sesionInicial, contextLoading]);
 
   async function parseFile(file: File) {
     if (!orgId || !productImportFormat(file.name)) return void setError("Usá un archivo .xlsx, .xls o .csv.");

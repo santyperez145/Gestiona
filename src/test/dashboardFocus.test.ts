@@ -388,3 +388,20 @@ describe("sugerir la tienda a quien vende en mostrador", () => {
     expect(ids({ onboardingGoal: "online", tiendaPublicada: false, productosConStock: 777 })).not.toContain("abrir-tienda");
   });
 });
+
+describe("retomar la importación en un paso", () => {
+  it("con la sesión, el Foco abre directo esa importación", () => {
+    const p = pendienteDeImportacion({ id: "543b55b3-0000", status: "applying", total: 11534, aplicadas: 5500 });
+    expect(p.destino).toBe("/productos?importar=1&sesion=543b55b3-0000");
+  });
+
+  it("Productos pasa la sesión al importador y éste la abre una vez, sin aplicar solo", () => {
+    const productos = readFileSync(resolve(process.cwd(), "src/pages/ProductsPage.tsx"), "utf8");
+    const importador = readFileSync(resolve(process.cwd(), "src/components/products/ProductsExcelImport.tsx"), "utf8");
+    expect(productos).toContain('setSesionDeImportacion(identityParams.get("sesion"));');
+    expect(productos).toContain("sesionInicial={sesionDeImportacion}");
+    const efecto = importador.slice(importador.indexOf("const abrioInicial"), importador.indexOf("[orgId, canImport, sesionInicial, contextLoading]"));
+    expect(efecto).toContain("void resume(sesionInicial);");
+    expect(efecto).not.toContain("apply(");
+  });
+});
