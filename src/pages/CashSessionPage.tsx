@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import CashDenominationCountDialog from "@/components/shared/CashDenominationCountDialog";
+import MovimientoDeCaja from "@/components/pos/MovimientoDeCaja";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { summarizePosCashSession } from "@/lib/posCashSession";
 
@@ -557,6 +558,9 @@ export default function CashSessionPage() {
             </div>
             <span className="text-2xl font-display font-bold text-primary">{formatARS(expectedCash)}</span>
           </div>
+
+          {/* Ingresos y retiros del turno, con motivo */}
+          <MovimientoDeCaja sessionId={openSession.id} onRegistrado={load} />
 
           {/* Close form */}
           <div className="bg-card border border-border/60 rounded-[10px] p-5 space-y-4">
