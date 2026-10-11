@@ -81,6 +81,8 @@ Siguiente para E5/E2: (a) volcar a [TESIS](TESIS.md) §2 la lectura semanal de �
 
 Hecho (decimocuarta corrida, 2026-10-10, E2): **Platform › Métricas › «Entrevistas E2».** Registro de las 15 entrevistas (puerta, comercio, rubro, herramientas, cuánto pagan, si nombran el margen real como pregunta sin respuesta, notas) y conteo contra el criterio escrito en TESIS §9: «validada» al llegar a 10 que confirman, «refutada» cuando ya no se puede llegar con las que faltan. Muestra cuántas faltan por puerta y la mediana de lo que pagan. Tabla `entrevistas_e2` sólo para administradores de plataforma (migración 20261010002600, `scripts/entrevistas-e2-matrix.sql` 5/5). **Acción del dueño:** hacer las 15 entrevistas (5 por puerta) antes del 2026-10-31 y cargarlas ahí.
 
+Hecho (decimoquinta corrida, 2026-10-10, E3): **Platform › Métricas › «Importaciones».** Por comercio: intentos, terminadas, trabadas (sin terminar y sin avance hace más de 30 minutos), hasta dónde llegó y la importación terminada más rápida contra la meta de E3 (< 30 min). Vista `platform_importaciones_catalogo`, sólo plataforma (migración 20261010002700, `scripts/platform-importaciones-matrix.sql` 3/3). Hoy muestra a Famatina con 12 intentos, 0 terminadas y 8 trabadas: el problema que antes sólo se vio revisando la base.
+
 Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast desde la base (topics `org:<id>`, `user:<id>`, `plataforma:soporte`; ver `src/lib/orgRealtime.ts`), catálogo con caché local incremental (`src/lib/catalogCache.ts`), cron condicionados a trabajo pendiente, índices en todas las FK hacia `products`, categorías por rubro como datos (`rubro_reglas_categoria`).
 
 **2. Abrir mi tienda en minutos (P1)**
