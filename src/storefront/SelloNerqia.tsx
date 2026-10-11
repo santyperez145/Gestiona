@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { enlaceSelloNerqia } from "@/lib/origenDeAlta";
 import { BRAND_NAME } from "@/lib/brand";
+import { isTransientPublicError } from "@/lib/publicDataSource";
 
 export default function SelloNerqia({ slug }: { slug?: string | null }) {
   const [ref, setRef] = useState<string | null>(null);
@@ -19,7 +20,8 @@ export default function SelloNerqia({ slug }: { slug?: string | null }) {
     supabase.rpc("marca_nerqia_de_tienda" as never, { p_slug: slug } as never).then(({ data, error }) => {
       if (!activo) return;
       if (error) {
-        console.error("marca_nerqia_de_tienda", error);
+        // Un corte de red (p. ej. al cambiar de página) no es un error: sin sello.
+        if (!isTransientPublicError(error)) console.error("marca_nerqia_de_tienda", error);
         return;
       }
       const r = data as { mostrar?: boolean; ref?: string } | null;

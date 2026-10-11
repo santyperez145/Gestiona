@@ -908,6 +908,8 @@ export async function recordStoreSearchGap(slug: string, termino: string): Promi
   } as never) as unknown as PromiseLike<{ error: PgError | null }>);
   if (!error) return;
   if (isMissingFunction(error)) { warnFallback('registrar_busqueda_sin_resultado()'); return; }
+  // Un corte de red (p. ej. al cambiar de página) no es un error de la tienda.
+  if (isTransientPublicError(error)) return;
   console.error('[tienda] no se pudo registrar la búsqueda sin resultados:', error.message);
 }
 
@@ -916,7 +918,8 @@ export async function getStoreSearchSynonyms(slug: string): Promise<{ termino: s
   const { data, error } = await (supabase.rpc('get_store_search_synonyms' as never, { p_slug: slug } as never) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>);
   if (error) {
     if (isMissingFunction(error)) warnFallback('get_store_search_synonyms()');
-    else console.error('[tienda] no se pudieron leer los sinónimos de búsqueda:', error.message);
+    // Un corte de red (p. ej. al cambiar de página) no es un error: sin sinónimos.
+    else if (!isTransientPublicError(error)) console.error('[tienda] no se pudieron leer los sinónimos de búsqueda:', error.message);
     return [];
   }
   return Array.isArray(data) ? (data as { termino: string; product_id: string }[]) : [];
