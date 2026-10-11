@@ -750,6 +750,25 @@ export default function InvoicesPage() {
     }
   }, [invoices, requestedInvoiceId]);
 
+  // «Emitir nota de crédito ARCA» desde Devoluciones llega con `?invoice=…&nc=1`:
+  // abre la nota de crédito de esa factura en vez de dejar al comercio
+  // buscándola. Se abre una vez; emitir sigue siendo decisión suya.
+  const ncParam = searchParams.get("nc");
+  useEffect(() => {
+    if (ncParam !== "1" || !requestedInvoiceId || !canManage) return;
+    const inv = invoices.find((invoice) => invoice.id === requestedInvoiceId);
+    if (!inv) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("nc");
+    setSearchParams(next, { replace: true });
+    if (!inv.cae || ![1, 6, 11].includes(inv.tipo_comprobante ?? 0)) {
+      toast.warning("Esa factura no tiene CAE: no lleva nota de crédito fiscal.");
+      return;
+    }
+    abrirNotaDeCredito(inv, "Devolución");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ncParam, requestedInvoiceId, canManage, invoices]);
+
   const recalcItems = (newItems: InvoiceItem[]) =>
     newItems.map((it) => ({ ...it, total: it.quantity * it.unit_price }));
 
@@ -876,6 +895,15 @@ export default function InvoicesPage() {
     toast.success("Factura eliminada");
     load();
   };
+
+  // Abre el diálogo con lo que falta acreditar de esa factura.
+  function abrirNotaDeCredito(inv: Invoice, motivo = "") {
+    setNcDialogInv(inv);
+    setNcReason(motivo);
+    const credited = invoices.reduce((sum, credit) =>
+      credit.nota_credito_de === inv.id ? sum + Number(credit.total) : sum, 0);
+    setNcAmount((Number(inv.total) - credited).toFixed(2));
+  }
 
   const createCreditNote = async (inv: Invoice) => {
     if (!activeOrg || !ncReason.trim()) {
@@ -1617,13 +1645,7 @@ export default function InvoicesPage() {
                       )}
                       {canManage && inv.cae && [1, 6, 11].includes(inv.tipo_comprobante ?? 0) && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Crear Nota de Crédito"
-                          onClick={() => {
-                            setNcDialogInv(inv);
-                            setNcReason("");
-                            const credited = invoices.reduce((sum, credit) =>
-                              credit.nota_credito_de === inv.id ? sum + Number(credit.total) : sum, 0);
-                            setNcAmount((Number(inv.total) - credited).toFixed(2));
-                          }} disabled={creatingNC === inv.id}
+                          onClick={() => abrirNotaDeCredito(inv)} disabled={creatingNC === inv.id}
                         >
                           {creatingNC === inv.id
                             ? <Loader2 className="w-4 h-4 animate-spin" />

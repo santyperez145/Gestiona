@@ -244,6 +244,9 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    inspeccionado, confirmación y smoke público. Environment y aprobación owner
    están activos; faltan token dedicado, segundo revisor sin autoaprobación y un
    game day autorizado. El auto-deploy continúa.
+   Medido 2026-10-11: la protección de `main` exige los 6 controles pero no a
+   administradores (`enforce_admins: false`), así que un push directo los saltea;
+   el CI se mira después de cada push. Activarlo es decisión del dueño.
 2. Revisar funciones expuestas, permisos RPC/RLS (acciones/contexto válidos), cron, secretos,
    archivo/libro de migraciones y restauración reproducible.
    Avance 2026-10-10: barrido de `pg_policies` con prueba como vendedor real. Un

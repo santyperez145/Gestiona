@@ -297,6 +297,20 @@ export default function DevolucionesPage() {
     }
   };
 
+  // Lleva a la nota de crédito de la factura de esa venta (Facturas la abre
+  // con `?invoice=…&nc=1`); sin factura encontrada, a Facturas como antes.
+  const irANotaDeCredito = async (operation: ReturnOperation) => {
+    if (!activeOrg?.id) return;
+    let consulta = supabase.from("sales").select("invoice_id").eq("org_id", activeOrg.id).not("invoice_id", "is", null).limit(1);
+    if (operation.sale_transaction_id) consulta = consulta.eq("sale_transaction_id", operation.sale_transaction_id);
+    else if (operation.legacy_sale_id) consulta = consulta.eq("id", operation.legacy_sale_id);
+    else { navigate("/facturas"); return; }
+    const { data, error } = await consulta.maybeSingle();
+    if (error) console.error("[Devoluciones] factura de la venta:", error);
+    const invoiceId = (data as { invoice_id?: string | null } | null)?.invoice_id;
+    navigate(invoiceId ? `/facturas?invoice=${encodeURIComponent(invoiceId)}&nc=1` : "/facturas");
+  };
+
   const confirmExternalRefund = async () => {
     if (!refundToConfirm || externalReference.trim().length < 4) return;
     setConfirmingRefund(true);
@@ -424,7 +438,7 @@ export default function DevolucionesPage() {
                     </div>}
                   </div>;
                 })}</div>
-                <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => printInternalReceipt(operation)}><FileText className="mr-2 h-4 w-4" /> Comprobante interno</Button>{operation.credit_note_required && <Button size="sm" variant="outline" onClick={() => navigate("/facturas")}><ReceiptText className="mr-2 h-4 w-4" /> Emitir nota de crédito ARCA</Button>}</div>
+                <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => printInternalReceipt(operation)}><FileText className="mr-2 h-4 w-4" /> Comprobante interno</Button>{operation.credit_note_required && <Button size="sm" variant="outline" onClick={() => void irANotaDeCredito(operation)}><ReceiptText className="mr-2 h-4 w-4" /> Emitir nota de crédito ARCA</Button>}</div>
                 <p className="text-xs text-muted-foreground">ID auditable: …{operation.id.slice(-8)} · {operation.restock ? "Stock repuesto" : "Sin reposición de stock"}</p>
               </div>}
             </article>;
