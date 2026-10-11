@@ -1,3 +1,4 @@
+import BusquedasSinResultado from "@/components/ecommerce/BusquedasSinResultado";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -1206,6 +1207,7 @@ export default function EcommerceStorePage() {
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="space-y-6">
+          <BusquedasSinResultado orgId={orgId} />
           <StoreDomainsPanel
             orgId={orgId ?? ""}
             store={store}

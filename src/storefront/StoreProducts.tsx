@@ -1,3 +1,5 @@
+import { debeRegistrar } from "@/lib/busquedasSinResultado";
+import { recordStoreSearchGap } from "@/lib/publicDataSource";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "./storeContext";
@@ -20,7 +22,7 @@ const ORDENES = [
 ];
 
 export default function StoreProducts() {
-  const { products, perfumes, categorias: cats2, priceOf, fmt } = useStore();
+  const { products, perfumes, categorias: cats2, priceOf, fmt, store } = useStore();
   const [params, setParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -95,6 +97,22 @@ export default function StoreProducts() {
   const busqueda = useMemo(() => buscarProductosDeTienda(
     q, products, slug => nombreDeCategoria(slug, cats2),
   ), [q, products, cats2]);
+
+  // Lo que buscan y no encuentran: una vez por término y visita, con una
+  // pausa para no registrar cada tecla.
+  const busquedasEnviadas = useRef(new Set<string>());
+  const sinResultados = busqueda.productos.length;
+  const slugTienda = store?.slug;
+  useEffect(() => {
+    if (!slugTienda || products.length === 0) return;
+    const termino = debeRegistrar(q, sinResultados, busquedasEnviadas.current);
+    if (!termino) return;
+    const t = window.setTimeout(() => {
+      busquedasEnviadas.current.add(termino);
+      void recordStoreSearchGap(slugTienda, termino);
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [q, sinResultados, slugTienda, products.length]);
 
   const filtrados = useMemo(() => {
     let out = busqueda.productos.filter(p => {

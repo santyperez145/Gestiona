@@ -897,3 +897,16 @@ export async function fetchCatalogVariants(productId: string) {
     .eq('product_id', productId).order('variant_name'));
   return raw.data ?? [];
 }
+
+/**
+ * La tienda registra una búsqueda sin resultados (migración 20261011000500).
+ * Sin datos del visitante; si la función no existe todavía, no hace nada.
+ */
+export async function recordStoreSearchGap(slug: string, termino: string): Promise<void> {
+  const { error } = await (supabase.rpc('registrar_busqueda_sin_resultado' as never, {
+    p_slug: slug, p_termino: termino,
+  } as never) as unknown as PromiseLike<{ error: PgError | null }>);
+  if (!error) return;
+  if (isMissingFunction(error)) { warnFallback('registrar_busqueda_sin_resultado()'); return; }
+  console.error('[tienda] no se pudo registrar la búsqueda sin resultados:', error.message);
+}
