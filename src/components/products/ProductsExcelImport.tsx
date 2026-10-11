@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useOrg } from "@/lib/orgContext";
 import { useModulePermissions } from "@/lib/usePermissions";
-import { previewProductImportRow, productImportFormat, PRODUCT_IMPORT_MAX_BYTES } from "@/lib/productImport";
+import { contarPrecioBajoCosto, previewProductImportRow, productImportFormat, PRODUCT_IMPORT_MAX_BYTES } from "@/lib/productImport";
 import { catalogMigrationSourceLabel } from "@/lib/catalogMigration";
 import type { WorkbookImportOptions, WorkbookImportResult } from "@/lib/productImportWorkbook";
 import { createProductImportReader } from "@/lib/productImportReader";
@@ -92,6 +92,7 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
   const detectionWarnings = workbook?.detectionWarnings.filter(message => !workbook.mappingIssues.includes(message)) || [];
   const pageRows = useMemo(() => rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [rows, page]);
   const previews = useMemo(() => pageRows.map(row => previewProductImportRow(row, { exchangeRate, defaultMarginPercent: marginPercent, autoFillSalePrice: autoPrice })), [pageRows, exchangeRate, marginPercent, autoPrice]);
+  const bajoCosto = useMemo(() => contarPrecioBajoCosto(rows, { exchangeRate, defaultMarginPercent: marginPercent, autoFillSalePrice: autoPrice }), [rows, exchangeRate, marginPercent, autoPrice]);
   const needsLocation = stockMode === "replace" && locations.length > 1 && rows.some(row => row.provided.includes("stock"));
   const requiresExchangeRate = rows.some(row => row.provided.includes("cost_usd"));
   const importContext = useMemo(() => ({ stockMode, exchangeRate, autoPrice, marginPercent }), [stockMode, exchangeRate, autoPrice, marginPercent]);
@@ -326,6 +327,7 @@ export default function ProductsExcelImport({ onClose, onImported }: { onClose: 
         <p className="text-xs text-muted-foreground">{workbook.parsed.sourceRows.toLocaleString("es-AR")} filas de origen agrupadas</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><SummaryCard label="Productos" value={rows.length} /><SummaryCard label="Variantes" value={migration?.variantCount || 0} /><SummaryCard label="Stock negativo" value={workbook.negativeStock} /><SummaryCard label="Stock fraccionario" value={workbook.fractionalStock} /></div>
         <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary" className="bg-muted text-foreground">{catalogMigrationSourceLabel(workbook.parsed.source)}</Badge>{workbook.duplicateCodes > 0 && <Badge variant="destructive">{workbook.duplicateCodes} códigos repetidos</Badge>}</div>
+        {bajoCosto > 0 && <Alert variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertTitle>{bajoCosto === 1 ? "1 producto trae" : `${bajoCosto.toLocaleString("es-AR")} productos traen`} el precio de venta por debajo del costo</AlertTitle><AlertDescription className="text-foreground opacity-100">Revisá que la columna de precio sea la correcta. Si se importan así, cada venta de esos productos pierde plata; aparecen marcados en «Revisión local».</AlertDescription></div></Alert>}
         {workbook.parsed.warnings.map(message => <Alert key={message} variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertDescription className="text-foreground opacity-100">{message}</AlertDescription></div></Alert>)}
         {detectionWarnings.length > 0 && <Alert variant="warning"><AlertCircle className="h-4 w-4" /><div><AlertTitle>Revisá la detección del archivo</AlertTitle><AlertDescription className="text-foreground opacity-100">{detectionWarnings.map(message => <p key={message}>{message}</p>)}</AlertDescription></div></Alert>}
         <p className="text-xs text-muted-foreground">Encabezados en fila {workbook.headerRow}. La detección propone columnas; no guarda ni publica productos.</p>

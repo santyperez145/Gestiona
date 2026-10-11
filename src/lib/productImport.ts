@@ -237,6 +237,13 @@ export interface ProductImportPreview {
   localIssues: string[];
 }
 
+export const PRECIO_BAJO_COSTO = "Precio menor al costo: cada venta pierde plata";
+
+/** Cuántas filas del archivo traen el precio por debajo del costo. */
+export function contarPrecioBajoCosto(rows: ProductImportPayloadRow[], params: ProductImportCalculationParams): number {
+  return rows.reduce((n, row) => n + (previewProductImportRow(row, params).localIssues.includes(PRECIO_BAJO_COSTO) ? 1 : 0), 0);
+}
+
 /** Espejo informativo; `stage_product_import` sigue siendo la autoridad. */
 export function previewProductImportRow(
   row: ProductImportPayloadRow,
@@ -266,6 +273,9 @@ export function previewProductImportRow(
   if (row.provided.includes("stock") && (stock === null || stock < 0 || stock > 2147483647 || !Number.isInteger(stock))) issues.push("Stock inválido");
   if (price <= 0) issues.push("Falta el precio");
   if (effectiveCostARS === 0) issues.push("Margen incompleto: falta costo");
+  // Guardián de margen: el archivo trae el precio por debajo del costo (medido en
+  // Famatina: «PRECIO DE LISTA» 0,10 contra «COSTO» 776). Se avisa antes de subir.
+  if (price > 0 && effectiveCostARS > 0 && price < effectiveCostARS) issues.push(PRECIO_BAJO_COSTO);
 
   return {
     costUSD: cost ?? 0,

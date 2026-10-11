@@ -94,6 +94,19 @@ describe("previewProductImportRow", () => {
       "Margen incompleto: falta costo",
     ]);
   });
+
+  it("avisa el precio por debajo del costo antes de subir (guardián de margen)", async () => {
+    const { PRECIO_BAJO_COSTO, contarPrecioBajoCosto } = await import("@/lib/productImport");
+    // Famatina: «PRECIO DE LISTA» 0,10 contra «COSTO» 776.
+    const mala = buildProductImportRow({ Nombre: "Disco x 25", Precio: "0,1", "Costo ARS": 776 });
+    const buena = buildProductImportRow({ Nombre: "Tornillo", Precio: 200, "Costo ARS": 100 });
+    const sinCosto = buildProductImportRow({ Nombre: "Clavo", Precio: 50 });
+    const pesos = { ...params, autoFillSalePrice: false };
+    expect(previewProductImportRow(mala, pesos).localIssues).toContain(PRECIO_BAJO_COSTO);
+    expect(previewProductImportRow(buena, pesos).localIssues).not.toContain(PRECIO_BAJO_COSTO);
+    expect(previewProductImportRow(sinCosto, pesos).localIssues).not.toContain(PRECIO_BAJO_COSTO);
+    expect(contarPrecioBajoCosto([mala, buena, sinCosto, mala], pesos)).toBe(2);
+  });
 });
 
 describe("productImportFormat", () => {
