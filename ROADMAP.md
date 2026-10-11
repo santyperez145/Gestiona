@@ -291,6 +291,13 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    (id y nombre de comercios); queda sin acceso para la app como las otras de
    auditoría (`20261011001800`). El resto filtra por plataforma o es catálogo
    público a propósito.
+   Funciones para usuarios con sesión (2026-10-11): de 21 funciones con
+   privilegios que escriben sin mirar quién llama, 19 son públicas a propósito
+   (tienda, enlaces con token). `avisar_a_los_que_mandan` dejaba a un usuario
+   de otro comercio crear avisos —y correos de Nerqia— a los dueños de cualquier
+   comercio (phishing); con `aplicar_limites_del_plan` quedan sólo para el
+   servidor (`20261011001900`, `scripts/funciones-internas-usuarios-matrix.sql`).
+   Storage: buckets privados con permiso por módulo; los públicos son imágenes.
    Lectura (2026-10-11): las funciones con privilegios de sólo lectura que ejecuta
    un anónimo verifican quién llama, salvo tres públicas a propósito
    (`confirm_payment_link_transfer`, el «ya transferí» de un link de pago, y
