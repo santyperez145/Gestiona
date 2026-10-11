@@ -19,7 +19,8 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Nota de Débito asociada a factura autorizada (A/B/C), con CbtesAsoc en WSFE.
 - [x] Padrón de ARCA (A5): CUIT → nombre, condición IVA y domicilio en la ficha del cliente y el alta rápida del POS (Edge `arca-padron`, certificado de la plataforma, cache 30 días, tope diario). Requiere asociar el certificado de la plataforma a `ws_sr_constancia_inscripcion` en ARCA.
 - [x] Alta fiscal, primera parte (2026-10-10): «Completar con ARCA» en el emisor (razón social, domicilio y tipo de emisor desde el padrón, sin adivinar si no está inscripto) y detección de puntos de venta: la verificación devuelve los habilitados para CAE y, si el configurado no sirve, dice cuáles sí (`afip-authorize` v73 publicada). La delegación paso a paso y la verificación ya existían (`ConectarAfip`).
-- [ ] Alta fiscal, resto: recorrido único en pasos (padrón → delegación → punto → prueba) y factura de homologación guiada.
+- [x] Alta fiscal, recorrido único (2026-10-10, vigésima corrida): «Para empezar a facturar» arriba de la página de ARCA con cinco pasos (datos del emisor/padrón → delegación → punto de venta → primera factura con CAE → producción), cuál toca ahora y un enlace a la sección donde se resuelve. Usa los mismos datos que la salud fiscal (`recorridoAltaFiscal.ts`); se esconde cuando ya factura en producción.
+- [ ] Factura de homologación guiada: un botón que emita la factura de prueba sola (hoy el paso lleva a Facturas).
 - [x] POS: "Facturar todas las ventas" por organización; un cliente con CUIT activa la factura del ticket.
 - [x] Commerce: cada pedido pagado genera su factura y se autoriza en ARCA vía outbox (`orden.pagada` → `facturar_orden_pagada` → `factura.creada` → `afip-authorize`); el lote muestra el resultado y qué hacer por pedido.
 - [ ] Asistente de renovación de certificado (generar CSR y cargar CRT guiado).

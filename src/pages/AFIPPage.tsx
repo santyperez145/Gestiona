@@ -1,3 +1,5 @@
+import RecorridoAltaFiscal from "@/components/afip/RecorridoAltaFiscal";
+import { recorridoAltaFiscal } from "@/lib/recorridoAltaFiscal";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -183,6 +185,11 @@ export default function AFIPPage() {
     };
   }, [invoices]);
 
+  // Recorrido único de alta fiscal: los mismos datos que la salud fiscal.
+  const pasosAlta = useMemo(
+    () => (loading || connectionError || invoicesError ? null : recorridoAltaFiscal(connection, invoices)),
+    [loading, connectionError, invoicesError, connection, invoices],
+  );
   const salud = useMemo(
     () => (connectionError || invoicesError ? null : saludFiscal(connection, invoices)),
     [connection, invoices, connectionError, invoicesError],
@@ -316,6 +323,9 @@ export default function AFIPPage() {
       {/* C14b — la guía de conexión va primero. Un comercio que no puede
           emitir no necesita ver estadísticas de comprobantes: necesita saber
           qué tocar para poder emitir. */}
+      {pasosAlta && <RecorridoAltaFiscal pasos={pasosAlta} />}
+
+      <div id="conectar-arca" className="scroll-mt-20">
       {loading ? <p role="status" className="text-sm text-muted-foreground">Consultando estado fiscal…</p> : !connectionError && <ConectarAfip
         orgId={orgId}
         motivo={connection?.motivo ?? null}
@@ -327,10 +337,13 @@ export default function AFIPPage() {
         canVerify={canEdit}
         onVerificado={load}
       />}
+      </div>
 
       {/* La configuración fiscal, en la página que se llama AFIP. Antes vivía
           en Ajustes → Sistema, a dos clics de acá. */}
-      <AfipConfigForm canEdit={canEdit} onSaved={load} />
+      <div id="datos-fiscales" className="scroll-mt-20">
+        <AfipConfigForm canEdit={canEdit} onSaved={load} />
+      </div>
 
       <div className={`rounded-xl border p-4 ${readiness.className}`}>
         <div className="flex gap-3">
