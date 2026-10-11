@@ -16,8 +16,8 @@ import {
   sugerenciasDeBusqueda, destinoSugerencia, moverSeleccion,
   type ProductoBuscable, type Sugerencia,
 } from "@/lib/searchSuggest";
-import { productosPorSinonimo, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
-import { getStoreSearchSynonyms } from "@/lib/publicDataSource";
+import { anotarBusquedaQueAbrio, productosPorSinonimo, terminoNormalizado, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
+import { getStoreSearchSynonyms, recordStoreSearch } from "@/lib/publicDataSource";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 interface Props {
@@ -104,6 +104,18 @@ export default function SearchBox({
     navigate(destino);
   };
 
+  // Elegir un producto de las sugerencias es una búsqueda que terminó en abrir
+  // un producto (analítica, migraciones 20261011000700 y 1100): sin esto, la
+  // búsqueda más directa no contaba ni para los clics ni para los pedidos.
+  const elegir = (s: Sugerencia) => {
+    const termino = terminoNormalizado(q);
+    if (s.tipo === "producto" && slug && termino) {
+      void recordStoreSearch(slug, termino, "clic");
+      anotarBusquedaQueAbrio(slug, termino);
+    }
+    irA(destinoSugerencia(s, base));
+  };
+
   const buscarTexto = () => {
     const texto = q.trim();
     irA(`${base}/productos${texto ? `?q=${encodeURIComponent(texto)}` : ""}`);
@@ -123,7 +135,7 @@ export default function SearchBox({
       // Con una sugerencia marcada gana ésa; si no, se busca lo escrito. El
       // orden importa: al revés, quien escribe y aprieta Enter termina en un
       // producto que no eligió.
-      if (abierto && sel >= 0 && sugerencias[sel]) irA(destinoSugerencia(sugerencias[sel], base));
+      if (abierto && sel >= 0 && sugerencias[sel]) elegir(sugerencias[sel]);
       else buscarTexto();
     }
   };
@@ -208,7 +220,7 @@ export default function SearchBox({
               aria-selected={i === sel}
               // Keep focus in the combobox; click works for touch and activation too.
               onMouseDown={e => e.preventDefault()}
-              onClick={() => irA(destinoSugerencia(s, base))}
+              onClick={() => elegir(s)}
               onMouseEnter={() => setSel(i)}
               className="w-full min-h-11 flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
               style={{ background: i === sel ? "hsl(var(--st-accent) / 0.12)" : "transparent" }}

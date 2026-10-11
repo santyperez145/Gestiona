@@ -243,3 +243,15 @@ describe("faceta de marcas accesible", () => {
     expect(tienda).toContain('{m.marca} <span className="tabular-nums">({m.cantidad})</span>');
   });
 });
+
+describe("sugerencias y analítica de búsqueda", () => {
+  it("elegir un producto sugerido cuenta como búsqueda que abrió un producto", async () => {
+    const { readFileSync } = await import("node:fs");
+    const caja = readFileSync("src/storefront/SearchBox.tsx", "utf8");
+    expect(caja).toContain('if (s.tipo === "producto" && slug && termino) {');
+    expect(caja).toContain('void recordStoreSearch(slug, termino, "clic");');
+    expect(caja).toContain("anotarBusquedaQueAbrio(slug, termino);");
+    expect(caja).not.toContain("irA(destinoSugerencia(s, base))}");
+    expect(caja).toContain("elegir(sugerencias[sel]);");
+  });
+});
