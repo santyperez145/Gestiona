@@ -155,7 +155,9 @@ export function destinoSugerencia(s: Sugerencia, base: string): string {
   switch (s.tipo) {
     case "producto":  return `${base}/producto/${s.valor}`;
     case "categoria": return `${base}/productos?cat=${encodeURIComponent(s.valor)}`;
-    case "marca":     return `${base}/productos?q=${encodeURIComponent(s.valor)}`;
+    // El filtro exacto por marca (faceta del catálogo): con `?q=` traía
+    // también productos de otras marcas que la nombran en la descripción.
+    case "marca":     return `${base}/productos?marca=${encodeURIComponent(s.valor)}`;
   }
 }
 

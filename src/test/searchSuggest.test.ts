@@ -150,7 +150,7 @@ describe("destinoSugerencia", () => {
     expect(destinoSugerencia({ tipo: "categoria", label: "X", valor: "perfume_arabe" }, base))
       .toBe(`${base}/productos?cat=perfume_arabe`);
     expect(destinoSugerencia({ tipo: "marca", label: "X", valor: "ELF BAR" }, base))
-      .toBe(`${base}/productos?q=ELF%20BAR`);
+      .toBe(`${base}/productos?marca=ELF%20BAR`);
   });
 });
 
