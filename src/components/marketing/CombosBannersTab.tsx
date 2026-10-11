@@ -80,12 +80,14 @@ function BundlesTab() {
   useEffect(() => { reload(); }, [orgId, user]);
 
   const toggleActive = async (b: Bundle) => {
-    await supabase.from("product_bundles").update({ is_active: !b.is_active }).eq("id", b.id);
+    const { error: error } = await supabase.from("product_bundles").update({ is_active: !b.is_active }).eq("id", b.id);
+    if (error) { toast.error("No se pudo cambiar el kit: " + error.message); return; }
     setBundles(prev => prev.map(x => x.id === b.id ? { ...x, is_active: !b.is_active } : x));
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("product_bundles").delete().eq("id", id);
+    const { error: error } = await supabase.from("product_bundles").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar el kit: " + error.message); return; }
     toast.success("Kit eliminado");
     reload();
   };
@@ -252,12 +254,14 @@ function BundleForm({ orgId, products, editItem, onSave }: {
     try {
       let bundleId = editItem?.id;
       if (editItem) {
-        await supabase.from("product_bundles").update({
+        const { error: kitError } = await supabase.from("product_bundles").update({
           name: name.trim(), description: description.trim() || null,
           price_ars: price, updated_at: new Date().toISOString(),
         }).eq("id", editItem.id);
+        if (kitError) throw kitError;
         // Rebuild items
-        await supabase.from("bundle_items").delete().eq("bundle_id", editItem.id);
+        const { error: borrarError } = await supabase.from("bundle_items").delete().eq("bundle_id", editItem.id);
+        if (borrarError) throw borrarError;
       } else {
         const { data, error } = await supabase.from("product_bundles").insert({
           org_id: orgId, name: name.trim(), description: description.trim() || null,
@@ -267,9 +271,10 @@ function BundleForm({ orgId, products, editItem, onSave }: {
         bundleId = data.id;
       }
       // Insert items
-      await supabase.from("bundle_items").insert(
+      const { error: itemsError } = await supabase.from("bundle_items").insert(
         items.map(it => ({ bundle_id: bundleId!, product_id: it.product_id, quantity: it.quantity }))
       );
+      if (itemsError) throw itemsError;
       toast.success(editItem ? "Kit actualizado" : "Kit creado");
       onSave();
     } catch (err: any) {

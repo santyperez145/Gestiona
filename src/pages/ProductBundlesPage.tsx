@@ -144,7 +144,8 @@ export default function ProductBundlesPage() {
 
   const deleteBundle = async (id: string) => {
     if (!(await ask({ title: "¿Eliminar este bundle?", confirmText: "Eliminar", variant: "destructive" }))) return;
-    await supabase.from("product_bundles").delete().eq("id", id);
+    const { error: error } = await supabase.from("product_bundles").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar el combo: " + error.message); return; }
     load();
     toast.success("Bundle eliminado");
   };
@@ -162,12 +163,14 @@ export default function ProductBundlesPage() {
   };
 
   const removeItem = async (itemId: string) => {
-    await supabase.from("product_bundle_items").delete().eq("id", itemId);
+    const { error: error } = await supabase.from("product_bundle_items").delete().eq("id", itemId);
+    if (error) { toast.error("No se pudo quitar el producto: " + error.message); return; }
     load();
   };
 
   const toggleActive = async (b: Bundle) => {
-    await supabase.from("product_bundles").update({ is_active: !b.is_active }).eq("id", b.id);
+    const { error: error } = await supabase.from("product_bundles").update({ is_active: !b.is_active }).eq("id", b.id);
+    if (error) { toast.error("No se pudo cambiar el combo: " + error.message); return; }
     load();
   };
 

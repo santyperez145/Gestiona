@@ -226,14 +226,16 @@ export default function PromotionsPage() {
 
   const togglePause = async (p: Promotion) => {
     const newStatus = p.status === 'paused' ? 'active' : 'paused';
-    await supabase.from("promotions").update({ status: newStatus }).eq("id", p.id);
+    const { error: error } = await supabase.from("promotions").update({ status: newStatus }).eq("id", p.id);
+    if (error) { toast.error("No se pudo cambiar la promoción: " + error.message); return; }
     load();
     toast.success(`Promoción ${newStatus === 'active' ? 'reanudada' : 'pausada'}`);
   };
 
   const deletePromo = async (id: string) => {
     if (!(await ask({ title: "¿Eliminar esta promoción?", confirmText: "Eliminar", variant: "destructive" }))) return;
-    await supabase.from("promotions").delete().eq("id", id);
+    const { error: error } = await supabase.from("promotions").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar la promoción: " + error.message); return; }
     load();
     toast.success("Promoción eliminada");
   };

@@ -297,7 +297,8 @@ function PLItemsDialog({ open, list, products, orgId, onClose }: PLItemsDialogPr
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("price_list_items").delete().eq("id", id);
+    const { error: error } = await supabase.from("price_list_items").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar el precio: " + error.message); return; }
     setItems(prev => prev.filter(i => i.id !== id));
     toast.success("Eliminado");
   };
@@ -435,7 +436,8 @@ export default function PriceListsPage() {
   };
 
   const handleToggle = async (list: PriceList) => {
-    await supabase.from("price_lists").update({ is_active: !list.is_active }).eq("id", list.id);
+    const { error: error } = await supabase.from("price_lists").update({ is_active: !list.is_active }).eq("id", list.id);
+    if (error) { toast.error("No se pudo cambiar la lista: " + error.message); return; }
     setLists(prev => prev.map(l => l.id === list.id ? { ...l, is_active: !l.is_active } : l));
   };
 

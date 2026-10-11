@@ -231,14 +231,16 @@ export default function CouponsPage() {
   };
 
   const toggleActive = async (c: Coupon) => {
-    await supabase.from("coupons").update({ active: !c.active }).eq("id", c.id);
+    const { error: error } = await supabase.from("coupons").update({ active: !c.active }).eq("id", c.id);
+    if (error) { toast.error("No se pudo cambiar el cupón: " + error.message); return; }
     setCoupons(prev => prev.map(p => p.id === c.id ? { ...p, active: !p.active, status: getCouponStatus({ ...p, active: !p.active }) } : p));
     toast.success(c.active ? "Cupón desactivado" : "Cupón activado");
   };
 
   const deleteCoupon = async (id: string, code: string) => {
     if (!(await ask({ title: `¿Eliminar cupón ${code}?`, confirmText: "Eliminar", variant: "destructive" }))) return;
-    await supabase.from("coupons").delete().eq("id", id);
+    const { error: error } = await supabase.from("coupons").delete().eq("id", id);
+    if (error) { toast.error("No se pudo eliminar el cupón: " + error.message); return; }
     setCoupons(prev => prev.filter(c => c.id !== id));
     toast.success("Cupón eliminado");
   };

@@ -3,7 +3,7 @@ import fs from "node:fs";
 
 // Las escrituras que mueven plata o stock (cobrar una deuda, un cheque, una
 // cuota, un link de pago, conciliar el banco; lotes, transferencias, órdenes de
-// compra, devoluciones, facturas; negocios, seguimientos, tareas y puntos de fidelidad) no pueden ignorar lo que contesta la base: si
+// compra, devoluciones, facturas; negocios, seguimientos, tareas y puntos de fidelidad; cupones, promociones, combos y listas de precios) no pueden ignorar lo que contesta la base: si
 // RLS o un trigger las rechaza, la pantalla decía «cobrada» o «guardada» y no lo
 // estaba. Mismo criterio que `scripts/escrituras-sin-error.mjs`; cada área que
 // se cierra se suma a esta lista.
@@ -23,6 +23,11 @@ const ARCHIVOS = [
   "src/components/loyalty/LoyaltyPointsTab.tsx",
   "src/pages/CustomersPage.tsx",
   "src/pages/TasksPage.tsx",
+  "src/components/marketing/CombosBannersTab.tsx",
+  "src/pages/CouponsPage.tsx",
+  "src/pages/PriceListsPage.tsx",
+  "src/pages/ProductBundlesPage.tsx",
+  "src/pages/PromotionsPage.tsx",
 ];
 
 function escriturasSueltas(fuente: string): number[] {
@@ -36,7 +41,7 @@ function escriturasSueltas(fuente: string): number[] {
   return sueltas;
 }
 
-describe("plata, stock y clientes: las escrituras miran el error", () => {
+describe("plata, stock, clientes y precios: las escrituras miran el error", () => {
   it("el detector encuentra una escritura suelta y deja pasar la que asigna", () => {
     expect(escriturasSueltas(`  await supabase.from("x").update({ a: 1 }).eq("id", id);`)).toEqual([1]);
     expect(escriturasSueltas(`  const { error } = await supabase.from("x").update({ a: 1 });`)).toEqual([]);
