@@ -235,3 +235,11 @@ describe("faceta de marcas del catálogo", () => {
     expect(tienda).toContain('<Grupo titulo="Marca">');
   });
 });
+
+describe("faceta de marcas accesible", () => {
+  it("la cantidad no baja el contraste (el E2E de accesibilidad lo exige)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const tienda = readFileSync("src/storefront/StoreProducts.tsx", "utf8");
+    expect(tienda).toContain('{m.marca} <span className="tabular-nums">({m.cantidad})</span>');
+  });
+});

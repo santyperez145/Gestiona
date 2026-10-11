@@ -317,7 +317,7 @@ export default function StoreProducts() {
               <Opcion activo={!marca} onClick={() => setParam("marca", "")}>Todas</Opcion>
               {marcas.map(m => (
                 <Opcion key={m.marca} activo={marca === m.marca} onClick={() => setParam("marca", m.marca)}>
-                  {m.marca} <span className="tabular-nums opacity-60">({m.cantidad})</span>
+                  {m.marca} <span className="tabular-nums">({m.cantidad})</span>
                 </Opcion>
               ))}
               {marca && !marcas.some(m => m.marca === marca) && (
