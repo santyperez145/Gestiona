@@ -46,6 +46,8 @@ import DashboardChartWrapper from "@/components/analytics/ChartWrapper";
 import DashboardTooltip from "@/components/analytics/DashboardTooltip";
 
 import { plural } from "@/lib/plural";
+import { contarBajoCosto } from "@/lib/guardianDeMargen";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import CommerceQuickActions from "@/components/commerce/CommerceQuickActions";
 import CommercePeriodComparison from "@/components/commerce/CommercePeriodComparison";
 import CommerceInventoryAlerts from "@/components/commerce/CommerceInventoryAlerts";
@@ -1309,6 +1311,10 @@ export default function Dashboard() {
     const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < marginAlertPct).length;
     const smartAlerts: { type: 'destructive' | 'warning' | 'success'; icon: any; msg: string; link?: string }[] = [];
     if (outOfStockProducts.length > 0) smartAlerts.push({ type: 'destructive', icon: AlertTriangle, msg: `${plural(outOfStockProducts.length, "producto")} sin stock`, link: '/productos' });
+    // Guardián de margen: lo que se vende por debajo del costo pierde plata en
+    // cada venta; abre Productos ya filtrado (misma regla que el filtro).
+    const bajoCostoCount = contarBajoCosto(products, cotizacionDe(settings));
+    if (bajoCostoCount > 0) smartAlerts.push({ type: 'destructive', icon: TrendingDown, msg: `${plural(bajoCostoCount, "producto")} con precio por debajo del costo`, link: '/productos?margen=negative' });
     if (lowMarginCount > 0) smartAlerts.push({ type: 'warning', icon: TrendingDown, msg: `${plural(lowMarginCount, "producto")} con margen < ${marginAlertPct}%`, link: '/productos' });
     if (dueDebtsWeek > 0) smartAlerts.push({ type: 'warning', icon: AlertCircle, msg: `${plural(dueDebtsWeek, "deuda")} ${dueDebtsWeek === 1 ? "vence" : "vencen"} esta semana`, link: '/deudas' });
     if (expensesRatio > expenseRatioAlertPct && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas (límite ${expenseRatioAlertPct}%)`, link: '/finance/gastos' });

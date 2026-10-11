@@ -101,6 +101,7 @@ Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast
 
 **4. Saber qué hacer para ganar más**
 - [ ] Profit: landed cost, fees de marketplace/pago, alertas y Margin Guardian. (Comisiones de Mercado Pago y MercadoLibre ya entran al margen: liquidaciones POS confirmadas, `fee_details` del webhook y `sale_fee_ars` de MercadoLibre.)
+- [x] Guardián de margen, primera parte (2026-10-10, undécima corrida): Ferretería Famatina tiene 21 productos con precio por debajo del costo (varios a $0,10). El Inicio avisa en rojo y abre `/productos?margen=negative`; Productos muestra el aviso con «Ver cuáles». Una sola regla (`guardianDeMargen.ts`, sin costo conocido no cuenta). **Acción del dueño:** revisar esos 21 con Famatina (probablemente precios de la lista mal leídos). Siguiente: aviso en la caja al cobrar por debajo del costo y alerta al aplicar un ajuste en bloque que deje productos bajo costo.
 - [x] Creators ↔ Profit (2026-10-10, décima corrida): «Ganancia real» en Canjes = margen de contribución de las ventas atribuidas por código (`sale_margin_facts`, la fuente de Profit) − comisiones del creador − inversión del canje. Antes sólo había ROI sobre ventas brutas, que puede mostrar ganancia donde se pierde plata. Sin costo cargado o sin permiso de analítica no hay número: dice cuántas ventas faltan.
 - [ ] Ads read-only (Meta/Google/TikTok) y ROAS de contribución.
 - [ ] Growth: inbox unificado, empresas/pipelines, formularios/landings, WhatsApp Commerce, email A/B.

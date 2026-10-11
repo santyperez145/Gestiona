@@ -10,6 +10,7 @@ import { detectarDuplicados } from "@/lib/productDuplicates";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull, faltaCotizacion } from "@/lib/exchangeRate";
+import { contarBajoCosto, filtroDeMargenDesdeUrl, seVendeBajoCosto } from "@/lib/guardianDeMargen";
 import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -792,6 +793,19 @@ export default function ProductsPage() {
     ? products.filter((p: any) => Number(p.cost_ars) <= 0 && Number(p.total_cost_usd || p.cost_usd) > 0).length
     : 0;
 
+  // Guardián de margen: cuántos pierden plata en cada venta (misma regla que
+  // el Inicio). `?margen=negative` llega desde el aviso del Inicio.
+  const bajoCosto = useMemo(() => contarBajoCosto(products, cotizacion), [products, cotizacion]);
+  useEffect(() => {
+    const desdeUrl = filtroDeMargenDesdeUrl(identityParams.get("margen"));
+    if (!desdeUrl) return;
+    setFilterMargin(desdeUrl);
+    setPage(0);
+    const next = new URLSearchParams(identityParams);
+    next.delete("margen");
+    setIdentityParams(next, { replace: true });
+  }, [identityParams, setIdentityParams, setFilterMargin]);
+
   const filtered = useMemo(() => {
     const search = deferredSearch;
     const today = new Date();
@@ -838,10 +852,11 @@ export default function ProductsPage() {
         cotizacion);
       if (costP === null) return false;
       const margin = saleP > 0 ? ((saleP - costP) / saleP) * 100 : 0;
+      // Misma regla que el aviso del Inicio y el de acá arriba.
+      if (filterMargin === 'negative' && !seVendeBajoCosto(p, cotizacion)) return false;
       if (filterMargin === 'low' && margin >= 20) return false;
       if (filterMargin === 'mid' && (margin < 20 || margin >= 40)) return false;
       if (filterMargin === 'high' && margin < 40) return false;
-      if (filterMargin === 'negative' && margin >= 0) return false;
     }
     if (filterDiscount && !(p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars))) return false;
     // ── Facetas de perfume: sólo si el comercio opera ese rubro ──────────
@@ -1284,6 +1299,16 @@ export default function ProductsPage() {
           onOpenChange={setProductTypesOpen}
           canConfigureProfile={activeRole === 'owner' || activeRole === 'admin'}
         />
+      )}
+
+      {bajoCosto > 0 && filterMargin !== 'negative' && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+          <p>
+            <span className="font-semibold">{plural(bajoCosto, "producto")} con precio por debajo del costo.</span>{" "}
+            <span className="text-muted-foreground">Cada venta de {bajoCosto === 1 ? "ese producto" : "esos productos"} pierde plata.</span>
+          </p>
+          <Button size="sm" variant="outline" onClick={() => { setFilterMargin('negative'); setPage(0); }}>Ver cuáles</Button>
+        </div>
       )}
 
       <CalidadPublicaciones
