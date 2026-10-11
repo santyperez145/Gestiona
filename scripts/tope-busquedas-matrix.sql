@@ -1,5 +1,8 @@
 -- Matriz reversible de 20261011002300 (tope de términos por día).
 --   node scripts/db.mjs --file scripts/tope-busquedas-matrix.sql
+-- ⚠️ Desde 20261011002400 hay además límite por IP (60 búsquedas por minuto):
+--   esta matriz llama 2.000 veces seguidas y sólo vale como simulacro previo a esa
+--   migración. El tope por día sigue probado por la lógica de _busquedas_del_dia_llenas.
 -- Un anónimo manda 2.000 términos distintos a una tienda ZZ (con y sin
 -- resultado): el 2.001 se ignora y uno que ya existía sigue sumando. Todo se
 -- revierte.

@@ -300,7 +300,8 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    Storage: buckets privados con permiso por módulo; los públicos son imágenes.
    Abuso de lo público (2026-10-11): las funciones que registran búsquedas de la
    tienda no tenían tope de filas; ahora 2.000 términos distintos por comercio y
-   día (`20261011002300`). El resto ya tenía tope (avisos 300/día, errores 500/día,
+   día (`20261011002300`), y límite por IP como el carrito y la newsletter en todas
+   las públicas nuevas (`20261011002400`). El resto ya tenía tope (avisos 300/día, errores 500/día,
    vitales acotados por página y métrica). Pendiente de P1 Seguridad: «ver costo»
    por rol (el vendedor lee las columnas de costo de `products`).
    Lectura (2026-10-11): las funciones con privilegios de sólo lectura que ejecuta
