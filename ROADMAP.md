@@ -263,6 +263,13 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    Tercera vuelta (2026-10-10): `20261010001500` deja de reescribir cinco
    registros del día a día —el vendedor borraba el uso de un cupón y le
    devolvía el uso a la promoción—; aplicada, `scripts/daily-records-matrix.sql`.
+   Cuarta vuelta (2026-10-11): `20261011000100` cierra cinco escrituras abiertas a
+   cualquier miembro, incluso de sólo lectura: campañas de WhatsApp y a segmentos,
+   inscripciones en automatizaciones, alertas de presupuesto e historial de stock.
+   Ahora exigen el permiso del módulo (el CRM del vendedor sigue inscribiendo);
+   aplicada, `scripts/escrituras-marketing-finanzas-matrix.sql`. Quedan 5 tablas
+   con escritura de miembro, todas de uso legítimo (actividad de trato, registro
+   de acceso, eventos de entrega, uso de promoción en caja, alerta leída).
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
    honestos, alerts accionables y soporte con correlación sanitizada.
 4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con

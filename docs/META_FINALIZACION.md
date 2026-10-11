@@ -88,6 +88,8 @@ Hecho (decimosexta corrida, 2026-10-10, TESIS §8 y E1): **Platform › Métrica
 
 Hecho (decimoséptima corrida, 2026-10-10, E5): **la oferta de Starter aparece sola a las 4 semanas.** En el Inicio, al dueño o administrador de un comercio con 4 semanas desde el alta que todavía no paga (la prueba no cuenta como pago): «Ya llevás N semanas con Nerqia» → «Ver la cuenta» abre Mi plan en «Lo que Nerqia reemplaza». «Más adelante» la esconde 14 días. Famatina la va a ver desde el 2026-10-30. La conversión se lee en suscripciones pagas por comercio con 4+ semanas (meta E5: ≥ 30%).
 
+Hecho (vigesimosexta corrida, 2026-10-11, ROADMAP P0.2): cinco escrituras que cualquier miembro —incluso de sólo lectura— podía hacer (campañas de WhatsApp y a segmentos, inscripciones en automatizaciones, alertas de presupuesto, historial de stock) ahora exigen el permiso del módulo. Migración 20261011000100; la matriz muestra el antes (15/15 «pudo») y el después. Quedan 5 tablas con escritura de miembro, todas de uso legítimo.
+
 Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast desde la base (topics `org:<id>`, `user:<id>`, `plataforma:soporte`; ver `src/lib/orgRealtime.ts`), catálogo con caché local incremental (`src/lib/catalogCache.ts`), cron condicionados a trabajo pendiente, índices en todas las FK hacia `products`, categorías por rubro como datos (`rubro_reglas_categoria`).
 
 **2. Abrir mi tienda en minutos (P1)**
