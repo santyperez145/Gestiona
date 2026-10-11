@@ -286,6 +286,11 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    tratos con permiso de CRM; editar también lo propio (tarea asignada o creada,
    trato cargado por la persona). Quedan integration_logs y team_messages (uso
    legítimo de cualquier miembro). `scripts/tareas-tratos-matrix.sql`.
+   Vistas (2026-10-11): barrido de vistas sin `security_invoker` ni filtro por
+   quien llama. `audit_rubro_adivinado` la leía cualquiera, incluso sin sesión
+   (id y nombre de comercios); queda sin acceso para la app como las otras de
+   auditoría (`20261011001800`). El resto filtra por plataforma o es catálogo
+   público a propósito.
    Lectura (2026-10-11): las funciones con privilegios de sólo lectura que ejecuta
    un anónimo verifican quién llama, salvo tres públicas a propósito
    (`confirm_payment_link_transfer`, el «ya transferí» de un link de pago, y
