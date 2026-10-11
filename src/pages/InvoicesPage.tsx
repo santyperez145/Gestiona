@@ -1,3 +1,4 @@
+import { facturaDePrueba } from "@/lib/recorridoAltaFiscal";
 import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -459,6 +460,26 @@ export default function InvoicesPage() {
 
   const canManage = invoicePermissions.canEdit;
   const { copy } = useClipboard();
+
+  // Factura de prueba guiada (recorrido de alta fiscal): `?prueba=homologacion`
+  // precarga el formulario; el comercio revisa y confirma. Nunca en producción.
+  const pruebaParam = searchParams.get("prueba");
+  useEffect(() => {
+    if (pruebaParam !== "homologacion" || !canManage || !afipSettings) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("prueba");
+    setSearchParams(next, { replace: true });
+    const prueba = facturaDePrueba(afipSettings.afip_environment);
+    if (!prueba) {
+      toast.warning("La factura de prueba sólo se emite en homologación. En producción, cada factura es real.");
+      return;
+    }
+    fromSaleId.current = null;
+    setForm({ ...EMPTY_FORM, customer_name: prueba.customer_name, notes: prueba.notes });
+    setItems([{ ...emptyItem(), ...prueba.item, total: prueba.item.quantity * prueba.item.unit_price }]);
+    setShowForm(true);
+    toast.info("Factura de prueba lista: revisala y tocá Crear para pedir el CAE de prueba.");
+  }, [pruebaParam, canManage, afipSettings, searchParams, setSearchParams]);
 
   // Load the persisted sale; URL labels and amounts are never invoice inputs.
   useEffect(() => {

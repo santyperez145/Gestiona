@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { pasosHechos, recorridoAltaFiscal } from "@/lib/recorridoAltaFiscal";
+import { facturaDePrueba, pasosHechos, recorridoAltaFiscal } from "@/lib/recorridoAltaFiscal";
 import type { ComprobanteFiscalSalud, ConexionFiscal } from "@/lib/fiscalHealth";
 
 const conexion = (over: Partial<ConexionFiscal>): ConexionFiscal => ({
@@ -39,5 +39,29 @@ describe("recorrido único de alta fiscal", () => {
     expect(page).toContain('id="conectar-arca"');
     expect(page).toContain('id="datos-fiscales"');
     expect(page.indexOf("<RecorridoAltaFiscal")).toBeLessThan(page.indexOf("<ConectarAfip"));
+  });
+});
+
+describe("factura de prueba guiada en homologación", () => {
+  it("sólo se precarga en homologación; en producción sería una factura real", () => {
+    expect(facturaDePrueba("homologacion")).toMatchObject({
+      customer_name: "Consumidor final",
+      item: { description: "Factura de prueba (homologación)", quantity: 1, unit_price: 100 },
+    });
+    expect(facturaDePrueba("produccion")).toBeNull();
+    expect(facturaDePrueba(null)).toBeNull();
+    expect(facturaDePrueba(undefined)).toBeNull();
+  });
+
+  it("el paso del recorrido lleva a Facturas con la prueba lista para confirmar", () => {
+    const paso = recorridoAltaFiscal(null, []).find(p => p.id === "prueba");
+    expect(paso?.ancla).toBe("/facturas?prueba=homologacion");
+    const facturas = readFileSync(resolve(process.cwd(), "src/pages/InvoicesPage.tsx"), "utf8");
+    expect(facturas).toContain('if (pruebaParam !== "homologacion" || !canManage || !afipSettings) return;');
+    expect(facturas).toContain("const prueba = facturaDePrueba(afipSettings.afip_environment);");
+    // Precarga, no crea: el comercio confirma con «Crear».
+    const bloque = facturas.slice(facturas.indexOf("const pruebaParam"), facturas.indexOf("// Load the persisted sale"));
+    expect(bloque).not.toContain("crear_factura_manual");
+    expect(bloque).not.toContain("afip-authorize");
   });
 });

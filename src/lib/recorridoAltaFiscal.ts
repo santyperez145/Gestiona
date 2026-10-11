@@ -49,7 +49,7 @@ export function recorridoAltaFiscal(
     {
       id: "prueba", titulo: "Primera factura con CAE",
       detalle: "Emití una factura de prueba en homologación para confirmar que todo funciona.",
-      ancla: "/facturas",
+      ancla: "/facturas?prueba=homologacion",
     },
     {
       id: "produccion", titulo: "Facturar con validez fiscal",
@@ -67,4 +67,22 @@ export function recorridoAltaFiscal(
 
 export function pasosHechos(pasos: PasoAltaFiscal[]): number {
   return pasos.filter(p => p.estado === "hecho").length;
+}
+
+/**
+ * Factura de prueba guiada: lo que se precarga en Facturas desde
+ * `?prueba=homologacion`. Sólo en homologación: en producción sería una
+ * factura real, y entonces no se precarga nada.
+ */
+export function facturaDePrueba(ambiente: string | null | undefined): {
+  customer_name: string;
+  notes: string;
+  item: { description: string; quantity: number; unit_price: number };
+} | null {
+  if (ambiente !== "homologacion") return null;
+  return {
+    customer_name: "Consumidor final",
+    notes: "Prueba de conexión con ARCA en homologación. No tiene validez fiscal.",
+    item: { description: "Factura de prueba (homologación)", quantity: 1, unit_price: 100 },
+  };
 }
