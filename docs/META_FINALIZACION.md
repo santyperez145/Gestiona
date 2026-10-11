@@ -129,3 +129,4 @@ Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast
 - [ ] Pay: certificación real, settlement y segundo rail.
 - [ ] Automate: señal → simulación → aprobación → ejecución → outcome.
 - [ ] Gates de negocio: 10 comercios → 8 tiendas → 5 primeras ventas → 3 semanales.
+  Escalón «tiendas» (2026-10-11, cuadragesimosegunda corrida): quien eligió vender en mostrador nunca veía la tienda en el Inicio. Ahora el Foco sugiere «Tenés N productos con stock que podrías vender online» → «Abrir la tienda» (desde 20 productos con stock, sin tienda publicada; sugerencia, no urgencia). Famatina: 777 con stock y sin tienda.

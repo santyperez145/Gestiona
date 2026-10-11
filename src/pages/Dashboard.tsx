@@ -1791,6 +1791,7 @@ export default function Dashboard() {
           seguimientosHoy={pendingFollowUps.length}
           onboardingGoal={activeOrg?.onboarding_goal}
           tiendaPublicada={activationSignals?.online_channel_ready ?? undefined}
+          productosConStock={stats.totalProducts - stats.outOfStock}
           ordenesOnlinePagas={activationSignals?.online_orders_total ?? undefined}
           porDespachar={orderPulse.despachar}
           porRetirar={orderPulse.retirar}

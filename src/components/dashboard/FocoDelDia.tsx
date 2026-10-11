@@ -60,6 +60,7 @@ interface Props {
   seguimientosHoy: number;
   onboardingGoal?: "pos" | "online" | "explore" | null;
   tiendaPublicada?: boolean;
+  productosConStock?: number;
   ordenesOnlinePagas?: number;
   /** Pedidos pagos esperando despacho — del Dashboard, no duplicar queries. */
   porDespachar?: number;
@@ -363,6 +364,7 @@ export default function FocoDelDia(p: Props) {
     zonasActivas,
     onboardingGoal: p.onboardingGoal,
     tiendaPublicada: p.tiendaPublicada,
+    productosConStock: p.productosConStock,
     ordenesOnlinePagas: p.ordenesOnlinePagas,
     retiroSinHorario,
     importacionSinTerminar,

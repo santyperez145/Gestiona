@@ -364,3 +364,27 @@ describe("importación de catálogo a medias en el Foco", () => {
     expect(foco).toContain('.neq("status", "cancelled")');
   });
 });
+
+describe("sugerir la tienda a quien vende en mostrador", () => {
+  const base = {
+    sinStock: 0, stockBajo: 0, deudasPendientes: 0, deudaTotalARS: 0,
+    deudasVencidas30: 0, seguimientosHoy: 0, pedidosPorDespachar: 0,
+  };
+
+  it("aparece con mostrador, sin tienda y suficientes productos con stock", () => {
+    const p = construirPendientes({ ...base, onboardingGoal: "pos", tiendaPublicada: false, productosConStock: 777 })
+      .find(x => x.id === "abrir-tienda");
+    expect(p).toMatchObject({
+      texto: "Tenés 777 productos con stock que podrías vender online",
+      accion: "Abrir la tienda", destino: "/tienda-online", urgencia: "normal",
+    });
+  });
+
+  it("no aparece con pocos productos, con tienda publicada, sin medir o si eligió vender online", () => {
+    const ids = (d: Partial<DatosFoco>) => construirPendientes({ ...base, ...d }).map(x => x.id);
+    expect(ids({ onboardingGoal: "pos", tiendaPublicada: false, productosConStock: 5 })).not.toContain("abrir-tienda");
+    expect(ids({ onboardingGoal: "pos", tiendaPublicada: true, productosConStock: 777 })).not.toContain("abrir-tienda");
+    expect(ids({ onboardingGoal: "pos", productosConStock: 777 })).not.toContain("abrir-tienda");
+    expect(ids({ onboardingGoal: "online", tiendaPublicada: false, productosConStock: 777 })).not.toContain("abrir-tienda");
+  });
+});

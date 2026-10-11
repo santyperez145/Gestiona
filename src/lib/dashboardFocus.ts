@@ -148,7 +148,15 @@ export interface DatosFoco {
    * sólo se veía entrando a Productos › Importar.
    */
   importacionSinTerminar?: ImportacionSinTerminar | null;
+  /** Productos con stock: lo que se podría vender online. `undefined` = no se midió. */
+  productosConStock?: number;
 }
+
+/**
+ * Desde cuántos productos con stock vale la pena sugerir la tienda a quien
+ * eligió vender en mostrador. Con menos, una tienda se ve vacía.
+ */
+export const MIN_PRODUCTOS_PARA_TIENDA = 20;
 
 export interface ImportacionSinTerminar {
   status: "preparing" | "ready" | "applying";
@@ -392,6 +400,24 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       accion: "Publicar",
       destino: "/tienda-online",
       urgencia: "atencion",
+    });
+  }
+
+  // Quien eligió el mostrador nunca veía la tienda: el escalón «tiendas» de
+  // TESIS §8 no avanza solo. Medido 2026-10-11: Ferretería Famatina tiene
+  // 777 productos con stock y ninguna tienda. Va como sugerencia, no como
+  // urgencia: vender en mostrador ya es su negocio.
+  if (
+    canalDeVentaDelFoco(d.onboardingGoal) === "pos"
+    && d.tiendaPublicada === false
+    && (d.productosConStock ?? 0) >= MIN_PRODUCTOS_PARA_TIENDA
+  ) {
+    lista.push({
+      id: "abrir-tienda",
+      texto: `Tenés ${d.productosConStock!.toLocaleString("es-AR")} productos con stock que podrías vender online`,
+      accion: "Abrir la tienda",
+      destino: "/tienda-online",
+      urgencia: "normal",
     });
   }
 
