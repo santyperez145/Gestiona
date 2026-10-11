@@ -275,6 +275,13 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    `upsert_customer_from_order` —no verificaba nada— y `configure_business_profile`
    quedan sólo para el servidor. Siguen públicas las 12 de la tienda y de enlaces
    con token. `scripts/funciones-internas-matrix.sql`.
+   Quinta vuelta (2026-10-11): las vueltas anteriores buscaban `is_org_member`
+   y no vieron 17 tablas con la subconsulta directa a `memberships` en un FOR ALL:
+   un miembro de sólo lectura creaba clientes, links de pago, campañas y editaba
+   reglas de alerta. `20261011001600` pasa 12 a permiso de módulo (clientes,
+   marketing, cobros, ventas, ajustes); leer sigue igual. Quedan tasks, deals,
+   deal_outcomes (el vendedor cierra tareas sin «editar» en CRM: regla propia),
+   integration_logs y team_messages. `scripts/escrituras-por-modulo-matrix.sql`.
    Lectura (2026-10-11): las funciones con privilegios de sólo lectura que ejecuta
    un anónimo verifican quién llama, salvo tres públicas a propósito
    (`confirm_payment_link_transfer`, el «ya transferí» de un link de pago, y
