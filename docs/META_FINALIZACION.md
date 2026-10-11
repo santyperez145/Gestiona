@@ -55,6 +55,17 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Cara nueva, primera vuelta (2026-10-10): tipografía Plus Jakarta Sans + Inter, grises neutros en lugar de azul marino, tarjetas blancas planas, radios más suaves, espaciado de títulos ajustado; etiqueta «secondary» legible (usaba el color de fondo como texto); menú con el nombre del comercio primero y grupos en castellano llano; barra superior con una sola ruta legible.
 - [x] Galería visual de desarrollo `/__diseno` (sólo `import.meta.env.DEV`; `?shell=1` la dibuja dentro del marco real con el menú completo) para revisar el diseño sin sesión.
 
+**Lo que sólo puede hacer el dueño (lista al 2026-10-11, en orden de impacto)**
+
+1. **Famatina, catálogo (E1 y E3):** en el Inicio, «Retomar» en «Tu catálogo quedó a mitad» › «Reanudar aplicación» (faltan ~6.000 de 11.534). Después, en Importar, «Descartar las anteriores» (libera ~150 MB) y avisar para borrar `zz_backup_productos_famatina`. Revisar con Famatina los 21 productos con precio de lista menor al costo.
+2. **Famatina, 16/10 (vence la prueba, E5):** pedirle que cargue en Mi plan lo que paga hoy por otras herramientas. Marcar como leídas las notificaciones viejas (Famatina: 10.552 de stock bajo; Exentry Imports: ~1.100 repetidas), que ya no se generan.
+3. **E2, antes del 31/10:** las 15 entrevistas (5 por puerta) con la guía de Platform › Métricas › «Entrevistas E2», cargadas el mismo día.
+4. **E4:** ofrecer el portal de creadores a 3 marcas y pedir que sus creadores compartan «Invitá marcas».
+5. **Supabase:** revisar el plan; la base pesaba 405 MB el 2026-10-11 (el gratuito corta en 500). La retención diaria ya poda lo operativo.
+6. **Correo:** `RESEND_API_KEY` (o SMTP por comercio) y `PUBLIC_BASE_URL`, para que salgan los avisos de stock y de búsqueda (quedan en espera, no se pierden).
+7. **ARCA:** asociar el certificado de plataforma a `ws_sr_constancia_inscripcion`; renovar el certificado a tiempo; el primer CAE de homologación (gate externo).
+8. **Opcionales:** `VITE_SENTRY_DSN` en Vercel (la app ya registra sus errores en Platform › «Errores»); `VERCEL_TOKEN`; secretos de Mercado Pago plataforma y WhatsApp; decidir si la protección de `main` aplica también a administradores (`enforce_admins`).
+
 **Qué sigue — retomar acá (2026-10-10)**
 
 Pedido del dueño: «cambiar la cara» también en lo funcional y en la organización, y terminar todo. Orden sugerido:
