@@ -281,28 +281,35 @@ Deno.serve(async (req) => {
       const adminIds = (members ?? []).map((m: any) => m.user_id);
       if (adminIds.length === 0) continue;
 
-      // Dedup: don't re-create the same alert notification within 24h
+      // Dedup: no se repite un aviso que la persona todavía no leyó, ni uno
+      // igual de las últimas 24 h. ⚠️ Antes era sólo «24 h» y por mensaje:
+      // un problema que sigue igual (un cliente inactivo, una deuda vencida)
+      // se avisaba de nuevo todos los días, y como el mensaje de «Cliente
+      // inactivo» es el mismo para todos, la clave no distinguía clientes.
+      // La clave es el título (dice qué y de quién); el mensaje cambia a diario
+      // («vencida hace N días») y no sirve para reconocer el mismo aviso.
+      // Medido 2026-10-11: 1.110 avisos sin leer en Exentry Imports, cada
+      // cliente inactivo repetido 39 veces desde el 28/08.
       const cutoff24h = new Date(now.getTime() - 86400000).toISOString();
-      const { data: recentNotifs } = await supabase
-        .from("notifications")
-        // ⚠️ También el `user_id`: la deduplicación era **global entre
-        // personas**, así que si un admin ya había recibido la alerta, nadie
-        // más la recibía en 24 h — ni el dueño, ni alguien que recién entra al
-        // equipo. Se deduplica por persona y mensaje, que es lo que la
-        // cabecera de este archivo siempre dijo que hacía.
-        .select("user_id, message")
-        .in("user_id", adminIds)
-        .gte("created_at", cutoff24h);
-
-      const recentMessages = new Set(
-        (recentNotifs ?? []).map((n: any) => `${n.user_id}|${n.message}`),
-      );
+      const titulos = [...new Set(alerts.map(a => a.title))];
+      const recentMessages = new Set<string>();
+      for (let i = 0; i < titulos.length; i += 50) {
+        const { data: previas, error: errPrevias } = await supabase
+          .from("notifications")
+          .select("user_id, title")
+          .eq("org_id", orgId)
+          .in("user_id", adminIds)
+          .in("title", titulos.slice(i, i + 50))
+          .or(`read.eq.false,created_at.gte.${cutoff24h}`);
+        if (errPrevias) throw new Error(`no se pudieron leer los avisos previos: ${errPrevias.message}`);
+        for (const n of previas ?? []) recentMessages.add(`${n.user_id}|${n.title}`);
+      }
 
       const toInsert: any[] = [];
       for (const adminId of adminIds) {
         for (const alert of alerts) {
           // Dedup by entity key embedded in message
-          if (recentMessages.has(`${adminId}|${alert.message}`)) continue;
+          if (recentMessages.has(`${adminId}|${alert.title}`)) continue;
           toInsert.push({
             // ⚠️ `notifications.org_id` es NOT NULL y acá no se mandaba: cada
             // insert fallaba con 23502 y el error se tragaba. La función
