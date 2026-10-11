@@ -484,16 +484,20 @@ export async function updateDebtDB(id: string, updates: any) {
     const becamePaid = newStatus === 'paid' && prev.status !== 'paid';
     const becameUnpaid = newStatus !== 'paid' && prev.status === 'paid';
     if (becamePaid) {
-      await supabase.from('sales').update({ paid: true }).eq('id', prev.sale_id);
-      await supabase.from('notifications').insert({
+      const { error: ventaError } = await supabase.from('sales').update({ paid: true }).eq('id', prev.sale_id);
+      if (ventaError) throw ventaError;
+      const { error: avisoError } = await supabase.from('notifications').insert({
         user_id: prev.user_id,
         org_id: prev.org_id || requireActiveOrgId(),
         title: 'Venta cobrada',
         message: `Se marcó como pagada la venta de ${prev.customer_name}`,
         type: 'venta_cobrada', entity_type: 'sale', entity_id: prev.sale_id,
       });
+      // El aviso es accesorio: si falla, la deuda y la venta ya quedaron bien.
+      if (avisoError) console.warn('[updateDebtDB] aviso de venta cobrada', avisoError);
     } else if (becameUnpaid) {
-      await supabase.from('sales').update({ paid: false }).eq('id', prev.sale_id);
+      const { error: ventaError } = await supabase.from('sales').update({ paid: false }).eq('id', prev.sale_id);
+      if (ventaError) throw ventaError;
     }
   }
 }
@@ -516,7 +520,7 @@ export async function addDebtPaymentDB(
   const newStatus = newRemaining <= 0.01 ? 'paid' : 'partial';
   await updateDebtDB(debtId, { paid_ars: newPaid, remaining_ars: newRemaining, status: newStatus });
   // Ledger del pago: sin esto se perdía el medio de pago elegido.
-  await supabase.from('debt_payments').insert({
+  const { error: ledgerError } = await supabase.from('debt_payments').insert({
     org_id: debt.org_id,
     debt_id: debtId,
     amount_ars: paymentARS,
@@ -524,6 +528,7 @@ export async function addDebtPaymentDB(
     user_id: opts?.userId ?? null,
     notes: opts?.notes ?? null,
   });
+  if (ledgerError) throw ledgerError;
   return { newPaid, newRemaining, newStatus, debt };
 }
 
@@ -1255,5 +1260,6 @@ export async function getCRMSegmentsDB(userId: string): Promise<SavedCRMSegment[
 
 export async function saveCRMSegmentsDB(userId: string, segments: SavedCRMSegment[]): Promise<void> {
   const orgId = await orgIdFor(userId);
-  await supabase.from('settings').upsert({ org_id: orgId, user_id: userId, crm_segments: segments as any } as any, { onConflict: 'org_id' });
+  const { error } = await supabase.from('settings').upsert({ org_id: orgId, user_id: userId, crm_segments: segments as any } as any, { onConflict: 'org_id' });
+  if (error) throw error;
 }

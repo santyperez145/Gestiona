@@ -229,7 +229,8 @@ export default function BankReconciliationPage() {
     if (!(await ask({ title: "¿Eliminar este movimiento?", confirmText: "Eliminar", variant: "destructive" }))) return;
     setDeleting(id);
     try {
-      await supabase.from("bank_transactions").delete().eq("id", id);
+      const { error } = await supabase.from("bank_transactions").delete().eq("id", id);
+      if (error) { toast.error("No se pudo eliminar el movimiento: " + error.message); return; }
       setTxs(prev => prev.filter(t => t.id !== id));
     } finally { setDeleting(null); }
   };
@@ -237,7 +238,8 @@ export default function BankReconciliationPage() {
   // ── Match ─────────────────────────────────────────────────────────────────────
 
   const handleMatch = async (txId: string, ref: string) => {
-    await supabase.from("bank_transactions").update({ matched: true, match_ref: ref }).eq("id", txId);
+    const { error } = await supabase.from("bank_transactions").update({ matched: true, match_ref: ref }).eq("id", txId);
+    if (error) { toast.error("No se pudo conciliar el movimiento: " + error.message); return; }
     setTxs(prev => prev.map(t => t.id === txId ? { ...t, matched: true, match_ref: ref } : t));
     setMatchOpen(null);
     toast.success("Movimiento conciliado");

@@ -114,7 +114,8 @@ export default function ChequesPage() {
     if (status === "deposited" || status === "cleared") {
       update.deposited_at = new Date().toISOString().slice(0, 10);
     }
-    await supabase.from("cheques").update(update).eq("id", cheque.id);
+    const { error } = await supabase.from("cheques").update(update).eq("id", cheque.id);
+    if (error) { toast.error("No se pudo cambiar el estado del cheque: " + error.message); return; }
     await load();
     toast.success(`Cheque marcado como ${STATUS_CONFIG[status].label}`);
   };

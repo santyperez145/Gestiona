@@ -129,7 +129,8 @@ export default function CuotasPage() {
   };
 
   const markPaid = async (inst: Installment) => {
-    await supabase.from("installment_schedule").update({ paid: true, paid_at: new Date().toISOString() }).eq("id", inst.id);
+    const { error } = await supabase.from("installment_schedule").update({ paid: true, paid_at: new Date().toISOString() }).eq("id", inst.id);
+    if (error) { toast.error("No se pudo marcar la cuota: " + error.message); return; }
     await load();
     toast.success(`Cuota ${inst.installment_number} marcada como cobrada`);
   };

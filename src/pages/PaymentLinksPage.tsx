@@ -188,13 +188,16 @@ export default function PaymentLinksPage() {
             headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
           });
           if (mpData?.url) {
-            await supabase.from("payment_links").update({
+            const { error: guardarError } = await supabase.from("payment_links").update({
               mp_link: mpData.url,
               mp_preference_id: mpData.preferenceId || null,
             }).eq("id", newLink.id);
+            if (guardarError) throw guardarError;
           }
-        } catch {
-          // MP link is optional — don't fail the whole creation
+        } catch (err) {
+          // El link de MP es opcional: el link queda creado y se puede generar
+          // después con «Generar link de MP». Pero que se vea por qué faltó.
+          console.warn("[PaymentLinks] no se guardó el link de MP", err);
         }
       }
 
@@ -239,10 +242,11 @@ export default function PaymentLinksPage() {
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
       });
       if (error || !mpData?.url) throw new Error(await mensajeDeEdgeFunction(error, mpData) || "Sin respuesta de MP");
-      await supabase.from("payment_links").update({
+      const { error: guardarError } = await supabase.from("payment_links").update({
         mp_link: mpData.url,
         mp_preference_id: mpData.preferenceId || null,
       }).eq("id", link.id);
+      if (guardarError) throw guardarError;
       toast.success("Link de Mercado Pago generado");
       load();
     } catch (err: any) {
@@ -254,10 +258,11 @@ export default function PaymentLinksPage() {
 
   // ── Mark as paid ──────────────────────────────────────────────────────────────
   const markAsPaid = async (link: PaymentLink) => {
-    await supabase.from("payment_links").update({
+    const { error } = await supabase.from("payment_links").update({
       status: "paid",
       paid_at: new Date().toISOString(),
     }).eq("id", link.id);
+    if (error) { toast.error("No se pudo marcar como pagado: " + error.message); return; }
     toast.success("Marcado como pagado");
     load();
   };
@@ -265,7 +270,8 @@ export default function PaymentLinksPage() {
   // ── Cancel ────────────────────────────────────────────────────────────────────
   const cancelLink = async (link: PaymentLink) => {
     if (!(await ask({ title: "¿Cancelar este link de pago?", confirmText: "Cancelar", variant: "destructive" }))) return;
-    await supabase.from("payment_links").update({ status: "cancelled" }).eq("id", link.id);
+    const { error } = await supabase.from("payment_links").update({ status: "cancelled" }).eq("id", link.id);
+    if (error) { toast.error("No se pudo cancelar el link: " + error.message); return; }
     toast.success("Link cancelado");
     load();
   };
@@ -274,9 +280,10 @@ export default function PaymentLinksPage() {
   const handleDelete = async (id: string) => {
     if (!(await ask({ title: "¿Eliminar este link?", confirmText: "Eliminar", variant: "destructive" }))) return;
     setDeleting(id);
-    await supabase.from("payment_links").delete().eq("id", id);
-    setLinks(prev => prev.filter(l => l.id !== id));
+    const { error } = await supabase.from("payment_links").delete().eq("id", id);
     setDeleting(null);
+    if (error) { toast.error("No se pudo eliminar el link: " + error.message); return; }
+    setLinks(prev => prev.filter(l => l.id !== id));
   };
 
   // ── Send via WhatsApp ─────────────────────────────────────────────────────────
