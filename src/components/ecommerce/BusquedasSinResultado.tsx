@@ -2,8 +2,10 @@
  * «Lo que buscan y no encuentran»: los términos más buscados en la tienda sin
  * resultados en los últimos 30 días. Si el producto existe con otro nombre,
  * «Agregar a un producto» vincula el término (sinónimo de búsqueda) y la
- * tienda lo encuentra desde la próxima búsqueda. Ver
- * `src/lib/busquedasSinResultado.ts` y las migraciones 20261011000500/0600.
+ * tienda lo encuentra desde la próxima búsqueda. Arriba, el resumen de la
+ * analítica: cuánto buscan, cuánto no encuentran, cuánto abren un producto y
+ * lo que más buscan. Ver `src/lib/busquedasSinResultado.ts` y las migraciones
+ * 20261011000500/0600/0700.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { useHasPermission } from "@/lib/usePermissions";
 import { isMissingRelation } from "@/lib/publicDataSource";
 import { getProductsDB } from "@/lib/supabaseStore";
-import { topBusquedas, type FilaBusqueda, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
+import { resumenDeBusquedas, topBusquedas, type FilaBusqueda, type FilaBusquedaConResultado, type ResumenDeBusquedas, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
 import ProductCombobox, { type ProductoOpcion } from "@/components/shared/ProductCombobox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -20,6 +22,7 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
   const { user } = useAuth();
   const puedeEditar = useHasPermission("ecommerce", "edit");
   const [top, setTop] = useState<FilaBusqueda[] | null>(null);
+  const [resumen, setResumen] = useState<ResumenDeBusquedas | null>(null);
   const [vinculos, setVinculos] = useState<SinonimoDeBusqueda[]>([]);
   const [productos, setProductos] = useState<ProductoOpcion[] | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -33,11 +36,15 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
     void Promise.all([
       supabase.from("store_busquedas_sin_resultado" as never).select("termino, veces").eq("org_id", orgId).gte("dia", desde).limit(2000),
       supabase.from("store_search_synonyms" as never).select("termino, product_id").eq("org_id", orgId).limit(2000),
-    ]).then(([busquedas, sinonimos]) => {
+      supabase.from("store_busquedas" as never).select("termino, veces, con_clic").eq("org_id", orgId).gte("dia", desde).limit(5000),
+    ]).then(([busquedas, sinonimos, conResultado]) => {
       if (!activo) return;
       if (busquedas.error && !isMissingRelation(busquedas.error)) console.error("store_busquedas_sin_resultado", busquedas.error);
       if (sinonimos.error && !isMissingRelation(sinonimos.error)) console.error("store_search_synonyms", sinonimos.error);
-      setTop(topBusquedas(((busquedas.data ?? []) as FilaBusqueda[])));
+      if (conResultado.error && !isMissingRelation(conResultado.error)) console.error("store_busquedas", conResultado.error);
+      const sin = (busquedas.data ?? []) as FilaBusqueda[];
+      setTop(topBusquedas(sin));
+      setResumen(resumenDeBusquedas((conResultado.data ?? []) as FilaBusquedaConResultado[], sin, 5));
       setVinculos((sinonimos.data ?? []) as SinonimoDeBusqueda[]);
     });
     return () => { activo = false; };
@@ -81,6 +88,20 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
       <p className="mt-1 text-xs text-muted-foreground">
         Búsquedas en tu tienda que no dieron resultados en los últimos 30 días. Si lo tenés con otro nombre, agregá la palabra a ese producto.
       </p>
+      {resumen && resumen.total > 0 && (
+        <div className="mt-3 rounded-lg bg-muted/40 p-3 text-xs" aria-label="Resumen de búsquedas">
+          <p>
+            <span className="font-medium tabular-nums">{resumen.total}</span> {resumen.total === 1 ? "búsqueda" : "búsquedas"} en 30 días
+            {resumen.pctSinResultado !== null && <> · <span className="tabular-nums">{resumen.pctSinResultado}%</span> sin resultados</>}
+            {resumen.pctConClic !== null && <> · <span className="tabular-nums">{resumen.pctConClic}%</span> de las que encontraron algo terminaron en abrir un producto</>}
+          </p>
+          {resumen.top.length > 0 && (
+            <p className="mt-1 text-muted-foreground">
+              Lo que más buscan: {resumen.top.map(f => `«${f.termino}» (${f.veces})`).join(", ")}
+            </p>
+          )}
+        </div>
+      )}
       {top.length === 0 ? (
         <p className="mt-3 text-xs text-muted-foreground">Todavía no hay búsquedas sin resultados.</p>
       ) : (

@@ -1,6 +1,6 @@
-import { debeRegistrar, productosPorSinonimo, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
-import { getStoreSearchSynonyms, recordStoreSearchGap } from "@/lib/publicDataSource";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { debeRegistrar, debeRegistrarConResultados, productosPorSinonimo, terminoNormalizado, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
+import { getStoreSearchSynonyms, recordStoreSearch, recordStoreSearchGap } from "@/lib/publicDataSource";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
@@ -119,14 +119,29 @@ export default function StoreProducts() {
   const sinResultados = busqueda.productos.length;
   useEffect(() => {
     if (!slugTienda || products.length === 0) return;
-    const termino = debeRegistrar(q, sinResultados, busquedasEnviadas.current);
+    const sin = debeRegistrar(q, sinResultados, busquedasEnviadas.current);
+    const con = debeRegistrarConResultados(q, sinResultados, busquedasEnviadas.current);
+    const termino = sin ?? con;
     if (!termino) return;
     const t = window.setTimeout(() => {
       busquedasEnviadas.current.add(termino);
-      void recordStoreSearchGap(slugTienda, termino);
+      if (sin) void recordStoreSearchGap(slugTienda, sin);
+      else void recordStoreSearch(slugTienda, termino, "busqueda");
     }, 1200);
     return () => window.clearTimeout(t);
   }, [q, sinResultados, slugTienda, products.length]);
+
+  // Analítica: la búsqueda sirvió si abren un producto de la lista (una vez
+  // por término y visita).
+  const clicsEnviados = useRef(new Set<string>());
+  const alAbrirDesdeBusqueda = (e: ReactMouseEvent) => {
+    if (!slugTienda || !(e.target as HTMLElement).closest("a[href]")) return;
+    const termino = terminoNormalizado(q);
+    if (!termino || clicsEnviados.current.has(termino)) return;
+    clicsEnviados.current.add(termino);
+    busquedasEnviadas.current.add(termino);
+    void recordStoreSearch(slugTienda, termino, "clic");
+  };
 
   const filtrados = useMemo(() => {
     let out = busqueda.productos.filter(p => {
@@ -376,7 +391,7 @@ export default function StoreProducts() {
             </div>
           ) : (
             <>
-              <div className="storefront-products__grid grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="storefront-products__grid grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4" onClickCapture={alAbrirDesdeBusqueda}>
                 {productosVisibles.map(p => <ProductCard key={p.id} p={p} />)}
               </div>
 

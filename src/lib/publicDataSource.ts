@@ -913,6 +913,23 @@ export async function recordStoreSearchGap(slug: string, termino: string): Promi
   console.error('[tienda] no se pudo registrar la búsqueda sin resultados:', error.message);
 }
 
+/**
+ * Analítica de búsqueda (migración 20261011000700): una búsqueda con
+ * resultados (`registrar_busqueda`) o que terminó en abrir un producto
+ * (`registrar_clic_de_busqueda`). Opcional: si falla, la tienda sigue igual.
+ */
+export async function recordStoreSearch(slug: string, termino: string, evento: 'busqueda' | 'clic'): Promise<void> {
+  const fn = evento === 'clic' ? 'registrar_clic_de_busqueda' : 'registrar_busqueda';
+  const { error } = await (supabase.rpc(fn as never, {
+    p_slug: slug, p_termino: termino,
+  } as never) as unknown as PromiseLike<{ error: PgError | null }>);
+  if (!error) return;
+  if (isMissingFunction(error)) { warnFallback(`${fn}()`); return; }
+  // Un corte de red (p. ej. al cambiar de página) no es un error de la tienda.
+  if (isTransientPublicError(error)) return;
+  console.error('[tienda] no se pudo registrar la búsqueda:', error.message);
+}
+
 /** Sinónimos de búsqueda de una tienda (migración 20261011000600); [] si no hay o falta la función. */
 export async function getStoreSearchSynonyms(slug: string): Promise<{ termino: string; product_id: string }[]> {
   const { data, error } = await (supabase.rpc('get_store_search_synonyms' as never, { p_slug: slug } as never) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>);
