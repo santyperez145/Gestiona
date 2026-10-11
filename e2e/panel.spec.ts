@@ -157,6 +157,10 @@ test(`permisos: ${destination} recupera lectura sin revelar errores internos`, a
 }
 
 test('catalogo: la sugerencia revisable no cambia dinero ni stock y no guarda productos', async ({ page }) => {
+  // Lee el catálogo del backend real (route.continue) y recorre seis anchos:
+  // en CI cargado pasó los 30 s una vez (2026-10-11, corrida 38135814784,
+  // esperando «Nuevo») y al reintentar pasó. Límite triple, no reintento.
+  test.slow();
   const writes: string[] = [];
   let suggestions = 0;
   // Synthetic benefit and empty taxonomy only in this test; no billing/model
