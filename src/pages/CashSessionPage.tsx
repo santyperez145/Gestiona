@@ -362,6 +362,12 @@ export default function CashSessionPage() {
   const closeCaja = async () => {
     if (!activeOrg || !user || !openSession) return;
     if (!closingAmount.trim()) { toast.error("Ingresá el monto de cierre"); return; }
+    // Igual que el servidor (20261011002100): con diferencia de $1 o más, el
+    // cierre necesita el motivo.
+    if (Math.abs(closingDiff ?? 0) >= 1 && !closingNotes.trim()) {
+      toast.error("La caja no cuadra: escribí el motivo de la diferencia para cerrarla");
+      return;
+    }
     setSubmitting(true);
     try {
       const { error } = await supabase.rpc("pos_cash_session_close" as never, {
@@ -576,14 +582,14 @@ export default function CashSessionPage() {
                 />
                 {closingDiff !== null && (
                   <div className={`mt-1.5 flex items-center gap-1.5 text-xs font-semibold ${
-                    Math.abs(closingDiff) < 100 ? "text-green-400" :
+                    Math.abs(closingDiff) < 1 ? "text-green-400" :
                     closingDiff > 0 ? "text-yellow-400" : "text-red-400"
                   }`}>
                     {closingDiff >= 0
                       ? <TrendingUp className="w-3.5 h-3.5" />
                       : <TrendingDown className="w-3.5 h-3.5" />
                     }
-                    {Math.abs(closingDiff) < 100
+                    {Math.abs(closingDiff) < 1
                       ? "Cuadra perfectamente"
                       : closingDiff > 0
                       ? `Sobrante: ${formatARS(closingDiff)}`
@@ -593,8 +599,11 @@ export default function CashSessionPage() {
                 )}
               </div>
               <div>
-                <Label className="text-xs">Observaciones del cierre</Label>
+                <Label className="text-xs" htmlFor="caja-motivo-cierre">
+                  {Math.abs(closingDiff ?? 0) >= 1 ? "Motivo de la diferencia (obligatorio)" : "Observaciones del cierre"}
+                </Label>
                 <Input
+                  id="caja-motivo-cierre"
                   value={closingNotes}
                   onChange={(e) => setClosingNotes(e.target.value)}
                   placeholder="Ej: diferencia por vuelto, sin novedades..."
