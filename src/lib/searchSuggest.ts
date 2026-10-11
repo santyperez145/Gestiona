@@ -173,3 +173,26 @@ export function moverSeleccion(actual: number, delta: number, total: number): nu
   if (siguiente >= total) return -1;
   return siguiente;
 }
+
+/**
+ * Faceta de marcas para el catálogo de la tienda: cuántos productos hay de
+ * cada marca entre los resultados, la más numerosa primero. Con una sola
+ * marca (o ninguna) no sirve para filtrar y devuelve [] — no se muestra.
+ * Medido 2026-10-11: Ferretería Famatina tiene 127 marcas en 5.500 productos;
+ * sin este filtro, buscar «disco» mezcla todas.
+ */
+export function facetaDeMarcas(
+  productos: { brand?: string | null }[],
+  limite = 12,
+): { marca: string; cantidad: number }[] {
+  const cuenta = new Map<string, number>();
+  for (const p of productos) {
+    const m = (p.brand ?? "").trim();
+    if (m) cuenta.set(m, (cuenta.get(m) ?? 0) + 1);
+  }
+  if (cuenta.size < 2) return [];
+  return [...cuenta.entries()]
+    .map(([marca, cantidad]) => ({ marca, cantidad }))
+    .sort((a, b) => b.cantidad - a.cantidad || a.marca.localeCompare(b.marca, "es"))
+    .slice(0, limite);
+}

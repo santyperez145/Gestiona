@@ -205,3 +205,33 @@ describe("sugerencias con sinónimos del comercio", () => {
     expect(fuente).toContain("if (lista === null) sinonimosPorTienda.delete(slug);");
   });
 });
+
+describe("faceta de marcas del catálogo", () => {
+  it("cuenta por marca, la más numerosa primero, con tope", async () => {
+    const { facetaDeMarcas } = await import("@/lib/searchSuggest");
+    const productos = [
+      { brand: "Norton" }, { brand: "Norton" }, { brand: " Bosch " }, { brand: "Tramontina" },
+      { brand: "Tramontina" }, { brand: "Tramontina" }, { brand: null }, { brand: "" },
+    ];
+    expect(facetaDeMarcas(productos)).toEqual([
+      { marca: "Tramontina", cantidad: 3 },
+      { marca: "Norton", cantidad: 2 },
+      { marca: "Bosch", cantidad: 1 },
+    ]);
+    expect(facetaDeMarcas(productos, 2)).toHaveLength(2);
+  });
+
+  it("con una sola marca no sirve para filtrar", async () => {
+    const { facetaDeMarcas } = await import("@/lib/searchSuggest");
+    expect(facetaDeMarcas([{ brand: "Norton" }, { brand: "Norton" }, { brand: null }])).toEqual([]);
+    expect(facetaDeMarcas([])).toEqual([]);
+  });
+
+  it("el catálogo filtra por marca y la cuenta como filtro activo", async () => {
+    const { readFileSync } = await import("node:fs");
+    const tienda = readFileSync("src/storefront/StoreProducts.tsx", "utf8");
+    expect(tienda).toContain('if (marca && (p.brand ?? "").trim() !== marca) return false;');
+    expect(tienda).toContain("const activos = [q, cat, genero, familia, marca,");
+    expect(tienda).toContain('<Grupo titulo="Marca">');
+  });
+});

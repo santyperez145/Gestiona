@@ -8,7 +8,7 @@ import AvisoDeBusquedaForm from "./AvisoDeBusquedaForm";
 import {
   menuDeCategorias, nombreDeCategoria, arbolDeCategorias, slugsDeRama,
 } from "@/lib/storeCategories";
-import { buscarProductosDeTienda } from "@/lib/searchSuggest";
+import { buscarProductosDeTienda, facetaDeMarcas } from "@/lib/searchSuggest";
 import { FAMILIAS_OLFATIVAS, taxLabel } from "@/lib/scentTaxonomy";
 import { SlidersHorizontal, X } from "lucide-react";
 import { storeCatalogEmptyKind } from "@/lib/storeCatalogEmpty";
@@ -33,6 +33,7 @@ export default function StoreProducts() {
   const genero = params.get("genero") ?? "";
   const familia = params.get("familia") ?? "";
   const soloOferta = params.get("oferta") === "1";
+  const marca = params.get("marca") ?? "";
   // Los límites viven en la URL como el resto de los filtros, así que un
   // enlace compartido conserva el rango. Un valor basura se ignora en vez de
   // vaciar la grilla sin explicación.
@@ -153,6 +154,7 @@ export default function StoreProducts() {
       if (precioMin > 0 && priceOf(p) < precioMin) return false;
       if (precioMax > 0 && priceOf(p) > precioMax) return false;
       if (familia && perfumes[p.id]?.familia_olfativa !== familia) return false;
+      if (marca && (p.brand ?? "").trim() !== marca) return false;
       return true;
     });
 
@@ -162,9 +164,15 @@ export default function StoreProducts() {
     else if (orden === "nuevo") out.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     else if (orden === "vendidos") out.sort((a, b) => (Number(b.total_sold) || 0) - (Number(a.total_sold) || 0));
     return out;
-  }, [busqueda.productos, perfumes, slugsFiltro, genero, familia, soloOferta, precioMin, precioMax, orden, priceOf]);
+  }, [busqueda.productos, perfumes, slugsFiltro, genero, familia, marca, soloOferta, precioMin, precioMax, orden, priceOf]);
 
-  const activos = [q, cat, genero, familia, soloOferta ? "1" : "",
+  // Faceta de marcas sobre lo buscado y la categoría elegida, sin la marca:
+  // así se puede cambiar de una marca a otra sin volver a «Todas».
+  const marcas = useMemo(() => facetaDeMarcas(
+    busqueda.productos.filter(p => !slugsFiltro || slugsFiltro.has(p.category ?? "")),
+  ), [busqueda.productos, slugsFiltro]);
+
+  const activos = [q, cat, genero, familia, marca, soloOferta ? "1" : "",
     precioMin > 0 ? "min" : "", precioMax > 0 ? "max" : ""].filter(Boolean).length;
 
   // Rango real del catálogo, para que los placeholders digan algo útil en vez
@@ -301,6 +309,20 @@ export default function StoreProducts() {
                   <span className="capitalize">{g}</span>
                 </Opcion>
               ))}
+            </Grupo>
+          )}
+
+          {(marcas.length > 0 || marca) && (
+            <Grupo titulo="Marca">
+              <Opcion activo={!marca} onClick={() => setParam("marca", "")}>Todas</Opcion>
+              {marcas.map(m => (
+                <Opcion key={m.marca} activo={marca === m.marca} onClick={() => setParam("marca", m.marca)}>
+                  {m.marca} <span className="tabular-nums opacity-60">({m.cantidad})</span>
+                </Opcion>
+              ))}
+              {marca && !marcas.some(m => m.marca === marca) && (
+                <Opcion activo onClick={() => setParam("marca", "")}>{marca}</Opcion>
+              )}
             </Grupo>
           )}
 
