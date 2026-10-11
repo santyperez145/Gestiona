@@ -19,3 +19,12 @@ describe("check-alerts no repite avisos", () => {
     expect(fn).toContain("if (errPrevias) throw new Error(");
   });
 });
+
+describe("customer-reactivation-alerts no repite el resumen sin leer", () => {
+  const reac = readFileSync(resolve(process.cwd(), "supabase/functions/customer-reactivation-alerts/index.ts"), "utf8");
+  it("mira los sin leer y los de hoy, por persona y tipo", () => {
+    expect(reac).toContain(".or(`read.eq.false,created_at.gte.${todayStr}T00:00:00`)");
+    expect(reac).toContain("notifications = notifications.filter(n => !yaAvisado.has(`${n.user_id}|${n.type}`));");
+    expect(reac).toContain('.from("notifications").insert(notifications)');
+  });
+});

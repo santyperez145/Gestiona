@@ -85,7 +85,7 @@ serve(async (req) => {
 
       if (!members?.length) continue;
 
-      const notifications: any[] = [];
+      let notifications: any[] = [];
 
       if (atRisk.length > 0) {
         const preview = atRisk.slice(0, 3).join(", ") + (atRisk.length > 3 ? ` y ${atRisk.length - 3} más` : "");
@@ -116,22 +116,28 @@ serve(async (req) => {
       }
 
       if (notifications.length > 0) {
-        // Avoid duplicate notifications today
+        // No repetir: ni otro resumen el mismo día ni uno nuevo mientras la
+        // persona tenga sin leer el anterior del mismo tipo. ⚠️ Antes era
+        // sólo «hoy»: Exentry Imports acumuló 44 «cliente(s) en riesgo» sin
+        // leer en 30 días (medido 2026-10-11).
         const todayStr = today.toISOString().slice(0, 10);
-        const { data: existing } = await supabase
+        const { data: existing, error: errExisting } = await supabase
           .from("notifications")
-          .select("id")
+          .select("user_id, type")
           .eq("org_id", org.id)
           .in("type", ["clientes_riesgo", "clientes_dormidos"])
-          .gte("created_at", todayStr + "T00:00:00");
+          .or(`read.eq.false,created_at.gte.${todayStr}T00:00:00`);
+        if (errExisting) throw new Error(`no se pudieron leer los avisos previos: ${errExisting.message}`);
+        const yaAvisado = new Set((existing ?? []).map((n: any) => `${n.user_id}|${n.type}`));
+        notifications = notifications.filter(n => !yaAvisado.has(`${n.user_id}|${n.type}`));
 
-        if (!existing?.length) {
+        if (notifications.length > 0) {
           const { error: errNotificacion } = await supabase
             .from("notifications").insert(notifications);
           // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
           // es lo que escondió durante meses que check-alerts no guardaba nada.
           if (errNotificacion) console.error("customer-reactivation-alerts: no se pudo notificar", errNotificacion);
-          totalNotifications += notifications.length;
+          else totalNotifications += notifications.length;
         }
       }
     }
