@@ -29,6 +29,10 @@ export interface AjusteEnBloque {
 export interface ResultadoAjuste {
   aplicado: boolean;
   afectados: number;
+  /** Cuántos quedarían con precio menor al costo (20261010002500). */
+  bajo_costo_despues?: number;
+  /** Hasta 5 nombres de esos productos. */
+  bajo_costo_muestra?: string[];
   muestra: {
     id: string;
     nombre: string;
@@ -56,4 +60,15 @@ export function marcasDelCatalogo(productos: { brand?: string | null }[]): strin
     if (p.brand && p.brand.trim()) set.add(p.brand);
   }
   return [...set].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+/** Aviso del guardián de margen para la vista previa; null si no hay nada que avisar. */
+export function avisoBajoCosto(r: Pick<ResultadoAjuste, "bajo_costo_despues" | "bajo_costo_muestra">): string | null {
+  const n = Number(r.bajo_costo_despues) || 0;
+  if (n <= 0) return null;
+  const nombres = (r.bajo_costo_muestra ?? []).filter(Boolean);
+  const cuales = nombres.length ? ` (${nombres.join(", ")}${n > nombres.length ? "…" : ""})` : "";
+  return n === 1
+    ? `Después del ajuste, 1 producto queda con precio por debajo del costo${cuales}: cada venta pierde plata.`
+    : `Después del ajuste, ${n} productos quedan con precio por debajo del costo${cuales}: cada venta pierde plata.`;
 }

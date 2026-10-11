@@ -39,3 +39,24 @@ describe("guardián de margen (Profit)", () => {
     expect(products).toContain("con precio por debajo del costo.");
   });
 });
+
+describe("el ajuste en bloque avisa si deja productos bajo costo", () => {
+  it("arma el aviso con cantidad y nombres, y calla si no hay", async () => {
+    const { avisoBajoCosto } = await import("@/lib/ajustePreciosEnBloque");
+    expect(avisoBajoCosto({ bajo_costo_despues: 0, bajo_costo_muestra: [] })).toBeNull();
+    expect(avisoBajoCosto({})).toBeNull();
+    expect(avisoBajoCosto({ bajo_costo_despues: 1, bajo_costo_muestra: ["Disco"] }))
+      .toBe("Después del ajuste, 1 producto queda con precio por debajo del costo (Disco): cada venta pierde plata.");
+    expect(avisoBajoCosto({ bajo_costo_despues: 7, bajo_costo_muestra: ["A", "B"] }))
+      .toBe("Después del ajuste, 7 productos quedan con precio por debajo del costo (A, B…): cada venta pierde plata.");
+  });
+
+  it("la base lo calcula en la vista previa y al aplicar", () => {
+    const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20261010002500_ajuste_avisa_bajo_costo.sql"), "utf8");
+    const ui = readFileSync(resolve(process.cwd(), "src/components/products/AjustePreciosEnBloque.tsx"), "utf8");
+    expect(migration).toContain("'bajo_costo_despues', v_bajo_costo");
+    expect(migration).toContain("a.moneda = 'USD' AND v_tc IS NOT NULL");
+    expect(ui).toContain("{avisoBajoCosto(vista)}");
+    expect(ui).toContain("if (aviso) toast.warning(aviso);");
+  });
+});

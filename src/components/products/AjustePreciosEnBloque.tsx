@@ -10,7 +10,7 @@ import {
   type AjusteEnBloque,
   type QueAjustar,
   type ResultadoAjuste,
-  QUE_AJUSTAR,
+  QUE_AJUSTAR, avisoBajoCosto,
   REDONDEOS,
   errorDelAjuste,
 } from "@/lib/ajustePreciosEnBloque";
@@ -75,6 +75,8 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
     const r = data as unknown as ResultadoAjuste;
     if (!aplicar) { setVista(r); return; }
     toast.success(`${plural(r.afectados, "producto")} actualizados (${pedido.porcentaje > 0 ? "+" : ""}${pedido.porcentaje}%)`);
+    const aviso = avisoBajoCosto(r);
+    if (aviso) toast.warning(aviso);
     onDone();
   };
 
@@ -147,6 +149,11 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
           <p className="font-semibold">
             {vista.afectados === 0 ? "Ningún producto coincide con ese filtro." : `Cambian ${plural(vista.afectados, "producto")}.${vista.afectados > vista.muestra.length ? ` Primeros ${vista.muestra.length}:` : ""}`}
           </p>
+          {avisoBajoCosto(vista) && (
+            <p role="alert" className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-xs text-destructive">
+              {avisoBajoCosto(vista)}
+            </p>
+          )}
           {vista.muestra.length > 0 && (
             <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
               {vista.muestra.map(m => (
