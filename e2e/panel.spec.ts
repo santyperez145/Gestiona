@@ -45,6 +45,9 @@ test("importador: lotes sintéticos, respuesta perdida y recuperación sin mutar
     } else if (name === "approve_catalog_import") session.status = "applying";
     else if (name === "apply_catalog_import_chunk") {
       positions.push(body.p_position);
+      // Igual que `apply_catalog_import_chunk`: un lote ya aplicado devuelve el
+      // estado sin reaplicarse (la respuesta se perdió y el cliente reintenta).
+      if (body.p_position < session.applied) return fulfill(route, session);
       if (body.p_position === 250 && failSecondChunk) {
         failSecondChunk = false;
         return route.fulfill({ status: 503, contentType: "application/json", body: '{"message":"Synthetic unavailable response"}' });
@@ -81,12 +84,14 @@ test("importador: lotes sintéticos, respuesta perdida y recuperación sin mutar
   await expect(importer.getByText("Validación completa", { exact: true })).toBeVisible();
   expect([...chunks.keys()]).toEqual([0,250,500]); expect(positions).toEqual([]);
   await importer.getByRole("button", { name: "Aprobar 501 filas" }).click();
+  // Se pierde la respuesta del primer lote: el cliente lo reintenta solo y la
+  // base no lo reaplica. El segundo lote falla (503, no se reintenta) y el
+  // comercio reanuda desde ahí.
   await expect(importer.getByText("No pudimos completar este paso")).toBeVisible();
-  await importer.getByRole("button", { name: "Reanudar aplicación" }).click();
   await expect(importer.getByText("Este lote no pudo aplicarse.", { exact: false })).toBeVisible();
   await importer.getByRole("button", { name: "Reanudar aplicación" }).click();
   await expect(importer.getByText("Catálogo reconciliado", { exact: true })).toBeVisible();
-  expect(positions).toEqual([0,250,250,500]); expect(session.created).toBe(501); expect(blockedWrites).toEqual([]);
+  expect(positions).toEqual([0,0,250,250,500]); expect(session.created).toBe(501); expect(blockedWrites).toEqual([]);
   await page.goto("/productos?importar=1");
   await page.getByRole("dialog", { name: "Importar catálogo" }).getByRole("button", { name: "Ver resultado" }).click();
   await expect(page.getByText("Catálogo reconciliado", { exact: true })).toBeVisible();

@@ -92,6 +92,8 @@ Hecho (vigesimosexta corrida, 2026-10-11, ROADMAP P0.2): cinco escrituras que cu
 
 Hecho (vigesimoséptima corrida, 2026-10-11, ROADMAP P0.2): de 30 funciones con privilegios que escriben datos y que podía ejecutar un anónimo, quedan 12 (las públicas de la tienda y los enlaces con token). `upsert_customer_from_order`, que no verificaba quién la llamaba, queda sólo para el servidor. Migración 20261011000200, `scripts/funciones-internas-matrix.sql`.
 
+CI (trigésima corrida, 2026-10-11): el E2E crítico «importador: respuesta perdida y recuperación» fallaba desde `6fccc330` (reintento automático de un lote cortado por la red): su simulador no hacía lo que hace la base con un lote ya aplicado (devolver el estado sin reaplicarlo). Se ajustó el simulador y lo que espera el test: la respuesta perdida ya no muestra error porque la app reintenta sola. Otra corrida falló por un 500 transitorio de deno.land (externo). Lección: la puerta local no corre el E2E del panel (sin credenciales); hay que mirar el CI después de cada push.
+
 Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast desde la base (topics `org:<id>`, `user:<id>`, `plataforma:soporte`; ver `src/lib/orgRealtime.ts`), catálogo con caché local incremental (`src/lib/catalogCache.ts`), cron condicionados a trabajo pendiente, índices en todas las FK hacia `products`, categorías por rubro como datos (`rubro_reglas_categoria`).
 
 **2. Abrir mi tienda en minutos (P1)**
