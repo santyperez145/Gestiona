@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { GUIA_E2, REGLAS_E2 } from "@/lib/guiaEntrevistaE2";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
 const NOMBRE_PUERTA = Object.fromEntries(PUERTAS.map(p => [p.id, p.nombre])) as Record<Puerta, string>;
@@ -98,6 +99,23 @@ export default function EntrevistasE2() {
           {r.pagoMediano !== null && <> Pagan hoy (mediana): {formatARS(r.pagoMediano)} por mes.</>}
         </p>
       </div>
+
+      <details className="border border-border p-4 text-sm">
+        <summary className="cursor-pointer font-semibold">Guía de la entrevista (30 minutos)</summary>
+        <div className="mt-3 space-y-3">
+          <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+            {REGLAS_E2.map(r => <li key={r}>{r}</li>)}
+          </ul>
+          {GUIA_E2.map(b => (
+            <div key={b.titulo} className="space-y-1">
+              <p className="font-medium">{b.titulo} <span className="font-normal text-muted-foreground">→ {b.campo}</span></p>
+              <ol className="list-decimal space-y-1 pl-5">
+                {b.preguntas.map(q => <li key={q}>{q}</li>)}
+              </ol>
+            </div>
+          ))}
+        </div>
+      </details>
 
       <div className="border border-border p-4 space-y-3">
         <p className="text-sm font-semibold">Cargar entrevista</p>
