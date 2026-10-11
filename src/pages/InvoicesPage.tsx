@@ -880,7 +880,8 @@ export default function InvoicesPage() {
 
   const updateStatus = async (id: string, status: string) => {
     const extra = status === "paid" ? { paid_at: new Date().toISOString() } : {};
-    await supabase.from("invoices").update({ status: status as any, ...extra }).eq("id", id);
+    const { error } = await supabase.from("invoices").update({ status: status as any, ...extra }).eq("id", id);
+    if (error) { toast.error("No se pudo cambiar el estado de la factura: " + error.message); return; }
     load();
   };
 

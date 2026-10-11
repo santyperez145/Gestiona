@@ -133,10 +133,11 @@ export default function BatchLotPage() {
     const { data: newBatch } = await supabase.from("product_batches")
       .select("id").eq("org_id", orgId).eq("lot_number", batchForm.lot_number.trim()).single();
     if (newBatch) {
-      await supabase.from("batch_movements").insert({
+      const { error: mvtError } = await supabase.from("batch_movements").insert({
         org_id: orgId, batch_id: newBatch.id,
         movement_type: "in", quantity: Number(batchForm.quantity), notes: "Ingreso inicial",
       });
+      if (mvtError) toast.error("El lote se creó, pero no se registró el ingreso inicial: " + mvtError.message);
     }
 
     toast.success("Lote creado");
@@ -161,7 +162,8 @@ export default function BatchLotPage() {
   }
 
   async function quarantine(id: string) {
-    await supabase.from("product_batches").update({ status: "quarantine" }).eq("id", id);
+    const { error } = await supabase.from("product_batches").update({ status: "quarantine" }).eq("id", id);
+    if (error) { toast.error("No se pudo poner el lote en cuarentena: " + error.message); return; }
     toast.success("Lote en cuarentena");
     loadData();
   }

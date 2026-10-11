@@ -1,16 +1,23 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 
-// Las escrituras que mueven plata (cobrar una deuda, un cheque, una cuota, un
-// link de pago, conciliar el banco) no pueden ignorar lo que contesta la base:
-// si RLS o un trigger las rechaza, la pantalla decía «cobrada» y no lo estaba.
-// Mismo criterio que `scripts/escrituras-sin-error.mjs`, acotado a estos archivos.
+// Las escrituras que mueven plata o stock (cobrar una deuda, un cheque, una
+// cuota, un link de pago, conciliar el banco; lotes, transferencias, órdenes de
+// compra, devoluciones, facturas) no pueden ignorar lo que contesta la base: si
+// RLS o un trigger las rechaza, la pantalla decía «cobrada» o «guardada» y no lo
+// estaba. Mismo criterio que `scripts/escrituras-sin-error.mjs`; cada área que
+// se cierra se suma a esta lista.
 const ARCHIVOS = [
   "src/lib/supabaseStore.ts",
   "src/pages/ChequesPage.tsx",
   "src/pages/CuotasPage.tsx",
   "src/pages/BankReconciliationPage.tsx",
   "src/pages/PaymentLinksPage.tsx",
+  "src/pages/BatchLotPage.tsx",
+  "src/pages/InventoryTransfersPage.tsx",
+  "src/pages/PurchaseOrdersPage.tsx",
+  "src/pages/POSPage.tsx",
+  "src/pages/InvoicesPage.tsx",
 ];
 
 function escriturasSueltas(fuente: string): number[] {
@@ -24,7 +31,7 @@ function escriturasSueltas(fuente: string): number[] {
   return sueltas;
 }
 
-describe("cobros: las escrituras miran el error", () => {
+describe("plata y stock: las escrituras miran el error", () => {
   it("el detector encuentra una escritura suelta y deja pasar la que asigna", () => {
     expect(escriturasSueltas(`  await supabase.from("x").update({ a: 1 }).eq("id", id);`)).toEqual([1]);
     expect(escriturasSueltas(`  const { error } = await supabase.from("x").update({ a: 1 });`)).toEqual([]);

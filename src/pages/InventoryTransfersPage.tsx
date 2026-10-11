@@ -193,14 +193,16 @@ export default function InventoryTransfersPage() {
     const updates: any = { status: nextStatus };
     if (nextStatus === 'in_transit') updates.sent_at = new Date().toISOString();
     if (nextStatus === 'completed') updates.received_at = new Date().toISOString();
-    await supabase.from("inventory_transfers").update(updates).eq("id", t.id);
+    const { error } = await supabase.from("inventory_transfers").update(updates).eq("id", t.id);
+    if (error) { toast.error("No se pudo cambiar el estado: " + error.message); return; }
     load();
     toast.success(`Estado → ${STATUS_CFG[nextStatus].label}`);
   };
 
   const cancelTransfer = async (id: string) => {
     if (!(await ask({ title: "¿Cancelar esta transferencia?", confirmText: "Cancelar", variant: "destructive" }))) return;
-    await supabase.from("inventory_transfers").update({ status: 'cancelled' }).eq("id", id);
+    const { error } = await supabase.from("inventory_transfers").update({ status: 'cancelled' }).eq("id", id);
+    if (error) { toast.error("No se pudo cancelar la transferencia: " + error.message); return; }
     load();
     toast.success("Transferencia cancelada");
   };

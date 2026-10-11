@@ -829,7 +829,8 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
         });
       }
       // Mark sale as returned
-      await supabase.from("sales").update({ returned: true }).eq("id", selected.id);
+      const { error: ventaError } = await supabase.from("sales").update({ returned: true }).eq("id", selected.id);
+      if (ventaError) throw ventaError;
       toast.success(`Devolución registrada — ${formatARS(amountARS)}`);
       onClose();
     } catch (e: any) {

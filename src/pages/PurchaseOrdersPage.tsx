@@ -252,13 +252,21 @@ function POForm({ open, order, suppliers, products, orgId, onClose, onSaved, pre
       }).eq("id", order.id);
       if (error) { toast.error("Error: " + error.message); setLoading(false); return; }
       // Delete old items
-      await supabase.from("purchase_order_items").delete().eq("order_id", order.id);
+      const { error: borrarError } = await supabase.from("purchase_order_items").delete().eq("order_id", order.id);
+      if (borrarError) { toast.error("No se pudieron actualizar los ítems: " + borrarError.message); setLoading(false); return; }
     }
 
     // Insert items
-    await supabase.from("purchase_order_items").insert(
+    const { error: itemsError } = await supabase.from("purchase_order_items").insert(
       items.map(i => ({ ...i, order_id: orderId, org_id: orgId }))
     );
+    if (itemsError) {
+      // La orden quedó guardada sin ítems: avisar en vez de cerrar como si nada.
+      toast.error("La orden se guardó, pero no sus ítems: " + itemsError.message);
+      setLoading(false);
+      onSaved();
+      return;
+    }
 
     setLoading(false);
     toast.success(order ? "OC actualizada" : `OC creada: ${orderNum}`);
