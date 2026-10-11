@@ -22,6 +22,7 @@ const SOURCE_META: Record<string, { label: string; icon: typeof Webhook }> = {
   meli_webhook: { label: 'MercadoLibre', icon: Webhook },
   payment_attempt: { label: 'Pagos', icon: CreditCard },
   cron: { label: 'Cron', icon: Server },
+  catalog_import: { label: 'Importación de catálogo', icon: Server },
 };
 
 const STATUS_META: Record<string, { label: string; variant: 'destructive' | 'warning' | 'outline' }> = {
@@ -30,6 +31,7 @@ const STATUS_META: Record<string, { label: string; variant: 'destructive' | 'war
   stalled: { label: 'Sin avance', variant: 'warning' },
   error: { label: 'Error técnico', variant: 'destructive' },
   fallando: { label: 'Última corrida falló', variant: 'destructive' },
+  trabada: { label: 'Trabada', variant: 'warning' },
 };
 
 function formatDateTime(value: string | null | undefined) {
@@ -181,7 +183,7 @@ export default function PlatformOperationsPage() {
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{row.org_name || (row.source === 'cron' ? 'Infraestructura de plataforma' : 'Comercio sin nombre disponible')} · {source.label}</p>
                     </div>
                   </div>
-                  <div><Badge variant={status.variant}>{status.label}</Badge><p className="mt-1 text-[10px] text-muted-foreground">{row.attempts == null ? 'Sin contador' : `${row.attempts} intento${row.attempts === 1 ? '' : 's'}`}</p></div>
+                  <div><Badge variant={status.variant}>{status.label}</Badge><p className="mt-1 text-[10px] text-muted-foreground">{row.attempts == null ? 'Sin contador' : row.source === 'catalog_import' ? `${row.attempts.toLocaleString('es-AR')} filas aplicadas` : `${row.attempts} intento${row.attempts === 1 ? '' : 's'}`}</p></div>
                   <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Última actividad</p><p className="mt-0.5 text-xs font-medium">{formatDateTime(row.last_activity_at)}</p></div>
                   <div className="flex items-center gap-2 lg:justify-end">
                     {canAct ? (
