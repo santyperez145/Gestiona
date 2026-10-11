@@ -38,6 +38,11 @@ Deno.serve(async (req) => {
       .from("products")
       .select("id, name, stock, org_id, low_stock_threshold")
       .eq("is_active", true)
+      // Sólo lo que se vendió alguna vez (total_sold se mantiene desde
+      // 20261011001300). En un catálogo grande casi todo está en cero sin
+      // haberse vendido nunca: Famatina hubiera recibido «4.723 productos
+      // con stock bajo» todos los días.
+      .gt("total_sold", 0)
       .order("id")
       .limit(TOPE_PRODUCTOS);
 
