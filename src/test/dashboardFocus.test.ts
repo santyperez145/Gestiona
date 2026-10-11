@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
-  canalDeVentaDelFoco, construirPendientes, FOCO_MAX_PENDIENTES, leerVariacion, nivelDelDia,
+  canalDeVentaDelFoco, construirPendientes, pendienteDeImportacion, FOCO_MAX_PENDIENTES, leerVariacion, nivelDelDia,
   type DatosFoco,
 } from "@/lib/dashboardFocus";
 
@@ -339,5 +339,28 @@ describe("qué facturar", () => {
   it("el Foco usa el mismo criterio que la bandeja de Facturas", () => {
     const foco = readFileSync(resolve(process.cwd(), "src/components/dashboard/FocoDelDia.tsx"), "utf8");
     expect(foco).toContain("resumenPendientesFiscales(");
+  });
+});
+
+describe("importación de catálogo a medias en el Foco", () => {
+  it("dice cuánto falta y lleva a retomar, antes que el stock", () => {
+    const p = pendienteDeImportacion({ status: "applying", total: 11534, aplicadas: 5500 });
+    expect(p.texto).toBe("Tu catálogo quedó a mitad: 5.500 de 11.534 productos cargados");
+    expect(p).toMatchObject({ accion: "Retomar", destino: "/productos?importar=1", urgencia: "critico" });
+    expect(pendienteDeImportacion({ status: "preparing", total: 11930, aplicadas: 0 }).texto)
+      .toBe("Una importación de 11.930 productos quedó sin terminar");
+  });
+
+  it("aparece sólo si hay una importación sin terminar y la cargan dueño o administrador", () => {
+    const base = {
+      sinStock: 3, stockBajo: 0, deudasPendientes: 0, deudaTotalARS: 0,
+      deudasVencidas30: 0, seguimientosHoy: 0, pedidosPorDespachar: 0,
+    };
+    expect(construirPendientes(base).some(p => p.id === "importacion")).toBe(false);
+    const ids = construirPendientes({ ...base, importacionSinTerminar: { status: "applying", total: 10, aplicadas: 4 } }).map(p => p.id);
+    expect(ids.indexOf("importacion")).toBeLessThan(ids.indexOf("sin-stock"));
+    const foco = readFileSync(resolve(process.cwd(), "src/components/dashboard/FocoDelDia.tsx"), "utf8");
+    expect(foco).toContain('const puedeImportar = activeRole === "owner" || activeRole === "admin";');
+    expect(foco).toContain('.neq("status", "cancelled")');
   });
 });

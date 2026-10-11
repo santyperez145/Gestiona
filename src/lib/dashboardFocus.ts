@@ -141,6 +141,33 @@ export interface DatosFoco {
    * `undefined` = no se midió.
    */
   facturacion?: ResumenPendienteFiscal[];
+  /**
+   * La última importación de catálogo, si quedó sin terminar (ni finalizada
+   * ni cancelada). Medido 2026-10-11: Ferretería Famatina tiene 5.500 de
+   * 11.534 productos cargados desde el 10/10 y nada en el Inicio se lo decía;
+   * sólo se veía entrando a Productos › Importar.
+   */
+  importacionSinTerminar?: ImportacionSinTerminar | null;
+}
+
+export interface ImportacionSinTerminar {
+  status: "preparing" | "ready" | "applying";
+  total: number;
+  aplicadas: number;
+}
+
+/** El renglón del Foco para una importación de catálogo a medias. */
+export function pendienteDeImportacion(i: ImportacionSinTerminar): Pendiente {
+  const n = (x: number) => x.toLocaleString("es-AR");
+  return {
+    id: "importacion",
+    texto: i.status === "applying" && i.aplicadas > 0
+      ? `Tu catálogo quedó a mitad: ${n(i.aplicadas)} de ${n(i.total)} productos cargados`
+      : `Una importación de ${n(i.total)} productos quedó sin terminar`,
+    accion: "Retomar",
+    destino: "/productos?importar=1",
+    urgencia: "critico",
+  };
 }
 
 /**
@@ -293,6 +320,9 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       urgencia: "critico",
     });
   }
+
+  // Medio catálogo sin cargar son productos que no se pueden vender.
+  if (d.importacionSinTerminar) lista.push(pendienteDeImportacion(d.importacionSinTerminar));
 
   if (d.sinStock > 0) {
     lista.push({

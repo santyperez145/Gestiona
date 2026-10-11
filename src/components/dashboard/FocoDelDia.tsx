@@ -18,10 +18,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/orgContext";
 import { formatARS } from "@/lib/supabaseStore";
 import {
   construirPendientes, leerVariacion, nivelDelDia,
-  type DatosFoco, type Urgencia,
+  type DatosFoco, type ImportacionSinTerminar, type Urgencia,
 } from "@/lib/dashboardFocus";
 import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
 import { countFulfillmentPulse } from "@/lib/storeOrderQueue";
@@ -86,6 +87,33 @@ export default function FocoDelDia(p: Props) {
   const [zonasSinTarifa, setZonasSinTarifa] = useState(0);
   const [zonasActivas, setZonasActivas] = useState(0);
   const [retiroSinHorario, setRetiroSinHorario] = useState(false);
+  const [importacionSinTerminar, setImportacionSinTerminar] = useState<ImportacionSinTerminar | null>(null);
+
+  // La última importación de catálogo, si quedó a medias (ni finalizada ni
+  // cancelada): se retoma desde Productos › Importar, que sólo abren el dueño
+  // y los administradores.
+  const { activeRole } = useOrg();
+  const puedeImportar = activeRole === "owner" || activeRole === "admin";
+  useEffect(() => {
+    if (!p.orgId || !puedeImportar) { setImportacionSinTerminar(null); return; }
+    let cancelado = false;
+    void supabase.from("catalog_import_sessions")
+      .select("status, total, applied")
+      .eq("org_id", p.orgId).neq("status", "cancelled")
+      .order("created_at", { ascending: false }).limit(1)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("FocoDelDia / importación:", error);
+          return;
+        }
+        if (cancelado) return;
+        const ultima = data?.[0] as { status: string; total: number; applied: number } | undefined;
+        setImportacionSinTerminar(ultima && ["preparing", "ready", "applying"].includes(ultima.status)
+          ? { status: ultima.status as ImportacionSinTerminar["status"], total: Number(ultima.total) || 0, aplicadas: Number(ultima.applied) || 0 }
+          : null);
+      });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
 
   useEffect(() => {
     // Si el Dashboard ya pasó los conteos, no duplicar queries.
@@ -311,7 +339,7 @@ export default function FocoDelDia(p: Props) {
         }));
       });
     return () => { cancelado = true; };
-  }, [p.orgId]);
+  }, [p.orgId, puedeImportar]);
 
   const datos: DatosFoco = {
     sinStock: p.sinStock,
@@ -337,6 +365,7 @@ export default function FocoDelDia(p: Props) {
     tiendaPublicada: p.tiendaPublicada,
     ordenesOnlinePagas: p.ordenesOnlinePagas,
     retiroSinHorario,
+    importacionSinTerminar,
     facturacion,
   };
 
