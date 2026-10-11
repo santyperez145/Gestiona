@@ -100,7 +100,7 @@ Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast
 - [ ] Studio: árbol de páginas, secciones/bloques, tokens y preview real versionado.
 - [ ] AI Store Architect: propuesta revisable que produce configuración versionada.
 - [ ] Búsqueda: autocompletado, sinónimos, facetas, analítica y cero resultados.
-  Cero resultados (2026-10-11, trigesimoprimera corrida): la tienda registra las búsquedas que no encuentran nada (término normalizado y contador por día, sin datos del visitante) y la pestaña «Publicar» muestra «Lo que buscan y no encuentran» (30 días). Migración 20261011000500, `scripts/busquedas-sin-resultado-matrix.sql`. Faltan sinónimos y analítica completa.
+  Cero resultados (2026-10-11, trigesimoprimera corrida): la tienda registra las búsquedas que no encuentran nada (término normalizado y contador por día, sin datos del visitante) y la pestaña «Publicar» muestra «Lo que buscan y no encuentran» (30 días). Migración 20261011000500, `scripts/busquedas-sin-resultado-matrix.sql`. Sinónimos (trigesimosegunda corrida): desde esa misma tarjeta, «Agregar a un producto» vincula el término a un producto existente (selector con búsqueda) y la tienda suma esos productos a la búsqueda; una búsqueda resuelta por sinónimo deja de contar como sin resultados. Migración 20261011000600, `scripts/sinonimos-busqueda-matrix.sql`. Falta analítica completa (búsquedas con resultado, conversión).
 - [ ] Migración Shopify/Tiendanube medida (redirects, SEO, clientes, rollback).
 - [ ] B2B: empresas, compradores, catálogos/precios, mínimos, crédito, cotizaciones.
 - [ ] OMS: parciales, backorder/preorder, cambios, store credit, pickup.

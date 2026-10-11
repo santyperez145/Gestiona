@@ -910,3 +910,14 @@ export async function recordStoreSearchGap(slug: string, termino: string): Promi
   if (isMissingFunction(error)) { warnFallback('registrar_busqueda_sin_resultado()'); return; }
   console.error('[tienda] no se pudo registrar la búsqueda sin resultados:', error.message);
 }
+
+/** Sinónimos de búsqueda de una tienda (migración 20261011000600); [] si no hay o falta la función. */
+export async function getStoreSearchSynonyms(slug: string): Promise<{ termino: string; product_id: string }[]> {
+  const { data, error } = await (supabase.rpc('get_store_search_synonyms' as never, { p_slug: slug } as never) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>);
+  if (error) {
+    if (isMissingFunction(error)) warnFallback('get_store_search_synonyms()');
+    else console.error('[tienda] no se pudieron leer los sinónimos de búsqueda:', error.message);
+    return [];
+  }
+  return Array.isArray(data) ? (data as { termino: string; product_id: string }[]) : [];
+}

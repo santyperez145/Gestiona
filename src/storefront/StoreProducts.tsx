@@ -1,5 +1,5 @@
-import { debeRegistrar } from "@/lib/busquedasSinResultado";
-import { recordStoreSearchGap } from "@/lib/publicDataSource";
+import { debeRegistrar, productosPorSinonimo, type SinonimoDeBusqueda } from "@/lib/busquedasSinResultado";
+import { getStoreSearchSynonyms, recordStoreSearchGap } from "@/lib/publicDataSource";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "./storeContext";
@@ -94,15 +94,29 @@ export default function StoreProducts() {
       }));
   }, [cats2, categorias, products]);
 
-  const busqueda = useMemo(() => buscarProductosDeTienda(
-    q, products, slug => nombreDeCategoria(slug, cats2),
-  ), [q, products, cats2]);
+  const slugTienda = store?.slug;
+  const [sinonimos, setSinonimos] = useState<SinonimoDeBusqueda[]>([]);
+  useEffect(() => {
+    if (!slugTienda) return;
+    let activo = true;
+    void getStoreSearchSynonyms(slugTienda).then(s => { if (activo) setSinonimos(s); });
+    return () => { activo = false; };
+  }, [slugTienda]);
+
+  const busqueda = useMemo(() => {
+    const base = buscarProductosDeTienda(q, products, slug => nombreDeCategoria(slug, cats2));
+    // Sinónimos del comercio («lo buscan como X, lo tengo como Y»).
+    const porSinonimo = sinonimos.length ? productosPorSinonimo(q, sinonimos) : new Set<string>();
+    if (porSinonimo.size === 0) return base;
+    const ya = new Set(base.productos.map(p => p.id));
+    const extra = products.filter(p => porSinonimo.has(p.id) && !ya.has(p.id));
+    return extra.length ? { ...base, productos: [...base.productos, ...extra] } : base;
+  }, [q, products, cats2, sinonimos]);
 
   // Lo que buscan y no encuentran: una vez por término y visita, con una
   // pausa para no registrar cada tecla.
   const busquedasEnviadas = useRef(new Set<string>());
   const sinResultados = busqueda.productos.length;
-  const slugTienda = store?.slug;
   useEffect(() => {
     if (!slugTienda || products.length === 0) return;
     const termino = debeRegistrar(q, sinResultados, busquedasEnviadas.current);

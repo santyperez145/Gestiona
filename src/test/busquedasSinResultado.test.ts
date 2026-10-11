@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { debeRegistrar, terminoNormalizado, topBusquedas } from "@/lib/busquedasSinResultado";
+import { debeRegistrar, productosPorSinonimo, terminoNormalizado, topBusquedas } from "@/lib/busquedasSinResultado";
 
 describe("lo que buscan y no encuentran", () => {
   it("normaliza igual que la base y descarta lo corto", () => {
@@ -34,5 +34,37 @@ describe("lo que buscan y no encuentran", () => {
     expect(panel).toContain("<BusquedasSinResultado orgId={orgId} />");
     expect(migration).not.toMatch(/visitor|ip inet|user_agent|email/i);
     expect(migration).toContain("USING (public.has_permission(org_id, 'ecommerce', 'view'));");
+  });
+});
+
+describe("sinónimos de búsqueda", () => {
+  const sinonimos = [
+    { termino: "amoladora", product_id: "esmeriladora" },
+    { termino: "amoladora angular", product_id: "esmeriladora-grande" },
+    { termino: "latex", product_id: "pintura" },
+  ];
+
+  it("trae lo vinculado cuando todas las palabras de uno están en el otro", () => {
+    expect([...productosPorSinonimo("Amoladora", sinonimos)].sort()).toEqual(["esmeriladora", "esmeriladora-grande"]);
+    expect([...productosPorSinonimo("amoladora angular 115", sinonimos)].sort()).toEqual(["esmeriladora", "esmeriladora-grande"]);
+    expect([...productosPorSinonimo("Látex", sinonimos)]).toEqual(["pintura"]);
+  });
+
+  it("no trae nada con palabras sueltas que no coinciden o búsquedas vacías", () => {
+    expect(productosPorSinonimo("angular", sinonimos)).toEqual(new Set(["esmeriladora-grande"]));
+    expect(productosPorSinonimo("taladro", sinonimos).size).toBe(0);
+    expect(productosPorSinonimo("", sinonimos).size).toBe(0);
+  });
+
+  it("la tienda suma esos productos y el panel permite vincular con el selector con búsqueda", () => {
+    const tienda = readFileSync(resolve(process.cwd(), "src/storefront/StoreProducts.tsx"), "utf8");
+    const tarjeta = readFileSync(resolve(process.cwd(), "src/components/ecommerce/BusquedasSinResultado.tsx"), "utf8");
+    const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20261011000600_sinonimos_de_busqueda.sql"), "utf8");
+    expect(tienda).toContain("productosPorSinonimo(q, sinonimos)");
+    expect(tienda).toContain("void getStoreSearchSynonyms(slugTienda)");
+    expect(tarjeta).toContain("<ProductCombobox");
+    expect(tarjeta).toContain('useHasPermission("ecommerce", "edit")');
+    expect(migration).toContain("AND EXISTS (SELECT 1 FROM public.products p WHERE p.id = product_id AND p.org_id = store_search_synonyms.org_id)");
+    expect(migration).toContain("JOIN public.products p ON p.id = s.product_id AND p.is_active");
   });
 });

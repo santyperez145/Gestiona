@@ -34,3 +34,28 @@ export function topBusquedas(filas: FilaBusqueda[], limite = 10): FilaBusqueda[]
     .sort((a, b) => b.veces - a.veces || a.termino.localeCompare(b.termino))
     .slice(0, limite);
 }
+
+export interface SinonimoDeBusqueda {
+  termino: string;
+  product_id: string;
+}
+
+/**
+ * Productos que un sinónimo trae para esta búsqueda (migración
+ * 20261011000600): coincide si todas las palabras de uno están en el otro
+ * («amoladora» trae lo vinculado a «amoladora angular» y viceversa).
+ */
+export function productosPorSinonimo(q: string, sinonimos: SinonimoDeBusqueda[]): Set<string> {
+  const busqueda = terminoNormalizado(q);
+  const ids = new Set<string>();
+  if (!busqueda) return ids;
+  const palabras = busqueda.split(" ");
+  for (const s of sinonimos) {
+    const delSinonimo = (terminoNormalizado(s.termino) ?? "").split(" ").filter(Boolean);
+    if (delSinonimo.length === 0) continue;
+    const todasEnSinonimo = palabras.every(p => delSinonimo.includes(p));
+    const todasEnBusqueda = delSinonimo.every(p => palabras.includes(p));
+    if (todasEnSinonimo || todasEnBusqueda) ids.add(s.product_id);
+  }
+  return ids;
+}
