@@ -556,7 +556,8 @@ Deno.serve(async (req) => {
           .order("date", { ascending: false }).limit(5),
         admin.from("sales").select("id", { count: "exact", head: true }).eq("org_id", orgId),
         admin.from("products").select("id", { count: "exact", head: true }).eq("org_id", orgId),
-        admin.from("debts").select("id", { count: "exact", head: true }).eq("org_id", orgId).eq("paid", false),
+        // `debts` no tiene `paid`: se cuentan las pendientes o parciales.
+        admin.from("debts").select("id", { count: "exact", head: true }).eq("org_id", orgId).in("status", ["pending", "partial"]),
       ]);
       return json({ ok: true, recentSales, totalSales, totalProducts, totalDebts });
     }

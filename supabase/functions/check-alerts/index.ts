@@ -94,13 +94,19 @@ Deno.serve(async (req) => {
           const cutoff = new Date();
           cutoff.setDate(cutoff.getDate() - rule.threshold_days);
 
-          const { data: debts } = await supabase
+          // ⚠️ `debts` no tiene `paid` ni `amount` (es `status` y
+          // `remaining_ars`): con esos nombres la consulta fallaba, el error no
+          // se miraba y la alerta de deuda vencida no salió nunca (medido
+          // 2026-10-11). Ahora un fallo corta la corrida en vez de callarse.
+          const { data: debts, error: errDeudas } = await supabase
             .from("debts")
-            .select("id, customer_name, amount, due_date")
+            .select("id, customer_name, remaining_ars, due_date")
             .eq("org_id", orgId)
-            .eq("paid", false)
+            .in("status", ["pending", "partial"])
+            .gt("remaining_ars", 0)
             .lte("due_date", cutoff.toISOString().slice(0, 10))
             .limit(20);
+          if (errDeudas) throw new Error(`no se pudieron leer las deudas: ${errDeudas.message}`);
 
           for (const d of debts ?? []) {
             const days = Math.floor(
@@ -109,7 +115,7 @@ Deno.serve(async (req) => {
             alerts.push({
               type: "deuda_vencida",
               title: `Deuda vencida: ${d.customer_name}`,
-              message: `$${Number(d.amount).toLocaleString("es-AR")} — vencida hace ${days} días.`,
+              message: `$${Number(d.remaining_ars).toLocaleString("es-AR")} — vencida hace ${days} días.`,
               entityKey: `debt_overdue:${d.id}`,
             });
           }
