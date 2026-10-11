@@ -298,6 +298,11 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    comercio (phishing); con `aplicar_limites_del_plan` quedan sólo para el
    servidor (`20261011001900`, `scripts/funciones-internas-usuarios-matrix.sql`).
    Storage: buckets privados con permiso por módulo; los públicos son imágenes.
+   Abuso de lo público (2026-10-11): las funciones que registran búsquedas de la
+   tienda no tenían tope de filas; ahora 2.000 términos distintos por comercio y
+   día (`20261011002300`). El resto ya tenía tope (avisos 300/día, errores 500/día,
+   vitales acotados por página y métrica). Pendiente de P1 Seguridad: «ver costo»
+   por rol (el vendedor lee las columnas de costo de `products`).
    Lectura (2026-10-11): las funciones con privilegios de sólo lectura que ejecuta
    un anónimo verifican quién llama, salvo tres públicas a propósito
    (`confirm_payment_link_transfer`, el «ya transferí» de un link de pago, y
