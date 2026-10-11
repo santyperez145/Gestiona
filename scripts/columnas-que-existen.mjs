@@ -13,6 +13,10 @@ await c.connect();
 const r = await c.query(`select table_name, column_name from information_schema.columns where table_schema='public'`);
 const cols = new Map();
 for (const x of r.rows) { if (!cols.has(x.table_name)) cols.set(x.table_name, new Set()); cols.get(x.table_name).add(x.column_name); }
+const rf = await c.query(`select p.proname, array_agg(coalesce(a, '')) args
+  from pg_proc p left join lateral unnest(p.proargnames) a on true
+  where p.pronamespace = 'public'::regnamespace group by p.proname`);
+const funcs = new Map(rf.rows.map(x => [x.proname, new Set(x.args)]));
 await c.end();
 function walk(d, out = []) {
   for (const f of fs.readdirSync(d)) {
@@ -44,6 +48,23 @@ for (const f of files) {
       }
     }
     for (const n of nombres) if (!set.has(n)) hallazgos.add(path.relative(raiz, f).split(path.sep).join('/') + ' :: ' + tabla + '.' + n);
+  }
+}
+// Funciones: .rpc("nombre", { p_… }) contra pg_proc. Los respaldos de
+// despliegue (sólo corren si falta la función nueva) también aparecen.
+// Respaldos a propósito: sólo corren si falta la función nueva (regla del
+// repo: el cliente no depende de migraciones sin aplicar). Ver
+// storeOrderAccessControl.test.ts.
+const RESPALDOS_DE_DESPLIEGUE = new Set(['get_store_order']);
+const reRpc = /\.rpc\(\s*["'`]([a-z_0-9]+)["'`]\s*(?:as never)?\s*(?:,\s*\{([^}]*)\})?/g;
+for (const f of files) {
+  const src = fs.readFileSync(f, 'utf8');
+  for (const m of src.matchAll(reRpc)) {
+    const rel = path.relative(raiz, f).split(path.sep).join('/');
+    if (!funcs.has(m[1])) { if (RESPALDOS_DE_DESPLIEGUE.has(m[1])) continue; hallazgos.add(rel + ' :: ' + m[1] + '() no existe'); continue; }
+    for (const k of (m[2] ?? '').matchAll(/(?:^|[,\s{])(p_[a-z_0-9]+)\s*:/g)) {
+      if (!funcs.get(m[1]).has(k[1])) hallazgos.add(rel + ' :: ' + m[1] + '(' + k[1] + ') no es parámetro');
+    }
   }
 }
 console.log([...hallazgos].sort().join('\n'));
