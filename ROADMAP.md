@@ -275,6 +275,10 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    `upsert_customer_from_order` —no verificaba nada— y `configure_business_profile`
    quedan sólo para el servidor. Siguen públicas las 12 de la tienda y de enlaces
    con token. `scripts/funciones-internas-matrix.sql`.
+   Lectura (2026-10-11): las funciones con privilegios de sólo lectura que ejecuta
+   un anónimo verifican quién llama, salvo tres públicas a propósito
+   (`confirm_payment_link_transfer`, el «ya transferí» de un link de pago, y
+   `stock_disponible`/`stock_en_vitrina`, que la tienda muestra igual). Sin cambios.
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
    honestos, alerts accionables y soporte con correlación sanitizada.
 4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con

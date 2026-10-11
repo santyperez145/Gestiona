@@ -31,6 +31,7 @@ import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import FilePicker from "@/components/shared/FilePicker";
 import { vencimientoCertificado } from '@/lib/certificateExpiry';
+import RenovarCertificadoArca from '@/components/platform/RenovarCertificadoArca';
 
 interface Estado {
   cuit: string | null;
@@ -361,6 +362,8 @@ export default function PlatformAfipPage() {
           </div>
         </div>
       </div>
+
+      {!cargando && <RenovarCertificadoArca cuit={cuit} razonSocial={razonSocial} ambiente={environment} />}
 
       {cargando ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

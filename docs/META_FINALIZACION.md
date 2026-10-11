@@ -23,7 +23,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Factura de homologación guiada (vigesimoprimera corrida): el paso «Primera factura con CAE» abre Facturas con la factura de prueba precargada (consumidor final, «Factura de prueba (homologación)» por $100); el comercio revisa y confirma, y la factura sigue el circuito normal de autorización. Sólo en homologación: en producción no se precarga nada y se avisa por qué. **Gate externo pendiente:** obtener el primer CAE real de prueba con un comercio delegado.
 - [x] POS: "Facturar todas las ventas" por organización; un cliente con CUIT activa la factura del ticket.
 - [x] Commerce: cada pedido pagado genera su factura y se autoriza en ARCA vía outbox (`orden.pagada` → `facturar_orden_pagada` → `factura.creada` → `afip-authorize`); el lote muestra el resultado y qué hacer por pedido.
-- [ ] Asistente de renovación de certificado (generar CSR y cargar CRT guiado).
+- [x] Asistente de renovación de certificado (2026-10-11, vigesimoctava corrida): Platform › ARCA › «Renovar el certificado paso a paso». Arma los comandos de openssl (clave y CSR con el subject que pide ARCA) con el CUIT y la razón social del formulario, dice dónde subir el pedido según el ambiente (Administración de Certificados Digitales / WSASS) y qué cargar acá. La clave se genera en la computadora del dueño. **Acción del dueño cuando venza:** seguir esos tres pasos.
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.
