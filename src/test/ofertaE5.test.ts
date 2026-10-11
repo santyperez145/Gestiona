@@ -43,3 +43,14 @@ describe("oferta de Starter a las 4 semanas (E5)", () => {
     expect(panel).toContain('window.location.hash !== "#lo-que-reemplaza"');
   });
 });
+
+describe("aviso de fin de prueba", () => {
+  it("lleva a «Lo que Nerqia reemplaza», el argumento de E5", async () => {
+    const { readFileSync } = await import("node:fs");
+    const layout = readFileSync("src/components/AppLayout.tsx", "utf8");
+    const i = layout.indexOf("if (motivoDeCorte === 'prueba_finalizada') return (");
+    const bloque = layout.slice(i, i + 1200);
+    expect(bloque).toContain('<Link to="/mi-plan#lo-que-reemplaza">Ver la cuenta</Link>');
+    expect(bloque).toContain("ventas, stock, caja y tienda siguen funcionando");
+  });
+});
