@@ -47,6 +47,7 @@ import DashboardTooltip from "@/components/analytics/DashboardTooltip";
 
 import { plural } from "@/lib/plural";
 import { contarBajoCosto } from "@/lib/guardianDeMargen";
+import ElegirPerfilDelMenu from "@/components/dashboard/ElegirPerfilDelMenu";
 import OfertaStarterE5 from "@/components/dashboard/OfertaStarterE5";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import CommerceQuickActions from "@/components/commerce/CommerceQuickActions";
@@ -1771,6 +1772,7 @@ export default function Dashboard() {
           dos preguntas con las que se abre el sistema a la mañana: cómo viene
           el mes, y qué hay para hacer ahora. */}
       <OfertaStarterE5 />
+      <ElegirPerfilDelMenu />
 
       {stats && (
         /* ⚠️ `deudasVencidas30` recibía `agingCount30`, que cuenta PRODUCTOS sin

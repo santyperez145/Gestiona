@@ -10,6 +10,8 @@ export type BusinessConfig = {
   secondaryColor: string;
   /** null = sin elegir: menú completo. Ver `apareceEnPerfil`. */
   perfilMenu: PerfilMenu | null;
+  /** false hasta leer los ajustes: «sin perfil» todavía no es un dato. */
+  cargado?: boolean;
 };
 
 const DEFAULT_LOGO: string | null = null;
@@ -45,6 +47,7 @@ export function useBusinessConfig() {
         secondaryColor: s.secondary_color || '#1A1A2E',
         // `perfil_menu` llega con 20261010001400; los tipos generados todavía no la tienen.
         perfilMenu: (() => { const p = (s as { perfil_menu?: unknown }).perfil_menu; return esPerfilMenu(p) ? p : null; })(),
+        cargado: true,
       });
     })();
   }, [user, version]);
