@@ -451,11 +451,12 @@ async function processBrickPayment(
     if (paidError) console.error("mark_store_order_paid (brick):", paidError);
     else await notifyPaidStoreOrder(admin, context);
   } else if (status === "rejected" || status === "cancelled") {
-    await admin
+    const { error: fallidoError } = await admin
       .from("ecommerce_orders")
       .update({ payment_status: "failed", updated_at: new Date().toISOString() })
       .eq("id", order.id)
       .neq("payment_status", "paid");
+    if (fallidoError) console.error("store-pay: no se marcó la orden como fallida", fallidoError);
   }
 
   await recordPaymentTransaction(admin, {

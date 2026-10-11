@@ -277,6 +277,12 @@ async function reconcilePendingStoreRefunds(
   }
 }
 
+// Un pago aprobado que no se pudo anotar en la base no puede contestarse con
+// 200: Mercado Pago no reintenta y el link o la venta quedan «pendientes» para
+// siempre aunque el cliente pagó. Estas escrituras son idempotentes (filtran
+// por estado), así que el reintento no duplica nada.
+class ReintentarWebhook extends Error {}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -679,11 +685,12 @@ Deno.serve(async (req) => {
           }
         }
       } else if (isRejected) {
-        await admin
+        const { error: fallidoErr } = await admin
           .from("ecommerce_orders")
           .update({ payment_status: "failed", updated_at: new Date().toISOString() })
           .eq("id", orderId)
           .neq("payment_status", "paid");
+        if (fallidoErr) console.error("mercadopago-webhook: no se marcó la orden como fallida", fallidoErr);
       } else if (isReversed) {
         // Una devolución o contracargo llega después de que la orden ya fue
         // acreditada. No basta con anotarlo en la liquidación: la operación no
@@ -745,7 +752,7 @@ Deno.serve(async (req) => {
     // ── Update payment_links table ─────────────────────────────────────────────
     if (externalRef) {
       const linkStatus = isApproved ? "paid" : isRejected ? "rejected" : "pending";
-      await admin
+      const { error: linkErr } = await admin
         .from("payment_links")
         .update({
           status: linkStatus,
@@ -754,19 +761,24 @@ Deno.serve(async (req) => {
         })
         .eq("org_id", orgId)
         .eq("external_ref", externalRef);
+      if (linkErr) throw new ReintentarWebhook(`payment_links: ${linkErr.message}`);
 
       // ── Update related sale if external_ref is a sale id ─────────────────
-      if (isApproved) {
-        // external_ref may be "sale:<uuid>" or just a uuid
-        const saleId = externalRef.startsWith("sale:") ? externalRef.slice(5) : externalRef;
+      // external_ref may be "sale:<uuid>" or just a uuid
+      const saleId = externalRef.startsWith("sale:") ? externalRef.slice(5) : externalRef;
+      // Si la referencia no es un id de venta, la base contesta «uuid inválido»:
+      // antes se ignoraba en silencio, y como ahora un error pide reintento, hay
+      // que no preguntar.
+      if (isApproved && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saleId)) {
         const { error: saleErr } = await admin
           .from("sales")
           .update({ paid: true, payment_method: "mercado_pago" })
           .eq("org_id", orgId)
           .eq("id", saleId)
           .eq("paid", false);
+        if (saleErr) throw new ReintentarWebhook(`sales: ${saleErr.message}`);
 
-        if (!saleErr) {
+        {
           // Notify the org owner
           const { data: membership } = await admin
             .from("memberships")
@@ -815,7 +827,14 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("mercadopago-webhook error:", e);
-    // Always 200 to avoid MP flooding us with retries
+    if (e instanceof ReintentarWebhook) {
+      return new Response(JSON.stringify({ ok: false, error: e.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    // El resto (pago desconocido, datos inválidos) contesta 200: reintentar no
+    // lo arregla y MP insistiría durante días.
     return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "error" }), {
       headers: { "Content-Type": "application/json" },
     });

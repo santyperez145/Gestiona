@@ -63,18 +63,22 @@ export async function getMpCredentials(admin: any, orgId: string): Promise<MpCre
         });
         const tok = await res.json().catch(() => null);
         if (res.ok && tok?.access_token) {
-          await admin.from("payment_connections").update({
+          const { error: guardarError } = await admin.from("payment_connections").update({
             access_token: await cifrarSecreto(admin, tok.access_token),
             refresh_token: await cifrarSecreto(admin, tok.refresh_token ?? refreshToken),
             expires_at: new Date(Date.now() + (tok.expires_in ?? 15552000) * 1000).toISOString(),
             last_error: null,
             updated_at: new Date().toISOString(),
           }).eq("org_id", orgId).eq("provider", "mercadopago");
+          // MP rota el refresh token: si no se guarda, la próxima renovación usa
+          // uno vencido y la conexión se corta sin que nadie sepa por qué.
+          if (guardarError) console.error("mpToken: no se guardó el token renovado", guardarError);
           return { accessToken: tok.access_token, liveMode: conn.live_mode ?? true };
         }
-        await admin.from("payment_connections")
+        const { error: anotarError } = await admin.from("payment_connections")
           .update({ last_error: "No se pudo renovar el token" })
           .eq("org_id", orgId).eq("provider", "mercadopago");
+        if (anotarError) console.error("mpToken: no se anotó el error de renovación", anotarError);
       } catch { /* se usa el token actual mientras siga siendo válido */ }
     }
 

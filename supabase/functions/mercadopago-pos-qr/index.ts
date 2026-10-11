@@ -369,11 +369,16 @@ async function setupPos(
         code: "MP_STORE_REJECTED",
       }, 422);
     }
-    await admin.from("payment_connections").update({
+    const { error: guardarSucursalError } = await admin.from("payment_connections").update({
       mp_store_id: storeId,
       mp_external_store_id: externalStoreId,
       updated_at: new Date().toISOString(),
     }).eq("org_id", orgId).eq("provider", "mercadopago");
+    // Sin guardar la sucursal, cada intento crearía otra en Mercado Pago.
+    if (guardarSucursalError) {
+      console.error("mercadopago-pos-qr: no se guardó la sucursal", guardarSucursalError);
+      return json({ error: "No pudimos guardar la sucursal. Probá de nuevo.", code: "STORE_NOT_SAVED" }, 500);
+    }
   }
 
   const posName = cleanText(`Caja ${storeName}`.replace(/[^A-Za-z0-9 _-]/g, ""), 45) ?? "Caja Nerqia";
