@@ -90,6 +90,8 @@ Hecho (decimoséptima corrida, 2026-10-10, E5): **la oferta de Starter aparece s
 
 Hecho (vigesimosexta corrida, 2026-10-11, ROADMAP P0.2): cinco escrituras que cualquier miembro —incluso de sólo lectura— podía hacer (campañas de WhatsApp y a segmentos, inscripciones en automatizaciones, alertas de presupuesto, historial de stock) ahora exigen el permiso del módulo. Migración 20261011000100; la matriz muestra el antes (15/15 «pudo») y el después. Quedan 5 tablas con escritura de miembro, todas de uso legítimo.
 
+Hecho (vigesimoséptima corrida, 2026-10-11, ROADMAP P0.2): de 30 funciones con privilegios que escriben datos y que podía ejecutar un anónimo, quedan 12 (las públicas de la tienda y los enlaces con token). `upsert_customer_from_order`, que no verificaba quién la llamaba, queda sólo para el servidor. Migración 20261011000200, `scripts/funciones-internas-matrix.sql`.
+
 Infraestructura hecha el 2026-10-10 para tener en cuenta: realtime por Broadcast desde la base (topics `org:<id>`, `user:<id>`, `plataforma:soporte`; ver `src/lib/orgRealtime.ts`), catálogo con caché local incremental (`src/lib/catalogCache.ts`), cron condicionados a trabajo pendiente, índices en todas las FK hacia `products`, categorías por rubro como datos (`rubro_reglas_categoria`).
 
 **2. Abrir mi tienda en minutos (P1)**

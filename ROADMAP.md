@@ -270,6 +270,11 @@ No abrir más productos mientras Commerce carezca de prueba operacional.
    aplicada, `scripts/escrituras-marketing-finanzas-matrix.sql`. Quedan 5 tablas
    con escritura de miembro, todas de uso legítimo (actividad de trato, registro
    de acceso, eventos de entrega, uso de promoción en caja, alerta leída).
+   Funciones expuestas (2026-10-11): `20261011000200` quita la ejecución anónima a
+   18 funciones internas con privilegios que escriben datos (de 30 expuestas);
+   `upsert_customer_from_order` —no verificaba nada— y `configure_business_profile`
+   quedan sólo para el servidor. Siguen públicas las 12 de la tienda y de enlaces
+   con token. `scripts/funciones-internas-matrix.sql`.
 3. Medir errores, SLO, LCP/INP/CLS y funnel sin PII innecesaria; estados parciales
    honestos, alerts accionables y soporte con correlación sanitizada.
 4. Certificar pagos, correo, logística y fiscal por entorno/proveedor con
