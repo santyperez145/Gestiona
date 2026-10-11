@@ -1,3 +1,4 @@
+import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
@@ -390,6 +391,9 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
     ? `Comprobante electrónico autorizado por ARCA${esHomologacion ? " · HOMOLOGACIÓN" : ""}`
     : "Borrador sin CAE · No es un comprobante fiscal";
   doc.text(footerText, W / 2, fY, { align: "center" });
+  // Sello «Hecho con Nerqia» (TESIS §5); no va con marca propia vigente.
+  const sello = await selloHechoConNerqia(inv.org_id);
+  if (sello) doc.text(sello, W / 2, fY + 10, { align: "center" });
 
   doc.save(`factura-${numero || inv.number}.pdf`);
   toast.success("PDF generado");

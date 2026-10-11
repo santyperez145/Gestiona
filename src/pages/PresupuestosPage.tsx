@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef, useCallback } from "react";
+﻿import { selloHechoConNerqia } from "@/lib/selloNerqia";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -234,7 +235,7 @@ function ProductSearch({
 }
 
 // ─── PDF helpers ──────────────────────────────────────────────────────────────
-async function generatePDF(quote: Quote, orgName: string) {
+async function generatePDF(quote: Quote, orgName: string, orgId?: string) {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
 
@@ -308,6 +309,15 @@ async function generatePDF(quote: Quote, orgName: string) {
     doc.text("Notas:", 15, notesY);
     const lines = doc.splitTextToSize(quote.notes, PW - 30);
     doc.text(lines, 15, notesY + 5);
+  }
+
+  // Sello «Hecho con Nerqia» (TESIS §5); no va con marca propia vigente.
+  const sello = orgId ? await selloHechoConNerqia(orgId) : null;
+  if (sello) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(160, 160, 160);
+    doc.text(sello, PW / 2, PH - 8, { align: "center" });
   }
 
   doc.save(`presupuesto_${quote.quote_number}.pdf`);
@@ -1012,7 +1022,7 @@ export default function PresupuestosPage() {
                   >
                     {expandedId === q.id ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => generatePDF(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Descargar PDF presupuesto">
+                  <button onClick={() => generatePDF(q, orgName, activeOrg?.id)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Descargar PDF presupuesto">
                     <Download className="w-4 h-4" />
                   </button>
                   <button onClick={() => generateRemito(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Remito de entrega">

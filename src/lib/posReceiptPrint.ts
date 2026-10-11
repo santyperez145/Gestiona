@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { BRAND_DOMAIN, BRAND_NAME } from "@/lib/brand";
+import { selloHechoConNerqia } from "@/lib/selloNerqia";
 
 export interface PosReceiptSnapshot {
   id: string;
@@ -80,27 +80,8 @@ export async function printReceiptHtml(html: string): Promise<void> {
   });
 }
 
-/**
- * Sello «Hecho con Nerqia» del ticket (TESIS §5: distribución en tiendas y
- * tickets). Lleva el slug del comercio para medir altas referidas
- * (`origen_de_alta`). Con marca propia vigente (`org_entitlements.branding`,
- * la misma fuente que la tienda) no va; ante cualquier error, tampoco.
- */
-export async function selloDelTicket(orgId: string): Promise<string | null> {
-  try {
-    const [derechos, org] = await Promise.all([
-      supabase.rpc("org_entitlements", { p_org: orgId }),
-      supabase.from("organizations").select("slug").eq("id", orgId).maybeSingle(),
-    ]);
-    const branding = (derechos.data as { branding?: boolean } | null)?.branding;
-    const slug = (org.data as { slug?: string } | null)?.slug;
-    if (derechos.error || org.error || branding !== false || !slug) return null;
-    return `Hecho con ${BRAND_NAME} · ${BRAND_DOMAIN}/?ref=${slug.toLowerCase()}`;
-  } catch (cause) {
-    console.error("[POS] receipt seal:", cause);
-    return null;
-  }
-}
+/** Sello del ticket: la misma regla que facturas y presupuestos (`selloNerqia.ts`). */
+export const selloDelTicket = selloHechoConNerqia;
 
 export async function loadPosReceipt(orgId: string, transactionId: string, businessName: string): Promise<PosReceiptSnapshot> {
   const { data: transaction, error: transactionError } = await supabase.from("sale_transactions")
