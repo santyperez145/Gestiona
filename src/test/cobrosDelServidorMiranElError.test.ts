@@ -11,6 +11,8 @@ const ARCHIVOS = [
   "supabase/functions/_shared/mpToken.ts",
   "supabase/functions/mp-payouts/index.ts",
   "supabase/functions/_shared/mpPayoutsSync.ts",
+  "supabase/functions/mp-connect/index.ts",
+  "supabase/functions/mercadopago-payment-methods/index.ts",
 ];
 
 function escriturasSueltas(fuente: string): number[] {
@@ -48,6 +50,12 @@ describe("cobros del servidor: las escrituras miran el error", () => {
     expect(sync).toContain("ok: sinAnotar === 0");
     const s = fs.readFileSync("supabase/functions/mercadopago-webhook/index.ts", "utf8");
     expect(s).toMatch(/resultado\.sinAnotar > 0\) \{\s*throw new ReintentarWebhook/);
+  });
+
+  it("desconectar MP no dice «listo» si los tokens siguen guardados", () => {
+    const s = fs.readFileSync("supabase/functions/mp-connect/index.ts", "utf8");
+    expect(s).toContain("throw new Error(`No se pudo desconectar Mercado Pago:");
+    expect(s).toContain("throw new Error(`No se pudo validar la conexión:");
   });
 
   it("sólo actualiza ventas cuando la referencia es un id, para no reintentar para siempre", () => {

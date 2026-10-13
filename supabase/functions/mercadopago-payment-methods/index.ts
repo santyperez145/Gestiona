@@ -146,7 +146,7 @@ serve(async (req) => {
     }
 
     // Guardar referencia local para auditoría
-    await supabase.from("mp_payment_methods").upsert({
+    const { error: guardarError } = await supabase.from("mp_payment_methods").upsert({
       org_id: orgId,
       mp_customer_id: mpCustomerId,
       mp_payment_method_id: addData.id,
@@ -159,6 +159,7 @@ serve(async (req) => {
       is_default: addData.is_default ?? false,
       created_at: new Date().toISOString(),
     }, { onConflict: "mp_payment_method_id" });
+    if (guardarError) console.error("mp payment method: la tarjeta quedó en MP pero no se guardó la referencia", guardarError);
 
     return json({ payment_method: addData, mp_customer_id: mpCustomerId });
   }
@@ -185,12 +186,13 @@ serve(async (req) => {
     }
 
     // Borrar referencia local
-    await supabase
+    const { error: borrarError } = await supabase
       .from("mp_payment_methods")
       .delete()
       .eq("org_id", orgId)
       .eq("mp_customer_id", mpCustomerId)
       .eq("mp_payment_method_id", mpPaymentMethodId);
+    if (borrarError) console.error("mp payment method: se borró en MP pero no la referencia local", borrarError);
 
     return json({ ok: true });
   }

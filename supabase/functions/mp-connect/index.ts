@@ -70,12 +70,17 @@ Deno.serve(async (req) => {
 
     // ── disconnect ────────────────────────────────────────────────────────
     if (action === "disconnect") {
-      await admin.from("payment_connections")
+      // Si el borrado falla, los tokens siguen guardados: decir «desconectado»
+      // sería mentirle al comercio sobre quién puede cobrar con su cuenta.
+      const { error: borrarError } = await admin.from("payment_connections")
         .delete().eq("org_id", orgId).eq("provider", "mercadopago");
-      await admin.from("settings").update({ mp_enabled: false }).eq("org_id", orgId);
-      await admin.from("org_payment_providers")
+      if (borrarError) throw new Error(`No se pudo desconectar Mercado Pago: ${borrarError.message}`);
+      const { error: apagarError } = await admin.from("settings").update({ mp_enabled: false }).eq("org_id", orgId);
+      if (apagarError) console.error("mp-connect: no se apagó mp_enabled", apagarError);
+      const { error: medioError } = await admin.from("org_payment_providers")
         .update({ habilitado: false, conectado_at: null, cuenta: null, updated_at: new Date().toISOString() })
         .eq("org_id", orgId).eq("provider", "mercadopago");
+      if (medioError) console.error("mp-connect: no se deshabilitó el medio de pago", medioError);
       return json({ ok: true });
     }
 
@@ -89,10 +94,11 @@ Deno.serve(async (req) => {
       // esta app para esta organización. Sin esto, alguien podría inducir a un
       // comercio a conectar una cuenta ajena.
       const st = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-      await admin.from("oauth_states").insert({
+      const { error: estadoError } = await admin.from("oauth_states").insert({
         state: st, org_id: orgId, provider: "mercadopago",
         user_id: userId, redirect_to: returnUrl ?? null,
       });
+      if (estadoError) throw new Error(`No se pudo iniciar la conexión: ${estadoError.message}`);
       await admin.rpc("purge_expired_oauth_states");
 
       const url = `${AUTH_URL}?client_id=${encodeURIComponent(appId)}` +
@@ -113,12 +119,15 @@ Deno.serve(async (req) => {
         return json({ error: "El estado de la conexión no es válido. Volvé a intentar." }, 400);
       }
       if (new Date(st.expires_at).getTime() < Date.now()) {
-        await admin.from("oauth_states").delete().eq("state", state);
+        const { error: vencidoError } = await admin.from("oauth_states").delete().eq("state", state);
+        if (vencidoError) console.error("mp-connect: no se borró el estado vencido", vencidoError);
         return json({ error: "La conexión expiró. Volvé a intentar." }, 400);
       }
       const redirectTo = typeof st.redirect_to === "string" ? st.redirect_to : null;
-      // De un solo uso.
-      await admin.from("oauth_states").delete().eq("state", state);
+      // De un solo uso: si no se puede borrar, no se canjea el código, porque
+      // el mismo `state` serviría para otra conexión.
+      const { error: usoError } = await admin.from("oauth_states").delete().eq("state", state);
+      if (usoError) throw new Error(`No se pudo validar la conexión: ${usoError.message}`);
 
       const res = await fetch(TOKEN_URL, {
         method: "POST",
@@ -170,7 +179,8 @@ Deno.serve(async (req) => {
 
       // `settings.mp_enabled` sigue siendo el interruptor que mira el resto de
       // la app, así que se enciende al conectar.
-      await admin.from("settings").update({ mp_enabled: true }).eq("org_id", orgId);
+      const { error: encenderError } = await admin.from("settings").update({ mp_enabled: true }).eq("org_id", orgId);
+      if (encenderError) console.error("mp-connect: no se encendió mp_enabled", encenderError);
 
       // `costos_por_medio_de_pago` y el ruteo leen `org_payment_providers`,
       // no `payment_connections`. Sin esta RPC el panel de Pay queda activo
@@ -209,19 +219,21 @@ Deno.serve(async (req) => {
       const tok = await res.json().catch(() => null) as MpToken | null;
       if (!res.ok || !tok?.access_token) {
         const msg = (tok as any)?.message ?? `HTTP ${res.status}`;
-        await admin.from("payment_connections")
+        const { error: anotarError } = await admin.from("payment_connections")
           .update({ last_error: String(msg).slice(0, 500) })
           .eq("org_id", orgId).eq("provider", "mercadopago");
+        if (anotarError) console.error("mp-connect: no se anotó el error de renovación", anotarError);
         return json({ error: `No se pudo renovar: ${msg}` }, 400);
       }
 
-      await admin.from("payment_connections").update({
+      const { error: renovarError } = await admin.from("payment_connections").update({
         access_token: await cifrarSecreto(admin, tok.access_token),
         refresh_token: await cifrarSecreto(admin, tok.refresh_token ?? refreshToken),
         expires_at: new Date(Date.now() + (tok.expires_in ?? 15552000) * 1000).toISOString(),
         last_error: null,
         updated_at: new Date().toISOString(),
       }).eq("org_id", orgId).eq("provider", "mercadopago");
+      if (renovarError) throw new Error(`Se renovó en Mercado Pago pero no se pudo guardar: ${renovarError.message}`);
 
       return json({ ok: true });
     }
