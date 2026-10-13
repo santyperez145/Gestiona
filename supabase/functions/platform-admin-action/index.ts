@@ -93,12 +93,13 @@ Deno.serve(async (req) => {
     // otra persona conserva sus permisos más allá de cualquier ventana de
     // soporte. El reemplazo es el snapshot diagnóstico consentido y temporal.
     if (action === "generateMagicLink") {
-      await admin.from("admin_audit_logs" as any).insert({
+      const { error: auditoriaError } = await admin.from("admin_audit_logs" as any).insert({
         admin_user_id: user.id,
         admin_email: user.email,
         action: "DENIED:generateMagicLink",
         details: { reason: "impersonation_retired" },
-      }).then(() => {}, () => {});
+      });
+      if (auditoriaError) console.error("[platform-admin-action] intento denegado sin auditar", auditoriaError);
       return json({ error: "La impersonación fue retirada. Solicitá diagnóstico desde Merchant 360." }, 410);
     }
 
@@ -134,12 +135,13 @@ Deno.serve(async (req) => {
     if (platformRole !== "superadmin") {
       const allowed = ACTION_ROLES[action] || [];
       if (!allowed.includes(platformRole)) {
-        await admin.from("admin_audit_logs" as any).insert({
+        const { error: auditoriaError } = await admin.from("admin_audit_logs" as any).insert({
           admin_user_id: user.id,
           admin_email: user.email,
           action: `DENIED:${action}`,
           details: { platformRole },
-        }).then(() => {}, () => {});
+        });
+        if (auditoriaError) console.error("[platform-admin-action] intento denegado sin auditar", auditoriaError);
         return json(
           { error: `Tu nivel de acceso (${platformRole}) no permite esta acción` },
           403,
@@ -152,8 +154,10 @@ Deno.serve(async (req) => {
       act: string,
       opts: { orgId?: string; userId?: string; details?: unknown } = {},
     ) => {
+      // La acción ya se hizo: si la auditoría no se guarda no se deshace, pero
+      // tiene que quedar en el registro que faltó la evidencia.
       try {
-        await admin.from("admin_audit_logs" as any).insert({
+        const { error } = await admin.from("admin_audit_logs" as any).insert({
           admin_user_id: user.id,
           admin_email: user.email,
           action: act,
@@ -161,7 +165,8 @@ Deno.serve(async (req) => {
           target_user_id: opts.userId || null,
           details: opts.details ?? null,
         });
-      } catch { /* silent */ }
+        if (error) console.error(`[platform-admin-action] auditoría de ${act} sin guardar`, error);
+      } catch (e) { console.error(`[platform-admin-action] auditoría de ${act} sin guardar`, e); }
     };
 
     // ── CONTROLES DE LANZAMIENTO ──────────────────────────────
@@ -323,7 +328,8 @@ Deno.serve(async (req) => {
       const base = org?.trial_ends_at ? new Date(org.trial_ends_at) : new Date();
       if (base < new Date()) base.setTime(new Date().getTime());
       base.setDate(base.getDate() + (days || 7));
-      await admin.from("organizations").update({ trial_ends_at: base.toISOString() }).eq("id", orgId);
+      const { error: trialError } = await admin.from("organizations").update({ trial_ends_at: base.toISOString() }).eq("id", orgId);
+      if (trialError) return json({ error: trialError.message }, 500);
       await logAction("extendTrial", { orgId, details: { days, newExpiry: base.toISOString() } });
       return json({ ok: true, newExpiry: base.toISOString() });
     }
@@ -331,13 +337,15 @@ Deno.serve(async (req) => {
     // ── CHANGE PLAN ────────────────────────────────────────────
     if (action === "changePlan") {
       const { orgId, planId } = body;
-      await admin.from("organizations").update({ plan_id: planId }).eq("id", orgId);
-      const { data: sub } = await admin.from("subscriptions").select("id").eq("org_id", orgId).maybeSingle();
-      if (sub) {
-        await admin.from("subscriptions").update({ plan_id: planId, status: "active" }).eq("id", sub.id);
-      } else {
-        await admin.from("subscriptions").insert({ org_id: orgId, plan_id: planId, status: "active" });
-      }
+      const { error: planError } = await admin.from("organizations").update({ plan_id: planId }).eq("id", orgId);
+      if (planError) return json({ error: planError.message }, 500);
+      const { data: sub, error: subError } = await admin.from("subscriptions").select("id").eq("org_id", orgId).maybeSingle();
+      if (subError) return json({ error: subError.message }, 500);
+      const { error: suscError } = sub
+        ? await admin.from("subscriptions").update({ plan_id: planId, status: "active" }).eq("id", sub.id)
+        : await admin.from("subscriptions").insert({ org_id: orgId, plan_id: planId, status: "active" });
+      // El plan de la organización ya cambió: avisar que la suscripción no.
+      if (suscError) return json({ error: `El plan cambió pero la suscripción no: ${suscError.message}` }, 500);
       await logAction("changePlan", { orgId, details: { planId } });
       return json({ ok: true });
     }
@@ -376,14 +384,20 @@ Deno.serve(async (req) => {
 
     // ── DELETE ORG ─────────────────────────────────────────────
     if (action === "deleteOrg") {
+      // Antes se borraba tabla por tabla sin mirar errores y se decía «listo»:
+      // si una fallaba, el negocio quedaba borrado a medias. Además borraba
+      // `audit_logs`, la evidencia de lo que pasó. Las 308 FK hacia
+      // `organizations` son ON DELETE CASCADE (o SET NULL, medido 2026-10-13),
+      // así que un solo DELETE se lleva todo en una transacción: o se borra
+      // entero, o un trigger (p. ej. facturas autorizadas, que no se borran)
+      // lo frena y no se toca nada.
       const { orgId } = body;
-      const { data: orgInfo } = await admin.from("organizations").select("name").eq("id", orgId).maybeSingle();
-      for (const table of ["sales", "purchases", "debts", "expenses", "notifications",
-        "audit_logs", "products", "subscriptions", "memberships", "tiendanube_connections",
-        "settings", "suppliers", "quotes"]) {
-        await admin.from(table).delete().eq("org_id", orgId).then(() => {});
-      }
-      await admin.from("organizations").delete().eq("id", orgId);
+      if (typeof orgId !== "string" || !orgId) return json({ error: "orgId requerido" }, 400);
+      const { data: orgInfo, error: orgError } = await admin.from("organizations").select("name").eq("id", orgId).maybeSingle();
+      if (orgError) return json({ error: orgError.message }, 500);
+      if (!orgInfo) return json({ error: "La organización no existe" }, 404);
+      const { error: borrarError } = await admin.from("organizations").delete().eq("id", orgId);
+      if (borrarError) return json({ error: `No se borró nada: ${borrarError.message}` }, 409);
       await logAction("deleteOrg", { details: { orgId, orgName: orgInfo?.name } });
       return json({ ok: true });
     }
@@ -391,11 +405,12 @@ Deno.serve(async (req) => {
     // ── TOGGLE BAN USER ────────────────────────────────────────
     if (action === "toggleBanUser") {
       const { userId, ban } = body;
-      if (ban) {
-        await admin.auth.admin.updateUserById(userId, { ban_duration: "876600h" });
-      } else {
-        await admin.auth.admin.updateUserById(userId, { ban_duration: "none" });
-      }
+      // Un bloqueo que no se aplicó y dice «listo» deja entrar a quien se
+      // quería dejar afuera.
+      const { error: banError } = await admin.auth.admin.updateUserById(userId, {
+        ban_duration: ban ? "876600h" : "none",
+      });
+      if (banError) return json({ error: banError.message }, 500);
       await logAction("toggleBanUser", { userId, details: { ban } });
       return json({ ok: true });
     }
@@ -406,10 +421,11 @@ Deno.serve(async (req) => {
       if (!["superadmin", "support", "finance"].includes(role)) {
         return json({ error: "Nivel de plataforma inválido" }, 400);
       }
-      await admin.from("platform_admins").upsert(
+      const { error: altaError } = await admin.from("platform_admins").upsert(
         { user_id: userId, role, granted_by: user.id },
         { onConflict: "user_id" },
       );
+      if (altaError) return json({ error: altaError.message }, 500);
       await logAction("addPlatformAdmin", { userId, details: { role } });
       return json({ ok: true });
     }
@@ -435,7 +451,10 @@ Deno.serve(async (req) => {
     if (action === "removePlatformAdmin") {
       const { userId } = body;
       if (userId === user.id) return json({ error: "No podés quitarte el acceso a vos mismo" }, 400);
-      await admin.from("platform_admins").delete().eq("user_id", userId);
+      // Si no se pudo quitar y se dice «listo», alguien sigue con acceso de
+      // plataforma creyendo que ya no lo tiene.
+      const { error: bajaError } = await admin.from("platform_admins").delete().eq("user_id", userId);
+      if (bajaError) return json({ error: bajaError.message }, 500);
       await logAction("removePlatformAdmin", { userId });
       return json({ ok: true });
     }

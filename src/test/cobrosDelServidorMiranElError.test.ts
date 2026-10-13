@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 
 // Mismo criterio que `escriturasMiranElError.test.ts`, en las funciones de
-// servidor que tocan cobros de Mercado Pago. El cliente se llama `admin`,
+// servidor que tocan cobros de Mercado Pago y las acciones de plataforma. El cliente se llama `admin`,
 // `supabase` o similar, así que se mira cualquier `await x.from(`.
 const ARCHIVOS = [
   "supabase/functions/mercadopago-webhook/index.ts",
@@ -13,6 +13,7 @@ const ARCHIVOS = [
   "supabase/functions/_shared/mpPayoutsSync.ts",
   "supabase/functions/mp-connect/index.ts",
   "supabase/functions/mercadopago-payment-methods/index.ts",
+  "supabase/functions/platform-admin-action/index.ts",
 ];
 
 function escriturasSueltas(fuente: string): number[] {
@@ -56,6 +57,20 @@ describe("cobros del servidor: las escrituras miran el error", () => {
     const s = fs.readFileSync("supabase/functions/mp-connect/index.ts", "utf8");
     expect(s).toContain("throw new Error(`No se pudo desconectar Mercado Pago:");
     expect(s).toContain("throw new Error(`No se pudo validar la conexión:");
+  });
+
+  it("borrar una organización es un solo DELETE: entero o nada, y no borra la auditoría", () => {
+    const s = fs.readFileSync("supabase/functions/platform-admin-action/index.ts", "utf8");
+    const bloque = s.slice(s.indexOf('if (action === "deleteOrg")'), s.indexOf('if (action === "toggleBanUser")'));
+    expect(bloque).not.toMatch(/for \(const table of/);
+    expect(bloque).not.toContain('"audit_logs"');
+    expect(bloque).toContain("No se borró nada");
+  });
+
+  it("bloquear un usuario o quitar un admin de plataforma no dice «listo» si falló", () => {
+    const s = fs.readFileSync("supabase/functions/platform-admin-action/index.ts", "utf8");
+    expect(s).toContain("if (banError) return json(");
+    expect(s).toContain("if (bajaError) return json(");
   });
 
   it("sólo actualiza ventas cuando la referencia es un id, para no reintentar para siempre", () => {
