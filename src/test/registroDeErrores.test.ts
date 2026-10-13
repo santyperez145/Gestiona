@@ -27,3 +27,19 @@ describe("registro propio de errores", () => {
     expect(lib).toContain("keepalive: true");
   });
 });
+
+describe("la importación de catálogo deja rastro de sus errores", () => {
+  // Los errores atrapados no llegan al registro global. El corte de Famatina
+  // en la fila 5.500 (10/10) no dejó rastro y hubo que reproducirlo a ciegas.
+  it("reportError registra el motivo real, no sólo el mensaje amable", async () => {
+    const fs = await import("node:fs");
+    const s = fs.readFileSync("src/components/products/ProductsExcelImport.tsx", "utf8");
+    const cuerpo = s.slice(s.indexOf("function reportError("), s.indexOf("async function loadHistory("));
+    expect(cuerpo).toContain("registrarError(`Importación de catálogo: ${mensajeDeError(cause) ?? fallback}`)");
+  });
+
+  it("el motivo del servidor llega limpio al registro", () => {
+    const motivo = mensajeDeError({ message: "No se pudo aplicar el lote que empieza en la fila 5501; los lotes anteriores se conservan. Motivo: x" });
+    expect(motivo).toContain("fila 5501");
+  });
+});

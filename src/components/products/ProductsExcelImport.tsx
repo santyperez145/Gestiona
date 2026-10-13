@@ -1,3 +1,4 @@
+import { mensajeDeError, registrarError } from "@/lib/registroDeErrores";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -113,6 +114,9 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
 
   function reportError(cause: unknown, fallback: string) {
     console.error("[catalog-import]", cause);
+    // Un error atrapado no llega al registro global: el corte de Famatina en
+    // la fila 5.500 (10/10) no dejó rastro y hubo que reproducirlo a ciegas.
+    registrarError(`Importación de catálogo: ${mensajeDeError(cause) ?? fallback}`);
     const message = catalogImportErrorMessage(cause, fallback);
     setError(message); toast.error(message);
   }
