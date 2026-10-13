@@ -14,6 +14,7 @@ const ARCHIVOS = [
   "supabase/functions/mp-connect/index.ts",
   "supabase/functions/mercadopago-payment-methods/index.ts",
   "supabase/functions/platform-admin-action/index.ts",
+  "supabase/functions/weekly-backup/index.ts",
 ];
 
 function escriturasSueltas(fuente: string): number[] {

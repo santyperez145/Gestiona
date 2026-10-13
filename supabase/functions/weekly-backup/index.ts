@@ -117,9 +117,20 @@ async function pruneOldSnapshots(admin: SupabaseClient, orgId: string) {
     .range(RETAINED_SNAPSHOTS, RETAINED_SNAPSHOTS + 100);
   if (error || !data?.length) return;
 
+  // Si el archivo no se pudo borrar, el registro se queda: es lo único que
+  // permite volver a podarlo. Borrar sólo el registro deja una copia completa
+  // de los datos del negocio en el bucket sin nadie que la vea (así quedaron
+  // 11 archivos del sistema anterior, medido 2026-10-13).
   const paths = data.map(row => row.storage_path).filter((path): path is string => !!path);
-  if (paths.length) await admin.storage.from(BACKUP_BUCKET).remove(paths);
-  await admin.from("organization_backup_snapshots").delete().in("id", data.map(row => row.id));
+  if (paths.length) {
+    const { error: removeError } = await admin.storage.from(BACKUP_BUCKET).remove(paths);
+    if (removeError) {
+      console.error("[weekly-backup] no se pudieron podar los archivos; se reintenta la próxima vez", removeError);
+      return;
+    }
+  }
+  const { error: deleteError } = await admin.from("organization_backup_snapshots").delete().in("id", data.map(row => row.id));
+  if (deleteError) console.error("[weekly-backup] archivos podados pero no sus registros", deleteError);
 }
 
 async function createSnapshot(
@@ -151,11 +162,12 @@ async function createSnapshot(
   if (initialInsertError) throw new Error("No se pudo iniciar el registro del snapshot");
 
   if (!snapshotIsComplete(snapshot)) {
-    await admin.from("organization_backup_snapshots").update({
+    const { error: marcarError } = await admin.from("organization_backup_snapshots").update({
       status: "failed",
       failure_reason: "El snapshot tuvo tablas truncadas o con error; no se guardó ningún archivo",
       completed_at: new Date().toISOString(),
     }).eq("id", backupId);
+    if (marcarError) console.error("[weekly-backup] no se marcó el respaldo incompleto como fallido", marcarError);
     return { ok: false as const, id: backupId, reason: "Hay tablas incompletas; el respaldo no se guardó" };
   }
 
@@ -167,11 +179,12 @@ async function createSnapshot(
     upsert: false,
   });
   if (uploadError) {
-    await admin.from("organization_backup_snapshots").update({
+    const { error: marcarError } = await admin.from("organization_backup_snapshots").update({
       status: "failed",
       failure_reason: "No se pudo guardar el archivo privado",
       completed_at: new Date().toISOString(),
     }).eq("id", backupId);
+    if (marcarError) console.error("[weekly-backup] no se marcó como fallido el respaldo sin archivo", marcarError);
     return { ok: false as const, id: backupId, reason: safeFailureReason(uploadError) };
   }
 
@@ -182,12 +195,14 @@ async function createSnapshot(
     completed_at: new Date().toISOString(),
   }).eq("id", backupId);
   if (finishError) {
-    await admin.storage.from(BACKUP_BUCKET).remove([storagePath]);
-    await admin.from("organization_backup_snapshots").update({
+    const { error: quitarError } = await admin.storage.from(BACKUP_BUCKET).remove([storagePath]);
+    if (quitarError) console.error("[weekly-backup] quedó un archivo de respaldo sin registro; borrarlo a mano", quitarError);
+    const { error: marcarError } = await admin.from("organization_backup_snapshots").update({
       status: "failed",
       failure_reason: "No se pudo registrar el snapshot guardado",
       completed_at: new Date().toISOString(),
     }).eq("id", backupId);
+    if (marcarError) console.error("[weekly-backup] no se marcó como fallido el respaldo sin registro", marcarError);
     return { ok: false as const, id: backupId, reason: "No se pudo registrar el snapshot guardado" };
   }
 
@@ -204,12 +219,14 @@ async function createSnapshot(
     created_at: new Date().toISOString(),
   });
   if (!verification.ok) {
-    await admin.storage.from(BACKUP_BUCKET).remove([storagePath]);
-    await admin.from("organization_backup_snapshots").update({
+    const { error: quitarError } = await admin.storage.from(BACKUP_BUCKET).remove([storagePath]);
+    if (quitarError) console.error("[weekly-backup] quedó un archivo de respaldo que no pasó la verificación; borrarlo a mano", quitarError);
+    const { error: marcarError } = await admin.from("organization_backup_snapshots").update({
       status: "failed",
       failure_reason: verification.reason ?? "El archivo guardado no superó la verificación",
       completed_at: new Date().toISOString(),
     }).eq("id", backupId);
+    if (marcarError) console.error("[weekly-backup] no se marcó como fallido el respaldo no verificado", marcarError);
     return { ok: false as const, id: backupId, reason: verification.reason ?? "El archivo guardado no superó la verificación" };
   }
 
@@ -268,11 +285,12 @@ async function verifySnapshot(admin: SupabaseClient, snapshot: SnapshotRow) {
     verification = { ok: false, reason: "No se pudo validar el archivo privado" };
   }
 
-  await admin.from("organization_backup_snapshots").update({
+  const { error: verificacionError } = await admin.from("organization_backup_snapshots").update({
     last_verified_at: new Date().toISOString(),
     last_verification_status: verification.ok ? "passed" : "failed",
     ...(verification.ok ? {} : { failure_reason: verification.reason }),
   }).eq("id", snapshot.id);
+  if (verificacionError) console.error("[weekly-backup] no se guardó el resultado de la verificación", verificacionError);
   return verification;
 }
 

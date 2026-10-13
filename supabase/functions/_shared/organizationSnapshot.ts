@@ -2,6 +2,7 @@
 // (D8). Mantener una sola lista evita que un backup diga cubrir relaciones
 // distintas de las que declara el manifiesto de portabilidad.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { leerPaginado } from "./leerPaginado.ts";
 
 // La v3 incorpora relaciones hijas operativas que no tienen `org_id` propio.
 // Las versiones anteriores se siguen validando: un contrato nuevo no puede
@@ -9,7 +10,6 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4
 export const SNAPSHOT_SCHEMA_VERSION = 3;
 export const MAX_ROWS_PER_TABLE = 50_000;
 const RELATED_PARENT_ID_CHUNK = 200;
-
 /** Datos del negocio cuyo contrato tiene `org_id` propio y se pueden portar. */
 export const SNAPSHOT_TABLES_V1 = [
   // Catálogo, compras e inventario
@@ -186,11 +186,16 @@ async function collectDirectTable(
   table: typeof SNAPSHOT_TABLES_V1[number],
   orgId: string,
 ): Promise<SnapshotTableResult> {
-  const { data, error, count } = await admin
-    .from(table)
-    .select(table === "settings" ? SETTINGS_SNAPSHOT_COLUMNS.join(",") : "*", { count: "exact" })
-    .eq("org_id", orgId)
-    .limit(MAX_ROWS_PER_TABLE + 1);
+  const columnas = table === "settings" ? SETTINGS_SNAPSHOT_COLUMNS.join(",") : "*";
+  const { rows: data, error, count } = await leerPaginado(
+    (desde, hasta) => admin
+      .from(table)
+      .select(columnas, { count: desde === 0 ? "exact" : undefined })
+      .eq("org_id", orgId)
+      .order("id", { ascending: true })
+      .range(desde, hasta),
+    MAX_ROWS_PER_TABLE,
+  );
 
   if (error) return failedTable(table, error.code ? `No se pudo leer la tabla (${error.code})` : "No se pudo leer la tabla");
   if (count === null) return failedTable(table, "No se pudo verificar la cantidad total de filas");
@@ -247,12 +252,18 @@ async function collectRelatedTable(
   const rows: Record<string, unknown>[] = [];
   for (let start = 0; start < parentIds.length; start += RELATED_PARENT_ID_CHUNK) {
     const parentChunk = parentIds.slice(start, start + RELATED_PARENT_ID_CHUNK);
-    const { data, error } = await admin
-      .from(table)
-      .select("*")
-      .in(scope.foreignKey, parentChunk);
+    // 200 padres pueden tener más de 1000 hijos (renglones de venta): se pagina.
+    const { rows: data, error } = await leerPaginado(
+      (desde, hasta) => admin
+        .from(table)
+        .select("*")
+        .in(scope.foreignKey, parentChunk)
+        .order("id", { ascending: true })
+        .range(desde, hasta),
+      MAX_ROWS_PER_TABLE,
+    );
     if (error) return failedTable(table, error.code ? `No se pudo leer la tabla (${error.code})` : "No se pudo leer la tabla");
-    rows.push(...((data ?? []) as Record<string, unknown>[]));
+    rows.push(...data);
   }
   return tableResult(table, rows, availableRowCount);
 }
