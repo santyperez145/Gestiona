@@ -320,12 +320,27 @@ export async function deleteProductsDB(
   return { eliminados, pendientes: ids.filter(id => !listos.has(id)) };
 }
 
+/**
+ * Todas las filas de una tabla del comercio, de la más nueva a la más vieja.
+ * Un `select('*')` suelto se corta en 1.000 filas (tope de PostgREST) sin
+ * avisar: el Dashboard, Clientes y Resumen sumaban ventas, compras y gastos
+ * sobre esa muestra. Ningún comercio pasaba de 1.000 ventas al 2026-10-13
+ * (Exentry: 34), pero el primero que pase iba a ver totales mal sin error.
+ */
+async function selectOrgRowsByDate(table: 'sales' | 'purchases' | 'expenses', orgId: string): Promise<any[]> {
+  const rows = await selectAllRows<{ id: string; date?: string | null }>(({ desde, hasta, despues, limite }) => {
+    let query: any = supabase.from(table).select('*').eq('org_id', orgId).gte('id', desde).order('id').limit(limite);
+    if (hasta) query = query.lt('id', hasta);
+    if (despues) query = query.gt('id', despues);
+    return query;
+  });
+  return rows.sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
+}
+
 // ========= PURCHASES =========
 export async function getPurchasesDB(userId: string, organizationId?: string) {
   const orgId = await orgIdFor(userId, organizationId);
-  const { data, error } = await supabase.from('purchases').select('*').eq('org_id', orgId).order('date', { ascending: false });
-  if (error) throw error;
-  return data || [];
+  return selectOrgRowsByDate('purchases', orgId);
 }
 
 export async function addPurchaseDB(purchase: any) {
@@ -364,9 +379,7 @@ export async function deletePurchaseDB(id: string) {
 // ========= SALES =========
 export async function getSalesDB(userId: string, organizationId?: string) {
   const orgId = await orgIdFor(userId, organizationId);
-  const { data, error } = await supabase.from('sales').select('*').eq('org_id', orgId).order('date', { ascending: false });
-  if (error) throw error;
-  return data || [];
+  return selectOrgRowsByDate('sales', orgId);
 }
 
 /**
@@ -1049,9 +1062,7 @@ export function calculateTaxes(revenueARS: number, profitARS: number, settings: 
 // ========= EXPENSES =========
 export async function getExpensesDB(userId: string, organizationId?: string) {
   const orgId = await orgIdFor(userId, organizationId);
-  const { data, error } = await supabase.from('expenses').select('*').eq('org_id', orgId).order('date', { ascending: false });
-  if (error) throw error;
-  return data || [];
+  return selectOrgRowsByDate('expenses', orgId);
 }
 
 export async function addExpenseDB(expense: any) {
