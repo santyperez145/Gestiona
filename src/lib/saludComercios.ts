@@ -6,7 +6,7 @@ export type Semaforo = "rojo" | "ambar" | "verde";
 
 export interface MotivoSalud {
   nivel: "rojo" | "ambar";
-  id: "importacion" | "bajo_costo" | "sin_ventas" | "arca" | "tienda" | "prueba";
+  id: "importacion" | "bajo_costo" | "sin_ventas" | "respaldo" | "arca" | "tienda" | "prueba";
   texto: string;
   /** Ruta dentro del comercio donde se resuelve. */
   ir: string;
@@ -27,6 +27,7 @@ const PANTALLA: Record<string, string> = {
   "/facturas": "Facturas",
   "/tienda": "Tienda online",
   "/mi-plan": "Mi plan",
+  "/ajustes#system": "Ajustes › Sistema (respaldos)",
 };
 
 /** Nombre de la pantalla del comercio donde se resuelve el motivo. */
