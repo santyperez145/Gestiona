@@ -139,10 +139,12 @@ cerrando con D, una pieza por vez y siempre con simulacro.
 
 ## Acciones
 
-1. [ ] Cerrar las vistas por negocio abiertas: pasar a `security_invoker` las
+1. [x] Cerrar las vistas por negocio abiertas: pasar a `security_invoker` las
    de CRM, contratos, proveedores y promociones, y `desvio_de_comisiones`;
    marcar como públicas las de referencia (planes, tarifas, catálogo de
    integraciones). Con simulacro.
+   Hecho el 2026-10-13: migración 20261013000700, `scripts/vistas-abiertas-matrix.sql`
+   3/3; convención de marca `@publica:` / `@revisada:` en el comentario de la vista.
 2. [ ] Event trigger de vistas invoker por defecto, probado en una transacción
    revertida (crear vista sin opción → queda invoker; con
    `security_invoker = false` explícito → se respeta).
