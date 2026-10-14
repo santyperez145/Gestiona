@@ -6376,6 +6376,8 @@ export type Database = {
       }
       cheques: {
         Row: {
+          customer_id: string | null
+          estado_cambiado_at: string | null
           amount_ars: number
           bank_name: string | null
           check_number: string | null
@@ -6391,6 +6393,8 @@ export type Database = {
           type: string
         }
         Insert: {
+          customer_id?: string | null
+          estado_cambiado_at?: string | null
           amount_ars: number
           bank_name?: string | null
           check_number?: string | null
@@ -6406,6 +6410,8 @@ export type Database = {
           type?: string
         }
         Update: {
+          customer_id?: string | null
+          estado_cambiado_at?: string | null
           amount_ars?: number
           bank_name?: string | null
           check_number?: string | null

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { accionesDeCheque, etiquetaDeEstado, type EstadoDeCheque } from "@/lib/cheques";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
@@ -30,6 +31,7 @@ type Cheque = {
   status: "pending" | "deposited" | "cleared" | "bounced" | "cancelled";
   deposited_at: string | null;
   notes: string | null;
+  customer_id?: string | null;
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -43,6 +45,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 const EMPTY_FORM = {
   type: "received" as "received" | "issued",
   customer_name: "",
+  customer_id: "",
   bank_name: "",
   check_number: "",
   amount_ars: "",
@@ -65,13 +68,27 @@ export default function ChequesPage() {
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("cheques")
       .select("*")
       .eq("org_id", activeOrg.id)
       .order("due_date");
-    setCheques((data || []) as Cheque[]);
+    // Un error de lectura no es «no hay cheques»: se avisa.
+    if (error) toast.error("No se pudieron cargar los cheques: " + error.message);
+    else setCheques((data || []) as Cheque[]);
     setLoading(false);
+  };
+
+  // Cliente de la lista para los cheques recibidos (o un nombre suelto).
+  const [sugerencias, setSugerencias] = useState<Array<{ id: string; name: string; tax_id: string | null }>>([]);
+  const buscarCliente = async (texto: string) => {
+    setForm(f => ({ ...f, customer_name: texto, customer_id: "" }));
+    const termino = texto.replace(/[,()*%\\]/g, " ").trim();
+    if (!activeOrg || form.type !== "received" || termino.length < 2) { setSugerencias([]); return; }
+    const { data, error } = await supabase.from("customers").select("id, name, tax_id")
+      .eq("org_id", activeOrg.id).or(`name.ilike.%${termino}%,tax_id.ilike.%${termino}%`).order("name").limit(6);
+    if (error) { console.warn("[cheques] búsqueda de clientes", error); return; }
+    setSugerencias((data ?? []) as Array<{ id: string; name: string; tax_id: string | null }>);
   };
 
   useEffect(() => { load(); }, [activeOrg]);
@@ -89,6 +106,7 @@ export default function ChequesPage() {
         org_id: activeOrg.id,
         type: form.type,
         customer_name: form.customer_name.trim() || null,
+        customer_id: form.type === "received" && form.customer_id ? form.customer_id : null,
         bank_name: form.bank_name.trim() || null,
         check_number: form.check_number.trim() || null,
         amount_ars: amount,
@@ -109,15 +127,12 @@ export default function ChequesPage() {
     }
   };
 
-  const updateStatus = async (cheque: Cheque, status: Cheque["status"]) => {
-    const update: any = { status };
-    if (status === "deposited" || status === "cleared") {
-      update.deposited_at = new Date().toISOString().slice(0, 10);
-    }
-    const { error } = await supabase.from("cheques").update(update).eq("id", cheque.id);
+  // La base valida la transición y pone la fecha de depósito (20261014001400).
+  const updateStatus = async (cheque: Cheque, status: EstadoDeCheque) => {
+    const { error } = await supabase.from("cheques").update({ status }).eq("id", cheque.id);
     if (error) { toast.error("No se pudo cambiar el estado del cheque: " + error.message); return; }
     await load();
-    toast.success(`Cheque marcado como ${STATUS_CONFIG[status].label}`);
+    toast.success(`Cheque marcado como ${etiquetaDeEstado(cheque.type, status).toLowerCase()}`);
   };
 
   const today = new Date().toISOString().slice(0, 10);
@@ -253,25 +268,19 @@ export default function ChequesPage() {
                     <td className="px-3 py-2.5 font-mono font-semibold text-xs">{formatARS(Number(c.amount_ars))}</td>
                     <td className="px-3 py-2.5">
                       <span className={`inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 font-semibold ${STATUS_CONFIG[c.status]?.color || "bg-muted text-muted-foreground"}`}>
-                        {STATUS_CONFIG[c.status]?.label || c.status}
+                        {etiquetaDeEstado(c.type, c.status)}
                       </span>
                     </td>
                     <td className="px-3 py-2.5">
-                      {c.status === "pending" && (
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => updateStatus(c, "deposited")}>
-                            <Check className="w-3 h-3 mr-1" />Depositar
+                      <div className="flex gap-1">
+                        {accionesDeCheque(c.type, c.status).map(a => (
+                          <Button key={a.estado} size="sm" variant="outline"
+                            className={`h-6 text-[10px] px-2 ${a.peligro ? "border-destructive/30 text-destructive hover:bg-destructive/10" : ""}`}
+                            onClick={() => updateStatus(c, a.estado)}>
+                            {a.peligro ? <XCircle className="w-3 h-3 mr-1" /> : <Check className="w-3 h-3 mr-1" />}{a.etiqueta}
                           </Button>
-                          <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => updateStatus(c, "bounced")}>
-                            <XCircle className="w-3 h-3 mr-1" />Rebotó
-                          </Button>
-                        </div>
-                      )}
-                      {c.status === "deposited" && (
-                        <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => updateStatus(c, "cleared")}>
-                          <Check className="w-3 h-3 mr-1" />Acreditado
-                        </Button>
-                      )}
+                        ))}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -302,7 +311,19 @@ export default function ChequesPage() {
               <label className="text-xs text-muted-foreground mb-1 block">
                 {form.type === "received" ? "Cliente" : "Proveedor"}
               </label>
-              <Input value={form.customer_name} onChange={e => setField("customer_name", e.target.value)} placeholder="Nombre" />
+              <Input value={form.customer_name} onChange={e => (form.type === "received" ? void buscarCliente(e.target.value) : setField("customer_name", e.target.value))}
+                placeholder={form.type === "received" ? "Nombre o CUIT del cliente" : "Nombre"} />
+              {form.customer_id && <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400">Cliente de la lista</p>}
+              {sugerencias.length > 0 && !form.customer_id && (
+                <div className="mt-1 overflow-hidden rounded-lg border border-border bg-card">
+                  {sugerencias.map(sug => (
+                    <button key={sug.id} type="button" className="w-full px-3 py-1.5 text-left text-xs hover:bg-muted/50"
+                      onClick={() => { setForm(f => ({ ...f, customer_name: sug.name, customer_id: sug.id })); setSugerencias([]); }}>
+                      {sug.name}{sug.tax_id ? <span className="ml-2 text-muted-foreground">{sug.tax_id}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

@@ -71,8 +71,16 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
     - «Cobrar cuota» abre el cobro con lo que falta.
     - Los planes del navegador se migran una vez.
     - Tests: `src/test/planesDePago.test.ts`.
-  - Pendientes, en orden:
-    - Cheques.
+  - Cheques:
+    - El ciclo de vida lo custodia la base (migración 20261014001400, `scripts/cheques-ciclo-matrix.sql` 7/7 en simulacro y en vivo):
+      - recibido: pendiente → depositado → acreditado, o rebotado o cancelado;
+      - emitido: debitado, rebotado o anulado;
+      - los estados finales no se reabren y un cheque en curso no cambia de monto.
+    - Número único por banco y tipo, y monto positivo.
+    - El cliente de la lista se puede vincular.
+    - La pantalla muestra sólo las acciones válidas: «Depositar» ya no aparece en los emitidos y un depositado puede rebotar.
+    - Tests: `src/test/chequesCiclo.test.ts`.
+  - Siguiente (pedido del dueño 2026-10-14): Presupuestos, Órdenes de compra, Compras e Integraciones siguen viéndose legacy; revisión visual y de uso contra las pantallas nuevas.
 - [x] Panel con catálogos grandes (2026-10-14, «con más de 1.000 productos se vuelve súper lenta y se cae»).
   - Medido con Famatina (5.500 productos): la sincronización completa son 7,1 MB y van a pasar de 15 MB con 11.534.
   - Antes, cada pantalla releía y reescribía entera la copia del navegador aunque no cambiara nada, y tenía su propia copia; el Inicio monta varios paneles que la pedían a la vez.
