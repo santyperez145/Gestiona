@@ -46,7 +46,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
   - Factura manual: ahora toma el producto del catálogo o su código y calcula el neto desde el precio final con la alícuota del renglón (`netoDesdePrecioFinal`; sin ARCA o en factura C el neto es el precio). La base sigue recalculando todo. `src/test/facturaManualConCatalogo.test.ts`.
   - Links de pago:
     - Los ítems salen del catálogo o por código; antes eran texto.
-    - Cobrar un link registra la venta: `registrar_venta_de_link` (migración 20261014001100, `scripts/link-de-pago-venta-matrix.sql` 6/6 en simulacro y en vivo) la llama el webhook de Mercado Pago (v71, `verify_jwt` intacto en las 87 funciones).
+    - Cobrar un link registra la venta: `registrar_venta_de_link` (migración 20261014001100, `scripts/link-de-pago-venta-matrix.sql` 6/6 en simulacro y en vivo) la llama el webhook de Mercado Pago (v71, `verify_jwt` intacto en las 87 funciones al 2026-10-14).
     - Un renglón por ítem, lo cobrado repartido si hubo descuento, el stock baja y queda en reportes.
     - Es idempotente y nunca rechaza un cobro ya hecho: un producto ajeno o una cantidad inválida quedan como renglón libre.
     - Un link de un presupuesto sin vender lo marca vendido.
