@@ -85,16 +85,24 @@ async function sendPush(
   payload: string,
   vapidPublicKey: string,
 ): Promise<{ ok: boolean; expired?: boolean }> {
-  const res = await fetch(sub.endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8",
-      "TTL": "86400",
-      "Authorization": `vapid t=${await buildVapidJwt(new URL(sub.endpoint).origin)},k=${vapidPublicKey}`,
-      "Urgency": "normal",
-    },
-    body: payload,
-  });
+  // Un servidor de push que no responde no puede frenar la corrida entera
+  // (así se pasó de los 30 s el 9/10): 10 s y se marca fallido para reintentar.
+  let res: Response;
+  try {
+    res = await fetch(sub.endpoint, {
+      signal: AbortSignal.timeout(10_000),
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+        "TTL": "86400",
+        "Authorization": `vapid t=${await buildVapidJwt(new URL(sub.endpoint).origin)},k=${vapidPublicKey}`,
+        "Urgency": "normal",
+      },
+      body: payload,
+    });
+  } catch {
+    return { ok: false };
+  }
   if (res.status === 404 || res.status === 410) return { ok: false, expired: true };
   return { ok: res.ok };
 }
@@ -115,7 +123,14 @@ Deno.serve(async (req) => {
   }
   const admin = createClient(url, serviceRole);
 
-  const { data, error } = await admin.rpc("campaign_chat_notifications_pending");
+  // Un corte pasajero de la base (el 500 del 10/10) se reintenta antes de
+  // dar la corrida por fallida.
+  let { data, error } = await admin.rpc("campaign_chat_notifications_pending");
+  for (const espera of [500, 1500]) {
+    if (!error) break;
+    await new Promise((r) => setTimeout(r, espera));
+    ({ data, error } = await admin.rpc("campaign_chat_notifications_pending"));
+  }
   if (error) {
     console.error("no se pudo leer la cola del chat", error);
     return new Response(JSON.stringify({ error: error.message }), {
@@ -165,7 +180,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    await admin.rpc("campaign_chat_notification_result", { p_id: p.id, p_ok: r.ok, p_error: r.error ?? null });
+    const { error: registroError } = await admin.rpc("campaign_chat_notification_result", { p_id: p.id, p_ok: r.ok, p_error: r.error ?? null });
+    if (registroError) { console.error("campaign-chat-dispatcher: resultado sin registrar; puede repetirse", p.id, registroError); if (problemas.length === 0) problemas.push("resultado sin registrar"); }
     if (r.ok) enviados++;
     else {
       fallidos++;
@@ -174,7 +190,8 @@ Deno.serve(async (req) => {
   }
 
   // Los fallidos con intentos < 3 vuelven a la cola en la próxima corrida.
-  await admin.rpc("campaign_chat_notifications_retry");
+  const { error: reintentoError } = await admin.rpc("campaign_chat_notifications_retry");
+  if (reintentoError) console.error("campaign-chat-dispatcher: no se reencolaron los fallidos", reintentoError);
 
   return new Response(JSON.stringify({ ok: fallidos === 0, enviados, fallidos, problemas }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },

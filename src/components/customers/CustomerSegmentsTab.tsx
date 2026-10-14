@@ -180,7 +180,8 @@ function SegForm({ open, segment, orgId, onClose, onSaved }: SegFormProps) {
     if (error) { toast.error("Error: " + error.message); setLoading(false); return; }
     // Auto-sync if dynamic
     if (isDynamic && data) {
-      await supabase.rpc("sync_segment_members", { p_segment_id: data.id });
+      const { error: syncError } = await supabase.rpc("sync_segment_members", { p_segment_id: data.id });
+      if (syncError) toast.error("El segmento se guardó, pero no se pudieron actualizar sus clientes: " + syncError.message);
     }
     setLoading(false);
     toast.success(segment ? "Segmento actualizado" : "Segmento creado");
@@ -550,7 +551,8 @@ export default function CustomerSegmentsTab() {
     const dynamic = segments.filter(s => s.is_dynamic && s.active);
     if (dynamic.length === 0) { toast.info("Sin segmentos dinámicos"); return; }
     for (const seg of dynamic) {
-      await supabase.rpc("sync_segment_members", { p_segment_id: seg.id });
+      const { error: syncError } = await supabase.rpc("sync_segment_members", { p_segment_id: seg.id });
+      if (syncError) { toast.error(`No se pudo sincronizar «${seg.name}»: ${syncError.message}`); return; }
     }
     toast.success(`${dynamic.length} segmentos sincronizados`);
     loadAll();

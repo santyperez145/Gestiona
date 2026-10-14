@@ -145,7 +145,8 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
       if (error) return { error: customerAuthError(error, "signup") };
       // Sin sesión inmediata = falta confirmar el email.
       if (!data.session) return { needsConfirm: true };
-      await supabase.rpc("upsert_store_customer", { p_slug: slug, p_name: name, p_phone: null });
+      const { error: perfilError } = await supabase.rpc("upsert_store_customer", { p_slug: slug, p_name: name, p_phone: null });
+      if (perfilError) console.error("[tienda] la cuenta se creó pero no el perfil de cliente; se reintenta al entrar", perfilError);
       await refresh();
       return {};
     },

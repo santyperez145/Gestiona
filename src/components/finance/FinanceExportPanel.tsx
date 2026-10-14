@@ -114,7 +114,8 @@ export default function FinanceExportPanel() {
       const csv = String(data ?? "");
       if (!csv) { toast.error("El lote está vacío"); return; }
       descargarCsvContable(nombreArchivoExport(batch.fecha_desde, batch.fecha_hasta), csv);
-      await supabase.rpc("finance_export_mark_exported" as never, { p_batch_id: batch.id } as never);
+      const { error: marcarError } = await supabase.rpc("finance_export_mark_exported" as never, { p_batch_id: batch.id } as never);
+      if (marcarError) { toast.error("El CSV se descargó, pero la exportación no quedó registrada. Volvé a descargarlo para registrarla."); await cargar(); return; }
       toast.success("CSV descargado y exportación registrada");
       await cargar();
     } catch (e: any) {

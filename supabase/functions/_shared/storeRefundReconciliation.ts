@@ -200,7 +200,7 @@ export async function reconcileStoreRefunds(
     outcome.checked += 1;
 
     if (matches.length !== 1) {
-      await admin.rpc("pago_reintegro_observar", {
+      const { error: observarError } = await admin.rpc("pago_reintegro_observar", {
         p_refund_id: refund.id,
         p_raw: {
           source: `${source}_refund_reconciliation`,
@@ -208,6 +208,7 @@ export async function reconcileStoreRefunds(
           reason: matches.length === 0 ? "no_match" : "ambiguous_match",
         },
       });
+      if (observarError) console.error("storeRefundReconciliation: no se anotó la observación", observarError);
       outcome.observed += 1;
       continue;
     }

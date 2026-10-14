@@ -37,7 +37,7 @@ test("a hung store lookup is aborted and retried without a manual reload", async
 
 for (const resource of ["get_store_by_slug", "get_store_catalog_products", "get_store_variants"]) {
 test(`${resource}: failed reads offer an accessible retry without losing the cart or leaking internals`, async ({ page }, testInfo) => {
-  test.setTimeout(60_000);
+  test.setTimeout(150_000);
   await page.goto(CATALOG);
   await productVisible(page);
   await page.locator(`a[href*="/tienda/${SLUG}/producto/"]`).first().click();
@@ -59,10 +59,12 @@ test(`${resource}: failed reads offer an accessible retry without losing the car
   });
   await page.goto(CATALOG);
   const error = page.locator('[data-storefront-state="error"]');
-  // Store lookup + resource each allow two 4s attempts; keep the test bounded
-  // without expiring before the recovery contract's own deadlines.
-  await expect(error).toBeVisible({ timeout: 25_000 });
-  expect(attempts).toBe(resource === "get_store_variants" ? 1 : 2);
+  // Store lookup + resource each allow four 4s attempts (0,3 s, 1 s y 2,5 s
+  // entre intentos, 2026-10-14); keep the test bounded without expiring before
+  // the recovery contract's own deadlines. The automatic reload starts 5 s
+  // after the error, so the attempt count is still exact here.
+  await expect(error).toBeVisible({ timeout: 60_000 });
+  expect(attempts).toBe(resource === "get_store_variants" ? 1 : 4);
   await expect(error).toContainText("Tu carrito sigue guardado");
   await expect(error).not.toContainText(/ETIMEDOUT|supabase|SQL|service_role|private backend/i);
   expect(await page.evaluate(key => localStorage.getItem(key), CART_KEY)).toBe(savedCart);

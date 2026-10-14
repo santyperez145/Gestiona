@@ -125,7 +125,8 @@ Deno.serve(async (req) => {
         });
 
         if (res.ok) {
-          await admin.rpc("mark_cart_email_sent", { p_id: c.id });
+          const { error: marcaError } = await admin.rpc("mark_cart_email_sent", { p_id: c.id });
+          if (marcaError) { console.error("recover-abandoned-carts: mail enviado sin marcar; puede repetirse", c.id, marcaError); errores.push(`${c.customer_email}: enviado sin marcar`); }
           enviados++;
         } else {
           errores.push(`${c.customer_email}: ${res.error ?? "error"}`);

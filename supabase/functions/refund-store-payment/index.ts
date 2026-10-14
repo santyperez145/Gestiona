@@ -141,12 +141,13 @@ Deno.serve(async (req) => {
 
     const credentials = await getMpCredentials(admin, actualOrgId);
     if (!credentials) {
-      await admin.rpc("pago_reintegro_resultado", {
+      const { error: resultadoError } = await admin.rpc("pago_reintegro_resultado", {
         p_refund_id: refundId,
         p_status: "failed",
         p_failure_reason: "La cuenta de Mercado Pago no está conectada",
         p_raw: { source: "nerqia", reason: "missing_credentials" },
       });
+      if (resultadoError) console.error("refund-store-payment: no se anotó el reintegro fallido", refundId, resultadoError);
       return json({ error: "Conectá Mercado Pago desde Integraciones para ejecutar el reintegro." }, 422);
     }
 
@@ -182,10 +183,11 @@ Deno.serve(async (req) => {
       });
 
       if (candidates.length !== 1) {
-        await admin.rpc("pago_reintegro_observar", {
+        const { error: observarError } = await admin.rpc("pago_reintegro_observar", {
           p_refund_id: refundId,
           p_raw: refundCollectionSnapshot(rows),
         });
+        if (observarError) console.error("refund-store-payment: no se anotó la observación", refundId, observarError);
         return json({
           ok: true,
           status: "processing",
@@ -250,7 +252,7 @@ Deno.serve(async (req) => {
         detail: providerDetail,
       });
       if (isAmbiguousMercadoPagoStatus(providerResponse.status)) {
-        await admin.rpc("pago_reintegro_observar", {
+        const { error: observarError } = await admin.rpc("pago_reintegro_observar", {
           p_refund_id: refundId,
           p_raw: {
             source: "mercadopago_refund",
@@ -259,6 +261,7 @@ Deno.serve(async (req) => {
             error: cleanText(providerError.error, 120),
           },
         });
+        if (observarError) console.error("refund-store-payment: no se anotó la observación", refundId, observarError);
         return json({
           ok: true,
           status: "processing",
@@ -284,10 +287,11 @@ Deno.serve(async (req) => {
     const snapshot = providerSnapshot(providerPayload);
     const providerStatus = cleanText((providerPayload as Record<string, unknown>)?.status, 80)?.toLowerCase();
     if (providerStatus !== "approved") {
-      await admin.rpc("pago_reintegro_observar", {
+      const { error: observarError } = await admin.rpc("pago_reintegro_observar", {
         p_refund_id: refundId,
         p_raw: snapshot,
       });
+      if (observarError) console.error("refund-store-payment: no se anotó la observación", refundId, observarError);
       return json({
         ok: true,
         status: "processing",

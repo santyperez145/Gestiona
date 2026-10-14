@@ -99,7 +99,8 @@ Deno.serve(async (req) => {
         user_id: userId, redirect_to: returnUrl ?? null,
       });
       if (estadoError) throw new Error(`No se pudo iniciar la conexión: ${estadoError.message}`);
-      await admin.rpc("purge_expired_oauth_states");
+      const { error: purgarError } = await admin.rpc("purge_expired_oauth_states");
+      if (purgarError) console.error("mp-connect: no se purgaron los estados vencidos", purgarError);
 
       const url = `${AUTH_URL}?client_id=${encodeURIComponent(appId)}` +
         `&response_type=code&platform_id=mp` +

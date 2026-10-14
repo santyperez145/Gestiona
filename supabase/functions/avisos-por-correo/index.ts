@@ -101,9 +101,10 @@ Deno.serve(async (req) => {
   for (const p of pendientes) {
     const r = await sendEmail(remitente.smtp, apiKey, remitente.from,
                               { to: p.email, ...cuerpo(p) }, { tipo: "aviso" });
-    await admin.rpc("aviso_correo_registrar", {
+    const { error: registroError } = await admin.rpc("aviso_correo_registrar", {
       p_id: p.id, p_ok: r.ok, p_error: r.ok ? null : (r.error ?? "sin detalle"),
     });
+    if (registroError) { console.error("avisos-por-correo: resultado sin registrar; puede repetirse", p.id, registroError); if (problemas.length === 0) problemas.push("resultado sin registrar"); }
     if (r.ok) { enviados++; }
     else {
       fallidos++;

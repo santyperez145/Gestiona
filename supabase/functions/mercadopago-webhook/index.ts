@@ -251,7 +251,7 @@ async function reconcilePendingStoreRefunds(
         : [];
 
     if (matches.length !== 1) {
-      await admin.rpc("pago_reintegro_observar", {
+      const { error: observarError } = await admin.rpc("pago_reintegro_observar", {
         p_refund_id: refund.id,
         p_raw: {
           source: "mercadopago_webhook_refund_reconciliation",
@@ -259,6 +259,7 @@ async function reconcilePendingStoreRefunds(
           reason: matches.length === 0 ? "no_match" : "ambiguous_match",
         },
       });
+      if (observarError) console.error("mercadopago-webhook: no se anotó la observación del reintegro", refund.id, observarError);
       continue;
     }
 

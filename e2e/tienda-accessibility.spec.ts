@@ -144,7 +144,7 @@ test.describe("WCAG A/AA del Storefront", () => {
     });
     try {
       await page.goto(tienda("/checkout"));
-      await expect(page.getByRole("heading", { name: "Finalizar compra" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Finalizar compra" })).toBeVisible({ timeout: 30_000 });
       const action = page.getByRole("main").locator('button[type="submit"]:visible');
       await expect(action).toHaveText("Calculando entrega...");
       await expect(action).toBeDisabled();

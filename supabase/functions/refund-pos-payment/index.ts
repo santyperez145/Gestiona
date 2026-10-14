@@ -210,13 +210,14 @@ Deno.serve(async (req) => {
 
     const credentials = await getMpCredentials(admin, orgId);
     if (!credentials) {
-      await admin.rpc("pos_mp_refund_observe", {
+      const { error: observarError } = await admin.rpc("pos_mp_refund_observe", {
         p_refund_id: refundId,
         p_provider_status: "not_connected",
         p_external_refund_id: null,
         p_failure_reason: "La cuenta de Mercado Pago no está conectada por OAuth",
         p_raw: { source: "gestiona", reason: "missing_credentials" },
       });
+      if (observarError) console.error("refund-pos-payment: no se anotó la observación", refundId, observarError);
       return json({
         error: "Conectá Mercado Pago por OAuth desde Integraciones para ejecutar el reintegro.",
         code: "MP_NOT_CONNECTED",
@@ -243,13 +244,14 @@ Deno.serve(async (req) => {
         : await mpJson(url, credentials.accessToken);
     } catch (error) {
       console.error("refund-pos-payment provider network:", error);
-      await admin.rpc("pos_mp_refund_observe", {
+      const { error: observarError } = await admin.rpc("pos_mp_refund_observe", {
         p_refund_id: refundId,
         p_provider_status: "network_unknown",
         p_external_refund_id: prepared.provider_refund_id ?? null,
         p_failure_reason: "Mercado Pago no respondió; el resultado necesita verificación",
         p_raw: { source: "mercadopago_refund", outcome: "network_unknown" },
       });
+      if (observarError) console.error("refund-pos-payment: no se anotó la observación", refundId, observarError);
       return json({
         ok: true,
         status: "pending_external",
@@ -268,7 +270,7 @@ Deno.serve(async (req) => {
         status: provider.response.status,
         detail: providerMessage,
       });
-      await admin.rpc("pos_mp_refund_observe", {
+      const { error: observarError } = await admin.rpc("pos_mp_refund_observe", {
         p_refund_id: refundId,
         p_provider_status: `http_${provider.response.status}`,
         p_external_refund_id: prepared.provider_refund_id ?? null,
@@ -282,6 +284,7 @@ Deno.serve(async (req) => {
           message: cleanText(providerError.message, 300),
         },
       });
+      if (observarError) console.error("refund-pos-payment: no se anotó la observación", refundId, observarError);
       if (ambiguous) {
         return json({
           ok: true,
@@ -302,7 +305,7 @@ Deno.serve(async (req) => {
       paymentId: cleanText(prepared.provider_payment_id, 180),
     });
     if (!match.row) {
-      await admin.rpc("pos_mp_refund_observe", {
+      const { error: observarError } = await admin.rpc("pos_mp_refund_observe", {
         p_refund_id: refundId,
         p_provider_status: match.ambiguous ? "ambiguous" : "processing",
         p_external_refund_id: prepared.provider_refund_id ?? null,
@@ -311,6 +314,7 @@ Deno.serve(async (req) => {
           : null,
         p_raw: collectionSnapshot(rows, mode),
       });
+      if (observarError) console.error("refund-pos-payment: no se anotó la observación", refundId, observarError);
       return json({
         ok: true,
         status: "pending_external",

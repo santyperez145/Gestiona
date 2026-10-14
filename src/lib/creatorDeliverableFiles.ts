@@ -94,10 +94,11 @@ export async function uploadCreatorDeliverableFile(
     .from(CREATOR_DELIVERABLE_BUCKET)
     .upload(intent.storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
   if (uploadError) {
-    await db.rpc('creator_fail_deliverable_file', {
+    const { error: failError } = await db.rpc('creator_fail_deliverable_file', {
       p_file_id: intent.fileId,
       p_reason: uploadError.message,
     });
+    if (failError) console.error("[entregables] no se marcó la subida fallida", failError);
     throw uploadError;
   }
 

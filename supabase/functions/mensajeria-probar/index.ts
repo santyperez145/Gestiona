@@ -122,7 +122,8 @@ Deno.serve(async (req) => {
   // pone cuando el proveedor aceptó de verdad. Un checkbox de «ya lo configuré»
   // haría que la pantalla diga «listo» y el primer envío real falle — la misma
   // trampa que la verificación de ARCA vino a evitar.
-  await admin.rpc("mensajeria_marcar_verificado", { p_canal: "email", p_ok: r.ok });
+  const { error: marcarError } = await admin.rpc("mensajeria_marcar_verificado", { p_canal: "email", p_ok: r.ok });
+  if (marcarError) console.error("mensajeria-probar: no se guardó el resultado de la prueba", marcarError);
 
   if (!r.ok) {
     return json({

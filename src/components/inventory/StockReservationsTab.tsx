@@ -67,7 +67,9 @@ export default function StockReservationsTab() {
     if (!orgId) return;
     setLoading(true);
     // Vence las que ya pasaron su fecha antes de listar (best-effort)
-    await supabase.rpc("expire_stock_reservations", { p_org_id: orgId }).then(() => {}, () => {});
+    const { error: vencerError } = await supabase.rpc("expire_stock_reservations", { p_org_id: orgId });
+    // No frena el listado (el cron también las vence cada hora), pero no se traga.
+    if (vencerError) console.warn("[reservas] no se pudieron vencer las pasadas", vencerError);
     const [resRes, availRes] = await Promise.all([
       supabase.from("stock_reservations")
         .select("*, products(name)")

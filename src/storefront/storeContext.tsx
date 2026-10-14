@@ -37,6 +37,9 @@ import { storeVisitAttribution, storeVisitToken } from "@/lib/storeVisitAttribut
 import { useStoreAuth } from "./storeAuth";
 import { retryAbortableRead } from "@/lib/transientRead";
 
+export const STORE_READ_RETRY_DELAYS_MS = [300, 1_000, 2_500];
+export const STORE_AUTO_RELOAD_DELAYS_MS = [5_000, 15_000];
+
 export interface StoreInfo {
   org_id: string;
   owner_user_id: string | null;
@@ -267,6 +270,7 @@ export function StoreProvider({
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+  const autoReintentosRef = useRef(0);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartRevealTick, setCartRevealTick] = useState(0);
   const [cartToken, setCartToken] = useState("");
@@ -291,7 +295,10 @@ export function StoreProvider({
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-    const readOptions = { signal: controller.signal };
+    // 4 intentos (0,3 s, 1 s y 2,5 s entre uno y otro) en vez de 2: un bache
+    // de la base de unos segundos dejaba al comprador frente a «No pudimos
+    // cargar la tienda» (E2E del 14/10, captura en el artefacto del CI).
+    const readOptions = { signal: controller.signal, delaysMs: STORE_READ_RETRY_DELAYS_MS };
     setLoading(true);
     setNotFound(false);
     setLoadError(false);
@@ -392,6 +399,19 @@ export function StoreProvider({
 
     return () => { cancelled = true; controller.abort(); };
   }, [slug, previewVersionId, reloadTick]);
+
+  // Si igual falla, la vitrina se reintenta sola (a los 5 s y a los 15 s)
+  // antes de dejar al comprador sólo con el botón «Reintentar».
+  useEffect(() => {
+    if (!loadError) {
+      if (!loading) autoReintentosRef.current = 0;
+      return;
+    }
+    if (autoReintentosRef.current >= STORE_AUTO_RELOAD_DELAYS_MS.length) return;
+    const espera = STORE_AUTO_RELOAD_DELAYS_MS[autoReintentosRef.current];
+    const timer = setTimeout(() => { autoReintentosRef.current += 1; reload(); }, espera);
+    return () => clearTimeout(timer);
+  }, [loadError, loading, reload]);
 
   // ── Carrito persistido ──────────────────────────────────────────────────
   useEffect(() => {

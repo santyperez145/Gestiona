@@ -109,7 +109,8 @@ async function ticketCompartido(
     // Se suelta SIEMPRE, también si WSAA falló: dejarlo tomado bloquearía a
     // todos los demás hasta que venza el lease.
     try {
-      await supabase.rpc("afip_ta_lease_soltar", { p_clave: clave });
+      const { error: soltarError } = await supabase.rpc("afip_ta_lease_soltar", { p_clave: clave });
+      if (soltarError) console.error("afip-authorize: no se soltó el lease del ticket", soltarError);
     } catch (e) {
       // Si no se pudo soltar, el lease vence solo a los 45 s. Se registra, no
       // se propaga: el ticket ya está y la factura no puede fallar por esto.

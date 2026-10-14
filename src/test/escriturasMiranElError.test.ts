@@ -21,6 +21,9 @@ function escriturasSueltas(fuente: string): number[] {
   const lineas = fuente.split("\n");
   const sueltas: number[] = [];
   lineas.forEach((l, i) => {
+    // Un `await x.rpc(...)` suelto tampoco mira el error (se escapó del
+    // primer barrido: 27 al 2026-10-14).
+    if (/^\s*await\s+\w+\.rpc\(/.test(l)) { sueltas.push(i + 1); return; }
     if (!/^\s*await\s+\(?\s*supabase\b/.test(l)) return;
     const tramo = lineas.slice(i, i + 6).join(" ").split(";")[0];
     if (/\.(insert|update|delete|upsert)\s*\(/.test(tramo)) sueltas.push(i + 1);
@@ -32,6 +35,7 @@ describe("las escrituras a la base miran el error", () => {
   it("el detector encuentra una escritura suelta y deja pasar la que asigna", () => {
     expect(escriturasSueltas(`  await supabase.from("x").update({ a: 1 }).eq("id", id);`)).toEqual([1]);
     expect(escriturasSueltas(`  const { error } = await supabase.from("x").update({ a: 1 });`)).toEqual([]);
+    expect(escriturasSueltas(`  await supabase.rpc("sync_segment_members", { p: 1 });`)).toEqual([1]);
   });
 
   it("no queda ninguna escritura suelta en src/", () => {

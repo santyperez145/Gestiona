@@ -26,7 +26,9 @@ const tienda = (ruta = "") => `/tienda/${SLUG}${ruta}`;
 /** Espera a que el catálogo termine de cargar y devuelve los links a fichas. */
 async function fichasVisibles(page: Page) {
   const fichas = page.locator(`a[href*="/tienda/${SLUG}/producto/"]`);
-  await expect(fichas.first()).toBeVisible();
+  // La vitrina se recupera sola de un bache de la base (4 intentos por lectura
+  // y recarga automática, 2026-10-14): se espera la carga real, no 10 s.
+  await expect(fichas.first()).toBeVisible({ timeout: 30_000 });
   return fichas;
 }
 

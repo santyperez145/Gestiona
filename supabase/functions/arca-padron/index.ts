@@ -59,7 +59,9 @@ async function ticketPadron(cert: string, key: string, environment: "produccion"
     if (error) console.error("[padron] no se guardó el ticket", error.message);
     return { token: ta.token, sign: ta.sign, expires_at: ta.expiresAt };
   } finally {
-    await supabase.rpc("afip_ta_lease_soltar", { p_clave: clave }).then(() => undefined, () => undefined);
+    const { error: soltarError } = await supabase.rpc("afip_ta_lease_soltar", { p_clave: clave });
+    // Si no se suelta, el lease vence solo; queda en el log.
+    if (soltarError) console.error("[padron] no se soltó el lease del ticket", soltarError.message);
   }
 }
 

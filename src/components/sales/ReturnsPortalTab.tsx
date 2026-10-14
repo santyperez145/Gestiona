@@ -121,7 +121,8 @@ export default function ReturnsPortalTab() {
 
   async function seedReasons() {
     if (!orgId) return;
-    await supabase.rpc("seed_return_reasons", { p_org_id: orgId });
+    const { error: seedError } = await supabase.rpc("seed_return_reasons", { p_org_id: orgId });
+    if (seedError) { toast.error("No se pudieron cargar las razones: " + seedError.message); return; }
     toast.success("Razones cargadas");
     load();
   }

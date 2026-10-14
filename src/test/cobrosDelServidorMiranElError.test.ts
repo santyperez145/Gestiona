@@ -21,6 +21,7 @@ function escriturasSueltas(fuente: string): number[] {
   const lineas = fuente.split("\n");
   const sueltas: number[] = [];
   lineas.forEach((l, i) => {
+    if (/^\s*await\s+\w+\.rpc\(/.test(l)) { sueltas.push(i + 1); return; }
     if (!/^\s*await\s+\(?\s*\w+\s*(\.from\(|$)/.test(l)) return;
     const tramo = lineas.slice(i, i + 6).join(" ").split(";")[0];
     if (/\.from\(/.test(tramo) && /\.(insert|update|delete|upsert)\s*\(/.test(tramo)) sueltas.push(i + 1);
@@ -31,6 +32,7 @@ function escriturasSueltas(fuente: string): number[] {
 describe("cobros del servidor: las escrituras miran el error", () => {
   it("el detector ve la escritura partida en varias líneas", () => {
     expect(escriturasSueltas(`await admin\n  .from("x")\n  .update({ a: 1 })\n  .eq("id", id);`)).toEqual([1]);
+    expect(escriturasSueltas(`    await admin.rpc("mark_cart_email_sent", { p_id: c.id });`)).toEqual([1]);
   });
 
   for (const archivo of ARCHIVOS) {

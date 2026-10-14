@@ -165,9 +165,10 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    await admin.rpc("registrar_cambio_de_precio", {
+    const { error: registroError } = await admin.rpc("registrar_cambio_de_precio", {
       p_target_id: t.id, p_estado: "notificado",
     });
+    if (registroError) { console.error("precio-suscripcion: aviso enviado sin registrar; puede repetirse", t.id, registroError); problemas.push(`aviso a ${comercio} sin registrar`); }
     avisados++;
   }
 
@@ -231,12 +232,13 @@ Deno.serve(async (req) => {
       motivo = e instanceof Error ? e.message : String(e);
     }
 
-    await admin.rpc("registrar_cambio_de_precio", {
+    const { error: registroError } = await admin.rpc("registrar_cambio_de_precio", {
       p_target_id: c.target_id,
       p_estado: estado,
       p_error: motivo,
       p_respuesta: respuesta,
     });
+    if (registroError) console.error("precio-suscripcion: resultado del cambio de precio sin registrar", c.target_id, registroError);
 
     if (ok) aplicados++;
     else if (estado === "requiere_reautorizacion") { reautorizar++; problemas.push(`${c.org_id}: requiere reautorización`); }
