@@ -3,7 +3,9 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
-import { formatARS, getSettingsDB } from "@/lib/supabaseStore";
+import { formatARS, getProductsDB, getSettingsDB } from "@/lib/supabaseStore";
+import ProductCombobox from "@/components/shared/ProductCombobox";
+import { productoPorCodigo } from "@/lib/presupuestos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +26,10 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+
+type ItemDeLink = { description: string; qty: number | string; unitPrice: number | string; productId?: string | null };
+type ProductoDeLink = { id: string; name: string; brand?: string | null; sku?: string | null; barcode?: string | null; barcode_aliases?: string[] | null; sale_price_ars?: number | null; is_active?: boolean | null };
+const itemVacio = (): ItemDeLink => ({ description: "", qty: 1, unitPrice: 0, productId: null });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PaymentLink {
@@ -91,7 +97,11 @@ export default function PaymentLinksPage() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [expiresIn, setExpiresIn] = useState("72"); // hours
-  const [items, setItems] = useState([{ description: "", qty: 1, unitPrice: 0 }]);
+  // `productId`: el producto del catálogo. Al cobrarse el link, la base registra
+  // la venta y baja ese stock (registrar_venta_de_link, 20261014001100).
+  const [items, setItems] = useState<ItemDeLink[]>([itemVacio()]);
+  const [catalogo, setCatalogo] = useState<ProductoDeLink[] | null>(null);
+  const [codigo, setCodigo] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Filter
@@ -102,12 +112,15 @@ export default function PaymentLinksPage() {
     if (!activeOrg || !user) return;
     setLoading(true);
     try {
-      const [{ data: linksData }, { data: orgSettingsData }, estadoCobro, userSettings] = await Promise.all([
+      const [{ data: linksData, error: linksError }, { data: orgSettingsData, error: settingsError }, estadoCobro, userSettings] = await Promise.all([
         supabase.from("payment_links").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         supabase.from("settings").select("mp_enabled, whatsapp_number, business_name").eq("org_id", activeOrg.id).maybeSingle(),
         fetchPaymentStatus(activeOrg.id),
         getSettingsDB(user.id),
       ]);
+      // Un error de lectura no es «no hay links»: se avisa en vez de mostrar la lista vacía.
+      if (linksError) throw linksError;
+      if (settingsError) console.warn("[links de pago] configuración", settingsError);
       setLinks((linksData || []) as unknown as PaymentLink[]);
       setOrgSettings({
         mp_enabled: orgSettingsData?.mp_enabled ?? false,
@@ -115,6 +128,8 @@ export default function PaymentLinksPage() {
         whatsapp_number: orgSettingsData?.whatsapp_number ?? null,
         business_name: userSettings?.business_name || orgSettingsData?.business_name || "Mi Negocio",
       });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudieron cargar los links de pago");
     } finally {
       setLoading(false);
     }
@@ -122,11 +137,36 @@ export default function PaymentLinksPage() {
 
   useEffect(() => { load(); }, [activeOrg]);
 
+  // El catálogo se carga al abrir el formulario (copia compartida de la pestaña).
+  useEffect(() => {
+    if (!open || catalogo || !user) return;
+    let vigente = true;
+    getProductsDB(user.id)
+      .then(prods => { if (vigente) setCatalogo((prods as unknown as ProductoDeLink[]).filter(p => p.is_active !== false)); })
+      .catch(err => { if (vigente) { setCatalogo([]); toast.error(err instanceof Error ? err.message : "No se pudo cargar el catálogo"); } });
+    return () => { vigente = false; };
+  }, [open, catalogo, user]);
+
   // ── Item helpers ──────────────────────────────────────────────────────────────
   const updateItem = (idx: number, field: string, value: string | number) => {
-    setItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+    // Escribir la descripción a mano lo desliga del producto: deja de bajar stock.
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value, ...(field === "description" ? { productId: null } : {}) } : item));
   };
-  const addItem = () => setItems(prev => [...prev, { description: "", qty: 1, unitPrice: 0 }]);
+  const elegirProducto = (idx: number, prod: ProductoDeLink | null) => {
+    if (!prod) return;
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, description: prod.name, unitPrice: Number(prod.sale_price_ars) || 0, productId: prod.id } : item));
+  };
+  const agregarPorCodigo = () => {
+    const prod = productoPorCodigo(catalogo ?? [], codigo);
+    if (!prod) { toast.error(`No hay un producto con el código «${codigo.trim()}»`); return; }
+    setItems(prev => {
+      const existente = prev.find(item => item.productId === prod.id);
+      if (existente) return prev.map(item => item === existente ? { ...item, qty: Number(item.qty) + 1 } : item);
+      return [...prev.filter(item => item.description.trim()), { description: prod.name, qty: 1, unitPrice: Number(prod.sale_price_ars) || 0, productId: prod.id }];
+    });
+    setCodigo("");
+  };
+  const addItem = () => setItems(prev => [...prev, itemVacio()]);
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
   const total = items.reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.unitPrice) || 0), 0);
 
@@ -153,6 +193,7 @@ export default function PaymentLinksPage() {
           qty: Number(i.qty) || 1,
           unitPrice: Number(i.unitPrice) || 0,
           total: (Number(i.qty) || 1) * (Number(i.unitPrice) || 0),
+          ...(i.productId ? { productId: i.productId } : {}),
         }));
 
       const externalRef = `link-${Date.now()}`;
@@ -204,7 +245,7 @@ export default function PaymentLinksPage() {
       toast.success("Link de pago creado");
       setOpen(false);
       setCustomerName(""); setCustomerPhone(""); setCustomerEmail(""); setNotes("");
-      setItems([{ description: "", qty: 1, unitPrice: 0 }]);
+      setItems([itemVacio()]);
       load();
     } catch (err: any) {
       toast.error("Error: " + err.message);
@@ -559,8 +600,18 @@ export default function PaymentLinksPage() {
                 </Button>
               </div>
               <div className="space-y-2 pb-12">
+                <Input value={codigo} onChange={e => setCodigo(e.target.value)} disabled={!catalogo} aria-label="Agregar producto por código"
+                  placeholder={catalogo ? "Escaneá o escribí el código de un producto y Enter" : "Cargando catálogo…"}
+                  className="bg-muted border-border text-sm"
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (codigo.trim()) agregarPorCodigo(); } }} />
                 {items.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-[1fr_auto_auto_auto] gap-1.5 items-center">
+                  <div key={idx} className="space-y-1">
+                  <ProductCombobox<ProductoDeLink> products={catalogo ?? []} value={item.productId ?? null} disabled={!catalogo}
+                    className="h-9 bg-muted text-sm" ariaLabel={`Producto del ítem ${idx + 1}`}
+                    placeholder={catalogo ? "Elegir del catálogo (o escribí la descripción abajo)…" : "Cargando catálogo…"}
+                    describe={prod => [prod.sku, formatARS(Number(prod.sale_price_ars) || 0)].filter(Boolean).join(" · ")}
+                    onChange={(_id, prod) => elegirProducto(idx, prod)} />
+                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-1.5 items-center">
                     <Input
                       value={item.description}
                       onChange={e => updateItem(idx, "description", e.target.value)}
@@ -592,7 +643,9 @@ export default function PaymentLinksPage() {
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
+                  </div>
                 ))}
+                <p className="text-[11px] text-muted-foreground">Los productos del catálogo bajan su stock cuando el cliente paga; los ítems escritos a mano quedan como texto.</p>
               </div>
               <div className="mt-2 text-right">
                 <span className="text-lg font-bold text-primary">{formatARS(total)}</span>

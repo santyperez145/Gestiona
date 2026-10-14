@@ -44,8 +44,14 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Páginas legacy (pedido del dueño 2026-10-14: «hay muchas páginas legacy, no toman los productos, sólo carga manual»). Inventario medido el 2026-10-14, buscando renglones con descripción libre sin catálogo e inserts de documentos desde el navegador:
   - Presupuestos: rearmado (ver arriba).
   - Factura manual: ahora toma el producto del catálogo o su código y calcula el neto desde el precio final con la alícuota del renglón (`netoDesdePrecioFinal`; sin ARCA o en factura C el neto es el precio). La base sigue recalculando todo. `src/test/facturaManualConCatalogo.test.ts`.
+  - Links de pago:
+    - Los ítems salen del catálogo o por código; antes eran texto.
+    - Cobrar un link registra la venta: `registrar_venta_de_link` (migración 20261014001100, `scripts/link-de-pago-venta-matrix.sql` 6/6 en simulacro y en vivo) la llama el webhook de Mercado Pago (v71, `verify_jwt` intacto en las 87 funciones).
+    - Un renglón por ítem, lo cobrado repartido si hubo descuento, el stock baja y queda en reportes.
+    - Es idempotente y nunca rechaza un cobro ya hecho: un producto ajeno o una cantidad inválida quedan como renglón libre.
+    - Un link de un presupuesto sin vender lo marca vendido.
+    - La lista avisa si no se pudo leer, en vez de mostrarse vacía.
   - Pendientes, en orden:
-    - Links de pago: ítems a mano, y al cobrarse no crean la venta ni mueven stock.
     - Devoluciones de la caja: el navegador inserta `returns` directo.
     - Reposición y órdenes de compra: insertan compras directo.
     - Planes de pago de deudas: viven en el navegador.

@@ -756,7 +756,7 @@ Deno.serve(async (req) => {
     // ── Update payment_links table ─────────────────────────────────────────────
     if (externalRef) {
       const linkStatus = isApproved ? "paid" : isRejected ? "rejected" : "pending";
-      const { error: linkErr } = await admin
+      const { data: linksActualizados, error: linkErr } = await admin
         .from("payment_links")
         .update({
           status: linkStatus,
@@ -764,8 +764,20 @@ Deno.serve(async (req) => {
           paid_at: isApproved ? new Date().toISOString() : null,
         })
         .eq("org_id", orgId)
-        .eq("external_ref", externalRef);
+        .eq("external_ref", externalRef)
+        .select("id");
       if (linkErr) throw new ReintentarWebhook(`payment_links: ${linkErr.message}`);
+
+      // Un link cobrado es una venta (20261014001100): se registra con su
+      // stock y queda en reportes. Sólo para links propios (`link-…`/`link:…`):
+      // una referencia de venta existente se marca cobrada más abajo, sin
+      // duplicarla. Es idempotente; si falla, MP reintenta.
+      if (isApproved && /^link[-:]/.test(externalRef)) {
+        for (const link of linksActualizados ?? []) {
+          const { error: ventaErr } = await admin.rpc("registrar_venta_de_link", { p_link_id: link.id });
+          if (ventaErr) throw new ReintentarWebhook(`registrar_venta_de_link: ${ventaErr.message}`);
+        }
+      }
 
       // ── Update related sale if external_ref is a sale id ─────────────────
       // external_ref may be "sale:<uuid>" or just a uuid
