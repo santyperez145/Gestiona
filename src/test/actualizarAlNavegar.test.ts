@@ -51,4 +51,25 @@ describe("actualizar al navegar", () => {
     const app = fs.readFileSync("src/App.tsx", "utf8");
     expect(app).toContain("<ActualizarAlNavegar />");
   });
+
+  // 2026-10-14: al entrar justo después de un despliegue quedaba frenada en
+  // «Nueva versión disponible» hasta tocar «Actualizar».
+  it("recién cargada, un archivo viejo carga la versión nueva sola (una vez por minuto)", async () => {
+    const sw = await import("@/lib/swUpdate");
+    expect(sw.recuperarVersionSola(1_000_000, 3_000)).toBe(true);
+    expect(recargas.n).toBe(1);
+    expect(sw.recuperarVersionSola(1_010_000, 3_000)).toBe(false);
+  });
+
+  it("con la página abierta hace rato y sin navegar, no recarga sola (puede haber trabajo)", async () => {
+    const sw = await import("@/lib/swUpdate");
+    expect(sw.recuperarVersionSola(1_000_000, 600_000)).toBe(false);
+    expect(recargas.n).toBe(0);
+  });
+
+  it("el error de versión vieja usa el componente que intenta solo", () => {
+    const app = fs.readFileSync("src/App.tsx", "utf8");
+    expect(app).toContain("<VersionNueva intentarSola={isStaleBuildError(error)} />");
+    expect(app).toContain("if (intentarSola && !recuperarVersionSola()) setManual(true);");
+  });
 });

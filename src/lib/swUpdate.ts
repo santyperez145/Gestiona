@@ -80,6 +80,20 @@ export function navegoHaceInstantes(ahora = Date.now()): boolean {
   return ultimaNavegacion > 0 && ahora - ultimaNavegacion < VENTANA_DE_NAVEGACION_MS;
 }
 
+const VENTANA_DE_CARGA_MS = 20_000;
+
+/**
+ * Un archivo de una versión que ya no existe falló. Si la página recién cargó
+ * o se acaba de navegar, no hay trabajo a medio hacer que proteger: se carga
+ * la versión nueva sola (una vez por minuto) en vez de frenar en «Nueva
+ * versión disponible» hasta que la persona toque «Actualizar» (pasaba al
+ * entrar justo después de un despliegue, 2026-10-14). Devuelve si recargó.
+ */
+export function recuperarVersionSola(ahora = Date.now(), msDesdeLaCarga = typeof performance !== "undefined" ? performance.now() : Infinity): boolean {
+  const sinTrabajoEnCurso = msDesdeLaCarga < VENTANA_DE_CARGA_MS || navegoHaceInstantes(ahora);
+  return sinTrabajoEnCurso ? recargarPorVersionNueva(ahora) : false;
+}
+
 export function createControllerChangeHandler(
   wasControlled: boolean,
   onUpdateAvailable: () => void,

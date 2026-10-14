@@ -17,7 +17,7 @@ import {
   forceStaleBuildRecovery,
   isStaleBuildError,
 } from "@/lib/staleBuildRecovery";
-import { alCambiarDePantalla, hasPendingAppUpdate } from "@/lib/swUpdate";
+import { alCambiarDePantalla, hasPendingAppUpdate, recuperarVersionSola } from "@/lib/swUpdate";
 import { ShieldAlert, BookOpen } from "lucide-react";
 import { storeSlugFromHostname } from "@/lib/storefrontHost";
 import { isPotentialCustomStoreHostname } from "@/lib/storeCustomDomain";
@@ -468,11 +468,19 @@ function ActualizarAlNavegar() {
   return null;
 }
 
-const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="gestiona-theme">
-  <Sentry.ErrorBoundary onError={error => { if (!isStaleBuildError(error)) registrarError(error); }} fallback={({ error }) => {
-    if (hasPendingAppUpdate() || isStaleBuildError(error)) {
-      return (
+/**
+ * Un archivo de una versión que ya no existe falló. Recién cargada o recién
+ * navegada, se actualiza sola (recuperarVersionSola); si no, o si ya se
+ * intentó hace instantes, se ofrece actualizar sin perder lo que se está
+ * haciendo.
+ */
+function VersionNueva({ intentarSola }: { intentarSola: boolean }) {
+  const [manual, setManual] = useState(!intentarSola);
+  useEffect(() => {
+    if (intentarSola && !recuperarVersionSola()) setManual(true);
+  }, [intentarSola]);
+  if (!manual) return <AppLoader label="Actualizando a la versión nueva…" />;
+  return (
         <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
           <div>
             <h1 className="text-xl font-bold mb-2">Nueva versión disponible</h1>
@@ -484,6 +492,13 @@ const App = () => (
           </div>
         </div>
       );
+}
+
+const App = () => (
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="gestiona-theme">
+  <Sentry.ErrorBoundary onError={error => { if (!isStaleBuildError(error)) registrarError(error); }} fallback={({ error }) => {
+    if (hasPendingAppUpdate() || isStaleBuildError(error)) {
+      return <VersionNueva intentarSola={isStaleBuildError(error)} />;
     }
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
