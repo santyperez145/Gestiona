@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { getDebtsDB, addDebtPaymentDB, deleteDebtDB, formatARS, formatDateAR } from "@/lib/supabaseStore";
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2, CalendarDays, ListChecks, ArrowUpDown, ChevronUp, ChevronDown, Printer } from "lucide-react";
 import { agruparDeudores, mensajeDeError, MEDIOS_DE_COBRO } from "@/lib/cuentaCorriente";
+import { borrarPlanDB, estadoDelPlan, frecuenciaDeFechas, guardarPlanDB, leerPlanesDB, previsualizarCuotas, type FrecuenciaDePlan, type PlanDePago } from "@/lib/planesDePago";
 import CobroACuentaForm, { type ObjetivoCobro } from "@/components/finance/CobroACuentaForm";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -46,18 +47,64 @@ export default function DebtsPage() {
   const [planningDebt, setPlanningDebt] = useState<any>(null);
   const [planInstallments, setPlanInstallments] = useState("3");
   const [planStart, setPlanStart] = useState(() => new Date().toISOString().slice(0, 10));
-  const [planFreq, setPlanFreq] = useState<"weekly" | "biweekly" | "monthly">("monthly");
-  const plansKey = `gestiona.debt_plans.${activeOrg?.id || 'default'}`;
+  const [planFreq, setPlanFreq] = useState<FrecuenciaDePlan>("mensual");
+  const [guardandoPlan, setGuardandoPlan] = useState(false);
+  // Monto con el que abre el cobro («Cobrar cuota»).
+  const [montoSugerido, setMontoSugerido] = useState<number | null>(null);
   const [debtSort, setDebtSort] = useState<{ col: "date" | "remaining_ars" | "due_date" | "customer_name"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
-  const [savedPlans, setSavedPlans] = useState<Record<string, { installments: { date: string; amount: number; paid: boolean }[] }>>(() => {
-    try { return JSON.parse(localStorage.getItem(`gestiona.debt_plans.${localStorage.getItem('gestiona.activeOrgId') || 'default'}`) || '{}'); }
-    catch { return {}; }
-  });
+  // Planes de pago en la base (20261014001300); antes vivían en este navegador.
+  const [planes, setPlanes] = useState<Record<string, PlanDePago>>({});
+  const hoy = new Date().toISOString().slice(0, 10);
 
   const reload = async () => {
-    if (user) { setDebts(await getDebtsDB(user.id)); setLoading(false); }
+    if (!user) return;
+    try {
+      const [deudas, planesLeidos] = await Promise.all([
+        getDebtsDB(user.id),
+        activeOrg ? leerPlanesDB(activeOrg.id) : Promise.resolve({} as Record<string, PlanDePago>),
+      ]);
+      setDebts(deudas);
+      setPlanes(planesLeidos);
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudieron cargar las deudas"));
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(() => { reload(); }, [user]);
+  useEffect(() => { reload(); }, [user, activeOrg?.id]);
+
+  // Una sola vez: los planes que quedaron en este navegador pasan a la base.
+  // Los tildes de «pagada» no se migran: no eran cobros; el estado ahora sale
+  // de lo cobrado a la deuda.
+  const migrados = useRef(false);
+  useEffect(() => {
+    if (migrados.current || loading || !activeOrg) return;
+    const clave = `gestiona.debt_plans.${activeOrg.id}`;
+    let viejos: Record<string, { installments?: Array<{ date: string }> }> = {};
+    try { viejos = JSON.parse(localStorage.getItem(clave) || "{}"); } catch { viejos = {}; }
+    const pendientes = Object.entries(viejos).filter(([id, plan]) =>
+      !planes[id] && (plan.installments?.length ?? 0) > 0 && debts.some(d => d.id === id && Number(d.remaining_ars) > 0));
+    migrados.current = true;
+    if (pendientes.length === 0) {
+      if (Object.keys(viejos).length) { try { localStorage.removeItem(clave); } catch { /* sin acceso */ } }
+      return;
+    }
+    void (async () => {
+      let ok = 0;
+      for (const [id, plan] of pendientes) {
+        const fechas = plan.installments!.map(i => i.date);
+        try { await guardarPlanDB(id, fechas.length, frecuenciaDeFechas(fechas), fechas[0]); ok += 1; }
+        catch (err) { console.warn("[deudas] no se pudo migrar un plan de pago", err); }
+      }
+      if (ok === pendientes.length) { try { localStorage.removeItem(clave); } catch { /* sin acceso */ } }
+      if (ok) {
+        toast.info(`${plural(ok, "plan de pago pasó", "planes de pago pasaron")} a tu cuenta`, {
+          description: "Ahora se ven desde cualquier equipo, y cada cuota figura pagada cuando registrás el cobro.",
+        });
+        reload();
+      }
+    })();
+  }, [loading, activeOrg, debts, planes]);
 
   const [filterOverdue, setFilterOverdue] = useState<'all' | 'overdue' | 'upcoming'>('all');
 
@@ -563,10 +610,10 @@ export default function DebtsPage() {
       )}
 
       {/* Payment Dialog */}
-      <Dialog open={!!payingDebt} onOpenChange={v => { if (!v) setPayingDebt(null); }}>
+      <Dialog open={!!payingDebt} onOpenChange={v => { if (!v) { setPayingDebt(null); setMontoSugerido(null); } }}>
         <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Registrar Pago</DialogTitle></DialogHeader>
-          {payingDebt && <PaymentForm debt={payingDebt} userId={user!.id} onSave={() => { setPayingDebt(null); reload(); }} />}
+          {payingDebt && <PaymentForm debt={payingDebt} userId={user!.id} montoInicial={montoSugerido} onSave={() => { setPayingDebt(null); setMontoSugerido(null); reload(); }} />}
         </DialogContent>
       </Dialog>
 
@@ -591,39 +638,33 @@ export default function DebtsPage() {
           <DialogHeader><DialogTitle className="font-display flex items-center gap-2"><ListChecks className="w-5 h-5 text-primary" />Plan de pago en cuotas</DialogTitle></DialogHeader>
           {planningDebt && (() => {
             const remaining = Number(planningDebt.remaining_ars);
-            const n = Math.max(1, Math.min(36, Number(planInstallments) || 3));
-            const amtPerInstall = remaining / n;
-            // Generate installment dates
-            const dates: string[] = [];
-            for (let i = 0; i < n; i++) {
-              const d = new Date(planStart);
-              if (planFreq === 'weekly') d.setDate(d.getDate() + i * 7);
-              else if (planFreq === 'biweekly') d.setDate(d.getDate() + i * 14);
-              else d.setMonth(d.getMonth() + i);
-              dates.push(d.toISOString().slice(0, 10));
-            }
-            const existingPlan = savedPlans[planningDebt.id];
-            const savePlan = () => {
-              const plan = {
-                installments: dates.map((date, idx) => ({
-                  date,
-                  amount: Math.round(amtPerInstall),
-                  paid: existingPlan?.installments[idx]?.paid || false,
-                })),
-              };
-              const next = { ...savedPlans, [planningDebt.id]: plan };
-              setSavedPlans(next);
-              localStorage.setItem(plansKey, JSON.stringify(next));
-              toast.success(`Plan de ${plural(n, "cuota")} guardado`);
-              setPlanningDebt(null);
+            const existente = planes[planningDebt.id];
+            const estado = existente ? estadoDelPlan(existente, Number(planningDebt.paid_ars), hoy) : null;
+            const vista = previsualizarCuotas(remaining, Number(planInstallments) || 3, planFreq, planStart);
+            const guardar = async () => {
+              setGuardandoPlan(true);
+              try {
+                const plan = await guardarPlanDB(planningDebt.id, vista.length, planFreq, planStart);
+                setPlanes(prev => ({ ...prev, [planningDebt.id]: plan }));
+                toast.success(`Plan de ${plural(vista.length, "cuota")} guardado`);
+              } catch (err) {
+                toast.error(mensajeDeError(err, "No se pudo guardar el plan"));
+              } finally {
+                setGuardandoPlan(false);
+              }
             };
-            const toggleInstallmentPaid = (idx: number) => {
-              if (!existingPlan) return;
-              const updated = { ...existingPlan, installments: existingPlan.installments.map((inst: any, i: number) => i === idx ? { ...inst, paid: !inst.paid } : inst) };
-              const next = { ...savedPlans, [planningDebt.id]: updated };
-              setSavedPlans(next);
-              localStorage.setItem(plansKey, JSON.stringify(next));
+            const borrar = async () => {
+              try {
+                await borrarPlanDB(planningDebt.id);
+                setPlanes(prev => { const n = { ...prev }; delete n[planningDebt.id]; return n; });
+                toast.success("Plan eliminado");
+                setPlanningDebt(null);
+              } catch (err) {
+                toast.error(mensajeDeError(err, "No se pudo eliminar el plan"));
+              }
             };
+            const etiqueta = { pagada: "Pagada", parcial: "Parcial", vencida: "Vencida", pendiente: "Pendiente" } as const;
+            const color = { pagada: "text-emerald-500", parcial: "text-amber-500", vencida: "text-destructive", pendiente: "text-muted-foreground" } as const;
             return (
               <div className="space-y-4 pb-12">
                 <div className="flex items-center justify-between p-3 bg-muted rounded-xl">
@@ -633,11 +674,42 @@ export default function DebtsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-destructive">{formatARS(remaining)}</p>
-                    <p className="text-[10px] text-muted-foreground">a distribuir</p>
+                    <p className="text-[10px] text-muted-foreground">saldo</p>
                   </div>
                 </div>
 
-                {/* Config */}
+                {estado && (
+                  <div className="border border-border rounded-xl overflow-hidden" data-testid="plan-de-pago-estado">
+                    <div className="px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between text-xs">
+                      <span className="font-semibold">Plan actual · {plural(estado.pagadas, "cuota pagada", "cuotas pagadas")} de {existente!.cuotas.length}</span>
+                      {estado.vencidas > 0 && <span className="text-destructive font-semibold">{plural(estado.vencidas, "vencida")}</span>}
+                    </div>
+                    <div className="divide-y divide-border max-h-52 overflow-y-auto">
+                      {estado.cuotas.map(c => (
+                        <div key={c.numero} className="flex items-center justify-between px-3 py-2 text-xs">
+                          <span>Cuota {c.numero} — {new Date(c.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                          <span className="flex items-center gap-2">
+                            <span className={`font-medium ${color[c.estado]}`}>{etiqueta[c.estado]}</span>
+                            <span className="font-semibold">{formatARS(c.monto)}</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {estado.proxima && (
+                      <div className="px-3 py-2 border-t border-border">
+                        <Button size="sm" className="w-full h-8 text-xs" onClick={() => {
+                          setMontoSugerido(estado.proxima!.falta);
+                          setPayingDebt(planningDebt);
+                          setPlanningDebt(null);
+                        }}>
+                          <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar cuota {estado.proxima.numero} ({formatARS(estado.proxima.falta)})
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <p className="text-xs font-semibold text-muted-foreground">{existente ? "Rehacer el plan con el saldo de hoy" : "Armar el plan"}</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Cuotas</label>
@@ -645,12 +717,12 @@ export default function DebtsPage() {
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Frecuencia</label>
-                    <Select value={planFreq} onValueChange={(v: "weekly" | "biweekly" | "monthly") => setPlanFreq(v)}>
+                    <Select value={planFreq} onValueChange={(v: FrecuenciaDePlan) => setPlanFreq(v)}>
                       <SelectTrigger className="bg-muted border-border text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="weekly">Semanal</SelectItem>
-                        <SelectItem value="biweekly">Quincenal</SelectItem>
-                        <SelectItem value="monthly">Mensual</SelectItem>
+                        <SelectItem value="semanal">Semanal</SelectItem>
+                        <SelectItem value="quincenal">Quincenal</SelectItem>
+                        <SelectItem value="mensual">Mensual</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -660,48 +732,25 @@ export default function DebtsPage() {
                   </div>
                 </div>
 
-                {/* Preview schedule */}
                 <div className="border border-border rounded-xl overflow-hidden">
-                  <div className="px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between">
-                    <span className="text-xs font-semibold">Cronograma de cuotas</span>
-                    <span className="text-xs text-primary font-bold">{formatARS(Math.round(amtPerInstall))} / cuota</span>
-                  </div>
-                  <div className="divide-y divide-border max-h-52 overflow-y-auto">
-                    {dates.map((date, idx) => {
-                      const isPaid = existingPlan?.installments[idx]?.paid || false;
-                      const isOverdue = !isPaid && date < new Date().toISOString().slice(0, 10);
-                      return (
-                        <div key={idx} className="flex items-center justify-between px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => toggleInstallmentPaid(idx)}
-                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${isPaid ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400' : 'border-border hover:border-primary/50'}`}
-                              title={isPaid ? "Marcar sin pagar" : "Marcar pagado"}
-                            >
-                              {isPaid && <CheckCircle2 className="w-3 h-3" />}
-                            </button>
-                            <span className={`text-xs ${isPaid ? 'line-through text-muted-foreground' : isOverdue ? 'text-destructive font-medium' : ''}`}>
-                              Cuota {idx + 1} — {new Date(date + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              {isOverdue && <span className="ml-1 text-[10px]">⚠ vencida</span>}
-                            </span>
-                          </div>
-                          <span className={`text-xs font-semibold ${isPaid ? 'text-emerald-400' : ''}`}>{formatARS(Math.round(amtPerInstall))}</span>
-                        </div>
-                      );
-                    })}
+                  <div className="px-3 py-2 bg-muted/50 border-b border-border text-xs font-semibold">Cronograma</div>
+                  <div className="divide-y divide-border max-h-40 overflow-y-auto">
+                    {vista.map((c, idx) => (
+                      <div key={idx} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                        <span>Cuota {idx + 1} — {new Date(c.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                        <span className="font-semibold">{formatARS(c.monto)}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
+                <p className="text-[11px] text-muted-foreground">Cada cuota figura pagada cuando registrás el cobro de la deuda; no hace falta marcarla.</p>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" onClick={savePlan}>
-                    <CalendarDays className="w-4 h-4 mr-2" />Guardar plan
+                  <Button className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" onClick={() => void guardar()} disabled={guardandoPlan}>
+                    <CalendarDays className="w-4 h-4 mr-2" />{existente ? "Rehacer plan" : "Guardar plan"}
                   </Button>
-                  {existingPlan && (
-                    <Button variant="outline" className="text-destructive border-destructive/30" onClick={() => {
-                      const next = { ...savedPlans }; delete next[planningDebt.id];
-                      setSavedPlans(next); localStorage.setItem(plansKey, JSON.stringify(next));
-                      toast.success("Plan eliminado"); setPlanningDebt(null);
-                    }}>
+                  {existente && (
+                    <Button variant="outline" className="text-destructive border-destructive/30" onClick={() => void borrar()} aria-label="Eliminar el plan">
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
@@ -799,10 +848,10 @@ export default function DebtsPage() {
                             <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar
                           </Button>
                           <Button size="sm" variant="outline"
-                            className={`h-7 px-2 text-xs ${savedPlans[d.id] ? 'border-primary/40 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}
+                            className={`h-7 px-2 text-xs ${planes[d.id] ? 'border-primary/40 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}
                             title="Plan de pago en cuotas"
                             onClick={() => { setPlanningDebt(d); setPlanInstallments("3"); setPlanStart(new Date().toISOString().slice(0, 10)); }}>
-                            <ListChecks className="w-3.5 h-3.5 mr-1" />{savedPlans[d.id] ? 'Plan ✓' : 'Plan'}
+                            <ListChecks className="w-3.5 h-3.5 mr-1" />{planes[d.id] ? 'Plan ✓' : 'Plan'}
                           </Button>
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10"
                             title="Enviar recordatorio por WhatsApp"
@@ -851,16 +900,16 @@ export default function DebtsPage() {
                 )}
                 {tab === "pending" && (
                   <>
-                  {savedPlans[d.id] && (() => {
-                    const plan = savedPlans[d.id];
-                    const paidCount = plan.installments.filter((i: any) => i.paid).length;
-                    const total = plan.installments.length;
+                  {planes[d.id] && (() => {
+                    const resumen = estadoDelPlan(planes[d.id], Number(d.paid_ars), hoy);
+                    const paidCount = resumen.pagadas;
+                    const total = planes[d.id].cuotas.length;
                     return (
                       <div className="mb-2 flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div className="h-full bg-primary rounded-full" style={{ width: `${(paidCount / total) * 100}%` }} />
                         </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{paidCount}/{total} cuotas</span>
+                        <span className={`text-[10px] shrink-0 ${resumen.vencidas ? "text-destructive font-semibold" : "text-muted-foreground"}`}>{paidCount}/{total} cuotas{resumen.vencidas ? ` · ${resumen.vencidas} vencida${resumen.vencidas === 1 ? "" : "s"}` : ""}</span>
                       </div>
                     );
                   })()}
@@ -869,7 +918,7 @@ export default function DebtsPage() {
                       <DollarSign className="w-3.5 h-3.5 mr-1.5" />Registrar pago
                     </Button>
                     <Button size="sm" variant="outline"
-                      className={`h-8 w-8 p-0 ${savedPlans[d.id] ? 'border-primary/40 text-primary' : 'border-border text-muted-foreground'}`}
+                      className={`h-8 w-8 p-0 ${planes[d.id] ? 'border-primary/40 text-primary' : 'border-border text-muted-foreground'}`}
                       title="Plan de cuotas"
                       onClick={() => { setPlanningDebt(d); setPlanInstallments("3"); setPlanStart(new Date().toISOString().slice(0, 10)); }}>
                       <ListChecks className="w-3.5 h-3.5" />
@@ -897,8 +946,8 @@ export default function DebtsPage() {
   );
 }
 
-function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSave: () => void }) {
-  const [amount, setAmount] = useState("");
+function PaymentForm({ debt, userId, onSave, montoInicial }: { debt: any; userId: string; onSave: () => void; montoInicial?: number | null }) {
+  const [amount, setAmount] = useState(montoInicial && montoInicial > 0 ? String(montoInicial) : "");
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [saving, setSaving] = useState(false);
   // Una clave por apertura del formulario: un doble clic o un reintento de red

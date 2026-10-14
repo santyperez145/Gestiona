@@ -63,8 +63,15 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
     - Ahora `guardar_orden_de_compra` (migración 20261014001200, `scripts/guardar-orden-de-compra-matrix.sql` 6/6 en simulacro y en vivo) guarda todo junto, recalcula subtotal, IVA y total, verifica productos del negocio y no edita una orden recibida o cancelada.
     - Reposición crea una orden en borrador por proveedor, en lugar de compras programadas sueltas.
     - Tests: `src/test/ordenDeCompraAtomica.test.ts`.
+  - Planes de pago de deudas:
+    - Antes vivían en el navegador (no se veían desde otro equipo), «cuota pagada» era un tilde sin cobro (el plan podía decir 3/6 pagadas con la deuda entera) y las cuotas redondeadas no sumaban el saldo.
+    - Ahora el plan está en la base: `planes_de_pago` y `guardar_plan_de_pago` (migración 20261014001300, `scripts/planes-de-pago-matrix.sql` 5/5 en simulacro y en vivo).
+    - Las cuotas suman exacto y los meses se ajustan al último día.
+    - El estado de cada cuota (pagada, parcial, vencida, pendiente) sale de lo cobrado a la deuda.
+    - «Cobrar cuota» abre el cobro con lo que falta.
+    - Los planes del navegador se migran una vez.
+    - Tests: `src/test/planesDePago.test.ts`.
   - Pendientes, en orden:
-    - Planes de pago de deudas: viven en el navegador.
     - Cheques.
 - [x] Panel con catálogos grandes (2026-10-14, «con más de 1.000 productos se vuelve súper lenta y se cae»).
   - Medido con Famatina (5.500 productos): la sincronización completa son 7,1 MB y van a pasar de 15 MB con 11.534.
