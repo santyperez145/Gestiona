@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
           if (sent) {
             totalWaSent++;
             // Log so we don't double-send today
-            await supabase.from("notifications").insert({
+            const { error: logErr } = await supabase.from("notifications").insert({
               user_id: (members?.[0]?.user_id ?? null) as any,
               org_id: orgId,
               type: "deuda_vencida_wa",
@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
               message: `${countLabel} — $${Math.round(totalARS).toLocaleString("es-AR")}`,
               read: true,
             });
+            if (logErr) console.error("check-overdue-debts: WhatsApp enviado sin registro; puede repetirse", orgId, logErr);
           }
         }
       }

@@ -100,9 +100,10 @@ Deno.serve(async (req) => {
         if (res.ok) {
           // Se marca sólo si el envío salió bien: si falla, el próximo ciclo
           // lo reintenta en vez de perderlo en silencio.
-          await admin.from("store_stock_alerts")
+          const { error: marcaErr } = await admin.from("store_stock_alerts")
             .update({ notified_at: new Date().toISOString() })
             .eq("id", a.alert_id);
+          if (marcaErr) { console.error("notify-back-in-stock: aviso enviado pero sin marcar; puede repetirse", a.alert_id, marcaErr); errores.push(`${a.email}: enviado sin marcar`); }
           enviados++;
         } else {
           errores.push(`${a.email}: ${res.error ?? "error"}`);

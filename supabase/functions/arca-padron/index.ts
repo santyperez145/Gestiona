@@ -117,7 +117,8 @@ Deno.serve(async (req) => {
     });
     const xml = await resp.text();
     const persona = leerPersonaA5(xml, cuit);
-    await supabase.from("arca_padron_cache").upsert({ cuit, datos: persona, consultado_at: new Date().toISOString() });
+    const { error: cacheErr } = await supabase.from("arca_padron_cache").upsert({ cuit, datos: persona, consultado_at: new Date().toISOString() });
+    if (cacheErr) console.error("[padron] no se guardó el cache", cacheErr);
     await registrar(false);
     return responder({ ok: true, persona, consultado_at: new Date().toISOString(), desde_cache: false });
   } catch (e) {

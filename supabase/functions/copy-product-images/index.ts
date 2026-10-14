@@ -208,15 +208,17 @@ Deno.serve(async (req: Request) => {
   // Aplicar reemplazos: por producto (array completo) y por variante.
   for (const u of updates) {
     if (u.item.variant_id) {
-      await admin.from("product_variants").update({ image_url: u.newUrl })
+      const { error: varianteErr } = await admin.from("product_variants").update({ image_url: u.newUrl })
         .eq("id", u.item.variant_id).eq("org_id", batch.org_id);
+      if (varianteErr) console.error("copy-product-images: no se guardó la imagen de la variante", u.item.variant_id, varianteErr);
     } else {
       const product = (products ?? []).find((p) => p.id === u.item.product_id);
       const current = Array.isArray(product?.image_urls) ? product.image_urls : [];
       const next = current.map((old) => (old === u.item.url ? u.newUrl : old));
-      await admin.from("products").update({
+      const { error: productoErr } = await admin.from("products").update({
         image_urls: next, image_url: next[0] ?? u.newUrl,
       }).eq("id", u.item.product_id).eq("org_id", batch.org_id);
+      if (productoErr) console.error("copy-product-images: no se guardó la imagen del producto", u.item.product_id, productoErr);
     }
   }
 

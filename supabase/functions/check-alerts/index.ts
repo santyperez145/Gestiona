@@ -266,10 +266,11 @@ Deno.serve(async (req) => {
         }
 
         // Update last_run_at for the rule
-        await supabase
+        const { error: corridaErr } = await supabase
           .from("alert_rules")
           .update({ last_run_at: now.toISOString() })
           .eq("id", rule.id);
+        if (corridaErr) console.error("check-alerts: no se guardó last_run_at", rule.id, corridaErr);
       }
 
       if (alerts.length === 0) continue;
@@ -344,11 +345,12 @@ Deno.serve(async (req) => {
         }
 
         // Update last_triggered_at for org's rules that fired
-        await supabase
+        const { error: disparoErr } = await supabase
           .from("alert_rules")
           .update({ last_triggered_at: now.toISOString() })
           .eq("org_id", orgId)
           .eq("enabled", true);
+        if (disparoErr) console.error("check-alerts: no se guardó last_triggered_at", orgId, disparoErr);
 
         // Send push notification summary for this org
         const distinctAlerts = [...new Set(alerts.map(a => a.title))];

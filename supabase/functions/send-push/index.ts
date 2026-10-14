@@ -136,7 +136,8 @@ Deno.serve(async (req) => {
 
     // Remove expired subscriptions
     if (expiredEndpoints.length > 0) {
-      await supabase.from("push_subscriptions" as any).delete().in("endpoint", expiredEndpoints);
+      const { error: borrarErr } = await supabase.from("push_subscriptions" as any).delete().in("endpoint", expiredEndpoints);
+      if (borrarErr) console.error("send-push: no se borraron las suscripciones vencidas", borrarErr);
     }
 
     return new Response(JSON.stringify({ ok: true, sent, expired: expiredEndpoints.length }), {

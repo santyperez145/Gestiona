@@ -117,13 +117,14 @@ Deno.serve(async (req) => {
   if (body?.action === "revoke") {
     const { error } = await admin.from("merchant_smtp_connections").delete().eq("org_id", orgId);
     if (error) return response({ error: "No se pudo desconectar el correo" }, 500);
-    await admin.from("integration_logs").insert({
+    const { error: logErr } = await admin.from("integration_logs").insert({
       org_id: orgId,
       integration: "smtp",
       event: "credentials_revoked",
       status: "warning",
       message: "Un administrador desconectó el SMTP propio.",
     });
+    if (logErr) console.error("test-smtp: no se registró la desconexión", logErr);
     return response({ configured: false });
   }
 
@@ -180,13 +181,14 @@ Deno.serve(async (req) => {
     return response({ error: "La prueba llegó, pero no se pudo guardar la conexión" }, 500);
   }
 
-  await admin.from("integration_logs").insert({
+  const { error: logErr } = await admin.from("integration_logs").insert({
     org_id: orgId,
     integration: "smtp",
     event: "credentials_verified",
     status: "ok",
     message: `SMTP verificado en ${host}:${port}.`,
   });
+  if (logErr) console.error("test-smtp: no se registró la verificación", logErr);
 
   return response({
     configured: true,

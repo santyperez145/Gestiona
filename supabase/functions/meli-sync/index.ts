@@ -345,9 +345,10 @@ Deno.serve(async (req) => {
           const message = error instanceof Error ? error.message : "Error desconocido";
           errors.push({ org_id: connection.org_id, error: message });
           failedOrgIds.add(connection.org_id);
-          await admin.from("meli_connections")
+          const { error: anotarErr } = await admin.from("meli_connections")
             .update({ last_error: message.slice(0, 500), updated_at: new Date().toISOString() })
             .eq("org_id", connection.org_id);
+          if (anotarErr) console.error("meli-sync: no se anotó el error", connection.org_id, anotarErr);
         }
       }
 

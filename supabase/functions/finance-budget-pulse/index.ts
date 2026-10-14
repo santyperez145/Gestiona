@@ -154,7 +154,7 @@ serve(async (req) => {
       // Persistir alertas en tabla (inserta si no existe)
       for (const alert of alerts) {
         try {
-          await supabase.from("finance_budget_alerts").upsert({
+          const { error: alertaErr } = await supabase.from("finance_budget_alerts").upsert({
             org_id: orgId,
             user_id: user.id,
             year,
@@ -165,6 +165,7 @@ serve(async (req) => {
             pct: alert.pct,
             threshold_pct: alert.threshold_pct,
           }, { onConflict: "org_id,year,month,category_key" });
+          if (alertaErr) console.error("finance-budget-pulse: no se guardó la alerta", orgId, alertaErr);
         } catch (e) {
           console.error("budget-pulse alert insert:", e);
         }

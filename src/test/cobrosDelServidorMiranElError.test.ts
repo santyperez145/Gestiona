@@ -2,28 +2,20 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 
 // Mismo criterio que `escriturasMiranElError.test.ts`, en las funciones de
-// servidor que tocan cobros de Mercado Pago y las acciones de plataforma. El cliente se llama `admin`,
+// servidor. El cliente se llama `admin`,
 // `supabase` o similar, así que se mira cualquier `await x.from(`.
-const ARCHIVOS = [
-  "supabase/functions/mercadopago-webhook/index.ts",
-  "supabase/functions/store-pay/index.ts",
-  "supabase/functions/mercadopago-pos-qr/index.ts",
-  "supabase/functions/_shared/mpToken.ts",
-  "supabase/functions/mp-payouts/index.ts",
-  "supabase/functions/_shared/mpPayoutsSync.ts",
-  "supabase/functions/mp-connect/index.ts",
-  "supabase/functions/mercadopago-payment-methods/index.ts",
-  "supabase/functions/platform-admin-action/index.ts",
-  "supabase/functions/weekly-backup/index.ts",
-  "supabase/functions/send-drip-emails/index.ts",
-  "supabase/functions/send-whatsapp/index.ts",
-  "supabase/functions/send-email-campaign/index.ts",
-  "supabase/functions/send-scheduled-campaigns/index.ts",
-  "supabase/functions/afip-credentials/index.ts",
-  "supabase/functions/evolution-credentials/index.ts",
-  "supabase/functions/meli-oauth/index.ts",
-  "supabase/functions/store-domain/index.ts",
-];
+// Desde el 2026-10-14 el barrido de funciones de servidor da cero (eran 77 al
+// 2026-10-11), así que se revisan todas: una escritura nueva sin mirar el
+// error no pasa la puerta.
+function archivosDeFunciones(dir = "supabase/functions", out: string[] = []): string[] {
+  for (const f of fs.readdirSync(dir)) {
+    const p = `${dir}/${f}`;
+    if (fs.statSync(p).isDirectory()) archivosDeFunciones(p, out);
+    else if (f.endsWith(".ts") && !/test/.test(f)) out.push(p);
+  }
+  return out;
+}
+const ARCHIVOS = archivosDeFunciones();
 
 function escriturasSueltas(fuente: string): number[] {
   const lineas = fuente.split("\n");
@@ -92,6 +84,11 @@ describe("cobros del servidor: las escrituras miran el error", () => {
   it("borrar credenciales (certificado de ARCA, Mercado Libre) no dice «listo» si siguen guardadas", () => {
     expect(fs.readFileSync("supabase/functions/afip-credentials/index.ts", "utf8")).toContain("if (borrarError) return json(");
     expect(fs.readFileSync("supabase/functions/meli-oauth/index.ts", "utf8")).toContain("if (desconectarError) return json(");
+  });
+
+  it("un gasto recurrente que no se pudo crear no adelanta la fecha (se reintenta)", () => {
+    const s = fs.readFileSync("supabase/functions/auto-recurring-expenses/index.ts", "utf8");
+    expect(s).toMatch(/if \(insErr\) \{[\s\S]{0,400}continue;/);
   });
 
   it("sólo actualiza ventas cuando la referencia es un id, para no reintentar para siempre", () => {

@@ -79,21 +79,27 @@ Deno.serve(async (req) => {
           date:        nextDate.toISOString().slice(0, 10),
           recurring:   false, // This is the generated copy — not a template
         });
-        if (!insErr) {
-          created++;
-          orgNotifyMap[exp.org_id] = (orgNotifyMap[exp.org_id] || 0) + 1;
+        if (insErr) {
+          // Antes se adelantaba la fecha igual y el gasto de este período se
+          // perdía sin aviso. Sin adelantar, la próxima corrida lo reintenta
+          // (el chequeo de arriba evita duplicarlo si sí se había guardado).
+          console.error("auto-recurring-expenses: no se creó el gasto; se reintenta", exp.id, insErr);
+          continue;
         }
+        created++;
+        orgNotifyMap[exp.org_id] = (orgNotifyMap[exp.org_id] || 0) + 1;
       }
 
       // Advance the next_date regardless (even if entry already existed)
       const newNextDate = addPeriod(nextDate, freq);
-      await admin
+      const { error: avanceErr } = await admin
         .from("expenses")
         .update({
           recurring_next_date:  newNextDate.toISOString().slice(0, 10),
           last_auto_created_at: today.toISOString(),
         })
         .eq("id", exp.id);
+      if (avanceErr) console.error("auto-recurring-expenses: no se adelantó la fecha; el chequeo de existencia evita duplicar", exp.id, avanceErr);
     }
 
     // Notify one admin per org

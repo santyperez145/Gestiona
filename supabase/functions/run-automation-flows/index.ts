@@ -44,10 +44,11 @@ Deno.serve(async (req) => {
       try {
         const triggered = await evaluateFlow(flow, today);
         if (triggered > 0) {
-          await supabase
+          const { error: corridaErr } = await supabase
             .from("automation_flows")
             .update({ last_run_at: new Date().toISOString() })
             .eq("id", flow.id);
+          if (corridaErr) console.error("run-automation-flows: no se guardó last_run_at", flow.id, corridaErr);
           actions += triggered;
         }
         processed++;
