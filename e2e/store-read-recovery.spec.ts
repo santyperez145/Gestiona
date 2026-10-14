@@ -7,8 +7,16 @@ const CATALOG = `/tienda/${SLUG}/productos`;
 const STORE_RPC = "**/rest/v1/rpc/get_store_by_slug";
 const CART_KEY = `gestiona.store.cart.${SLUG}`;
 
+// Las lecturas reales (precondición y recuperación) pueden colgarse en la red
+// del runner: la tienda las reintenta sola hasta 4 veces de 4 s por recurso
+// (tienda y catálogo, ~20 s cada uno). Esperar menos que ese plazo hacía fallar
+// la precondición mientras la app se estaba recuperando como corresponde
+// (CI 2026-10-14). Lo que se verifica (error accesible, intentos, carrito) no
+// cambia.
+const PLAZO_DE_RECUPERACION = 45_000;
+
 async function productVisible(page: Page) {
-  await expect(page.locator(`a[href*="/tienda/${SLUG}/producto/"]`).first()).toBeVisible();
+  await expect(page.locator(`a[href*="/tienda/${SLUG}/producto/"]`).first()).toBeVisible({ timeout: PLAZO_DE_RECUPERACION });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -24,6 +32,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("a hung store lookup is aborted and retried without a manual reload", async ({ page }) => {
+  test.setTimeout(90_000);
   let attempts = 0;
   await page.route(STORE_RPC, async route => {
     if (++attempts === 1) return; // Deliberately leave the first read unanswered.
