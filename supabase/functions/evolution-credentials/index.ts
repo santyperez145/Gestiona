@@ -63,13 +63,14 @@ Deno.serve(async (req) => {
   if (action === 'revoke') {
     const { error } = await admin.from('evolution_connections').delete().eq('org_id', orgId);
     if (error) return response({ error: 'No se pudo revocar la conexión' }, 500);
-    await admin.from('integration_logs').insert({
+    const { error: logError } = await admin.from('integration_logs').insert({
       org_id: orgId,
       integration: 'evolution_api',
       event: 'credentials_revoked',
       status: 'warning',
       message: 'La conexión de WhatsApp fue revocada por un administrador.',
     });
+    if (logError) console.error('evolution-credentials: no se registró la revocación', logError);
     return response({ configured: false });
   }
 
@@ -88,13 +89,14 @@ Deno.serve(async (req) => {
   }, { onConflict: 'org_id' });
   if (error) return response({ error: 'No se pudo guardar la conexión' }, 500);
 
-  await admin.from('integration_logs').insert({
+  const { error: logError } = await admin.from('integration_logs').insert({
     org_id: orgId,
     integration: 'evolution_api',
     event: 'credentials_updated',
     status: 'ok',
     message: 'La conexión de WhatsApp fue actualizada por un administrador.',
   });
+  if (logError) console.error('evolution-credentials: no se registró la actualización', logError);
 
   // Nunca se devuelven la URL ni la API key: la UI sólo necesita saber que
   // puede continuar con el proxy seguro para estado y QR.

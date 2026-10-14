@@ -199,11 +199,12 @@ Deno.serve(async req => {
       }
       if (!added.ok || !added.data) {
         const code = safeProviderCode(added);
-        await admin.from('ecommerce_stores').update({
+        const { error: estadoError } = await admin.from('ecommerce_stores').update({
           custom_domain_status: 'provider_error',
           custom_domain_checked_at: new Date().toISOString(),
           custom_domain_error_code: code,
         }).eq('id', store.id);
+        if (estadoError) console.error('store-domain: no se guardó el error del proveedor', estadoError);
         return json(req, { error: 'Vercel no pudo agregar el dominio. Reintentá o contactá soporte.', code }, 502);
       }
     }
@@ -216,12 +217,13 @@ Deno.serve(async req => {
     );
     if (!projectDomain.ok || !projectDomain.data) {
       const code = safeProviderCode(projectDomain);
-      await admin.from('ecommerce_stores').update({
+      const { error: estadoError } = await admin.from('ecommerce_stores').update({
         custom_domain_status: 'provider_error',
         custom_domain_verification: { provider: 'vercel', attached: true, records: [] },
         custom_domain_checked_at: new Date().toISOString(),
         custom_domain_error_code: code,
       }).eq('id', store.id);
+      if (estadoError) console.error('store-domain: no se guardó el error del proveedor', estadoError);
       return json(req, { error: 'No se pudo consultar el dominio en Vercel.', code }, 502);
     }
 
@@ -242,12 +244,13 @@ Deno.serve(async req => {
     );
     if (!config.ok || !config.data) {
       const code = safeProviderCode(config);
-      await admin.from('ecommerce_stores').update({
+      const { error: estadoError } = await admin.from('ecommerce_stores').update({
         custom_domain_status: 'provider_error',
         custom_domain_verification: { provider: 'vercel', attached: true, records: [] },
         custom_domain_checked_at: new Date().toISOString(),
         custom_domain_error_code: code,
       }).eq('id', store.id);
+      if (estadoError) console.error('store-domain: no se guardó el error del proveedor', estadoError);
       return json(req, { error: 'No se pudo comprobar la configuración DNS.', code }, 502);
     }
 

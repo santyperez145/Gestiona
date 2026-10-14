@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "delete") {
-      await admin.from("afip_credentials")
+      const { error: borrarError } = await admin.from("afip_credentials")
         .update({
           certificate: null, private_key: null,
           // Sin certificado propio el único camino posible es el delegado.
@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq("org_id", orgId);
+      if (borrarError) return json({ error: "No se pudo borrar el certificado; sigue guardado. Reintentá." }, 500);
       return json({ ok: true, removed: true });
     }
 

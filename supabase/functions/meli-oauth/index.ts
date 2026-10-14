@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
 
     // ── disconnect ────────────────────────────────────────────────────────
     if (action === "disconnect") {
-      await admin.from("meli_connections").delete().eq("org_id", orgId);
+      const { error: desconectarError } = await admin.from("meli_connections").delete().eq("org_id", orgId);
+      if (desconectarError) return json({ error: "No se pudo desconectar Mercado Libre; la conexión sigue guardada. Reintentá." }, 500);
       return json({ ok: true });
     }
 
@@ -117,10 +118,11 @@ Deno.serve(async (req) => {
     const body = await tokenRes.json().catch(() => null);
     if (!tokenRes.ok || !body?.access_token) {
       const msg = body?.message ?? body?.error ?? `HTTP ${tokenRes.status}`;
-      await admin.from("meli_connections").upsert(
+      const { error: anotarError } = await admin.from("meli_connections").upsert(
         { org_id: orgId, last_error: String(msg).slice(0, 500), updated_at: new Date().toISOString() },
         { onConflict: "org_id" },
       );
+      if (anotarError) console.error("meli-oauth: no se anotó el error de Mercado Libre", anotarError);
       return json({ error: `MercadoLibre rechazó la solicitud: ${msg}` }, 400);
     }
 

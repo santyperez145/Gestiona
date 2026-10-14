@@ -19,6 +19,10 @@ const ARCHIVOS = [
   "supabase/functions/send-whatsapp/index.ts",
   "supabase/functions/send-email-campaign/index.ts",
   "supabase/functions/send-scheduled-campaigns/index.ts",
+  "supabase/functions/afip-credentials/index.ts",
+  "supabase/functions/evolution-credentials/index.ts",
+  "supabase/functions/meli-oauth/index.ts",
+  "supabase/functions/store-domain/index.ts",
 ];
 
 function escriturasSueltas(fuente: string): number[] {
@@ -83,6 +87,11 @@ describe("cobros del servidor: las escrituras miran el error", () => {
     const guarda = s.indexOf('.eq("status", "sent").limit(1)');
     expect(guarda).toBeGreaterThan(0);
     expect(guarda).toBeLessThan(s.indexOf("await sendEmail("));
+  });
+
+  it("borrar credenciales (certificado de ARCA, Mercado Libre) no dice «listo» si siguen guardadas", () => {
+    expect(fs.readFileSync("supabase/functions/afip-credentials/index.ts", "utf8")).toContain("if (borrarError) return json(");
+    expect(fs.readFileSync("supabase/functions/meli-oauth/index.ts", "utf8")).toContain("if (desconectarError) return json(");
   });
 
   it("sólo actualiza ventas cuando la referencia es un id, para no reintentar para siempre", () => {
