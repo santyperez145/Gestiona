@@ -29,25 +29,15 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 import { plural } from "@/lib/plural";
 import { topicOrg, useTopicEvent } from "@/lib/orgRealtime";
+import { estadoDeIntegraciones, type EstadoDeIntegracion, type FuentesDeIntegraciones, type TarjetaDeIntegracion } from "@/lib/estadoDeIntegraciones";
 // ── Integration health types ──────────────────────────────────────────────────
-type IntegrationStatus = "ok" | "error" | "warning" | "unknown";
-
-interface IntegrationHealth {
-  integration: string;
-  label: string;
-  icon: React.ReactNode;
-  status: IntegrationStatus;
-  lastSeen: string | null;
-  message: string | null;
-  configured: boolean;
-}
-
-function StatusDot({ status }: { status: IntegrationStatus }) {
+function StatusDot({ status }: { status: EstadoDeIntegracion }) {
   const cls = {
     ok: "bg-green-400",
-    error: "bg-red-400 animate-pulse",
-    warning: "bg-yellow-400",
-    unknown: "bg-muted-foreground/30",
+    error: "bg-red-400",
+    atencion: "bg-yellow-400",
+    sin_configurar: "bg-muted-foreground/30",
+    sin_datos: "bg-muted-foreground/30",
   }[status];
   return <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${cls}`} />;
 }
@@ -67,115 +57,34 @@ export default function IntegrationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "mercado";
 
-  // Integration health
-  const [healthMap, setHealthMap] = useState<Record<string, IntegrationHealth>>({});
+  // Estado de cada conexión, leído de la conexión real (lib/estadoDeIntegraciones).
+  const [tarjetas, setTarjetas] = useState<TarjetaDeIntegracion[]>([]);
   const [loadingHealth, setLoadingHealth] = useState(false);
 
-  const loadHealth = async () => {
+  const loadHealth = useCallback(async () => {
     if (!activeOrg) return;
     setLoadingHealth(true);
-    try {
-      // Get latest log per integration in the last 24h
-      const { data: logs } = await supabase
-        .from("integration_logs")
-        .select("integration, status, message, created_at")
-        .eq("org_id", activeOrg.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      // Señal de "API pública configurada": keys vivas en la tabla canónica.
-      // Antes miraba settings.api_key, columna deprecada el 2026-08-24 que
-      // quedó siempre NULL — el panel habría dicho "sin configurar" con keys
-      // funcionando, el mismo bug que ya tuvieron las vistas *_status.
-      const { count: keysVivas } = await supabase
-        .from("api_keys")
-        .select("id", { count: "exact", head: true })
-        .eq("org_id", activeOrg.id)
-        .is("revoked_at", null);
-      const tieneApiKey = (keysVivas ?? 0) > 0;
-
-      const logsArr: any[] = logs || [];
-      // Deduplicate: keep only the most recent per integration
-      const latest: Record<string, any> = {};
-      for (const l of logsArr) {
-        if (!latest[l.integration]) latest[l.integration] = l;
-      }
-
-      const now = Date.now();
-      const staleMs = 25 * 60 * 60 * 1000; // 25h — stale if no activity
-
-      const buildStatus = (key: string): IntegrationStatus => {
-        const l = latest[key];
-        if (!l) return "unknown";
-        const age = now - new Date(l.created_at).getTime();
-        if (l.status === "error") return "error";
-        if (l.status === "warning") return "warning";
-        if (age > staleMs) return "warning";
-        return "ok";
-      };
-
-      const fmtAge = (iso: string | null) => {
-        if (!iso) return null;
-        const mins = Math.floor((now - new Date(iso).getTime()) / 60_000);
-        if (mins < 1) return "Hace un momento";
-        if (mins < 60) return `Hace ${mins} min`;
-        const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return `Hace ${hrs}h`;
-        return `Hace ${plural(Math.floor(hrs / 24), "día")}`;
-      };
-
-      setHealthMap({
-        mercadopago: {
-          integration: "mercadopago", label: "Mercado Pago",
-          icon: <span className="text-blue-400 font-bold text-sm">$</span>,
-          // Desde la conexión OAuth, no desde `settings`: con el token pegado
-          // fuera de juego, mirar `mp_access_token` daba "Sin configurar"
-          // eternamente aunque la cuenta estuviera conectada.
-          status: mpConectado ? buildStatus("mercadopago") : "unknown",
-          lastSeen: fmtAge(latest.mercadopago?.created_at || null),
-          message: latest.mercadopago?.message || null,
-          configured: mpConectado,
-        },
-        afip: {
-          integration: "afip", label: "AFIP",
-          icon: <span className="text-amber-400 font-bold text-xs">AR</span>,
-          status: buildStatus("afip"),
-          lastSeen: fmtAge(latest.afip?.created_at || null),
-          message: latest.afip?.message || null,
-          configured: true,
-        },
-        public_api: {
-          integration: "public_api", label: "API Pública",
-          icon: <KeyRound className="w-4 h-4 text-emerald-400" />,
-          status: tieneApiKey ? buildStatus("public_api") : "unknown",
-          lastSeen: fmtAge(latest.public_api?.created_at || null),
-          message: latest.public_api?.message || null,
-          configured: tieneApiKey,
-        },
-      });
-    } catch { /* silent — table may not exist yet */ }
+    const orgId = activeOrg.id;
+    const [mp, arca, claves, wa, correo] = await Promise.all([
+      supabase.from("payment_connection_status").select("conectado, vigente, expires_at, last_error, nickname, email, live_mode")
+        .eq("org_id", orgId).eq("provider", "mercadopago").maybeSingle(),
+      supabase.from("afip_connection_status").select("configured, environment, cuit, punto_venta, razon_social, last_error, modo, delegacion_verificada, motivo")
+        .eq("org_id", orgId).maybeSingle(),
+      supabase.from("api_keys").select("revoked_at, expires_at, last_used_at").eq("org_id", orgId).is("revoked_at", null).limit(200),
+      supabase.from("evolution_connection_status").select("configured, instance").eq("org_id", orgId).maybeSingle(),
+      supabase.from("merchant_smtp_connection_status").select("configured, from_email").eq("org_id", orgId).maybeSingle(),
+    ]);
+    const fallidas = ([["mercadopago", mp], ["arca", arca], ["api", claves], ["whatsapp", wa], ["correo", correo]] as const)
+      .filter(([, r]) => r.error).map(([id, r]) => { console.error(`[integraciones] estado de ${id}`, r.error); return id; });
+    setTarjetas(estadoDeIntegraciones({
+      mercadoPago: mp.data as FuentesDeIntegraciones["mercadoPago"],
+      arca: arca.data as FuentesDeIntegraciones["arca"],
+      claves: claves.error ? null : (claves.data ?? []),
+      whatsapp: wa.data as FuentesDeIntegraciones["whatsapp"],
+      correo: correo.data as FuentesDeIntegraciones["correo"],
+      fallidas: [...fallidas],
+    }));
     setLoadingHealth(false);
-  };
-
-  /**
-   * ¿Hay cuenta de MercadoPago conectada?
-   *
-   * Se lee de `payment_connection_status`, la vista que dice si está conectado
-   * y con qué cuenta sin exponer el token. La tabla de abajo tiene RLS con cero
-   * policies a propósito: sólo la tocan las Edge Functions.
-   */
-  const [mpConectado, setMpConectado] = useState(false);
-
-  useEffect(() => {
-    if (!activeOrg) return;
-    supabase
-      .from("payment_connection_status")
-      .select("provider, connected:conectado")
-      .eq("org_id", activeOrg.id)
-      .eq("provider", "mercadopago")
-      .maybeSingle()
-      .then(({ data }) => setMpConectado(!!(data as { connected?: boolean } | null)?.connected),
-            () => setMpConectado(false));
   }, [activeOrg]);
 
   // La generación de la key EN EL NAVEGADOR se eliminó el 2026-08-24: escribía
@@ -183,19 +92,17 @@ export default function IntegrationsPage() {
   // y era uno de tres sistemas de keys desconectados. La emisión vive en el
   // servidor (api_key_emitir) y la maneja el panel de API keys de abajo.
 
-  useEffect(() => {
-    loadHealth();
-  }, [activeOrg]);
+  useEffect(() => { void loadHealth(); }, [loadHealth]);
 
-  // Realtime: re-load health whenever a new integration_log is inserted
-  useTopicEvent(topicOrg(activeOrg?.id), "integracion", () => { loadHealth(); });
+  // Cuando cambia una conexión (aviso en tiempo real) se vuelve a leer.
+  useTopicEvent(topicOrg(activeOrg?.id), "integracion", () => { void loadHealth(); });
 
-  // Auto-refresh health every 60 seconds (background poll)
+  // Y cada 60 s, con la versión vigente de la lectura (antes el intervalo
+  // usaba la del primer render, con Mercado Pago «sin conectar» para siempre).
   useEffect(() => {
-    const timer = setInterval(() => { if (activeOrg) loadHealth(); }, 60_000);
+    const timer = setInterval(() => { void loadHealth(); }, 60_000);
     return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeOrg]);
+  }, [loadHealth]);
 
 
   return (
@@ -265,41 +172,20 @@ export default function IntegrationsPage() {
           </div>
           {loadingHealth && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-border">
-          {Object.values(healthMap).map((h) => (
-            <div key={h.integration} className="px-4 py-3 space-y-1.5">
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1.5">
-                  {h.icon}
-                  <span className="text-xs font-medium">{h.label}</span>
-                </div>
-                <StatusDot status={h.status} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-border">
+          {tarjetas.map(t => (
+            <div key={t.id} className="px-4 py-3 space-y-1" data-testid={`estado-${t.id}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium">{t.nombre}</span>
+                <StatusDot status={t.estado} />
               </div>
-              <div>
-                {!h.configured ? (
-                  <span className="text-[10px] text-muted-foreground/50">Sin configurar</span>
-                ) : h.status === "unknown" ? (
-                  <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1">
-                    <WifiOff className="w-3 h-3" />Sin actividad
-                  </span>
-                ) : (
-                  <span className={`text-[10px] ${h.status === "error" ? "text-red-400" : h.status === "warning" ? "text-yellow-500" : "text-muted-foreground"}`}>
-                    {h.status === "error" ? (h.message?.slice(0, 40) || "Error") : (h.lastSeen || "—")}
-                  </span>
-                )}
-              </div>
-              {h.status === "error" && h.message && (
-                <p className="text-[9px] text-red-400/70 leading-tight line-clamp-2" title={h.message}>
-                  {h.message}
-                </p>
-              )}
+              <p className={`text-[11px] leading-snug ${t.estado === "error" ? "text-destructive" : t.estado === "atencion" ? "text-warning" : "text-muted-foreground"}`} title={t.detalle}>
+                {t.estado === "sin_datos" && <WifiOff className="mr-1 inline h-3 w-3" />}{t.detalle}
+              </p>
             </div>
           ))}
-          {Object.keys(healthMap).length === 0 && !loadingHealth && (
-            <div className="col-span-5 px-5 py-6 text-center text-xs text-muted-foreground">
-              <Activity className="w-6 h-6 mx-auto mb-2 opacity-30" />
-              Todavía no hay actividad para mostrar. Los registros aparecerán con las primeras operaciones.
-            </div>
+          {tarjetas.length === 0 && loadingHealth && (
+            <div className="col-span-full px-5 py-6 text-center text-xs text-muted-foreground"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
           )}
         </div>
       </div>
@@ -484,13 +370,14 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
         },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (error) throw error;
+      // El motivo real viene en el cuerpo (URL inaccesible, clave rechazada…).
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data) || "No se pudo guardar la conexión");
       setApiUrl("");
       setApiKey("");
       setConnection({ configured: true, instance: data?.instance || instance.trim() || "nerqia", updated_at: new Date().toISOString() });
       toast.success("Conexión de WhatsApp guardada de forma segura");
     } catch (err: any) {
-      toast.error("Error al guardar: " + err.message);
+      toast.error(err?.message || "No se pudo guardar la conexión");
     } finally {
       setSaving(false);
     }
@@ -506,11 +393,11 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
     }))) return;
     setRevoking(true);
     try {
-      const { error } = await supabase.functions.invoke("evolution-credentials", {
+      const { data, error } = await supabase.functions.invoke("evolution-credentials", {
         body: { action: "revoke", orgId },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (error) throw error;
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data) || "reintentá en unos minutos");
       setConnection(null);
       setApiUrl("");
       setApiKey("");
@@ -606,8 +493,8 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
       setConnState("close");
       setQrBase64(null);
       toast.success("WhatsApp desconectado");
-    } catch {
-      toast.error("Error al desconectar");
+    } catch (err) {
+      toast.error("No se pudo desconectar WhatsApp", { description: err instanceof Error ? err.message : undefined });
     }
   };
 

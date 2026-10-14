@@ -206,7 +206,8 @@ describe("superficie", () => {
   it("la señal de configurado mira la tabla canónica, no la columna deprecada", () => {
     // settings.api_key quedó siempre NULL: el panel habría dicho "sin
     // configurar" con keys funcionando.
-    expect(integraciones).toContain("keysVivas");
+    // 2026-10-14: el estado sale de lib/estadoDeIntegraciones con las claves vivas.
+    expect(integraciones).toContain('supabase.from("api_keys").select("revoked_at, expires_at, last_used_at")');
     expect(integraciones).not.toContain("settings?.api_key");
   });
 });
