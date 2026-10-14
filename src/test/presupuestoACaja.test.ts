@@ -42,10 +42,19 @@ describe("presupuesto → caja: qué se carga", () => {
     ]);
   });
 
-  it("un producto con variantes no se carga solo: se elige en la caja", () => {
-    const plan = planDePresupuesto([{ description: "Tarugo Fischer", qty: 3, unitPrice: 50, productId: "p2" }], productos, { p2: [{ id: "v1" }] });
-    expect(plan.lineas).toEqual([]);
-    expect(plan.faltantes[0].motivo).toBe("tiene variantes: elegila en la caja");
+  it("un producto con variantes se carga con la variante elegida; sin elegir, se elige en la caja", () => {
+    const sinVariante = planDePresupuesto([{ description: "Tarugo Fischer", qty: 3, unitPrice: 50, productId: "p2" }], productos, { p2: [{ id: "v1" }] });
+    expect(sinVariante.lineas).toEqual([]);
+    expect(sinVariante.faltantes[0].motivo).toBe("tiene variantes: elegila en la caja");
+    const conVariante = planDePresupuesto([{ description: "Tarugo Fischer · 8 mm", qty: 3, unitPrice: 50, productId: "p2", variantId: "v1" }], productos, { p2: [{ id: "v1" }] });
+    expect(conVariante.lineas.map(l => [l.producto.id, l.variante?.id, l.cantidad])).toEqual([["p2", "v1", 3]]);
+    const borrada = planDePresupuesto([{ description: "Tarugo", qty: 1, unitPrice: 50, productId: "p2", variantId: "vieja" }], productos, { p2: [{ id: "v1" }] });
+    expect(borrada.faltantes[0].motivo).toBe("la variante ya no está disponible");
+  });
+
+  it("el descuento del renglón llega a la caja como precio ya descontado", () => {
+    const plan = planDePresupuesto([{ description: "Tornillo 6 mm", qty: 10, unitPrice: 25, discountPct: 10, productId: "p1" }], productos, {});
+    expect(plan.lineas[0].precio).toBe(22.5);
   });
 
   it("el mismo producto en dos renglones se suma", () => {
@@ -66,7 +75,8 @@ describe("presupuesto → caja: el circuito", () => {
     expect(pagina).not.toContain("addSaleDB");
     expect(pagina).toContain("navigate(`/caja?presupuesto=${q.id}`)");
     expect(pagina).toContain("{!q.converted_at && (q.status === \"draft\"");
-    expect(pagina).toContain("productId: p.id");
+    const editor = fs.readFileSync("src/components/presupuestos/EditorDePresupuesto.tsx", "utf8");
+    expect(editor).toContain("productId: p.id, variantId: variante?.id ?? null");
   });
 
   it("la caja manda el presupuesto en cada renglón y lo suelta al vaciar el carrito", () => {

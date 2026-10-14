@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
  * Guardia offline del POS: una feria sin señal tiene que poder vender.
  *
  * Tres capas verificadas en código:
- *  1. Snapshot de catálogo en localStorage (sirve el último guardado).
+ *  1. Catálogo sin señal: la última copia de IndexedDB (getProductsParaCajaDB);
+ *     la vieja copia de localStorage sólo se lee y se borra (pesaba 7 MB).
  *  2. Snapshot de settings (umbrales y descuentos de medios).
  *  3. Snapshot del turno (cash session summary) para seguir cobrando.
  *  4. Cola de tickets offline con reconciliación por ticket completo.
@@ -17,9 +18,12 @@ const sw = readFileSync("src/sw.ts", "utf8");
 const store = readFileSync("src/lib/supabaseStore.ts", "utf8");
 
 describe("POS offline: vender sin conexión", () => {
-  it("snapshot del catálogo: sin señal muestra el último catálogo guardado", () => {
-    expect(pos).toContain("gestiona.pos.catalog.");
+  it("catálogo sin señal: la última copia del dispositivo, sin reescribir 7 MB en cada apertura", () => {
+    expect(pos).toContain("getProductsParaCajaDB(user.id)");
     expect(pos).toContain("Sin conexión — mostrando el último catálogo guardado");
+    expect(pos).not.toMatch(/localStorage\.setItem\(snapKey/);
+    expect(store).toContain("export async function getProductsParaCajaDB");
+    expect(store).toContain("if (!guardado?.filas.length) throw error;");
   });
 
   it("snapshot de settings: sin señal conserva umbrales y descuentos de medios", () => {

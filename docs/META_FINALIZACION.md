@@ -55,7 +55,17 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
   - Ahora: cada ítem elegido del catálogo guarda su producto. «Cobrar en la caja» carga productos, precios del presupuesto, descuento y cliente, y avisa lo que no puede cargar (escrito a mano, nombre repetido, con variantes).
   - La venta lleva el presupuesto. La base lo marca vendido una sola vez y lo congela; ni siquiera la app puede marcarlo a mano.
   - Evidencia: migración 20261014000900, `scripts/presupuesto-a-venta-matrix.sql` 8/8 en simulacro y en vivo, `src/test/presupuestoACaja.test.ts`.
-  - Sigue el rearmado completo del editor (pedido del dueño 2026-10-14).
+  - Rearmado del editor (pedido del dueño 2026-10-14: «no toma los productos, sólo carga manual»):
+    - un solo editor para crear, editar lo que no se vendió y duplicar;
+    - los renglones salen del catálogo: búsqueda por nombre, marca, SKU o código, y el lector agrega directo por código;
+    - variantes, unidades de medida con decimales y aviso de stock sin bloquear;
+    - lista de precios del cliente, con «aplicarla a los ya cargados»;
+    - descuento por renglón e ítems libres marcados;
+    - cliente de la lista por nombre o CUIT;
+    - plantillas con nombre en línea.
+  - `guardar_presupuesto` (migración 20261014001000, `scripts/guardar-presupuesto-matrix.sql` 8/8 en simulacro y en vivo) recalcula renglones y totales en la base, verifica productos y variantes del negocio, numera en la misma transacción (antes, si fallaba, se inventaba `PRE-<hora>`) y respeta los permisos de ventas.
+  - La caja carga variante y descuento por renglón.
+  - Tests: `src/test/presupuestosEditor.test.ts`.
 - [x] Combinar clientes sin perder nada (2026-10-14). Antes, «Combinar» movía sólo ventas, deudas y puntos en tres pasos desde el navegador y borraba la ficha. De las 29 tablas que apuntan a un cliente, las otras 26 perdían el vínculo (pedidos, presupuestos, tratos, devoluciones, reservas) o se borraban (actividades y contactos del CRM, tickets del portal, segmentos), y un corte dejaba la combinación a medias. Ahora `fusionar_clientes` lo hace en una sola transacción: recorre todas las referencias desde el catálogo de la base, incluidas las que se agreguen después, y respeta los únicos (si el destino ya está en un segmento, no se duplica). Los pedidos con datos fiscales conservan el nombre facturado, y el aviso dice qué pasó al cliente. Migración 20261014000800, `scripts/fusionar-clientes-matrix.sql` 5/5 en simulacro y en vivo, `src/test/fusionarClientes.test.ts`.
 - [x] Vender por kilo, metro, litro o m² (stock y Kardex con tres decimales, sólo para productos por medida).
 - [x] Descuento manual máximo y autorización del encargado con PIN, validados en la base.

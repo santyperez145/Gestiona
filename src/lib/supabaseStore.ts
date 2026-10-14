@@ -113,6 +113,34 @@ export async function getProductsDB(userId: string, organizationId?: string) {
 
 // La lista ordenada se recalcula sólo si el catálogo cambió (misma copia = mismo orden).
 const ordenPorCopia = new WeakMap<object, ProductRow[]>();
+function ordenarPorNombre(filas: ProductRow[]): ProductRow[] {
+  const ya = ordenPorCopia.get(filas);
+  if (ya) return ya;
+  const collator = new Intl.Collator('es');
+  const ordenadas = [...filas].sort((a, b) => collator.compare(a.name, b.name));
+  ordenPorCopia.set(filas, ordenadas);
+  return ordenadas;
+}
+
+/**
+ * Catálogo para la caja. Sin señal devuelve la última copia de este
+ * dispositivo (la misma de IndexedDB que mantiene `getProductsDB`) para poder
+ * seguir vendiendo. Antes la caja guardaba además el catálogo entero en
+ * localStorage en cada apertura: 7 MB con 5.500 productos, escritos de forma
+ * síncrona (la pantalla se trababa) y sobre el cupo con 11.000.
+ */
+export async function getProductsParaCajaDB(userId: string): Promise<{ productos: ProductRow[]; sinConexion: boolean }> {
+  try {
+    return { productos: await getProductsDB(userId), sinConexion: false };
+  } catch (error) {
+    const orgId = await orgIdFor(userId).catch(() => null);
+    const guardado = orgId
+      ? await almacenConMemoria(almacenIndexedDb<ProductRow>()).leer(`productos:${orgId}:${userId}`).catch(() => null)
+      : null;
+    if (!guardado?.filas.length) throw error;
+    return { productos: ordenarPorNombre(guardado.filas).slice(), sinConexion: true };
+  }
+}
 
 async function sincronizarProductos(clave: string, orgId: string): Promise<ProductRow[]> {
   const { filas } = await sincronizarCatalogo<ProductRow>(clave, {
@@ -150,12 +178,7 @@ async function sincronizarProductos(clave: string, orgId: string): Promise<Produ
       return query;
     })).map(row => row.id),
   }, almacenConMemoria(almacenIndexedDb<ProductRow>()));
-  const ya = ordenPorCopia.get(filas);
-  if (ya) return ya;
-  const collator = new Intl.Collator('es');
-  const ordenadas = [...filas].sort((a, b) => collator.compare(a.name, b.name));
-  ordenPorCopia.set(filas, ordenadas);
-  return ordenadas;
+  return ordenarPorNombre(filas);
 }
 
 /**

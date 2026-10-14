@@ -18,7 +18,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB, getSalesSinceDB, getPresentationsWithBarcodeDB } from "@/lib/supabaseStore";
+import { getProductsDB, getProductsParaCajaDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB, getSalesSinceDB, getPresentationsWithBarcodeDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -1738,7 +1738,7 @@ export default function POSPage() {
       // con Promise.all la caja quedaba cargando para siempre. Las estadísticas
       // (top vendidos, recomendador) son accesorias — el catálogo no.
       const settled = await Promise.allSettled([
-        getProductsDB(user.id),
+        getProductsParaCajaDB(user.id),
         getSettingsDB(user.id),
         // Una sola lectura de 90 días alimenta top vendidos (30 días) y el
         // recomendador; filtrada por organización y sin tope de 1.000 filas.
@@ -1751,18 +1751,22 @@ export default function POSPage() {
       const val = <T,>(i: number, fallback: T): T =>
         settled[i].status === 'fulfilled' ? ((settled[i] as PromiseFulfilledResult<any>).value ?? fallback) : fallback;
 
-      let prods = val<any[]>(0, []);
+      const catalogo = val<{ productos: any[]; sinConexion: boolean } | null>(0, null);
+      let prods = catalogo?.productos ?? [];
       const sett = val<any>(1, null);
       const since30Text = since30.toISOString().slice(0, 10);
       const salesForRec = val<any[]>(2, []).filter((s: any) => s.product_id);
       const recentSales = salesForRec.filter((s: any) => s.date >= since30Text);
       const allVariants = val<any[]>(3, []);
 
-      // Snapshot local del catálogo: es lo que permite cobrar en una feria sin
-      // señal. El caché del service worker vence a los 5 minutos y no alcanza.
+      // Sin señal se vende con la última copia del catálogo de este dispositivo
+      // (IndexedDB, la mantiene getProductsDB). La copia vieja en localStorage
+      // (`gestiona.pos.catalog.`) se escribía entera en cada apertura y trababa
+      // la pantalla con catálogos grandes: sólo se lee si no hay otra y se borra.
       const snapKey = `gestiona.pos.catalog.${activeOrg?.id || 'default'}`;
+      if (catalogo?.sinConexion) toast.info('Sin conexión — mostrando el último catálogo guardado');
       if (prods.length) {
-        try { localStorage.setItem(snapKey, JSON.stringify({ at: Date.now(), prods })); } catch { /* cuota llena */ }
+        try { localStorage.removeItem(snapKey); } catch { /* sin acceso al almacenamiento */ }
       } else {
         try {
           const snap = JSON.parse(localStorage.getItem(snapKey) || 'null');
@@ -2075,9 +2079,13 @@ export default function POSPage() {
       }))) { soltarPresupuesto(); return; }
 
       setCart([]);
-      for (const linea of plan.lineas) addToCart(linea.producto, undefined, linea.cantidad);
-      // Precios congelados: los del presupuesto. La base igual valida el tope de descuento del cajero.
-      const precios = new Map(plan.lineas.map(l => [l.producto.id, l.precio]));
+      for (const linea of plan.lineas) {
+        const v = linea.variante as { id: string; variant_name?: string; stock?: number; price_override?: number | null } | null;
+        addToCart(linea.producto, v ? { id: v.id, name: v.variant_name ?? "", stock: Number(v.stock ?? 0), price: v.price_override || undefined } : undefined, linea.cantidad);
+      }
+      // Precios congelados: los del presupuesto (con su descuento por renglón).
+      // La base igual valida el tope de descuento del cajero.
+      const precios = new Map(plan.lineas.map(l => [l.variante ? `${l.producto.id}__${l.variante.id}` : l.producto.id, l.precio]));
       setCart(prev => prev.map(it => {
         const precio = precios.get(it.productId);
         return precio && precio > 0 ? { ...it, customPrice: precio } : it;
