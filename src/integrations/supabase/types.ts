@@ -41593,7 +41593,7 @@ export type Database = {
           usd_rate_mep: number | null
           usd_rate_oficial: number | null
           usd_rate_updated_at: string | null
-          user_id: string
+          user_id: string | null
           volume_discount_percent: number | null
           volume_discount_threshold: number | null
           whatsapp_birthday_enabled: boolean
@@ -41679,7 +41679,7 @@ export type Database = {
           usd_rate_mep?: number | null
           usd_rate_oficial?: number | null
           usd_rate_updated_at?: string | null
-          user_id: string
+          user_id?: string | null
           volume_discount_percent?: number | null
           volume_discount_threshold?: number | null
           whatsapp_birthday_enabled?: boolean
@@ -41765,7 +41765,7 @@ export type Database = {
           usd_rate_mep?: number | null
           usd_rate_oficial?: number | null
           usd_rate_updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
           volume_discount_percent?: number | null
           volume_discount_threshold?: number | null
           whatsapp_birthday_enabled?: boolean
