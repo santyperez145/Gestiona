@@ -202,7 +202,37 @@ export async function fetchStoreProducts(
  * aplicación el 2026-10-09 (cero ventas en toda la historia). La vista los
  * sigue calculando hasta que una migración la limpie; nadie los lee.
  */
+/**
+ * El catálogo por WhatsApp de un negocio, en una sola llamada
+ * (`catalogo_publico`, migración 20261013000600). Antes la página leía tres
+ * vistas abiertas sin filtro, y con una consulta se bajaban precio y stock de
+ * todos los negocios. Si la función todavía no existe devuelve `null` y cada
+ * lectura sigue por las vistas, como antes. La misma promesa sirve a las tres
+ * lecturas de una visita.
+ */
+type CatalogoPublico = { productos: CatalogProduct[]; ajustes: CatalogSettings | null; marca: PublicCatalogBranding | null };
+const catalogoPublicoEnCurso = new Map<string, Promise<{ data: CatalogoPublico | null; error: PgError | null }>>();
+function leerCatalogoPublico(id: string) {
+  let enCurso = catalogoPublicoEnCurso.get(id);
+  if (!enCurso) {
+    enCurso = retryPublicRead(() => supabase.rpc('catalogo_publico' as never, { p_id: id } as never))
+      .then(({ data, error }) => {
+        if (error && isMissingFunction(error)) return { data: null, error: null };
+        return { data: (data ?? null) as CatalogoPublico | null, error: error ?? null };
+      });
+    catalogoPublicoEnCurso.set(id, enCurso);
+    void enCurso.finally(() => setTimeout(() => catalogoPublicoEnCurso.delete(id), 5_000));
+  }
+  return enCurso;
+}
+
 export async function fetchCatalogProducts(userId: string): Promise<LecturaPublica<CatalogProduct[]>> {
+  const porFuncion = await leerCatalogoPublico(userId);
+  if (porFuncion.error) {
+    console.error('[catálogo] error leyendo catalogo_publico:', porFuncion.error.message);
+    return { ok: false, error: porFuncion.error };
+  }
+  if (porFuncion.data) return { ok: true, data: porFuncion.data.productos ?? [] };
   const view = await retryPublicRead(() => supabase
     .from('catalog_products')
     .select(PRODUCT_COLUMNS)
@@ -288,6 +318,9 @@ export interface CatalogSettings {
  * fallaría con "multiple rows" y el catálogo entero mostraría "no encontrado".
  */
 export async function fetchCatalogSettings(userId: string): Promise<LecturaPublica<CatalogSettings | null>> {
+  const porFuncion = await leerCatalogoPublico(userId);
+  if (porFuncion.error) return { ok: false, error: porFuncion.error };
+  if (porFuncion.data) return { ok: true, data: porFuncion.data.ajustes ?? null };
   const cols = 'exchange_rate,volume_discount_threshold,volume_discount_percent';
 
   const view = await retryPublicRead(() => supabase
@@ -339,6 +372,10 @@ export async function fetchCatalogSettings(userId: string): Promise<LecturaPubli
 export async function fetchCatalogBranding(
   userOrOrgId: string,
 ): Promise<LecturaPublica<PublicCatalogBranding | null>> {
+  const porFuncion = await leerCatalogoPublico(userOrOrgId);
+  if (porFuncion.error) return { ok: false, error: porFuncion.error };
+  if (porFuncion.data) return { ok: true, data: porFuncion.data.marca ?? null };
+
   const view = await retryPublicRead(() => supabase
     .from('settings_public').select(PUBLIC_BRANDING_COLUMNS).eq('user_id', userOrOrgId)
     .order('org_id', { ascending: true }).limit(1).maybeSingle());
@@ -884,6 +921,10 @@ export async function fetchStoreVariants(slug: string, options: AbortableReadOpt
 
 export async function fetchCatalogVariants(productId: string) {
   const cols = 'id,variant_name,stock,image_url';
+
+  const porFuncion = await retryPublicRead(() => supabase.rpc('catalogo_publico_variantes' as never, { p_product_id: productId } as never));
+  if (!porFuncion.error) return (porFuncion.data ?? []) as unknown as Array<{ id: string; variant_name: string; stock: number; image_url: string | null }>;
+  if (!isMissingFunction(porFuncion.error)) return [];
 
   const view = await retryPublicRead(() => supabase
     .from('catalog_product_variants').select(cols)
