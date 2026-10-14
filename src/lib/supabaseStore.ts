@@ -520,29 +520,63 @@ export async function deleteDebtDB(id: string) {
   if (error) throw error;
 }
 
-/** Register a debt payment and auto-sync sale status if fully paid. */
+export interface CobroCuentaCorriente {
+  cobro_id: string;
+  aplicado: number;
+  imputaciones: Array<{ debt_id: string; aplicado: number; saldo: number; descripcion: string | null }>;
+  saldo_pendiente: number;
+  en_caja: boolean;
+  repetido: boolean;
+}
+
+/**
+ * Cobra fiado en la base, en una sola transacción (`cobrar_cuenta_corriente`,
+ * migración 20261014000500): aplica el pago de la deuda más vieja a la más
+ * nueva —o a una deuda puntual—, registra cada imputación, salda la venta,
+ * suma el cobro a la caja abierta y guarda el recibo. La `clave` es la del
+ * intento: repetir el mismo pedido devuelve el recibo sin volver a cobrar.
+ */
+export async function cobrarCuentaCorrienteDB(args: {
+  orgId: string;
+  monto: number;
+  medio: string;
+  clave: string;
+  customerId?: string | null;
+  customerName?: string | null;
+  debtId?: string | null;
+  nota?: string | null;
+}): Promise<CobroCuentaCorriente> {
+  const { data, error } = await supabase.rpc('cobrar_cuenta_corriente' as never, {
+    p_org: args.orgId,
+    p_monto: args.monto,
+    p_medio: args.medio,
+    p_clave: args.clave,
+    p_customer_id: args.customerId ?? null,
+    p_customer_name: args.customerName ?? null,
+    p_debt_id: args.debtId ?? null,
+    p_nota: args.nota ?? null,
+  } as never);
+  if (error) throw error;
+  return data as unknown as CobroCuentaCorriente;
+}
+
+/**
+ * Cobro de una deuda puntual. Antes leía la deuda, calculaba el saldo en el
+ * navegador y escribía: dos cajeros a la vez se pisaban y un reintento cobraba
+ * dos veces. Ahora es la misma operación atómica que el cobro a cuenta.
+ */
 export async function addDebtPaymentDB(
   debtId: string,
   paymentARS: number,
-  opts?: { paymentMethod?: string; userId?: string; notes?: string },
+  opts: { orgId: string; clave: string; paymentMethod?: string; notes?: string },
 ) {
-  const { data: debt } = await supabase.from('debts').select('*').eq('id', debtId).maybeSingle();
-  if (!debt) throw new Error('Deuda no encontrada');
-  const newPaid = Number(debt.paid_ars) + paymentARS;
-  const newRemaining = Math.max(0, Number(debt.amount_ars) - newPaid);
-  const newStatus = newRemaining <= 0.01 ? 'paid' : 'partial';
-  await updateDebtDB(debtId, { paid_ars: newPaid, remaining_ars: newRemaining, status: newStatus });
-  // Ledger del pago: sin esto se perdía el medio de pago elegido.
-  const { error: ledgerError } = await supabase.from('debt_payments').insert({
-    org_id: debt.org_id,
-    debt_id: debtId,
-    amount_ars: paymentARS,
-    payment_method: opts?.paymentMethod ?? null,
-    user_id: opts?.userId ?? null,
-    notes: opts?.notes ?? null,
+  const cobro = await cobrarCuentaCorrienteDB({
+    orgId: opts.orgId, monto: paymentARS, medio: opts.paymentMethod ?? 'efectivo',
+    clave: opts.clave, debtId, nota: opts.notes ?? null,
   });
-  if (ledgerError) throw ledgerError;
-  return { newPaid, newRemaining, newStatus, debt };
+  const imputacion = cobro.imputaciones.find(i => i.debt_id === debtId);
+  const newRemaining = Number(imputacion?.saldo ?? cobro.saldo_pendiente);
+  return { newRemaining, newStatus: newRemaining <= 0.01 ? 'paid' : 'partial', cobro };
 }
 
 // ========= SETTINGS =========

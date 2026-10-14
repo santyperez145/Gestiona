@@ -1,0 +1,108 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import fs from "node:fs";
+
+// Matriz POS, fila «Cuenta corriente» (2026-10-14): el cobro de fiado era leer
+// → calcular en el navegador → escribir. Dos cajeros se pisaban, un reintento
+// cobraba dos veces, «Cobrar todo» y «Marcar como pagadas» saldaban la deuda
+// sin registrar el pago y nada entraba en la caja. Ahora todo pasa por
+// `cobrar_cuenta_corriente` (atómica, idempotente por clave, FIFO, con caja).
+const llamadas = vi.hoisted(() => ({ args: [] as Array<Record<string, unknown>>, fallar: new Set<string>() }));
+vi.mock("@/lib/supabaseStore", () => ({
+  cobrarCuentaCorrienteDB: async (a: Record<string, unknown>) => {
+    llamadas.args.push(a);
+    if (llamadas.fallar.has(String(a.debtId))) throw { message: "El pago (10,00) supera lo que se debe (5,00)", code: "22023" };
+    return { cobro_id: `c-${llamadas.args.length}`, aplicado: a.monto, imputaciones: [], saldo_pendiente: 0, en_caja: true, repetido: false };
+  },
+}));
+
+import { agruparDeudores, cobrarADeudor, cobrarSeleccion, mensajeDeError, totalPendiente } from "@/lib/cuentaCorriente";
+
+const deuda = (id: string, nombre: string | null, saldo: number | string, customer_id: string | null = null) =>
+  ({ id, org_id: "org-1", customer_name: nombre, remaining_ars: saldo, customer_id });
+
+describe("cuenta corriente: agrupar deudores", () => {
+  it("agrupa por nombre sin espacios de más, suma al centavo y ordena de mayor a menor", () => {
+    const g = agruparDeudores([
+      deuda("a", "Ana ", 0.1), deuda("b", "Ana", 0.2), deuda("c", "Beto", 5), deuda("d", "  ", 99), deuda("e", null, 7),
+    ]);
+    expect(g.map(x => [x.nombre, x.total, x.deudas.length])).toEqual([["Beto", 5, 1], ["Ana", 0.3, 2]]);
+  });
+
+  it("cobra por cliente sólo si todas sus deudas son del mismo cliente; si no, por nombre", () => {
+    const [mismo] = agruparDeudores([deuda("a", "Ana", 1, "cli-1"), deuda("b", "Ana", 2, "cli-1")]);
+    expect(mismo.customerId).toBe("cli-1");
+    const [mezcla] = agruparDeudores([deuda("a", "Ana", 1, "cli-1"), deuda("b", "Ana", 2, null)]);
+    expect(mezcla.customerId).toBeNull();
+    const [otra] = agruparDeudores([deuda("a", "Ana", 1, null), deuda("b", "Ana", 2, "cli-1")]);
+    expect(otra.customerId).toBeNull();
+  });
+
+  it("el total pendiente se redondea al centavo", () => {
+    expect(totalPendiente([deuda("a", "x", "0.1"), deuda("b", "x", 0.2)])).toBe(0.3);
+  });
+});
+
+describe("cuenta corriente: cobrar", () => {
+  beforeEach(() => { llamadas.args = []; llamadas.fallar = new Set(); });
+
+  it("el pago a cuenta va con cliente, nombre, monto al centavo y la clave del intento", async () => {
+    const [ana] = agruparDeudores([deuda("a", "Ana", 100, "cli-1")]);
+    await cobrarADeudor(ana, { orgId: "org-1", monto: 33.333, medio: "efectivo", clave: "clave-0001", nota: "  " });
+    expect(llamadas.args[0]).toEqual({
+      orgId: "org-1", monto: 33.33, medio: "efectivo", clave: "clave-0001", customerId: "cli-1", customerName: "Ana", nota: null,
+    });
+  });
+
+  it("cobrar las elegidas: una clave por deuda derivada del intento, y sigue aunque una falle", async () => {
+    llamadas.fallar.add("b");
+    const r = await cobrarSeleccion([deuda("a", "Ana", 10), deuda("b", "Beto", 10), deuda("c", "Caro", 5)], { medio: "transferencia", clave: "k-12345678" });
+    expect(llamadas.args.map(a => a.clave)).toEqual(["k-12345678:a", "k-12345678:b", "k-12345678:c"]);
+    expect(llamadas.args.every(a => a.debtId && a.medio === "transferencia")).toBe(true);
+    expect(r.cobradas).toHaveLength(2);
+    expect(r.fallidas.map(f => [f.deuda.id, f.error])).toEqual([["b", "El pago (10,00) supera lo que se debe (5,00)"]]);
+  });
+
+  it("reintentar con la misma clave repite exactamente los mismos pedidos (la base no cobra dos veces)", async () => {
+    const elegidas = [deuda("a", "Ana", 10), deuda("b", "Beto", 10)];
+    await cobrarSeleccion(elegidas, { medio: "efectivo", clave: "k-12345678" });
+    const primera = llamadas.args.map(a => a.clave);
+    llamadas.args = [];
+    await cobrarSeleccion(elegidas, { medio: "efectivo", clave: "k-12345678" });
+    expect(llamadas.args.map(a => a.clave)).toEqual(primera);
+  });
+
+  it("muestra el mensaje real de la base, venga como Error o como objeto", () => {
+    expect(mensajeDeError(new Error("Sólo el dueño o un administrador pueden cobrar deudas"))).toBe("Sólo el dueño o un administrador pueden cobrar deudas");
+    expect(mensajeDeError({ message: "No hay deudas pendientes para cobrar" })).toBe("No hay deudas pendientes para cobrar");
+    expect(mensajeDeError(null)).toBe("No se pudo registrar el cobro");
+  });
+});
+
+describe("cuenta corriente: nadie salda una deuda por fuera del cobro", () => {
+  const pagina = fs.readFileSync("src/pages/DebtsPage.tsx", "utf8");
+  const store = fs.readFileSync("src/lib/supabaseStore.ts", "utf8");
+
+  it("la pantalla de deudas no marca «pagada» a mano ni cobra sin clave", () => {
+    expect(pagina).not.toMatch(/updateDebtDB\([^)]*status:\s*["']paid["']/);
+    expect(pagina).toContain("addDebtPaymentDB(debt.id, payment, { orgId: debt.org_id, clave, paymentMethod })");
+    expect(pagina).toContain('setCobro({ tipo: "seleccion", deudas: toMark })');
+    expect(pagina).toContain('setCobro({ tipo: "cliente", deudor })');
+  });
+
+  it("el cobro de una deuda es la operación atómica de la base, no leer-calcular-escribir", () => {
+    const cuerpo = store.slice(store.indexOf("export async function addDebtPaymentDB"), store.indexOf("// ========= SETTINGS"));
+    expect(cuerpo).toContain("cobrarCuentaCorrienteDB(");
+    expect(cuerpo).not.toMatch(/from\(['"]debts['"]\)/);
+    expect(store).not.toMatch(/from\(['"]debt_payments['"]\)\.insert/);
+  });
+
+  it("la función de la base bloquea, es idempotente, exige permiso y no la llama cualquiera", () => {
+    const sql = fs.readFileSync("supabase/migrations/20261014000500_cobro_de_cuenta_corriente.sql", "utf8");
+    expect(sql).toContain("FOR UPDATE");
+    expect(sql).toContain("pg_advisory_xact_lock");
+    expect(sql).toContain("UNIQUE (org_id, clave)");
+    expect(sql).toContain("has_org_role(p_org, v_user, ARRAY['owner', 'admin'])");
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.cobrar_cuenta_corriente\([^)]*\) FROM PUBLIC, anon;/);
+    expect(sql).toContain("INSERT INTO public.cash_entries");
+  });
+});

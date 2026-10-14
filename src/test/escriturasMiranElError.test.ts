@@ -46,8 +46,13 @@ describe("las escrituras a la base miran el error", () => {
   });
 
   it("el pago de una deuda falla si no se pudo guardar el comprobante", () => {
+    // Desde 20261014000500 el comprobante lo escribe la base en la misma
+    // transacción que el cobro (`cobrar_cuenta_corriente`): o entra todo o nada,
+    // y el error de la base llega a la pantalla.
     const s = fs.readFileSync("src/lib/supabaseStore.ts", "utf8");
-    expect(s).toContain("if (ledgerError) throw ledgerError;");
+    const cobro = s.slice(s.indexOf("export async function cobrarCuentaCorrienteDB"), s.indexOf("export async function addDebtPaymentDB"));
+    expect(cobro).toContain("supabase.rpc('cobrar_cuenta_corriente'");
+    expect(cobro).toContain("if (error) throw error;");
   });
 
   it("las metas mensuales se guardan en la configuración del negocio, no del creador", () => {

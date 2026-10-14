@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2, CalendarDays, ListChecks, ArrowUpDown, ChevronUp, ChevronDown, Printer } from "lucide-react";
-import { updateDebtDB } from "@/lib/supabaseStore";
+import { agruparDeudores, cobrarADeudor, cobrarSeleccion, mensajeDeError, MEDIOS_DE_COBRO, totalPendiente, type DeudaPendiente, type Deudor } from "@/lib/cuentaCorriente";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -34,13 +34,13 @@ export default function DebtsPage() {
   const { activeOrg } = useOrg();
   const [debts, setDebts] = useState<any[]>([]);
   const [payingDebt, setPayingDebt] = useState<any>(null);
+  const [cobro, setCobro] = useState<ObjetivoCobro | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"pending" | "paid" | "cobros" | "aging" | "payments">("pending");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkLoading, setBulkLoading] = useState(false);
   // Payment plan
   const [planningDebt, setPlanningDebt] = useState<any>(null);
   const [planInstallments, setPlanInstallments] = useState("3");
@@ -106,20 +106,11 @@ export default function DebtsPage() {
     }
   };
 
-  const bulkMarkPaid = async () => {
+  // Cobrar las elegidas pasa por el mismo cobro atómico: queda el pago, la
+  // venta saldada y el movimiento de caja (antes sólo se marcaban «pagadas»).
+  const bulkMarkPaid = () => {
     const toMark = pending.filter(d => selectedIds.has(d.id));
-    if (!toMark.length) return;
-    setBulkLoading(true);
-    try {
-      await Promise.all(toMark.map(d => updateDebtDB(d.id, { status: "paid", paid_ars: Number(d.amount_ars), remaining_ars: 0 })));
-      toast.success(`${toMark.length} deuda${toMark.length !== 1 ? "s" : ""} marcada${toMark.length !== 1 ? "s" : ""} como pagada${toMark.length !== 1 ? "s" : ""}`);
-      setSelectedIds(new Set());
-      reload();
-    } catch {
-      toast.error("Error al marcar deudas");
-    } finally {
-      setBulkLoading(false);
-    }
+    if (toMark.length) setCobro({ tipo: "seleccion", deudas: toMark });
   };
 
   if (loading) return <TableSkeleton rows={5} cols={7} />;
@@ -522,37 +513,22 @@ export default function DebtsPage() {
         </div>
       )}
 
-      {/* Grouped by debtor — "Cobrar todo" per customer */}
+      {/* Cuenta corriente por cliente: pago a cuenta, de la deuda más vieja a la más nueva */}
       {tab === "pending" && pending.length > 0 && (() => {
-        const byCustomer: Record<string, { debts: any[]; total: number }> = {};
-        for (const d of pending) {
-          const k = d.customer_name || "Sin nombre";
-          if (!byCustomer[k]) byCustomer[k] = { debts: [], total: 0 };
-          byCustomer[k].debts.push(d);
-          byCustomer[k].total += Number(d.remaining_ars);
-        }
-        const debtors = Object.entries(byCustomer).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
-        if (debtors.length < 2) return null; // Only show when multiple debtors
+        const deudores = agruparDeudores(pending);
+        if (deudores.length < 2 && !deudores.some(d => d.deudas.length > 1)) return null;
         return (
           <div className="mb-4 bg-card border border-border/60 rounded-xl p-3">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Resumen por deudor — cobrar todo</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Cuenta corriente por cliente</p>
             <div className="flex flex-wrap gap-2">
-              {debtors.map(([customer, { debts: cDebts, total }]) => (
-                <div key={customer} className="flex items-center gap-2 bg-muted/40 border border-border/60 rounded-lg px-3 py-1.5">
-                  <span className="text-xs font-medium max-w-[100px] truncate">{customer}</span>
-                  <span className="text-xs font-bold text-destructive">{formatARS(total)}</span>
+              {deudores.slice(0, 6).map(deudor => (
+                <div key={deudor.nombre} className="flex items-center gap-2 bg-muted/40 border border-border/60 rounded-lg px-3 py-1.5">
+                  <span className="text-xs font-medium max-w-[120px] truncate" title={deudor.nombre}>{deudor.nombre}</span>
+                  <span className="text-xs font-bold text-destructive">{formatARS(deudor.total)}</span>
                   <Button size="sm" variant="ghost"
                     className="h-6 px-2 text-[10px] text-emerald-400 hover:text-emerald-400 hover:bg-emerald-500/10 gap-0.5"
-                    title={`Cobrar todo a ${customer}`}
-                    onClick={async () => {
-                      setBulkLoading(true);
-                      try {
-                        await Promise.all(cDebts.map(d => updateDebtDB(d.id, { status: "paid", paid_ars: Number(d.amount_ars), remaining_ars: 0 })));
-                        toast.success(`${cDebts.length} deuda${cDebts.length !== 1 ? "s" : ""} de ${customer} marcada${cDebts.length !== 1 ? "s" : ""} como pagada${cDebts.length !== 1 ? "s" : ""} ✓`);
-                        reload();
-                      } catch { toast.error("Error al cobrar"); }
-                      finally { setBulkLoading(false); }
-                    }}>
+                    title={`Cobrar a cuenta a ${deudor.nombre}`}
+                    onClick={() => setCobro({ tipo: "cliente", deudor })}>
                     <CheckCircle2 className="w-3 h-3" />Cobrar
                   </Button>
                 </div>
@@ -566,9 +542,9 @@ export default function DebtsPage() {
       {selectedIds.size > 0 && tab === "pending" && (
         <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2.5 mb-4">
           <span className="text-sm font-medium text-primary">{selectedIds.size} seleccionada{selectedIds.size !== 1 ? "s" : ""}</span>
-          <Button size="sm" className="h-7 text-xs bg-emerald-500 text-white ml-auto" disabled={bulkLoading} onClick={bulkMarkPaid}>
-            {bulkLoading ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" /></> : <CheckCircle2 className="w-3 h-3 mr-1" />}
-            Marcar como pagadas
+          <Button size="sm" className="h-7 text-xs bg-emerald-500 text-white ml-auto" onClick={bulkMarkPaid}>
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Cobrar seleccionadas
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => {
             const selected = pending.filter(d => selectedIds.has(d.id));
@@ -590,6 +566,21 @@ export default function DebtsPage() {
         <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Registrar Pago</DialogTitle></DialogHeader>
           {payingDebt && <PaymentForm debt={payingDebt} userId={user!.id} onSave={() => { setPayingDebt(null); reload(); }} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cobro a cuenta de un cliente o de las deudas elegidas */}
+      <Dialog open={!!cobro} onOpenChange={v => { if (!v) setCobro(null); }}>
+        <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              {cobro?.tipo === "cliente" ? `Cobrar a cuenta · ${cobro.deudor.nombre}` : "Cobrar deudas elegidas"}
+            </DialogTitle>
+          </DialogHeader>
+          {cobro && user && (
+            <CobroACuentaForm objetivo={cobro} orgId={activeOrg?.id ?? (cobro.tipo === "cliente" ? cobro.deudor.deudas[0].org_id : cobro.deudas[0].org_id)}
+              userId={user.id} onDone={() => { setCobro(null); setSelectedIds(new Set()); reload(); }} />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -909,6 +900,9 @@ function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSa
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [saving, setSaving] = useState(false);
+  // Una clave por apertura del formulario: un doble clic o un reintento de red
+  // devuelve el mismo recibo en vez de cobrar dos veces.
+  const [clave] = useState(() => crypto.randomUUID());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -916,11 +910,17 @@ function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSa
     if (payment <= 0) { toast.error("Ingresá un monto válido"); return; }
     if (payment > Number(debt.remaining_ars)) { toast.error("El pago excede la deuda restante"); return; }
     setSaving(true);
-    const result = await addDebtPaymentDB(debt.id, payment, { paymentMethod, userId });
-    await logAudit(userId, "update", "debt", debt.id, { customer: debt.customer_name, payment, paymentMethod, newStatus: result.newStatus });
-    toast.success(result.newRemaining <= 0 ? "¡Deuda saldada completamente! 🎉" : `Pago parcial registrado. Resta ${formatARS(result.newRemaining)}`);
-    setSaving(false);
-    onSave();
+    try {
+      const result = await addDebtPaymentDB(debt.id, payment, { orgId: debt.org_id, clave, paymentMethod });
+      await logAudit(userId, "update", "debt", debt.id, { customer: debt.customer_name, payment, paymentMethod, newStatus: result.newStatus });
+      toast.success(result.newRemaining <= 0.01 ? "Deuda saldada" : `Pago registrado. Resta ${formatARS(result.newRemaining)}`,
+        { description: result.cobro.en_caja ? "El cobro quedó en la caja abierta." : undefined });
+      onSave();
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo registrar el pago"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const pct = debt.amount_ars > 0 ? Math.round((Number(debt.paid_ars) / Number(debt.amount_ars)) * 100) : 0;
@@ -962,11 +962,7 @@ function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSa
         <Select value={paymentMethod} onValueChange={setPaymentMethod}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="efectivo">💵 Efectivo</SelectItem>
-            <SelectItem value="transferencia">🏦 Transferencia</SelectItem>
-            <SelectItem value="debito">💳 Débito</SelectItem>
-            <SelectItem value="credito">💳 Crédito</SelectItem>
-            <SelectItem value="mercadopago">📱 Mercado Pago</SelectItem>
+            {MEDIOS_DE_COBRO.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -979,6 +975,118 @@ function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSa
           Todo
         </Button>
       </div>
+    </form>
+  );
+}
+
+type ObjetivoCobro = { tipo: "cliente"; deudor: Deudor } | { tipo: "seleccion"; deudas: DeudaPendiente[] };
+
+function CobroACuentaForm({ objetivo, orgId, userId, onDone }: { objetivo: ObjetivoCobro; orgId: string; userId: string; onDone: () => void }) {
+  const deudas = objetivo.tipo === "cliente" ? objetivo.deudor.deudas : objetivo.deudas;
+  const total = objetivo.tipo === "cliente" ? objetivo.deudor.total : totalPendiente(objetivo.deudas);
+  const [amount, setAmount] = useState(String(total));
+  const [medio, setMedio] = useState("efectivo");
+  const [nota, setNota] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [fallidas, setFallidas] = useState<Array<{ deuda: DeudaPendiente; error: string }>>([]);
+  // Una clave por apertura: reintentar (doble clic, corte de red, o volver a
+  // tocar después de un error parcial) nunca cobra dos veces lo que ya entró.
+  const [clave] = useState(() => crypto.randomUUID());
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (objetivo.tipo === "cliente") {
+      const monto = parseFloat(amount.replace(",", ".")) || 0;
+      if (monto <= 0) { toast.error("Ingresá un monto mayor a cero"); return; }
+      if (monto > total + 0.005) { toast.error(`El pago supera lo que se debe (${formatARS(total)})`); return; }
+      setSaving(true);
+      try {
+        const r = await cobrarADeudor(objetivo.deudor, { orgId, monto, medio, clave, nota });
+        await logAudit(userId, "update", "debt", r.cobro_id, { customer: objetivo.deudor.nombre, payment: r.aplicado, paymentMethod: medio, imputaciones: r.imputaciones.length });
+        const saldadas = r.imputaciones.filter(i => Number(i.saldo) <= 0.01).length;
+        const detalle = [
+          saldadas ? plural(saldadas, "deuda saldada", "deudas saldadas") : "",
+          r.en_caja ? "El cobro quedó en la caja abierta." : "",
+        ].filter(Boolean).join(" · ");
+        toast.success(r.saldo_pendiente <= 0.01 ? `Cuenta de ${objetivo.deudor.nombre} saldada` : `Cobro registrado. Resta ${formatARS(r.saldo_pendiente)}`,
+          { description: detalle || undefined });
+        onDone();
+      } catch (err) {
+        toast.error(mensajeDeError(err));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    setSaving(true);
+    try {
+      const r = await cobrarSeleccion(objetivo.deudas, { medio, clave, nota });
+      if (r.cobradas.length) {
+        await logAudit(userId, "update", "debt", r.cobradas[0].cobro_id, { cobradas: r.cobradas.length, fallidas: r.fallidas.length, paymentMethod: medio });
+      }
+      if (r.fallidas.length === 0) {
+        toast.success(plural(r.cobradas.length, "deuda cobrada", "deudas cobradas"),
+          { description: r.cobradas.some(c => c.en_caja) ? "Los cobros quedaron en la caja abierta." : undefined });
+        onDone();
+      } else {
+        setFallidas(r.fallidas);
+        toast.error(`Se cobraron ${r.cobradas.length} de ${objetivo.deudas.length}. Revisá las que faltan y volvé a intentar.`);
+      }
+    } catch (err) {
+      toast.error(mensajeDeError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 pb-12">
+      <div className="bg-muted/50 border border-border rounded-xl p-4 space-y-1.5">
+        {deudas.slice(0, 8).map(d => (
+          <div key={d.id} className="flex justify-between text-sm gap-3">
+            <span className="text-muted-foreground truncate">{objetivo.tipo === "seleccion" ? d.customer_name : d.description || "Deuda"}</span>
+            <span className="shrink-0">{formatARS(Number(d.remaining_ars))}</span>
+          </div>
+        ))}
+        {deudas.length > 8 && <p className="text-xs text-muted-foreground">y {plural(deudas.length - 8, "deuda más", "deudas más")}</p>}
+        <div className="flex justify-between font-bold pt-1.5 border-t border-border">
+          <span>Total pendiente</span>
+          <span className="text-destructive text-lg">{formatARS(total)}</span>
+        </div>
+      </div>
+
+      {objetivo.tipo === "cliente" && (
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Monto que paga (ARS)</label>
+          <Input type="number" min="0.01" step="0.01" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} className="bg-muted border-border" />
+          <p className="text-xs text-muted-foreground mt-1">Se aplica primero a la deuda más vieja.</p>
+        </div>
+      )}
+
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Medio de cobro</label>
+        <Select value={medio} onValueChange={setMedio}>
+          <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {MEDIOS_DE_COBRO.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Nota (opcional)</label>
+        <Input value={nota} maxLength={200} onChange={e => setNota(e.target.value)} placeholder="Ej.: pagó en el local" className="bg-muted border-border" />
+      </div>
+
+      {fallidas.length > 0 && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-1">
+          {fallidas.map(f => <p key={f.deuda.id}><span className="font-semibold">{f.deuda.customer_name}:</span> {f.error}</p>)}
+        </div>
+      )}
+
+      <Button type="submit" disabled={saving} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+        {saving ? "Cobrando..." : fallidas.length ? "Reintentar las que faltan" : "Registrar cobro"}
+      </Button>
     </form>
   );
 }
