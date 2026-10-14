@@ -23,9 +23,9 @@ export interface SaludComercio {
 const PANTALLA: Record<string, string> = {
   "/productos": "Productos",
   "/productos?margen=negative": "Productos › Margen negativo",
-  "/pos": "Caja",
+  "/caja": "Caja",
   "/facturas": "Facturas",
-  "/tienda": "Tienda online",
+  "/tienda-online": "Tienda online",
   "/mi-plan": "Mi plan",
   "/ajustes#system": "Ajustes › Sistema (respaldos)",
 };

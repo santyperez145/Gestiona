@@ -385,7 +385,7 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
           {/* Summary line */}
           <div className="text-[10px] text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">
             <span>Cobrado efectivo + transf.: {formatARS(paidTotal)}</span>
-            <a href="/sales" className="text-primary hover:underline">Ver todas las ventas →</a>
+            <Link to="/ventas" className="text-primary hover:underline">Ver todas las ventas →</Link>
           </div>
         </div>
       )}
@@ -2258,7 +2258,7 @@ export default function Dashboard() {
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <DollarSign className="w-4 h-4 text-blue-400" />Cobros de esta semana
             </h3>
-            <Link to="/debts" className="text-xs text-primary hover:underline">Ver deudas →</Link>
+            <Link to="/deudas" className="text-xs text-primary hover:underline">Ver deudas →</Link>
           </div>
           <div className="space-y-1.5">
             {upcomingDebts.map((d: any) => {
@@ -2291,7 +2291,7 @@ export default function Dashboard() {
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <Wallet className="w-4 h-4 text-yellow-400" />Gastos del mes
             </h3>
-            <Link to="/expenses" className="text-xs text-primary hover:underline">Ver gastos →</Link>
+            <Link to="/gastos" className="text-xs text-primary hover:underline">Ver gastos →</Link>
           </div>
           <div className="flex items-center gap-3 mb-3">
             <div>

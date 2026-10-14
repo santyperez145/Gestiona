@@ -17,7 +17,8 @@ describe("semáforo de comercios", () => {
   });
 
   it("cada destino que devuelve la base tiene nombre, y la pestaña no enlaza al comercio propio", () => {
-    const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20261010002900_salud_de_comercios.sql"), "utf8");
+    // La versión vigente de la función (cada migración la recrea entera).
+    const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20261014000400_semaforo_rutas_que_existen.sql"), "utf8");
     const rutas = [...migration.matchAll(/'ir', '([^']+)'/g)].map(m => m[1]);
     expect(rutas.length).toBeGreaterThanOrEqual(6);
     for (const r of rutas) expect(pantallaDe(r)).not.toBe(r);
@@ -43,5 +44,21 @@ describe("semáforo: respaldo que falla en silencio", () => {
 
   it("dice en qué pantalla del comercio se resuelve", () => {
     expect(pantallaDe("/ajustes#system")).toBe("Ajustes › Sistema (respaldos)");
+  });
+});
+
+describe("semáforo: cada destino es una ruta que existe", () => {
+  // 2026-10-14: `/pos` y `/tienda` daban «ruta inexistente» (son `/caja` y
+  // `/tienda-online`).
+  it("los destinos de la última versión de la función y de PANTALLA existen", async () => {
+    const fs = await import("node:fs");
+    const { allRoutes } = await import("@/app/routeManifest");
+    const rutas = new Set(allRoutes().map(r => r.path));
+    const sql = fs.readFileSync("supabase/migrations/20261014000400_semaforo_rutas_que_existen.sql", "utf8");
+    const destinos = [...sql.matchAll(/'ir', '([^']+)'/g)].map(m => m[1].split(/[?#]/)[0]);
+    expect(destinos.length).toBeGreaterThan(0);
+    for (const d of destinos) expect(rutas.has(d), d).toBe(true);
+    expect(pantallaDe("/caja")).toBe("Caja");
+    expect(pantallaDe("/tienda-online")).toBe("Tienda online");
   });
 });

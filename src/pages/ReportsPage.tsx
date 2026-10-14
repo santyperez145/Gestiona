@@ -3301,7 +3301,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
       title="No tenés sucursales configuradas"
       description="Creá tus ubicaciones para ver stock y comparativas por local."
       actionLabel="Ir a Ubicaciones"
-      onAction={() => navigate('/locations')}
+      onAction={() => navigate('/sucursales')}
     />
   );
 

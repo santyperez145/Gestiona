@@ -1362,7 +1362,7 @@ export default function ProductsPage() {
                 se pueden calcular. No se muestran en cero: no se sabe.
               </p>
               <button
-                onClick={() => navigate('/settings#finance')}
+                onClick={() => navigate('/ajustes#finance')}
                 className="text-xs text-amber-400 underline underline-offset-2 mt-1.5"
               >
                 Cargar el tipo de cambio en Ajustes

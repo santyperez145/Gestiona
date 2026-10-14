@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import * as Sentry from "@sentry/react";
 import { registrarError } from "@/lib/registroDeErrores";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ import {
   forceStaleBuildRecovery,
   isStaleBuildError,
 } from "@/lib/staleBuildRecovery";
-import { hasPendingAppUpdate } from "@/lib/swUpdate";
+import { alCambiarDePantalla, hasPendingAppUpdate } from "@/lib/swUpdate";
 import { ShieldAlert, BookOpen } from "lucide-react";
 import { storeSlugFromHostname } from "@/lib/storefrontHost";
 import { isPotentialCustomStoreHostname } from "@/lib/storeCustomDomain";
@@ -457,6 +457,17 @@ function OrganizationScope() {
   return <ApplicationRoutes key={readyScope} />;
 }
 
+/** Con una versión nueva pendiente, el próximo cambio de pantalla la carga. */
+function ActualizarAlNavegar() {
+  const { pathname } = useLocation();
+  const anterior = useRef<string | null>(null);
+  useEffect(() => {
+    if (anterior.current !== null && anterior.current !== pathname) alCambiarDePantalla();
+    anterior.current = pathname;
+  }, [pathname]);
+  return null;
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="gestiona-theme">
   <Sentry.ErrorBoundary onError={error => { if (!isStaleBuildError(error)) registrarError(error); }} fallback={({ error }) => {
@@ -494,6 +505,7 @@ const App = () => (
         <OrgProvider>
           <BrowserRouter>
             <PlatformSeoHead />
+            <ActualizarAlNavegar />
             <Suspense fallback={<PageLoader />}>
               <OrganizationScope />
             </Suspense>

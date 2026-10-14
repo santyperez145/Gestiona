@@ -1787,7 +1787,7 @@ function ExpenseSummaryCard({ userId, initialPeriod, onDone }: {
               })}
             </div>
           )}
-          <Button size="sm" variant="outline" className="h-7 text-xs w-full gap-1" onClick={() => { navigate("/expenses"); onDone(); }}>
+          <Button size="sm" variant="outline" className="h-7 text-xs w-full gap-1" onClick={() => { navigate("/gastos"); onDone(); }}>
             Ver todos los gastos →
           </Button>
         </div>
@@ -2110,12 +2110,11 @@ const ACTION_STARTERS = [
 ];
 
 const QUICK_ACTIONS = [
-  { label: "Ir al POS", icon: ShoppingCart, path: "/pos" },
-  { label: "Ver Inventario", icon: Package, path: "/products" },
-  { label: "Ver Clientes", icon: Users, path: "/customers" },
+  { label: "Ir a la caja", icon: ShoppingCart, path: "/caja" },
+  { label: "Ver Inventario", icon: Package, path: "/productos" },
+  { label: "Ver Clientes", icon: Users, path: "/clientes" },
   { label: "Ver reportes", icon: BarChart2, path: "/reportes" },
-  { label: "Ver Finanzas", icon: DollarSign, path: "/debts" },
-  { label: "Ver Reportes", icon: Zap, path: "/reports" },
+  { label: "Ver deudas", icon: DollarSign, path: "/deudas" },
 ];
 
 function formatMessage(text: string) {

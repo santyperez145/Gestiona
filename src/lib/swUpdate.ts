@@ -40,6 +40,46 @@ function showUpdateNotice() {
   });
 }
 
+// ── Actualizar al navegar ──────────────────────────────────────────────────
+// Lo que hacen las apps de primer nivel: con una versión nueva pendiente, el
+// próximo cambio de pantalla carga la versión nueva. Recargar ahí no pierde
+// trabajo (el usuario ya dejó la pantalla anterior) y evita que la pantalla
+// nueva pida archivos de un build que ya no existe: el 2026-10-14 eso dejaba
+// «Cannot read properties of undefined (reading 'default')» y la pantalla de
+// versión nueva en medio de la navegación.
+const CLAVE_RECARGA = "nerqia.recarga-por-version";
+const VENTANA_SIN_REPETIR_MS = 60_000;
+const VENTANA_DE_NAVEGACION_MS = 4_000;
+let ultimaNavegacion = 0;
+
+function recargoHaceInstantes(ahora: number): boolean {
+  try {
+    const previa = Number(sessionStorage.getItem(CLAVE_RECARGA) ?? 0);
+    return ahora - previa < VENTANA_SIN_REPETIR_MS;
+  } catch {
+    return true; // Sin sessionStorage no hay candado: mejor no recargar solo.
+  }
+}
+
+/** Recarga a la versión nueva una sola vez por minuto. Devuelve si recargó. */
+export function recargarPorVersionNueva(ahora = Date.now()): boolean {
+  if (typeof window === "undefined" || recargoHaceInstantes(ahora)) return false;
+  try { sessionStorage.setItem(CLAVE_RECARGA, String(ahora)); } catch { return false; }
+  void hardReload();
+  return true;
+}
+
+/** Lo llama el router en cada cambio de pantalla (no en la primera carga). */
+export function alCambiarDePantalla(ahora = Date.now()): boolean {
+  ultimaNavegacion = ahora;
+  return appUpdateAvailable ? recargarPorVersionNueva(ahora) : false;
+}
+
+/** Un archivo viejo que falla justo después de navegar es parte de esa navegación. */
+export function navegoHaceInstantes(ahora = Date.now()): boolean {
+  return ultimaNavegacion > 0 && ahora - ultimaNavegacion < VENTANA_DE_NAVEGACION_MS;
+}
+
 export function createControllerChangeHandler(
   wasControlled: boolean,
   onUpdateAvailable: () => void,

@@ -3,7 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initSentry } from "./lib/sentry";
 import { validateEnv } from "./lib/env";
-import { announceUpdateAvailable, setupServiceWorkerUpdates } from "./lib/swUpdate";
+import { announceUpdateAvailable, navegoHaceInstantes, recargarPorVersionNueva, setupServiceWorkerUpdates } from "./lib/swUpdate";
 import { isStaleBuildError } from "./lib/staleBuildRecovery";
 import { isNativeRuntime } from "./lib/nativeRuntime";
 import { registrarError } from "./lib/registroDeErrores";
@@ -20,13 +20,17 @@ const contactoReferrer = document.referrer;
 void import("./lib/origenDeAlta").then(({ almacenLocal, capturarPrimerContacto }) =>
   capturarPrimerContacto(contactoUrl, contactoReferrer, almacenLocal()));
 
-// Cuando Vite despliega, los hashes anteriores desaparecen. Conservamos la
-// pantalla actual y ofrecemos la actualización; nunca interrumpimos el trabajo.
+// Cuando Vite despliega, los hashes anteriores desaparecen. Si el archivo viejo
+// falla justo al navegar, se carga la versión nueva en la pantalla de destino
+// (no hay trabajo que perder: la anterior ya se dejó). Fuera de una
+// navegación no se interrumpe nada: se anuncia la versión y el error real de
+// build viejo llega a la pantalla de actualización. Antes se silenciaba
+// (preventDefault) y la pantalla recibía un módulo vacío: «reading 'default'».
 window.addEventListener("vite:preloadError", (event) => {
   const preloadError = event as Event & { payload?: unknown };
   if (!isStaleBuildError(preloadError.payload)) return;
   announceUpdateAvailable();
-  event.preventDefault();
+  if (navegoHaceInstantes() && recargarPorVersionNueva()) event.preventDefault();
 });
 
 // Errores no atrapados: quedan medidos aunque no haya Sentry (P0.3). Una
