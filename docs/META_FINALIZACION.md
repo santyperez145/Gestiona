@@ -57,8 +57,13 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
     - El reintegro vuelve por el mismo medio con que se cobró; en efectivo exige la caja abierta y por Mercado Pago queda para confirmar en Devoluciones.
     - Hay un tilde «Vuelve al stock».
     - Tests: `src/test/devolucionRapidaDeCaja.test.ts`.
+  - Órdenes de compra y reposición:
+    - Antes, crear una OC insertaba la cabecera y después los renglones, y editar los borraba y reinsertaba: un fallo dejaba la orden vacía.
+    - Antes nadie calculaba los totales: toda orden quedaba en $0 en la lista y en «pendiente de recibir».
+    - Ahora `guardar_orden_de_compra` (migración 20261014001200, `scripts/guardar-orden-de-compra-matrix.sql` 6/6 en simulacro y en vivo) guarda todo junto, recalcula subtotal, IVA y total, verifica productos del negocio y no edita una orden recibida o cancelada.
+    - Reposición crea una orden en borrador por proveedor, en lugar de compras programadas sueltas.
+    - Tests: `src/test/ordenDeCompraAtomica.test.ts`.
   - Pendientes, en orden:
-    - Reposición y órdenes de compra: insertan compras directo.
     - Planes de pago de deudas: viven en el navegador.
     - Cheques.
 - [x] Panel con catálogos grandes (2026-10-14, «con más de 1.000 productos se vuelve súper lenta y se cae»).

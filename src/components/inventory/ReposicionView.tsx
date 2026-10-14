@@ -4,7 +4,7 @@
 // El contenido es idéntico — PageHeader y acciones incluidas — porque este
 // paso mueve superficies, no reescribe cálculos: unificar los tres motores
 // en una autoridad server-side es INV-001, y va aparte a propósito.
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -112,6 +112,7 @@ export default function ReposicionView() {
   const [targetDays, setTargetDays] = useState(30);
   const [thresholdDays, setThresholdDays] = useState(14);
   const [orderOpen, setOrderOpen] = useState(false);
+  const navigate = useNavigate();
   const [orderSupplier, setOrderSupplier] = useState<string>("__all__");
   const [savingOrder, setSavingOrder] = useState(false);
   const [sortKey, setSortKey] = useState<"daysUntilStockout" | "soldLast30" | "dailyVelocity">("daysUntilStockout");
@@ -286,39 +287,54 @@ export default function ReposicionView() {
     );
   }, [filtered, orderSupplier]);
 
+  // Una orden de compra en borrador por proveedor (guardar_orden_de_compra,
+  // 20261014001200), con su recepción y su stock en Órdenes de compra. Antes se
+  // cargaban compras programadas sueltas, de a una, y un fallo dejaba la mitad.
   const handleSaveOrder = async () => {
     if (!user || !activeOrg) return;
+    const porProveedor = new Map<string, { supplierId: string | null; nombre: string; items: RestockItem[] }>();
+    for (const item of itemsForOrder) {
+      const qty = overrides[item.product.id] ?? item.suggestedQty;
+      if (qty <= 0) continue;
+      const clave = item.supplierId ?? "__sin__";
+      const grupo = porProveedor.get(clave) ?? { supplierId: item.supplierId, nombre: item.supplierId ? item.supplierName : "Proveedor a definir", items: [] };
+      grupo.items.push(item);
+      porProveedor.set(clave, grupo);
+    }
+    if (porProveedor.size === 0) { toast.error("No hay cantidades para pedir"); return; }
     setSavingOrder(true);
+    const creadas: string[] = [];
+    const fallidas: string[] = [];
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const supplierLabel = orderSupplier === "__all__" ? "Múltiples proveedores" : orderSupplier;
-      const suppId = orderSupplier !== "__all__" && suppliers.find(s => s.name === orderSupplier)?.id;
-
-      for (const item of itemsForOrder) {
-        const qty = overrides[item.product.id] ?? item.suggestedQty;
-        if (qty <= 0) continue;
-        const { error } = await supabase.from("purchases").insert({
-          org_id: activeOrg.id,
-          user_id: user.id,
-          product_id: item.product.id,
-          product_name: item.product.name,
-          quantity: qty,
-          cost_usd: item.product.cost_usd || 0,
-          total_cost_usd: qty * (item.product.cost_usd || 0),
-          date: today,
-          supplier_id: suppId || item.product.supplier_id || null,
-          supplier_name: supplierLabel,
-          is_scheduled: true,
-          notes: "Generado por Auto-Restock",
-        });
-        if (error) throw error;
+      for (const grupo of porProveedor.values()) {
+        const { data, error } = await supabase.rpc("guardar_orden_de_compra" as never, {
+          p_org: activeOrg.id,
+          p_id: null,
+          p_datos: {
+            supplier_id: grupo.supplierId, supplier_name: grupo.nombre, currency: "USD",
+            notes: "Generada desde Reposición",
+            items: grupo.items.map(item => ({
+              product_id: item.product.id, product_name: item.product.name,
+              quantity_ordered: overrides[item.product.id] ?? item.suggestedQty,
+              unit_cost: item.product.cost_usd || 0, tax_rate: 0,
+            })),
+          },
+        } as never);
+        if (error) { fallidas.push(`${grupo.nombre}: ${error.message}`); continue; }
+        creadas.push((data as unknown as { order_number: string }).order_number);
       }
-      toast.success(`Borrador de compra creado (${plural(itemsForOrder.length, "producto")})`);
-      setOrderOpen(false);
-    } catch {
-      toast.error("Error al guardar borrador");
     } finally {
       setSavingOrder(false);
+    }
+    if (creadas.length) {
+      toast.success(`${plural(creadas.length, "orden de compra creada", "órdenes de compra creadas")}: ${creadas.join(", ")}`, {
+        description: "Quedan en borrador. El stock entra cuando registrás la recepción.",
+        action: { label: "Ver órdenes", onClick: () => navigate("/ordenes-compra") },
+      });
+      setOrderOpen(false);
+    }
+    if (fallidas.length) {
+      toast.error(`No se pudo crear ${plural(fallidas.length, "orden", "órdenes")}`, { description: fallidas.join(" · "), duration: 12000 });
     }
   };
 
@@ -406,7 +422,7 @@ export default function ReposicionView() {
           </Button>
           <Button size="sm" onClick={() => setOrderOpen(true)} disabled={filtered.length === 0}>
             <ShoppingCart className="w-4 h-4 mr-2" />
-            Crear borrador
+            Crear órdenes de compra
           </Button>
         </div>
       </div>
@@ -567,7 +583,7 @@ export default function ReposicionView() {
       <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Crear borrador de compra</DialogTitle>
+            <DialogTitle>Crear órdenes de compra</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -601,14 +617,14 @@ export default function ReposicionView() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Se crean compras en estado <strong>programado</strong> (no afectan el stock hasta que sean marcadas como recibidas en Compras).
+              Se crea una orden de compra en <strong>borrador</strong> por proveedor. El stock entra cuando registrás la recepción en Órdenes de compra.
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOrderOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveOrder} disabled={savingOrder || itemsForOrder.length === 0}>
               {savingOrder ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-              Crear borrador
+              Crear órdenes de compra
             </Button>
           </DialogFooter>
         </DialogContent>

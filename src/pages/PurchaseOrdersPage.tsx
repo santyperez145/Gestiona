@@ -216,49 +216,27 @@ function POForm({ open, order, suppliers, products, orgId, onClose, onSaved }: P
     if (!supplierName.trim()) { toast.error("Proveedor requerido"); return; }
     if (items.length === 0) { toast.error("Agregá al menos un ítem"); return; }
     setLoading(true);
-
-    let orderId = order?.id;
-    let orderNum = order?.order_number;
-
-    if (!order) {
-      // Get order number
-      const { data: numData } = await supabase.rpc("generate_po_number", { p_org_id: orgId });
-      orderNum = numData;
-      const { data: newOrder, error: orderError } = await supabase.from("purchase_orders").insert({
-        org_id: orgId, order_number: orderNum, supplier_id: supplierId === "none" ? null : supplierId,
-        supplier_name: supplierName.trim(), supplier_email: supplierEmail.trim() || null,
-        currency, notes: notes.trim() || null, internal_notes: internalNotes.trim() || null,
-        expected_date: expectedDate || null, payment_terms: paymentTerms,
-      }).select().single();
-      if (orderError) { toast.error("Error al crear OC: " + orderError.message); setLoading(false); return; }
-      orderId = newOrder.id;
-    } else {
-      const { error } = await supabase.from("purchase_orders").update({
+    // Una sola operación (guardar_orden_de_compra, 20261014001200): cabecera,
+    // renglones y totales calculados en la base. Antes se insertaba la orden y
+    // después los ítems, y un fallo en el medio la dejaba vacía y con total $0.
+    const { data, error } = await supabase.rpc("guardar_orden_de_compra" as never, {
+      p_org: orgId,
+      p_id: order?.id ?? null,
+      p_datos: {
         supplier_id: supplierId === "none" ? null : supplierId,
         supplier_name: supplierName.trim(), supplier_email: supplierEmail.trim() || null,
         currency, notes: notes.trim() || null, internal_notes: internalNotes.trim() || null,
         expected_date: expectedDate || null, payment_terms: paymentTerms,
-      }).eq("id", order.id);
-      if (error) { toast.error("Error: " + error.message); setLoading(false); return; }
-      // Delete old items
-      const { error: borrarError } = await supabase.from("purchase_order_items").delete().eq("order_id", order.id);
-      if (borrarError) { toast.error("No se pudieron actualizar los ítems: " + borrarError.message); setLoading(false); return; }
-    }
-
-    // Insert items
-    const { error: itemsError } = await supabase.from("purchase_order_items").insert(
-      items.map(i => ({ ...i, order_id: orderId, org_id: orgId }))
-    );
-    if (itemsError) {
-      // La orden quedó guardada sin ítems: avisar en vez de cerrar como si nada.
-      toast.error("La orden se guardó, pero no sus ítems: " + itemsError.message);
-      setLoading(false);
-      onSaved();
-      return;
-    }
-
+        items: items.map(i => ({
+          product_id: i.product_id, product_name: i.product_name, sku: i.sku,
+          quantity_ordered: i.quantity_ordered, unit_cost: i.unit_cost, tax_rate: i.tax_rate,
+        })),
+      },
+    } as never);
     setLoading(false);
-    toast.success(order ? "OC actualizada" : `OC creada: ${orderNum}`);
+    if (error) { toast.error(order ? `No se pudo actualizar la OC: ${error.message}` : `No se pudo crear la OC: ${error.message}`); return; }
+    const guardada = data as unknown as { order_number: string };
+    toast.success(order ? "OC actualizada" : `OC creada: ${guardada.order_number}`);
     onSaved();
     onClose();
   };
