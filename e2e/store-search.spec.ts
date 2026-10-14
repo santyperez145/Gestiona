@@ -23,7 +23,8 @@ async function mockStore(page: Page) {
       name: "ZZ Tienda", slug, theme: "clean", currency: "ARS", payment_methods: ["efectivo"],
       shipping_mode: "free", shipping_cost: 0, nav_links: [], storefront_layout: null,
       social_links: {}, pickup_enabled: false }];
-    else if (path.endsWith("/get_store_catalog_products")) data = products;
+    // El catálogo entero llega en un solo JSON (get_store_catalog_completo).
+    else if (path.endsWith("/get_store_catalog_completo") || path.endsWith("/get_store_catalog_products")) data = products;
     else if (path.endsWith("/get_store_categories")) data = [
       { id: "zz-perfumeria", slug: "perfumeria", name: "Perfumería", productos: 2, sort_order: 0 },
       { id: "zz-herramientas", slug: "herramientas", name: "Herramientas", productos: 1, sort_order: 1 },
@@ -45,7 +46,7 @@ test("typo: predictive search, Enter, URL and facets use the same matches", asyn
   const search = await openSearch(page);
   await search.fill("lataffa");
   await expect(page.getByRole("option", { name: /LATTAFA KHAMRAH/ })).toBeVisible();
-  const initialReads = requests.filter(p => p.endsWith("/get_store_catalog_products")).length;
+  const initialReads = requests.filter(p => p.endsWith("/get_store_catalog_completo")).length;
   expect(initialReads).toBe(1);
   await search.press("Enter");
   await expect(page.getByRole("heading", { name: "Resultados para “lataffa”" })).toBeVisible();
@@ -68,7 +69,7 @@ test("typo: predictive search, Enter, URL and facets use the same matches", asyn
   await expect(page.getByRole("status")).toHaveCount(0);
   await page.getByRole("button", { name: "Todas", exact: true }).click();
   await expect(page.locator(".storefront-products__grid .storefront-product-card")).toHaveCount(2);
-  expect(requests.filter(p => p.endsWith("/get_store_catalog_products")).length).toBe(initialReads);
+  expect(requests.filter(p => p.endsWith("/get_store_catalog_completo")).length).toBe(initialReads);
   const audit = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(audit.violations.filter(v => ["critical", "serious"].includes(v.impact ?? ""))).toEqual([]);
   expect(errors).toEqual([]);

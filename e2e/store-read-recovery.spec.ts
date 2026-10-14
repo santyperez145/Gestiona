@@ -44,7 +44,9 @@ test("a hung store lookup is aborted and retried without a manual reload", async
   await expect(page.locator('[data-storefront-state="error"]')).toHaveCount(0);
 });
 
-for (const resource of ["get_store_by_slug", "get_store_catalog_products", "get_store_variants"]) {
+// El catálogo se lee con get_store_catalog_completo (un JSON, sin el tope de
+// 1.000 filas, 2026-10-14).
+for (const resource of ["get_store_by_slug", "get_store_catalog_completo", "get_store_variants"]) {
 test(`${resource}: failed reads offer an accessible retry without losing the cart or leaking internals`, async ({ page }, testInfo) => {
   test.setTimeout(150_000);
   await page.goto(CATALOG);

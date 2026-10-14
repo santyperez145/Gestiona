@@ -130,6 +130,20 @@ export async function fetchStoreProducts(
   // consultar sólo por organización perdería la configuración comercial de la
   // tienda y, en vistas heredadas, podría duplicar cada producto.
   if (storeSlug) {
+    // El catálogo entero en un solo JSON (20261014002000/002100): la lista de
+    // filas se cortaba en 1.000 sin avisar y Famatina mostraba menos de la
+    // décima parte de sus 11.518 productos (medido 2026-10-14).
+    const completo = await retryAbortableRead(signal => supabase.rpc(
+      'get_store_catalog_completo' as never,
+      { p_slug: storeSlug } as never,
+    ).abortSignal(signal), options);
+    if (!completo.error && Array.isArray(completo.data)) {
+      return { ok: true, data: completo.data as unknown as CatalogProduct[] };
+    }
+    if (completo.error && !isMissingFunction(completo.error)) {
+      console.error('[catálogo] error leyendo el catálogo completo:', completo.error.message);
+      return { ok: false, error: completo.error };
+    }
     const canonical = await retryAbortableRead(signal => supabase.rpc(
       'get_store_catalog_products',
       { p_slug: storeSlug },
