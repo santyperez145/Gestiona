@@ -1948,10 +1948,21 @@ export default function ProductsPage() {
           <button onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted transition-colors">
             <X className="w-3.5 h-3.5" />
           </button>
+          {/* Con miles de productos, marcar de a 60 no es una opción. */}
+          {selectedIds.size < filtered.length && (
+            <button type="button" data-testid="productos-seleccionar-filtro" disabled={bulkDeleting}
+              onClick={() => setSelectedIds(new Set(filtered.map(p => p.id)))}
+              className="text-xs font-medium text-primary hover:underline px-2 py-1 disabled:opacity-50">
+              Seleccionar los {filtered.length.toLocaleString("es-AR")} del filtro
+            </button>
+          )}
           <div className="w-px h-5 bg-border" />
           <ConfirmDialog
-            title={`Eliminar ${selectedIds.size} producto${selectedIds.size !== 1 ? 's' : ''}`}
-            description={`¿Eliminar ${selectedIds.size} producto${selectedIds.size !== 1 ? 's' : ''} seleccionado${selectedIds.size !== 1 ? 's' : ''}? Esta acción no se puede deshacer.`}
+            title={`Eliminar ${selectedIds.size.toLocaleString("es-AR")} producto${selectedIds.size !== 1 ? 's' : ''}`}
+            description={selectedIds.size > 100
+              ? `Se van a eliminar ${selectedIds.size.toLocaleString("es-AR")} productos. Los que tengan ventas o movimientos conservan ese historial sin el producto. Esta acción no se puede deshacer.`
+              : `¿Eliminar ${selectedIds.size} producto${selectedIds.size !== 1 ? 's' : ''} seleccionado${selectedIds.size !== 1 ? 's' : ''}? Esta acción no se puede deshacer.`}
+            requireText={selectedIds.size > 100 ? "ELIMINAR" : undefined}
             onConfirm={handleBulkDelete}
             trigger={
               <button disabled={bulkDeleting} className="flex items-center gap-1.5 text-sm font-medium text-destructive hover:text-destructive/80 px-3 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 transition-colors disabled:opacity-50">
