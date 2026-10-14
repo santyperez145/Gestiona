@@ -8,6 +8,7 @@
  */
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isTransientReadError } from "@/lib/transientRead";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import { useAuth } from "@/lib/auth";
@@ -33,6 +34,15 @@ interface Ctx {
 
 const PermissionsContext = createContext<Ctx | null>(null);
 
+// Un corte pasajero (red, 5xx, base reiniciando) no puede dejar al usuario sin
+// permisos hasta que recargue: con un solo intento, un fallo de red ocultaba
+// «Nuevo», «Editar» y «Borrar» en todas las pantallas. Es la explicación más
+// probable del E2E del panel que falló de a ratos esperando «Nuevo» 90 s
+// (11/10 y 14/10), sin captura que lo confirme. Mientras reintenta se muestra
+// «cargando», no «sin permiso». Los errores de permisos o de datos no se
+// reintentan.
+export const REINTENTOS_DE_PERMISOS_MS = [300, 1_000, 2_500] as const;
+
 const ALLOW_ALL: ModulePerms = {
   canView: true, canCreate: true, canEdit: true, canDelete: true, canExport: true, fromDb: false,
 };
@@ -47,6 +57,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     failed: boolean;
   } | null>(null);
   const [revision, setRevision] = useState(0);
+  const [intento, setIntento] = useState({ key: '', n: 0 });
   const refresh = useCallback(() => setRevision(value => value + 1), []);
   const key = user?.id && activeOrg?.id && activeRole
     ? `${user.id}:${user.last_sign_in_at ?? ''}:${activeOrg.id}:${activeRole}:${role}:${revision}` : null;
@@ -58,8 +69,14 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false;
+    let reintento: ReturnType<typeof setTimeout> | undefined;
+    const n = intento.key === key ? intento.n : 0;
     const fail = (error: unknown) => {
       if (cancelled) return;
+      if (isTransientReadError(error as { code?: string; message?: string; status?: number }) && n < REINTENTOS_DE_PERMISOS_MS.length) {
+        reintento = setTimeout(() => { if (!cancelled) setIntento({ key, n: n + 1 }); }, REINTENTOS_DE_PERMISOS_MS[n]);
+        return;
+      }
       console.error('[PermissionsProvider] permission lookup failed', error);
       setSnapshot({ key, rows: {}, failed: true });
     };
@@ -68,10 +85,10 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       .select("module, can_view, can_create, can_edit, can_delete, can_export")
       .eq("org_id", activeOrg.id)
       .eq("role", role)
-      .then(({ data, error }) => {
+      .then(({ data, error, status }) => {
         if (cancelled) return;
         if (error) {
-          fail(error);
+          fail({ ...error, status: status ?? (error as { status?: number }).status });
           return;
         }
         const map: Record<string, ModulePerms> = {};
@@ -81,8 +98,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         setSnapshot({ key, rows: map, failed: false });
       }, fail);
 
-    return () => { cancelled = true; };
-  }, [activeOrg?.id, key, role, authLoading, roleLoading, orgLoading]);
+    return () => { cancelled = true; if (reintento) clearTimeout(reintento); };
+  }, [activeOrg?.id, key, role, authLoading, roleLoading, orgLoading, intento]);
 
   const value = useMemo<Ctx>(() => {
     // El cambio de identidad/contexto bloquea en el mismo render, antes del efecto.

@@ -47,6 +47,26 @@ describe('permisos compartidos por rutas y acciones', () => {
     expect(log).toHaveBeenCalled();
     log.mockRestore();
   });
+  it('reintenta un corte pasajero y concede los permisos sin mostrar «sin permiso» en el medio', async () => {
+    // 2026-10-14: un fallo de red de una sola vez ocultaba «Nuevo» hasta recargar.
+    state.request
+      .mockResolvedValueOnce({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+      .mockResolvedValueOnce({ data: [{ module: 'products', can_view: true, can_create: true, can_edit: true }], error: null });
+    const { result } = renderHook(() => useModulePermissions('products'), { wrapper });
+    await waitFor(() => expect(state.request).toHaveBeenCalledTimes(1));
+    expect(result.current).toMatchObject({ loading: true, error: null });
+    await waitFor(() => expect(result.current.canCreate).toBe(true), { timeout: 3000 });
+    expect(state.request).toHaveBeenCalledTimes(2);
+  });
+  it('si el corte no se resuelve, después de tres reintentos deniega con el mensaje de reintentar', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    state.request.mockResolvedValue({ data: null, error: { message: 'service unavailable' }, status: 503 });
+    const { result } = renderHook(() => useModulePermissions('products'), { wrapper });
+    await waitFor(() => expect(result.current.error).toBe('No pudimos verificar tus permisos. Reintentá para continuar.'), { timeout: 8000 });
+    expect(result.current).toMatchObject({ loading: false, canCreate: false });
+    expect(state.request).toHaveBeenCalledTimes(4);
+    log.mockRestore();
+  }, 10000);
   it('nunca arrastra permisos ni respuestas tardias de otra organizacion', async () => {
     let resolveOld!: (value: unknown) => void;
     state.request.mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
