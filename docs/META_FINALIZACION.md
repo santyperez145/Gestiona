@@ -41,6 +41,12 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] POS con catálogo grande: búsqueda indexada, grilla acotada, ventas/variantes completas.
 - [x] POS con atajos F1–F11 (cliente, medio de pago, cupón, ticket en espera, cobrar, factura).
 - [x] Revisar y unificar productos duplicados (stock por Kardex, códigos como alternativos, archivo si hay historia).
+- [x] Presupuesto → venta por la caja (2026-10-14).
+  - Antes: «Convertir en venta» insertaba una venta con las descripciones unidas y ganancia 0, sin stock, caja ni factura. Se podía repetir, y los ítems no guardaban qué producto eran.
+  - Ahora: cada ítem elegido del catálogo guarda su producto. «Cobrar en la caja» carga productos, precios del presupuesto, descuento y cliente, y avisa lo que no puede cargar (escrito a mano, nombre repetido, con variantes).
+  - La venta lleva el presupuesto. La base lo marca vendido una sola vez y lo congela; ni siquiera la app puede marcarlo a mano.
+  - Evidencia: migración 20261014000900, `scripts/presupuesto-a-venta-matrix.sql` 8/8 en simulacro y en vivo, `src/test/presupuestoACaja.test.ts`.
+  - Sigue el rearmado completo del editor (pedido del dueño 2026-10-14).
 - [x] Combinar clientes sin perder nada (2026-10-14). Antes, «Combinar» movía sólo ventas, deudas y puntos en tres pasos desde el navegador y borraba la ficha. De las 29 tablas que apuntan a un cliente, las otras 26 perdían el vínculo (pedidos, presupuestos, tratos, devoluciones, reservas) o se borraban (actividades y contactos del CRM, tickets del portal, segmentos), y un corte dejaba la combinación a medias. Ahora `fusionar_clientes` lo hace en una sola transacción: recorre todas las referencias desde el catálogo de la base, incluidas las que se agreguen después, y respeta los únicos (si el destino ya está en un segmento, no se duplica). Los pedidos con datos fiscales conservan el nombre facturado, y el aviso dice qué pasó al cliente. Migración 20261014000800, `scripts/fusionar-clientes-matrix.sql` 5/5 en simulacro y en vivo, `src/test/fusionarClientes.test.ts`.
 - [x] Vender por kilo, metro, litro o m² (stock y Kardex con tres decimales, sólo para productos por medida).
 - [x] Descuento manual máximo y autorización del encargado con PIN, validados en la base.

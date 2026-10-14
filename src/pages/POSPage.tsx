@@ -81,6 +81,8 @@ import { groupPosOfflineTickets, posOfflineAgeLabel, summarizePosOfflineQueue } 
 import { posPaymentDiscountPercent, posPriceForPayment } from "@/lib/posPaymentDiscount";
 import { PosQrCheckoutDialog } from "@/components/pos/PosQrCheckoutDialog";
 import CobroACuentaForm from "@/components/finance/CobroACuentaForm";
+import { COLUMNAS_CLIENTE_POS, type PosCustomer as ClienteDeCaja } from "@/components/pos/PosCustomerPicker";
+import { planDePresupuesto, type ItemDePresupuesto } from "@/lib/presupuestoACaja";
 import { deudorDelCliente, mensajeDeError, saldoAFavorDB, type Deudor } from "@/lib/cuentaCorriente";
 import {
   POS_QR_RETRYABLE_TERMINAL_STATES,
@@ -970,7 +972,7 @@ export default function POSPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { fromWizard, goal: handoffGoal } = parseActivationHandoff(searchParams);
   const posGoal = handoffGoal ?? (fromWizard ? "pos" as const : null);
   const { isAdmin } = useUserRole();
@@ -1470,6 +1472,17 @@ export default function POSPage() {
     }, posCustomerId ? 0 : 600);
     return () => clearTimeout(timeout);
   }, [customer, activeOrg, posCustomerId, refrescoDeuda]);
+
+  // ── Presupuesto a cobrar (?presupuesto=<id>, desde Presupuestos) ─────────
+  // Se cobra como cualquier venta; cada renglón lleva `quote_id` y la base lo
+  // marca vendido una sola vez (20261014000900).
+  const [presupuestoCaja, setPresupuestoCaja] = useState<{ id: string; numero: string } | null>(null);
+  const presupuestoPedido = searchParams.get("presupuesto");
+  const presupuestoProcesado = useRef<string | null>(null);
+  const soltarPresupuesto = useCallback(() => {
+    setPresupuestoCaja(null);
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete("presupuesto"); return n; }, { replace: true });
+  }, [setSearchParams]);
 
   const abrirCobroDeuda = async () => {
     if (!activeOrg || !posCustomer) return;
@@ -2029,6 +2042,91 @@ export default function POSPage() {
     setShowCart(true);
     if (variantPickerProduct) setVariantPickerProduct(null);
   }, [settings, variantPickerProduct, onlineReservations]);
+
+  const cargarPresupuesto = async (id: string) => {
+    if (!activeOrg) return;
+    try {
+      const { data: q, error } = await supabase
+        .from("quotes")
+        .select("id, quote_number, items, customer_id, customer_name, status, valid_until, discount_amount, converted_at" as never)
+        .eq("id", id)
+        .eq("org_id", activeOrg.id)
+        .maybeSingle();
+      if (error) throw error;
+      const presupuesto = q as unknown as {
+        id: string; quote_number: string; items: ItemDePresupuesto[]; customer_id: string | null; customer_name: string | null;
+        status: string; valid_until: string | null; discount_amount: number | null; converted_at: string | null;
+      } | null;
+      if (!presupuesto) { toast.error("No se encontró el presupuesto"); soltarPresupuesto(); return; }
+      if (presupuesto.converted_at) { toast.error(`El presupuesto ${presupuesto.quote_number} ya se vendió`); soltarPresupuesto(); return; }
+      if (presupuesto.status === "rejected") { toast.error(`El presupuesto ${presupuesto.quote_number} está rechazado`); soltarPresupuesto(); return; }
+      const plan = planDePresupuesto(presupuesto.items ?? [], products, variantsByProduct);
+      if (plan.lineas.length === 0) {
+        toast.error(`Ningún ítem del presupuesto ${presupuesto.quote_number} está en el catálogo`, {
+          description: "Editalo eligiendo los productos de la lista para cobrarlo en la caja.",
+        });
+        soltarPresupuesto();
+        return;
+      }
+      if (cart.length > 0 && !(await ask({
+        title: "¿Reemplazar el carrito?",
+        description: `Hay ${plural(cart.length, "producto", "productos")} en el carrito. Se reemplazan por el presupuesto ${presupuesto.quote_number}.`,
+        confirmText: "Cargar presupuesto",
+      }))) { soltarPresupuesto(); return; }
+
+      setCart([]);
+      for (const linea of plan.lineas) addToCart(linea.producto, undefined, linea.cantidad);
+      // Precios congelados: los del presupuesto. La base igual valida el tope de descuento del cajero.
+      const precios = new Map(plan.lineas.map(l => [l.producto.id, l.precio]));
+      setCart(prev => prev.map(it => {
+        const precio = precios.get(it.productId);
+        return precio && precio > 0 ? { ...it, customPrice: precio } : it;
+      }));
+      const descuento = Number(presupuesto.discount_amount ?? 0);
+      if (descuento > 0) { setShowDiscount(true); setDiscountType("fixed"); setDiscountValue(String(descuento)); }
+
+      setPosCustomer(null);
+      setCustomer(presupuesto.customer_name ?? "");
+      if (presupuesto.customer_id) {
+        const { data: c, error: errCliente } = await supabase.from("customers").select(COLUMNAS_CLIENTE_POS).eq("id", presupuesto.customer_id).maybeSingle();
+        if (errCliente) console.warn("[POS] cliente del presupuesto", errCliente);
+        if (c) {
+          const cliente = c as unknown as ClienteDeCaja;
+          setPosCustomer(cliente);
+          setCustomer(cliente.name);
+          if (cliente.tax_id) setWantArcaInvoice(true);
+        }
+      }
+      setPresupuestoCaja({ id: presupuesto.id, numero: presupuesto.quote_number });
+
+      const vencido = presupuesto.valid_until && presupuesto.valid_until < new Date().toISOString().slice(0, 10);
+      toast.success(`Presupuesto ${presupuesto.quote_number} en la caja`, {
+        description: vencido ? `Venció el ${new Date(presupuesto.valid_until + "T12:00:00").toLocaleDateString("es-AR")}: los precios son los del presupuesto.` : undefined,
+      });
+      if (plan.faltantes.length > 0) {
+        toast.warning(`${plural(plan.faltantes.length, "ítem no se cargó", "ítems no se cargaron")}`, {
+          description: plan.faltantes.map(f => `${f.descripcion}: ${f.motivo}`).join(" · "),
+          duration: 15000,
+        });
+      }
+    } catch (err) {
+      presupuestoProcesado.current = null;
+      toast.error(mensajeDeError(err, "No se pudo cargar el presupuesto"));
+    }
+  };
+
+  useEffect(() => {
+    if (!presupuestoPedido || !activeOrg || products.length === 0) return;
+    if (presupuestoProcesado.current === presupuestoPedido) return;
+    presupuestoProcesado.current = presupuestoPedido;
+    void cargarPresupuesto(presupuestoPedido);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- se carga una vez por presupuesto pedido
+  }, [presupuestoPedido, activeOrg, products.length]);
+
+  // Vaciar el carrito (por cobrarlo o a mano) suelta el presupuesto.
+  useEffect(() => {
+    if (cart.length === 0 && presupuestoCaja) soltarPresupuesto();
+  }, [cart.length, presupuestoCaja, soltarPresupuesto]);
 
   // ── Bundle: explode into individual cart items ──
   const addBundleToCart = (bundle: typeof bundles[0]) => {
@@ -2663,6 +2761,7 @@ export default function POSPage() {
           source: "pos",
           offline_transaction_id: offlineTransactionId,
           offline_origin: !isOnline,
+          ...(presupuestoCaja ? { quote_id: presupuestoCaja.id } : {}),
         };
 
         transactionLines.push(saleData);
@@ -3167,6 +3266,14 @@ export default function POSPage() {
           }`}>
             <span>⭐ {customer.trim()} · {vipTier.name} · {vipTier.points.toLocaleString("es-AR")} pts</span>
             <span className="font-bold">{vipTier.pct}% desc. aplicado</span>
+          </div>
+        )}
+
+        {presupuestoCaja && (
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-primary/10 border border-primary/30 text-primary" data-testid="pos-presupuesto">
+            <FileText className="w-3.5 h-3.5 shrink-0" />
+            <span className="flex-1">Cobrando el presupuesto <strong>{presupuestoCaja.numero}</strong>: queda vendido al confirmar.</span>
+            <button type="button" className="underline underline-offset-2" onClick={soltarPresupuesto}>Soltar</button>
           </div>
         )}
 

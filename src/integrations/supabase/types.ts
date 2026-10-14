@@ -37306,6 +37306,8 @@ export type Database = {
       }
       quotes: {
         Row: {
+          converted_at: string | null
+          converted_transaction_id: string | null
           created_at: string
           created_by: string | null
           customer_email: string | null
@@ -37325,6 +37327,8 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          converted_at?: string | null
+          converted_transaction_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_email?: string | null
@@ -37344,6 +37348,8 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          converted_at?: string | null
+          converted_transaction_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_email?: string | null

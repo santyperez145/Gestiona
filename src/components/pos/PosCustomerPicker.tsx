@@ -21,7 +21,9 @@ export type PosCustomer = {
   fiscal_address: string | null;
 };
 
-const COLUMNAS = "id, name, legal_name, tax_id, vat_condition, phone, email, address, fiscal_address";
+/** Las columnas de un cliente en la caja (también las usa la carga de un presupuesto). */
+export const COLUMNAS_CLIENTE_POS = "id, name, legal_name, tax_id, vat_condition, phone, email, address, fiscal_address";
+const COLUMNAS = COLUMNAS_CLIENTE_POS;
 
 /** Texto seguro para un filtro `or` de PostgREST: sin separadores ni comodines. */
 export function terminoBusquedaCliente(q: string): string {

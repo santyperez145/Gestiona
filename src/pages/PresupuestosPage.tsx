@@ -1,4 +1,5 @@
 ﻿import { selloHechoConNerqia } from "@/lib/selloNerqia";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -19,13 +20,14 @@ import FinancePageHeader from "@/components/finance/FinancePageHeader";
 import FinanceKPICard from "@/components/finance/FinanceKPICard";
 import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import { formatARS, addSaleDB } from "@/lib/supabaseStore";
+import { formatARS } from "@/lib/supabaseStore";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
-type QuoteItem = { description: string; qty: number; unitPrice: number; total: number };
+/** `productId`: el producto del catálogo, para cobrarlo en la caja con stock real. */
+type QuoteItem = { description: string; qty: number; unitPrice: number; total: number; productId?: string | null };
 type Quote = {
   id: string;
   quote_number: string;
@@ -40,6 +42,9 @@ type Quote = {
   valid_until: string | null;
   notes: string;
   created_at: string;
+  customer_id?: string | null;
+  /** La venta de la caja que lo cobró (20261014000900). Vendido = congelado. */
+  converted_at?: string | null;
 };
 type CustomerSuggestion = { id: string; name: string; email: string | null; phone: string | null; company: string | null };
 type ProductSuggestion = { id: string; name: string; sale_price_ars: number; stock: number; category: string };
@@ -389,6 +394,7 @@ export default function PresupuestosPage() {
   usePageTitle("Presupuestos");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -400,6 +406,8 @@ export default function PresupuestosPage() {
 
   // Form state
   const [custName, setCustName] = useState("");
+  // El cliente de la lista, si se eligió uno: la caja lo carga al cobrar.
+  const [custId, setCustId] = useState<string | null>(null);
   const [custEmail, setCustEmail] = useState("");
   const [custPhone, setCustPhone] = useState("");
   const [items, setItems] = useState<QuoteItem[]>([{ description: "", qty: 1, unitPrice: 0, total: 0 }]);
@@ -557,6 +565,8 @@ export default function PresupuestosPage() {
     setItems(prev => {
       const next = [...prev];
       (next[i] as Record<string, unknown>)[field] = val;
+      // Escribir la descripción a mano lo desliga del producto del catálogo.
+      if (field === "description") next[i].productId = null;
       next[i].total = Number(next[i].qty) * Number(next[i].unitPrice);
       return next;
     });
@@ -566,7 +576,7 @@ export default function PresupuestosPage() {
   const total = subtotal - (parseFloat(discountAmount) || 0);
 
   const resetForm = () => {
-    setCustName(""); setCustEmail(""); setCustPhone("");
+    setCustName(""); setCustId(null); setCustEmail(""); setCustPhone("");
     setItems([{ description: "", qty: 1, unitPrice: 0, total: 0 }]);
     setDiscountAmount("0"); setValidUntil(defaultValidUntil()); setNotes("");
     setAutoSend(false); setShowTemplates(false); setTemplateName("");
@@ -587,6 +597,7 @@ export default function PresupuestosPage() {
         org_id: activeOrg.id,
         quote_number: quoteNumber,
         customer_name: custName,
+        customer_id: custId,
         customer_email: custEmail || null,
         customer_phone: custPhone || null,
         items: items.filter(it => it.description.trim()),
@@ -656,40 +667,9 @@ export default function PresupuestosPage() {
     }
   };
 
-  const [converting, setConverting] = useState<string | null>(null);
-  const [convertModal, setConvertModal] = useState<{ quote: Quote; method: string } | null>(null);
-
-  const confirmConvert = async () => {
-    if (!convertModal || !activeOrg || !user) return;
-    const { quote: q, method } = convertModal;
-    setConverting(q.id);
-    setConvertModal(null);
-    try {
-      await addSaleDB({
-        id: crypto.randomUUID(),
-        user_id: user.id,
-        org_id: activeOrg.id,
-        product_name: q.items.map(it => it.description).join(", ").slice(0, 120),
-        quantity: q.items.reduce((s, it) => s + it.qty, 0) || 1,
-        unit_price_ars: q.total,
-        total_ars: q.total,
-        profit_ars: 0,
-        profit_usd: 0,
-        customer_name: q.customer_name || null,
-        date: new Date().toISOString(),
-        paid: true,
-        payment_method: method,
-        quote_id: q.id,
-        source: "presupuesto",
-      });
-      await updateStatus(q.id, "accepted");
-      toast.success(`Venta de ${formatARS(q.total)} registrada`);
-    } catch (e: any) {
-      toast.error(e.message || "Error al convertir");
-    } finally {
-      setConverting(null);
-    }
-  };
+  // Convertir en venta = cobrarlo en la caja: stock, caja, factura y topes de
+  // descuento como cualquier venta, y la base lo marca vendido una sola vez.
+  const convertirEnCaja = (q: Quote) => navigate(`/caja?presupuesto=${q.id}`);
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("quotes").delete().eq("id", id);
@@ -1100,20 +1080,23 @@ export default function PresupuestosPage() {
                         </Button>
                       </>
                     )}
-                    {(q.status === "draft" || q.status === "sent" || q.status === "accepted") && (
+                    {!q.converted_at && (q.status === "draft" || q.status === "sent" || q.status === "accepted") && (
                       <Button
                         size="sm"
                         variant="outline"
                         className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1"
-                        onClick={() => setConvertModal({ quote: q, method: "transferencia" })}
-                        disabled={converting === q.id}
+                        onClick={() => convertirEnCaja(q)}
+                        data-testid="presupuesto-cobrar-en-caja"
                       >
-                        {converting === q.id
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : <CheckCircle2 className="w-3 h-3" />
-                        }
-                        Convertir en venta
+                        <CheckCircle2 className="w-3 h-3" />
+                        Cobrar en la caja
                       </Button>
+                    )}
+                    {q.converted_at && (
+                      <span className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-xs font-medium text-emerald-500 bg-emerald-500/10 border border-emerald-500/20"
+                        title={`Vendido el ${new Date(q.converted_at).toLocaleDateString("es-AR")}`}>
+                        <CheckCircle2 className="w-3 h-3" /> Vendido
+                      </span>
                     )}
                     <Button
                       size="sm"
@@ -1163,49 +1146,6 @@ export default function PresupuestosPage() {
           })}
         </div>
       )}
-
-      {/* Convert to sale modal */}
-      <Dialog open={!!convertModal} onOpenChange={(v) => { if (!v) setConvertModal(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Convertir en venta</DialogTitle>
-          </DialogHeader>
-          {convertModal && (
-            <div className="space-y-4 pt-1">
-              <div className="bg-muted/30 rounded-xl p-3 space-y-1 text-sm">
-                <p className="font-semibold">{convertModal.quote.customer_name}</p>
-                <p className="text-muted-foreground text-xs">{convertModal.quote.quote_number} · {convertModal.quote.items.length} ítem{convertModal.quote.items.length !== 1 ? "s" : ""}</p>
-                <p className="text-primary font-bold text-base">{formatARS(convertModal.quote.total)}</p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Método de cobro</label>
-                <Select
-                  value={convertModal.method}
-                  onValueChange={(v) => setConvertModal(prev => prev ? { ...prev, method: v } : null)}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="efectivo">Efectivo</SelectItem>
-                    <SelectItem value="transferencia">Transferencia</SelectItem>
-                    <SelectItem value="tarjeta_debito">Tarjeta débito</SelectItem>
-                    <SelectItem value="tarjeta_credito">Tarjeta crédito</SelectItem>
-                    <SelectItem value="mercadopago">MercadoPago</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 h-9" onClick={() => setConvertModal(null)}>Cancelar</Button>
-                <Button className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={confirmConvert}>
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Registrar venta
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* ─── Create dialog ────────────────────────────────────────────────────── */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
@@ -1294,9 +1234,10 @@ export default function PresupuestosPage() {
                   {activeOrg ? (
                     <CustomerSearch
                       value={custName}
-                      onChange={setCustName}
+                      onChange={v => { setCustName(v); setCustId(null); }}
                       onSelect={c => {
                         setCustName(c.name);
+                        setCustId(c.id);
                         setCustEmail(c.email || "");
                         setCustPhone(c.phone || "");
                       }}
@@ -1333,7 +1274,7 @@ export default function PresupuestosPage() {
                         onSelect={p => {
                           setItems(prev => {
                             const next = [...prev];
-                            next[i] = { ...next[i], description: p.name, unitPrice: p.sale_price_ars, total: Number(next[i].qty) * p.sale_price_ars };
+                            next[i] = { ...next[i], description: p.name, productId: p.id, unitPrice: p.sale_price_ars, total: Number(next[i].qty) * p.sale_price_ars };
                             return next;
                           });
                         }}
