@@ -131,8 +131,15 @@ export default function DebtsPage() {
   const partialCount = pending.filter(d => d.status === "partial").length;
   const uniqueDebtors = new Set(pending.map(d => d.customer_name)).size;
 
+  // La base rechaza borrar una deuda con cobros o de una venta fiada
+  // (20261014002500) y dice qué hacer; antes el error quedaba sin atrapar.
   const handleDelete = async (d: any) => {
-    await deleteDebtDB(d.id);
+    try {
+      await deleteDebtDB(d.id);
+    } catch (err) {
+      toast.error("No se puede borrar esta deuda", { description: mensajeDeError(err, "Reintentá en unos minutos"), duration: 10000 });
+      return;
+    }
     if (user) await logAudit(user.id, "delete", "debt", d.id, { customer: d.customer_name, amount: d.amount_ars });
     reload();
     toast.success("Deuda eliminada");

@@ -20,14 +20,19 @@ export default function ConsistencyAlerts({
     setRepairing(true);
     try {
       let fixed = 0;
+      const fallas: string[] = [];
       for (const issue of issues) {
         if (issue.kind === 'sale_not_paid' && issue.ids.length) {
           const { error } = await supabase.from('sales').update({ paid: true }).in('id', issue.ids);
-          if (!error) fixed += issue.ids.length;
+          if (error) fallas.push(error.message);
+          else fixed += issue.ids.length;
         }
       }
-      await logAudit(userId, 'update', 'settings', undefined, { auto_repair: true, count: fixed });
-      toast.success(`${fixed} inconsistencias reparadas`);
+      if (fixed > 0) await logAudit(userId, 'update', 'settings', undefined, { auto_repair: true, count: fixed });
+      // Antes decía «0 inconsistencias reparadas» aunque la base rechazara.
+      if (fallas.length) toast.error("No se pudieron reparar todas", { description: fallas[0] });
+      else if (fixed > 0) toast.success(`${fixed} ${fixed === 1 ? "inconsistencia reparada" : "inconsistencias reparadas"}`);
+      else toast.info("No había nada para reparar automáticamente");
       onRepair();
     } catch (e: any) {
       toast.error(`Error: ${e.message}`);

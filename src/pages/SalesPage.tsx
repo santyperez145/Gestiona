@@ -18,6 +18,7 @@ import { Plus, Trash2, DollarSign, ChevronLeft, ChevronUp, ChevronDown, Edit, Ey
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -572,11 +573,18 @@ export default function SalesPage() {
     return pct;
   };
 
+  // La base rechaza borrar lo cobrado, facturado o fiado (20261014002400) y
+  // dice cómo anularlo; antes el error quedaba sin atrapar.
   const handleDelete = async (sale: any) => {
-    await deleteSaleDB(sale.id);
+    try {
+      await deleteSaleDB(sale.id);
+    } catch (err) {
+      toast.error("No se puede borrar esta venta", { description: mensajeDeError(err, "Reintentá en unos minutos"), duration: 10000 });
+      return;
+    }
     if (user) await logAudit(user.id, 'delete', 'sale', sale.id, { product: sale.product_name, total: sale.total_ars });
     reload();
-    toast.success("Venta eliminada");
+    toast.success("Venta eliminada", { description: "El stock volvió al inventario." });
   };
 
   const downloadSalePDF = async (s: any) => {
