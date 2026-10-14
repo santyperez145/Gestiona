@@ -33,6 +33,10 @@ adentro por otra vía). `CREATE OR REPLACE VIEW` sin `WITH` borra las opciones,
 así que al reemplazar una vista definer hay que repetir la opción. Si se
 olvida, queda invoker: se ve vacía, no filtra.
 
+Desde 20261013000900, anon tampoco recibe privilegios por defecto en tablas,
+vistas ni secuencias nuevas: lo público se concede en la migración que lo crea
+(`GRANT SELECT ... TO anon`). Un olvido da «permiso denegado», no una fuga.
+
 Auditorías con usuario real, en transacciones revertidas:
 `scripts/tablas-lectura-ajena-probar.mjs`, `scripts/tablas-escritura-ajena-probar.mjs`,
 `scripts/buckets-escritura-probar.mjs` y `scripts/funciones-anonimas-probar.mjs`.

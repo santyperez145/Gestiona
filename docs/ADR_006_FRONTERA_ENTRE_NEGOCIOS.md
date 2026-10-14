@@ -151,8 +151,10 @@ cerrando con D, una pieza por vez y siempre con simulacro.
    Hecho el 2026-10-13: migración 20261013000800, matriz 4/4 en simulacro y en
    vivo. `CREATE OR REPLACE VIEW` sin `WITH` borra las opciones: al reemplazar
    una vista que corre como dueño hay que repetir `WITH (security_invoker = false)`.
-3. [ ] `ALTER DEFAULT PRIVILEGES … REVOKE ALL ON TABLES FROM anon` para
+3. [x] `ALTER DEFAULT PRIVILEGES … REVOKE ALL ON TABLES FROM anon` para
    `postgres` en `public`.
+   Hecho el 2026-10-13: migración 20261013000900 (tablas, vistas y secuencias),
+   matriz 5/5 en simulacro y en vivo; sin la migración falla.
 4. [ ] `audit_vistas_abiertas` en cero y sumado a los auditores críticos de
    [Seguridad](SEGURIDAD.md).
 5. [ ] Cron diario de auditores críticos que escribe en `app_errores`.
