@@ -1,28 +1,36 @@
 /**
- * PurchaseRequestsTab — ported from the former PurchaseRequestsPage (/solicitudes-compra).
- * Rendered as the "Solicitudes" tab inside PurchaseOrdersPage (/ordenes-compra).
+ * Solicitudes de compra: pedidos internos con aprobación, dentro de Órdenes de
+ * compra (/ordenes-compra).
  *
- * Internal purchase-request workflow with approval flow (draft → submitted → approved/rejected → ordered → received).
+ * Rearmada 2026-10-14 (funciones incoherentes). Antes los ítems eran texto
+ * suelto, toda solicitud se numeraba «temp», un vendedor quedaba con una
+ * solicitud vacía (los renglones exigían administrador), cualquiera aprobaba
+ * la suya y «Marcar pedida» / «Recibida» eran etiquetas sin orden ni stock.
+ * Ahora: se pide con productos del catálogo (o un ítem libre), en una
+ * operación que numera la base (`guardar_solicitud_de_compra`); aprueban o
+ * rechazan el dueño o un administrador; una aprobada se convierte en una orden
+ * de compra real (`convertir_solicitud_en_orden`) y queda recibida sola cuando
+ * esa orden se recibe completa.
  */
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useOrganization } from "@/hooks/useOrganization";
+import { useOrg } from "@/lib/orgContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import {
-  ShoppingBag, Plus, CheckCircle, XCircle, Clock,
-  ChevronDown, ChevronRight, DollarSign, AlertCircle, Loader2
-} from "lucide-react";
+import { AlertCircle, CheckCircle, ChevronDown, ChevronRight, ClipboardList, Clock, Loader2, PenLine, Plus, RotateCcw, ShoppingBag, Trash2, XCircle } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
+import ProductCombobox from "@/components/shared/ProductCombobox";
+import { fetchOrgProducts, formatARS } from "@/lib/supabaseStore";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
+import { costoSugerido, fechaArgentina } from "@/lib/compras";
+import { pasoParaCantidad } from "@/lib/presupuestos";
 
-interface PurchaseRequest {
+interface Solicitud {
   id: string;
   request_number: string;
   title: string;
@@ -31,366 +39,367 @@ interface PurchaseRequest {
   priority: string;
   status: string;
   total_estimated: number;
-  approved_by: string | null;
   approved_at: string | null;
   rejected_reason: string | null;
   notes: string | null;
   needed_by: string | null;
   created_at: string;
-  purchase_request_items?: RequestItem[];
+  purchase_order_id: string | null;
+  purchase_orders?: { order_number: string; status: string } | null;
+  purchase_request_items?: Array<{ id: string; product_name: string; description: string | null; quantity: number; unit: string; estimated_price: number; total_estimated: number; preferred_supplier: string | null }>;
 }
+interface Producto { id: string; name: string; sku?: string | null; barcode?: string | null; brand?: string | null; unidad_medida?: string | null; is_active?: boolean | null; cost_currency?: string | null; cost_ars?: number | null; cost_usd?: number | null; total_cost_usd?: number | null }
+interface Proveedor { id: string; name: string; email: string | null }
+interface Renglon { clave: number; productId: string | null; nombre: string; unidad: string | null; qty: number; precio: number; libre: boolean }
 
-interface RequestItem {
-  id: string;
-  product_name: string;
-  description: string | null;
-  quantity: number;
-  unit: string;
-  estimated_price: number;
-  total_estimated: number;
-  preferred_supplier: string | null;
-}
-
-const STATUS_CFG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  draft:      { label: "Borrador",    color: "bg-muted/40 text-muted-foreground",      icon: <Clock className="w-3 h-3" /> },
-  submitted:  { label: "Enviada",     color: "bg-blue-500/15 text-blue-400",           icon: <Clock className="w-3 h-3" /> },
-  approved:   { label: "Aprobada",    color: "bg-emerald-500/15 text-emerald-400",     icon: <CheckCircle className="w-3 h-3" /> },
-  rejected:   { label: "Rechazada",   color: "bg-red-500/15 text-red-400",             icon: <XCircle className="w-3 h-3" /> },
-  ordered:    { label: "Pedida",      color: "bg-indigo-500/15 text-indigo-400",       icon: <CheckCircle className="w-3 h-3" /> },
-  received:   { label: "Recibida",    color: "bg-emerald-500/15 text-emerald-400",     icon: <CheckCircle className="w-3 h-3" /> },
-  cancelled:  { label: "Cancelada",   color: "bg-orange-500/15 text-orange-400",       icon: <XCircle className="w-3 h-3" /> },
+const ESTADOS: Record<string, { label: string; variant: "default" | "secondary" | "success" | "warning" | "destructive" | "outline"; icon: React.ReactNode }> = {
+  draft: { label: "Borrador", variant: "secondary", icon: <Clock className="h-3 w-3" /> },
+  submitted: { label: "Para aprobar", variant: "warning", icon: <Clock className="h-3 w-3" /> },
+  approved: { label: "Aprobada", variant: "success", icon: <CheckCircle className="h-3 w-3" /> },
+  rejected: { label: "Rechazada", variant: "destructive", icon: <XCircle className="h-3 w-3" /> },
+  ordered: { label: "Pedida", variant: "default", icon: <ClipboardList className="h-3 w-3" /> },
+  received: { label: "Recibida", variant: "success", icon: <CheckCircle className="h-3 w-3" /> },
+  cancelled: { label: "Cancelada", variant: "outline", icon: <XCircle className="h-3 w-3" /> },
 };
+const PRIORIDADES: Record<string, string> = { low: "Baja", normal: "Normal", high: "Alta", urgent: "Urgente" };
 
-const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
-  low:    { label: "Baja",    color: "bg-muted/40 text-muted-foreground" },
-  normal: { label: "Normal",  color: "bg-blue-500/15 text-blue-400" },
-  high:   { label: "Alta",    color: "bg-orange-500/15 text-orange-400" },
-  urgent: { label: "Urgente", color: "bg-red-500/15 text-red-400" },
-};
-
-const EMPTY_REQUEST = {
-  title: "", requested_by: "", department: "",
-  priority: "normal", needed_by: "", notes: ""
-};
+let claves = 0;
+const renglonVacio = (libre = false): Renglon => ({ clave: ++claves, productId: null, nombre: "", unidad: null, qty: 1, precio: 0, libre });
 
 export default function PurchaseRequestsTab() {
-  const { orgId } = useOrganization();
+  const { activeOrg, activeRole } = useOrg();
+  const orgId = activeOrg?.id ?? "";
+  const puedeAprobar = activeRole === "owner" || activeRole === "admin";
 
-  const [requests, setRequests] = useState<PurchaseRequest[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [expandedReq, setExpandedReq]   = useState<string | null>(null);
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [errorDeCarga, setErrorDeCarga] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState("all");
+  const [abierta, setAbierta] = useState<string | null>(null);
 
-  const [reqOpen, setReqOpen]   = useState(false);
-  const [reqForm, setReqForm]   = useState({ ...EMPTY_REQUEST });
-  const [reqItems, setReqItems] = useState<{ product_name: string; description: string; quantity: number; unit: string; estimated_price: number; preferred_supplier: string }[]>([]);
-  const [savingReq, setSavingReq] = useState(false);
+  const [nueva, setNueva] = useState(false);
+  const [form, setForm] = useState({ title: "", requested_by: "", department: "", priority: "normal", needed_by: "", notes: "" });
+  const [renglones, setRenglones] = useState<Renglon[]>([renglonVacio()]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [guardando, setGuardando] = useState(false);
 
-  const [rejectOpen, setRejectOpen]   = useState(false);
-  const [rejectId, setRejectId]       = useState("");
-  const [rejectReason, setRejectReason] = useState("");
+  const [rechazando, setRechazando] = useState<Solicitud | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [convirtiendo, setConvirtiendo] = useState<Solicitud | null>(null);
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [proveedorId, setProveedorId] = useState("");
+  const [proveedorLibre, setProveedorLibre] = useState("");
+  const [trabajando, setTrabajando] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const cargar = useCallback(async () => {
     if (!orgId) return;
-    setLoading(true);
-    const { data } = await supabase.from("purchase_requests").select("*, purchase_request_items(*)").eq("org_id", orgId).order("created_at", { ascending: false });
-    if (data) setRequests(data as PurchaseRequest[]);
-    setLoading(false);
+    setErrorDeCarga(null);
+    const { data, error } = await supabase.from("purchase_requests")
+      .select("*, purchase_request_items(*), purchase_orders(order_number, status)")
+      .eq("org_id", orgId).order("created_at", { ascending: false }).limit(500);
+    if (error) setErrorDeCarga(mensajeDeError(error, "No se pudieron cargar las solicitudes"));
+    else setSolicitudes((data ?? []) as unknown as Solicitud[]);
+    setCargando(false);
   }, [orgId]);
+  useEffect(() => { void cargar(); }, [cargar]);
 
-  useEffect(() => { load(); }, [load]);
+  const abrirNueva = async () => {
+    setForm({ title: "", requested_by: "", department: "", priority: "normal", needed_by: "", notes: "" });
+    setRenglones([renglonVacio()]);
+    setNueva(true);
+    if (productos.length === 0 && orgId) {
+      const r = await fetchOrgProducts<Producto>(orgId, "id, name, sku, barcode, brand, unidad_medida, is_active, cost_currency, cost_ars, cost_usd, total_cost_usd");
+      if (r.error) toast.error(mensajeDeError(r.error, "No se pudo cargar el catálogo"));
+      else setProductos((r.data ?? []).filter(p => p.is_active !== false));
+    }
+  };
 
-  function addItem() {
-    setReqItems(prev => [...prev, { product_name: "", description: "", quantity: 1, unit: "un", estimated_price: 0, preferred_supplier: "" }]);
-  }
+  const cambiar = (clave: number, cambios: Partial<Renglon>) => setRenglones(prev => prev.map(r => r.clave === clave ? { ...r, ...cambios } : r));
+  const totalNueva = renglones.reduce((s, r) => s + (r.productId || r.nombre.trim() ? r.qty * r.precio : 0), 0);
 
-  function updateItem(idx: number, field: string, value: string | number) {
-    setReqItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
-  }
+  const guardar = async () => {
+    const usados = renglones.filter(r => r.productId || r.nombre.trim());
+    if (!form.title.trim()) { toast.error("Poné un título a la solicitud"); return; }
+    if (usados.length === 0) { toast.error("Agregá al menos un producto"); return; }
+    if (usados.some(r => !(r.qty > 0))) { toast.error("Las cantidades tienen que ser mayores a cero"); return; }
+    setGuardando(true);
+    try {
+      const { data, error } = await supabase.rpc("guardar_solicitud_de_compra" as never, {
+        p_org: orgId,
+        p_datos: {
+          ...form, title: form.title.trim(), needed_by: form.needed_by || null,
+          items: usados.map(r => ({ product_id: r.productId, product_name: r.productId ? null : r.nombre.trim(), quantity: r.qty, unit: r.unidad ?? "un", estimated_price: r.precio })),
+        },
+      } as never);
+      if (error) throw error;
+      toast.success(`Solicitud ${(data as unknown as Solicitud).request_number} enviada para aprobar`);
+      setNueva(false);
+      await cargar();
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo enviar la solicitud"));
+    } finally {
+      setGuardando(false);
+    }
+  };
 
-  async function saveRequest() {
-    if (!orgId || !reqForm.title.trim()) return toast.error("Ingresá el título de la solicitud");
-    if (!reqForm.requested_by.trim()) return toast.error("Ingresá el solicitante");
-    if (reqItems.length === 0) return toast.error("Agregá al menos un ítem");
-    setSavingReq(true);
+  const cambiarEstado = async (s: Solicitud, status: string, extra: Record<string, unknown> = {}) => {
+    setTrabajando(s.id);
+    const { error } = await supabase.from("purchase_requests").update({ status, ...extra } as never).eq("id", s.id);
+    setTrabajando(null);
+    if (error) { toast.error(mensajeDeError(error, "No se pudo actualizar la solicitud")); return false; }
+    await cargar();
+    return true;
+  };
 
-    const { data: reqData, error: reqErr } = await supabase.from("purchase_requests").insert({
-      org_id: orgId,
-      request_number: "temp",
-      title: reqForm.title.trim(),
-      requested_by: reqForm.requested_by.trim(),
-      department: reqForm.department || null,
-      priority: reqForm.priority,
-      needed_by: reqForm.needed_by || null,
-      notes: reqForm.notes || null,
-      status: "submitted",
-    }).select("id").single();
+  const abrirConversion = async (s: Solicitud) => {
+    setConvirtiendo(s);
+    const preferido = s.purchase_request_items?.find(i => i.preferred_supplier)?.preferred_supplier ?? "";
+    setProveedorLibre(preferido);
+    const { data, error } = await supabase.from("suppliers").select("id, name, email").eq("org_id", orgId).order("name");
+    if (error) { toast.error(mensajeDeError(error, "No se pudieron cargar los proveedores")); return; }
+    const lista = (data ?? []) as Proveedor[];
+    setProveedores(lista);
+    setProveedorId(lista.find(p => p.name.toLowerCase() === preferido.toLowerCase())?.id ?? "");
+  };
 
-    if (reqErr || !reqData) { setSavingReq(false); toast.error(reqErr?.message ?? "Error"); return; }
+  const convertir = async () => {
+    if (!convirtiendo) return;
+    const prov = proveedores.find(p => p.id === proveedorId);
+    const nombre = prov?.name ?? proveedorLibre.trim();
+    if (!nombre) { toast.error("Elegí el proveedor de la orden"); return; }
+    setTrabajando(convirtiendo.id);
+    try {
+      const { data, error } = await supabase.rpc("convertir_solicitud_en_orden" as never, {
+        p_org: orgId, p_solicitud: convirtiendo.id,
+        p_datos: { supplier_id: prov?.id ?? null, supplier_name: nombre, supplier_email: prov?.email ?? null, currency: "ARS" },
+      } as never);
+      if (error) throw error;
+      toast.success(`Orden ${(data as unknown as { order_number: string }).order_number} creada en borrador`, { description: "Revisala y enviala al proveedor desde la pestaña Órdenes." });
+      setConvirtiendo(null);
+      await cargar();
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo crear la orden"));
+    } finally {
+      setTrabajando(null);
+    }
+  };
 
-    const items = reqItems.map(it => ({
-      request_id: reqData.id,
-      product_name: it.product_name || "Producto",
-      description: it.description || null,
-      quantity: Number(it.quantity),
-      unit: it.unit,
-      estimated_price: Number(it.estimated_price),
-      preferred_supplier: it.preferred_supplier || null,
-    }));
-
-    const { error: itemsErr } = await supabase.from("purchase_request_items").insert(items);
-    setSavingReq(false);
-    if (itemsErr) { toast.error(itemsErr.message); return; }
-
-    toast.success("Solicitud de compra enviada");
-    setReqOpen(false);
-    setReqForm({ ...EMPTY_REQUEST });
-    setReqItems([]);
-    load();
-  }
-
-  async function updateStatus(id: string, status: string, extra: Record<string, string | null> = {}) {
-    const { error } = await supabase.from("purchase_requests").update({ status, ...extra }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Estado actualizado");
-    load();
-  }
-
-  async function rejectRequest() {
-    if (!rejectReason.trim()) return toast.error("Ingresá el motivo del rechazo");
-    await updateStatus(rejectId, "rejected", { rejected_reason: rejectReason });
-    setRejectOpen(false);
-    setRejectReason("");
-  }
-
-  const fmt = (n: number) => `$${Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2 })}`;
-
-  const filteredRequests = statusFilter === "all" ? requests : requests.filter(r => r.status === statusFilter);
-
+  const filtradas = filtro === "all" ? solicitudes : solicitudes.filter(s => s.status === filtro);
   const kpis = useMemo(() => ({
-    total: requests.length,
-    pending: requests.filter(r => r.status === "submitted").length,
-    approved: requests.filter(r => ["approved","ordered"].includes(r.status)).length,
-    totalValue: requests.filter(r => r.status === "approved").reduce((s, r) => s + Number(r.total_estimated), 0),
-  }), [requests]);
+    total: solicitudes.length,
+    paraAprobar: solicitudes.filter(s => s.status === "submitted").length,
+    aprobadas: solicitudes.filter(s => s.status === "approved").length,
+    valor: solicitudes.filter(s => s.status === "approved").reduce((a, s) => a + Number(s.total_estimated), 0),
+  }), [solicitudes]);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>;
+  if (cargando) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-sm text-muted-foreground">Pedidos internos con flujo de aprobación</p>
-        <Dialog open={reqOpen} onOpenChange={setReqOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setReqForm({ ...EMPTY_REQUEST }); setReqItems([]); }}>
-              <Plus className="w-4 h-4 mr-2" /> Nueva solicitud
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Nueva solicitud de compra</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <Label>Título *</Label>
-                <Input value={reqForm.title} onChange={e => setReqForm(f => ({ ...f, title: e.target.value }))} placeholder="Reposición materiales de oficina..." />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>Solicitante *</Label>
-                  <Input value={reqForm.requested_by} onChange={e => setReqForm(f => ({ ...f, requested_by: e.target.value }))} placeholder="Nombre del empleado" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Departamento</Label>
-                  <Input value={reqForm.department} onChange={e => setReqForm(f => ({ ...f, department: e.target.value }))} placeholder="Administración, Ventas..." />
-                </div>
-                <div className="space-y-1">
-                  <Label>Prioridad</Label>
-                  <Select value={reqForm.priority} onValueChange={v => setReqForm(f => ({ ...f, priority: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(PRIORITY_CFG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Necesario para</Label>
-                  <Input type="date" value={reqForm.needed_by} onChange={e => setReqForm(f => ({ ...f, needed_by: e.target.value }))} />
-                </div>
-              </div>
-
-              {/* Items */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Ítems solicitados</Label>
-                  <Button size="sm" variant="outline" onClick={addItem}><Plus className="w-3 h-3 mr-1" /> Agregar ítem</Button>
-                </div>
-                {reqItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sin ítems aún</p>}
-                {reqItems.map((it, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-muted/20 p-2 rounded">
-                    <div className="col-span-4 space-y-1">
-                      <Label className="text-xs">Producto</Label>
-                      <Input className="h-8 text-sm" value={it.product_name} onChange={e => updateItem(idx, "product_name", e.target.value)} placeholder="Nombre" />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs">Cantidad</Label>
-                      <Input className="h-8 text-sm" type="number" min={0} value={it.quantity} onChange={e => updateItem(idx, "quantity", e.target.value)} />
-                    </div>
-                    <div className="col-span-1 space-y-1">
-                      <Label className="text-xs">Unidad</Label>
-                      <Input className="h-8 text-sm" value={it.unit} onChange={e => updateItem(idx, "unit", e.target.value)} />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs">Precio est.</Label>
-                      <Input className="h-8 text-sm" type="number" min={0} value={it.estimated_price} onChange={e => updateItem(idx, "estimated_price", e.target.value)} />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs">Proveedor pref.</Label>
-                      <Input className="h-8 text-sm" value={it.preferred_supplier} onChange={e => updateItem(idx, "preferred_supplier", e.target.value)} />
-                    </div>
-                    <div className="col-span-1">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-400 hover:text-red-300" onClick={() => setReqItems(prev => prev.filter((_, i) => i !== idx))}>✕</Button>
-                    </div>
-                  </div>
-                ))}
-                {reqItems.length > 0 && (
-                  <div className="text-right text-sm font-medium text-foreground">
-                    Total estimado: {fmt(reqItems.reduce((s, it) => s + Number(it.quantity) * Number(it.estimated_price), 0))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label>Notas</Label>
-                <Textarea value={reqForm.notes} onChange={e => setReqForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
-              </div>
-              <Button className="w-full" onClick={saveRequest} disabled={savingReq}>
-                {savingReq ? "Enviando..." : "Enviar solicitud"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">Lo que pide el equipo. Aprobada, se convierte en una orden de compra.</p>
+        <Button onClick={() => void abrirNueva()}><Plus className="mr-2 h-4 w-4" />Nueva solicitud</Button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Total solicitudes" value={kpis.total} icon={ShoppingBag} color="primary" />
-        <KPICard label="Pendientes" value={kpis.pending} icon={AlertCircle} color="warning" sub="Esperando aprobación" />
-        <KPICard label="Aprobadas" value={kpis.approved} icon={CheckCircle} color="success" sub="Aprobadas y pedidas" />
-        <KPICard label="Valor aprobado" value={fmt(kpis.totalValue)} icon={DollarSign} color="blue" sub="Total en solicitudes aprobadas" />
+      {errorDeCarga && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm" role="alert">
+          <AlertCircle className="h-4 w-4 text-destructive" /><span className="flex-1">{errorDeCarga}</span>
+          <Button size="sm" variant="outline" onClick={() => { setCargando(true); void cargar(); }}><RotateCcw className="mr-1.5 h-3.5 w-3.5" />Reintentar</Button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KPICard label="Solicitudes" value={kpis.total} icon={ShoppingBag} color="primary" />
+        <KPICard label="Para aprobar" value={kpis.paraAprobar} icon={AlertCircle} color={kpis.paraAprobar > 0 ? "warning" : "success"} sub={puedeAprobar ? "esperan tu aprobación" : "esperan al dueño o un administrador"} />
+        <KPICard label="Aprobadas sin pedir" value={kpis.aprobadas} icon={CheckCircle} color="success" sub="convertilas en orden" />
+        <KPICard label="Valor aprobado" value={formatARS(kpis.valor)} icon={ClipboardList} color="blue" sub="estimado, sin pedir todavía" />
       </div>
 
-      {/* Status filter pills */}
       <div className="flex flex-wrap gap-2">
-        {["all", ...Object.keys(STATUS_CFG)].map(st => (
-          <button key={st} onClick={() => setStatusFilter(st)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${statusFilter === st ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"}`}>
-            {st === "all" ? `Todas (${requests.length})` : STATUS_CFG[st]?.label}
+        {["all", ...Object.keys(ESTADOS)].map(st => (
+          <button key={st} type="button" onClick={() => setFiltro(st)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${filtro === st ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary/50"}`}>
+            {st === "all" ? `Todas (${solicitudes.length})` : ESTADOS[st].label}
           </button>
         ))}
       </div>
 
-      {/* Requests list */}
-      {filteredRequests.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>No hay solicitudes de compra</p>
+      {filtradas.length === 0 ? (
+        <div className="py-16 text-center text-muted-foreground">
+          <ShoppingBag className="mx-auto mb-3 h-12 w-12 opacity-30" />
+          <p>{solicitudes.length === 0 ? "Todavía no hay solicitudes de compra" : "Ninguna solicitud en este estado"}</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredRequests.map(req => {
-            const sc = STATUS_CFG[req.status] ?? STATUS_CFG.draft;
-            const pc = PRIORITY_CFG[req.priority] ?? PRIORITY_CFG.normal;
-            const isExp = expandedReq === req.id;
-            const items = req.purchase_request_items ?? [];
-
+          {filtradas.map(s => {
+            const e = ESTADOS[s.status] ?? ESTADOS.draft;
+            const exp = abierta === s.id;
             return (
-              <Card key={req.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <button onClick={() => setExpandedReq(isExp ? null : req.id)} className="text-muted-foreground flex-shrink-0">
-                        {isExp ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      </button>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs text-muted-foreground">{req.request_number}</span>
-                          <span className="font-semibold text-foreground">{req.title}</span>
-                          <Badge className={`text-xs ${pc.color}`}>{pc.label}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {req.requested_by}{req.department && ` · ${req.department}`} · {new Date(req.created_at).toLocaleDateString("es-AR")}
-                          {req.needed_by && ` · Necesario: ${new Date(req.needed_by).toLocaleDateString("es-AR")}`}
-                        </p>
+              <div key={s.id} className="rounded-lg border border-border bg-card p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <button type="button" className="flex min-w-0 flex-1 items-start gap-2 text-left" onClick={() => setAbierta(exp ? null : s.id)}>
+                    {exp ? <ChevronDown className="mt-0.5 h-4 w-4 shrink-0" /> : <ChevronRight className="mt-0.5 h-4 w-4 shrink-0" />}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-muted-foreground">{s.request_number}</span>
+                        <span className="font-medium">{s.title}</span>
+                        {s.priority !== "normal" && <Badge variant={s.priority === "urgent" ? "destructive" : "secondary"}>{PRIORIDADES[s.priority] ?? s.priority}</Badge>}
                       </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {s.requested_by}{s.department ? ` · ${s.department}` : ""} · {new Date(s.created_at).toLocaleDateString("es-AR")}
+                        {s.needed_by ? ` · para el ${new Date(`${s.needed_by}T12:00:00`).toLocaleDateString("es-AR")}` : ""}
+                        {s.purchase_orders ? ` · orden ${s.purchase_orders.order_number}` : ""}
+                      </p>
                     </div>
-
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">{fmt(req.total_estimated)}</p>
-                        <Badge className={`text-xs flex items-center gap-1 ${sc.color}`}>{sc.icon} {sc.label}</Badge>
-                      </div>
-                      <div className="flex gap-1">
-                        {req.status === "submitted" && (
-                          <>
-                            <Button size="sm" className="h-7 text-xs bg-emerald-600/80 hover:bg-emerald-600 text-white" onClick={() => updateStatus(req.id, "approved", { approved_at: new Date().toISOString() })}>
-                              Aprobar
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs text-red-400 border-red-400/30 hover:bg-red-400/10" onClick={() => { setRejectId(req.id); setRejectOpen(true); }}>
-                              Rechazar
-                            </Button>
-                          </>
-                        )}
-                        {req.status === "approved" && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(req.id, "ordered")}>
-                            Marcar pedida
-                          </Button>
-                        )}
-                        {req.status === "ordered" && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-green-400 border-green-500/30" onClick={() => updateStatus(req.id, "received")}>
-                            Recibida ✓
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                  </button>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold">{formatARS(Number(s.total_estimated))}</span>
+                    <Badge variant={e.variant} className="gap-1">{e.icon}{e.label}</Badge>
+                    {puedeAprobar && s.status === "submitted" && (
+                      <>
+                        <Button size="sm" className="h-7 text-xs" disabled={trabajando === s.id} onClick={() => void cambiarEstado(s, "approved").then(ok => ok && toast.success(`Solicitud ${s.request_number} aprobada`))}>Aprobar</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs text-destructive" disabled={trabajando === s.id} onClick={() => { setRechazando(s); setMotivo(""); }}>Rechazar</Button>
+                      </>
+                    )}
+                    {puedeAprobar && s.status === "approved" && (
+                      <Button size="sm" className="h-7 text-xs" disabled={trabajando === s.id} onClick={() => void abrirConversion(s)}><ClipboardList className="mr-1 h-3.5 w-3.5" />Crear orden de compra</Button>
+                    )}
+                    {["draft", "submitted", "approved"].includes(s.status) && (
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={trabajando === s.id} onClick={() => void cambiarEstado(s, "cancelled").then(ok => ok && toast.success("Solicitud cancelada"))}>Cancelar</Button>
+                    )}
                   </div>
-
-                  {isExp && (
-                    <div className="mt-4 pt-4 border-t space-y-2">
-                      {items.map(item => (
-                        <div key={item.id} className="flex justify-between text-sm bg-muted/20 px-3 py-1.5 rounded">
-                          <div>
-                            <span className="font-medium">{item.product_name}</span>
-                            {item.description && <span className="text-muted-foreground text-xs ml-2">{item.description}</span>}
-                            {item.preferred_supplier && <span className="text-xs text-blue-500 ml-2">[{item.preferred_supplier}]</span>}
-                          </div>
-                          <span className="text-muted-foreground">x{item.quantity} {item.unit} · {fmt(item.total_estimated)}</span>
-                        </div>
-                      ))}
-                      {req.rejected_reason && (
-                        <p className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">
-                          Motivo rechazo: {req.rejected_reason}
-                        </p>
-                      )}
-                      {req.notes && <p className="text-sm text-muted-foreground italic">{req.notes}</p>}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                </div>
+                {exp && (
+                  <div className="mt-3 space-y-1.5 border-t border-border pt-3">
+                    {(s.purchase_request_items ?? []).map(i => (
+                      <div key={i.id} className="flex justify-between gap-3 rounded bg-muted/20 px-3 py-1.5 text-sm">
+                        <span className="min-w-0 truncate">{i.product_name}{i.preferred_supplier ? <span className="ml-2 text-xs text-muted-foreground">({i.preferred_supplier})</span> : null}</span>
+                        <span className="shrink-0 text-muted-foreground">{Number(i.quantity).toLocaleString("es-AR")} {i.unit} · {formatARS(Number(i.total_estimated))}</span>
+                      </div>
+                    ))}
+                    {s.rejected_reason && <p className="rounded bg-destructive/10 px-3 py-2 text-sm text-destructive">Motivo del rechazo: {s.rejected_reason}</p>}
+                    {s.notes && <p className="text-sm italic text-muted-foreground">{s.notes}</p>}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
       )}
 
-      {/* Reject dialog */}
-      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Rechazar solicitud</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Label>Motivo del rechazo *</Label>
-            <Textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} rows={3} placeholder="Explicá el motivo..." className="bg-muted" />
-            <div className="flex gap-2">
-              <Button variant="ghost" className="flex-1" onClick={() => setRejectOpen(false)}>Cancelar</Button>
-              <Button variant="destructive" className="flex-1" onClick={rejectRequest}>Rechazar</Button>
+      {/* ── Nueva ── */}
+      <Dialog open={nueva} onOpenChange={v => { if (!guardando) setNueva(v); }}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nueva solicitud de compra</DialogTitle>
+            <DialogDescription>La aprueba el dueño o un administrador; después se convierte en una orden de compra.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <label className="block text-xs text-muted-foreground">Qué se necesita
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Reposición de cables para el local" maxLength={200} />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-xs text-muted-foreground">Quién pide
+                <Input value={form.requested_by} onChange={e => setForm(f => ({ ...f, requested_by: e.target.value }))} placeholder="Si lo dejás vacío, tu nombre" />
+              </label>
+              <label className="text-xs text-muted-foreground">Área
+                <Input value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} placeholder="Depósito, local…" />
+              </label>
+              <label className="text-xs text-muted-foreground">Prioridad
+                <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(PRIORIDADES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </label>
+              <label className="text-xs text-muted-foreground">Para cuándo
+                <Input type="date" min={fechaArgentina()} value={form.needed_by} onChange={e => setForm(f => ({ ...f, needed_by: e.target.value }))} />
+              </label>
             </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Productos</p>
+              {renglones.map((r, i) => (
+                <div key={r.clave} className="space-y-2 rounded-lg border border-border bg-muted/20 p-2.5">
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      {r.libre ? (
+                        <Input value={r.nombre} onChange={e => cambiar(r.clave, { nombre: e.target.value })} placeholder="Algo que no está en el catálogo (resmas, herramientas…)" className="h-9" />
+                      ) : (
+                        <ProductCombobox<Producto> products={productos} value={r.productId} ariaLabel={`Producto ${i + 1}`} placeholder="Buscar por nombre, marca o código…" className="h-9"
+                          onChange={(_id, p) => cambiar(r.clave, p ? { productId: p.id, nombre: p.name, unidad: p.unidad_medida ?? null, precio: costoSugerido(p, "ARS", null) } : { productId: null, nombre: "" })} />
+                      )}
+                    </div>
+                    <button type="button" aria-label={`Quitar producto ${i + 1}`} className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setRenglones(prev => prev.length > 1 ? prev.filter(x => x.clave !== r.clave) : [renglonVacio()])}><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <label className="text-[11px] text-muted-foreground">Cantidad{r.unidad && r.unidad !== "unidad" ? ` (${r.unidad})` : ""}
+                      <Input type="number" min="0" step={pasoParaCantidad(r.unidad)} inputMode="decimal" value={r.qty} className="h-8" onChange={e => cambiar(r.clave, { qty: Number(e.target.value) })} />
+                    </label>
+                    <label className="text-[11px] text-muted-foreground">Precio estimado
+                      <Input type="number" min="0" step="0.01" inputMode="decimal" value={r.precio} className="h-8" onChange={e => cambiar(r.clave, { precio: Number(e.target.value) })} />
+                    </label>
+                    <div className="text-[11px] text-muted-foreground">Subtotal<div className="flex h-8 items-center justify-end text-sm font-semibold text-foreground">{formatARS(r.qty * r.precio)}</div></div>
+                  </div>
+                </div>
+              ))}
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setRenglones(prev => [...prev, renglonVacio()])}><Plus className="mr-1 h-3.5 w-3.5" />Producto del catálogo</Button>
+                <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setRenglones(prev => [...prev, renglonVacio(true)])}><PenLine className="mr-1 h-3.5 w-3.5" />Otra cosa</Button>
+              </div>
+              <p className="text-right text-sm font-medium">Total estimado: {formatARS(totalNueva)}</p>
+            </div>
+
+            <label className="block text-xs text-muted-foreground">Notas
+              <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} maxLength={2000} />
+            </label>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <Button variant="outline" onClick={() => setNueva(false)} disabled={guardando}>Cancelar</Button>
+              <Button onClick={() => void guardar()} disabled={guardando} data-testid="enviar-solicitud">
+                {guardando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Enviar para aprobar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Rechazar ── */}
+      <Dialog open={!!rechazando} onOpenChange={v => { if (!v) setRechazando(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Rechazar {rechazando?.request_number}</DialogTitle></DialogHeader>
+          <label className="block text-xs text-muted-foreground">Motivo
+            <Textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={3} placeholder="Para que quien pidió sepa por qué" />
+          </label>
+          <div className="flex gap-2">
+            <Button variant="ghost" className="flex-1" onClick={() => setRechazando(null)}>Volver</Button>
+            <Button variant="destructive" className="flex-1" disabled={!motivo.trim() || trabajando === rechazando?.id}
+              onClick={() => rechazando && void cambiarEstado(rechazando, "rejected", { rejected_reason: motivo.trim() }).then(ok => { if (ok) { toast.success("Solicitud rechazada"); setRechazando(null); } })}>Rechazar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Convertir en orden ── */}
+      <Dialog open={!!convirtiendo} onOpenChange={v => { if (!v && !trabajando) setConvirtiendo(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Orden de compra para {convirtiendo?.request_number}</DialogTitle>
+            <DialogDescription>Se crea en borrador con los productos y precios estimados de la solicitud; la revisás y la enviás desde Órdenes.</DialogDescription>
+          </DialogHeader>
+          {proveedores.length > 0 ? (
+            <label className="block text-xs text-muted-foreground">Proveedor
+              <Select value={proveedorId} onValueChange={setProveedorId}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Elegí el proveedor" /></SelectTrigger>
+                <SelectContent>{proveedores.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </label>
+          ) : (
+            <label className="block text-xs text-muted-foreground">Proveedor
+              <Input value={proveedorLibre} onChange={e => setProveedorLibre(e.target.value)} placeholder="Nombre del proveedor" />
+            </label>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConvirtiendo(null)} disabled={!!trabajando}>Volver</Button>
+            <Button onClick={() => void convertir()} disabled={!!trabajando}>{trabajando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Crear orden</Button>
           </div>
         </DialogContent>
       </Dialog>
