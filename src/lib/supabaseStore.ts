@@ -1238,6 +1238,18 @@ export async function updateCustomerDB(id: string, updates: Partial<{
   if (error) throw error;
 }
 
+/**
+ * Combina dos fichas en una sola transacción (`fusionar_clientes`, migración
+ * 20261014000800): todo lo que apunta al origen —ventas, deudas, saldo a favor,
+ * CRM, pedidos, presupuestos, segmentos…— pasa al destino y el origen se borra.
+ * Devuelve cuántas filas movió por tabla.
+ */
+export async function fusionarClientesDB(orgId: string, origenId: string, destinoId: string) {
+  const { data, error } = await supabase.rpc('fusionar_clientes' as never, { p_org: orgId, p_origen: origenId, p_destino: destinoId } as never);
+  if (error) throw error;
+  return data as unknown as { origen: string; destino: string; movidas: Record<string, number> };
+}
+
 export async function deleteCustomerDB(id: string) {
   const { error } = await supabase.from('customers').delete().eq('id', id);
   if (error) throw error;

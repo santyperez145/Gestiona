@@ -1,11 +1,12 @@
 ﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { mensajeDeError } from "@/lib/cuentaCorriente";
+import { resumenDeFusion } from "@/lib/fusionClientes";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
   getSalesDB, getDebtsDB, getSettingsDB, formatARS,
-  getCustomersDB, createCustomerDB, updateCustomerDB, deleteCustomerDB,
+  getCustomersDB, createCustomerDB, updateCustomerDB, deleteCustomerDB, fusionarClientesDB,
   getCRMSegmentsDB, saveCRMSegmentsDB, type SavedCRMSegment, fetchOrgProducts,
 } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -1707,35 +1708,22 @@ export default function CustomersPage() {
     }
     if (!(await ask({
       title: "¿Combinar clientes?",
-      description: `Se moverán las filas ya enlazadas por ID de "${srcProfile.name}" a "${dstProfile.name}". Esta acción no se puede deshacer.`,
+      description: `Todo lo de "${srcProfile.name}" (ventas, deudas, saldo a favor, historial del CRM, pedidos y segmentos) pasa a "${dstProfile.name}" y se borra su ficha. Esta acción no se puede deshacer.`,
       confirmText: "Combinar",
       variant: "destructive",
     }))) return;
     setMerging(true);
     try {
-      const orgId = activeOrg.id;
-
-      const reasignar = async (tabla: "sales" | "debts" | "loyalty_points") => {
-        const { error } = await supabase.from(tabla)
-          .update({ customer_name: dstProfile.name, customer_id: dstProfile.id })
-          .eq("org_id", orgId)
-          .eq("customer_id", srcProfile.id);
-        if (error) throw error;
-      };
-
-      await reasignar("sales");
-      await reasignar("debts");
-      await reasignar("loyalty_points");
-
-      const { error: deleteError } = await supabase.from("customers").delete().eq("id", srcProfile.id);
-      if (deleteError) throw deleteError;
-      toast.success(`"${srcProfile.name}" fusionado con "${dstProfile.name}"`);
+      // Una sola transacción: o se mueve todo (ventas, deudas, saldo, CRM,
+      // pedidos, segmentos…) y se borra el origen, o no cambia nada.
+      const r = await fusionarClientesDB(activeOrg.id, srcProfile.id, dstProfile.id);
+      toast.success(`"${srcProfile.name}" fusionado con "${dstProfile.name}"`, { description: resumenDeFusion(r.movidas) });
       setMergingCustomer(null);
       setMergeTarget("");
       setSelectedCustomer(null);
       loadData();
-    } catch (e: any) {
-      toast.error(e.message || "Error al fusionar");
+    } catch (e) {
+      toast.error(mensajeDeError(e, "No se pudieron combinar los clientes"));
     } finally {
       setMerging(false);
     }
@@ -1763,26 +1751,11 @@ export default function CustomersPage() {
     }))) return;
     setMerging(true);
     try {
-      const orgId = activeOrg.id;
-      const srcId = srcProfile.id;
-      const dstId = cluster.suggestedPrimaryId;
-      const dstName = dstProfile.name;
-      const reasignar = async (tabla: "sales" | "debts" | "loyalty_points") => {
-        const { error } = await supabase.from(tabla)
-          .update({ customer_name: dstName, customer_id: dstId })
-          .eq("org_id", orgId)
-          .eq("customer_id", srcId);
-        if (error) throw error;
-      };
-      await reasignar("sales");
-      await reasignar("debts");
-      await reasignar("loyalty_points");
-      const { error: deleteError } = await supabase.from("customers").delete().eq("id", srcId);
-      if (deleteError) throw deleteError;
-      toast.success(`"${srcProfile.name}" fusionado con "${dstName}"`);
+      const r = await fusionarClientesDB(activeOrg.id, srcProfile.id, cluster.suggestedPrimaryId);
+      toast.success(`"${srcProfile.name}" fusionado con "${dstProfile.name}"`, { description: resumenDeFusion(r.movidas) });
       loadData();
-    } catch (e: any) {
-      toast.error(e.message || "Error al fusionar");
+    } catch (e) {
+      toast.error(mensajeDeError(e, "No se pudieron combinar los clientes"));
     } finally {
       setMerging(false);
     }
