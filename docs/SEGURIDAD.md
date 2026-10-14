@@ -148,8 +148,10 @@ Fuentes oficiales consultadas el 2026-10-04:
 
 - Todas las tablas del esquema `public` tienen RLS.
 - Una policy abierta sólo es válida para catálogos públicos documentados.
-- Al 2026-09-04 las únicas excepciones son `plans`, `payment_providers` y
+- Al 2026-09-04 las únicas excepciones eran `plans`, `payment_providers` y
   `payment_provider_fees`: tres catálogos sin credenciales ni datos de tenant.
+  Desde el 2026-10-14 se suma `rubro_reglas_categoria` (reglas de categorías
+  por rubro, sin `org_id`), que existía sin declarar.
 - `audit_policies_sin_tenant` y `audit_rpc_sin_permiso` deben devolver cero.
 
 ### Funciones privilegiadas
@@ -272,11 +274,15 @@ select * from public.audit_funciones_expuestas;
 select * from public.audit_costo_expuesto;
 select * from public.audit_policies_sin_tenant;
 select * from public.audit_rpc_sin_permiso;
+select * from public.audit_vistas_abiertas;
 select * from public.rls_audit_open_policies;
 ```
 
-Las primeras cuatro deben estar vacías. La última debe contener exactamente los
-tres catálogos públicos declarados arriba. La comprobación se ejecuta con los
+Las primeras cinco deben estar vacías. La última debe contener exactamente los
+cuatro catálogos públicos declarados arriba. Desde el 2026-10-14 las corre
+todos los días `auditoria_de_seguridad_diaria()` (cron 6:17 UTC), que deja
+cualquier hallazgo en Platform → Errores de la app. Ese día se encontró que
+dos de estos auditores se habían corrido sin que nadie lo viera. La comprobación se ejecuta con los
 roles `anon`, `authenticated` outsider, miembro y staff, no como superusuario.
 
 ## Respuesta a incidentes

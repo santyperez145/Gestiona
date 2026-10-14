@@ -1,6 +1,6 @@
 # ADR 006 — la frontera entre negocios se cierra por defecto
 
-- **Estado:** aceptado; implementación incremental.
+- **Estado:** aceptado; implementado el 2026-10-14 (acciones 1–6).
 - **Fecha:** 2026-10-13. **Responsables:** CTO / Seguridad.
 - **Complementa:** [Seguridad](SEGURIDAD.md). No reemplaza ADR 001–005.
 
@@ -155,7 +155,11 @@ cerrando con D, una pieza por vez y siempre con simulacro.
    `postgres` en `public`.
    Hecho el 2026-10-13: migración 20261013000900 (tablas, vistas y secuencias),
    matriz 5/5 en simulacro y en vivo; sin la migración falla.
-4. [ ] `audit_vistas_abiertas` en cero y sumado a los auditores críticos de
+4. [x] `audit_vistas_abiertas` en cero y sumado a los auditores críticos de
    [Seguridad](SEGURIDAD.md).
-5. [ ] Cron diario de auditores críticos que escribe en `app_errores`.
-6. [ ] Actualizar SEGURIDAD.md con la regla y los cuatro scripts.
+5. [x] Cron diario de auditores críticos que escribe en `app_errores`.
+6. [x] Actualizar SEGURIDAD.md con la regla y los cuatro scripts.
+   Acciones 4–6 hechas el 2026-10-14: migración 20261014000100
+   (`scripts/auditoria-diaria-matrix.sql` 4/4). Al hacerlas apareció deriva:
+   `audit_funciones_expuestas` daba 13 y había una política abierta sin declarar;
+   se cerró con contratos y documentación, y ahora la vigila el cron.

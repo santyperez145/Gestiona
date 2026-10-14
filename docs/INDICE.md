@@ -97,7 +97,7 @@ sus benchmarks. Fuente fechada e implementación comprobada son evidencias disti
 | ADR 001 / 003 | Aceptado | CTO | Fecha de cada ADR; no sustituidos. |
 | ADR 002 | Aceptado parcialmente sustituido | CTO | ADR 004 reemplaza límites indicados; contexto histórico intacto. |
 | ADR 004 | Aceptado incremental | CTO / Producto | 2026-10-01. |
-| ADR 006 | Aceptado incremental | CTO / Seguridad | 2026-10-13. |
+| ADR 006 | Aceptado e implementado | CTO / Seguridad | 2026-10-13; acciones cerradas 2026-10-14. |
 | F5.1 / C22.2 | Referencia: protocolos operativos | Producto / Operación | No sustituyen contrato Finance / importación. |
 | Auditorías y cierres anteriores | Histórico | Owner del cambio | Git; no autoridad paralela ni promesa vigente. |
 
