@@ -60,6 +60,7 @@ import PurchaseRequestsTab from "@/components/purchases/PurchaseRequestsTab";
 
 import { plural } from "@/lib/plural";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
+import EnviarOrdenDialog from "@/components/compras/EnviarOrdenDialog";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PurchaseOrder {
@@ -103,6 +104,7 @@ interface Supplier {
   id: string;
   name: string;
   email: string | null;
+  phone?: string | null;
 }
 
 interface Product {
@@ -681,11 +683,12 @@ interface PORowProps {
   online: boolean;
   onEdit: () => void;
   onAdvanceStatus: (status: string) => void;
+  onSend: () => void;
   onReceived: () => void;
   onDelete: () => void;
 }
 
-function PORow({ order, focusAction, online, onEdit, onAdvanceStatus, onReceived, onDelete }: PORowProps) {
+function PORow({ order, focusAction, online, onEdit, onAdvanceStatus, onSend, onReceived, onDelete }: PORowProps) {
   const [recibiendo, setRecibiendo] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -769,13 +772,18 @@ function PORow({ order, focusAction, online, onEdit, onAdvanceStatus, onReceived
 
           <div className="flex flex-wrap gap-2 pt-1">
             {order.status === "draft" && (
-              <Button size="sm" variant="outline" onClick={() => onAdvanceStatus("sent")} disabled={!online}>
-                <Send className="w-3.5 h-3.5 mr-1" /> Enviar OC
+              <Button size="sm" variant="outline" onClick={onSend} disabled={!online}>
+                <Send className="w-3.5 h-3.5 mr-1" /> Enviar al proveedor
               </Button>
             )}
             {order.status === "sent" && (
               <Button size="sm" variant="outline" onClick={() => onAdvanceStatus("confirmed")} disabled={!online}>
-                <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Confirmar
+                <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-400" /> El proveedor confirmó
+              </Button>
+            )}
+            {(order.status === "sent" || order.status === "confirmed") && (
+              <Button size="sm" variant="ghost" onClick={onSend} disabled={!online}>
+                <Send className="w-3.5 h-3.5 mr-1" /> Reenviar
               </Button>
             )}
             {(order.status === "confirmed" || order.status === "partially_received") && (
@@ -840,6 +848,7 @@ export default function PurchaseOrdersPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
+  const [enviandoOrden, setEnviandoOrden] = useState<PurchaseOrder | null>(null);
   const [focusedOrder, setFocusedOrder] = useState<{ id: string; action: PurchaseOrderHandoffAction } | null>(null);
   const [handoffNotice, setHandoffNotice] = useState<{ kind: "success" | "stale"; title: string; detail: string } | null>(null);
 
@@ -854,7 +863,7 @@ export default function PurchaseOrdersPage() {
       supabase.from("purchase_orders").select("*, items:purchase_order_items(*)").eq("org_id", orgId).order("created_at", { ascending: false }),
       // La tabla real es `suppliers` (no `proveedores`), y en products el
       // costo/precio son cost_usd / sale_price_ars.
-      supabase.from("suppliers").select("id,name,email").eq("org_id", orgId).order("name"),
+      supabase.from("suppliers").select("id,name,email,phone").eq("org_id", orgId).order("name"),
       fetchOrgProducts(orgId, "id,name,sku,cost_usd,sale_price_ars"),
     ]);
     if (request !== loadRequest.current || activeOrgIdRef.current !== orgId) return;
@@ -1073,6 +1082,7 @@ export default function PurchaseOrdersPage() {
                       online={online}
                       onEdit={() => { setEditingOrder(order); setFormOpen(true); }}
                       onAdvanceStatus={status => handleAdvanceStatus(order, status)}
+                      onSend={() => setEnviandoOrden(order)}
                       onReceived={loadAll}
                       onDelete={() => handleDelete(order)}
                     />
@@ -1088,6 +1098,16 @@ export default function PurchaseOrdersPage() {
           <PurchaseRequestsTab />
         </TabsContent>
       </Tabs>
+
+      <EnviarOrdenDialog
+        open={!!enviandoOrden}
+        onOpenChange={v => { if (!v) setEnviandoOrden(null); }}
+        orgId={orgId}
+        orden={enviandoOrden}
+        proveedor={enviandoOrden?.supplier_id ? suppliers.find(s => s.id === enviandoOrden.supplier_id) ?? null : null}
+        negocio={activeOrg?.name ?? ""}
+        onEnviada={loadAll}
+      />
 
       <POForm
         open={formOpen}

@@ -94,7 +94,10 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
       - De paso, `receive_purchase_order` guardaba la cantidad como entero (recibir 12,5 m sumaba 12 al stock y 12,5 a la orden) y una orden en pesos sin cotización guardaba pesos como dólares. Una compra guardaba la fecha a medianoche UTC y se veía el día anterior.
       - El flujo de caja proyectado toma lo que se debe a proveedores, en lugar de las programadas.
       - Tests: `src/test/compras.test.ts`, `src/test/flujoDeCajaProveedores.test.ts`.
-    - Pendiente, ciclo de compra único: quedan dos caminos para pedir fuera de Órdenes de compra, el modal de Proveedores y «Enviar OC», que sólo cambia el estado sin enviar nada (al 2026-10-14). Pasa a pedir (OC) → enviar → recibir → compra registrada.
+    - Ciclo de compra único: pedir (orden de compra) → enviar → recibir → compra registrada.
+      - «Enviar OC» sólo cambiaba el estado. Ahora envía la orden guardada, completa: por correo la arma el servidor (`send-supplier-po` v50, `verify_jwt` intacto en las 87 funciones al 2026-10-14) con todos los renglones, su moneda, subtotal, IVA, total, entrega y condiciones; por WhatsApp abre el chat con el detalle. La orden queda «enviada» con su fecha y se puede reenviar.
+      - «Orden de compra» en Proveedores mandaba un producto con un número inventado y una cotización fija de $1.700, y el pedido no existía en ningún lado. Ahora es «Pedir mercadería»: arma una orden real con lo que está bajo el mínimo de ese proveedor y la envía con el mismo diálogo.
+      - Tests: `src/test/ordenesDeCompraEnvio.test.ts`.
 - [x] Panel con catálogos grandes (2026-10-14, «con más de 1.000 productos se vuelve súper lenta y se cae»).
   - Medido con Famatina (5.500 productos): la sincronización completa son 7,1 MB y van a pasar de 15 MB con 11.534.
   - Antes, cada pantalla releía y reescribía entera la copia del navegador aunque no cambiara nada, y tenía su propia copia; el Inicio monta varios paneles que la pedían a la vez.

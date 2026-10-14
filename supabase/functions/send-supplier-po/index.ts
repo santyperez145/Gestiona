@@ -1,19 +1,16 @@
 /**
- * send-supplier-po — Sends a purchase order email to a supplier.
+ * send-supplier-po — Envía una orden de compra al proveedor por correo.
  *
- * Body: {
- *   orgId: string
- *   supplierEmail: string
- *   supplierName: string
- *   businessName: string
- *   productName: string
- *   quantity: number
- *   unitCostUSD: number
- *   totalUSD: number
- *   scheduledDate?: string   // ISO date, e.g. "2026-06-15"
- *   notes?: string
- *   exchangeRate?: number
- * }
+ * Body: { orgId: string, orderId: string, to?: string }
+ *
+ * 2026-10-14 (funciones incoherentes): antes recibía UN producto armado en el
+ * navegador (cantidad, costo en dólares, total) y le ponía un número
+ * «PO-xxxxxx» que no existía en ningún lado; el modal de Proveedores metía el
+ * resto de los productos en las notas, y «Enviar OC» en Órdenes de compra sólo
+ * cambiaba el estado sin mandar nada. Ahora el correo sale de la orden
+ * guardada: todos sus renglones, en su moneda, con subtotal, IVA, descuento y
+ * total que calculó la base, su número, fecha esperada y condiciones. Al
+ * enviarse, una orden en borrador pasa a «enviada» y queda la fecha de envío.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -29,210 +26,174 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const esc = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!));
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+type Renglon = { product_name: string; sku: string | null; quantity_ordered: number; unit_cost: number; tax_rate: number; total_cost: number };
+
+function formatoDe(moneda: string) {
+  const usd = moneda.toUpperCase() === "USD";
+  const n = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (v: number) => `${usd ? "US$" : "$"} ${n.format(Number(v) || 0)}`;
+}
+const fecha = (d: string | null) => d
+  ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric", timeZone: "America/Argentina/Buenos_Aires" })
+  : null;
+const cantidad = (n: number) => new Intl.NumberFormat("es-AR", { maximumFractionDigits: 3 }).format(Number(n) || 0);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // ── Auth check ──────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "No autenticado" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const sb = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } },
-  );
+  if (!authHeader) return json({ error: "No autenticado" }, 401);
+  const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
   const { data: userRes } = await sb.auth.getUser();
-  if (!userRes?.user?.id) {
-    return new Response(JSON.stringify({ error: "Token inválido o expirado" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  if (!userRes?.user?.id) return json({ error: "Token inválido o expirado" }, 401);
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
-    const {
-      orgId,
-      supplierEmail,
-      supplierName,
-      businessName,
-      productName,
-      quantity,
-      unitCostUSD,
-      totalUSD,
-      scheduledDate,
-      notes,
-      exchangeRate,
-    } = await req.json();
-
-    if (!UUID.test(String(orgId ?? "")) || !EMAIL.test(String(supplierEmail ?? "").trim()) || !String(productName ?? "").trim()) {
-      return new Response(
-        JSON.stringify({ error: "Faltan parámetros: supplierEmail, productName, orgId" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    const { orgId, orderId, to } = await req.json();
+    if (!UUID.test(String(orgId ?? "")) || !UUID.test(String(orderId ?? ""))) {
+      return json({ error: "Faltan parámetros: orgId y orderId" }, 400);
     }
+    const destinoPedido = String(to ?? "").trim().toLowerCase();
+    if (destinoPedido && !EMAIL.test(destinoPedido)) return json({ error: "El correo del proveedor no es válido", code: "INVALID_EMAIL" }, 400);
 
-    const { data: membership, error: membershipError } = await admin
-      .from("memberships")
-      .select("role")
-      .eq("org_id", orgId)
-      .eq("user_id", userRes.user.id)
-      .in("role", ["owner", "admin"])
-      .maybeSingle();
+    const { data: membership, error: membershipError } = await admin.from("memberships").select("role")
+      .eq("org_id", orgId).eq("user_id", userRes.user.id).in("role", ["owner", "admin"]).maybeSingle();
     if (membershipError) {
       console.error("send-supplier-po membership:", membershipError);
-      return new Response(JSON.stringify({ error: "No se pudo verificar tu permiso", code: "PERMISSION_CHECK_FAILED" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "No se pudo verificar tu permiso", code: "PERMISSION_CHECK_FAILED" }, 500);
     }
-    if (!membership) {
-      return new Response(JSON.stringify({ error: "No tenés permiso para enviar pedidos de compra", code: "FORBIDDEN" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!membership) return json({ error: "No tenés permiso para enviar órdenes de compra", code: "FORBIDDEN" }, 403);
+
+    const { data: orden, error: ordenError } = await admin.from("purchase_orders")
+      .select("id, org_id, order_number, supplier_id, supplier_name, supplier_email, status, currency, subtotal, tax_amount, discount_amount, total_amount, notes, expected_date, payment_terms, updated_at")
+      .eq("id", orderId).eq("org_id", orgId).maybeSingle();
+    if (ordenError) {
+      console.error("send-supplier-po orden:", ordenError);
+      return json({ error: "No se pudo leer la orden de compra", code: "ORDER_READ_FAILED" }, 500);
     }
+    if (!orden) return json({ error: "La orden de compra no existe en este negocio", code: "NOT_FOUND" }, 404);
+    if (!["draft", "sent", "confirmed"].includes(orden.status)) {
+      return json({ error: "Sólo se envían órdenes en borrador, enviadas o confirmadas", code: "INVALID_STATUS" }, 409);
+    }
+
+    const { data: renglones, error: renglonesError } = await admin.from("purchase_order_items")
+      .select("product_name, sku, quantity_ordered, unit_cost, tax_rate, total_cost")
+      .eq("order_id", orderId).order("created_at");
+    if (renglonesError) {
+      console.error("send-supplier-po renglones:", renglonesError);
+      return json({ error: "No se pudieron leer los productos de la orden", code: "ORDER_READ_FAILED" }, 500);
+    }
+    if (!renglones?.length) return json({ error: "La orden no tiene productos", code: "EMPTY_ORDER" }, 400);
+
+    let destino = destinoPedido || String(orden.supplier_email ?? "").trim().toLowerCase();
+    if (!destino && orden.supplier_id) {
+      const { data: prov, error: provError } = await admin.from("suppliers").select("email").eq("id", orden.supplier_id).eq("org_id", orgId).maybeSingle();
+      if (provError) console.error("send-supplier-po proveedor:", provError);
+      destino = String(prov?.email ?? "").trim().toLowerCase();
+    }
+    if (!EMAIL.test(destino)) return json({ error: "La orden no tiene un correo del proveedor: cargalo para enviarla", code: "NO_EMAIL" }, 400);
 
     const smtpCfg = await smtpDeOrganizacion(orgId);
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
+    if (!smtpCfg && !resendKey) return json({ error: "No hay proveedor de correo configurado. Configurá SMTP en Ajustes." }, 400);
 
-    if (!smtpCfg && !resendKey) {
-      return new Response(
-        JSON.stringify({ error: "No hay proveedor de email configurado. Configurá SMTP en Ajustes." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const [{ data: ajustes }, { data: org }] = await Promise.all([
+      admin.from("settings").select("business_name").eq("org_id", orgId).maybeSingle(),
+      admin.from("organizations").select("name").eq("id", orgId).maybeSingle(),
+    ]);
+    const negocio = String(ajustes?.business_name || org?.name || "Nuestro negocio");
+    const f = formatoDe(String(orden.currency || "ARS"));
+    const hoy = fecha(new Date().toISOString());
+    const esperada = fecha(orden.expected_date);
 
-    // ── Build PO HTML ────────────────────────────────────────
-    const fmtUSD = (n: number) =>
-      new Intl.NumberFormat("es-AR", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n);
-
-    const today = new Date().toLocaleDateString("es-AR", {
-      day: "2-digit", month: "long", year: "numeric",
-    });
-    const scheduledStr = scheduledDate
-      ? new Date(scheduledDate).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })
-      : null;
-
-    const poNumber = `PO-${Date.now().toString().slice(-6)}`;
+    const filas = (renglones as Renglon[]).map(r => `
+        <tr>
+          <td>${esc(r.product_name)}${r.sku ? `<div style="font-size:11px;color:#888">${esc(r.sku)}</div>` : ""}</td>
+          <td style="text-align:right">${cantidad(r.quantity_ordered)}</td>
+          <td style="text-align:right">${f(r.unit_cost)}</td>
+          <td style="text-align:right">${Number(r.tax_rate) > 0 ? `${cantidad(r.tax_rate)} %` : "—"}</td>
+          <td style="text-align:right">${f(r.total_cost)}</td>
+        </tr>`).join("");
 
     const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pedido de Compra — ${businessName}</title>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orden de compra ${esc(orden.order_number)} — ${esc(negocio)}</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; background: #f0f0f4; color: #1a1a2e; padding: 24px; }
-  .container { max-width: 620px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
-  .header { background: #1a1a2e; padding: 28px 36px; }
-  .header h1 { color: #d4a843; font-size: 20px; margin-bottom: 4px; }
-  .header p { color: rgba(255,255,255,0.6); font-size: 12px; }
-  .body { padding: 28px 36px; }
-  .meta-row { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; color: #666; }
-  .meta-row strong { color: #1a1a2e; }
-  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
-  th { background: #1a1a2e; color: #d4a843; text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
-  tr:nth-child(even) td { background: #fafafa; }
-  .total-row td { border-top: 2px solid #d4a843; font-weight: 700; font-size: 14px; }
-  .total-row td:last-child { color: #d4a843; }
-  .notes-box { background: #fffbeb; border-left: 3px solid #d4a843; padding: 12px 14px; border-radius: 0 6px 6px 0; font-size: 13px; color: #555; margin-bottom: 20px; }
-  .dates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-  .date-card { background: #f9f9fb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
-  .date-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; margin-bottom: 4px; }
-  .date-value { font-size: 14px; font-weight: 600; color: #1a1a2e; }
-  .footer { background: #f9f9fb; padding: 18px 36px; text-align: center; font-size: 11px; color: #aaa; border-top: 1px solid #e5e7eb; }
-</style>
-</head>
-<body>
-<div class="container">
-  <div class="header">
-    <h1>${esc(businessName)}</h1>
-    <p>Pedido de Compra N° ${poNumber} · Emitido el ${today}</p>
-  </div>
-  <div class="body">
-    <div class="meta-row">
-      <div><div style="font-size:10px;text-transform:uppercase;color:#aaa;margin-bottom:2px">Proveedor</div><strong>${esc(supplierName || "—")}</strong></div>
-      <div style="text-align:right"><div style="font-size:10px;text-transform:uppercase;color:#aaa;margin-bottom:2px">Número de Pedido</div><strong>${poNumber}</strong></div>
+  body { font-family: Arial, sans-serif; background: #f4f4f6; color: #1a1a2e; padding: 24px; margin: 0; }
+  .c { max-width: 680px; margin: 0 auto; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e5e7eb; }
+  .h { padding: 24px 32px; border-bottom: 1px solid #e5e7eb; }
+  .h h1 { font-size: 18px; margin: 0 0 4px; }
+  .h p { font-size: 12px; color: #666; margin: 0; }
+  .b { padding: 24px 32px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 24px; font-size: 13px; margin-bottom: 18px; }
+  .meta div span { display: block; font-size: 10px; text-transform: uppercase; color: #999; margin-bottom: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; color: #777; border-bottom: 1px solid #ddd; padding: 6px 8px; }
+  td { padding: 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  .tot td { border: 0; padding: 4px 8px; }
+  .notas { background: #f9fafb; border-left: 3px solid #999; padding: 10px 12px; font-size: 13px; color: #444; margin-top: 16px; white-space: pre-wrap; }
+  .f { padding: 14px 32px; font-size: 11px; color: #999; border-top: 1px solid #e5e7eb; }
+</style></head>
+<body><div class="c">
+  <div class="h"><h1>${esc(negocio)}</h1><p>Orden de compra ${esc(orden.order_number)} · ${esc(hoy)}</p></div>
+  <div class="b">
+    <div class="meta">
+      <div><span>Proveedor</span><strong>${esc(orden.supplier_name || "—")}</strong></div>
+      <div><span>Orden</span><strong>${esc(orden.order_number)}</strong></div>
+      ${esperada ? `<div><span>Entrega esperada</span><strong>${esc(esperada)}</strong></div>` : ""}
+      ${orden.payment_terms ? `<div><span>Condiciones</span><strong>${esc(orden.payment_terms)}</strong></div>` : ""}
     </div>
-
-    ${scheduledStr ? `
-    <div class="dates-grid">
-      <div class="date-card"><div class="date-label">Fecha de emisión</div><div class="date-value">${today}</div></div>
-      <div class="date-card"><div class="date-label">Entrega estimada</div><div class="date-value">${scheduledStr}</div></div>
-    </div>` : ""}
-
-    <div class="section-title">Detalle del pedido</div>
     <table>
-      <thead><tr><th>Producto</th><th style="text-align:right">Cant.</th><th style="text-align:right">Precio Unit.</th><th style="text-align:right">Total</th></tr></thead>
+      <thead><tr><th>Producto</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Costo unit.</th><th style="text-align:right">IVA</th><th style="text-align:right">Subtotal</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <table style="margin-top:10px">
       <tbody>
-        <tr>
-          <td>${esc(productName)}</td>
-          <td style="text-align:right">${esc(quantity)}</td>
-          <td style="text-align:right">${fmtUSD(Number(unitCostUSD || 0))}</td>
-          <td style="text-align:right">${fmtUSD(Number(totalUSD || 0))}</td>
-        </tr>
-        <tr class="total-row">
-          <td colspan="3"><strong>Total del pedido</strong></td>
-          <td style="text-align:right"><strong>${fmtUSD(Number(totalUSD || 0))}</strong></td>
-        </tr>
+        <tr class="tot"><td style="text-align:right;color:#666">Subtotal</td><td style="text-align:right;width:140px">${f(orden.subtotal)}</td></tr>
+        ${Number(orden.tax_amount) > 0 ? `<tr class="tot"><td style="text-align:right;color:#666">IVA</td><td style="text-align:right">${f(orden.tax_amount)}</td></tr>` : ""}
+        ${Number(orden.discount_amount) > 0 ? `<tr class="tot"><td style="text-align:right;color:#666">Descuento</td><td style="text-align:right">− ${f(orden.discount_amount)}</td></tr>` : ""}
+        <tr class="tot"><td style="text-align:right;font-weight:700">Total</td><td style="text-align:right;font-weight:700">${f(orden.total_amount)}</td></tr>
       </tbody>
     </table>
-
-    ${notes ? `<div class="notes-box"><strong>Notas:</strong> ${esc(String(notes).slice(0, 2000))}</div>` : ""}
-
-    <p style="font-size:13px;color:#666;line-height:1.6">
-      Por favor confirmá la recepción de este pedido respondiendo este correo.
-      Ante cualquier consulta no dudes en contactarnos.
-    </p>
-    <br>
-    <p style="font-size:13px;color:#1a1a2e;font-weight:600">Muchas gracias,<br>${esc(businessName)}</p>
+    ${orden.notes ? `<div class="notas">${esc(String(orden.notes).slice(0, 2000))}</div>` : ""}
+    <p style="font-size:13px;color:#555;line-height:1.6;margin-top:18px">Por favor, confirmá la orden respondiendo este correo. Gracias.</p>
+    <p style="font-size:13px;font-weight:600">${esc(negocio)}</p>
   </div>
-  <div class="footer">
-    Este pedido de compra fue generado automáticamente por ${esc(businessName)} vía Nerqia.<br>
-    ${exchangeRate ? `TC referencia: $${Number(exchangeRate).toLocaleString("es-AR")} ARS/USD` : ""}
-  </div>
-</div>
-</body>
-</html>`;
+  <div class="f">Orden generada con Nerqia.</div>
+</div></body></html>`;
 
-    // ── Send ─────────────────────────────────────────────────
     const result = await sendEmail(
       smtpCfg,
       resendKey,
       (await remitenteDe("pedidos")).from,
       {
-        to: String(supplierEmail).trim().toLowerCase(),
-        subject: `Pedido de Compra N° ${poNumber} — ${String(productName).slice(0, 100)} (${Number(quantity) || 0} u.)`,
+        to: destino,
+        subject: `Orden de compra ${String(orden.order_number)} — ${negocio.slice(0, 80)}`,
         html,
       },
-      { org_id: orgId, purchase_order: poNumber, message_type: "supplier_purchase_order" },
-      { idempotencyKey: `supplier-po/${orgId}/${poNumber}` },
+      { org_id: orgId, purchase_order: orden.order_number, message_type: "supplier_purchase_order" },
+      // Cambia con cada envío (updated_at se mueve al registrarlo): un doble
+      // clic no duplica y un reenvío deliberado sale.
+      { idempotencyKey: `supplier-po/${orgId}/${orden.id}/${orden.updated_at}` },
     );
+    if (!result.ok) return json(emailFailure(result, "merchant", "send-supplier-po"), 502);
 
-    if (!result.ok) {
-      return new Response(JSON.stringify(emailFailure(result, "merchant", "send-supplier-po")), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const cambios: Record<string, unknown> = { sent_at: new Date().toISOString() };
+    if (orden.status === "draft") cambios.status = "sent";
+    if (!orden.supplier_email) cambios.supplier_email = destino;
+    const { error: estadoError } = await admin.from("purchase_orders").update(cambios).eq("id", orden.id).eq("org_id", orgId);
+    if (estadoError) {
+      // El correo ya salió: no se informa como falla, pero se avisa.
+      console.error("send-supplier-po estado:", estadoError);
+      return json({ success: true, to: destino, orderNumber: orden.order_number, statusUpdated: false });
     }
-
-    console.log(`send-supplier-po: to=${supplierEmail} provider=${result.provider}`);
-    return new Response(JSON.stringify({ success: true, poNumber }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.log(`send-supplier-po: ${orden.order_number} to=${destino} provider=${result.provider}`);
+    return json({ success: true, to: destino, orderNumber: orden.order_number, statusUpdated: true });
   } catch (err: unknown) {
     console.error("send-supplier-po error:", err);
-    return new Response(JSON.stringify({ error: "No se pudo preparar el pedido de compra. Revisá los datos e intentá nuevamente.", code: "PURCHASE_ORDER_EMAIL_FAILED" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "No se pudo enviar la orden de compra. Intentá nuevamente.", code: "PURCHASE_ORDER_EMAIL_FAILED" }, 500);
   }
 });

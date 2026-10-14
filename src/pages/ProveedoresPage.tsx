@@ -393,8 +393,8 @@ export default function ProveedoresPage() {
             <Button variant="outline" className="h-9 gap-2 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => setDebtOpen(true)}>
               <Plus className="w-4 h-4" />Nueva deuda
             </Button>
-            <Button variant="outline" className="h-9 gap-2 border-primary/40 text-primary hover:bg-primary/10" onClick={() => { setPoSupplierId(undefined); setPoOpen(true); }} title="Generar orden de compra por stock bajo">
-              <ShoppingCart className="w-4 h-4" /> Orden de compra
+            <Button variant="outline" className="h-9 gap-2 border-primary/40 text-primary hover:bg-primary/10" onClick={() => { setPoSupplierId(undefined); setPoOpen(true); }} title="Armar una orden de compra con lo que está bajo el mínimo">
+              <ShoppingCart className="w-4 h-4" /> Pedir mercadería
             </Button>
             <Button className="h-9" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-2" /> Nuevo proveedor
@@ -583,7 +583,7 @@ export default function ProveedoresPage() {
                   <button
                     onClick={() => { setPoSupplierId(s.id); setPoOpen(true); }}
                     className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/60 hover:text-primary transition-colors"
-                    title="Generar orden de compra para este proveedor"
+                    title="Pedirle mercadería a este proveedor (orden de compra)"
                   >
                     <FileText className="w-4 h-4" />
                   </button>
