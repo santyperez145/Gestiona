@@ -81,7 +81,7 @@ import { groupPosOfflineTickets, posOfflineAgeLabel, summarizePosOfflineQueue } 
 import { posPaymentDiscountPercent, posPriceForPayment } from "@/lib/posPaymentDiscount";
 import { PosQrCheckoutDialog } from "@/components/pos/PosQrCheckoutDialog";
 import CobroACuentaForm from "@/components/finance/CobroACuentaForm";
-import { deudorDelCliente, mensajeDeError, type Deudor } from "@/lib/cuentaCorriente";
+import { deudorDelCliente, mensajeDeError, saldoAFavorDB, type Deudor } from "@/lib/cuentaCorriente";
 import {
   POS_QR_RETRYABLE_TERMINAL_STATES,
   POS_QR_TERMINAL_STATES,
@@ -1438,6 +1438,7 @@ export default function POSPage() {
   const [cobroDeuda, setCobroDeuda] = useState<Deudor | null>(null);
   const [cargandoCobro, setCargandoCobro] = useState(false);
   const [refrescoDeuda, setRefrescoDeuda] = useState(0);
+  const [saldoCliente, setSaldoCliente] = useState<number | null>(null);
   // Tope de fiado del cliente elegido (null = sin límite). La base lo vuelve a validar.
   const [customerCreditLimit, setCustomerCreditLimit] = useState<number | null>(null);
   const posCustomerId = posCustomer?.id ?? null;
@@ -1445,6 +1446,7 @@ export default function POSPage() {
     setCustomerDebt(null);
     setCustomerCreditLimit(null);
     setCustomerPriceListId(null);
+    setSaldoCliente(null);
     if (!activeOrg) return;
     if (!posCustomerId && (!customer.trim() || customer.trim().length < 3)) return;
     const timeout = setTimeout(async () => {
@@ -1460,6 +1462,11 @@ export default function POSPage() {
       setCustomerPriceListId((customerRes.data as any)?.price_list_id ?? null);
       const limite = (customerRes.data as any)?.credit_limit_ars;
       setCustomerCreditLimit(posCustomerId && limite !== null && limite !== undefined ? Number(limite) : null);
+      if (posCustomerId) {
+        // Sólo informativo: si no se puede leer, no se muestra (la base valida cada cobro).
+        try { setSaldoCliente(await saldoAFavorDB(activeOrg.id, posCustomerId)); }
+        catch (err) { console.warn("[POS] saldo a favor", err); }
+      }
     }, posCustomerId ? 0 : 600);
     return () => clearTimeout(timeout);
   }, [customer, activeOrg, posCustomerId, refrescoDeuda]);
@@ -3177,6 +3184,21 @@ export default function POSPage() {
             )}
           </div>
         )}
+        {posCustomer && (
+          <div className="flex items-center justify-between gap-2 px-1 text-[11px] text-muted-foreground" data-testid="pos-saldo-a-favor">
+            <span>
+              {saldoCliente !== null && saldoCliente > 0.009
+                ? <>Saldo a favor: <strong className="text-emerald-500">{formatARS(saldoCliente)}</strong></>
+                : "Sin saldo a favor"}
+            </span>
+            {customerDebt === null && (
+              <button type="button" className="underline underline-offset-2 hover:text-foreground"
+                onClick={() => setCobroDeuda({ nombre: posCustomer.name, customerId: posCustomer.id, deudas: [], total: 0 })}>
+                Recibir anticipo
+              </button>
+            )}
+          </div>
+        )}
         {customerCreditLimit !== null && (
           <p className="px-1 text-[11px] text-muted-foreground" data-testid="pos-credit-available">
             Fiado disponible: <strong className="text-foreground">{formatARS(Math.max(customerCreditLimit - (customerDebt ?? 0), 0))}</strong> de {formatARS(customerCreditLimit)}
@@ -4173,8 +4195,12 @@ export default function POSPage() {
           <Dialog open={!!cobroDeuda} onOpenChange={v => { if (!v) setCobroDeuda(null); }}>
             <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="font-display">Cobrar cuenta corriente · {cobroDeuda?.nombre}</DialogTitle>
-                <DialogDescription>El cobro entra en la caja abierta y se aplica primero a la deuda más vieja.</DialogDescription>
+                <DialogTitle className="font-display">{cobroDeuda && cobroDeuda.total <= 0 ? "Anticipo" : "Cobrar cuenta corriente"} · {cobroDeuda?.nombre}</DialogTitle>
+                <DialogDescription>
+                  {cobroDeuda && cobroDeuda.total <= 0
+                    ? "La plata entra en la caja y queda a favor del cliente para sus próximas deudas."
+                    : "El cobro entra en la caja abierta y se aplica primero a la deuda más vieja; lo que sobre queda a favor."}
+                </DialogDescription>
               </DialogHeader>
               {cobroDeuda && activeOrg && user && (
                 <CobroACuentaForm objetivo={{ tipo: "cliente", deudor: cobroDeuda }} orgId={activeOrg.id} userId={user.id}

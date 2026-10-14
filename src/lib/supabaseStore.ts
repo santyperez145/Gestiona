@@ -525,6 +525,10 @@ export interface CobroCuentaCorriente {
   aplicado: number;
   imputaciones: Array<{ debt_id: string; aplicado: number; saldo: number; descripcion: string | null }>;
   saldo_pendiente: number;
+  /** Lo que quedó a favor del cliente en este cobro (excedente o anticipo). */
+  a_favor?: number;
+  /** Saldo a favor del cliente después del cobro (sólo con cliente elegido). */
+  saldo_a_favor?: number | null;
   en_caja: boolean;
   repetido: boolean;
 }
@@ -545,6 +549,8 @@ export async function cobrarCuentaCorrienteDB(args: {
   customerName?: string | null;
   debtId?: string | null;
   nota?: string | null;
+  /** Lo que supere la deuda queda a favor del cliente (migración 20261014000700). */
+  excedenteAFavor?: boolean;
 }): Promise<CobroCuentaCorriente> {
   const { data, error } = await supabase.rpc('cobrar_cuenta_corriente' as never, {
     p_org: args.orgId,
@@ -555,6 +561,8 @@ export async function cobrarCuentaCorrienteDB(args: {
     p_customer_name: args.customerName ?? null,
     p_debt_id: args.debtId ?? null,
     p_nota: args.nota ?? null,
+    // Sólo se manda cuando hace falta: sin él, pagar de más se rechaza como siempre.
+    ...(args.excedenteAFavor ? { p_excedente_a_favor: true } : {}),
   } as never);
   if (error) throw error;
   return data as unknown as CobroCuentaCorriente;

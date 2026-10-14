@@ -15,7 +15,7 @@ vi.mock("@/lib/supabaseStore", () => ({
   },
 }));
 
-import { agruparDeudores, cobrarADeudor, cobrarSeleccion, mensajeDeError, totalPendiente } from "@/lib/cuentaCorriente";
+import { agruparDeudores, cobrarADeudor, cobrarSeleccion, excedenteDe, mensajeDeError, totalPendiente } from "@/lib/cuentaCorriente";
 
 const deuda = (id: string, nombre: string | null, saldo: number | string, customer_id: string | null = null) =>
   ({ id, org_id: "org-1", customer_name: nombre, remaining_ars: saldo, customer_id });
@@ -135,5 +135,52 @@ describe("cuenta corriente: el cajero cobra en el mostrador", () => {
     expect(sql).not.toContain("'viewer'");
     // El reintento con la misma clave se resuelve antes de exigir caja.
     expect(sql.indexOf("RETURN v_previo || jsonb_build_object('repetido', true);")).toBeLessThan(sql.indexOf("IF NOT v_es_admin AND v_sesion IS NULL THEN"));
+  });
+});
+
+describe("cuenta corriente: saldo a favor", () => {
+  beforeEach(() => { llamadas.args = []; llamadas.fallar = new Set(); });
+  const sql = fs.readFileSync("supabase/migrations/20261014000700_saldo_a_favor.sql", "utf8");
+  const store = fs.readFileSync("src/lib/supabaseStore.ts", "utf8");
+  const form = fs.readFileSync("src/components/finance/CobroACuentaForm.tsx", "utf8");
+  const pos = fs.readFileSync("src/pages/POSPage.tsx", "utf8");
+
+  it("el excedente se calcula al centavo y nunca es negativo", () => {
+    expect(excedenteDe(500, 300)).toBe(200);
+    expect(excedenteDe(100.105, 100)).toBe(0.11);
+    expect(excedenteDe(50, 300)).toBe(0);
+    expect(excedenteDe(100, 0)).toBe(100);
+  });
+
+  it("dejar saldo a favor es explícito: sólo se pide cuando hay excedente", async () => {
+    const [ana] = agruparDeudores([deuda("a", "Ana", 300, "cli-1")]);
+    await cobrarADeudor(ana, { orgId: "org-1", monto: 500, medio: "efectivo", clave: "clave-0002", excedenteAFavor: true });
+    expect(llamadas.args[0].excedenteAFavor).toBe(true);
+    expect(store).toContain("...(args.excedenteAFavor ? { p_excedente_a_favor: true } : {}),");
+  });
+
+  it("la base: excedente sólo con cliente del negocio, saldo bloqueado y sin caja al usarlo", () => {
+    expect(sql).toContain("IF (v_usa_saldo OR v_excedente) AND p_customer_id IS NULL THEN");
+    expect(sql).toContain("FROM public.customers WHERE id = p_customer_id AND org_id = p_org FOR UPDATE;");
+    expect(sql).toContain("IF v_usa_saldo AND v_monto > v_saldo + 0.005 THEN");
+    expect(sql).toContain("IF v_monto > v_pendiente + 0.005 AND NOT v_excedente THEN");
+    expect(sql).toMatch(/IF NOT v_usa_saldo THEN\s+SELECT id INTO v_sesion FROM public\.cash_sessions/);
+    expect(sql).toContain("DROP FUNCTION IF EXISTS public.cobrar_cuenta_corriente(uuid, numeric, text, text, uuid, text, uuid, text);");
+    expect(sql).toContain("REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.saldo_a_favor_movimientos FROM authenticated;");
+    expect(sql).toContain("BEFORE DELETE ON public.customers");
+  });
+
+  it("el formulario muestra el excedente antes de confirmar y ofrece el saldo sólo si hay deuda", () => {
+    expect(form).toContain('data-testid="cobro-excedente"');
+    expect(form).toContain("objetivo.tipo === \"cliente\" && total > 0 && saldo !== null && saldo > 0.009 && (");
+    expect(form).toContain("excedenteAFavor: aFavor > 0");
+    expect(form).toContain("if (usaSaldo && monto > topeConSaldo + 0.005)");
+  });
+
+  it("la caja muestra el saldo del cliente y ofrece anticipo sólo si no debe nada", () => {
+    expect(pos).toContain("setSaldoCliente(await saldoAFavorDB(activeOrg.id, posCustomerId))");
+    const linea = pos.slice(pos.indexOf('data-testid="pos-saldo-a-favor"'), pos.indexOf('data-testid="pos-credit-available"'));
+    expect(linea).toContain("{customerDebt === null && (");
+    expect(linea).toContain("deudas: [], total: 0");
   });
 });

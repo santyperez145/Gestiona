@@ -63,7 +63,7 @@ export function totalPendiente(deudas: DeudaPendiente[]): number {
 }
 
 /** Pago a cuenta de un cliente: se aplica de la deuda más vieja a la más nueva. */
-export function cobrarADeudor(deudor: Deudor, args: { orgId: string; monto: number; medio: string; clave: string; nota?: string }) {
+export function cobrarADeudor(deudor: Deudor, args: { orgId: string; monto: number; medio: string; clave: string; nota?: string; excedenteAFavor?: boolean }) {
   return cobrarCuentaCorrienteDB({
     orgId: args.orgId,
     monto: centavos(args.monto),
@@ -72,7 +72,23 @@ export function cobrarADeudor(deudor: Deudor, args: { orgId: string; monto: numb
     customerId: deudor.customerId,
     customerName: deudor.nombre,
     nota: args.nota?.trim() || null,
+    excedenteAFavor: args.excedenteAFavor,
   });
+}
+
+/** Medio para pagar deudas con el saldo a favor del cliente (no mueve la caja). */
+export const MEDIO_SALDO_A_FAVOR = "saldo_a_favor";
+
+/** Saldo a favor de un cliente (anticipos y excedentes menos lo ya usado). */
+export async function saldoAFavorDB(orgId: string, customerId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("saldo_a_favor" as never, { p_org: orgId, p_customer_id: customerId } as never);
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
+/** Cuánto queda a favor si el cliente paga `monto` contra `total` (al centavo). */
+export function excedenteDe(monto: number, total: number): number {
+  return Math.max(0, centavos(monto - total));
 }
 
 /**

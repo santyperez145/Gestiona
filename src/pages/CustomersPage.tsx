@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useMemo, useCallback } from "react";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -2335,6 +2336,9 @@ export default function CustomersPage() {
       toast.success("Perfil eliminado");
       await loadData();
       if (selectedCustomer === name) setSelectedCustomer(null);
+    } catch (e) {
+      // P. ej. «No se puede borrar a X: tiene $Y de saldo a favor».
+      toast.error(mensajeDeError(e, "No se pudo eliminar el perfil"));
     } finally {
       setDeletingId(null);
     }

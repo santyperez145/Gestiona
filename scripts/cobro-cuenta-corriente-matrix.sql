@@ -6,17 +6,18 @@
 --   3. Cobrar más de lo que se debe se rechaza con lo pendiente.
 --   4. Cobrar una deuda puntual (la de 300) la salda.
 --   5. El cobro entra en la caja abierta (250 + 300).
---   6. Un vendedor no puede cobrar deudas.
+--   6. Un lector no puede cobrar deudas (desde 20261014000600 el vendedor sí,
+--      con caja abierta: ver cajero-cobra-fiado-matrix.sql).
 DO $$
 DECLARE
   v_user uuid; v_org uuid; v_cli uuid; d1 uuid; d2 uuid; d3 uuid; v_r jsonb; v_n int; v_caja numeric;
-  v_vendedor uuid;
+  v_lector uuid;
 BEGIN
   SELECT id INTO v_user FROM auth.users ORDER BY created_at LIMIT 1;
-  SELECT id INTO v_vendedor FROM auth.users WHERE id <> v_user ORDER BY created_at LIMIT 1;
+  SELECT id INTO v_lector FROM auth.users WHERE id <> v_user ORDER BY created_at LIMIT 1;
   INSERT INTO public.organizations (name, slug, owner_user_id) VALUES ('ZZ cuenta corriente', 'zz-cc-' || substr(md5(random()::text), 1, 8), v_user) RETURNING id INTO v_org;
   INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_user, 'owner') ON CONFLICT DO NOTHING;
-  INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_vendedor, 'vendedor') ON CONFLICT DO NOTHING;
+  INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_lector, 'viewer') ON CONFLICT DO NOTHING;
   INSERT INTO public.customers (org_id, user_id, name) VALUES (v_org, v_user, 'ZZ Cliente') RETURNING id INTO v_cli;
   INSERT INTO public.debts (org_id, user_id, customer_id, customer_name, amount_ars, paid_ars, remaining_ars, status, date, due_date, description)
     VALUES (v_org, v_user, v_cli, 'ZZ Cliente', 100, 0, 100, 'pending', now() - interval '30 days', now() - interval '20 days', 'ZZ uno') RETURNING id INTO d1;
@@ -55,11 +56,11 @@ BEGIN
   SELECT sum(amount_ars) INTO v_caja FROM public.cash_entries WHERE org_id = v_org AND entry_type = 'debt_payment';
   IF v_caja <> 550 THEN RAISE EXCEPTION 'FALLA 5: caja %', v_caja; END IF;
 
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_vendedor, 'role', 'authenticated')::text, true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_lector, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
     PERFORM public.cobrar_cuenta_corriente(v_org, 10, 'efectivo', 'zz-clave-0004', v_cli);
-    RAISE EXCEPTION 'FALLA 6: un vendedor cobró';
+    RAISE EXCEPTION 'FALLA 6: un lector cobró';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   RESET ROLE;
   RAISE EXCEPTION 'OK 1-6';
