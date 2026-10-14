@@ -22,6 +22,22 @@ funcional está en [ARQUITECTURA](ARQUITECTURA.md), los roles en
 6. **Evidencia antes que confianza.** Los controles se verifican contra el
    catálogo y los grants reales de PostgreSQL.
 
+## Vistas: invoker por defecto (ADR 006, 2026-10-13)
+
+Toda vista nueva en `public` queda `security_invoker = true` por el event
+trigger `vistas_invoker_por_defecto` (migración 20261013000800), espejo de
+`ensure_rls`. Una vista que tiene que correr como su dueño lo declara con
+`WITH (security_invoker = false)` y deja el motivo en su comentario:
+`@publica:` (datos de referencia iguales para todos) o `@revisada:` (filtra
+adentro por otra vía). `CREATE OR REPLACE VIEW` sin `WITH` borra las opciones,
+así que al reemplazar una vista definer hay que repetir la opción. Si se
+olvida, queda invoker: se ve vacía, no filtra.
+
+Auditorías con usuario real, en transacciones revertidas:
+`scripts/tablas-lectura-ajena-probar.mjs`, `scripts/tablas-escritura-ajena-probar.mjs`,
+`scripts/buckets-escritura-probar.mjs` y `scripts/funciones-anonimas-probar.mjs`.
+Se corren en cada cambio de seguridad (necesitan la base; no van en CI).
+
 ## Alias heredado de membresías — cierre 2026-10-07
 
 La consulta real del catálogo encontró `org_members` como vista de `memberships`

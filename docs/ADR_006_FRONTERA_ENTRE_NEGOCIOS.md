@@ -145,9 +145,12 @@ cerrando con D, una pieza por vez y siempre con simulacro.
    integraciones). Con simulacro.
    Hecho el 2026-10-13: migración 20261013000700, `scripts/vistas-abiertas-matrix.sql`
    3/3; convención de marca `@publica:` / `@revisada:` en el comentario de la vista.
-2. [ ] Event trigger de vistas invoker por defecto, probado en una transacción
+2. [x] Event trigger de vistas invoker por defecto, probado en una transacción
    revertida (crear vista sin opción → queda invoker; con
    `security_invoker = false` explícito → se respeta).
+   Hecho el 2026-10-13: migración 20261013000800, matriz 4/4 en simulacro y en
+   vivo. `CREATE OR REPLACE VIEW` sin `WITH` borra las opciones: al reemplazar
+   una vista que corre como dueño hay que repetir `WITH (security_invoker = false)`.
 3. [ ] `ALTER DEFAULT PRIVILEGES … REVOKE ALL ON TABLES FROM anon` para
    `postgres` en `public`.
 4. [ ] `audit_vistas_abiertas` en cero y sumado a los auditores críticos de
