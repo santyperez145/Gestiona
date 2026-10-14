@@ -41,3 +41,13 @@ describe("la app sólo usa buckets que existen", () => {
     expect(sql).toContain("_carpeta_de_marketing_propia(name)");
   });
 });
+
+describe("product-images: carpeta propia", () => {
+  // Medido 2026-10-13: un usuario de Famatina podía subir a la carpeta de otro
+  // negocio y a rutas sueltas del bucket público de productos.
+  it("una política restrictiva exige carpeta del usuario o de un negocio suyo", () => {
+    const sql = fs.readFileSync("supabase/migrations/20261013000400_imagenes_de_producto_carpeta_propia.sql", "utf8");
+    expect(sql).toMatch(/AS RESTRICTIVE FOR INSERT TO authenticated\s+WITH CHECK \(bucket_id <> 'product-images' OR public\._carpeta_de_marketing_propia\(name\)\)/);
+    expect(sql).toMatch(/AS RESTRICTIVE FOR UPDATE/);
+  });
+});
