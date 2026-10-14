@@ -97,12 +97,12 @@ export default function IntegrationsMarketplace() {
             Mercado de integraciones
           </h2>
           <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-            Como en Tiendanube Aplicaciones: descubrí cobros, envíos y canales.
-            El estado es de producto — no inventa una conexión ni una API de correo sin contrato.
+            Elegí qué conectar: cobros, envíos, canales de venta y avisos.
+            Cada tarjeta dice si ya funciona o qué hace falta para usarla.
           </p>
           {shippingReady > 0 && (
             <p className="text-[11px] text-muted-foreground mt-1">
-              Envíos listos hoy: tarifario por provincia y etiqueta imprimible. Correo / Andreani / OCA piden contrato.
+              Envíos listos hoy: tarifario por provincia y etiqueta imprimible. Correo Argentino, Andreani y OCA necesitan tu contrato con la empresa.
             </p>
           )}
         </div>

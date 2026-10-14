@@ -1036,7 +1036,7 @@ export default function PurchaseOrdersPage() {
             <WorkspaceState kind="error-recoverable" title="No pudimos abrir las órdenes" description={loadError || undefined} actionLabel="Reintentar" onAction={() => void loadAll()} />
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
                 <KPICard label="OC abiertas" value={kpis.open} sub="en proceso" icon={ClipboardList} color="blue" />
                 <KPICard label="Valor pendiente" value={fmtCurrency(kpis.pendingValue)} sub="por recibir" icon={DollarSign} color="warning" />
                 <KPICard label="Compras del mes" value={fmtCurrency(kpis.monthTotal)} sub="mes actual" icon={Truck} color="primary" />

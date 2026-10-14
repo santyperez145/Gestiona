@@ -111,8 +111,8 @@ describe("formatARS", () => {
 
 describe("formatUSD", () => {
   it("formatea numeros en dolares", () => {
-    const formatted = formatUSD(9.99);
-    expect(formatted).toContain("9.99");
-    expect(formatted).toMatch(/\$|USD/);
+    const formatted = formatUSD(1234.5);
+    // Formato argentino y con «US$», para no confundirse con los pesos.
+    expect(formatted.replace(/\s/g, " ")).toBe("US$ 1.234,50");
   });
 });

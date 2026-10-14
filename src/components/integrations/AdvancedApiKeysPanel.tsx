@@ -175,7 +175,7 @@ export default function AdvancedApiKeysPanel() {
             <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">v1 · OpenAPI 3.1</Badge>
             <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">Contrato activo</Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Keys server-side con scopes, expiración y cupo durable por clave</p>
+          <p className="text-xs text-muted-foreground mt-1">Claves para conectar tus sistemas, con permisos, vencimiento y límite de uso por clave</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" asChild>

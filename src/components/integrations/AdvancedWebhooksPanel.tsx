@@ -340,7 +340,7 @@ export default function AdvancedWebhooksPanel() {
             </div>
             <DialogTitle className="flex items-center gap-2"><FileJson className="w-5 h-5 text-primary" />Contrato OpenAPI de webhooks</DialogTitle>
             <DialogDescription>
-              Una integración puede validar el payload sin leer el código de Nerqia ni adivinar qué cambia en un reintento.
+              Una integración puede validar cada aviso sin leer el código de Nerqia ni adivinar qué cambia en un reintento.
             </DialogDescription>
           </DialogHeader>
 
@@ -584,7 +584,7 @@ export default function AdvancedWebhooksPanel() {
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Log de entregas (últimas 20)</p>
                       {(deliveries[webhook.id] ?? []).length === 0 ? (
-                        <p className="text-xs text-muted-foreground/50 italic">Sin entregas registradas. Usá el botón Test para enviar un payload de prueba.</p>
+                        <p className="text-xs text-muted-foreground/50 italic">Sin entregas registradas. Usá el botón de prueba para enviar un aviso de ejemplo.</p>
                       ) : (
                         <div className="space-y-1">
                           {(deliveries[webhook.id] ?? []).map(d => (

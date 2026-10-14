@@ -204,7 +204,7 @@ export default function IntegrationsPage() {
         icon={Link2}
         eyebrow="Commerce · Conexiones"
         title="Integraciones"
-        description="Cobro, envío y automatización con estado honesto — sin ✅ inventados."
+        description="Conectá cobros, envíos, canales de venta y avisos. Cada conexión dice si ya funciona o qué le falta."
         actions={
           <Button variant="outline" size="sm" className="text-xs" onClick={loadHealth} disabled={loadingHealth}>
             <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
@@ -223,9 +223,9 @@ export default function IntegrationsPage() {
         }}
       >
         <TabsList className="workspace-tabs-nav mb-0">
-          <TabsTrigger value="mercado" className="gap-1.5"><ShoppingBag className="w-3.5 h-3.5" />Mercado</TabsTrigger>
+          <TabsTrigger value="mercado" className="gap-1.5"><ShoppingBag className="w-3.5 h-3.5" />Catálogo</TabsTrigger>
           <TabsTrigger value="conexiones" className="gap-1.5"><Link2 className="w-3.5 h-3.5" />Conexiones</TabsTrigger>
-          <TabsTrigger value="apikeys" className="gap-1.5"><KeyRound className="w-3.5 h-3.5" />API Keys</TabsTrigger>
+          <TabsTrigger value="apikeys" className="gap-1.5"><KeyRound className="w-3.5 h-3.5" />Claves de API</TabsTrigger>
           <TabsTrigger value="webhooks" className="gap-1.5"><Webhook className="w-3.5 h-3.5" />Webhooks</TabsTrigger>
         </TabsList>
 

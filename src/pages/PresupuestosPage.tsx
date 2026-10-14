@@ -436,7 +436,7 @@ export default function PresupuestosPage() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <KPICard label="Total generados" value={stats.total} icon={FileText} color="primary" />
         <KPICard label="Aceptados" value={stats.accepted} icon={CheckCircle2} color="success"
           sub={stats.total > 0 ? `${stats.conversionRate}% conversión` : undefined} />

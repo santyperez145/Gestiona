@@ -6,11 +6,12 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getPurchasesDB, addPurchaseDB, deletePurchaseDB, updatePurchaseDB, getProductsDB, getSettingsDB, getSalesAggregatedDB, formatARS, formatUSD, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronUp, ChevronDown, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3, Printer } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronUp, ChevronDown, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3, Printer, MoreHorizontal } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import DataPagination from "@/components/shared/DataPagination";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
@@ -267,33 +268,41 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
       <BusinessPageHeader
         icon={ShoppingCart}
         title="Compras"
-        description="Entradas de stock y proveedores — misma autoridad que la tienda y el mostrador."
+        description="Lo que comprás a tus proveedores: entra al stock que comparten la tienda y el mostrador."
         badge="Inventario"
         actions={
           <div className="flex items-center flex-wrap gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
-            {filteredSorted.length > 0 && (
-              <>
-                <Button variant="outline" size="sm" onClick={exportPurchasesCSV} title={`Exportar ${filteredSorted.length} compras a CSV`}>
-                  <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
+            {/* Lo secundario en un menú, como en Productos: el encabezado queda con
+                el filtro de fechas y la acción principal, sin botones que se desborden. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" aria-label="Más acciones de compras">
+                  <MoreHorizontal className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Más acciones</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={printPurchasesPDF} title="Imprimir resumen de compras" className="hidden sm:flex">
-                  <Printer className="w-4 h-4 mr-1.5" />PDF
-                </Button>
-              </>
-            )}
-            <Button variant="outline" size="sm" onClick={() => setOrderOpen(true)}>
-              <ClipboardList className="w-4 h-4 mr-1.5" />Orden de Compra
-            </Button>
-            {canCreate && (
-              <Button variant="outline" size="sm" onClick={() => setInvoiceImportOpen(true)} title="Importar compras desde una foto o PDF de factura usando IA">
-                <Sparkles className="w-4 h-4 mr-1.5 text-primary" />Factura IA
-              </Button>
-            )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem onClick={() => setOrderOpen(true)}>
+                  <ClipboardList className="w-4 h-4 mr-2" />Generar orden de compra
+                </DropdownMenuItem>
+                {canCreate && (
+                  <DropdownMenuItem onClick={() => setInvoiceImportOpen(true)}>
+                    <Sparkles className="w-4 h-4 mr-2 text-primary" />Cargar factura con IA
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={exportPurchasesCSV} disabled={filteredSorted.length === 0}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />Exportar a Excel (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={printPurchasesPDF} disabled={filteredSorted.length === 0}>
+                  <Printer className="w-4 h-4 mr-2" />Imprimir resumen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {canCreate && (
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null);}}>
                 <DialogTrigger asChild>
-                  <Button className="font-semibold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
+                  <Button className="font-semibold"><Plus className="w-4 h-4 mr-2" />Nueva compra</Button>
                 </DialogTrigger>
                 <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
@@ -319,8 +328,8 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
           icon={TrendingDown}
         />
         <BusinessKPICard
-          title="Prom. por compra"
-          value={filtered.length > 0 ? formatUSD(totalUSD / filtered.length) : "$0"}
+          title="Promedio por compra"
+          value={formatUSD(filtered.length > 0 ? totalUSD / filtered.length : 0)}
           icon={Package}
         />
         <BusinessKPICard

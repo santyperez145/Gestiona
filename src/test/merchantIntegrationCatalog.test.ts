@@ -84,6 +84,7 @@ describe("mercado de integraciones del comercio", () => {
     expect(page).toContain('value="mercado"');
     expect(panel).toContain("merchant_integration_catalog");
     expect(panel).not.toMatch(/Envío Nube|envío nube/i);
-    expect(panel).toContain("sin contrato");
+    // Los correos necesitan el contrato del comercio: la pantalla no promete envíos sin él.
+    expect(panel).toContain("necesitan tu contrato con la empresa");
   });
 });

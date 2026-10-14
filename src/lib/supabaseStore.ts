@@ -1073,7 +1073,9 @@ export async function addSaleWithVariantDB(sale: any, variantId?: string) {
 
 // ========= HELPERS =========
 export function formatARS(n: number) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n); }
-export function formatUSD(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }
+// «US$ 1.234,50»: con el formato en inglés («$1,234.50») los dólares llevaban el
+// mismo signo que los pesos y en una misma pantalla no se distinguían (2026-10-14).
+export function formatUSD(n: number) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'USD' }).format(n); }
 
 /** Parse a date string safely for Argentina timezone display */
 export function formatDateAR(dateStr: string) {
