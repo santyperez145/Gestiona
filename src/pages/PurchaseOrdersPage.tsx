@@ -56,9 +56,7 @@ import {
 } from "@/lib/purchaseOrderHandoff";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import InvoiceOCRModal, { OCRPrefillData } from "@/components/purchases/InvoiceOCRModal";
 import PurchaseRequestsTab from "@/components/purchases/PurchaseRequestsTab";
-import { ScanLine } from "lucide-react";
 
 import { plural } from "@/lib/plural";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
@@ -147,10 +145,9 @@ interface POFormProps {
   orgId: string;
   onClose: () => void;
   onSaved: () => void;
-  prefill?: OCRPrefillData | null;
 }
 
-function POForm({ open, order, suppliers, products, orgId, onClose, onSaved, prefill }: POFormProps) {
+function POForm({ open, order, suppliers, products, orgId, onClose, onSaved }: POFormProps) {
   const [loading, setLoading] = useState(false);
   const [supplierId, setSupplierId] = useState("none");
   const [supplierName, setSupplierName] = useState("");
@@ -178,20 +175,12 @@ function POForm({ open, order, suppliers, products, orgId, onClose, onSaved, pre
         quantity_ordered: i.quantity_ordered, quantity_received: i.quantity_received,
         unit_cost: i.unit_cost, tax_rate: i.tax_rate,
       })));
-    } else if (prefill) {
-      setSupplierId("none"); setSupplierName(prefill.supplierName ?? ""); setSupplierEmail(""); setCurrency("ARS");
-      setNotes(""); setInternalNotes(""); setExpectedDate(""); setPaymentTerms("30_days");
-      setItems(prefill.items.map(i => ({
-        product_id: null, product_name: i.product_name, sku: i.sku,
-        quantity_ordered: i.quantity_ordered, quantity_received: 0,
-        unit_cost: i.unit_cost, tax_rate: i.tax_rate,
-      })));
     } else {
       setSupplierId("none"); setSupplierName(""); setSupplierEmail(""); setCurrency("ARS");
       setNotes(""); setInternalNotes(""); setExpectedDate(""); setPaymentTerms("30_days");
       setItems([]);
     }
-  }, [order, open, prefill]);
+  }, [order, open]);
 
   const handleSupplierChange = (id: string) => {
     setSupplierId(id);
@@ -873,8 +862,6 @@ export default function PurchaseOrdersPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
-  const [ocrModalOpen, setOcrModalOpen] = useState(false);
-  const [ocrPrefill, setOcrPrefill] = useState<OCRPrefillData | null>(null);
   const [focusedOrder, setFocusedOrder] = useState<{ id: string; action: PurchaseOrderHandoffAction } | null>(null);
   const [handoffNotice, setHandoffNotice] = useState<{ kind: "success" | "stale"; title: string; detail: string } | null>(null);
 
@@ -1021,10 +1008,7 @@ export default function PurchaseOrdersPage() {
             <Button variant="outline" size="sm" onClick={loadAll} disabled={loading || !online}>
               <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setOcrModalOpen(true)} disabled={!online}>
-              <ScanLine className="w-4 h-4 mr-1.5" /> Escanear factura
-            </Button>
-            <Button size="sm" onClick={() => { setEditingOrder(null); setOcrPrefill(null); setFormOpen(true); }} disabled={!online}>
+            <Button size="sm" onClick={() => { setEditingOrder(null); setFormOpen(true); }} disabled={!online}>
               <Plus className="w-4 h-4 mr-1.5" /> Nueva OC
             </Button>
           </div>
@@ -1097,7 +1081,7 @@ export default function PurchaseOrdersPage() {
 
               {filtered.length === 0 ? (
                 orders.length === 0 ? (
-                  <WorkspaceState kind="empty-first-use" icon={ClipboardList} title="Todavía no hay órdenes de compra" description="Creá una OC para acordar cantidades, costos y recepción con un proveedor." actionLabel={online ? "Nueva OC" : undefined} onAction={() => { setEditingOrder(null); setOcrPrefill(null); setFormOpen(true); }} />
+                  <WorkspaceState kind="empty-first-use" icon={ClipboardList} title="Todavía no hay órdenes de compra" description="Creá una OC para acordar cantidades, costos y recepción con un proveedor." actionLabel={online ? "Nueva OC" : undefined} onAction={() => { setEditingOrder(null); setFormOpen(true); }} />
                 ) : (
                   <WorkspaceState kind="empty-filtered" title="Ninguna orden coincide" description="La búsqueda o el estado seleccionado dejaron la vista sin resultados; las órdenes siguen guardadas." actionLabel="Limpiar filtros" onAction={() => { setSearch(""); setFilterStatus("all"); }} />
                 )
@@ -1133,16 +1117,10 @@ export default function PurchaseOrdersPage() {
         suppliers={suppliers}
         products={products}
         orgId={orgId}
-        onClose={() => { setFormOpen(false); setEditingOrder(null); setOcrPrefill(null); }}
+        onClose={() => { setFormOpen(false); setEditingOrder(null); }}
         onSaved={loadAll}
-        prefill={ocrPrefill}
       />
 
-      <InvoiceOCRModal
-        open={ocrModalOpen}
-        onOpenChange={setOcrModalOpen}
-        onUseData={data => { setEditingOrder(null); setOcrPrefill(data); setFormOpen(true); }}
-      />
       {dialog}
     </div>
   );
