@@ -334,7 +334,8 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     if (claimedCampaignId) {
-      await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", claimedCampaignId);
+      const { error: fallidaErr } = await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", claimedCampaignId);
+      if (fallidaErr) console.error("send-email-campaign: no se marcó como fallida", claimedCampaignId, fallidaErr);
     }
     // El detalle queda disponible para operaciones sin filtrarse al cartel del comercio.
     console.error("send-email-campaign:", mensajeDeError(err));

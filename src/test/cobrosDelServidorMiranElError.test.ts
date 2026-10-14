@@ -15,6 +15,10 @@ const ARCHIVOS = [
   "supabase/functions/mercadopago-payment-methods/index.ts",
   "supabase/functions/platform-admin-action/index.ts",
   "supabase/functions/weekly-backup/index.ts",
+  "supabase/functions/send-drip-emails/index.ts",
+  "supabase/functions/send-whatsapp/index.ts",
+  "supabase/functions/send-email-campaign/index.ts",
+  "supabase/functions/send-scheduled-campaigns/index.ts",
 ];
 
 function escriturasSueltas(fuente: string): number[] {
@@ -72,6 +76,13 @@ describe("cobros del servidor: las escrituras miran el error", () => {
     const s = fs.readFileSync("supabase/functions/platform-admin-action/index.ts", "utf8");
     expect(s).toContain("if (banError) return json(");
     expect(s).toContain("if (bajaError) return json(");
+  });
+
+  it("una secuencia de mails no reenvía un paso que ya figura enviado", () => {
+    const s = fs.readFileSync("supabase/functions/send-drip-emails/index.ts", "utf8");
+    const guarda = s.indexOf('.eq("status", "sent").limit(1)');
+    expect(guarda).toBeGreaterThan(0);
+    expect(guarda).toBeLessThan(s.indexOf("await sendEmail("));
   });
 
   it("sólo actualiza ventas cuando la referencia es un id, para no reintentar para siempre", () => {

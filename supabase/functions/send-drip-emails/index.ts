@@ -114,16 +114,45 @@ Deno.serve(async (req) => {
 
         if (nextStepIdx >= steps.length) {
           // Already past last step — reconcile status
-          await sb.from("drip_enrollments").update({
+          const { error: cierreErr } = await sb.from("drip_enrollments").update({
             status: "completed",
             completed_at: new Date().toISOString(),
             next_send_at: null,
           }).eq("id", enrollment.id);
+          if (cierreErr) console.error("drip: no se cerró la inscripción", enrollment.id, cierreErr);
           skipped++;
           continue;
         }
 
         const step = steps[nextStepIdx];
+        const avanzar = async () => {
+          const nextIdx = nextStepIdx + 1;
+          const { error } = nextIdx >= steps.length
+            ? await sb.from("drip_enrollments").update({
+                current_step: nextIdx,
+                status: "completed",
+                completed_at: new Date().toISOString(),
+                next_send_at: null,
+              }).eq("id", enrollment.id)
+            : await sb.from("drip_enrollments").update({
+                current_step: nextIdx,
+                next_send_at: new Date(Date.now() + (steps[nextIdx].day_offset || 1) * 86_400_000).toISOString(),
+              }).eq("id", enrollment.id);
+          return error;
+        };
+
+        // Si este paso ya figura enviado, un avance anterior no se guardó. Sin
+        // esta guarda se reenviaba cada hora: la clave de idempotencia de
+        // Resend dura 24 h y el SMTP propio no deduplica.
+        const { data: yaEnviado, error: logErr } = await sb.from("drip_send_log")
+          .select("id").eq("enrollment_id", enrollment.id).eq("step_id", step.id).eq("status", "sent").limit(1);
+        if (logErr) throw new Error(`No se pudo verificar el envío previo: ${logErr.message}`);
+        if (yaEnviado?.length) {
+          const avanceErr = await avanzar();
+          if (avanceErr) throw new Error(`Paso ya enviado pero no se pudo avanzar: ${avanceErr.message}`);
+          skipped++;
+          continue;
+        }
 
         // 2. Load public business identity and private SMTP independently.
         const { data: settings } = await sb
@@ -141,9 +170,10 @@ Deno.serve(async (req) => {
         if (tokenErr || !unsubToken) {
           console.error("Unsubscribe token insert failed:", tokenErr);
           // Fall through — sending without unsubscribe is illegal; we abort
-          await sb.from("drip_send_log").insert({
+          const { error: rebErr } = await sb.from("drip_send_log").insert({
             enrollment_id: enrollment.id, step_id: step.id, status: "bounced",
           });
+          if (rebErr) console.error("drip: no se registró el rebote", rebErr);
           failed++;
           errors.push(`${enrollment.customer_email}: failed to generate unsubscribe token`);
           continue;
@@ -181,44 +211,37 @@ Deno.serve(async (req) => {
 
         // 6. Log + advance ONLY on success
         if (result.ok) {
-          await sb.from("drip_send_log").insert({
+          // El registro «sent» va primero: es lo que impide reenviar si el
+          // avance no se guarda.
+          const { error: sentErr } = await sb.from("drip_send_log").insert({
             enrollment_id: enrollment.id,
             step_id: step.id,
             sent_at: new Date().toISOString(),
             status: "sent",
           });
-
-          const nextIdx = nextStepIdx + 1;
-          if (nextIdx >= steps.length) {
-            await sb.from("drip_enrollments").update({
-              current_step: nextIdx,
-              status: "completed",
-              completed_at: new Date().toISOString(),
-              next_send_at: null,
-            }).eq("id", enrollment.id);
-          } else {
-            const nextStep = steps[nextIdx];
-            const nextSend = new Date(Date.now() + (nextStep.day_offset || 1) * 86_400_000).toISOString();
-            await sb.from("drip_enrollments").update({
-              current_step: nextIdx,
-              next_send_at: nextSend,
-            }).eq("id", enrollment.id);
+          if (sentErr) console.error("drip: enviado pero sin registro; puede repetirse pasadas 24 h", enrollment.id, sentErr);
+          const avanceErr = await avanzar();
+          if (avanceErr) {
+            console.error("drip: enviado pero no se avanzó el paso", enrollment.id, avanceErr);
+            errors.push(`${enrollment.customer_email}: enviado, falta avanzar (${avanceErr.message})`);
           }
           sent++;
         } else {
           // Send failed — log but don't advance, so next cron retries
-          await sb.from("drip_send_log").insert({
+          const { error: rebErr } = await sb.from("drip_send_log").insert({
             enrollment_id: enrollment.id,
             step_id: step.id,
             status: "bounced",
           });
+          if (rebErr) console.error("drip: no se registró el rebote", rebErr);
           failed++;
           errors.push(`${enrollment.customer_email}: ${result.error || "send failed"}`);
 
           // Bump next_send_at by 1 hour so we don't hammer on persistent failures
-          await sb.from("drip_enrollments").update({
+          const { error: esperaErr } = await sb.from("drip_enrollments").update({
             next_send_at: new Date(Date.now() + 3600 * 1000).toISOString(),
           }).eq("id", enrollment.id);
+          if (esperaErr) console.error("drip: no se postergó el reintento", esperaErr);
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);

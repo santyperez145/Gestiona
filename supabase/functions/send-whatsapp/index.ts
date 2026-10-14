@@ -129,8 +129,9 @@ Deno.serve(async (req) => {
       .filter((recipient) => (recipient.phone ?? "").replace(/\D/g, "").length >= 8);
     const skipped = uniqueRecipientIds.length - recipients.length;
     if (!recipients.length) {
-      await admin.from("whatsapp_campaigns").update({ status: "failed", sent_count: 0, failed_count: 0 })
+      const { error: sinDestErr } = await admin.from("whatsapp_campaigns").update({ status: "failed", sent_count: 0, failed_count: 0 })
         .eq("id", campaignId).eq("org_id", orgId);
+      if (sinDestErr) console.error("send-whatsapp: no se marcó la campaña sin destinatarios", sinDestErr);
       return new Response(JSON.stringify({ error: "No hay destinatarios con consentimiento vigente", skipped }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -195,12 +196,13 @@ Deno.serve(async (req) => {
 
     // Cero entregas no es "enviado": el comercio no debe ver un éxito vacío.
     const status = sent === 0 ? "failed" : "sent";
-    await admin.from("whatsapp_campaigns").update({
+    const { error: cierreErr } = await admin.from("whatsapp_campaigns").update({
       status,
       sent_count: sent,
       failed_count: failed,
       sent_at: sent > 0 ? new Date().toISOString() : null,
     }).eq("id", campaignId).eq("org_id", orgId);
+    if (cierreErr) { console.error("send-whatsapp: ENVIADA pero sin guardar el resultado; no reenviar sin revisar", campaignId, cierreErr); }
 
     console.log(`send-whatsapp (meta): org=${orgId} sent=${sent} failed=${failed} status=${status}`);
 

@@ -91,8 +91,9 @@ serve(async (req) => {
         console.error(`send-scheduled-campaigns: fallo la campaña ${campaign.id}`, res.status, payload);
         // 409 means a manual send won the claim. It must not be overwritten.
         if (res.status !== 409) {
-          await supabase.from("email_campaigns")
+          const { error: fallidaErr } = await supabase.from("email_campaigns")
             .update({ status: "failed" }).eq("id", campaign.id).eq("status", "draft");
+          if (fallidaErr) console.error(`send-scheduled-campaigns: no se marcó como fallida ${campaign.id}`, fallidaErr);
         }
         fallidas.push(`${campaign.id}: ${res.status}`);
         continue;
