@@ -18,7 +18,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getProductsParaCajaDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB, getSalesSinceDB, getPresentationsWithBarcodeDB } from "@/lib/supabaseStore";
+import { getProductsDB, getProductsParaCajaDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, getSalesSinceDB, getPresentationsWithBarcodeDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import WorkspaceState from "@/components/shared/WorkspaceState";
@@ -83,6 +84,7 @@ import { PosQrCheckoutDialog } from "@/components/pos/PosQrCheckoutDialog";
 import CobroACuentaForm from "@/components/finance/CobroACuentaForm";
 import { COLUMNAS_CLIENTE_POS, type PosCustomer as ClienteDeCaja } from "@/components/pos/PosCustomerPicker";
 import { planDePresupuesto, type ItemDePresupuesto } from "@/lib/presupuestoACaja";
+import { devolverDesdeLaCaja } from "@/lib/devolucionRapida";
 import { deudorDelCliente, mensajeDeError, saldoAFavorDB, type Deudor } from "@/lib/cuentaCorriente";
 import {
   POS_QR_RETRYABLE_TERMINAL_STATES,
@@ -762,7 +764,6 @@ ${paymentInfo}
 // ─────────────────────────────────────────────────────────────
 // Quick Return Modal
 // ─────────────────────────────────────────────────────────────
-const REFUND_METHODS = ["efectivo", "transferencia", "credito"] as const;
 
 function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: string; onClose: () => void }) {
   const [recentSales, setRecentSales] = useState<any[]>([]);
@@ -771,14 +772,16 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
   const [selected, setSelected] = useState<any | null>(null);
   const [qty, setQty] = useState(1);
   const [reason, setReason] = useState("");
-  const [refundMethod, setRefundMethod] = useState<string>("efectivo");
+  const [reponerStock, setReponerStock] = useState(true);
+  // Una clave por venta elegida: un doble clic o un reintento no devuelve dos veces.
+  const [claveDevolucion, setClaveDevolucion] = useState(() => crypto.randomUUID());
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("sales")
-        .select("id, product_name, product_id, variant_id, quantity, total_ars, customer_name, date, returned")
+        .select("id, product_name, product_id, variant_id, quantity, returned_quantity, total_ars, customer_name, date, returned")
         .eq("org_id", orgId)
         .eq("returned", false)
         .order("date", { ascending: false })
@@ -798,47 +801,30 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
     );
   }, [recentSales, search]);
 
+  // Lo que todavía se puede devolver de la venta elegida (una devolución parcial deja el resto).
+  const disponible = selected ? Math.max(0, Number(selected.quantity) - Number(selected.returned_quantity || 0)) : 0;
+
   const handleReturn = async () => {
     if (!selected) return;
     if (!reason.trim()) { toast.error("Ingresá el motivo de la devolución"); return; }
-    if (qty < 1 || qty > selected.quantity) { toast.error(`Cantidad inválida (máx ${selected.quantity})`); return; }
+    if (qty < 1 || qty > disponible) { toast.error(`Cantidad inválida (máx ${disponible})`); return; }
     setSubmitting(true);
     try {
-      const amountARS = (Number(selected.total_ars) / selected.quantity) * qty;
-      const { data: createdReturn, error: returnError } = await supabase.from("returns").insert({
-        org_id: orgId,
-        user_id: userId,
-        sale_id: selected.id,
-        product_name: selected.product_name,
-        quantity: qty,
-        amount_ars: amountARS,
-        reason,
-        refund_method: refundMethod,
-        notes: "",
-      }).select("id").single();
-      if (returnError) throw returnError;
-      // La devolución repone mediante Kardex: el cliente no suma stock directo.
-      if (selected.product_id) {
-        await recordMemberStockMovementDB({
-          orgId,
-          productId: selected.product_id,
-          productName: selected.product_name,
-          variantId: selected.variant_id ?? null,
-          movementType: "return",
-          quantity: qty,
-          referenceType: "return",
-          referenceId: createdReturn.id,
-          notes: reason,
-          userId,
+      const r = await devolverDesdeLaCaja({
+        orgId, saleId: selected.id, cantidad: qty, motivo: reason, reponerStock, clave: claveDevolucion,
+      });
+      if (r.pendienteExterno) {
+        toast.warning(`Devolución registrada — ${formatARS(r.total)}`, {
+          description: "El reintegro por Mercado Pago espera confirmación: seguilo en Devoluciones.",
+        });
+      } else {
+        toast.success(r.repetida ? "Esa devolución ya estaba registrada" : `Devolución registrada — ${formatARS(r.total)}`, {
+          description: reponerStock ? "El producto volvió al stock." : undefined,
         });
       }
-      // Mark sale as returned
-      const { error: ventaError } = await supabase.from("sales").update({ returned: true }).eq("id", selected.id);
-      if (ventaError) throw ventaError;
-      toast.success(`Devolución registrada — ${formatARS(amountARS)}`);
       onClose();
-    } catch (e: any) {
-      toast.error(e.message || "Error al registrar devolución");
+    } catch (e) {
+      toast.error(mensajeDeError(e, "No se pudo registrar la devolución"));
     } finally {
       setSubmitting(false);
     }
@@ -876,7 +862,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
                   {filtered.slice(0, 20).map((s: any) => (
                     <button
                       key={s.id}
-                      onClick={() => { setSelected(s); setQty(1); }}
+                      onClick={() => { setSelected(s); setQty(1); setClaveDevolucion(crypto.randomUUID()); }}
                       className="w-full flex items-center gap-3 p-3 rounded-[10px] border border-border hover:border-orange-500/40 hover:bg-orange-500/5 transition-all text-left"
                     >
                       <Package className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -906,11 +892,11 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Cantidad a devolver (máx {selected.quantity})</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Cantidad a devolver (máx {disponible})</label>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-muted"><Minus className="w-3 h-3" /></button>
                   <span className="text-lg font-bold font-display w-10 text-center">{qty}</span>
-                  <button onClick={() => setQty(q => Math.min(selected.quantity, q + 1))} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-muted"><Plus className="w-3 h-3" /></button>
+                  <button onClick={() => setQty(q => Math.min(disponible, q + 1))} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-muted"><Plus className="w-3 h-3" /></button>
                   <span className="text-sm text-muted-foreground ml-2">= {formatARS((Number(selected.total_ars) / selected.quantity) * qty)}</span>
                 </div>
               </div>
@@ -925,24 +911,13 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
                 />
               </div>
 
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Método de reintegro</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {REFUND_METHODS.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setRefundMethod(m)}
-                      className={`py-2 rounded-[8px] border text-xs font-medium capitalize transition-all ${
-                        refundMethod === m
-                          ? "border-orange-500/60 bg-orange-500/10 text-orange-400"
-                          : "border-border bg-card text-muted-foreground"
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={reponerStock} onCheckedChange={v => setReponerStock(v === true)} />
+                Vuelve al stock
+              </label>
+              <p className="text-xs text-muted-foreground">
+                El reintegro vuelve por el mismo medio con que se cobró: en efectivo sale de la caja abierta; por Mercado Pago queda para confirmar en Devoluciones.
+              </p>
 
               <Button
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold gap-2"

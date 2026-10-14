@@ -46,7 +46,13 @@ describe("autoridad de stock", () => {
     expect(purchases).toContain("trg_purchase_stock_movement");
     expect(invoices).not.toContain("recordMemberStockMovementDB");
     expect(invoices).toContain('supabase.rpc("emitir_nota_credito"');
-    expect(pos).toContain("recordMemberStockMovementDB");
+    // 2026-10-14: la devolución rápida de la caja dejó de reponer stock desde el
+    // navegador; usa la misma operación atómica que Devoluciones.
+    const devolucionRapida = readFileSync(resolve(ROOT, "src/lib/devolucionRapida.ts"), "utf8");
+    expect(pos).not.toContain("recordMemberStockMovementDB");
+    expect(pos).not.toMatch(/from\("returns"\)\.insert/);
+    expect(pos).toContain("devolverDesdeLaCaja({");
+    expect(devolucionRapida).toContain('supabase.rpc("create_sales_return_v1"');
     expect(returns).toContain('supabase.rpc("create_sales_return_v1"');
     expect(returnAuthority).toContain("PERFORM public.record_stock_movement(");
     expect(publicApi).toContain('rpc("adjust_stock"');

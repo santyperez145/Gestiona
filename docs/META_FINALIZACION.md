@@ -51,8 +51,13 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
     - Es idempotente y nunca rechaza un cobro ya hecho: un producto ajeno o una cantidad inválida quedan como renglón libre.
     - Un link de un presupuesto sin vender lo marca vendido.
     - La lista avisa si no se pudo leer, en vez de mostrarse vacía.
+  - Devolución rápida de la caja:
+    - Antes hacía tres escrituras sueltas desde el navegador (devolución, stock y venta «devuelta»), sin atomicidad: marcaba devuelta la venta entera aunque se devolviera una parte, y el reintegro no pasaba por la caja.
+    - Ahora usa la misma operación atómica que Devoluciones (`preview_sales_return` + `create_sales_return_v1`, `src/lib/devolucionRapida.ts`): devuelve lo que queda, con clave contra duplicados.
+    - El reintegro vuelve por el mismo medio con que se cobró; en efectivo exige la caja abierta y por Mercado Pago queda para confirmar en Devoluciones.
+    - Hay un tilde «Vuelve al stock».
+    - Tests: `src/test/devolucionRapidaDeCaja.test.ts`.
   - Pendientes, en orden:
-    - Devoluciones de la caja: el navegador inserta `returns` directo.
     - Reposición y órdenes de compra: insertan compras directo.
     - Planes de pago de deudas: viven en el navegador.
     - Cheques.
