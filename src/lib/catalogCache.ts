@@ -12,6 +12,20 @@
  * detectan borrados comparando el conteo (si no cuadra, traen sólo los ids).
  * Cada 6 horas se resincroniza completo. La caché es por organización y
  * usuario; si IndexedDB no está disponible se cae a la lectura completa.
+ *
+ * 2026-10-14, «con más de 1.000 productos la plataforma se vuelve súper lenta
+ * y se cae» (dueño). Con 5.500 productos (7,1 MB) cada pantalla:
+ * · releía la copia entera de IndexedDB y la volvía a escribir entera aunque
+ *   no hubiera cambiado nada;
+ * · tenía su propia copia: el Inicio monta varios paneles que piden el
+ *   catálogo a la vez, y cada uno sincronizaba y guardaba en paralelo;
+ * · después de una importación o un cambio masivo de precios, volvía a bajar
+ *   enteros todos los productos tocados en los últimos 10 minutos.
+ * Ahora la copia vive una vez por pestaña (`almacenConMemoria`), las
+ * sincronizaciones simultáneas comparten la misma, sólo se escribe si algo
+ * cambió, y lo incremental pide primero id + fecha de cambio y baja completos
+ * sólo los productos que de verdad cambiaron (`leerVersionesDesde` +
+ * `leerPorIds`).
  */
 
 export type FilaCatalogo = { id: string; updated_at?: string | null; name?: string | null };
@@ -21,6 +35,10 @@ export type FuentesCatalogo<T extends FilaCatalogo> = {
   leerCambiosDesde: (desde: string) => Promise<T[]>;
   contar: () => Promise<number | null>;
   leerIds: () => Promise<string[]>;
+  /** Sólo id + fecha de cambio desde `desde`: liviano aunque se hayan tocado miles. */
+  leerVersionesDesde?: (desde: string) => Promise<Array<{ id: string; updated_at: string | null }>>;
+  /** Filas completas de esos ids (sólo las que cambiaron de verdad). */
+  leerPorIds?: (ids: string[]) => Promise<T[]>;
 };
 
 export type GuardadoCatalogo<T> = { filas: T[]; maxUpdatedAt: string | null; completoAt: number; version: number };
@@ -31,7 +49,9 @@ export type AlmacenCatalogo<T> = {
 };
 
 export const VERSION_CACHE = 1;
-export const MARGEN_MS = 10 * 60_000;
+// Para transacciones que confirman después de leer (un lote de importación
+// tarda segundos). Con versiones livianas, el margen ya no re-baja productos.
+export const MARGEN_MS = 2 * 60_000;
 export const RESYNC_COMPLETO_MS = 6 * 3600_000;
 
 const maxUpdated = <T extends FilaCatalogo>(filas: T[], inicial: string | null = null) =>
@@ -56,14 +76,15 @@ export async function sincronizarCatalogo<T extends FilaCatalogo>(
   }
 
   const desde = new Date(new Date(guardado.maxUpdatedAt!).getTime() - MARGEN_MS).toISOString();
-  const [cambios, total] = await Promise.all([fuentes.leerCambiosDesde(desde), fuentes.contar()]);
   const porId = new Map(guardado.filas.map(f => [f.id, f]));
+  const [cambios, total] = await Promise.all([leerCambios(fuentes, desde, porId), fuentes.contar()]);
   for (const fila of cambios) porId.set(fila.id, fila);
+  let huboCambios = cambios.length > 0;
 
   // Borrados: si el conteo del servidor no coincide, se reconcilia por ids.
   if (total !== null && total !== porId.size) {
     const vivos = new Set(await fuentes.leerIds());
-    for (const id of [...porId.keys()]) if (!vivos.has(id)) porId.delete(id);
+    for (const id of [...porId.keys()]) if (!vivos.has(id)) { porId.delete(id); huboCambios = true; }
     if (vivos.size !== porId.size) {
       // Faltan filas que el margen no trajo: más seguro releer todo.
       const filas = await fuentes.leerTodo();
@@ -72,9 +93,51 @@ export async function sincronizarCatalogo<T extends FilaCatalogo>(
     }
   }
 
+  // Sin cambios: la misma copia, sin reescribir 7–15 MB en el navegador.
+  if (!huboCambios) return { filas: guardado.filas, modo: "incremental" };
   const filas = [...porId.values()];
   await almacen?.guardar(clave, { filas, maxUpdatedAt: maxUpdated(cambios, guardado.maxUpdatedAt), completoAt: guardado.completoAt, version: VERSION_CACHE }).catch(() => undefined);
   return { filas, modo: "incremental" };
+}
+
+/** Lo que cambió desde `desde`: en dos pasos si la fuente lo permite. */
+async function leerCambios<T extends FilaCatalogo>(fuentes: FuentesCatalogo<T>, desde: string, actuales: Map<string, T>): Promise<T[]> {
+  if (!fuentes.leerVersionesDesde || !fuentes.leerPorIds) return fuentes.leerCambiosDesde(desde);
+  const versiones = await fuentes.leerVersionesDesde(desde);
+  const distintos = versiones.filter(v => (actuales.get(v.id)?.updated_at ?? null) !== v.updated_at || !actuales.has(v.id)).map(v => v.id);
+  return distintos.length ? fuentes.leerPorIds(distintos) : [];
+}
+
+/**
+ * Una copia del catálogo por pestaña: las pantallas que lo piden después de
+ * la primera no vuelven a leer (ni a clonar) IndexedDB. Escribe en memoria y
+ * en el almacén de abajo.
+ */
+export function almacenConMemoria<T>(abajo: AlmacenCatalogo<T> | null, memoria = memoriaCompartida as Map<string, GuardadoCatalogo<T>>): AlmacenCatalogo<T> {
+  return {
+    async leer(clave) {
+      const enMemoria = memoria.get(clave);
+      if (enMemoria) return enMemoria;
+      const guardado = abajo ? await abajo.leer(clave) : null;
+      if (guardado) memoria.set(clave, guardado);
+      return guardado;
+    },
+    async guardar(clave, valor) {
+      memoria.set(clave, valor);
+      await abajo?.guardar(clave, valor);
+    },
+  };
+}
+const memoriaCompartida = new Map<string, GuardadoCatalogo<unknown>>();
+
+/** Pedidos simultáneos de la misma clave comparten una sola sincronización. */
+const enCurso = new Map<string, Promise<unknown>>();
+export function unaVezALaVez<R>(clave: string, trabajo: () => Promise<R>): Promise<R> {
+  const actual = enCurso.get(clave) as Promise<R> | undefined;
+  if (actual) return actual;
+  const nuevo = trabajo().finally(() => enCurso.delete(clave));
+  enCurso.set(clave, nuevo);
+  return nuevo;
 }
 
 // ── IndexedDB ────────────────────────────────────────────────────────────────

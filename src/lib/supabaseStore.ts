@@ -6,7 +6,7 @@ import { nombreDeCategoria } from './storeCategories';
 import { selectAllRows } from '@/lib/selectAllRows';
 import { isMissingColumn, type PgError } from '@/lib/publicDataSource';
 import { cantidadStockValida } from '@/lib/unidadMedida';
-import { almacenIndexedDb, sincronizarCatalogo } from '@/lib/catalogCache';
+import { almacenConMemoria, almacenIndexedDb, sincronizarCatalogo, unaVezALaVez } from '@/lib/catalogCache';
 type SettingsUpdate = Database['public']['Tables']['settings']['Update'];
 
 /** Resolve an explicit tenant first; legacy callers may still use the active context. */
@@ -104,9 +104,41 @@ function leerCatalogoCompleto(orgId: string, cambiosDesde?: string) {
  */
 export async function getProductsDB(userId: string, organizationId?: string) {
   const orgId = await orgIdFor(userId, organizationId);
-  const { filas } = await sincronizarCatalogo<ProductRow>(`productos:${orgId}:${userId}`, {
+  const clave = `productos:${orgId}:${userId}`;
+  // Varias pantallas o paneles a la vez: una sola sincronización y una sola
+  // copia; cada uno recibe su propia lista (el orden lo puede cambiar).
+  const ordenadas = await unaVezALaVez(clave, () => sincronizarProductos(clave, orgId));
+  return ordenadas.slice();
+}
+
+// La lista ordenada se recalcula sólo si el catálogo cambió (misma copia = mismo orden).
+const ordenPorCopia = new WeakMap<object, ProductRow[]>();
+
+async function sincronizarProductos(clave: string, orgId: string): Promise<ProductRow[]> {
+  const { filas } = await sincronizarCatalogo<ProductRow>(clave, {
     leerTodo: () => leerCatalogoCompleto(orgId),
     leerCambiosDesde: desde => leerCatalogoCompleto(orgId, desde),
+    leerVersionesDesde: async desde => (await selectAllRows<{ id: string; updated_at: string | null }>(({ desde: d, hasta, despues, limite }) => {
+      let query = supabase.from('products').select('id, updated_at').eq('org_id', orgId).gte('updated_at', desde).gte('id', d).order('id').limit(limite);
+      if (hasta) query = query.lt('id', hasta);
+      if (despues) query = query.gt('id', despues);
+      return query;
+    })),
+    leerPorIds: async ids => {
+      const lotes: string[][] = [];
+      for (let i = 0; i < ids.length; i += 200) lotes.push(ids.slice(i, i + 200));
+      const filas: ProductRow[] = [];
+      // De a cuatro lotes: miles de cambios no abren cientos de pedidos juntos.
+      for (let i = 0; i < lotes.length; i += 4) {
+        const partes = await Promise.all(lotes.slice(i, i + 4).map(async lote => {
+          const { data, error } = await supabase.from('products').select('*').eq('org_id', orgId).in('id', lote);
+          if (error) throw error;
+          return (data ?? []) as ProductRow[];
+        }));
+        filas.push(...partes.flat());
+      }
+      return filas;
+    },
     contar: async () => {
       const { count, error } = await supabase.from('products').select('id', { count: 'exact', head: true }).eq('org_id', orgId);
       return error ? null : count ?? null;
@@ -117,9 +149,13 @@ export async function getProductsDB(userId: string, organizationId?: string) {
       if (despues) query = query.gt('id', despues);
       return query;
     })).map(row => row.id),
-  }, almacenIndexedDb<ProductRow>());
+  }, almacenConMemoria(almacenIndexedDb<ProductRow>()));
+  const ya = ordenPorCopia.get(filas);
+  if (ya) return ya;
   const collator = new Intl.Collator('es');
-  return [...filas].sort((a, b) => collator.compare(a.name, b.name));
+  const ordenadas = [...filas].sort((a, b) => collator.compare(a.name, b.name));
+  ordenPorCopia.set(filas, ordenadas);
+  return ordenadas;
 }
 
 /**

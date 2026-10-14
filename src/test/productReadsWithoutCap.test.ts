@@ -37,7 +37,8 @@ describe("lecturas de productos sin tope silencioso", () => {
         if (!/\.select\(/.test(chain)) continue;
         // El propio helper paginado agrega límite y rango en las líneas siguientes.
         if (chain.includes(".select(columns)")) continue;
-        if (/\.(limit|range|single|maybeSingle)\(|\.(eq|in)\((['"])id\2|count:\s*['"]exact|\.insert\(|\.update\(|\.delete\(|\.upsert\(/.test(chain)) continue;
+        // `\3` es la comilla: el grupo 2 es `eq|in` (con `\2` nunca reconocía un filtro por id).
+        if (/\.(limit|range|single|maybeSingle)\(|\.(eq|in)\((['"])id\3|count:\s*['"]exact|\.insert\(|\.update\(|\.delete\(|\.upsert\(/.test(chain)) continue;
         offenders.push(`${file}: ${chain.replace(/\s+/g, " ").slice(0, 120)}`);
       }
     }

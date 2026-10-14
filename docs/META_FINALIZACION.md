@@ -41,6 +41,15 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] POS con catálogo grande: búsqueda indexada, grilla acotada, ventas/variantes completas.
 - [x] POS con atajos F1–F11 (cliente, medio de pago, cupón, ticket en espera, cobrar, factura).
 - [x] Revisar y unificar productos duplicados (stock por Kardex, códigos como alternativos, archivo si hay historia).
+- [x] Panel con catálogos grandes (2026-10-14, «con más de 1.000 productos se vuelve súper lenta y se cae»).
+  - Medido con Famatina (5.500 productos): la sincronización completa son 7,1 MB y van a pasar de 15 MB con 11.534.
+  - Antes, cada pantalla releía y reescribía entera la copia del navegador aunque no cambiara nada, y tenía su propia copia; el Inicio monta varios paneles que la pedían a la vez.
+  - Antes, después de una importación o un cambio masivo de precios, cada pantalla volvía a bajar enteros los productos tocados en los últimos 10 minutos.
+  - Ahora hay una copia por pestaña compartida entre pantallas, una sola sincronización a la vez, y se escribe sólo si hubo cambios.
+  - Lo incremental pide id y fecha de cambio y baja completos sólo los que cambiaron, de a 200.
+  - El aviso de stock bajo ya no se duplica desde cada pestaña (lo guarda la base) y con muchos productos muestra un resumen.
+  - Evidencia: `src/test/catalogCache.test.ts`, `src/test/avisosDeStockSinDuplicar.test.ts`. Arreglada de paso la guarda de lecturas sin tope, que nunca reconocía un filtro por id.
+  - Pendiente: la tienda online pide su catálogo entero y la API lo corta en 1.000 productos sin avisar; hay que paginarla en el servidor antes de publicar una tienda grande.
 - [x] Presupuesto → venta por la caja (2026-10-14).
   - Antes: «Convertir en venta» insertaba una venta con las descripciones unidas y ganancia 0, sin stock, caja ni factura. Se podía repetir, y los ítems no guardaban qué producto eran.
   - Ahora: cada ítem elegido del catálogo guarda su producto. «Cobrar en la caja» carga productos, precios del presupuesto, descuento y cliente, y avisa lo que no puede cargar (escrito a mano, nombre repetido, con variantes).
