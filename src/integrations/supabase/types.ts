@@ -36761,6 +36761,7 @@ export type Database = {
       purchases: {
         Row: {
           batch_name: string | null
+          compra_id: string | null
           created_at: string
           customs_fee: number
           date: string
@@ -36783,6 +36784,7 @@ export type Database = {
         }
         Insert: {
           batch_name?: string | null
+          compra_id?: string | null
           created_at?: string
           customs_fee?: number
           date?: string
@@ -36805,6 +36807,7 @@ export type Database = {
         }
         Update: {
           batch_name?: string | null
+          compra_id?: string | null
           created_at?: string
           customs_fee?: number
           date?: string

@@ -124,11 +124,11 @@ export const TUTORIALES: Record<string, Tutorial> = {
   },
   compras: {
     id: "compras", ruta: "/compras", titulo: "Compras y reposición", minutos: 3,
-    resumen: "Registrar compras, órdenes a proveedores y recompra automática.",
+    resumen: "Registrar lo que entró, pedir a proveedores y pagarles.",
     pasos: [
-      { titulo: "Compras", target: ENCABEZADO, texto: "Cada compra suma stock y actualiza el costo. Podés cargarla por unidad o por caja." },
-      { titulo: "Orden de compra", texto: "Elegí productos y cantidades (o usá «Pre-cargar recompra» con lo vendido en los últimos días) y descargá el Excel para el proveedor." },
-      { titulo: "Compras programadas", texto: "Una compra futura no mueve stock: aparece en el flujo de caja proyectado." },
+      { titulo: "Compras", target: ENCABEZADO, texto: "Cada compra suma stock y actualiza el costo de sus productos. Cargá todos los productos de la factura juntos, o subí la factura y la IA la precarga." },
+      { titulo: "Pagada o a pagar", texto: "Si la dejás a pagar, queda en la cuenta del proveedor con su vencimiento; si la pagaste, queda el egreso con el medio." },
+      { titulo: "Órdenes de compra", texto: "Para pedir mercadería usá Órdenes de compra: al recibirlas, la compra aparece sola con el número de la orden." },
     ],
   },
   proveedores: {

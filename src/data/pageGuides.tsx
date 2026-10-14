@@ -71,11 +71,10 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
     color: "text-blue-400",
     tips: [
       { icon: Upload, title: "Importar desde Excel", desc: "Cargá múltiples productos a la vez desde un Excel. El sistema calcula márgenes y precios sugeridos automáticamente." },
-      { icon: FileText, title: "Importar factura con IA", desc: "Usá '✨ Factura IA' para fotografiar o subir una factura PDF. Claude extrae los productos, cantidades y precios en segundos.", tag: "IA" },
       { icon: Pencil, title: "Editar stock o precio inline", desc: "Hacé click directamente en el número de stock o precio en la tabla para editarlo sin abrir el formulario. Confirmá con Enter." },
       { icon: Copy, title: "Duplicar producto", desc: "El botón Copy en la columna de acciones crea una copia exacta del producto con stock 0 y nombre 'Copia de X'. Útil para variantes." },
       { icon: Layers, title: "Stock por variante", desc: "Hacé click en el badge de capas 🗂 para ver el stock de cada variante (sabor, talla, color) sin abrir el producto." },
-      { icon: AlertTriangle, title: "Panel de reposición", desc: "El banner de stock bajo lista todos los productos que necesitan pedido. El botón 'Pedir' abre Compras con el producto preseleccionado.", tag: "Tip" },
+      { icon: AlertTriangle, title: "Stock bajo y reposición", desc: "El encabezado avisa cuántos productos están bajo el mínimo. En Planificación → Reposición se arman las órdenes de compra por proveedor; lo que entra de una factura se carga en Compras.", tag: "Tip" },
       { icon: Printer, title: "Lista de precios PDF", desc: "Generá un PDF listo para imprimir con todos los precios agrupados por categoría. También podés exportar etiquetas de precios con QR." },
     ],
   },
@@ -83,15 +82,15 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   // ── Compras ──────────────────────────────────────────────────
   "/compras": {
     title: "Compras",
-    subtitle: "Pedidos y recepción de mercadería",
+    subtitle: "Lo que entró de tus proveedores",
     color: "text-primary",
     tips: [
-      { icon: ScanLine, title: "Escanear barcode para buscar", desc: "Usá el botón de cámara junto al buscador para escanear el código de barras de un producto y filtrarlo instantáneamente.", tag: "Nuevo" },
-      { icon: FileText, title: "Importar factura del proveedor", desc: "Con '✨ Factura IA' podés fotografiar la factura del proveedor y crear la compra automáticamente con todos los ítems.", tag: "IA" },
-      { icon: Truck, title: "Estado 'En camino'", desc: "Marcá un pedido como 'En camino' para diferenciarlo de los pedidos no confirmados. Los KPIs del pipeline muestran los tres estados." },
-      { icon: Package, title: "Recepción parcial", desc: "Al marcar un pedido como recibido podés ingresar la cantidad real recibida (puede ser menor a la pedida). El stock se ajusta correctamente." },
-      { icon: BarChart2, title: "Tab 'Por Proveedor'", desc: "Ve el ranking de proveedores con total USD, número de compras, promedio por orden y última fecha de compra." },
-      { icon: Download, title: "Exportar CSV", desc: "El botón CSV exporta todas las compras del período filtrado con tipo (Pedido/Recibida), proveedor, producto y montos." },
+      { icon: ShoppingCart, title: "Una compra, varios productos", desc: "«Nueva compra» carga todos los productos de la factura: buscalos por nombre o código, o escanealos. Suma el stock y actualiza el costo de cada uno." },
+      { icon: FileText, title: "Cargar desde la factura", desc: "En «Más acciones», subí la foto o el PDF de la factura: la IA precarga la compra y vos revisás antes de registrarla.", tag: "IA" },
+      { icon: Wallet, title: "Pagada o a pagar", desc: "Si la dejás a pagar, queda en la cuenta del proveedor con su vencimiento; si la pagaste, queda el egreso con el medio." },
+      { icon: Truck, title: "Pedidos a proveedores", desc: "Para pedir mercadería usá Órdenes de compra: al recibirlas, la compra aparece acá sola con el número de la orden." },
+      { icon: BarChart2, title: "Por proveedor", desc: "Cuánto le compraste a cada proveedor en el período, cuántos productos y cuánto le debés." },
+      { icon: Download, title: "Anular y exportar", desc: "Anular una compra revierte el stock y su pago o cuenta a pagar. Exportá el período a Excel desde «Más acciones»." },
     ],
   },
 

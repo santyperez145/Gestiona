@@ -7,7 +7,7 @@ export interface CashFlowMovement {
   date: string;       // YYYY-MM-DD
   amount: number;     // positive = inflow, negative = outflow
   label: string;
-  kind: 'debt' | 'sales_projection' | 'recurring_expense' | 'scheduled_purchase' | 'tax';
+  kind: 'debt' | 'sales_projection' | 'recurring_expense' | 'supplier_payment' | 'tax';
 }
 
 export interface CashFlowWindow {
@@ -26,10 +26,11 @@ export function projectCashFlow(opts: {
   sales: any[];          // historical sales (last 90d preferred for averaging)
   debts: any[];          // pending debts with due_date
   expenses: any[];       // expenses (recurring flag used for replication)
-  purchases: any[];      // includes scheduled future purchases
+  /** Cuentas a pagar a proveedores con saldo (supplier_debts). */
+  supplierDebts?: Array<{ supplier_name?: string | null; remaining_ars?: number | null; amount_ars?: number | null; paid_ars?: number | null; due_date?: string | null; status?: string | null }>;
   settings: any;
 }): CashFlowWindow {
-  const { initialCash, windowDays, sales, debts, expenses, purchases, settings } = opts;
+  const { initialCash, windowDays, sales, debts, expenses, supplierDebts = [], settings } = opts;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const end = new Date(today.getTime() + windowDays * 86400000);
 
@@ -86,18 +87,22 @@ export function projectCashFlow(opts: {
     }
   });
 
-  // Outflow: scheduled purchases
-  (purchases || []).forEach(p => {
-    if (!p.is_scheduled || !p.scheduled_date) return;
-    const sd = new Date(p.scheduled_date);
-    if (sd >= today && sd <= end) {
-      movements.push({
-        date: sd.toISOString().slice(0, 10),
-        amount: -Number(p.total_ars),
-        label: `Compra programada: ${p.product_name}`,
-        kind: 'scheduled_purchase',
-      });
-    }
+  // Outflow: lo que se le debe a proveedores (2026-10-14). Antes salía de las
+  // «compras programadas», que ya no existen: lo que se pide va por órdenes de
+  // compra y lo que se debe queda en supplier_debts. Lo vencido se cuenta hoy
+  // (es plata que ya hay que poner); lo que vence en la ventana, en su fecha.
+  supplierDebts.forEach(d => {
+    const saldo = Number(d.remaining_ars ?? Number(d.amount_ars || 0) - Number(d.paid_ars || 0));
+    if (d.status === 'paid' || !(saldo > 0.009)) return;
+    const due = d.due_date ? new Date(`${d.due_date}T00:00:00`) : today;
+    if (due > end) return;
+    const date = due < today ? today : due;
+    movements.push({
+      date: date.toISOString().slice(0, 10),
+      amount: -saldo,
+      label: `${due < today ? 'Vencido · ' : ''}Pago a ${d.supplier_name || 'proveedor'}`,
+      kind: 'supplier_payment',
+    });
   });
 
   // Outflow: estimated taxes on projected sales

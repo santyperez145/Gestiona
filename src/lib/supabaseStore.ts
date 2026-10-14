@@ -402,38 +402,9 @@ export async function getPurchasesDB(userId: string, organizationId?: string) {
   return selectOrgRowsByDate('purchases', orgId);
 }
 
-export async function addPurchaseDB(purchase: any) {
-  const orgId = purchase.org_id || requireActiveOrgId();
-  const { error } = await supabase.from('purchases').insert({ ...purchase, org_id: orgId });
-  if (error) throw error;
-  // El stock lo mueve `trg_purchase_stock_movement`. Acá había un ajuste manual
-  // que lo sumaba OTRA vez: comprar 5 unidades subía el stock 10. El trigger
-  // además respeta `is_scheduled`, así que la mercadería entra cuando llega y
-  // no cuando se programa el pedido — que es lo que este bloque intentaba y no
-  // lograba, porque el trigger sumaba igual.
-  // Ledger entry
-  if (!purchase.is_scheduled) {
-    await recordFinancialMovement({
-      orgId,
-      direction: 'expense',
-      sourceType: 'purchase',
-      sourceId: purchase.id ?? null,
-      amountArs: purchase.total_ars ?? 0,
-      description: `Compra: ${purchase.product_name ?? purchase.supplier_name ?? 'Proveedor'}`,
-      counterparty: purchase.supplier_name ?? null,
-      paymentMethod: purchase.payment_method ?? 'efectivo',
-      channel: 'purchase',
-      happenedAt: purchase.date ? new Date(purchase.date + 'T12:00:00').toISOString() : undefined,
-      createdBy: purchase.user_id ?? null,
-      metadata: { quantity: purchase.quantity, product_name: purchase.product_name },
-    });
-  }
-}
-
-export async function deletePurchaseDB(id: string) {
-  const { error } = await supabase.from('purchases').delete().eq('id', id);
-  if (error) throw error;
-}
+// Registrar y anular compras: `registrar_compra` / `anular_compra` en
+// src/lib/compras.ts (2026-10-14). El insert suelto que había acá mandaba
+// columnas que no existen y anotaba el egreso aparte.
 
 // ========= SALES =========
 export async function getSalesDB(userId: string, organizationId?: string) {
@@ -820,15 +791,6 @@ export async function updateSaleDB(id: string, updates: any, _oldSale?: any) {
   if (error) throw error;
 }
 
-// ========= PURCHASES EDIT =========
-// Igual que `updateSaleDB`: el stock lo reacomoda el trigger, que además
-// entiende la transición de compra programada a recibida — el ajuste por
-// diferencia que estaba acá no la cubría, así que marcar una compra como
-// recibida no sumaba nada.
-export async function updatePurchaseDB(id: string, updates: any, _oldPurchase?: any) {
-  const { error } = await supabase.from('purchases').update(updates).eq('id', id);
-  if (error) throw error;
-}
 
 // ========= AUDIT LOGS =========
 export async function getAuditLogsDB(limit = 50) {

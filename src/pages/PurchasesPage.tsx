@@ -1,1097 +1,473 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
-import { cotizacionDe } from "@/lib/exchangeRate";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
-import { supabase } from "@/integrations/supabase/client";
-import { getPurchasesDB, addPurchaseDB, deletePurchaseDB, updatePurchaseDB, getProductsDB, getSettingsDB, getSalesAggregatedDB, formatARS, formatUSD, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
+import { getPurchasesDB, formatARS, formatDateAR, formatUSD } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronUp, ChevronDown, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3, Printer, MoreHorizontal } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import DataPagination from "@/components/shared/DataPagination";
-import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
-import BusinessPageHeader from "@/components/business/BusinessPageHeader";
-import BusinessKPICard from "@/components/business/BusinessKPICard";
-import BusinessEmptyState from "@/components/business/BusinessEmptyState";
-function useBarcodeScanner(onDetected: (code: string) => void) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<any>(null);
-  const [scanning, setScanning] = useState(false);
-
-  const start = useCallback(async () => {
-    try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      readerRef.current = reader;
-      setScanning(true);
-      await reader.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
-        if (result) {
-          onDetected(result.getText());
-          stop();
-        }
-      });
-    } catch { setScanning(false); }
-  }, [onDetected]);
-
-  const stop = useCallback(() => {
-    readerRef.current?.reset();
-    readerRef.current = null;
-    setScanning(false);
-    if (videoRef.current?.srcObject) {
-      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
-      videoRef.current.srcObject = null;
-    }
-  }, []);
-
-  return { videoRef, scanning, start, stop };
-}
-import InvoiceImportDialog from "@/components/products/InvoiceImportDialog";
-import { DateRangePicker } from "@/components/shared/DateRangePicker";
+import { AlertTriangle, BarChart3, CalendarClock, ClipboardList, FileSpreadsheet, Loader2, MoreHorizontal, Plus, Printer, RotateCcw, Search, ShoppingCart, Sparkles, Truck, Users, Wallet } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import EmptyState from "@/components/shared/EmptyState";
+import DataPagination from "@/components/shared/DataPagination";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
-import { logAudit } from "@/lib/auditLog";
+import EditorDeCompra from "@/components/compras/EditorDeCompra";
+import LectorDeFactura from "@/components/compras/LectorDeFactura";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
-
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { plural } from "@/lib/plural";
-import EmptyState from "@/components/shared/EmptyState";
-import ProductCombobox from "@/components/shared/ProductCombobox";
-import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
-const PAGE_SIZE = 20;
+import {
+  ETIQUETA_DE_PAGO, agruparCompras, anularCompraDB, compraCoincide, contextoDeComprasDB, fechaArgentina,
+  type Compra, type FacturaLeida, type FilaDeCompra,
+} from "@/lib/compras";
+
+/**
+ * Compras (rearmada 2026-10-14, pedido del dueño: «además de lo visual, tienen
+ * funciones totalmente legacy o incoherentes»). Lo que había:
+ * · «Nueva compra» insertaba columnas que no existen: registrar fallaba siempre.
+ * · Un producto por compra, costo en dólares + un 15 % fijo del importador original.
+ * · Compras «programadas» y «en camino» que duplicaban Órdenes de compra, con
+ *   un generador de Excel y un mail de un solo producto como «orden».
+ * · Borrar un renglón dejaba la cuenta del proveedor y el egreso por el total.
+ *
+ * Ahora: lo que se pide va por Órdenes de compra; acá queda lo que entró (por
+ * recepción de una orden o compra directa), como compras enteras. Registrar y
+ * anular los hace la base (`registrar_compra`, `anular_compra`): el stock lo
+ * mueve trg_purchase_stock_movement, el costo del producto se actualiza y la
+ * cuenta a pagar o el egreso quedan atados a la compra.
+ */
+
+const POR_PAGINA = 20;
+type Estado = "todas" | "a_pagar" | "vencidas" | "pagadas" | "por_orden";
+
+const TONO_DE_PAGO: Record<Compra["estadoDePago"], "success" | "warning" | "destructive" | "secondary"> = {
+  pagada: "success", a_pagar: "warning", pago_parcial: "warning", vencida: "destructive", sin_registrar: "secondary",
+};
+
+const restanteDe = (c: Compra) => (c.deuda ? Math.max(0, Number(c.deuda.remaining_ars ?? Number(c.deuda.amount_ars) - Number(c.deuda.paid_ars))) : 0);
 
 export default function PurchasesPage() {
   usePageTitle("Compras");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
-  const { canCreate, canEdit, canDelete } = useModulePermissions("purchases");
-  const [searchParams] = useSearchParams();
-  const prefilledProduct = searchParams.get("product") || "";
-  const [purchases, setPurchases] = useState<any[]>([]);
-  const [open, setOpen] = useState(() => !!searchParams.get("product"));
-  const [editItem, setEditItem] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [receivingOrder, setReceivingOrder] = useState<{ purchase: any; qty: string } | null>(null);
-  const [receivingLoading, setReceivingLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [dateFrom, setDateFrom] = useState<Date | undefined>();
-  const [dateTo, setDateTo] = useState<Date | undefined>();
-  const [orderOpen, setOrderOpen] = useState(false);
-  const [invoiceImportOpen, setInvoiceImportOpen] = useState(false);
-  const reload = async () => { if (user) { setPurchases(await getPurchasesDB(user.id)); setLoading(false); } };
-  useEffect(() => { reload(); }, [user]);
+  const navigate = useNavigate();
+  const { canCreate, canDelete } = useModulePermissions("purchases");
 
-  const [tab, setTab] = useState<'all' | 'scheduled' | 'suppliers'>('all');
-  const [search, setSearch] = useState('');
-  const [filterSupplier, setFilterSupplier] = useState('all');
-  const [purchaseSort, setPurchaseSort] = useState<{ col: "date" | "total_usd" | "total_ars" | "supplier"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
-  const [filterTravel, setFilterTravel] = useState<'all' | 'en_camino' | 'pendiente'>('all');
+  const [compras, setCompras] = useState<Compra[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [errorDeCarga, setErrorDeCarga] = useState<string | null>(null);
+  const [editorAbierto, setEditorAbierto] = useState(false);
+  const [factura, setFactura] = useState<FacturaLeida | null>(null);
+  const [lectorAbierto, setLectorAbierto] = useState(false);
+  const [detalle, setDetalle] = useState<Compra | null>(null);
+  const [anulando, setAnulando] = useState<string | null>(null);
 
-  const handleBarcode = useCallback((code: string) => {
-    setSearch(code);
-    setPage(0);
-    toast.success(`Código escaneado: ${code}`);
-  }, []);
-  const { videoRef: scanVideoRef, scanning: scannerOpen, start: startScan, stop: stopScan } = useBarcodeScanner(handleBarcode);
+  const [vista, setVista] = useState<"compras" | "proveedores">("compras");
+  const [busqueda, setBusqueda] = useState("");
+  const [proveedor, setProveedor] = useState("todos");
+  const [estado, setEstado] = useState<Estado>("todas");
+  const [desde, setDesde] = useState<Date | undefined>();
+  const [hasta, setHasta] = useState<Date | undefined>();
+  const [pagina, setPagina] = useState(0);
 
-  const supplierOptions = Array.from(new Set(purchases.map(p => p.supplier).filter(Boolean))).sort();
-
-  const supplierStats = (() => {
-    const map: Record<string, { totalUSD: number; totalARS: number; count: number; lastDate: string; products: Set<string> }> = {};
-    purchases.filter(p => !p.is_scheduled).forEach(p => {
-      const key = p.supplier || '(Sin proveedor)';
-      if (!map[key]) map[key] = { totalUSD: 0, totalARS: 0, count: 0, lastDate: p.date, products: new Set() };
-      map[key].totalUSD += Number(p.total_usd);
-      map[key].totalARS += Number(p.total_ars);
-      map[key].count += 1;
-      if (p.date > map[key].lastDate) map[key].lastDate = p.date;
-      if (p.product_name) map[key].products.add(p.product_name);
-    });
-    return Object.entries(map)
-      .map(([name, s]) => ({ name, ...s, avgUSD: s.count > 0 ? s.totalUSD / s.count : 0, productCount: s.products.size }))
-      .sort((a, b) => b.totalUSD - a.totalUSD);
-  })();
-
-  const filtered = purchases.filter(p => {
-    if (tab === 'scheduled' && !p.is_scheduled) return false;
-    if (tab === 'all' && p.is_scheduled) return false;
-    if (search && !p.product_name?.toLowerCase().includes(search.toLowerCase()) && !p.supplier?.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterSupplier !== 'all' && p.supplier !== filterSupplier) return false;
-    if (filterTravel !== 'all') {
-      if (filterTravel === 'en_camino' && p.travel_status !== 'en_camino') return false;
-      if (filterTravel === 'pendiente' && p.travel_status === 'en_camino') return false;
-    }
-    if (!dateFrom) return true;
-    const d = new Date(p.date);
-    if (d < dateFrom) return false;
-    if (dateTo) { const end = new Date(dateTo); end.setHours(23,59,59,999); if (d > end) return false; }
-    return true;
-  });
-  const scheduledCount = purchases.filter(p => p.is_scheduled).length;
-  const totalUSD = filtered.reduce((s, p) => s + Number(p.total_usd), 0);
-  const totalARS = filtered.reduce((s, p) => s + Number(p.total_ars), 0);
-  const filteredSorted = [...filtered].sort((a, b) => {
-    let cmp = 0;
-    if (purchaseSort.col === "date") cmp = String(a.date).localeCompare(String(b.date));
-    else if (purchaseSort.col === "total_usd") cmp = Number(a.total_usd) - Number(b.total_usd);
-    else if (purchaseSort.col === "total_ars") cmp = Number(a.total_ars) - Number(b.total_ars);
-    else if (purchaseSort.col === "supplier") cmp = (a.supplier || "").localeCompare(b.supplier || "");
-    return purchaseSort.dir === "asc" ? cmp : -cmp;
-  });
-  const totalPages = Math.ceil(filteredSorted.length / PAGE_SIZE);
-  const paged = filteredSorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  const monthlySpend = useMemo(() => {
-    const now = new Date();
-    const months = Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
-      return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()], usd: 0, ars: 0, count: 0 };
-    });
-    purchases.filter(p => !p.is_scheduled).forEach(p => {
-      const key = p.date?.slice(0, 7);
-      const slot = months.find(m => m.key === key);
-      if (slot) { slot.usd += Number(p.total_usd || 0); slot.ars += Number(p.total_ars || 0); slot.count++; }
-    });
-    return months;
-  }, [purchases]);
-
-  const printPurchasesPDF = () => {
-    const fmtARS = (v: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
-    const fmtUSD = (v: number) => `U$S ${v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const periodLabel = (() => {
-      if (!dateFrom) return 'Todo el período';
-      const f = dateFrom.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      const t = dateTo ? dateTo.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      return f === t ? f : `${f} – ${t}`;
-    })();
-    const supplierMap: Record<string, number> = {};
-    filteredSorted.forEach(p => {
-      const k = p.supplier || '(Sin proveedor)';
-      supplierMap[k] = (supplierMap[k] || 0) + Number(p.total_ars || 0);
-    });
-    const topSuppliers = Object.entries(supplierMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    const rows = filteredSorted.map(p => `
-      <tr style="${Number(p.total_usd) > 500 ? 'background:#fffbeb' : ''}">
-        <td>${p.date}</td>
-        <td>${p.product_name || '—'}</td>
-        <td>${p.supplier || '—'}</td>
-        <td style="text-align:center">${p.quantity}</td>
-        <td style="text-align:right">${fmtUSD(Number(p.total_usd || 0))}</td>
-        <td style="text-align:right">${fmtARS(Number(p.total_ars || 0))}</td>
-        <td style="text-align:center;font-size:10px;color:${p.is_scheduled ? '#92400e' : '#065f46'}">${p.is_scheduled ? 'Pedido' : 'Recibida'}</td>
-      </tr>`).join('');
-    const suppliersHtml = topSuppliers.map(([name, ars]) => `
-      <tr><td>${name}</td><td style="text-align:right">${fmtARS(ars)}</td><td style="text-align:right">${totalARS > 0 ? ((ars / totalARS) * 100).toFixed(1) : 0}%</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resumen de Compras</title>
-<style>body{font-family:Arial,sans-serif;margin:20px;color:#1a1a2e}h1{font-size:16px;margin:0 0 2px}h2{font-size:12px;color:#555;margin:14px 0 6px}
-.sub{font-size:11px;color:#888;margin-bottom:14px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
-.kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px;text-align:center}
-.kpi .val{font-size:15px;font-weight:bold;color:#92400e}.kpi .lbl{font-size:9px;color:#777;margin-top:2px}
-table{width:100%;border-collapse:collapse;margin-bottom:14px}th{text-align:left;border-bottom:1px solid #ddd;padding:4px 6px;font-size:10px;color:#666;background:#f9fafb}
-td{padding:4px 6px;font-size:10px;border-bottom:1px solid #f0f0f0}.footer{font-size:9px;color:#aaa;text-align:center;margin-top:16px}
-@media print{.footer{position:fixed;bottom:10px;width:100%}}</style></head><body>
-<h1>Resumen de Compras</h1><div class="sub">${periodLabel} · Generado el ${new Date().toLocaleDateString('es-AR')}</div>
-<div class="kpis">
-  <div class="kpi"><div class="val">${fmtUSD(totalUSD)}</div><div class="lbl">Total USD</div></div>
-  <div class="kpi"><div class="val">${fmtARS(totalARS)}</div><div class="lbl">Total ARS</div></div>
-  <div class="kpi"><div class="val">${filteredSorted.length}</div><div class="lbl">Órdenes</div></div>
-  <div class="kpi"><div class="val">${Object.keys(supplierMap).length}</div><div class="lbl">Proveedores</div></div>
-</div>
-${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Proveedor</th><th style="text-align:right">Total ARS</th><th style="text-align:right">Share</th></tr></thead><tbody>${suppliersHtml}</tbody></table>` : ''}
-<h2>Detalle de compras</h2>
-<table><thead><tr><th>Fecha</th><th>Producto</th><th>Proveedor</th><th style="text-align:center">Cant.</th><th style="text-align:right">Total USD</th><th style="text-align:right">Total ARS</th><th style="text-align:center">Tipo</th></tr></thead><tbody>${rows}</tbody>
-<tfoot><tr style="font-weight:bold;background:#f9fafb"><td colspan="4">TOTAL</td><td style="text-align:right">${fmtUSD(totalUSD)}</td><td style="text-align:right">${fmtARS(totalARS)}</td><td></td></tr></tfoot></table>
-<div class="footer">${activeOrg?.name || 'Sistema de Gestión'} · Nerqia</div></body></html>`;
-    const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400); }
-  };
-
-  const exportPurchasesCSV = () => {
-    const header = ['Fecha', 'Producto', 'Proveedor', 'Cantidad', 'Costo USD', 'Total USD', 'Total ARS', 'Tipo'];
-    const rows = filteredSorted.map(p => [
-      p.date,
-      `"${(p.product_name || '').replace(/"/g, '""')}"`,
-      `"${(p.supplier || '').replace(/"/g, '""')}"`,
-      p.quantity,
-      Number(p.cost_usd || 0).toFixed(2),
-      Number(p.total_usd || 0).toFixed(2),
-      Number(p.total_ars || 0).toFixed(2),
-      p.is_scheduled ? 'Pedido' : 'Recibida',
-    ]);
-    const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `compras_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-    URL.revokeObjectURL(url);
-    toast.success(`${filteredSorted.length} compras exportadas`);
-  };
-
-  const handleReceiveOrder = async () => {
-    if (!receivingOrder) return;
-    const { purchase: p, qty } = receivingOrder;
-    const received = Number(qty);
-    if (!received || received <= 0) { toast.error("Ingresá una cantidad válida"); return; }
-    setReceivingLoading(true);
+  const cargar = useCallback(async () => {
+    if (!user || !activeOrg) return;
+    setErrorDeCarga(null);
     try {
-      await updatePurchaseDB(p.id, { is_scheduled: false, quantity: received, date: new Date().toISOString().slice(0, 10) });
-      // `trg_purchase_stock_movement` calcula la diferencia al pasar de
-      // programada a recibida. Sumar acá duplicaba las unidades y salteaba el
-      // Kardex.
-      if (user) await logAudit(user.id, 'update', 'purchase', p.id, { action: 'received', product: p.product_name, qty_received: received, qty_ordered: p.quantity });
-      const partial = received < Number(p.quantity);
-      toast.success(`${partial ? `Recepción parcial (${received}/${p.quantity} uds)` : 'Pedido recibido completo'} — stock actualizado`);
-      setReceivingOrder(null);
-      reload();
-    } catch (err: any) {
-      toast.error("Error: " + err.message);
+      const [filas, contexto] = await Promise.all([
+        getPurchasesDB(user.id, activeOrg.id) as Promise<FilaDeCompra[]>,
+        contextoDeComprasDB(activeOrg.id),
+      ]);
+      setCompras(agruparCompras(filas, contexto.recepciones, contexto.deudas));
+    } catch (err) {
+      setErrorDeCarga(mensajeDeError(err, "No se pudieron cargar las compras"));
     } finally {
-      setReceivingLoading(false);
+      setCargando(false);
+    }
+  }, [user, activeOrg]);
+  useEffect(() => { void cargar(); }, [cargar]);
+
+  // ── Filtros ──
+  const desdeTxt = desde ? fechaArgentina(desde) : null;
+  const hastaTxt = hasta ? fechaArgentina(hasta) : null;
+  const enPeriodo = useMemo(() => compras.filter(c =>
+    (!desdeTxt || c.fecha >= desdeTxt) && (!hastaTxt || c.fecha <= hastaTxt)), [compras, desdeTxt, hastaTxt]);
+  const filtradas = useMemo(() => enPeriodo.filter(c => {
+    if (proveedor !== "todos" && (c.proveedor ?? "") !== proveedor) return false;
+    if (estado === "a_pagar" && !["a_pagar", "pago_parcial", "vencida"].includes(c.estadoDePago)) return false;
+    if (estado === "vencidas" && c.estadoDePago !== "vencida") return false;
+    if (estado === "pagadas" && c.estadoDePago !== "pagada") return false;
+    if (estado === "por_orden" && !c.orden) return false;
+    return compraCoincide(c, busqueda);
+  }), [enPeriodo, proveedor, estado, busqueda]);
+  useEffect(() => { setPagina(0); }, [busqueda, proveedor, estado, desdeTxt, hastaTxt, vista]);
+
+  const proveedoresConCompras = useMemo(() =>
+    Array.from(new Set(compras.map(c => c.proveedor).filter((p): p is string => !!p))).sort((a, b) => a.localeCompare(b, "es")), [compras]);
+
+  // ── Indicadores ──
+  const totalPeriodo = filtradas.reduce((s, c) => s + c.totalArs, 0);
+  const aPagar = compras.reduce((s, c) => s + restanteDe(c), 0);
+  const vencido = compras.filter(c => c.estadoDePago === "vencida").reduce((s, c) => s + restanteDe(c), 0);
+  const porProveedor = useMemo(() => {
+    const mapa = new Map<string, { nombre: string; total: number; compras: number; productos: Set<string>; ultima: string; aPagar: number }>();
+    for (const c of filtradas) {
+      const nombre = c.proveedor || "Sin proveedor";
+      const fila = mapa.get(nombre) ?? { nombre, total: 0, compras: 0, productos: new Set<string>(), ultima: c.fecha, aPagar: 0 };
+      fila.total += c.totalArs;
+      fila.compras += 1;
+      fila.aPagar += restanteDe(c);
+      c.renglones.forEach(r => fila.productos.add(r.product_name));
+      if (c.fecha > fila.ultima) fila.ultima = c.fecha;
+      mapa.set(nombre, fila);
+    }
+    return [...mapa.values()].sort((a, b) => b.total - a.total);
+  }, [filtradas]);
+  const principal = porProveedor.find(p => p.nombre !== "Sin proveedor");
+
+  const porMes = useMemo(() => {
+    const ahora = new Date();
+    const meses = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(ahora.getFullYear(), ahora.getMonth() - 11 + i, 1);
+      return { clave: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, mes: d.toLocaleDateString("es-AR", { month: "short" }).replace(".", ""), total: 0 };
+    });
+    for (const c of compras) {
+      const m = meses.find(x => x.clave === c.fecha.slice(0, 7));
+      if (m) m.total += c.totalArs;
+    }
+    return meses;
+  }, [compras]);
+
+  const paginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const visibles = filtradas.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
+
+  // ── Acciones ──
+  const anular = async (c: Compra) => {
+    if (!activeOrg) return;
+    setAnulando(c.id);
+    try {
+      const r = await anularCompraDB(activeOrg.id, c.id);
+      toast.success("Compra anulada", { description: `Se revirtió el stock de ${plural(r.renglones, "producto")}${c.deuda ? " y se quitó la cuenta a pagar" : ""}.` });
+      setDetalle(null);
+      await cargar();
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo anular la compra"));
+    } finally {
+      setAnulando(null);
     }
   };
 
-  const handleDelete = async (p: any) => {
-    await deletePurchaseDB(p.id);
-    if (user) await logAudit(user.id, 'delete', 'purchase', p.id, { product: p.product_name });
-    reload();
-    toast.success("Compra eliminada");
+  const exportarCSV = () => {
+    const celda = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const encabezado = ["Fecha", "Comprobante", "Orden", "Proveedor", "Producto", "Cantidad", "Total ARS", "Total USD", "Pago"];
+    const filas = filtradas.flatMap(c => c.renglones.map(r => [
+      c.fecha, c.comprobante ?? "", c.orden?.numero ?? "", c.proveedor ?? "", r.product_name, r.quantity,
+      Number(r.total_ars || 0).toFixed(2), Number(r.total_usd || 0).toFixed(2), ETIQUETA_DE_PAGO[c.estadoDePago],
+    ].map(celda).join(",")));
+    const blob = new Blob(["﻿" + [encabezado.join(","), ...filas].join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `compras_${fechaArgentina()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${plural(filtradas.length, "compra")} exportadas`);
   };
 
-  if (loading) return <TableSkeleton rows={6} cols={8} />;
+  const imprimir = () => {
+    const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
+    const periodo = desdeTxt ? `${formatDateAR(desdeTxt + "T12:00:00")} – ${formatDateAR((hastaTxt ?? fechaArgentina()) + "T12:00:00")}` : "Todo el período";
+    const filas = filtradas.map(c => `<tr><td>${esc(formatDateAR(c.fecha + "T12:00:00"))}</td><td>${esc(c.comprobante || c.orden?.numero || "—")}</td><td>${esc(c.proveedor || "—")}</td><td>${esc(c.renglones.map(r => `${r.product_name} ×${Number(r.quantity).toLocaleString("es-AR")}`).join(", "))}</td><td style="text-align:right">${esc(formatARS(c.totalArs))}</td><td>${esc(ETIQUETA_DE_PAGO[c.estadoDePago])}</td></tr>`).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Compras</title><style>body{font-family:Arial,sans-serif;margin:20px;color:#111}h1{font-size:16px;margin:0}p{font-size:11px;color:#666}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{font-size:10px;padding:4px 6px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}th{background:#f6f6f6;color:#555}</style></head><body><h1>Compras · ${esc(activeOrg?.name ?? "")}</h1><p>${esc(periodo)} · ${filtradas.length} compras · ${esc(formatARS(totalPeriodo))}</p><table><thead><tr><th>Fecha</th><th>Comprobante</th><th>Proveedor</th><th>Productos</th><th style="text-align:right">Total</th><th>Pago</th></tr></thead><tbody>${filas}</tbody></table></body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { toast.error("El navegador bloqueó la ventana de impresión"); return; }
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => w.print(), 300);
+  };
+
+  if (cargando) return <TableSkeleton rows={6} cols={6} />;
 
   return (
-    <div className="space-y-6 pb-12">
-      <BusinessPageHeader
+    <div className="space-y-5 pb-12">
+      <PageHeader
         icon={ShoppingCart}
+        eyebrow="Commerce · Compras"
         title="Compras"
-        description="Lo que comprás a tus proveedores: entra al stock que comparten la tienda y el mostrador."
-        badge="Inventario"
+        description="Lo que entró de tus proveedores: suma stock, actualiza costos y queda pagado o en cuentas a pagar."
+        badge={vencido > 0 ? { label: `${formatARS(vencido)} vencido`, variant: "destructive" } : aPagar > 0 ? { label: `${formatARS(aPagar)} a pagar`, variant: "warning" } : undefined}
         actions={
-          <div className="flex items-center flex-wrap gap-2">
-            <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
-            {/* Lo secundario en un menú, como en Productos: el encabezado queda con
-                el filtro de fechas y la acción principal, sin botones que se desborden. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangePicker from={desde} to={hasta} onChange={(f, t) => { setDesde(f); setHasta(t); }} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" aria-label="Más acciones de compras">
-                  <MoreHorizontal className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Más acciones</span>
+                <Button variant="outline" size="sm" className="h-9" aria-label="Más acciones de compras">
+                  <MoreHorizontal className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Más acciones</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuItem onClick={() => setOrderOpen(true)}>
-                  <ClipboardList className="w-4 h-4 mr-2" />Generar orden de compra
-                </DropdownMenuItem>
-                {canCreate && (
-                  <DropdownMenuItem onClick={() => setInvoiceImportOpen(true)}>
-                    <Sparkles className="w-4 h-4 mr-2 text-primary" />Cargar factura con IA
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={exportPurchasesCSV} disabled={filteredSorted.length === 0}>
-                  <FileSpreadsheet className="w-4 h-4 mr-2" />Exportar a Excel (CSV)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={printPurchasesPDF} disabled={filteredSorted.length === 0}>
-                  <Printer className="w-4 h-4 mr-2" />Imprimir resumen
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/ordenes-compra")}><ClipboardList className="mr-2 h-4 w-4" />Pedir mercadería (órdenes de compra)</DropdownMenuItem>
+                {canCreate && <DropdownMenuItem onClick={() => setLectorAbierto(true)}><Sparkles className="mr-2 h-4 w-4 text-primary" />Cargar desde la factura (IA)</DropdownMenuItem>}
+                <DropdownMenuItem onClick={exportarCSV} disabled={filtradas.length === 0}><FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (CSV)</DropdownMenuItem>
+                <DropdownMenuItem onClick={imprimir} disabled={filtradas.length === 0}><Printer className="mr-2 h-4 w-4" />Imprimir resumen</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             {canCreate && (
-              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null);}}>
-                <DialogTrigger asChild>
-                  <Button className="font-semibold"><Plus className="w-4 h-4 mr-2" />Nueva compra</Button>
-                </DialogTrigger>
-                <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
-                  <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
-                  <PurchaseForm userId={user!.id} editItem={editItem} prefilledProductName={!editItem ? prefilledProduct : ""} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
-                </DialogContent>
-              </Dialog>
+              <Button className="h-9" onClick={() => { setFactura(null); setEditorAbierto(true); }} data-testid="nueva-compra">
+                <Plus className="mr-2 h-4 w-4" />Nueva compra
+              </Button>
             )}
           </div>
         }
       />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <BusinessKPICard
-          title="Total invertido USD"
-          value={formatUSD(totalUSD)}
-          icon={DollarSign}
-          description={`${filtered.length} compras`}
-        />
-        <BusinessKPICard
-          title="Total invertido ARS"
-          value={formatARS(totalARS)}
-          icon={TrendingDown}
-        />
-        <BusinessKPICard
-          title="Promedio por compra"
-          value={formatUSD(filtered.length > 0 ? totalUSD / filtered.length : 0)}
-          icon={Package}
-        />
-        <BusinessKPICard
-          title="Programadas"
-          value={scheduledCount}
-          icon={CalendarClock}
-          description="pendientes de concretar"
-        />
+      {errorDeCarga && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm" role="alert">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <span className="flex-1">{errorDeCarga}</span>
+          <Button size="sm" variant="outline" onClick={() => { setCargando(true); void cargar(); }}><RotateCcw className="mr-1.5 h-3.5 w-3.5" />Reintentar</Button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <KPICard label="Comprado" value={formatARS(totalPeriodo)} sub={`${plural(filtradas.length, "compra")}${desde ? " en el período" : ""}`} icon={ShoppingCart} color="primary" />
+        <KPICard label="A pagar" value={formatARS(aPagar)} sub="a proveedores, por compras" icon={Wallet} color={aPagar > 0 ? "warning" : "success"}
+          onClick={aPagar > 0 ? () => setEstado("a_pagar") : undefined} />
+        <KPICard label="Vencido" value={formatARS(vencido)} sub={vencido > 0 ? "pagalo en Cuentas a pagar" : "nada vencido"} icon={CalendarClock} color={vencido > 0 ? "destructive" : "success"}
+          onClick={vencido > 0 ? () => setEstado("vencidas") : undefined} />
+        <KPICard label="Proveedor principal" value={principal?.nombre ?? "—"} sub={principal ? formatARS(principal.total) : "sin compras con proveedor"} icon={Users} color="primary" />
       </div>
 
-      {/* Monthly spend chart */}
-      {monthlySpend.some(m => m.usd > 0) && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <BarChart3 className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold">Inversión mensual (últimos 12 meses)</h3>
-          </div>
+      {porMes.some(m => m.total > 0) && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><BarChart3 className="h-4 w-4 text-primary" />Compras por mes (últimos 12)</h3>
           <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={monthlySpend} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
+            <BarChart data={porMes} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={38} />
-              <Tooltip
-                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: number, name: string) => [name === 'usd' ? formatUSD(v) : formatARS(v), name === 'usd' ? 'USD' : 'ARS']}
-              />
-              <Bar dataKey="usd" fill="hsl(40,70%,50%)" radius={[3, 3, 0, 0]} name="usd" />
+              <XAxis dataKey="mes" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => `$${Math.round(Number(v) / 1000)}k`} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={44} />
+              <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} formatter={(v: number) => [formatARS(v), "Comprado"]} />
+              <Bar dataKey="total" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* Order status pipeline */}
-      {(() => {
-        const pending = purchases.filter(p => p.is_scheduled && p.travel_status !== 'en_camino');
-        const inTransit = purchases.filter(p => p.is_scheduled && p.travel_status === 'en_camino');
-        const received30 = purchases.filter(p => !p.is_scheduled && new Date(p.date) >= new Date(Date.now() - 30 * 86400000));
-        const stages = [
-          { label: "Pedidos pendientes", count: pending.length, value: pending.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: "📋" },
-          { label: "En camino", count: inTransit.length, value: inTransit.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-blue-500/30 bg-blue-500/5 text-blue-400", icon: "🚚" },
-          { label: "Recibidos (30d)", count: received30.length, value: received30.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400", icon: "✅" },
-        ];
-        if (stages.every(s => s.count === 0)) return null;
-        return (
-          <div className="grid grid-cols-3 gap-3">
-            {stages.map(s => (
-              <div key={s.label} className={`rounded-[10px] border p-3 ${s.color}`}>
-                <div className="text-lg mb-1">{s.icon}</div>
-                <p className="text-xs font-medium opacity-80">{s.label}</p>
-                <p className="text-xl font-bold font-mono tracking-tight">{s.count}</p>
-                {s.value > 0 && <p className="text-[10px] opacity-70">{formatUSD(s.value)}</p>}
-              </div>
-            ))}
-          </div>
-        );
-      })()}
-
-      {/* Barcode scanner overlay */}
-      {scannerOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center gap-4">
-          <p className="text-white text-sm font-medium">Apuntá la cámara al código de barras</p>
-          <div className="relative w-72 h-48 rounded-[10px] overflow-hidden border-2 border-primary">
-            <video ref={scanVideoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-48 h-1 bg-primary/70 animate-pulse rounded" />
-            </div>
-          </div>
-          <Button variant="secondary" onClick={stopScan}>Cancelar</Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Tabs value={vista} onValueChange={v => setVista(v as typeof vista)}>
+          <TabsList>
+            <TabsTrigger value="compras"><ShoppingCart className="mr-1.5 h-4 w-4" />Compras</TabsTrigger>
+            <TabsTrigger value="proveedores"><Users className="mr-1.5 h-4 w-4" />Por proveedor</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="relative min-w-[180px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Producto, proveedor, comprobante u orden…" className="h-9 pl-9" aria-label="Buscar compras" />
         </div>
-      )}
-
-      {/* Search + supplier filter */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative flex-1 min-w-[160px] flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Buscar producto o proveedor..."
-              className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
-          </div>
-          <Button size="sm" variant="outline" className="h-9 w-9 p-0 shrink-0" title="Escanear código de barras" onClick={startScan}>
-            <ScanLine className="w-4 h-4" />
-          </Button>
-        </div>
-        {supplierOptions.length > 0 && (
-          <Select value={filterSupplier} onValueChange={v => { setFilterSupplier(v); setPage(0); }}>
-            <SelectTrigger className="bg-card border-border w-full sm:w-[180px] h-9 text-sm"><SelectValue placeholder="Todos los proveedores" /></SelectTrigger>
+        {proveedoresConCompras.length > 0 && (
+          <Select value={proveedor} onValueChange={setProveedor}>
+            <SelectTrigger className="h-9 w-full sm:w-[190px]" aria-label="Proveedor"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos los proveedores</SelectItem>
-              {supplierOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <SelectItem value="todos">Todos los proveedores</SelectItem>
+              {proveedoresConCompras.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {vista === "compras" && (
+          <Select value={estado} onValueChange={v => setEstado(v as Estado)}>
+            <SelectTrigger className="h-9 w-full sm:w-[170px]" aria-label="Estado de pago"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas</SelectItem>
+              <SelectItem value="a_pagar">A pagar</SelectItem>
+              <SelectItem value="vencidas">Vencidas</SelectItem>
+              <SelectItem value="pagadas">Pagadas</SelectItem>
+              <SelectItem value="por_orden">Recibidas por orden</SelectItem>
             </SelectContent>
           </Select>
         )}
       </div>
 
-      {tab === 'scheduled' && (
-        <div className="flex gap-1.5 mb-4 flex-wrap">
-          {([
-            { id: 'all' as const, label: 'Todos', color: '' },
-            { id: 'en_camino' as const, label: '🚚 En camino', color: 'text-blue-400 border-blue-500/40 bg-blue-500/10' },
-            { id: 'pendiente' as const, label: '⏳ Pendiente', color: 'text-orange-400 border-orange-500/40 bg-orange-500/10' },
-          ] as const).map(f => (
-            <button key={f.id}
-              onClick={() => { setFilterTravel(f.id); setPage(0); }}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium ${filterTravel === f.id ? (f.color || 'bg-primary/20 text-primary border-primary/40') : 'border-border text-muted-foreground hover:border-primary/30'}`}>
-              {f.label}
-            </button>
-          ))}
-          {filterTravel !== 'all' && (
-            <span className="text-xs text-muted-foreground self-center ml-1">{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
-          )}
-        </div>
-      )}
-
-      <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 border border-border w-fit mb-5">
-        {([
-          { id: 'all' as const, label: 'Realizadas', icon: ShoppingCart },
-          { id: 'scheduled' as const, label: 'Programadas', icon: CalendarClock, count: scheduledCount },
-          { id: 'suppliers' as const, label: 'Por Proveedor', icon: ClipboardList },
-        ]).map(t => (
-          <button key={t.id} onClick={() => { setTab(t.id); setPage(0); }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-            <t.icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{t.label}</span>
-            {'count' in t && t.count > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-[5px] font-semibold ${tab === t.id ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>{t.count}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Purchase Order Generator Dialog */}
-      <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
-        <DialogContent className="bg-card border-border/60 max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="font-display">Generar Orden de Compra</DialogTitle></DialogHeader>
-          <PurchaseOrderGenerator userId={user!.id} onDone={() => setOrderOpen(false)} />
-        </DialogContent>
-      </Dialog>
-
-      {tab === 'suppliers' ? (
-        supplierStats.length === 0 ? (
-          <EmptyState icon={ShoppingCart} title="Sin compras registradas" description="Registrá compras con proveedor para ver el análisis aquí." />
+      {vista === "proveedores" ? (
+        porProveedor.length === 0 ? (
+          <EmptyState icon={Users} title="Sin compras en el período" description="Cuando registres compras con proveedor vas a ver cuánto le comprás a cada uno." />
         ) : (
-          <div className="bg-card border border-border/60 rounded-[10px] overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Proveedor</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Compras</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Productos</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total USD</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Total ARS</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Prom. USD</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Última compra</th>
+                <tr className="border-b border-border bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-3 text-left font-semibold">Proveedor</th>
+                  <th className="px-4 py-3 text-right font-semibold">Compras</th>
+                  <th className="hidden px-4 py-3 text-right font-semibold md:table-cell">Productos</th>
+                  <th className="px-4 py-3 text-right font-semibold">Total</th>
+                  <th className="hidden px-4 py-3 text-right font-semibold lg:table-cell">A pagar</th>
+                  <th className="hidden px-4 py-3 text-right font-semibold lg:table-cell">Última</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {supplierStats.map((s, i) => (
-                  <tr key={s.name} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{i + 1}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-[6px] bg-primary/10 flex items-center justify-center shrink-0">
-                          <span className="text-[10px] font-bold text-primary">{s.name.slice(0, 2).toUpperCase()}</span>
-                        </div>
-                        <span className="font-medium text-sm">{s.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold">{s.count}</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">{s.productCount}</td>
-                    <td className="px-4 py-3 text-right font-bold">{formatUSD(s.totalUSD)}</td>
-                    <td className="px-4 py-3 text-right text-primary hidden lg:table-cell">{formatARS(s.totalARS)}</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{formatUSD(s.avgUSD)}</td>
-                    <td className="px-4 py-3 text-right text-xs text-muted-foreground hidden xl:table-cell">{formatDateAR(s.lastDate)}</td>
+                {porProveedor.map(p => (
+                  <tr key={p.nombre} className="hover:bg-muted/20">
+                    <td className="px-4 py-3 font-medium">{p.nombre}</td>
+                    <td className="px-4 py-3 text-right">{p.compras}</td>
+                    <td className="hidden px-4 py-3 text-right text-muted-foreground md:table-cell">{p.productos.size}</td>
+                    <td className="px-4 py-3 text-right font-semibold">{formatARS(p.total)}</td>
+                    <td className="hidden px-4 py-3 text-right lg:table-cell">{p.aPagar > 0 ? formatARS(p.aPagar) : "—"}</td>
+                    <td className="hidden px-4 py-3 text-right text-xs text-muted-foreground lg:table-cell">{formatDateAR(p.ultima + "T12:00:00")}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="border-t border-border bg-muted/30">
-                  <td colSpan={4} className="px-4 py-2 text-xs font-semibold text-muted-foreground">{supplierStats.length} proveedores</td>
-                  <td className="px-4 py-2 text-right text-xs font-bold">{formatUSD(supplierStats.reduce((s, x) => s + x.totalUSD, 0))}</td>
-                  <td className="px-4 py-2 text-right text-xs font-bold text-primary hidden lg:table-cell">{formatARS(supplierStats.reduce((s, x) => s + x.totalARS, 0))}</td>
-                  <td colSpan={2} className="hidden lg:table-cell" />
-                </tr>
-              </tfoot>
             </table>
           </div>
         )
-      ) : !filtered.length ? (
-        <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
+      ) : filtradas.length === 0 ? (
+        compras.length === 0 ? (
+          <EmptyState icon={ShoppingCart} title="Todavía no registraste compras"
+            description="Registrá lo que te entrega el proveedor: suma el stock, actualiza el costo y deja el pago o la cuenta a pagar. Si pedís con órdenes de compra, al recibirlas aparecen acá solas."
+            actionLabel={canCreate ? "Registrar una compra" : undefined} onAction={canCreate ? () => { setFactura(null); setEditorAbierto(true); } : undefined} />
+        ) : (
+          <EmptyState icon={Search} title="Ninguna compra coincide" description="Probá con otro texto, proveedor, estado o período." />
+        )
       ) : (
         <>
-          <div className="hidden md:block bg-card border border-border/60 rounded-[10px] overflow-x-auto">
+          <div className="hidden overflow-x-auto rounded-lg border border-border bg-card md:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  {(["date", "supplier", "total_usd", "total_ars"] as const).map(col => {
-                    const labels: Record<string, string> = { date: "Fecha", supplier: "Proveedor", total_usd: "Total USD", total_ars: "Total ARS" };
-                    const align = col === "date" || col === "supplier" ? "text-left" : "text-right";
-                    const hidden = col === "supplier" ? "hidden lg:table-cell" : col === "total_ars" ? "hidden sm:table-cell" : "";
-                    const active = purchaseSort.col === col;
-                    return (
-                      <th key={col} className={`px-4 py-3 ${hidden}`}>
-                        <button
-                          onClick={() => setPurchaseSort(prev => prev.col === col ? { col, dir: prev.dir === "asc" ? "desc" : "asc" } : { col, dir: col === "date" ? "desc" : "asc" })}
-                          className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors ${active ? "text-primary" : "text-muted-foreground hover:text-foreground"} ${align === "text-right" ? "ml-auto" : ""}`}
-                        >
-                          {labels[col]}
-                          {active ? (purchaseSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ChevronDown className="w-3 h-3 opacity-30" />}
-                        </button>
-                      </th>
-                    );
-                  })}
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Producto</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cant.</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Unit.</th>
-                  <th className="px-4 py-3"></th>
+                <tr className="border-b border-border bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-3 text-left font-semibold">Fecha</th>
+                  <th className="px-4 py-3 text-left font-semibold">Comprobante</th>
+                  <th className="px-4 py-3 text-left font-semibold">Proveedor</th>
+                  <th className="px-4 py-3 text-left font-semibold">Productos</th>
+                  <th className="px-4 py-3 text-right font-semibold">Total</th>
+                  <th className="px-4 py-3 text-left font-semibold">Pago</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {paged.map(p => (
-                  <tr key={p.id} className="hover:bg-muted/20 transition-colors group">
-                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(p.date)}</td>
-                    <td className="px-4 py-3 font-medium">
-                      <span>{p.product_name}</span>
-                      {p.is_scheduled && p.travel_status === 'en_camino' && (
-                        <span className="ml-2 inline-flex items-center gap-1 text-[10px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded-[5px] font-semibold">
-                          <Truck className="w-3 h-3" />En camino
-                        </span>
-                      )}
+                {visibles.map(c => (
+                  <tr key={c.id} className="cursor-pointer hover:bg-muted/20" onClick={() => setDetalle(c)} data-testid="fila-compra">
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">{formatDateAR(c.fecha + "T12:00:00")}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {c.orden ? <span className="inline-flex items-center gap-1"><Truck className="h-3.5 w-3.5 text-primary" />{c.orden.numero}</span> : c.comprobante || <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{p.supplier || '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="bg-muted px-2 py-0.5 rounded text-xs font-medium">{p.quantity}</span>
+                    <td className="px-4 py-3">{c.proveedor || <span className="text-muted-foreground">Sin proveedor</span>}</td>
+                    <td className="max-w-[320px] px-4 py-3">
+                      <span className="line-clamp-1">{c.renglones.map(r => r.product_name).join(", ")}</span>
+                      {c.renglones.length > 1 && <span className="text-xs text-muted-foreground">{c.renglones.length} productos</span>}
                     </td>
-                    <td className="px-4 py-3 text-right text-xs text-muted-foreground hidden xl:table-cell">{formatUSD(Number(p.unit_cost_usd))}</td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatUSD(Number(p.total_usd))}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-primary">{formatARS(Number(p.total_ars))}</td>
-                    {(canEdit || canDelete) && (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {canEdit && p.is_scheduled && p.travel_status !== 'en_camino' && (
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-blue-400 hover:text-blue-400 hover:bg-blue-400/10" title="Marcar como en camino" onClick={async () => { await updatePurchaseDB(p.id, { travel_status: 'en_camino' }); reload(); toast.success('Marcado como en camino'); }}>
-                              <Truck className="w-3.5 h-3.5 mr-1" />En camino
-                            </Button>
-                          )}
-                          {canEdit && p.is_scheduled && (
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-emerald-400 hover:text-emerald-400 hover:bg-emerald-500/10" title="Registrar recepción (puede ser parcial)" onClick={() => setReceivingOrder({ purchase: p, qty: String(p.quantity) })}>
-                              <CalendarClock className="w-3.5 h-3.5 mr-1" />Recibido
-                            </Button>
-                          )}
-                          {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>}
-                          {canDelete && (
-                            <ConfirmDialog
-                              trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                              title="¿Eliminar compra?"
-                              description={`Se eliminará la compra de ${p.product_name}.`}
-                              confirmText="Eliminar"
-                              onConfirm={() => handleDelete(p)}
-                            />
-                          )}
-                        </div>
-                      </td>
-                    )}
+                    <td className="px-4 py-3 text-right font-semibold">{formatARS(c.totalArs)}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={TONO_DE_PAGO[c.estadoDePago]}>{ETIQUETA_DE_PAGO[c.estadoDePago]}</Badge>
+                      {c.deuda && restanteDe(c) > 0 && <span className="ml-2 text-xs text-muted-foreground">{formatARS(restanteDe(c))}{c.deuda.due_date ? ` · vence ${formatDateAR(c.deuda.due_date + "T12:00:00")}` : ""}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
-            {paged.map(p => (
-              <div key={p.id} className="bg-card border border-border/60 rounded-[10px] p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{p.product_name}</p>
-                    <p className="text-xs text-muted-foreground">{formatDateAR(p.date)} · {p.supplier || 'Sin proveedor'}</p>
+          <div className="space-y-3 md:hidden">
+            {visibles.map(c => (
+              <button key={c.id} type="button" className="w-full rounded-lg border border-border bg-card p-4 text-left" onClick={() => setDetalle(c)}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{c.proveedor || "Sin proveedor"}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateAR(c.fecha + "T12:00:00")} · {c.orden?.numero ?? c.comprobante ?? plural(c.renglones.length, "producto")}</p>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3 h-3" /></Button>}
-                    {canDelete && (
-                      <ConfirmDialog
-                        trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
-                        title="¿Eliminar compra?"
-                        confirmText="Eliminar"
-                        onConfirm={() => handleDelete(p)}
-                      />
-                    )}
-                  </div>
+                  <p className="shrink-0 text-sm font-semibold">{formatARS(c.totalArs)}</p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div><span className="text-muted-foreground block">Cant.</span><span>{p.quantity}</span></div>
-                  <div><span className="text-muted-foreground block">Total USD</span><span className="font-medium">{formatUSD(Number(p.total_usd))}</span></div>
-                  <div><span className="text-muted-foreground block">Total ARS</span><span className="font-medium">{formatARS(Number(p.total_ars))}</span></div>
-                </div>
-              </div>
+                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{c.renglones.map(r => r.product_name).join(", ")}</p>
+                <Badge className="mt-2" variant={TONO_DE_PAGO[c.estadoDePago]}>{ETIQUETA_DE_PAGO[c.estadoDePago]}</Badge>
+              </button>
             ))}
           </div>
 
-          <DataPagination
-            page={page}
-            totalPages={totalPages}
-            totalItems={filteredSorted.length}
-            pageSize={PAGE_SIZE}
-            itemLabel="compras"
-            onPageChange={setPage}
-          />
+          <DataPagination page={pagina} totalPages={paginas} totalItems={filtradas.length} pageSize={POR_PAGINA} itemLabel="compras" onPageChange={setPagina} />
         </>
       )}
 
-      {/* Invoice AI import modal */}
-      <Dialog open={invoiceImportOpen} onOpenChange={setInvoiceImportOpen}>
-        <DialogContent className="bg-card border-border/60 max-w-3xl max-h-[90vh] overflow-y-auto">
-          <InvoiceImportDialog
-            mode="purchases"
-            onClose={() => setInvoiceImportOpen(false)}
-            onImported={reload}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Partial receipt dialog */}
-      <Dialog open={!!receivingOrder} onOpenChange={v => { if (!v) setReceivingOrder(null); }}>
-        <DialogContent className="bg-card border-border/60 max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-display">Registrar recepción</DialogTitle>
-          </DialogHeader>
-          {receivingOrder && (
-            <div className="space-y-4 pb-12">
-              <div className="bg-muted/40 rounded-lg p-3 text-sm">
-                <p className="font-medium">{receivingOrder.purchase.product_name}</p>
-                <p className="text-muted-foreground text-xs mt-0.5">Pedido: {receivingOrder.purchase.quantity} uds · {formatUSD(Number(receivingOrder.purchase.total_usd))}</p>
+      {/* ── Detalle ── */}
+      <Dialog open={!!detalle} onOpenChange={v => { if (!v && !anulando) setDetalle(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {detalle && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Compra{detalle.comprobante ? ` ${detalle.comprobante}` : ""}</DialogTitle>
+                <DialogDescription>
+                  {formatDateAR(detalle.fecha + "T12:00:00")} · {detalle.proveedor || "Sin proveedor"}
+                  {detalle.orden && <> · recibida por la orden <Link to="/ordenes-compra" className="text-primary hover:underline">{detalle.orden.numero}</Link></>}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30 text-xs text-muted-foreground">
+                      <th className="px-3 py-2 text-left font-medium">Producto</th>
+                      <th className="px-3 py-2 text-right font-medium">Cantidad</th>
+                      <th className="px-3 py-2 text-right font-medium">Costo unit.</th>
+                      <th className="px-3 py-2 text-right font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {detalle.renglones.map(r => (
+                      <tr key={r.id}>
+                        <td className="px-3 py-2">{r.product_name}</td>
+                        <td className="px-3 py-2 text-right">{Number(r.quantity).toLocaleString("es-AR")}</td>
+                        <td className="px-3 py-2 text-right">{formatARS(Number(r.quantity) > 0 ? Number(r.total_ars) / Number(r.quantity) : 0)}</td>
+                        <td className="px-3 py-2 text-right font-medium">{formatARS(Number(r.total_ars))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-border bg-muted/20 font-semibold">
+                      <td className="px-3 py-2" colSpan={3}>Total{detalle.totalUsd > 0 && Number(detalle.renglones[0]?.exchange_rate) > 1 ? ` (${formatUSD(detalle.totalUsd)})` : ""}</td>
+                      <td className="px-3 py-2 text-right">{formatARS(detalle.totalArs)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Cantidad recibida</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={receivingOrder.purchase.quantity}
-                  value={receivingOrder.qty}
-                  onChange={e => setReceivingOrder(r => r ? { ...r, qty: e.target.value } : null)}
-                  className="bg-background"
-                  autoFocus
-                />
-                {Number(receivingOrder.qty) < Number(receivingOrder.purchase.quantity) && Number(receivingOrder.qty) > 0 && (
-                  <p className="text-xs text-yellow-400">Recepción parcial — se actualizará el stock con {receivingOrder.qty} uds.</p>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <Badge variant={TONO_DE_PAGO[detalle.estadoDePago]}>{ETIQUETA_DE_PAGO[detalle.estadoDePago]}</Badge>
+                {detalle.deuda && restanteDe(detalle) > 0 && (
+                  <span className="text-muted-foreground">
+                    Resta {formatARS(restanteDe(detalle))}{detalle.deuda.due_date ? `, vence el ${formatDateAR(detalle.deuda.due_date + "T12:00:00")}` : ""} ·{" "}
+                    <Link to="/proveedores" className="text-primary hover:underline">pagar en Proveedores</Link>
+                  </span>
                 )}
+                {detalle.estadoDePago === "sin_registrar" && <span className="text-muted-foreground">Entró por una orden: el pago al proveedor se registra en Proveedores.</span>}
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setReceivingOrder(null)}>Cancelar</Button>
-                <Button className="flex-1 text-primary-foreground font-semibold" onClick={handleReceiveOrder} disabled={receivingLoading}>
-                  {receivingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar recepción"}
-                </Button>
+              <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-3">
+                {canDelete && !detalle.orden && (
+                  <ConfirmDialog
+                    trigger={<Button variant="outline" className="text-destructive hover:text-destructive" disabled={!!anulando}>
+                      {anulando === detalle.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Anular compra
+                    </Button>}
+                    title="¿Anular esta compra?"
+                    description={`Se revierte el stock de ${plural(detalle.renglones.length, "producto")}${detalle.deuda ? ", se quita la cuenta a pagar" : " y se quita el egreso"}. Los costos de los productos no vuelven atrás. Queda registrado en la auditoría.`}
+                    confirmText="Anular compra"
+                    onConfirm={() => anular(detalle)}
+                  />
+                )}
+                <Button variant="outline" onClick={() => setDetalle(null)} disabled={!!anulando}>Cerrar</Button>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
 
-function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { userId: string; editItem?: any; prefilledProductName?: string; onSave: () => void }) {
-  const { activeOrg } = useOrg();
-  const orgId = activeOrg?.id;
-  const [products, setProducts] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>(null);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [sendPoEmail, setSendPoEmail] = useState(false);
-  const [productId, setProductId] = useState(editItem?.product_id || '');
-  const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
-  const [exchangeRate, setExchangeRate] = useState(editItem ? String(editItem.exchange_rate) : '');
-  const [supplier, setSupplier] = useState(editItem?.supplier || '');
-  const [supplierId, setSupplierId] = useState(editItem?.supplier_id || '');
-  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
-  const [isScheduled, setIsScheduled] = useState(!!editItem?.is_scheduled);
-  const [scheduledDate, setScheduledDate] = useState(editItem?.scheduled_date ? new Date(editItem.scheduled_date).toISOString().slice(0, 10) : new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
-  const [createSupplierDebt, setCreateSupplierDebt] = useState(false);
-  const [supplierDebtDueDate, setSupplierDebtDueDate] = useState(new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
-  const [supplierDebtNotes, setSupplierDebtNotes] = useState("");
-
-  useEffect(() => {
-    (async () => {
-      const [p, s] = await Promise.all([getProductsDB(userId), getSettingsDB(userId)]);
-      setProducts(p); setSettings(s);
-      // ⚠️ Vacío si el comercio no cargó cotización: una compra en dólares
-      // registrada con un dólar inventado congela un costo equivocado en el
-      // Kardex, y eso ya no se corrige solo.
-      setExchangeRate(cotizacionDe(s) === null ? '' : String(cotizacionDe(s)));
-      if (prefilledProductName && !editItem) {
-        const match = p.find((prod: any) => prod.name.toLowerCase().includes(prefilledProductName.toLowerCase()));
-        if (match) setProductId(match.id);
-      }
-      if (orgId) {
-        const { data } = await supabase.from("suppliers").select("id,name,email").eq("org_id", orgId).order("name");
-        if (data) setSuppliers(data);
-
-        if (editItem?.id) {
-          const { data: existingDebt } = await supabase
-            .from("supplier_debts")
-            .select("due_date, notes")
-            .eq("purchase_id", editItem.id)
-            .maybeSingle();
-          if (existingDebt) {
-            setCreateSupplierDebt(true);
-            if (existingDebt.due_date) setSupplierDebtDueDate(existingDebt.due_date);
-            if (existingDebt.notes) setSupplierDebtNotes(existingDebt.notes);
-          }
-        }
-      }
-    })();
-  }, [userId, orgId, editItem?.id]);
-
-  const product = products.find(p => p.id === productId);
-  const qty = parseInt(quantity) || 0;
-  const unitCost = Number(product?.cost_usd || 0);
-  const customsPercent = Number(settings?.customs_percent || 15);
-  const customsFee = unitCost * qty * (customsPercent / 100);
-  const totalUSD = unitCost * qty + customsFee;
-  const rate = parseFloat(exchangeRate) || 0;
-  const totalARS = totalUSD * rate;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (createSupplierDebt && isScheduled) { toast.error("La cuenta a pagar se crea cuando la compra ya estÃ¡ realizada"); return; }
-    if (createSupplierDebt && !supplierId && !supplier.trim()) { toast.error("SeleccionÃ¡ un proveedor para registrar la cuenta a pagar"); return; }
-    if (!productId || qty <= 0) { toast.error("Seleccioná producto y cantidad"); return; }
-    const purchaseData: any = {
-      product_id: productId, product_name: product!.name,
-      quantity: qty, unit_cost_usd: unitCost, customs_fee: customsFee,
-      total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date: dateToNoon(date), supplier, supplier_id: supplierId || null,
-      is_scheduled: isScheduled,
-      scheduled_date: isScheduled ? dateToNoon(scheduledDate) : null,
-      create_supplier_debt: !isScheduled && createSupplierDebt,
-      supplier_debt_due_date: !isScheduled && createSupplierDebt ? supplierDebtDueDate || null : null,
-      supplier_debt_notes: !isScheduled && createSupplierDebt ? supplierDebtNotes || null : null,
-    };
-    if (editItem) {
-      await updatePurchaseDB(editItem.id, purchaseData, editItem);
-      await logAudit(userId, 'update', 'purchase', editItem.id, { product: product!.name, totalUSD, qty, scheduled: isScheduled });
-      toast.success(isScheduled ? "Compra programada actualizada" : "Compra actualizada");
-    } else {
-      await addPurchaseDB({ user_id: userId, ...purchaseData });
-      await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty, scheduled: isScheduled });
-      toast.success(isScheduled ? "Compra programada registrada (no descuenta stock)" : "Compra registrada");
-    }
-
-    // Send PO email to supplier if requested
-    if (sendPoEmail && isScheduled) {
-      const selectedSupplier = suppliers.find(s => s.id === supplierId);
-      const supplierEmail = selectedSupplier?.email;
-      if (supplierEmail && orgId) {
-        try {
-          const { data: emailData, error: emailErr } = await supabase.functions.invoke('send-supplier-po', {
-            body: {
-              orgId,
-              supplierEmail,
-              supplierName: selectedSupplier?.name || supplier,
-              businessName: settings?.business_name || 'Mi Negocio',
-              productName: product!.name,
-              quantity: qty,
-              unitCostUSD: unitCost,
-              totalUSD,
-              scheduledDate,
-              exchangeRate: rate,
-            },
-          });
-          if (emailErr || emailData?.error) {
-            toast.warning(`Compra guardada. ${await mensajeDeEdgeFunction(emailErr, emailData)}`);
-          }
-          else toast.success('Email enviado al proveedor ✓');
-        } catch {
-          toast.warning('Compra guardada, pero no se pudo enviar el email al proveedor.');
-        }
-      } else {
-        toast.warning('El proveedor no tiene email configurado. Añadilo en Proveedores.');
-      }
-    }
-
-    onSave();
-  };
-
-  if (!settings) return null;
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 pb-12">
-      <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
-        <div>
-          <p className="text-sm font-medium flex items-center gap-1.5"><Clock className="w-4 h-4 text-yellow-400" />Compra programada</p>
-          <p className="text-[11px] text-muted-foreground">No descuenta stock; aparece en el flujo de caja proyectado.</p>
-        </div>
-        <Switch checked={isScheduled} onCheckedChange={setIsScheduled} />
-      </div>
-      <div><label className="text-sm text-muted-foreground">Producto</label>
-        <ProductCombobox products={products} value={productId} onChange={id => setProductId(id)}
-          describe={p => `Costo ${formatUSD(Number(p.cost_usd))}`} />
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div><label className="text-sm text-muted-foreground">Cantidad</label><Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="bg-muted border-border" /></div>
-        <div><label className="text-sm text-muted-foreground">TC (auto)</label><Input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className="bg-muted border-border" /></div>
-        <div><label className="text-sm text-muted-foreground">{isScheduled ? 'Fecha registro' : 'Fecha'}</label><Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" /></div>
-      </div>
-      {isScheduled && (
-        <div>
-          <label className="text-sm text-muted-foreground">Fecha programada (cuándo se concretará)</label>
-          <Input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} className="bg-muted border-border mt-1" required />
-        </div>
+      {user && activeOrg && (
+        <>
+          <EditorDeCompra open={editorAbierto} onOpenChange={v => { setEditorAbierto(v); if (!v) setFactura(null); }} orgId={activeOrg.id} userId={user.id} factura={factura} onRegistrada={() => void cargar()} />
+          <LectorDeFactura open={lectorAbierto} onOpenChange={setLectorAbierto} orgId={activeOrg.id} onLeida={f => { setFactura(f); setEditorAbierto(true); }} />
+        </>
       )}
-      <div>
-        <label className="text-sm text-muted-foreground">Proveedor</label>
-        {suppliers.length > 0 ? (
-          <Select value={supplierId || '__none'} onValueChange={v => {
-            if (v === '__none') { setSupplierId(''); setSupplier(''); }
-            else {
-              setSupplierId(v);
-              const found = suppliers.find(s => s.id === v);
-              if (found) setSupplier(found.name);
-            }
-          }}>
-            <SelectTrigger className="bg-muted border-border mt-1"><SelectValue placeholder="Sin proveedor" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none">Sin proveedor</SelectItem>
-              {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        ) : (
-          <Input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Opcional" className="bg-muted border-border" />
-        )}
-      </div>
-      <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
-        <div>
-          <p className="text-sm font-medium">Registrar cuenta a pagar</p>
-          <p className="text-[11px] text-muted-foreground">Vincula la compra con proveedores para seguir pagos pendientes.</p>
-        </div>
-        <Switch
-          checked={createSupplierDebt}
-          onCheckedChange={setCreateSupplierDebt}
-          disabled={isScheduled || (!supplierId && !supplier.trim())}
-        />
-      </div>
-      {createSupplierDebt && !isScheduled && (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm text-muted-foreground">Vencimiento</label>
-            <Input type="date" value={supplierDebtDueDate} onChange={e => setSupplierDebtDueDate(e.target.value)} className="bg-muted border-border" />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Nota</label>
-            <Input value={supplierDebtNotes} onChange={e => setSupplierDebtNotes(e.target.value)} placeholder="Opcional" className="bg-muted border-border" />
-          </div>
-        </div>
-      )}
-      {product && (
-        <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
-          <div className="flex justify-between"><span className="text-muted-foreground">Costo unitario:</span><span>{formatUSD(unitCost)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal ({qty} uds):</span><span>{formatUSD(unitCost * qty)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+{customsPercent}% Pasero:</span><span className="text-yellow-400">{formatUSD(customsFee)}</span></div>
-          <div className="flex justify-between font-bold border-t border-border pt-1"><span>Total USD:</span><span>{formatUSD(totalUSD)}</span></div>
-          <div className="flex justify-between font-bold"><span>Total ARS:</span><span className="text-primary">{formatARS(totalARS)}</span></div>
-          <div className="flex justify-between text-xs border-t border-border pt-1"><span className="text-muted-foreground">Costo/u con pasero:</span><span>{formatUSD(qty > 0 ? totalUSD / qty : 0)}</span></div>
-        </div>
-      )}
-      {/* Send PO email to supplier — only for new scheduled purchases with a supplier */}
-      {isScheduled && !editItem && supplierId && (
-        <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
-          <div>
-            <p className="text-sm font-medium flex items-center gap-1.5">
-              <Mail className="w-4 h-4 text-primary" />Enviar pedido al proveedor
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              {suppliers.find(s => s.id === supplierId)?.email
-                ? `Se enviará a ${suppliers.find(s => s.id === supplierId)?.email}`
-                : 'El proveedor no tiene email configurado'}
-            </p>
-          </div>
-          <Switch
-            checked={sendPoEmail}
-            onCheckedChange={setSendPoEmail}
-            disabled={!suppliers.find(s => s.id === supplierId)?.email}
-          />
-        </div>
-      )}
-
-      <Button type="submit" className="w-full text-primary-foreground font-semibold">{editItem ? 'Actualizar Compra' : 'Registrar Compra'}</Button>
-    </form>
-  );
-}
-
-const ORDER_PAGE = 60;
-
-function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: () => void }) {
-  const [products, setProducts] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>(null);
-  const [orders, setOrders] = useState<Record<string, { qty: number; supplier: string }>>({});
-  const [loading, setLoading] = useState(true);
-  const [restockLoading, setRestockLoading] = useState(false);
-  const [restockDays, setRestockDays] = useState(30);
-  const [query, setQuery] = useState("");
-  const [visibles, setVisibles] = useState(ORDER_PAGE);
-  const indice = useMemo(() => crearIndiceBusqueda(products, p => camposProducto(p)), [products]);
-  // Con 11.000 productos se dibujan los que ya tienen cantidad y, debajo, 60 por vez.
-  const listado = useMemo(() => {
-    const base: any[] = query.trim() ? buscarLiteral(indice, query) : products;
-    const conCantidad = base.filter(p => (orders[p.id]?.qty || 0) > 0);
-    return [...conCantidad, ...base.filter(p => !((orders[p.id]?.qty || 0) > 0))];
-  }, [indice, products, query, orders]);
-  useEffect(() => { setVisibles(ORDER_PAGE); }, [query]);
-
-  useEffect(() => {
-    (async () => {
-      const [p, s] = await Promise.all([getProductsDB(userId), getSettingsDB(userId)]);
-      setProducts(p);
-      setSettings(s);
-      const initial: Record<string, { qty: number; supplier: string }> = {};
-      p.forEach((prod: any) => { initial[prod.id] = { qty: 0, supplier: '' }; });
-      setOrders(initial);
-      setLoading(false);
-    })();
-  }, [userId]);
-
-  const updateOrder = (id: string, field: 'qty' | 'supplier', value: any) => {
-    setOrders(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
-  };
-
-  const selectedProducts = products.filter(p => (orders[p.id]?.qty || 0) > 0);
-
-  const generateExcel = async () => {
-    if (!selectedProducts.length) { toast.error('Seleccioná al menos un producto'); return; }
-    const { utils, writeFile } = await import('xlsx');
-    const wb = utils.book_new();
-    const businessName = settings?.business_name || '';
-
-    const bySupplier: Record<string, any[]> = {};
-    selectedProducts.forEach(p => {
-      const supplier = orders[p.id]?.supplier?.trim() || 'Sin proveedor';
-      (bySupplier[supplier] = bySupplier[supplier] || []).push(p);
-    });
-
-    for (const [supplier, prods] of Object.entries(bySupplier)) {
-      const rows = prods.map(p => ({
-        'Producto': p.name,
-        'Cantidad': orders[p.id]?.qty || 0,
-        'Costo Unit. USD (con pasero)': Number(p.total_cost_usd),
-        'Total USD': (orders[p.id]?.qty || 0) * Number(p.total_cost_usd),
-      }));
-      const totalUSD = rows.reduce((s, r) => s + r['Total USD'], 0);
-      // Las columnas deben coincidir con las de las filas de arriba
-      // ('Precio Unit. USD' ya no existe: es 'Costo Unit. USD (con pasero)').
-      rows.push({ 'Producto': 'TOTAL', 'Cantidad': rows.reduce((s, r) => s + r['Cantidad'], 0), 'Costo Unit. USD (con pasero)': 0, 'Total USD': totalUSD });
-
-      const ws = utils.json_to_sheet(rows);
-      ws['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 16 }, { wch: 14 }];
-      utils.book_append_sheet(wb, ws, supplier.substring(0, 31));
-    }
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-    writeFile(wb, `orden_compra_${businessName.replace(/\s+/g, '_')}_${dateStr}.xlsx`);
-    toast.success('Orden de compra generada');
-    onDone();
-  };
-
-  if (loading) return <div className="py-8 text-center text-muted-foreground text-sm">Cargando productos...</div>;
-
-  const handlePreloadRestock = async () => {
-    setRestockLoading(true);
-    try {
-      const agg = await getSalesAggregatedDB(userId, restockDays);
-      if (!agg.length) { toast.info('No hay ventas en el período seleccionado'); setRestockLoading(false); return; }
-      const newOrders = { ...orders };
-      agg.forEach(item => {
-        if (newOrders[item.product_id]) {
-          newOrders[item.product_id] = { ...newOrders[item.product_id], qty: item.total_qty };
-        }
-      });
-      setOrders(newOrders);
-      toast.success(`Pre-cargado: ${plural(agg.length, "producto")} basado en ventas de ${plural(restockDays, "día")}`);
-    } catch (err) {
-      toast.error('Error al cargar datos de ventas');
-    }
-    setRestockLoading(false);
-  };
-
-  return (
-    <div className="space-y-4 pb-12">
-      <p className="text-sm text-muted-foreground">Seleccioná los productos y cantidades para generar el Excel de orden de compra.</p>
-
-      {/* Auto-restock section */}
-      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
-        <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
-          <RotateCcw className="w-3.5 h-3.5" /> Recompra automática
-        </p>
-        <p className="text-[11px] text-muted-foreground">Pre-carga las cantidades vendidas en un período para reponerlas.</p>
-        <div className="flex items-center gap-2">
-          <Select value={String(restockDays)} onValueChange={v => setRestockDays(Number(v))}>
-            <SelectTrigger className="w-32 h-8 text-xs bg-background border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Últimos 7 días</SelectItem>
-              <SelectItem value="15">Últimos 15 días</SelectItem>
-              <SelectItem value="30">Últimos 30 días</SelectItem>
-              <SelectItem value="60">Últimos 60 días</SelectItem>
-              <SelectItem value="90">Últimos 90 días</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={handlePreloadRestock} disabled={restockLoading} className="text-xs h-8">
-            {restockLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RotateCcw className="w-3.5 h-3.5 mr-1" />}
-            Pre-cargar recompra
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nombre, marca o código"
-          aria-label="Buscar producto para la orden" className="pl-9 bg-background border-border" />
-      </div>
-      <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
-        {listado.slice(0, visibles).map(p => (
-          <div key={p.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${(orders[p.id]?.qty || 0) > 0 ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/30'}`}>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{p.name}</p>
-              <p className="text-[10px] text-muted-foreground">Stock: {p.stock} · {formatUSD(Number(p.total_cost_usd))}/u (costo total)</p>
-            </div>
-            <Input
-              type="text"
-              placeholder="Proveedor"
-              value={orders[p.id]?.supplier || ''}
-              onChange={e => updateOrder(p.id, 'supplier', e.target.value)}
-              className="w-28 h-8 text-xs bg-background border-border"
-            />
-            <Input
-              type="number"
-              min="0"
-              value={orders[p.id]?.qty || ''}
-              onChange={e => updateOrder(p.id, 'qty', parseInt(e.target.value) || 0)}
-              placeholder="0"
-              className="w-16 h-8 text-xs bg-background border-border text-center"
-            />
-          </div>
-        ))}
-        {listado.length > visibles && <Button type="button" variant="ghost" size="sm" className="w-full text-xs" onClick={() => setVisibles(v => v + ORDER_PAGE)}>
-          Mostrar más ({listado.length - visibles} restantes)
-        </Button>}
-        {!listado.length && <p className="py-4 text-center text-sm text-muted-foreground">Ningún producto coincide.</p>}
-      </div>
-
-      {selectedProducts.length > 0 && (
-        <div className="bg-muted rounded-lg p-3 text-sm space-y-1">
-          <div className="flex justify-between"><span className="text-muted-foreground">Productos:</span><span className="font-medium">{selectedProducts.length}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Unidades:</span><span className="font-medium">{selectedProducts.reduce((s, p) => s + (orders[p.id]?.qty || 0), 0)}</span></div>
-          <div className="flex justify-between font-bold border-t border-border pt-1">
-            <span>Total USD (con pasero):</span>
-            <span>{formatUSD(selectedProducts.reduce((s, p) => s + (orders[p.id]?.qty || 0) * Number(p.total_cost_usd), 0))}</span>
-          </div>
-        </div>
-      )}
-
-      <Button onClick={generateExcel} className="w-full text-primary-foreground font-semibold" disabled={!selectedProducts.length}>
-        <FileSpreadsheet className="w-4 h-4 mr-2" />
-        Generar Excel ({selectedProducts.length} productos)
-      </Button>
     </div>
   );
 }

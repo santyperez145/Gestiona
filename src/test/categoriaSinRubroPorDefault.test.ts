@@ -11,7 +11,6 @@ const productsPage = leer("src/pages/ProductsPage.tsx");
 const brandKnowledge = leer("src/components/marketing/BrandKnowledgeTab.tsx");
 const stockCount = leer("src/components/inventory/StockCountTab.tsx");
 const aiSuggest = leer("src/hooks/useAIProductSuggest.ts");
-const invoiceImport = leer("src/components/products/InvoiceImportDialog.tsx");
 const catalogMigration = leer("src/lib/catalogMigration.ts");
 const storeCategories = leer("src/lib/storeCategories.ts");
 const banners = leer("src/components/ecommerce/StoreBannersEditor.tsx");
@@ -161,8 +160,8 @@ describe("la categoría no viene puesta en perfumería", () => {
     // Quien exporta de Tiendanube ya tiene su taxonomía: gana la del archivo.
     expect(catalogMigration).toContain("categoryValue(name, category.split(\",\")[0])");
     expect(catalogMigration).toContain('String(generic.category || "otro")');
-    // La factura sólo trae el nombre; si ninguna pista pega, no se adivina.
-    expect(invoiceImport).not.toContain('return "perfume_diseñador";');
+    // La factura del proveedor ya no crea productos (2026-10-14): sólo precarga
+    // una compra con productos del catálogo, así que no adivina categorías.
   });
 
   it("el placeholder del banner no propone una categoría de perfumería", () => {
@@ -250,7 +249,6 @@ const CONOCIDOS: Record<string, string> = {
   "src/lib/catalogIndustry.ts": "P0.1: decide si el workspace muestra chrome de perfumería o vapers; no es una lista de categorías a elegir",
   "src/lib/catalogIndustry.test.ts": "P0.1: prueba el helper; cita las categorías de perfume a propósito",
   "src/lib/productImport.ts": "heurística de import; su fallback ya es la categoría del archivo",
-  "src/components/products/InvoiceImportDialog.tsx": "heurística de import",
 
   // Lo que queda al 2026-08-26 **no son listas de categorías**: son features
   // atadas a un rubro, que es un problema distinto y de otro slice. La forma

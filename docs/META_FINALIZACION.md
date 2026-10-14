@@ -83,7 +83,18 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
   - Aspecto unificado (pedido del dueño 2026-10-14): un solo indicador (`MetricTile`, el del Inicio) y un solo encabezado en todo el panel. Integraciones queda sin jerga interna y los dólares se muestran como «US$ 1.234,50».
   - Funciones incoherentes (pedido del dueño 2026-10-14: «además de lo visual, tienen funciones legacy o incoherentes»):
     - Presupuestos: «Link MP» cobraba con una referencia que el webhook no reconoce (el pago no registraba la venta) y «Link pago» creaba un link nuevo por sesión. Ahora hay un solo link por presupuesto, reutilizable (`lib/linksDePago.ts`): al pagarse registra la venta y lo marca vendido. «Valor ganado» pasa a «Vendido».
-    - Pendiente, ciclo de compra único: hoy hay cinco caminos para pedirle mercadería a un proveedor (Excel en Compras, compra «programada», modal de Proveedores, Órdenes de compra y Reposición), y «Enviar OC» no envía nada. Pasa a pedir (OC) → enviar → recibir → compra registrada.
+    - Compras (rearmada):
+      - Antes «Nueva compra» mandaba columnas que no existen y fallaba siempre (0 compras en todos los negocios al 2026-10-14). Era un producto por compra, con costo en dólares más un 15 % fijo del importador original.
+      - Antes, compras «programadas» y «en camino», un Excel y un mail de un solo producto hacían de orden de compra, duplicando Órdenes de compra.
+      - Antes, borrar un renglón dejaba la cuenta del proveedor y el egreso por el total, y la «factura con IA» también fallaba siempre.
+      - Ahora una compra es una unidad con varios productos del catálogo (búsqueda o código de barras), comprobante, pesos o dólares, y queda pagada (egreso con el medio) o a pagar (cuenta del proveedor con vencimiento). Suma el stock y actualiza el costo de cada producto en su moneda.
+      - Se anula entera: revierte stock, cuenta y egreso, y deja auditoría. Se rechaza si ya hay pagos o si entró por una orden.
+      - La factura con IA sólo lee y precarga el editor; los renglones dudosos se eligen a mano.
+      - En la base: `registrar_compra`, `anular_compra`, `purchases.compra_id` y un guardia sobre lo recibido por orden (migraciones 20261014001500 a 001800). Matrices `registrar-compra` 5/5, `compra-completa` 8/8 y `compra-actualiza-costo` 4/4, en simulacro y en vivo.
+      - De paso, `receive_purchase_order` guardaba la cantidad como entero (recibir 12,5 m sumaba 12 al stock y 12,5 a la orden) y una orden en pesos sin cotización guardaba pesos como dólares. Una compra guardaba la fecha a medianoche UTC y se veía el día anterior.
+      - El flujo de caja proyectado toma lo que se debe a proveedores, en lugar de las programadas.
+      - Tests: `src/test/compras.test.ts`, `src/test/flujoDeCajaProveedores.test.ts`.
+    - Pendiente, ciclo de compra único: quedan dos caminos para pedir fuera de Órdenes de compra, el modal de Proveedores y «Enviar OC», que sólo cambia el estado sin enviar nada (al 2026-10-14). Pasa a pedir (OC) → enviar → recibir → compra registrada.
 - [x] Panel con catálogos grandes (2026-10-14, «con más de 1.000 productos se vuelve súper lenta y se cae»).
   - Medido con Famatina (5.500 productos): la sincronización completa son 7,1 MB y van a pasar de 15 MB con 11.534.
   - Antes, cada pantalla releía y reescribía entera la copia del navegador aunque no cambiara nada, y tenía su propia copia; el Inicio monta varios paneles que la pedían a la vez.

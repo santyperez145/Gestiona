@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const root = process.cwd();
 const importer = readFileSync(resolve(root, "src/components/products/ProductsExcelImport.tsx"), "utf8");
 const productImportLib = readFileSync(resolve(root, "src/lib/productImport.ts"), "utf8");
-const invoiceDialog = readFileSync(resolve(root, "src/components/products/InvoiceImportDialog.tsx"), "utf8");
+const lectorDeFactura = readFileSync(resolve(root, "src/components/compras/LectorDeFactura.tsx"), "utf8");
 
 describe("C28.1: el 15% de aduana/pasero/impuestos ya no es un cálculo aparte", () => {
   it("el importador Excel no tiene un input configurable de aduana/pasero", () => {
@@ -25,16 +25,10 @@ describe("C28.1: el 15% de aduana/pasero/impuestos ya no es un cálculo aparte",
     expect(productImportLib).toContain(": cost ?? 0;");
   });
 
-  it("el importador de facturas IA no calcula customsFee como porcentaje aparte del costo", () => {
-    // El customsPct ya es constante (15), no se saca de settings
-    expect(invoiceDialog).toContain("const customsPct = 15;");
-    expect(invoiceDialog).not.toMatch(/settings\?\.customs_percent/i);
-  });
-
-  it("el importador de facturas IA guarda cost_usd como el costo total (ya incluye aduana)", () => {
-    // totalCostUSD ya incluye el 15% porque costUSD es el costo total (no se suma aparte)
-  expect(invoiceDialog).toContain("const totalCostUSD = costUSD;");  // Eliminado el cálculo de customsFee
-    expect(invoiceDialog).toContain("cost_usd: parseFloat(costUSD.toFixed(4))");
-    expect(invoiceDialog).toContain("total_cost_usd: parseFloat(totalCostUSD.toFixed(4))");
+  it("la factura del proveedor no suma aduana ni pasero: el costo es el que figura", () => {
+    // 2026-10-14: la factura leída con IA precarga una compra (registrar_compra)
+    // con el costo unitario de la factura; no hay porcentaje aparte.
+    expect(lectorDeFactura).not.toMatch(/customs|pasero|aduana/i);
+    expect(lectorDeFactura).toContain("costo: Number(it.unit_price) > 0 ? Number(it.unit_price) : 0");
   });
 });

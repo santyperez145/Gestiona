@@ -3531,7 +3531,7 @@ export default function Dashboard() {
       <Suspense fallback={<DashboardModuleFallback label="Cargando inteligencia financiera" />}>
       <CashFlowProjector
         sales={stats.rawSales} debts={stats.rawDebts} expenses={stats.rawExpenses}
-        purchases={stats.rawPurchases} settings={stats.rawSettings}
+        settings={stats.rawSettings}
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
         <HealthScore

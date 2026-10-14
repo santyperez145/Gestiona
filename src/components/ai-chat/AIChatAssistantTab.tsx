@@ -15,7 +15,8 @@ import {
   ImagePlus, Camera,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, setStockAbsoluteDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
+import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, setStockAbsoluteDB, addSaleDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
+import { fechaArgentina, nuevaClaveCompra, registrarCompraDB } from "@/lib/compras";
 import { requireActiveOrgId } from "@/lib/orgContext";
 import KPICard from "@/components/shared/KPICard";
 
@@ -657,7 +658,7 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
   }
 
   const rate = (cotizacionDe(settings) ?? 0);
-  const qty = parseInt(quantity || "1", 10);
+  const qty = Number(quantity || "1");
   const unitCostUSD = parseFloat(costUSD || "0");
   const totalUSD = unitCostUSD * qty;
   const totalARS = totalUSD * rate;
@@ -668,20 +669,13 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
     try {
       const orgId = requireActiveOrgId();
       const prod = products.find(p => p.id === selectedId)!;
-      await addPurchaseDB({
-        user_id: userId,
-        org_id: orgId,
-        product_id: prod.id,
-        product_name: prod.name,
-        quantity: qty,
-        unit_cost_usd: unitCostUSD || Number(prod.cost_usd) || 0,
-        customs_fee: Number(prod.customs_fee) || 0,
-        total_usd: totalUSD || 0,
-        total_ars: totalARS || 0,
-        exchange_rate: rate,
-        supplier: supplier.trim() || null,
-        date: new Date().toISOString().slice(0, 10),
-        is_scheduled: false,
+      // La misma operación que la pantalla de Compras: stock, costo y egreso
+      // en una transacción (2026-10-14; antes un insert suelto por producto).
+      await registrarCompraDB(orgId, {
+        proveedorId: null, proveedor: supplier.trim(), comprobante: "", fecha: fechaArgentina(),
+        moneda: "USD", cotizacion: rate > 0 ? rate : null,
+        renglones: [{ clave: nuevaClaveCompra(), productId: prod.id, nombre: prod.name, qty, costo: unitCostUSD || Number(prod.total_cost_usd) || Number(prod.cost_usd) || 0 }],
+        aPagar: false, vencimiento: "", medio: "efectivo", nota: "", actualizarCostos: true,
       });
       toast.success("Compra registrada");
       setDone(true);

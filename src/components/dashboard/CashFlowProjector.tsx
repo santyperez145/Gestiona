@@ -1,25 +1,47 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Banknote, ChevronDown, TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/orgContext";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { projectCashFlow, type CashFlowWindow } from "@/lib/cashFlow";
 import { formatARS } from "@/lib/supabaseStore";
 
 const tooltipStyle = { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))' };
 
+type DeudaConProveedor = { supplier_name: string | null; remaining_ars: number | null; amount_ars: number | null; paid_ars: number | null; due_date: string | null; status: string | null };
+
 export default function CashFlowProjector({
-  sales, debts, expenses, purchases, settings,
-}: { sales: any[]; debts: any[]; expenses: any[]; purchases: any[]; settings: any }) {
+  sales, debts, expenses, settings,
+}: { sales: any[]; debts: any[]; expenses: any[]; settings: any }) {
+  const { activeOrg } = useOrg();
   const [activeWindow, setActiveWindow] = useState(30);
   const [showDetail, setShowDetail] = useState(false);
+  // Lo que se le debe a proveedores entra como salida proyectada. Si no se
+  // puede leer, se avisa: proyectar sin esos pagos daría un saldo optimista.
+  const [supplierDebts, setSupplierDebts] = useState<DeudaConProveedor[]>([]);
+  const [supplierDebtsError, setSupplierDebtsError] = useState(false);
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    let vigente = true;
+    supabase.from("supplier_debts")
+      .select("supplier_name, remaining_ars, amount_ars, paid_ars, due_date, status")
+      .eq("org_id", activeOrg.id).neq("status", "paid").order("due_date", { ascending: true, nullsFirst: true }).limit(1000)
+      .then(({ data, error }) => {
+        if (!vigente) return;
+        setSupplierDebtsError(!!error);
+        setSupplierDebts(error ? [] : (data ?? []) as DeudaConProveedor[]);
+      });
+    return () => { vigente = false; };
+  }, [activeOrg?.id]);
 
   const initialCash = Number(settings?.initial_cash_ars || 0);
   const warningThreshold = Number(settings?.cash_flow_warning_threshold_ars || 0);
 
   const windows: CashFlowWindow[] = useMemo(() => {
     return [30, 60, 90].map(d => projectCashFlow({
-      initialCash, windowDays: d, sales, debts, expenses, purchases, settings,
+      initialCash, windowDays: d, sales, debts, expenses, supplierDebts, settings,
     }));
-  }, [initialCash, sales, debts, expenses, purchases, settings]);
+  }, [initialCash, sales, debts, expenses, supplierDebts, settings]);
 
   const active = windows.find(w => w.days === activeWindow) ?? windows[0];
   const minBalance = Math.min(...active.daily.map(d => d.balance));
@@ -36,6 +58,9 @@ export default function CashFlowProjector({
           <p className="text-[11px] text-muted-foreground/70 mt-0.5">
             Caja inicial: {formatARS(initialCash)} · Configurable en Ajustes
           </p>
+          {supplierDebtsError && (
+            <p className="text-[11px] text-warning mt-0.5" role="status">No se pudieron leer las cuentas a pagar a proveedores: la proyección no las incluye.</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {[30, 60, 90].map(d => (
