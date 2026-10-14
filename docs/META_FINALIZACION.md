@@ -41,6 +41,15 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] POS con catálogo grande: búsqueda indexada, grilla acotada, ventas/variantes completas.
 - [x] POS con atajos F1–F11 (cliente, medio de pago, cupón, ticket en espera, cobrar, factura).
 - [x] Revisar y unificar productos duplicados (stock por Kardex, códigos como alternativos, archivo si hay historia).
+- [x] Páginas legacy (pedido del dueño 2026-10-14: «hay muchas páginas legacy, no toman los productos, sólo carga manual»). Inventario medido el 2026-10-14, buscando renglones con descripción libre sin catálogo e inserts de documentos desde el navegador:
+  - Presupuestos: rearmado (ver arriba).
+  - Factura manual: ahora toma el producto del catálogo o su código y calcula el neto desde el precio final con la alícuota del renglón (`netoDesdePrecioFinal`; sin ARCA o en factura C el neto es el precio). La base sigue recalculando todo. `src/test/facturaManualConCatalogo.test.ts`.
+  - Pendientes, en orden:
+    - Links de pago: ítems a mano, y al cobrarse no crean la venta ni mueven stock.
+    - Devoluciones de la caja: el navegador inserta `returns` directo.
+    - Reposición y órdenes de compra: insertan compras directo.
+    - Planes de pago de deudas: viven en el navegador.
+    - Cheques.
 - [x] Panel con catálogos grandes (2026-10-14, «con más de 1.000 productos se vuelve súper lenta y se cae»).
   - Medido con Famatina (5.500 productos): la sincronización completa son 7,1 MB y van a pasar de 15 MB con 11.534.
   - Antes, cada pantalla releía y reescribía entera la copia del navegador aunque no cambiara nada, y tenía su propia copia; el Inicio monta varios paneles que la pedían a la vez.

@@ -98,3 +98,15 @@ export function manualInvoiceTaxSummary(
       .map(([rate, values]) => ({ rate, ...values })),
   };
 }
+
+/**
+ * Neto de un renglón a partir del precio final del catálogo (2026-10-14: la
+ * factura manual ahora toma los productos). El catálogo guarda el precio al
+ * público, con IVA; la factura manual trabaja con netos. Sin IVA (sin ARCA o
+ * factura C) el neto es el mismo precio.
+ */
+export function netoDesdePrecioFinal(precioFinal: number, alicuota: number): number {
+  const final = Math.max(0, Number(precioFinal) || 0);
+  const pct = Math.max(0, Number(alicuota) || 0);
+  return redondearMoneda(final / (1 + pct / 100), "ARS");
+}

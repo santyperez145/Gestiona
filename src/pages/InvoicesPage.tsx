@@ -7,7 +7,7 @@ import { useClipboard } from "@/hooks/useClipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
-import { formatARS } from "@/lib/supabaseStore";
+import { formatARS, getProductsDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,8 +52,14 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import {
   INVOICE_TAX_RATES,
   manualInvoiceTaxSummary,
+  netoDesdePrecioFinal,
   updateDefaultInvoiceTaxRate,
 } from "@/lib/manualInvoiceTax";
+import ProductCombobox from "@/components/shared/ProductCombobox";
+import { productoPorCodigo } from "@/lib/presupuestos";
+
+/** Lo que la factura manual usa de un producto del catálogo. */
+type ProductoFactura = { id: string; name: string; brand?: string | null; sku?: string | null; barcode?: string | null; barcode_aliases?: string[] | null; sale_price_ars?: number | null; is_active?: boolean | null };
 
 import { plural } from "@/lib/plural";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
@@ -785,6 +791,33 @@ export default function InvoicesPage() {
   });
   const { subtotal, total } = manualTaxSummary;
 
+  // ── Productos del catálogo en la factura manual (2026-10-14) ─────────────
+  // Antes cada renglón se escribía a mano. Ahora se elige el producto (o se
+  // escanea su código) y se completa la descripción y el neto, calculado desde
+  // el precio final con la alícuota del renglón.
+  const [catalogoFactura, setCatalogoFactura] = useState<ProductoFactura[] | null>(null);
+  const [codigoFactura, setCodigoFactura] = useState("");
+  useEffect(() => {
+    if (!showForm || catalogoFactura || !user) return;
+    let vigente = true;
+    getProductsDB(user.id)
+      .then(prods => { if (vigente) setCatalogoFactura((prods as unknown as ProductoFactura[]).filter(prod => prod.is_active !== false)); })
+      .catch(err => { if (vigente) { setCatalogoFactura([]); toast.error(err instanceof Error ? err.message : "No se pudo cargar el catálogo"); } });
+    return () => { vigente = false; };
+  }, [showForm, catalogoFactura, user]);
+  const alicuotaDe = (item: InvoiceItem) => (afipConfigured && suggestedVoucher?.letra !== "C" ? Number(item.tax_rate ?? effectiveTaxPct) : 0);
+  const renglonDesdeProducto = (base: InvoiceItem, prod: ProductoFactura): InvoiceItem => {
+    const conAlicuota = { ...base, tax_rate: base.tax_rate ?? effectiveTaxPct };
+    return { ...conAlicuota, description: prod.name, unit_price: netoDesdePrecioFinal(Number(prod.sale_price_ars) || 0, alicuotaDe(conAlicuota)) };
+  };
+  const agregarProductoPorCodigo = () => {
+    const prod = productoPorCodigo(catalogoFactura ?? [], codigoFactura);
+    if (!prod) { toast.error(`No hay un producto con el código «${codigoFactura.trim()}»`); return; }
+    const vacios = items.filter(it => it.description.trim() || Number(it.unit_price) > 0);
+    setItems(recalcItems([...vacios, renglonDesdeProducto(emptyItem(effectiveTaxPct), prod)]));
+    setCodigoFactura("");
+  };
+
   const handleSave = async () => {
     if (!activeOrg || !user || sourceSaleLoading) return;
     if (!afipSettingsReady) {
@@ -1245,6 +1278,12 @@ export default function InvoicesPage() {
               )}
             </div>
             <div className="space-y-2 pb-12">
+              {sourceSaleGrossTotal === null && (
+                <Input className="h-8 text-xs" value={codigoFactura} onChange={(e) => setCodigoFactura(e.target.value)}
+                  aria-label="Agregar producto por código" disabled={!catalogoFactura}
+                  placeholder={catalogoFactura ? "Escaneá o escribí el código de un producto y Enter" : "Cargando catálogo…"}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (codigoFactura.trim()) agregarProductoPorCodigo(); } }} />
+              )}
               <div className="hidden md:grid grid-cols-12 gap-2 text-[10px] text-muted-foreground uppercase px-1">
                 <div className="col-span-4">Descripción</div>
                 <div className="col-span-1 text-right">Cant.</div>
@@ -1254,7 +1293,19 @@ export default function InvoicesPage() {
                 <div className="col-span-1" />
               </div>
               {items.map((it, i) => (
-                <div key={i} className="grid grid-cols-2 gap-2 items-center md:grid-cols-12">
+                <div key={i} className="space-y-1">
+                {sourceSaleGrossTotal === null && (
+                  <ProductCombobox<ProductoFactura> products={catalogoFactura ?? []} value={null} disabled={!catalogoFactura}
+                    className="h-8 text-xs" ariaLabel={`Producto del catálogo para el ítem ${i + 1}`}
+                    placeholder={catalogoFactura ? "Elegir un producto del catálogo (o escribí la descripción abajo)…" : "Cargando catálogo…"}
+                    describe={prod => [prod.sku, formatARS(Number(prod.sale_price_ars) || 0)].filter(Boolean).join(" · ")}
+                    onChange={(_id, prod) => {
+                      if (!prod) return;
+                      const n = [...items]; n[i] = renglonDesdeProducto(it, prod);
+                      setItems(recalcItems(n));
+                    }} />
+                )}
+                <div className="grid grid-cols-2 gap-2 items-center md:grid-cols-12">
                   <Input
                     className="col-span-2 h-8 text-xs md:col-span-4"
                     aria-label={`Descripción del ítem ${i + 1}`}
@@ -1319,6 +1370,7 @@ export default function InvoicesPage() {
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </Button>
                   )}
+                </div>
                 </div>
               ))}
             </div>
