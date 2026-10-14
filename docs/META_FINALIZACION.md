@@ -80,7 +80,10 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
     - El cliente de la lista se puede vincular.
     - La pantalla muestra sólo las acciones válidas: «Depositar» ya no aparece en los emitidos y un depositado puede rebotar.
     - Tests: `src/test/chequesCiclo.test.ts`.
-  - Siguiente (pedido del dueño 2026-10-14): Presupuestos, Órdenes de compra, Compras e Integraciones siguen viéndose legacy; revisión visual y de uso contra las pantallas nuevas.
+  - Aspecto unificado (pedido del dueño 2026-10-14): un solo indicador (`MetricTile`, el del Inicio) y un solo encabezado en todo el panel. Integraciones queda sin jerga interna y los dólares se muestran como «US$ 1.234,50».
+  - Funciones incoherentes (pedido del dueño 2026-10-14: «además de lo visual, tienen funciones legacy o incoherentes»):
+    - Presupuestos: «Link MP» cobraba con una referencia que el webhook no reconoce (el pago no registraba la venta) y «Link pago» creaba un link nuevo por sesión. Ahora hay un solo link por presupuesto, reutilizable (`lib/linksDePago.ts`): al pagarse registra la venta y lo marca vendido. «Valor ganado» pasa a «Vendido».
+    - Pendiente, ciclo de compra único: hoy hay cinco caminos para pedirle mercadería a un proveedor (Excel en Compras, compra «programada», modal de Proveedores, Órdenes de compra y Reposición), y «Enviar OC» no envía nada. Pasa a pedir (OC) → enviar → recibir → compra registrada.
 - [x] Panel con catálogos grandes (2026-10-14, «con más de 1.000 productos se vuelve súper lenta y se cae»).
   - Medido con Famatina (5.500 productos): la sincronización completa son 7,1 MB y van a pasar de 15 MB con 11.534.
   - Antes, cada pantalla releía y reescribía entera la copia del navegador aunque no cambiara nada, y tenía su propia copia; el Inicio monta varios paneles que la pedían a la vez.

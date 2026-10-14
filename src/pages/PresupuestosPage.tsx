@@ -1,6 +1,8 @@
 ﻿import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useNavigate } from "react-router-dom";
 import EditorDePresupuesto, { type PresupuestoEditable } from "@/components/presupuestos/EditorDePresupuesto";
+import { linkDePagoDePresupuesto } from "@/lib/linksDePago";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -241,8 +243,8 @@ export default function PresupuestosPage() {
   // Editor (crear, editar o duplicar): components/presupuestos/EditorDePresupuesto.
   const [editor, setEditor] = useState<{ modo: "nuevo" | "editar" | "duplicar"; inicial: PresupuestoEditable | null } | null>(null);
   const [orgName, setOrgName] = useState("Mi Negocio");
-  const [mpLinks, setMpLinks] = useState<Record<string, string>>({});
-  const [mpLoading, setMpLoading] = useState<string | null>(null);
+  // Un link de pago por presupuesto (lib/linksDePago): se reutiliza y, al
+  // pagarse, registra la venta y lo marca vendido.
   const [payLinks, setPayLinks] = useState<Record<string, string>>({});
   const [payLinkLoading, setPayLinkLoading] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState<string | null>(null);
@@ -250,35 +252,23 @@ export default function PresupuestosPage() {
   const [showBulkReminder, setShowBulkReminder] = useState(false);
 
   const generatePayLink = async (q: Quote) => {
-    if (payLinks[q.id]) { navigator.clipboard.writeText(payLinks[q.id]); toast.success("Link copiado"); return; }
+    if (!activeOrg) return;
+    if (payLinks[q.id]) { await copiar(payLinks[q.id], "Link de pago copiado"); return; }
     setPayLinkLoading(q.id);
     try {
-      const { data, error } = await supabase
-        .from("payment_links")
-        .insert({
-          org_id: activeOrg!.id,
-          quote_id: q.id,
-          quote_number: q.quote_number,
-          customer_name: q.customer_name,
-          customer_phone: q.customer_phone || null,
-          items: q.items,
-          total_ars: q.total,
-          mp_link: mpLinks[q.id] || null,
-          notes: q.notes || null,
-          expires_at: q.valid_until || null,
-        })
-        .select("id")
-        .single();
-      if (error || !data) throw error || new Error("Error creating payment link");
-      const url = `${window.location.origin}/pagar/${data.id}`;
-      setPayLinks(prev => ({ ...prev, [q.id]: url }));
-      navigator.clipboard.writeText(url);
-      toast.success("Link de pago copiado — compartilo por WhatsApp");
-    } catch {
-      toast.error("Error al generar link de pago");
+      const r = await linkDePagoDePresupuesto(activeOrg.id, q, orgName);
+      setPayLinks(prev => ({ ...prev, [q.id]: r.url }));
+      await copiar(r.url, r.nuevo ? "Link de pago creado y copiado" : "Link de pago copiado",
+        r.conMercadoPago ? "Se puede pagar con Mercado Pago, transferencia o efectivo." : "Sin Mercado Pago conectado: el cliente ve los datos para transferir.");
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo generar el link de pago"));
     } finally {
       setPayLinkLoading(null);
     }
+  };
+  const copiar = async (texto: string, ok: string, detalle?: string) => {
+    try { await navigator.clipboard.writeText(texto); toast.success(ok, { description: detalle }); }
+    catch { toast.info("Copiá el link", { description: texto, duration: 15000 }); }
   };
 
   const sendQuoteEmail = async (q: Quote) => {
@@ -300,24 +290,6 @@ export default function PresupuestosPage() {
     } finally {
       setEmailLoading(null);
     }
-  };
-
-  const generateMpLink = async (q: Quote) => {
-    if (mpLinks[q.id]) { navigator.clipboard.writeText(mpLinks[q.id]); toast.success("Link copiado"); return; }
-    setMpLoading(q.id);
-    const { data, error } = await supabase.functions.invoke("mercadopago-link", {
-      body: {
-        orgId: activeOrg?.id,
-        title: `Presupuesto ${q.quote_number} — ${q.customer_name}`,
-        total: q.total,
-        externalRef: `quote:${q.id}`,
-      },
-    });
-    setMpLoading(null);
-    if (error || data?.error) { toast.error(data?.error || "Error al generar link MP"); return; }
-    setMpLinks(prev => ({ ...prev, [q.id]: data.url }));
-    navigator.clipboard.writeText(data.url);
-    toast.success("Link de pago MercadoPago copiado");
   };
 
   const load = async () => {
@@ -406,7 +378,8 @@ export default function PresupuestosPage() {
   const stats = {
     total: quotes.length,
     accepted: quotes.filter(q => q.status === "accepted").length,
-    totalValue: quotes.filter(q => q.status === "accepted").reduce((s, q) => s + q.total, 0),
+    // Lo efectivamente vendido (cobrado en la caja o por link), no lo «aceptado».
+    totalValue: quotes.filter(q => q.converted_at).reduce((s, q) => s + q.total, 0),
     pending: quotes.filter(q => q.status === "sent").length,
     expired: expiredQuotes.length,
     conversionRate: quotes.length > 0
@@ -442,7 +415,7 @@ export default function PresupuestosPage() {
           sub={stats.total > 0 ? `${stats.conversionRate}% conversión` : undefined} />
         <KPICard label="En espera" value={stats.pending} icon={Clock}
           color={stats.pending > 0 ? "warning" : "primary"} sub="enviados al cliente" />
-        <KPICard label="Valor ganado" value={formatARS(stats.totalValue)} icon={DollarSign} color="success" sub="de presupuestos aceptados" />
+        <KPICard label="Vendido" value={formatARS(stats.totalValue)} icon={DollarSign} color="success" sub="presupuestos cobrados" />
       </div>
 
       {/* Expired / pending sent banner */}
@@ -786,36 +759,19 @@ export default function PresupuestosPage() {
                         <CheckCircle2 className="w-3 h-3" /> Vendido
                       </span>
                     )}
+                    {!q.converted_at && (
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs border-blue-500/40 text-blue-400 hover:bg-blue-500/10 gap-1"
-                      onClick={() => generateMpLink(q)}
-                      disabled={mpLoading === q.id}
-                    >
-                      {mpLoading === q.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
-                      {mpLinks[q.id] ? "Copiar link MP" : "Link MP"}
-                    </Button>
-                    {q.customer_phone && mpLinks[q.id] && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs border-green-500/40 text-green-400 hover:bg-green-500/10 gap-1"
-                        onClick={() => window.open(`https://wa.me/${q.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${q.customer_name.split(" ")[0]}! Te comparto el link para pagar tu presupuesto ${q.quote_number} (${formatARS(q.total)}): ${mpLinks[q.id]}`)}`, "_blank")}
-                      >
-                        <Send className="w-3 h-3" />WhatsApp
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1"
+                      className="h-7 text-xs gap-1"
                       onClick={() => generatePayLink(q)}
                       disabled={payLinkLoading === q.id}
+                      data-testid="presupuesto-link-de-pago"
                     >
                       {payLinkLoading === q.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
-                      {payLinks[q.id] ? "Copiar link pago" : "Link pago"}
+                      {payLinks[q.id] ? "Copiar link de pago" : "Link de pago"}
                     </Button>
+                    )}
                     {q.customer_phone && payLinks[q.id] && (
                       <Button
                         size="sm"
