@@ -50,7 +50,7 @@ describe("dependencias sin alertas productivas conocidas", () => {
     expect(pkg.scripts["check:dependencies"]).toBe("node scripts/audit-dependencies.mjs");
     expect(dependencyAudit).toContain('["--omit=dev"]');
     expect(dependencyAudit).toContain("GHSA-vfj7-8cjw-p6xm");
-    expect(dependencyAudit).toContain('REVIEW_BEFORE = "2026-10-16"');
+    expect(dependencyAudit).toContain('REVIEW_BEFORE = "2026-11-13"');
     expect(dependencyAudit).toContain("exceptionExpired || unexpected.length > 0");
     expect(pkg.dependencies["tailwindcss-animate"]).toBeUndefined();
     expect(pkg.devDependencies["tailwindcss-animate"]).toBe("^1.0.7");

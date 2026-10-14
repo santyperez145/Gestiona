@@ -106,3 +106,34 @@ describe("cuenta corriente: nadie salda una deuda por fuera del cobro", () => {
     expect(sql).toContain("INSERT INTO public.cash_entries");
   });
 });
+
+describe("cuenta corriente: el cajero cobra en el mostrador", () => {
+  const pos = fs.readFileSync("src/pages/POSPage.tsx", "utf8");
+  const lib = fs.readFileSync("src/lib/cuentaCorriente.ts", "utf8");
+
+  it("la caja ofrece «Cobrar» sólo con un cliente elegido y lee sus deudas por id", () => {
+    const aviso = pos.slice(pos.indexOf("pendiente de cobro</span>"), pos.indexOf('data-testid="pos-credit-available"'));
+    expect(aviso).toContain("{posCustomerId && (");
+    expect(aviso).toContain('data-testid="pos-cobrar-deuda"');
+    expect(pos).toContain("deudorDelCliente(activeOrg.id, posCustomer.id, posCustomer.name)");
+    const leer = lib.slice(lib.indexOf("export async function deudorDelCliente"));
+    expect(leer).toContain('.eq("customer_id", customerId)');
+    expect(leer).not.toContain("ilike");
+    expect(leer).toContain("if (error) throw error;");
+  });
+
+  it("después de cobrar, la caja vuelve a leer lo que debe el cliente", () => {
+    expect(pos).toContain("onDone={() => { setCobroDeuda(null); setRefrescoDeuda(n => n + 1); }}");
+    expect(pos).toContain("}, [customer, activeOrg, posCustomerId, refrescoDeuda]);");
+  });
+
+  it("la base deja cobrar al vendedor sólo con caja abierta, y nunca al lector", () => {
+    const sql = fs.readFileSync("supabase/migrations/20261014000600_cajero_cobra_fiado.sql", "utf8");
+    expect(sql).toContain("v_es_admin OR public.has_org_role(p_org, v_user, ARRAY['vendedor'])");
+    expect(sql).toContain("IF NOT v_es_admin AND v_sesion IS NULL THEN");
+    expect(sql).toContain("USING ERRCODE = '55000'");
+    expect(sql).not.toContain("'viewer'");
+    // El reintento con la misma clave se resuelve antes de exigir caja.
+    expect(sql.indexOf("RETURN v_previo || jsonb_build_object('repetido', true);")).toBeLessThan(sql.indexOf("IF NOT v_es_admin AND v_sesion IS NULL THEN"));
+  });
+});

@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { cobrarCuentaCorrienteDB, type CobroCuentaCorriente } from "@/lib/supabaseStore";
 
 /**
@@ -101,4 +102,23 @@ export async function cobrarSeleccion(
     }
   }
   return { cobradas, fallidas };
+}
+
+/**
+ * Las deudas pendientes de un cliente elegido (por id, nunca por nombre
+ * aproximado), listas para cobrar a cuenta. `null` si no debe nada.
+ */
+export async function deudorDelCliente(orgId: string, customerId: string, nombre: string): Promise<Deudor | null> {
+  const { data, error } = await supabase
+    .from("debts")
+    .select("id, org_id, customer_id, customer_name, remaining_ars, description")
+    .eq("org_id", orgId)
+    .eq("customer_id", customerId)
+    .in("status", ["pending", "partial"])
+    .gt("remaining_ars", 0)
+    .order("date", { ascending: true });
+  if (error) throw error;
+  const deudas = (data ?? []) as DeudaPendiente[];
+  if (deudas.length === 0) return null;
+  return { nombre, customerId, deudas, total: totalPendiente(deudas) };
 }

@@ -80,6 +80,8 @@ import { useUserRole } from "@/lib/useUserRole";
 import { groupPosOfflineTickets, posOfflineAgeLabel, summarizePosOfflineQueue } from "@/lib/posOfflineQueue";
 import { posPaymentDiscountPercent, posPriceForPayment } from "@/lib/posPaymentDiscount";
 import { PosQrCheckoutDialog } from "@/components/pos/PosQrCheckoutDialog";
+import CobroACuentaForm from "@/components/finance/CobroACuentaForm";
+import { deudorDelCliente, mensajeDeError, type Deudor } from "@/lib/cuentaCorriente";
 import {
   POS_QR_RETRYABLE_TERMINAL_STATES,
   POS_QR_TERMINAL_STATES,
@@ -1431,6 +1433,11 @@ export default function POSPage() {
   const { tap: vibrateTap, success: vibrateSuccess } = useVibration();
 
   const [customerDebt, setCustomerDebt] = useState<number | null>(null);
+  // Cobro de fiado en el mostrador: el cajero recibe el pago del cliente elegido
+  // y entra en su caja (`cobrar_cuenta_corriente` exige caja abierta al vendedor).
+  const [cobroDeuda, setCobroDeuda] = useState<Deudor | null>(null);
+  const [cargandoCobro, setCargandoCobro] = useState(false);
+  const [refrescoDeuda, setRefrescoDeuda] = useState(0);
   // Tope de fiado del cliente elegido (null = sin límite). La base lo vuelve a validar.
   const [customerCreditLimit, setCustomerCreditLimit] = useState<number | null>(null);
   const posCustomerId = posCustomer?.id ?? null;
@@ -1455,7 +1462,21 @@ export default function POSPage() {
       setCustomerCreditLimit(posCustomerId && limite !== null && limite !== undefined ? Number(limite) : null);
     }, posCustomerId ? 0 : 600);
     return () => clearTimeout(timeout);
-  }, [customer, activeOrg, posCustomerId]);
+  }, [customer, activeOrg, posCustomerId, refrescoDeuda]);
+
+  const abrirCobroDeuda = async () => {
+    if (!activeOrg || !posCustomer) return;
+    setCargandoCobro(true);
+    try {
+      const deudor = await deudorDelCliente(activeOrg.id, posCustomer.id, posCustomer.name);
+      if (!deudor) { toast.info(`${posCustomer.name} no tiene deudas pendientes`); setRefrescoDeuda(n => n + 1); return; }
+      setCobroDeuda(deudor);
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudieron leer las deudas del cliente"));
+    } finally {
+      setCargandoCobro(false);
+    }
+  };
 
   // VIP loyalty tier lookup — fires when customer name settles (debounced)
   useEffect(() => {
@@ -3146,7 +3167,14 @@ export default function POSPage() {
         {customerDebt !== null && (
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-destructive/15 border border-destructive/30 text-destructive">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span>{customer.trim()} tiene <strong>{formatARS(customerDebt)}</strong> pendiente de cobro</span>
+            <span className="flex-1">{customer.trim()} tiene <strong>{formatARS(customerDebt)}</strong> pendiente de cobro</span>
+            {posCustomerId && (
+              <Button type="button" size="sm" variant="outline" disabled={cargandoCobro} data-testid="pos-cobrar-deuda"
+                className="h-6 px-2 text-[11px] border-destructive/40 text-destructive hover:bg-destructive/10"
+                onClick={() => void abrirCobroDeuda()}>
+                {cargandoCobro ? "Abriendo..." : "Cobrar"}
+              </Button>
+            )}
           </div>
         )}
         {customerCreditLimit !== null && (
@@ -4142,6 +4170,18 @@ export default function POSPage() {
               void confirmSale();
             }}
           />
+          <Dialog open={!!cobroDeuda} onOpenChange={v => { if (!v) setCobroDeuda(null); }}>
+            <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="font-display">Cobrar cuenta corriente · {cobroDeuda?.nombre}</DialogTitle>
+                <DialogDescription>El cobro entra en la caja abierta y se aplica primero a la deuda más vieja.</DialogDescription>
+              </DialogHeader>
+              {cobroDeuda && activeOrg && user && (
+                <CobroACuentaForm objetivo={{ tipo: "cliente", deudor: cobroDeuda }} orgId={activeOrg.id} userId={user.id}
+                  onDone={() => { setCobroDeuda(null); setRefrescoDeuda(n => n + 1); }} />
+              )}
+            </DialogContent>
+          </Dialog>
           <FiscalControllerDialog
             open={controllerDialogOpen}
             orgId={activeOrg?.id}

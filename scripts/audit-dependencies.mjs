@@ -1,7 +1,12 @@
 import { spawnSync } from "node:child_process";
 
 const ALLOWED_DEV_ADVISORY = "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm";
-const REVIEW_BEFORE = "2026-10-16";
+// Revisada 2026-10-14: `braces` sigue sin versión corregida (la última es 3.0.3,
+// de 2024-05). El advisory es un DoS por patrones anidados; acá `braces` sólo
+// recibe los globs fijos de tailwind.config.ts y del watcher de Vite al
+// compilar, nunca entrada de usuarios, y no viaja al bundle. Se vuelve a
+// revisar en 30 días o antes si sale el parche.
+const REVIEW_BEFORE = "2026-11-13";
 
 function runAudit(extraArgs = []) {
   const npmCli = process.env.npm_execpath;
