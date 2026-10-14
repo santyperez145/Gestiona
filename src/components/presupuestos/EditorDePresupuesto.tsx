@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatARS, getProductsDB, getVariantsByUserDB } from "@/lib/supabaseStore";
 import { usePriceList } from "@/hooks/usePriceList";
 import { mensajeDeError } from "@/lib/cuentaCorriente";
+import { cargarPlantillasDB, guardarPlantillaDB, type Plantilla } from "@/lib/plantillasDePresupuesto";
 import { terminoBusquedaCliente } from "@/components/pos/PosCustomerPicker";
 import {
   aItemsGuardados, avisoDeStock, deItemsGuardados, nuevaClave, pasoParaCantidad, problemasDelPresupuesto,
@@ -49,8 +50,6 @@ type Variante = { id: string; product_id: string; variant_name: string; stock?: 
 type Cliente = { id: string | null; nombre: string; email: string; telefono: string; priceListId: string | null };
 type Sugerencia = { id: string; name: string; email: string | null; phone: string | null; tax_id: string | null; price_list_id: string | null };
 
-const PLANTILLAS = (orgId: string) => `gestiona_quote_templates_${orgId}`;
-type Plantilla = { name: string; items: Array<Partial<ItemGuardado>>; notes?: string };
 
 function validezPorDefecto() {
   const d = new Date();
@@ -101,7 +100,9 @@ export default function EditorDePresupuesto({ open, onOpenChange, orgId, userId,
       })
       .catch(err => toast.error(mensajeDeError(err, "No se pudo cargar el catálogo")))
       .finally(() => { if (vigente) setCargandoCatalogo(false); });
-    try { setPlantillas(JSON.parse(localStorage.getItem(PLANTILLAS(orgId)) || "[]")); } catch { setPlantillas([]); }
+    cargarPlantillasDB(orgId)
+      .then(lista => { if (vigente) setPlantillas(lista); })
+      .catch(err => { if (vigente) toast.error(mensajeDeError(err, "No se pudieron cargar las plantillas")); });
 
     const base = deItemsGuardados(inicial?.items);
     setRenglones(base.length ? base : [renglonVacio()]);
@@ -196,19 +197,19 @@ export default function EditorDePresupuesto({ open, onOpenChange, orgId, userId,
     toast.success(`Plantilla «${tpl.name}» cargada`);
   };
 
-  const guardarPlantilla = () => {
+  const guardarPlantilla = async () => {
     const nombre = (nombrePlantilla ?? "").trim();
     if (!nombre) { toast.error("Poné un nombre para la plantilla"); return; }
     if (aItemsGuardados(renglones).length === 0) { toast.error("Agregá ítems antes de guardar la plantilla"); return; }
     const tpl: Plantilla = { name: nombre, items: aItemsGuardados(renglones), notes: notas };
     const siguiente = [...plantillas.filter(t => t.name !== tpl.name), tpl];
     try {
-      localStorage.setItem(PLANTILLAS(orgId), JSON.stringify(siguiente));
-      setPlantillas(siguiente);
+      await guardarPlantillaDB(orgId, tpl);
+      setPlantillas(siguiente.sort((a, b) => a.name.localeCompare(b.name, "es")));
       setNombrePlantilla(null);
-      toast.success(`Plantilla «${tpl.name}» guardada`);
-    } catch {
-      toast.error("No se pudo guardar la plantilla en este navegador");
+      toast.success(`Plantilla «${tpl.name}» guardada`, { description: "La ve todo el equipo, desde cualquier equipo." });
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo guardar la plantilla"));
     }
   };
 
@@ -291,8 +292,8 @@ export default function EditorDePresupuesto({ open, onOpenChange, orgId, userId,
               ) : (
                 <div className="flex items-center gap-1">
                   <Input autoFocus value={nombrePlantilla} onChange={e => setNombrePlantilla(e.target.value)} placeholder="Nombre de la plantilla" className="h-8 w-44 text-xs"
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); guardarPlantilla(); } if (e.key === "Escape") setNombrePlantilla(null); }} />
-                  <Button type="button" size="sm" className="h-8 text-xs" onClick={guardarPlantilla}>Guardar</Button>
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); void guardarPlantilla(); } if (e.key === "Escape") setNombrePlantilla(null); }} />
+                  <Button type="button" size="sm" className="h-8 text-xs" onClick={() => void guardarPlantilla()}>Guardar</Button>
                   <Button type="button" size="sm" variant="ghost" className="h-8 px-2" aria-label="Cancelar plantilla" onClick={() => setNombrePlantilla(null)}><X className="h-3.5 w-3.5" /></Button>
                 </div>
               )}

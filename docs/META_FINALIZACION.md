@@ -82,6 +82,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
     - Tests: `src/test/chequesCiclo.test.ts`.
   - Aspecto unificado (pedido del dueño 2026-10-14): un solo indicador (`MetricTile`, el del Inicio) y un solo encabezado en todo el panel. Integraciones queda sin jerga interna y los dólares se muestran como «US$ 1.234,50».
   - Funciones incoherentes (pedido del dueño 2026-10-14: «además de lo visual, tienen funciones legacy o incoherentes»):
+    - Plantillas de presupuesto: vivían en el navegador (no se veían desde otro equipo ni las compartía el negocio). Ahora están en la base, una por nombre por negocio; las borra quien la creó, el dueño o un administrador, y las del navegador se suben una vez. Migración 20261014002200, `scripts/plantillas-de-presupuesto-matrix.sql` 4/4 en simulacro y en vivo, `src/test/plantillasDePresupuesto.test.ts`.
     - Presupuestos: «Link MP» cobraba con una referencia que el webhook no reconoce (el pago no registraba la venta) y «Link pago» creaba un link nuevo por sesión. Ahora hay un solo link por presupuesto, reutilizable (`lib/linksDePago.ts`): al pagarse registra la venta y lo marca vendido. «Valor ganado» pasa a «Vendido».
     - Compras (rearmada):
       - Antes «Nueva compra» mandaba columnas que no existen y fallaba siempre (0 compras en todos los negocios al 2026-10-14). Era un producto por compra, con costo en dólares más un 15 % fijo del importador original.
