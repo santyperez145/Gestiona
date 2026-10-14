@@ -41,6 +41,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [ADR 003 — Identidad y dominio](ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md)
 - [ADR 004 — Growth / Profit](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md): portfolio y Graph compartido; reemplazo parcial de ADR 002.
 - [ADR 005 — piloto POS / Creators](ADR_005_POS_PILOT_AND_CREATORS_SEQUENCE.md): precisa el gate operacional y reemplaza la pausa secundaria de ADR 004.
+- [ADR 006 — frontera entre negocios](ADR_006_FRONTERA_ENTRE_NEGOCIOS.md): vistas invoker y anon sin privilegios por defecto; lo público se lee por id.
 
 Los ADR aceptados no se reescriben para ocultar el contexto: una decisión nueva
 los reemplaza con otro ADR.
@@ -96,6 +97,7 @@ sus benchmarks. Fuente fechada e implementación comprobada son evidencias disti
 | ADR 001 / 003 | Aceptado | CTO | Fecha de cada ADR; no sustituidos. |
 | ADR 002 | Aceptado parcialmente sustituido | CTO | ADR 004 reemplaza límites indicados; contexto histórico intacto. |
 | ADR 004 | Aceptado incremental | CTO / Producto | 2026-10-01. |
+| ADR 006 | Aceptado incremental | CTO / Seguridad | 2026-10-13. |
 | F5.1 / C22.2 | Referencia: protocolos operativos | Producto / Operación | No sustituyen contrato Finance / importación. |
 | Auditorías y cierres anteriores | Histórico | Owner del cambio | Git; no autoridad paralela ni promesa vigente. |
 
