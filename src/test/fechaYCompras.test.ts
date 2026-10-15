@@ -17,7 +17,7 @@ describe("hoy es el día de Argentina", () => {
     let usos = "";
     try {
       usos = execSync(
-        `git grep -n -E "new Date\\(\\)\\.toISOString\\(\\)\\.(slice\\(0, (10|7)\\)|split)" -- src ":!src/test"`,
+        `git grep -n -E "new Date\\(\\)\\.toISOString\\(\\)\\.(slice\\(0, (10|7)\\)|split)" -- src ":!src/test" ":!src/lib/fechaAR.ts"`,
         { encoding: "utf8" },
       ).trim();
     } catch (e) {

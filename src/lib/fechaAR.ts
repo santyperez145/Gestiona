@@ -1,8 +1,8 @@
 /**
  * El día y el mes en Argentina (2026-10-15).
  *
- * 85 pantallas calculaban «hoy» con `new Date().toISOString().slice(0, 10)`,
- * que es el día en UTC: de 21 a 24 h en Argentina ya es mañana. A esa hora el
+ * 85 lugares en 42 archivos calculaban «hoy» con el día en UTC (ISO, diez
+ * caracteres): de 21 a 24 h en Argentina ya es mañana. A esa hora el
  * inicio mostraba $0 vendidos hoy, los vencimientos de hoy figuraban vencidos
  * y un gasto cargado a la noche quedaba con fecha de mañana.
  */
