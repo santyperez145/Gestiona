@@ -454,6 +454,8 @@ export default function ResumenView() {
       monthly, yoyData, productPerf, customerData, categoryMix,
       heatmap, hourlyBars, dailyBars,
       totalRevenue, totalProfit, totalUnits, revYoY, profYoY,
+      // Sin ventas el año anterior no hay comparación (antes: «↑ 0.0%»).
+      revTieneAnterior: prevRevenue > 0, profTieneAnterior: prevProfit > 0,
       uniqueCustomers, avgTicket, avgMargin,
       returningCustomers, retentionRate, newCustomersLast30, customersLast30Size: customersLast30.size,
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
@@ -525,8 +527,8 @@ export default function ResumenView() {
       {/* Header */}
       <PageHeader
         icon={BarChart3}
-        title="Analytics"
-        description="Análisis profundo de tu negocio"
+        title="Análisis"
+        description="Ventas, márgenes, clientes y tendencias del año"
         actions={
           <div className="flex flex-wrap items-center gap-2 flex-wrap">
             <StoreFilter />
@@ -548,28 +550,30 @@ export default function ResumenView() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard
-          label="Revenue Anual"
+          label="Ingresos del año"
           value={formatARS(derived.totalRevenue)}
           icon={DollarSign}
           color="primary"
-          trend={{ value: derived.revYoY, label: "vs año ant." }}
+          trend={derived.revTieneAnterior ? { value: derived.revYoY, label: "vs año anterior" } : undefined}
+          sub={derived.revTieneAnterior ? undefined : "sin ventas el año anterior para comparar"}
         />
         <KPICard
-          label="Ganancia Neta"
+          label="Ganancia bruta"
           value={formatARS(derived.totalProfit)}
           icon={TrendingUp}
           color="success"
-          trend={{ value: derived.profYoY, label: "vs año ant." }}
+          trend={derived.profTieneAnterior ? { value: derived.profYoY, label: "vs año anterior" } : undefined}
+          sub="ventas menos su costo, antes de gastos"
         />
         <KPICard
-          label="Clientes Únicos"
+          label="Clientes únicos"
           value={derived.uniqueCustomers}
           sub={`${plural(derived.totalUnits, "unidad", "unidades")}`}
           icon={Users}
           color="blue"
         />
         <KPICard
-          label="Margen Promedio"
+          label="Margen promedio"
           value={`${derived.avgMargin.toFixed(1)}%`}
           sub="sobre ingresos"
           icon={Percent}
@@ -580,24 +584,24 @@ export default function ResumenView() {
       <Tabs value={analyticsTab} onValueChange={value => setAnalyticsTab(value as typeof analyticsTab)} className="workspace-tabs-layout w-full">
         <TabsList className="workspace-tabs-nav flex-wrap h-auto gap-1">
           <TabsTrigger value="trend" className="text-xs">Tendencia</TabsTrigger>
-          <TabsTrigger value="forecast" className="text-xs">📈 Forecast</TabsTrigger>
-          <TabsTrigger value="demand" className="text-xs">🔮 Demanda</TabsTrigger>
-          <TabsTrigger value="predictivo" className="text-xs">🧠 Predictivo IA</TabsTrigger>
-          <TabsTrigger value="yoy" className="text-xs">Año vs Año</TabsTrigger>
+          <TabsTrigger value="forecast" className="text-xs">Pronóstico</TabsTrigger>
+          <TabsTrigger value="demand" className="text-xs">Demanda</TabsTrigger>
+          <TabsTrigger value="predictivo" className="text-xs">Predicción con IA</TabsTrigger>
+          <TabsTrigger value="yoy" className="text-xs">Año contra año</TabsTrigger>
           <TabsTrigger value="products" className="text-xs">Productos</TabsTrigger>
           <TabsTrigger value="customers" className="text-xs">Clientes</TabsTrigger>
-          <TabsTrigger value="mix" className="text-xs">Mix</TabsTrigger>
+          <TabsTrigger value="mix" className="text-xs">Mezcla</TabsTrigger>
           <TabsTrigger value="horarios" className="text-xs">Horarios</TabsTrigger>
           <TabsTrigger value="funnel" className="text-xs">Conversión</TabsTrigger>
           <TabsTrigger value="abc" className="text-xs">ABC</TabsTrigger>
-          <TabsTrigger value="cattrend" className="text-xs">Por Categoría</TabsTrigger>
+          <TabsTrigger value="cattrend" className="text-xs">Por categoría</TabsTrigger>
           <TabsTrigger value="weekly" className="text-xs">Semana</TabsTrigger>
-          <TabsTrigger value="cohorts" className="text-xs">👥 Cohorts</TabsTrigger>
-          <TabsTrigger value="dormant" className="text-xs">⚠️ Sin movimiento</TabsTrigger>
-          <TabsTrigger value="rentabilidad" className="text-xs">💰 Rentabilidad</TabsTrigger>
-          <TabsTrigger value="canales" className="text-xs">📊 Canales</TabsTrigger>
-          <TabsTrigger value="vendedores" className="text-xs">🧑‍💼 Vendedores</TabsTrigger>
-          <TabsTrigger value="gastos" className="text-xs">💸 Gastos</TabsTrigger>
+          <TabsTrigger value="cohorts" className="text-xs">Cohortes</TabsTrigger>
+          <TabsTrigger value="dormant" className="text-xs">Sin movimiento</TabsTrigger>
+          <TabsTrigger value="rentabilidad" className="text-xs">Rentabilidad</TabsTrigger>
+          <TabsTrigger value="canales" className="text-xs">Canales</TabsTrigger>
+          <TabsTrigger value="vendedores" className="text-xs">Vendedores</TabsTrigger>
+          <TabsTrigger value="gastos" className="text-xs">Gastos</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}

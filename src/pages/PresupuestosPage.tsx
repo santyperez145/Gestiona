@@ -522,7 +522,7 @@ export default function PresupuestosPage() {
           className={`flex items-center gap-1.5 px-3 h-9 rounded-lg border text-xs font-medium transition-all shrink-0 ${viewByCustomer ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-muted border-border text-muted-foreground hover:text-foreground'}`}
           title="Agrupar por cliente"
         >
-          👤 Por cliente
+          Por cliente
         </button>
         {/* Sort buttons */}
         <div className="flex items-center gap-1 shrink-0">

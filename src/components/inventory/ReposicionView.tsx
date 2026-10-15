@@ -10,6 +10,8 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS, fetchOrgProducts } from "@/lib/supabaseStore";
+import { cotizacionDe } from "@/lib/exchangeRate";
+import { costoSugerido } from "@/lib/compras";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -43,7 +45,12 @@ interface Product {
   category: string;
   stock: number;
   cost_usd: number;
+  cost_ars?: number | null;
+  cost_currency?: string | null;
+  total_cost_usd?: number | null;
   supplier_id: string | null;
+  /** Costo unitario en pesos (costoSugerido): la moneda del producto a la cotización. */
+  costo: number;
 }
 
 interface SaleRow {
@@ -64,7 +71,7 @@ interface RestockItem {
   dailyVelocity: number;
   daysUntilStockout: number;
   suggestedQty: number;
-  estimatedCostUSD: number;
+  costoEstimado: number;
   supplierId: string | null;
   supplierName: string;
   override: number | null; // manual override for qty
@@ -149,7 +156,7 @@ export default function ReposicionView() {
 
       const hoy = new Date().toISOString().slice(0, 10);
       const [{ data: products }, abcRes, { data: sales7 }, { data: suppData }] = await Promise.all([
-        fetchOrgProducts(activeOrg.id, "id,name,category,stock,cost_usd,supplier_id"),
+        fetchOrgProducts(activeOrg.id, "id,name,category,stock,cost_usd,cost_ars,cost_currency,total_cost_usd,supplier_id"),
         supabase.from("inventory_abc")
           .select("product_id,total_units,days_on_hand,safety_stock,reorder_point,eoq")
           .eq("org_id", activeOrg.id).eq("analysis_date", hoy).eq("period_days", 30),
@@ -158,6 +165,13 @@ export default function ReposicionView() {
         supabase.from("sales").select("product_id,quantity").eq("org_id", activeOrg.id).gte("date", since7.toISOString()),
         supabase.from("suppliers").select("id,name").eq("org_id", activeOrg.id).order("name"),
       ]);
+      // 2026-10-15: el costo salía sólo de cost_usd. Famatina tiene 11.518
+      // productos con costo en pesos: la inversión daba $0 y las órdenes de
+      // compra salían en dólares con costo 0. Ahora se toma el costo en su
+      // moneda y se expresa en pesos.
+      const { data: ajustes } = await supabase.from("settings").select("exchange_rate").eq("org_id", activeOrg.id).maybeSingle();
+      const cotizacion = cotizacionDe(ajustes as { exchange_rate?: number | null } | null);
+      const conCosto = ((products || []) as Omit<Product, "costo">[]).map(p => ({ ...p, costo: costoSugerido(p, "ARS", cotizacion) }));
       if (abcRes.error) {
         console.error("no se pudo leer el análisis de inventario", abcRes.error.message);
         toast.error("No se pudo leer la reposición");
@@ -187,7 +201,7 @@ export default function ReposicionView() {
         aggLast7[s.product_id] = (aggLast7[s.product_id] || 0) + s.quantity;
       });
 
-      const restockItems: RestockItem[] = (products || [])
+      const restockItems: RestockItem[] = conCosto
         .filter((p: Product) => {
           const sold30 = porProducto[p.id]?.units || 0;
           if (sold30 === 0 && p.stock > 50) return false; // skip dead stock with plenty
@@ -215,7 +229,7 @@ export default function ReposicionView() {
             dailyVelocity: daily,
             daysUntilStockout: daysOut,
             suggestedQty: qty,
-            estimatedCostUSD: qty * (p.cost_usd || 0),
+            costoEstimado: qty * p.costo,
             supplierId: p.supplier_id,
             supplierName: p.supplier_id ? (supplierMap[p.supplier_id] || "Sin proveedor") : "Sin proveedor",
             override: null,
@@ -244,7 +258,7 @@ export default function ReposicionView() {
       return {
         ...i,
         suggestedQty: qty,
-        estimatedCostUSD: qty * (i.product.cost_usd || 0),
+        costoEstimado: qty * i.product.costo,
         override: null,
       };
     }));
@@ -272,10 +286,10 @@ export default function ReposicionView() {
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b, "es"));
   }, [filtered]);
 
-  const totalCostUSD = useMemo(() => {
+  const inversionTotal = useMemo(() => {
     return filtered.reduce((sum, i) => {
       const qty = overrides[i.product.id] ?? i.suggestedQty;
-      return sum + qty * (i.product.cost_usd || 0);
+      return sum + qty * i.product.costo;
     }, 0);
   }, [filtered, overrides]);
 
@@ -311,12 +325,12 @@ export default function ReposicionView() {
           p_org: activeOrg.id,
           p_id: null,
           p_datos: {
-            supplier_id: grupo.supplierId, supplier_name: grupo.nombre, currency: "USD",
+            supplier_id: grupo.supplierId, supplier_name: grupo.nombre, currency: "ARS",
             notes: "Generada desde Reposición",
             items: grupo.items.map(item => ({
               product_id: item.product.id, product_name: item.product.name,
               quantity_ordered: overrides[item.product.id] ?? item.suggestedQty,
-              unit_cost: item.product.cost_usd || 0, tax_rate: 0,
+              unit_cost: item.product.costo, tax_rate: 0,
             })),
           },
         } as never);
@@ -341,7 +355,7 @@ export default function ReposicionView() {
   // ── CSV export ─────────────────────────────────────────────────────────────
 
   const exportCSV = () => {
-    const header = "Producto,Proveedor,Stock actual,Vendidos 30d,Vel. diaria,Días restantes,Cantidad sugerida,Costo USD";
+    const header = "Producto,Proveedor,Stock actual,Vendidos 30d,Vel. diaria,Días restantes,Cantidad sugerida,Costo ARS";
     const rows = filtered.map(i => {
       const qty = overrides[i.product.id] ?? i.suggestedQty;
       return [
@@ -352,7 +366,7 @@ export default function ReposicionView() {
         i.dailyVelocity.toFixed(2),
         i.daysUntilStockout === 999 ? "Sin ventas" : i.daysUntilStockout,
         qty,
-        (qty * (i.product.cost_usd || 0)).toFixed(2),
+        (qty * i.product.costo).toFixed(2),
       ].join(",");
     });
     const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
@@ -433,7 +447,7 @@ export default function ReposicionView() {
           <KPICard label="Críticos (≤3d)" value={criticalCount} icon={AlertTriangle} color="destructive" sub="quiebre inminente" />
           <KPICard label="Urgentes (4–7d)" value={urgentCount} icon={Clock} color="warning" sub="atención pronto" />
           <KPICard label="Total a reponer" value={filtered.length} icon={TrendingUp} color="primary" sub={`umbral: ${thresholdDays}d`} />
-          <KPICard label="Inversión estimada" value={`$${totalCostUSD.toFixed(0)} USD`} icon={ShoppingCart} color="blue" sub="costo total sugerido" />
+          <KPICard label="Inversión estimada" value={formatARS(inversionTotal)} icon={ShoppingCart} color="blue" sub="costo total sugerido" />
         </div>
       )}
 
@@ -467,14 +481,14 @@ export default function ReposicionView() {
                 <TableHead className="text-right">Sugerido</TableHead>
                 <TableHead className="text-right hidden lg:table-cell" title="Economic Order Quantity — cantidad óptima por pedido (Wilson)">EOQ</TableHead>
                 <TableHead className="text-right hidden lg:table-cell" title="Reorder Point — stock al que debés pedir">ROP</TableHead>
-                <TableHead className="text-right">Costo USD</TableHead>
+                <TableHead className="text-right">Costo</TableHead>
                 <TableHead className="text-center">Urgencia</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map(item => {
                 const qty = overrides[item.product.id] ?? item.suggestedQty;
-                const cost = qty * (item.product.cost_usd || 0);
+                const cost = qty * item.product.costo;
                 return (
                   <TableRow key={item.product.id} className="group">
                     <TableCell>
@@ -525,7 +539,7 @@ export default function ReposicionView() {
                       ) : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-right text-sm">
-                      ${cost.toFixed(2)}
+                      {formatARS(cost)}
                     </TableCell>
                     <TableCell className="text-center">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${urgencyColor(item.daysUntilStockout)}`}>
@@ -547,9 +561,9 @@ export default function ReposicionView() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {bySupplier.map(([name, its]) => {
               const totalQty = its.reduce((s, i) => s + (overrides[i.product.id] ?? i.suggestedQty), 0);
-              const totalUSD = its.reduce((s, i) => {
+              const totalProveedor = its.reduce((s, i) => {
                 const q = overrides[i.product.id] ?? i.suggestedQty;
-                return s + q * (i.product.cost_usd || 0);
+                return s + q * i.product.costo;
               }, 0);
               const hasCritical = its.some(i => i.daysUntilStockout <= 3);
               return (
@@ -562,7 +576,7 @@ export default function ReposicionView() {
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-1">
                     <div className="text-xs text-muted-foreground">{its.length} productos · {totalQty} unidades</div>
-                    <div className="font-semibold">${totalUSD.toFixed(2)} USD</div>
+                    <div className="font-semibold">{formatARS(totalProveedor)}</div>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {its.slice(0, 4).map(i => (
                         <Badge key={i.product.id} variant="outline" className={`text-xs px-1.5 py-0 ${urgencyColor(i.daysUntilStockout)}`}>
@@ -610,10 +624,10 @@ export default function ReposicionView() {
               </div>
               <div className="flex justify-between font-semibold border-t border-border pt-1 mt-1">
                 <span>Inversión estimada</span>
-                <span>${itemsForOrder.reduce((s, i) => {
+                <span>{formatARS(itemsForOrder.reduce((s, i) => {
                   const q = overrides[i.product.id] ?? i.suggestedQty;
-                  return s + q * (i.product.cost_usd || 0);
-                }, 0).toFixed(2)} USD</span>
+                  return s + q * i.product.costo;
+                }, 0))}</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
