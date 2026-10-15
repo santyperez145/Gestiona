@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -359,7 +360,7 @@ export default function DevolucionesPage() {
     const url = URL.createObjectURL(new Blob([`\ufeff${[headers.join(","), ...rows].join("\n")}`],
       { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a"); anchor.href = url;
-    anchor.download = `devoluciones-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.download = `devoluciones-${hoyAR()}.csv`;
     anchor.click(); URL.revokeObjectURL(url); toast.success("Devoluciones exportadas");
   };
 

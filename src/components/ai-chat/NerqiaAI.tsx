@@ -1,3 +1,4 @@
+import { diaAR, hoyAR } from "@/lib/fechaAR";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Brain, Send, Loader2, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, ShoppingCart, Package, DollarSign, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,7 @@ export default function NerqiaAI() {
 
       const daily: Record<string, number> = {};
       for (const s of sales) {
-        const d = s.created_at.slice(0, 10);
+        const d = diaAR(s.created_at);
         daily[d] = (daily[d] ?? 0) + Number(s.total ?? 0);
       }
       const days = Object.entries(daily).sort((a, b) => a[0].localeCompare(b[0]));
@@ -81,7 +82,7 @@ export default function NerqiaAI() {
       });
 
       // Insight 2: Días sin venta
-      const today = new Date().toISOString().slice(0, 10);
+      const today = hoyAR();
       const hasToday = daily[today] !== undefined;
       if (!hasToday) {
         result.push({

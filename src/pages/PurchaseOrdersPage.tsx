@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
@@ -967,7 +968,7 @@ export default function PurchaseOrdersPage() {
     const update: Record<string, unknown> = { status };
     if (status === "sent") update.sent_at = new Date().toISOString();
     if (status === "confirmed") update.confirmed_at = new Date().toISOString();
-    if (status === "received") update.received_date = new Date().toISOString().slice(0, 10);
+    if (status === "received") update.received_date = hoyAR();
 
     const { error } = await supabase.from("purchase_orders").update(update).eq("id", order.id);
     if (error) { toast.error("Error: " + error.message); return; }

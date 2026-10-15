@@ -5,6 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
+import { hoyAR } from "@/lib/fechaAR";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -212,7 +213,7 @@ export default function ResumenView() {
   const [trendFrom, setTrendFrom] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10);
   });
-  const [trendTo, setTrendTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [trendTo, setTrendTo] = useState(() => hoyAR());
   const [sellerPeriod, setSellerPeriod] = usePersistedState<"thisMonth" | "last30" | "thisWeek" | "thisYear">(
     orgViewKey("analytics.seller-period", activeOrg?.id),
     "thisMonth",

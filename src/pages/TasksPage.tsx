@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
@@ -155,7 +156,7 @@ export default function TasksPage() {
     await load();
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hoyAR();
 
   const subtasksByParent = useMemo(() => {
     const map: Record<string, Task[]> = {};
@@ -311,7 +312,7 @@ export default function TasksPage() {
             const csv = bom + [headers.join(','), ...rows].join('\n');
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            a.download = `tareas-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = `tareas-${hoyAR()}.csv`;
             a.click();
             toast.success('Tareas exportadas');
           }}>

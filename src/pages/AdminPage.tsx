@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { hoyAR, mesAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -555,7 +556,7 @@ function SystemAuditLogTab() {
   const [filterFrom, setFilterFrom] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10);
   });
-  const [filterTo, setFilterTo] = useState(new Date().toISOString().slice(0, 10));
+  const [filterTo, setFilterTo] = useState(hoyAR());
 
   const [selectedLog, setSelectedLog] = useState<AuditLogRow | null>(null);
 
@@ -908,7 +909,7 @@ function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: {
   const [commissionPct, setCommissionPct] = useState("5");
   const [saving, setSaving] = useState(false);
 
-  const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
+  const currentMonth = mesAR() + "-01";
   const sellers = vendors.filter(v => v.role.includes("vendedor") || v.role.includes("admin"));
 
   const handleSave = async () => {

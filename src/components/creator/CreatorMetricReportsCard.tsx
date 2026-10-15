@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useEffect, useMemo, useState } from "react";
 import { BadgeCheck, BarChart3, ExternalLink, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -14,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => hoyAR();
 const thirtyDaysAgo = () => {
   const date = new Date();
   date.setDate(date.getDate() - 30);

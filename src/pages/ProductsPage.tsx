@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef, useMemo, useDeferredValue, type ReactNode } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useRef, useMemo, useDeferredValue, type ReactNode } from "react";
 import Fuse from "fuse.js";
 import { useCallback } from "react";
 import { paginarPorMarca, PRODUCTOS_POR_PAGINA } from "@/lib/catalogPaging";
@@ -322,7 +323,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
   wsAll['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
   utils.book_append_sheet(wb, wsAll, 'Todos');
 
-  writeFile(wb, `productos_exentry_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  writeFile(wb, `productos_exentry_${hoyAR()}.xlsx`);
   toast.success('Excel exportado con hojas por categoría');
 }
 
@@ -381,7 +382,7 @@ export default function ProductsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `catalogo-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `catalogo-${hoyAR()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(`Catálogo exportado (${rows.length} productos)`);

@@ -1,3 +1,4 @@
+import { hoyAR, mesAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +38,7 @@ const EMPTY_FORM = {
   customer_name: "",
   total_ars: "",
   installments: "3",
-  first_date: new Date().toISOString().slice(0, 10),
+  first_date: hoyAR(),
 };
 
 export default function CuotasPage() {
@@ -48,7 +49,7 @@ export default function CuotasPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [filterMonth, setFilterMonth] = useState(mesAR());
 
   const load = async () => {
     if (!activeOrg) return;
@@ -140,7 +141,7 @@ export default function CuotasPage() {
     return installments.filter(i => i.due_date.startsWith(filterMonth));
   }, [installments, filterMonth]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hoyAR();
   const pending = installments.filter(i => !i.paid);
   const overdue = pending.filter(i => i.due_date < today);
   const upcoming = pending.filter(i => i.due_date >= today);

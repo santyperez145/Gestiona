@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -230,7 +231,7 @@ function PublicationProofForm({ deliverable, onSaved }: { deliverable: Influence
         <div className="space-y-1"><Label htmlFor="proof-url">URL de la publicación</Label><Input id="proof-url" type="url" pattern="https://.*" required value={form.url} onChange={event => update('url', event.target.value)} placeholder="https://instagram.com/reel/..." /></div>
         <div className="space-y-1"><Label htmlFor="proof-screenshot">Captura (URL, opcional)</Label><Input id="proof-screenshot" type="url" pattern="https://.*" value={form.screenshot} onChange={event => update('screenshot', event.target.value)} placeholder="https://..." /></div>
         <div className="space-y-1"><Label htmlFor="proof-license" aria-label="tipo de licencia">Tipo de licencia</Label><Select value={form.license} onValueChange={value => update('license', value)}><SelectTrigger id="proof-license"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(LICENSE_TYPES).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
-        {licenciaConVencimiento && <div className="space-y-1"><Label htmlFor="proof-expires">Licencia vigente hasta</Label><Input id="proof-expires" type="date" required min={new Date().toISOString().slice(0, 10)} value={form.expires} onChange={event => update('expires', event.target.value)} /></div>}
+        {licenciaConVencimiento && <div className="space-y-1"><Label htmlFor="proof-expires">Licencia vigente hasta</Label><Input id="proof-expires" type="date" required min={hoyAR()} value={form.expires} onChange={event => update('expires', event.target.value)} /></div>}
         <div className="space-y-1"><Label htmlFor="proof-notes">Notas de la licencia (opcional)</Label><Textarea id="proof-notes" maxLength={2000} value={form.notes} onChange={event => update('notes', event.target.value)} /></div>
       </fieldset>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

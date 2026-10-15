@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { AlertTriangle, CheckCircle2, CircleAlert } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
 
@@ -47,7 +48,7 @@ export default function DashboardHealthSection({
   agingCount30,
   rawDebts,
 }: DashboardHealthSectionProps) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hoyAR();
   const overdueDebts = rawDebts.filter(debt => debt.status !== "paid" && debt.due_date && debt.due_date < today).length;
   const todaySales = liveTodaySales?.total ?? 0;
   const salesPct = avgDailySalesARS > 0 ? (todaySales / avgDailySalesARS) * 100 : todaySales > 0 ? 100 : 0;

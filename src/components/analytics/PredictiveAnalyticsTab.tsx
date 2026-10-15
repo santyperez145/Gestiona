@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -76,7 +77,7 @@ export default function PredictiveAnalyticsTab() {
       .select("forecast_date, predicted_revenue, confidence_lo, confidence_hi")
       .eq("org_id", orgId)
       .is("product_id", null)
-      .gte("forecast_date", new Date().toISOString().slice(0, 10))
+      .gte("forecast_date", hoyAR())
       .order("forecast_date")
       .limit(7)
       .then(({ data }) => {

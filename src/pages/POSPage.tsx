@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from "react";
 import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
 import PosCustomerPicker, { etiquetaCliente, type PosCustomer } from "@/components/pos/PosCustomerPicker";
@@ -2082,7 +2083,7 @@ export default function POSPage() {
       }
       setPresupuestoCaja({ id: presupuesto.id, numero: presupuesto.quote_number });
 
-      const vencido = presupuesto.valid_until && presupuesto.valid_until < new Date().toISOString().slice(0, 10);
+      const vencido = presupuesto.valid_until && presupuesto.valid_until < hoyAR();
       toast.success(`Presupuesto ${presupuesto.quote_number} en la caja`, {
         description: vencido ? `Venció el ${new Date(presupuesto.valid_until + "T12:00:00").toLocaleDateString("es-AR")}: los precios son los del presupuesto.` : undefined,
       });

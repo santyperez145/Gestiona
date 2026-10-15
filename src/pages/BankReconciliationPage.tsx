@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,7 +79,7 @@ interface SupplierPayment {
 }
 
 const TX_EMPTY = {
-  date: new Date().toISOString().slice(0, 10),
+  date: hoyAR(),
   description: "",
   amount_ars: "",
   type: "credit" as "credit" | "debit",
@@ -98,7 +99,7 @@ function parseBankCSV(text: string): Omit<BankTx, "id" | "org_id" | "matched" | 
     const amount = parseFloat(amountStr.replace(/[^0-9.-]/g, ""));
     if (isNaN(amount)) continue;
     rows.push({
-      date: date || new Date().toISOString().slice(0, 10),
+      date: date || hoyAR(),
       description: description || "Sin descripción",
       amount_ars: Math.abs(amount),
       type: amount >= 0 ? "credit" : "debit",
@@ -132,7 +133,7 @@ export default function BankReconciliationPage() {
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10);
   });
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dateTo, setDateTo] = useState(() => hoyAR());
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── Load ────────────────────────────────────────────────────────────────────

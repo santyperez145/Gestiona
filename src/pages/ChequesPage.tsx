@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { accionesDeCheque, etiquetaDeEstado, type EstadoDeCheque } from "@/lib/cheques";
 import { useOrg } from "@/lib/orgContext";
@@ -135,7 +136,7 @@ export default function ChequesPage() {
     toast.success(`Cheque marcado como ${etiquetaDeEstado(cheque.type, status).toLowerCase()}`);
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hoyAR();
 
   const filtered = useMemo(() => {
     return cheques.filter(c => {

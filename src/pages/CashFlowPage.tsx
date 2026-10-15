@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useCallback } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -62,7 +63,7 @@ const EMPTY_ENTRY = {
   category: "sales" as string,
   description: "",
   amount: 0,
-  date: new Date().toISOString().split("T")[0],
+  date: hoyAR(),
   is_recurring: false,
   recurrence_type: "",
   recurrence_end: "",

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { getDebtsDB, addDebtPaymentDB, deleteDebtDB, formatARS, formatDateAR } from "@/lib/supabaseStore";
@@ -46,7 +47,7 @@ export default function DebtsPage() {
   // Payment plan
   const [planningDebt, setPlanningDebt] = useState<any>(null);
   const [planInstallments, setPlanInstallments] = useState("3");
-  const [planStart, setPlanStart] = useState(() => new Date().toISOString().slice(0, 10));
+  const [planStart, setPlanStart] = useState(() => hoyAR());
   const [planFreq, setPlanFreq] = useState<FrecuenciaDePlan>("mensual");
   const [guardandoPlan, setGuardandoPlan] = useState(false);
   // Monto con el que abre el cobro («Cobrar cuota»).
@@ -54,7 +55,7 @@ export default function DebtsPage() {
   const [debtSort, setDebtSort] = useState<{ col: "date" | "remaining_ars" | "due_date" | "customer_name"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
   // Planes de pago en la base (20261014001300); antes vivían en este navegador.
   const [planes, setPlanes] = useState<Record<string, PlanDePago>>({});
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyAR();
 
   const reload = async () => {
     if (!user) return;
@@ -109,7 +110,7 @@ export default function DebtsPage() {
   const [filterOverdue, setFilterOverdue] = useState<'all' | 'overdue' | 'upcoming'>('all');
 
   const filtered = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const next7 = new Date(); next7.setDate(next7.getDate() + 7);
     const next7Str = next7.toISOString().slice(0, 10);
     return debts.filter(d => {
@@ -539,7 +540,7 @@ export default function DebtsPage() {
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-          a.download = `deudas-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.download = `deudas-${tab}-${hoyAR()}.csv`;
           a.click();
           toast.success('Deudas exportadas');
         }}>
@@ -857,7 +858,7 @@ export default function DebtsPage() {
                           <Button size="sm" variant="outline"
                             className={`h-7 px-2 text-xs ${planes[d.id] ? 'border-primary/40 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}
                             title="Plan de pago en cuotas"
-                            onClick={() => { setPlanningDebt(d); setPlanInstallments("3"); setPlanStart(new Date().toISOString().slice(0, 10)); }}>
+                            onClick={() => { setPlanningDebt(d); setPlanInstallments("3"); setPlanStart(hoyAR()); }}>
                             <ListChecks className="w-3.5 h-3.5 mr-1" />{planes[d.id] ? 'Plan ✓' : 'Plan'}
                           </Button>
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10"
@@ -927,7 +928,7 @@ export default function DebtsPage() {
                     <Button size="sm" variant="outline"
                       className={`h-8 w-8 p-0 ${planes[d.id] ? 'border-primary/40 text-primary' : 'border-border text-muted-foreground'}`}
                       title="Plan de cuotas"
-                      onClick={() => { setPlanningDebt(d); setPlanInstallments("3"); setPlanStart(new Date().toISOString().slice(0, 10)); }}>
+                      onClick={() => { setPlanningDebt(d); setPlanInstallments("3"); setPlanStart(hoyAR()); }}>
                       <ListChecks className="w-3.5 h-3.5" />
                     </Button>
                     <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-green-500/30 text-green-400 hover:bg-green-500/10"

@@ -4,6 +4,7 @@
  * Create, manage and track promotional discount codes.
  * Reads from the `coupons` table and `sales` table for usage analytics.
  */
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
@@ -555,7 +556,7 @@ export default function CouponsPage() {
               <Input
                 type="date"
                 value={form.validUntil}
-                min={new Date().toISOString().slice(0, 10)}
+                min={hoyAR()}
                 onChange={e => setForm(f => ({ ...f, validUntil: e.target.value }))}
               />
             </div>

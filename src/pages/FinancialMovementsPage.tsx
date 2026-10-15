@@ -14,6 +14,7 @@
  *   - Export to CSV
  *   - Summary KPIs: total income, total expenses, net balance
  */
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -98,7 +99,7 @@ function downloadCSV(movements: Movement[]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `movimientos_${new Date().toISOString().split("T")[0]}.csv`;
+  a.download = `movimientos_${hoyAR()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }

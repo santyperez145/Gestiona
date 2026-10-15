@@ -11,6 +11,7 @@
  * base: el cliente puede estar mirando un saldo de hace treinta segundos.
  */
 
+import { hoyAR } from "@/lib/fechaAR";
 import { nombreDelMedio } from "@/lib/mediosDePago";
 
 export interface SaldoBilletera {
@@ -158,7 +159,7 @@ export function explicarPendiente(
   saldo: SaldoBilletera | null | undefined,
   origenes: PendientePorOrigen[] | null = null,
   fmt: (n: number) => string = n => `$${n.toLocaleString("es-AR")}`,
-  hoy: string = new Date().toISOString().slice(0, 10),
+  hoy: string = hoyAR(),
 ): string | null {
   const p = Number(saldo?.pendiente ?? 0);
   if (p <= 0) return null;

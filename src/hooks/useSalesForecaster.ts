@@ -23,6 +23,7 @@
  *   // trend: "up" | "flat" | "down"
  *   // r2: 0.85  (confidence 0–1, higher = better fit)
  */
+import { hoyAR } from "@/lib/fechaAR";
 import { useMemo } from "react";
 
 interface SaleEntry {
@@ -116,7 +117,7 @@ export function useSalesForecaster(
     }
 
     // Build lookback window (fill missing days with 0)
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const days: string[] = [];
     for (let i = lookback - 1; i >= 0; i--) {
       days.push(addDays(today, -i));

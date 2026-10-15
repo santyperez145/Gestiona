@@ -24,6 +24,7 @@
 //
 // Ahora vive donde el comercio la busca. Ajustes conserva un puntero.
 
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -305,7 +306,7 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
           <Input
             id="arca-start-date"
             type="date"
-            max={new Date().toISOString().slice(0, 10)}
+            max={hoyAR()}
             value={inicioActividades}
             onChange={e => setInicioActividades(e.target.value)}
             className="bg-muted border-border"

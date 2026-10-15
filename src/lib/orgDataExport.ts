@@ -5,6 +5,7 @@
  * negocio entero requiere que la persona sea su dueña. El manifiesto es parte
  * del contrato: una tabla que falló o se truncó jamás se disfraza de vacía.
  */
+import { hoyAR } from "@/lib/fechaAR";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ExportStatus = "exported" | "empty" | "truncated" | "error";
@@ -120,7 +121,7 @@ export async function downloadOrgExport(
 
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
-  const stamp = new Date().toISOString().slice(0, 10);
+  const stamp = hoyAR();
 
   data.tables
     .filter(table => table.status === "exported" || table.status === "truncated")

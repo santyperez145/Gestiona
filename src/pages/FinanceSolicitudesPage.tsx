@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useEffect, useMemo, useState } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -113,7 +114,7 @@ export default function FinanceSolicitudesPage() {
     provider_label: "",
     destination_type: "alias",
     identifier: "",
-    due_date: new Date().toISOString().slice(0, 10),
+    due_date: hoyAR(),
   });
 
   const loadRequests = async () => {
@@ -179,7 +180,7 @@ export default function FinanceSolicitudesPage() {
       if (error) throw error;
       setNotice(`Solicitud creada: ${data?.id ?? "ok"}`);
       setOpenCreate(false);
-      setNewRequest({ request_kind: "expense", title: "", amount: 0, currency: "ARS", category: null, cost_center: null, motive: null, beneficiary_name: "", provider_label: "", destination_type: "alias", identifier: "", due_date: new Date().toISOString().slice(0, 10) });
+      setNewRequest({ request_kind: "expense", title: "", amount: 0, currency: "ARS", category: null, cost_center: null, motive: null, beneficiary_name: "", provider_label: "", destination_type: "alias", identifier: "", due_date: hoyAR() });
     } finally {
       setLoading(false);
     }
@@ -335,7 +336,7 @@ export default function FinanceSolicitudesPage() {
         ? await (supabase as any).rpc("finance_render_advance_expense", {
             p_request_id: advanceManaging.id, p_amount: advanceAmount,
             p_description: advanceDescription.trim(), p_category: advanceManaging.category,
-            p_evidence_reference: advanceEvidence.trim(), p_date: new Date().toISOString().slice(0, 10),
+            p_evidence_reference: advanceEvidence.trim(), p_date: hoyAR(),
           })
         : await (supabase as any).rpc("finance_return_advance_balance", {
             p_request_id: advanceManaging.id, p_amount: advanceAmount,
@@ -521,7 +522,7 @@ export default function FinanceSolicitudesPage() {
             {newRequest.request_kind !== "expense" && <div className="space-y-4 border-t border-border pt-4">
               <div className="grid grid-cols-2 gap-4"><div className="grid gap-2"><Label htmlFor="reimbursement-beneficiary">Beneficiario</Label><Input id="reimbursement-beneficiary" value={newRequest.beneficiary_name} onChange={e => setNewRequest({ ...newRequest, beneficiary_name: e.target.value })} /></div><div className="grid gap-2"><Label htmlFor="reimbursement-provider">Banco o billetera</Label><Input id="reimbursement-provider" value={newRequest.provider_label} onChange={e => setNewRequest({ ...newRequest, provider_label: e.target.value })} placeholder="Mercado Pago, banco..." /></div></div>
               <div className="grid grid-cols-2 gap-4"><div className="grid gap-2"><Label>Tipo de destino</Label><Select value={newRequest.destination_type} onValueChange={value => setNewRequest({ ...newRequest, destination_type: value as typeof newRequest.destination_type })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="alias">Alias</SelectItem><SelectItem value="cbu">CBU</SelectItem><SelectItem value="cvu">CVU</SelectItem><SelectItem value="email">Email</SelectItem><SelectItem value="wallet_handle">Usuario de billetera</SelectItem></SelectContent></Select></div><div className="grid gap-2"><Label htmlFor="reimbursement-identifier">Cuenta de destino</Label><Input id="reimbursement-identifier" value={newRequest.identifier} onChange={e => setNewRequest({ ...newRequest, identifier: e.target.value })} autoComplete="off" /></div></div>
-              {newRequest.request_kind === "advance" && <div className="grid gap-2"><Label htmlFor="advance-due-date">Fecha límite de rendición</Label><Input id="advance-due-date" type="date" min={new Date().toISOString().slice(0, 10)} value={newRequest.due_date} onChange={e => setNewRequest({ ...newRequest, due_date: e.target.value })} /></div>}
+              {newRequest.request_kind === "advance" && <div className="grid gap-2"><Label htmlFor="advance-due-date">Fecha límite de rendición</Label><Input id="advance-due-date" type="date" min={hoyAR()} value={newRequest.due_date} onChange={e => setNewRequest({ ...newRequest, due_date: e.target.value })} /></div>}
               <p className="text-xs text-muted-foreground">La cuenta se cifra y sólo se revela al responsable que ejecuta un pago aprobado.</p>
             </div>}
             <div className="grid grid-cols-2 gap-4">

@@ -1,4 +1,6 @@
-﻿import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { hoyAR, mesAR } from "@/lib/fechaAR";
+import { claveDeCompra, diaDeCompra, frecuenciaEnDias } from "@/lib/comprasDeCliente";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { resumenDeFusion } from "@/lib/fusionClientes";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -1074,7 +1076,7 @@ function CommunicationsLog({ orgId, userId, customer }: { orgId: string; userId:
   };
 
   const pendingFollowUps = entries.filter(e => e.follow_up_date && (e.outcome === "pending" || !e.outcome));
-  const overdue = pendingFollowUps.filter(e => e.follow_up_date! < new Date().toISOString().slice(0, 10));
+  const overdue = pendingFollowUps.filter(e => e.follow_up_date! < hoyAR());
 
   return (
     <div className="space-y-2 pb-12">
@@ -1147,7 +1149,7 @@ function CommunicationsLog({ orgId, userId, customer }: { orgId: string; userId:
             <Input
               type="date"
               value={followUpDate}
-              min={new Date().toISOString().slice(0, 10)}
+              min={hoyAR()}
               onChange={e => setFollowUpDate(e.target.value)}
               className="h-7 flex-1 px-2 text-xs"
               aria-label="Fecha del próximo seguimiento"
@@ -1178,8 +1180,8 @@ function CommunicationsLog({ orgId, userId, customer }: { orgId: string; userId:
           {entries.map(e => {
             const t = COMM_TYPES.find(ct => ct.value === e.type);
             const hasFollowUp = !!e.follow_up_date;
-            const isOverdue = hasFollowUp && e.follow_up_date! < new Date().toISOString().slice(0, 10) && (e.outcome === "pending" || !e.outcome);
-            const isPending = hasFollowUp && e.follow_up_date! >= new Date().toISOString().slice(0, 10) && (e.outcome === "pending" || !e.outcome);
+            const isOverdue = hasFollowUp && e.follow_up_date! < hoyAR() && (e.outcome === "pending" || !e.outcome);
+            const isPending = hasFollowUp && e.follow_up_date! >= hoyAR() && (e.outcome === "pending" || !e.outcome);
             return (
               <div key={e.id} className={`flex gap-2 text-xs rounded-lg px-2.5 py-2 ${
                 isOverdue ? "bg-red-500/8 border border-red-500/20" : isPending ? "bg-primary/5 border border-primary/15" : "bg-muted/30"
@@ -1878,9 +1880,13 @@ export default function CustomersPage() {
       return profileIdByName[n] ?? n;
     };
 
+    const comprasDe: Record<string, Set<string>> = {};
+    const diasDe: Record<string, Set<string>> = {};
     sales.forEach((s: any) => {
       const name = s.customer_name || "Cliente anónimo";
       const key = claveDe(s);
+      (comprasDe[key] ??= new Set()).add(claveDeCompra(s));
+      (diasDe[key] ??= new Set()).add(diaDeCompra(s.date));
       if (!map[key]) {
         map[key] = {
           name, customerId: s.customer_id ?? profileIdByName[normalizeName(name) ?? ""] ?? null,
@@ -1892,7 +1898,7 @@ export default function CustomersPage() {
       const c = map[key];
       c.totalSpent += Number(s.total_ars);
       c.totalProfit += Number(s.profit_ars);
-      c.purchaseCount++;
+      c.purchaseCount = comprasDe[key].size;
       c.totalUnits += s.quantity;
       if (new Date(s.date) > new Date(c.lastPurchase)) c.lastPurchase = s.date;
       if (new Date(s.date) < new Date(c.firstPurchase)) c.firstPurchase = s.date;
@@ -1938,11 +1944,10 @@ export default function CustomersPage() {
       }
     });
 
-    const list = Object.values(map).map(c => {
+    const list = Object.entries(map).map(([clave, c]) => {
       c.avgTicket = c.purchaseCount > 0 ? c.totalSpent / c.purchaseCount : 0;
       c.daysSinceLastPurchase = Math.floor((now - new Date(c.lastPurchase).getTime()) / 86400000);
-      const spanDays = Math.max(1, (new Date(c.lastPurchase).getTime() - new Date(c.firstPurchase).getTime()) / 86400000);
-      c.frequency = c.purchaseCount > 1 ? Math.round(spanDays / (c.purchaseCount - 1)) : 999;
+      c.frequency = frecuenciaEnDias(diasDe[clave] ?? []);
       if (c.segment !== "Sin compras") {
         const seg = getSegment(c);
         c.segment = seg.label;
@@ -2124,7 +2129,7 @@ export default function CustomersPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `clientes_${segmentFilter !== "all" ? segmentFilter + "_" : ""}${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `clientes_${segmentFilter !== "all" ? segmentFilter + "_" : ""}${hoyAR()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${plural(filtered.length, "cliente")} exportados`);
@@ -2362,15 +2367,16 @@ export default function CustomersPage() {
 
   // Top 5 clientes del mes actual
   const topThisMonth = useMemo(() => {
-    const thisMonth = new Date().toISOString().slice(0, 7);
+    const thisMonth = mesAR();
     const monthSales = sales.filter((s: any) => String(s.date).slice(0, 7) === thisMonth);
     if (!monthSales.length) return [];
     const map: Record<string, { name: string; total: number; count: number }> = {};
+    const compras: Record<string, Set<string>> = {};
     monthSales.forEach((s: any) => {
       const n = s.customer_name || "Anónimo";
       if (!map[n]) map[n] = { name: n, total: 0, count: 0 };
       map[n].total += Number(s.total_ars);
-      map[n].count++;
+      map[n].count = (compras[n] ??= new Set()).add(claveDeCompra(s)).size;
     });
     return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 5);
   }, [sales]);
@@ -2802,7 +2808,7 @@ export default function CustomersPage() {
                       const csv = bom + [headers.join(','), ...rows].join('\n');
                       const a = document.createElement('a');
                       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-                      a.download = `rfm_clientes_${new Date().toISOString().slice(0, 10)}.csv`;
+                      a.download = `rfm_clientes_${hoyAR()}.csv`;
                       a.click();
                       toast.success('RFM exportado');
                     }}

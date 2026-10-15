@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe } from "@/lib/exchangeRate";
@@ -327,7 +328,7 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
           description: eDesc.trim(),
           amount_ars: parseFloat(eAmount) || 0,
           category: eCategory,
-          date: new Date().toISOString().slice(0, 10),
+          date: hoyAR(),
           payment_method: "efectivo",
         });
         toast.success("Gasto registrado");
@@ -589,7 +590,7 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
         cost_ars: Number(prod.cost_price_ars || 0) * qty,
         profit_ars: (Number(prod.sale_price_ars) - Number(prod.cost_price_ars || 0)) * qty,
         customer_name: customer.trim() || null,
-        date: new Date().toISOString().slice(0, 10),
+        date: hoyAR(),
         payment_method: "efectivo",
         paid: true,
       });
@@ -1192,7 +1193,7 @@ function DebtsSummaryCard({ userId, onDone }: { userId: string; onDone: () => vo
   useEffect(() => {
     if (!activeOrg) return;
     (async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = hoyAR();
       const { data } = await supabase
         .from("debts")
         .select("customer_name, remaining_ars, due_date, status")
@@ -2181,13 +2182,13 @@ export default function AIChatAssistantTab() {
   // Daily suggestion: fire once per day — pull quick business stats and show a tip
   useEffect(() => {
     if (!user || !activeOrg) return;
-    const dayKey = `gestiona.ai_daily_tip.${activeOrg.id}.${new Date().toISOString().slice(0, 10)}`;
+    const dayKey = `gestiona.ai_daily_tip.${activeOrg.id}.${hoyAR()}`;
     const cached = localStorage.getItem(dayKey);
     if (cached) { setDailySuggestion(cached); return; }
 
     (async () => {
       try {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = hoyAR();
         const week = new Date(); week.setDate(week.getDate() - 7);
         const weekStr = week.toISOString().slice(0, 10);
         const [{ data: recentSales }, { data: lowStock }] = await Promise.all([
@@ -2239,7 +2240,7 @@ export default function AIChatAssistantTab() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `conversacion_ia_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `conversacion_ia_${hoyAR()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Conversación exportada');

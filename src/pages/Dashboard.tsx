@@ -1,3 +1,5 @@
+import { diaAR, hoyAR } from "@/lib/fechaAR";
+import { claveDeCompra, contarCompras } from "@/lib/comprasDeCliente";
 import { lazy, Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useCallback } from "react";
@@ -233,7 +235,7 @@ function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; or
 
 function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; orgId: string }) {
   const [open, setOpen] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hoyAR();
   const todaySales = sales.filter((s: any) => String(s.date).slice(0, 10) === today);
 
   const totalRevenue = todaySales.reduce((s: number, v: any) => s + Number(v.total_ars || 0), 0);
@@ -273,7 +275,7 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
   todaySales.forEach((s: any) => { const m = s.payment_method || 'otro'; byMethod[m] = (byMethod[m] || 0) + Number(s.total_ars || 0); });
 
   // New debts today
-  const newDebts = debts.filter((d: any) => String(d.date || d.created_at).slice(0, 10) === today && d.status !== 'paid');
+  const newDebts = debts.filter((d: any) => diaAR(d.date || d.created_at) === today && d.status !== 'paid');
   const newDebtTotal = newDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars || d.amount_ars || 0), 0);
 
   // Paid sales vs fiado
@@ -550,7 +552,7 @@ export default function Dashboard() {
   const [dolarRates, setDolarRates] = useState<{ blue: number; oficial: number; mep: number } | null>(null);
   const [openCashSession, setOpenCashSession] = useState<{ id: string; opened_at: string } | null>(null);
   const [noSalesDismissed, setNoSalesDismissed] = usePersistedState(
-    orgViewKey(`dashboard.no_sales_alert.${new Date().toISOString().slice(0, 10)}`, activeOrg?.id),
+    orgViewKey(`dashboard.no_sales_alert.${hoyAR()}`, activeOrg?.id),
     false,
   );
   const [lastWeekSameDaySales, setLastWeekSameDaySales] = useState<number>(0);
@@ -835,7 +837,7 @@ export default function Dashboard() {
       return;
     }
     (async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = hoyAR();
       const [urgentRes, todayRes] = await Promise.all([
         supabase
           .from("tasks")
@@ -931,12 +933,12 @@ export default function Dashboard() {
 
   // Realtime: subscribe to today's sales updates
   useTopicEvent(topicOrg(activeOrg?.id), 'venta', payload => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const deHoy = ((payload.ventas as VentaAviso[] | undefined) ?? []).filter(row => String(row.date ?? '').slice(0, 10) === today);
     if (!deHoy.length) return;
     setLiveTodaySales(prev => {
       const base = prev ?? { total: 0, count: 0 };
-      return { total: base.total + deHoy.reduce((sum, row) => sum + Number(row.total_ars || 0), 0), count: base.count + deHoy.length };
+      return { total: base.total + deHoy.reduce((sum, row) => sum + Number(row.total_ars || 0), 0), count: base.count + contarCompras(deHoy) };
     });
   });
 
@@ -955,31 +957,32 @@ export default function Dashboard() {
   // Seed liveTodaySales + last-week same-day comparison from initial data load
   useEffect(() => {
     if (!rawData) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const lastWeekDay = new Date(); lastWeekDay.setDate(lastWeekDay.getDate() - 7);
     const lastWeekStr = lastWeekDay.toISOString().slice(0, 10);
     const todaySales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === today);
     const lwSales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === lastWeekStr);
     setLiveTodaySales({
       total: todaySales.reduce((sum: number, s: any) => sum + Number(s.total_ars), 0),
-      count: todaySales.length,
+      count: contarCompras(todaySales),
     });
     setLastWeekSameDaySales(lwSales.reduce((sum: number, s: any) => sum + Number(s.total_ars), 0));
   }, [rawData]);
 
   const todayDetail = useMemo(() => {
     if (!rawData?.sales) return null;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const todaySales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === today);
     if (!todaySales.length) return null;
-    const avgTicket = todaySales.reduce((s: number, sale: any) => s + Number(sale.total_ars), 0) / todaySales.length;
+    const tickets = contarCompras(todaySales);
+    const avgTicket = todaySales.reduce((s: number, sale: any) => s + Number(sale.total_ars), 0) / Math.max(1, tickets);
     const methodCount: Record<string, number> = {};
     todaySales.forEach((s: any) => { const m = s.payment_method || "otro"; methodCount[m] = (methodCount[m] || 0) + 1; });
     const dominantMethod = Object.entries(methodCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
     const productCount: Record<string, number> = {};
     todaySales.forEach((s: any) => { const n = s.product_name || "Sin nombre"; productCount[n] = (productCount[n] || 0) + (s.quantity || 1); });
     const topProduct = Object.entries(productCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
-    return { avgTicket, dominantMethod, topProduct, count: todaySales.length };
+    return { avgTicket, dominantMethod, topProduct, count: tickets };
   }, [rawData]);
 
   // Weekly comparison: this week Mon–today vs same period last week
@@ -1157,7 +1160,7 @@ export default function Dashboard() {
     const outOfStockSelling = outOfStockProducts.filter((p: any) => vendidos.has(p.id)).length;
     // Productos nuevos (creados en los últimos 30 días) + próximos ingresos
     const newProdSince = new Date(); newProdSince.setDate(newProdSince.getDate() - 30);
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = hoyAR();
     const newProducts = products.filter((p: any) => p.created_at && new Date(p.created_at) >= newProdSince);
     const upcomingRestocks = products
       .filter((p: any) => p.expected_restock_at && p.expected_restock_at >= todayStr)
@@ -1282,10 +1285,12 @@ export default function Dashboard() {
 
     // ===== Top customers (this month) =====
     const custMap: Record<string, { total: number; count: number }> = {};
+    const comprasPorCliente: Record<string, Set<string>> = {};
     monthSales.forEach((s: any) => {
       const name = s.customer_name || 'Sin nombre';
       if (!custMap[name]) custMap[name] = { total: 0, count: 0 };
-      custMap[name].total += Number(s.total_ars); custMap[name].count++;
+      (comprasPorCliente[name] ??= new Set()).add(claveDeCompra(s));
+      custMap[name].total += Number(s.total_ars); custMap[name].count = comprasPorCliente[name].size;
     });
     const topCustomers = Object.entries(custMap).sort((a, b) => b[1].total - a[1].total).slice(0, 5)
       .map(([name, d]) => ({ name, ...d }));
@@ -1371,12 +1376,14 @@ export default function Dashboard() {
     });
 
     // ===== Best day of the week =====
+    // count son compras (tickets), no renglones: el promedio es el ticket medio.
     const weekdayTotals: Record<number, { total: number; count: number }> = {};
+    const comprasPorDia: Record<number, Set<string>> = {};
     allSales.forEach((s: any) => {
-      const dow = new Date(s.date).getDay(); // 0=Sun
+      const dow = new Date(`${diaAR(s.date)}T12:00:00`).getDay(); // 0=Sun
       if (!weekdayTotals[dow]) weekdayTotals[dow] = { total: 0, count: 0 };
       weekdayTotals[dow].total += Number(s.total_ars);
-      weekdayTotals[dow].count++;
+      weekdayTotals[dow].count = (comprasPorDia[dow] ??= new Set()).add(claveDeCompra(s)).size;
     });
     const dowNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const bestWeekdayData = [1, 2, 3, 4, 5, 6, 0].map(i => ({
@@ -1390,12 +1397,13 @@ export default function Dashboard() {
 
     // Best hour of day from created_at
     const hourTotals: Record<number, { total: number; count: number }> = {};
+    const comprasPorHora: Record<number, Set<string>> = {};
     allSales.forEach((s: any) => {
       if (!s.created_at) return;
       const h = new Date(s.created_at).getHours();
       if (!hourTotals[h]) hourTotals[h] = { total: 0, count: 0 };
       hourTotals[h].total += Number(s.total_ars);
-      hourTotals[h].count++;
+      hourTotals[h].count = (comprasPorHora[h] ??= new Set()).add(claveDeCompra(s)).size;
     });
     const hourData = Array.from({ length: 24 }, (_, h) => ({
       hour: h,
@@ -1464,7 +1472,7 @@ export default function Dashboard() {
   // Browser notification for critical stock alert (once per session per threshold breach)
   useEffect(() => {
     if (!stats || permission !== "granted") return;
-    const key = `gestiona.notified_stock.${activeOrg?.id || 'default'}.${new Date().toISOString().slice(0, 10)}`;
+    const key = `gestiona.notified_stock.${activeOrg?.id || 'default'}.${hoyAR()}`;
     if (sessionStorage.getItem(key)) return;
     const outCount = stats.outOfStockProducts?.length ?? 0;
     const lowCount = stats.lowStockProducts?.length ?? 0;
@@ -1516,7 +1524,7 @@ export default function Dashboard() {
       setPendingFollowUps([]);
       return;
     }
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const { data, error } = await supabase
       .from("customer_communications")
       .select("id,customer_name,type,summary,follow_up_date")
@@ -1997,7 +2005,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-1.5">
             {urgentTasks.map(task => {
-              const today = new Date().toISOString().slice(0, 10);
+              const today = hoyAR();
               const isOverdue = task.due_date && task.due_date < today;
               return (
                 <div key={task.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${isOverdue ? "bg-destructive/10 border border-destructive/20" : "bg-muted/30"}`}>
@@ -2399,7 +2407,7 @@ export default function Dashboard() {
 
       {/* Overdue Debts Widget */}
       {(() => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = hoyAR();
         const overdueDebts = (stats.rawDebts || [])
           .filter((d: any) => d.status !== 'paid' && d.due_date && d.due_date < today)
           .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
@@ -2722,6 +2730,7 @@ export default function Dashboard() {
         startOfWeek.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
         startOfWeek.setHours(0, 0, 0, 0);
         const customerMap: Record<string, { total: number; count: number; profit: number }> = {};
+        const comprasSemana: Record<string, Set<string>> = {};
         (stats.rawSales as any[]).forEach((s: any) => {
           if (!s.customer_name) return;
           const d = new Date(s.date + "T12:00:00");
@@ -2729,7 +2738,7 @@ export default function Dashboard() {
           const k = s.customer_name.trim();
           if (!customerMap[k]) customerMap[k] = { total: 0, count: 0, profit: 0 };
           customerMap[k].total += Number(s.total_ars || 0);
-          customerMap[k].count++;
+          customerMap[k].count = (comprasSemana[k] ??= new Set()).add(claveDeCompra(s)).size;
           customerMap[k].profit += Number(s.profit_ars || 0);
         });
         const topClients = Object.entries(customerMap).sort((a, b) => b[1].total - a[1].total).slice(0, 5);
@@ -2998,7 +3007,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-1.5">
             {pendingFollowUps.map(f => {
-              const today = new Date().toISOString().slice(0, 10);
+              const today = hoyAR();
               const isOverdue = f.follow_up_date < today;
               const isToday = f.follow_up_date === today;
               const isMarking = markingFollowUp === f.id;

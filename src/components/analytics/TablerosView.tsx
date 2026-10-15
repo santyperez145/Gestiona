@@ -5,6 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -422,7 +423,7 @@ export default function TablerosView() {
   /* ── Goal CRUD ── */
   function openNewGoal() {
     setEditingGoal(null);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10);
     setGoalForm({ name: "", metric: "", target_value: "", current_value: "0", unit: "$", period_start: today, period_end: endOfMonth, status: "active", color: "#3b82f6", notes: "" });
     setShowGoalDialog(true);

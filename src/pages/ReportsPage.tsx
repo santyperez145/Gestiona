@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { roleLabel } from "@/lib/roleLabels";
 import { useNavigate } from "react-router-dom";
@@ -1086,7 +1087,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
       },
     });
 
-    doc.save(`inventario-${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`inventario-${hoyAR()}.pdf`);
     toast.success("PDF descargado");
   };
 
@@ -2375,7 +2376,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `rentabilidad_productos_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `rentabilidad_productos_${hoyAR()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${plural(filtered.length, "producto")} exportados`);
@@ -3967,7 +3968,7 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
 
   const exportCSV2 = () => {
     const rows = byDay.map(d => [d.fullName, formatARS(d.avgRevenue), formatARS(d.avgProfit), String(d.salesCount)]);
-    exportCSV(`tendencia_semanal_${new Date().toISOString().slice(0, 10)}.csv`,
+    exportCSV(`tendencia_semanal_${hoyAR()}.csv`,
       ['Día', 'Ingreso Promedio (ARS)', 'Ganancia Promedio (ARS)', '# Ventas'],
       rows
     );
@@ -4165,7 +4166,7 @@ function ByWeekTab({ sales }: { sales: any[] }) {
     const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
-    a.download = `ventas-semanas-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `ventas-semanas-${hoyAR()}.csv`;
     a.click();
   }
 
@@ -4505,7 +4506,7 @@ function ForecastTab({ sales, products }: { sales: any[]; products: any[] }) {
       const d = String(s.date).slice(0, 10);
       dailyMap[d] = (dailyMap[d] ?? 0) + Number(s.total_ars ?? 0);
     }
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const actuals: { date: string; actual: number; projected?: number }[] = [];
     for (let i = 13; i >= 0; i--) {
       const d = new Date(today + "T12:00:00Z");

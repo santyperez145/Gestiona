@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useStorageEstimate } from "@/hooks/useStorageEstimate";
 import { usePermissionStatus } from "@/hooks/usePermissionStatus";
@@ -1998,7 +1999,7 @@ function BackupExport({ userId }: { userId: string }) {
         const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ vacio: 'Sin datos' }]);
         XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
       });
-      const fileName = `exentry-backup-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const fileName = `exentry-backup-${hoyAR()}.xlsx`;
       XLSX.writeFile(wb, fileName);
       toast.success(`Excel descargado: ${fileName}`);
     } catch (err: any) {
@@ -2014,7 +2015,7 @@ function BackupExport({ userId }: { userId: string }) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `exentry-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `exentry-backup-${hoyAR()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success("Backup JSON descargado");

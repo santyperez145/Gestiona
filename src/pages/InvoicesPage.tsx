@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { facturaDePrueba } from "@/lib/recorridoAltaFiscal";
 import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
@@ -1482,7 +1483,7 @@ export default function InvoicesPage() {
             const csv = bom + [headers.join(','), ...rows].join('\n');
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            a.download = `facturas-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = `facturas-${hoyAR()}.csv`;
             a.click();
             toast.success('Facturas exportadas');
           }}>

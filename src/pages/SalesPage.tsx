@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo } from "react";
 import { broadcastSync } from "@/lib/broadcastSync";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { cotizacionDe } from "@/lib/exchangeRate";
@@ -769,7 +770,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
     const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `ventas_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = `ventas_${hoyAR()}.csv`; a.click();
     URL.revokeObjectURL(url);
     toast.success(`${plural(filtered.length, "venta")} exportadas`);
   };
@@ -1050,7 +1051,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
 
       {/* Today's quick stats */}
       {(() => {
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = hoyAR();
         const todaySales = sales.filter((s: any) => s.date === todayStr);
         if (todaySales.length === 0) return null;
         const todayTotal = todaySales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
@@ -1913,7 +1914,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [customerFilter, setCustomerFilter] = useState('');
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(editItem?.payment_method || 'efectivo');
-  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : hoyAR());
   const [couponCode, setCouponCode] = useState('');
   const [couponResult, setCouponResult] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);

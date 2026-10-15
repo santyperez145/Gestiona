@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
@@ -107,7 +108,7 @@ function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => str
   const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `gastos_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = `gastos_${hoyAR()}.csv`; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -310,7 +311,7 @@ export default function ExpensesPage() {
   // Recurring overdue alert: fire once per session for recurring expenses past their next date
   useEffect(() => {
     if (!expenses.length) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
     const alertKey = `gestiona.expense_recurring_overdue_alerted.${activeOrg?.id || "default"}`;
     const alerted = new Set<string>(JSON.parse(sessionStorage.getItem(alertKey) || "[]"));
     const overdue = expenses.filter(e =>
@@ -525,7 +526,7 @@ export default function ExpensesPage() {
       description: e.description,
       amount_ars: Number(e.amount_ars),
       category: e.category,
-      date: new Date().toISOString().slice(0, 10),
+      date: hoyAR(),
       payment_method: e.payment_method || "efectivo",
       recurring: false,
     }); }
@@ -1047,7 +1048,7 @@ export default function ExpensesPage() {
         <>
         {/* Upcoming recurring expenses */}
         {(() => {
-          const today = new Date().toISOString().slice(0, 10);
+          const today = hoyAR();
           const next30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
           const upcoming = expenses
             .filter(e => e.recurring && e.recurring_next_date && e.recurring_next_date >= today && e.recurring_next_date <= next30)
@@ -1246,7 +1247,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const [description, setDescription] = useState(editItem?.description || '');
   const [vendor, setVendor] = useState(editItem?.vendor || '');
   const [costCenter, setCostCenter] = useState(editItem?.cost_center || '');
-  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : hoyAR());
   const [recurring, setRecurring] = useState(editItem?.recurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState<string>(editItem?.recurring_frequency || 'monthly');
   const [submitting, setSubmitting] = useState(false);

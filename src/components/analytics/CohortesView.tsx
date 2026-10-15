@@ -5,6 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
+import { mesAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -168,7 +169,7 @@ export default function CohortesView() {
           if (!purchasesByCustomer[email]) purchasesByCustomer[email] = new Set();
           purchasesByCustomer[email].add(month);
         });
-        const nowMonth = new Date().toISOString().slice(0, 7);
+        const nowMonth = mesAR();
         const cohortMonths = [...new Set(Object.values(firstPurchase))].sort().slice(-5);
         const rows: CohortRow[] = cohortMonths.map((cohortMonth) => {
           const [, monthNum] = cohortMonth.split("-");

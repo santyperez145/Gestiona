@@ -1,4 +1,5 @@
-﻿import { selloHechoConNerqia } from "@/lib/selloNerqia";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useNavigate } from "react-router-dom";
 import EditorDePresupuesto, { type PresupuestoEditable } from "@/components/presupuestos/EditorDePresupuesto";
 import { linkDePagoDePresupuesto } from "@/lib/linksDePago";
@@ -216,7 +217,7 @@ async function generateRemito(quote: Quote, orgName: string) {
   doc.text(`Aclaración: __________________________  DNI: ______________`, 15, finalY + 12);
   doc.text(`Fecha de recepción: ______________`, 15, finalY + 24);
 
-  doc.save(`remito_${quote.quote_number}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(`remito_${quote.quote_number}_${hoyAR()}.pdf`);
 }
 
 // ─── Default valid_until (+15 days) ──────────────────────────────────────────
@@ -556,7 +557,7 @@ export default function PresupuestosPage() {
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-          a.download = `presupuestos-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.download = `presupuestos-${hoyAR()}.csv`;
           a.click();
           toast.success('Presupuestos exportados');
         }}>
@@ -618,7 +619,7 @@ export default function PresupuestosPage() {
       ) : (
         <div className="space-y-2 pb-12">
           {filtered.map(q => {
-            const today = new Date().toISOString().slice(0, 10);
+            const today = hoyAR();
             const daysUntilExpiry = q.valid_until
               ? Math.ceil((new Date(q.valid_until).getTime() - new Date(today).getTime()) / 86400000)
               : null;

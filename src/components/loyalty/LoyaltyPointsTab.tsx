@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -495,7 +496,7 @@ export default function LoyaltyPointsTab() {
               const csv = bom + [headers.join(','), ...rows].join('\n');
               const a = document.createElement('a');
               a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-              a.download = `fidelidad-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.download = `fidelidad-${hoyAR()}.csv`;
               a.click();
               toast.success('Exportado');
             }}>

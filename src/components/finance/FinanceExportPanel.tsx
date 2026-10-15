@@ -6,6 +6,7 @@
  * base: `finance_export_create` valida balance cuadrado y permiso antes de
  * armar el lote; acá sólo orquesta y muestra estados.
  */
+import { hoyAR } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ const STATUS_CLS: Record<FinanceExportBatch["status"], string> = {
   error: "bg-destructive/15 text-destructive",
 };
 
-const hoy = () => new Date().toISOString().slice(0, 10);
+const hoy = () => hoyAR();
 const primerDiaMes = () => {
   const d = new Date();
   return new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1)).toISOString().slice(0, 10);

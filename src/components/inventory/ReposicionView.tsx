@@ -4,6 +4,7 @@
 // El contenido es idéntico — PageHeader y acciones incluidas — porque este
 // paso mueve superficies, no reescribe cálculos: unificar los tres motores
 // en una autoridad server-side es INV-001, y va aparte a propósito.
+import { hoyAR } from "@/lib/fechaAR";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
@@ -154,7 +155,7 @@ export default function ReposicionView() {
         return;
       }
 
-      const hoy = new Date().toISOString().slice(0, 10);
+      const hoy = hoyAR();
       const [{ data: products }, abcRes, { data: sales7 }, { data: suppData }] = await Promise.all([
         fetchOrgProducts(activeOrg.id, "id,name,category,stock,cost_usd,cost_ars,cost_currency,total_cost_usd,supplier_id"),
         supabase.from("inventory_abc")

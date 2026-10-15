@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useCallback } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -105,7 +106,7 @@ const EMPTY_DECL = {
 const EMPTY_WITHHOLDING = {
   withholding_type: "iva" as string, counterpart_name: "", counterpart_cuit: "",
   amount: 0, rate_pct: 0, base_amount: 0, direction: "suffered" as string,
-  date: new Date().toISOString().split("T")[0], certificate_number: "",
+  date: hoyAR(), certificate_number: "",
   reference_type: "", notes: ""
 };
 

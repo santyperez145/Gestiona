@@ -1,3 +1,4 @@
+import { hoyAR } from "@/lib/fechaAR";
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import CambioDePrecioDialog from "@/components/platform/CambioDePrecioDialog";
@@ -574,7 +575,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `orgs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `orgs-${hoyAR()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${rows.length} organizaciones exportadas`);

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { hoyAR } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -364,7 +365,7 @@ export default function ProveedoresPage() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `proveedores_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `proveedores_${hoyAR()}.csv`;
     a.click();
     toast.success('CSV exportado');
   }

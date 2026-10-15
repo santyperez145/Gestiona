@@ -3,6 +3,7 @@
  * medido hoy contra el criterio escrito antes de empezar y la fecha. La
  * revisión pivotar/perseverar es el 2026-12-15.
  */
+import { hoyAR } from "@/lib/fechaAR";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingFunction } from "@/lib/publicDataSource";
@@ -45,7 +46,7 @@ export default function ExperimentosTesis() {
   if (error) return <p className="text-sm text-destructive">No se pudieron leer los experimentos: {error}</p>;
   if (!m) return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando</p>;
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyAR();
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">Criterios escritos en la tesis antes de empezar. Revisión pivotar o perseverar: 15/12/2026.</p>
