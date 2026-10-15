@@ -110,6 +110,34 @@ export function alCambiarDePantalla(ahora = Date.now()): boolean {
   return appUpdateAvailable ? recargarPorVersionNueva(ahora) : false;
 }
 
+/**
+ * Anota la navegación cuando cambia la dirección, no cuando React dibuja la
+ * pantalla nueva (2026-10-15). React Router 7 cambia de pantalla dentro de una
+ * transición: si el archivo de la pantalla nueva no existe (versión vieja), la
+ * pantalla nunca se confirma, el efecto que anotaba la navegación no corre y
+ * la recuperación creía que no se había navegado. Resultado: «Nueva versión
+ * disponible» en vez de cargar la nueva sola, en una pestaña abierta durante
+ * un despliegue. Sólo cuenta un cambio de ruta, no de parámetros.
+ */
+export function instalarDeteccionDeNavegacion(win: Window = window): void {
+  const marcada = win as Window & { __nerqiaNavegacion?: boolean };
+  if (marcada.__nerqiaNavegacion) return;
+  marcada.__nerqiaNavegacion = true;
+  const ruta = () => win.location.pathname;
+  const envolver = (metodo: "pushState" | "replaceState") => {
+    const original = win.history[metodo].bind(win.history);
+    win.history[metodo] = ((...args: Parameters<History["pushState"]>) => {
+      const antes = ruta();
+      const r = original(...args);
+      if (ruta() !== antes) ultimaNavegacion = Date.now();
+      return r;
+    }) as History["pushState"];
+  };
+  envolver("pushState");
+  envolver("replaceState");
+  win.addEventListener("popstate", () => { ultimaNavegacion = Date.now(); });
+}
+
 /** Un archivo viejo que falla justo después de navegar es parte de esa navegación. */
 export function navegoHaceInstantes(ahora = Date.now()): boolean {
   return ultimaNavegacion > 0 && ahora - ultimaNavegacion < VENTANA_DE_NAVEGACION_MS;
@@ -148,7 +176,9 @@ export function createControllerChangeHandler(
 }
 
 export function setupServiceWorkerUpdates() {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  if (typeof window === "undefined") return;
+  instalarDeteccionDeNavegacion();
+  if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener(UPDATE_AVAILABLE_EVENT, showUpdateNotice);
   navigator.serviceWorker.addEventListener(

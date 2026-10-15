@@ -72,3 +72,14 @@ describe("una fecha sin hora se muestra en su día", () => {
     expect(fechaLocal("2026-10-15T15:30:00Z").toISOString()).toBe("2026-10-15T15:30:00.000Z");
   });
 });
+
+describe("la navegación se anota al cambiar la dirección", () => {
+  it("un pushState a otra ruta cuenta como navegación aunque la pantalla no llegue a dibujarse", async () => {
+    const sw = await import("@/lib/swUpdate");
+    sw.instalarDeteccionDeNavegacion(window);
+    window.history.pushState({}, "", "/zz-a");
+    const t = Date.now();
+    window.history.pushState({}, "", "/zz-b");
+    expect(sw.navegoHaceInstantes(t + 100)).toBe(true);
+  });
+});
