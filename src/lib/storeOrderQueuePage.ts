@@ -23,7 +23,7 @@ const pageSchema = z.object({
   page: z.number().int().positive(), page_size: z.literal(STORE_ORDER_PAGE_SIZE),
   sla_hours: z.number().int().positive().optional(),
   counts: z.object({ todas: count, retirar: count, despachar: count, atrasados: count,
-    pago: count, enviadas: count, entregadas: count, canceladas: count }),
+    pago: count, sin_pago: count.default(0), enviadas: count, entregadas: count, canceladas: count }),
 });
 
 export interface StoreOrderQueuePage {

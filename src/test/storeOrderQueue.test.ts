@@ -22,6 +22,7 @@ import {
   storeOrdersCsvFilename,
   STORE_ORDER_SLA_OPTIONS,
   STORE_ORDER_STALE_HOURS,
+  isStoreOrderUnpaidExpired,
   type StoreOrderQueueRow,
 } from "@/lib/storeOrderQueue";
 
@@ -99,7 +100,7 @@ describe("cola de pedidos de la tienda", () => {
   it("combina vista y búsqueda sin inventar filas de otra cola", () => {
     const rows = [
       order({ id: "a", order_number: "A-1", payment_status: "paid", fulfillment_status: "pending" }),
-      order({ id: "b", order_number: "B-2", payment_status: "pending", fulfillment_status: "pending", customer_name: "Ana" }),
+      order({ id: "b", order_number: "B-2", payment_status: "pending", fulfillment_status: "pending", customer_name: "Ana", created_at: new Date().toISOString() }),
       order({ id: "c", order_number: "C-3", payment_status: "paid", fulfillment_status: "shipped" }),
     ];
     expect(filterStoreOrders(rows, { view: "despachar" }).map(r => r.id)).toEqual(["a"]);
@@ -120,11 +121,25 @@ describe("cola de pedidos de la tienda", () => {
       despachar: 1,
       atrasados: 0,
       pago: 1,
+      sin_pago: 0,
       enviadas: 0,
       entregadas: 1,
       canceladas: 0,
     });
     expect(countStoreOrdersNeedingAttention(rows)).toBe(2);
+  });
+
+  // 2026-10-15: 5 pedidos de julio y septiembre sumaban a «Pendientes de pago».
+  it("un pedido sin pagar hace más de 7 días va a su vista y no cuenta como trabajo", () => {
+    const ahora = new Date("2026-10-15T12:00:00Z");
+    const viejo = order({ id: "v", payment_status: "pending", fulfillment_status: "pending", created_at: "2026-07-29T03:00:00Z" });
+    const nuevo = order({ id: "n", payment_status: "pending", fulfillment_status: "pending", created_at: "2026-10-14T03:00:00Z" });
+    expect(isStoreOrderUnpaidExpired(viejo, ahora)).toBe(true);
+    expect(isStoreOrderUnpaidExpired(nuevo, ahora)).toBe(false);
+    expect(filterStoreOrders([viejo, nuevo], { view: "sin_pago", now: ahora }).map(r => r.id)).toEqual(["v"]);
+    expect(filterStoreOrders([viejo, nuevo], { view: "pago", now: ahora }).map(r => r.id)).toEqual(["n"]);
+    const c = countStoreOrderViews([viejo, nuevo], 24, ahora);
+    expect([c.pago, c.sin_pago]).toEqual([1, 1]);
   });
 
   it("retiro pagado no entra a despachar — Square/Shopify tienen cola de pickup", () => {

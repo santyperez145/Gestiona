@@ -72,6 +72,7 @@ export const STORE_ORDER_VIEW_IDS = [
   "despachar",
   "atrasados",
   "pago",
+  "sin_pago",
   "enviadas",
   "entregadas",
   "canceladas",
@@ -85,6 +86,7 @@ export const STORE_ORDER_VIEWS: { id: StoreOrderView; label: string }[] = [
   { id: "despachar", label: "Para despachar" },
   { id: "atrasados", label: "Atrasados" },
   { id: "pago", label: "Pendientes de pago" },
+  { id: "sin_pago", label: "Sin pago hace más de 7 días" },
   { id: "enviadas", label: "Enviadas" },
   { id: "entregadas", label: "Entregadas" },
   { id: "canceladas", label: "Canceladas" },
@@ -107,6 +109,20 @@ export interface StoreOrderQueueRow {
 }
 
 const FULFILLMENT_PENDING = new Set(["pending", "unfulfilled", "processing"]);
+
+/**
+ * Sin pagar hace más de esto: el comprador no volvió y la reserva de stock ya
+ * venció. Sale de «Pendientes de pago» (lo que hay que cobrar ahora) y del
+ * contador de trabajo, a su propia vista. El pedido no se toca (2026-10-15:
+ * Exentry tenía 5 pedidos de julio y septiembre sumando al contador).
+ */
+export const STORE_ORDER_UNPAID_EXPIRY_DAYS = 7;
+
+export function isStoreOrderUnpaidExpired(order: Pick<StoreOrderQueueRow, "payment_status" | "created_at">, now: Date = new Date()): boolean {
+  if (!canRetryStorePayment(order.payment_status)) return false;
+  const creado = Date.parse(String(order.created_at ?? ""));
+  return Number.isFinite(creado) && now.getTime() - creado > STORE_ORDER_UNPAID_EXPIRY_DAYS * 86_400_000;
+}
 
 /** Pagado y sin salir hace más de esto: entra a Atrasados (envejecimiento de pendientes). */
 export const STORE_ORDER_STALE_HOURS = 24;
@@ -407,7 +423,9 @@ export function orderMatchesStoreView(
     case "atrasados":
       return isStoreOrderStale(order, now, slaHours);
     case "pago":
-      return canRetryStorePayment(order.payment_status);
+      return canRetryStorePayment(order.payment_status) && !isStoreOrderUnpaidExpired(order, now);
+    case "sin_pago":
+      return isStoreOrderUnpaidExpired(order, now);
     case "enviadas":
       return order.fulfillment_status === "shipped";
     case "entregadas":
@@ -462,6 +480,7 @@ export function countStoreOrderViews(
     despachar: 0,
     atrasados: 0,
     pago: 0,
+    sin_pago: 0,
     enviadas: 0,
     entregadas: 0,
     canceladas: 0,
@@ -470,7 +489,8 @@ export function countStoreOrderViews(
     if (isStoreOrderAwaitingPickup(order)) counts.retirar += 1;
     if (isStoreOrderAwaitingShipment(order)) counts.despachar += 1;
     if (isStoreOrderStale(order, now, slaHours)) counts.atrasados += 1;
-    if (canRetryStorePayment(order.payment_status)) counts.pago += 1;
+    if (isStoreOrderUnpaidExpired(order, now)) counts.sin_pago += 1;
+    else if (canRetryStorePayment(order.payment_status)) counts.pago += 1;
     if (order.fulfillment_status === "shipped") counts.enviadas += 1;
     if (order.fulfillment_status === "delivered") counts.entregadas += 1;
     if (order.fulfillment_status === "cancelled") counts.canceladas += 1;
