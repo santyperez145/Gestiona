@@ -1,4 +1,5 @@
-﻿import { hoyAR, fechaLocal } from "@/lib/fechaAR";
+﻿import { conRegistro } from "@/lib/registroDeErrores";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -83,12 +84,12 @@ export default function TasksPage() {
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("tasks")
       .select("*")
       .eq("org_id", activeOrg.id)
       .order("priority")
-      .order("due_date", { nullsFirst: false });
+      .order("due_date", { nullsFirst: false }));
     setTasks((data || []) as Task[]);
     setLoading(false);
   };

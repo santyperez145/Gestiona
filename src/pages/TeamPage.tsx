@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,28 +39,28 @@ interface Invite {
 }
 
 async function getOrgUserLimit(orgId: string): Promise<number | null> {
-  const { data: sub } = await supabase
+  const { data: sub } = await conRegistro(supabase
     .from('subscriptions')
     .select('plan_id')
     .eq('org_id', orgId)
-    .maybeSingle();
+    .maybeSingle());
 
   let planId = sub?.plan_id || null;
   if (!planId) {
-    const { data: org } = await supabase
+    const { data: org } = await conRegistro(supabase
       .from('organizations')
       .select('plan_id')
       .eq('id', orgId)
-      .maybeSingle();
+      .maybeSingle());
     planId = org?.plan_id || null;
   }
   if (!planId) return null;
 
-  const { data: plan } = await supabase
+  const { data: plan } = await conRegistro(supabase
     .from('plans')
     .select('max_users')
     .eq('id', planId)
-    .maybeSingle();
+    .maybeSingle());
   return plan?.max_users ?? null;
 }
 
@@ -88,7 +89,7 @@ export default function TeamPage() {
     const ids = (mems || []).map(m => m.user_id);
     const profilesMap: Record<string, string> = {};
     if (ids.length) {
-      const { data: profs } = await supabase.from('profiles').select('user_id, display_name').in('user_id', ids);
+      const { data: profs } = await conRegistro(supabase.from('profiles').select('user_id, display_name').in('user_id', ids));
       (profs || []).forEach(p => { profilesMap[p.user_id] = p.display_name || ''; });
     }
     setMembers((mems || []).map(m => ({ ...m, display_name: profilesMap[m.user_id] })) as Member[]);

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { conRegistro } from "@/lib/registroDeErrores";
+import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -159,11 +160,11 @@ export default function KardexPage() {
       setProducts(prods ?? []);
 
       // Summary view
-      const { data: sumData } = await supabase
+      const { data: sumData } = await conRegistro(supabase
         .from("kardex_summary")
         .select("*")
         .eq("org_id", activeOrg.id)
-        .order("total_movements", { ascending: false });
+        .order("total_movements", { ascending: false }));
       setSummary(sumData ?? []);
 
       // Movements

@@ -1,4 +1,4 @@
-import { registrarError } from "@/lib/registroDeErrores";
+import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
@@ -873,13 +873,13 @@ function QueryDebtCard({ userId, initialName, onDone }: { userId: string; initia
   const search = async () => {
     if (!name.trim() || !activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("debts")
       .select("id, customer_name, remaining_ars, due_date, status")
       .eq("org_id", activeOrg.id)
       .eq("status", "pending")
       .ilike("customer_name", `%${name.trim()}%`)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }));
     const items = data || [];
     const total = items.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
     setResult({ total, count: items.length, items });
@@ -937,21 +937,21 @@ function QueryProductAnalysisCard({ userId, initialName, onDone }: { userId: str
       const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
       const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
 
-      const { data: sales30 } = await supabase
+      const { data: sales30 } = await conRegistro(supabase
         .from("sales")
         .select("quantity, total_ars, profit_ars, date, customer_name")
         .eq("org_id", activeOrg.id)
         .eq("product_id", prod.id)
         .gte("date", thirtyDaysAgo)
-        .order("date", { ascending: false });
+        .order("date", { ascending: false }));
 
-      const { data: sales60 } = await supabase
+      const { data: sales60 } = await conRegistro(supabase
         .from("sales")
         .select("quantity, total_ars, profit_ars, date")
         .eq("org_id", activeOrg.id)
         .eq("product_id", prod.id)
         .gte("date", sixtyDaysAgo)
-        .lt("date", thirtyDaysAgo);
+        .lt("date", thirtyDaysAgo));
 
       const s30 = sales30 || [];
       const s60 = sales60 || [];
@@ -1196,11 +1196,11 @@ function DebtsSummaryCard({ userId, onDone }: { userId: string; onDone: () => vo
     if (!activeOrg) return;
     (async () => {
       const today = hoyAR();
-      const { data } = await supabase
+      const { data } = await conRegistro(supabase
         .from("debts")
         .select("customer_name, remaining_ars, due_date, status")
         .eq("org_id", activeOrg.id)
-        .eq("status", "pending");
+        .eq("status", "pending"));
 
       const debts = data || [];
       const total = debts.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
@@ -1599,7 +1599,7 @@ function CreateQuoteCard({ userId, initialCustomer, initialProduct, initialAmoun
     if (items.every(it => !it.description.trim())) { toast.error("Agregá al menos un ítem"); return; }
     setLoading(true);
     try {
-      const { data: numData } = await supabase.rpc("next_quote_number", { p_org_id: activeOrg.id });
+      const { data: numData } = await conRegistro(supabase.rpc("next_quote_number", { p_org_id: activeOrg.id }));
       const quoteNumber = numData || `PRE-${Date.now()}`;
       const filteredItems = items.filter(it => it.description.trim());
       const subtotal = filteredItems.reduce((s, it) => s + it.total, 0);
@@ -1698,10 +1698,10 @@ function ExpenseSummaryCard({ userId, initialPeriod, onDone }: {
         dateFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
       }
 
-      const { data } = await supabase.from("expenses")
+      const { data } = await conRegistro(supabase.from("expenses")
         .select("amount_ars, category, description")
         .eq("org_id", activeOrg.id)
-        .gte("date", dateFrom);
+        .gte("date", dateFrom));
 
       const expenses = data || [];
       const total = expenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
@@ -1813,10 +1813,10 @@ function TopProductsCard({ userId, initialSort, onDone }: {
     if (!activeOrg) return;
     setLoading(true);
     (async () => {
-      const { data } = await supabase
+      const { data } = await conRegistro(supabase
         .from("sales")
         .select("product_name, total_ars, profit_ars, quantity")
-        .eq("org_id", activeOrg.id);
+        .eq("org_id", activeOrg.id));
 
       const sales = data || [];
       const map: Record<string, { name: string; revenue: number; profit: number; units: number }> = {};
@@ -1919,18 +1919,18 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
     if (!activeOrg) return;
     setLoading(true);
     try {
-      const { data: purchases } = await supabase
+      const { data: purchases } = await conRegistro(supabase
         .from("purchases")
         .select("id, created_at, total_usd, total_ars, quantity, product_name")
         .eq("org_id", activeOrg.id)
         .eq("supplier", supplier.name)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }));
 
-      const { data: debts } = await supabase
+      const { data: debts } = await conRegistro(supabase
         .from("debts")
         .select("amount_ars, status")
         .eq("org_id", activeOrg.id)
-        .eq("customer_name", supplier.name);
+        .eq("customer_name", supplier.name));
 
       const rows = purchases || [];
       const totalARS = rows.reduce((s: number, p: any) => s + Number(p.total_ars || 0), 0);

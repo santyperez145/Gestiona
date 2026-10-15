@@ -5,7 +5,7 @@
  * componente sólo decide qué mostrar. Sin esa regla las reseñas se llenan de
  * spam y dejan de servir, que es peor que no tenerlas.
  */
-import { registrarError } from "@/lib/registroDeErrores";
+import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -70,7 +70,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
 
   const cargar = useCallback(async () => {
     if (!store?.slug) return;
-    const { data } = await supabase.rpc("get_store_reviews", { p_slug: store.slug });
+    const { data } = await conRegistro(supabase.rpc("get_store_reviews", { p_slug: store.slug }));
     const todas = (data ?? []) as unknown as StoreReview[];
     setReviews(todas.filter(r => r.product_id === productId));
     setCargando(false);

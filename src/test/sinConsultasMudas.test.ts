@@ -19,4 +19,9 @@ describe("sin consultas que se tragan el error", () => {
     const mudas = archivos("src").filter(f => patron.test(fs.readFileSync(f, "utf8")));
     expect(mudas).toEqual([]);
   });
+  it("ninguna lectura con await descarta el error", () => {
+    const patron = /const \{ data(?:\s*:\s*\w+)? \} = await (?:supabase|sb|client)\b/;
+    const mudas = archivos("src").filter(f => patron.test(fs.readFileSync(f, "utf8")));
+    expect(mudas).toEqual([]);
+  });
 });

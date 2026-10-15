@@ -1,4 +1,5 @@
-﻿import { fechaLocal } from "@/lib/fechaAR";
+﻿import { conRegistro } from "@/lib/registroDeErrores";
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -109,7 +110,7 @@ export default function BatchLotPage() {
   useEffect(() => { loadData(); }, [orgId]);
 
   async function expireBatches() {
-    const { data } = await supabase.rpc("expire_batches", { p_org_id: orgId });
+    const { data } = await conRegistro(supabase.rpc("expire_batches", { p_org_id: orgId }));
     toast.success(`${data ?? 0} lotes marcados como vencidos`);
     loadData();
   }
@@ -131,8 +132,8 @@ export default function BatchLotPage() {
     if (error) { toast.error(error.message); return; }
 
     // Also record a batch_movement "in"
-    const { data: newBatch } = await supabase.from("product_batches")
-      .select("id").eq("org_id", orgId).eq("lot_number", batchForm.lot_number.trim()).single();
+    const { data: newBatch } = await conRegistro(supabase.from("product_batches")
+      .select("id").eq("org_id", orgId).eq("lot_number", batchForm.lot_number.trim()).single());
     if (newBatch) {
       const { error: mvtError } = await supabase.from("batch_movements").insert({
         org_id: orgId, batch_id: newBatch.id,

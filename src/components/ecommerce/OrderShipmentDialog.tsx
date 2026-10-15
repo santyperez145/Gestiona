@@ -10,6 +10,7 @@
  * las haya, el número entra por `set_order_tracking` igual que si se copiara a
  * mano, y nada de esto cambia.
  */
+import { conRegistro } from "@/lib/registroDeErrores";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -85,11 +86,11 @@ export default function OrderShipmentDialog({
   const cargar = useCallback(async () => {
     if (!order) return;
     setCargando(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("deliveries")
       .select("id, carrier, external_tracking, status, weight_kg")
       .eq("ecommerce_order_id", order.id)
-      .maybeSingle();
+      .maybeSingle());
     setCargando(false);
     const e = (data ?? null) as Entrega | null;
     setEntrega(e);

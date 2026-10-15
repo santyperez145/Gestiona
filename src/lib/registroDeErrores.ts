@@ -48,3 +48,14 @@ export function registrarError(error: unknown, pathname = typeof location !== "u
     // best-effort
   }
 }
+
+/**
+ * Espera una consulta y deja su error en el registro (2026-10-15). 71 lecturas
+ * hacían `const { data } = await …` y descartaban el error: si fallaban, la
+ * pantalla seguía como si no hubiera datos. Devuelve la respuesta tal cual.
+ */
+export async function conRegistro<T extends { error?: unknown }>(consulta: PromiseLike<T>): Promise<T> {
+  const r = await consulta;
+  if (r?.error) registrarError(r.error);
+  return r;
+}

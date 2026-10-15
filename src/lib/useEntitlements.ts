@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
@@ -131,17 +132,17 @@ export function useEntitlements(): Entitlements {
   const load = async () => {
     if (!activeOrg) { setPlan(null); setSub(null); setServidor(null); setLoading(false); return; }
     setLoading(true);
-    const { data: subData } = await supabase
+    const { data: subData } = await conRegistro(supabase
       .from('subscriptions')
       .select('*')
       .eq('org_id', activeOrg.id)
-      .maybeSingle();
+      .maybeSingle());
     let planRow: Plan | null = null;
     if (subData?.plan_id) {
-      const { data: p } = await supabase.from('plans').select('*').eq('id', subData.plan_id).maybeSingle();
+      const { data: p } = await conRegistro(supabase.from('plans').select('*').eq('id', subData.plan_id).maybeSingle());
       planRow = p as Plan | null;
     } else if (activeOrg.plan_id) {
-      const { data: p } = await supabase.from('plans').select('*').eq('id', activeOrg.plan_id).maybeSingle();
+      const { data: p } = await conRegistro(supabase.from('plans').select('*').eq('id', activeOrg.plan_id).maybeSingle());
       planRow = p as Plan | null;
     }
 

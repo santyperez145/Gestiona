@@ -1,4 +1,4 @@
-﻿import { registrarError } from "@/lib/registroDeErrores";
+﻿import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useNavigate } from "react-router-dom";
@@ -297,11 +297,11 @@ export default function PresupuestosPage() {
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("quotes")
       .select("*")
       .eq("org_id", activeOrg.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }));
     setQuotes((data as unknown as Quote[]) || []);
     setLoading(false);
   };

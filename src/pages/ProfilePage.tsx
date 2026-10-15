@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -229,7 +230,7 @@ export default function ProfilePage() {
    * Borrarlos es seguro: un factor sin verificar no protege nada.
    */
   const limpiarFactoresAMedias = useCallback(async () => {
-    const { data } = await supabase.auth.mfa.listFactors();
+    const { data } = await conRegistro(supabase.auth.mfa.listFactors());
     const pendientes = (data?.all ?? []).filter(f => f.status !== 'verified');
     for (const f of pendientes) {
       await supabase.auth.mfa.unenroll({ factorId: f.id });

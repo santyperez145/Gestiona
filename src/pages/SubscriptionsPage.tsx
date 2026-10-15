@@ -1,4 +1,4 @@
-﻿import { registrarError } from "@/lib/registroDeErrores";
+﻿import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -759,11 +759,11 @@ export default function SubscriptionsPage() {
   const loadPlans = async () => {
     if (!orgId) return;
     setLoadingPlans(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("subscription_plans")
       .select("*")
       .eq("org_id", orgId)
-      .order("price");
+      .order("price"));
     // billing_interval es TEXT con CHECK en DB → llega como string
     setPlans((data ?? []) as SubscriptionPlan[]);
     setLoadingPlans(false);
@@ -773,11 +773,11 @@ export default function SubscriptionsPage() {
   const loadSubs = async () => {
     if (!orgId) return;
     setLoadingSubs(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("customer_subscriptions")
       .select("*, plan:subscription_plans(*)")
       .eq("org_id", orgId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }));
     setSubs((data ?? []) as Subscription[]);
     setLoadingSubs(false);
   };

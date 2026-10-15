@@ -4,6 +4,7 @@
 // El contenido es idéntico — PageHeader y acciones incluidas — porque este
 // paso mueve superficies, no reescribe cálculos: unificar los tres motores
 // en una autoridad server-side es INV-001, y va aparte a propósito.
+import { conRegistro } from "@/lib/registroDeErrores";
 import { fechaLocal } from "@/lib/fechaAR";
 import { fmtPct } from "@/lib/porcentaje";
 import { useState, useEffect, useCallback } from "react";
@@ -122,9 +123,9 @@ export default function AnalisisView() {
     // ⚠️ Sólo el análisis MÁS RECIENTE. La tabla guarda una fila por producto
     //    por día (UNIQUE org+product+date): leer sin filtrar la fecha mostraba
     //    cada producto repetido por cada día en que se corrió el análisis.
-    const { data: ultima } = await supabase
+    const { data: ultima } = await conRegistro(supabase
       .from("inventory_abc").select("analysis_date")
-      .eq("org_id", orgId).order("analysis_date", { ascending: false }).limit(1).maybeSingle();
+      .eq("org_id", orgId).order("analysis_date", { ascending: false }).limit(1).maybeSingle());
 
     const [ar, sr] = await Promise.allSettled([
       supabase.from("inventory_abc").select("*, products(name,stock)").eq("org_id", orgId)

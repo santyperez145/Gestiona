@@ -10,6 +10,7 @@
  * kanban implementations (AdvancedCRMPage's old static `crm_deals` board was dropped
  * in favor of this one).
  */
+import { conRegistro } from "@/lib/registroDeErrores";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { llamarIA } from "@/lib/ia";
@@ -197,12 +198,12 @@ function ActivityPanel({
 
   const loadActivities = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("deal_activities")
       .select("*")
       .eq("deal_id", deal.id)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(50));
     setActivities((data || []) as DealActivity[]);
     setLoading(false);
   }, [deal.id]);
@@ -834,19 +835,19 @@ export default function PipelineKanbanTab() {
       if ((dupCount ?? 0) > 0) return null;  // already exists, avoid duplicates
 
       // 2. Generate next quote_number via RPC
-      const { data: numData } = await supabase.rpc("next_quote_number", { p_org_id: activeOrg.id });
+      const { data: numData } = await conRegistro(supabase.rpc("next_quote_number", { p_org_id: activeOrg.id }));
       const quoteNumber = (numData as string | null) || `Q-${Date.now()}`;
 
       // 3. Look up customer for email/phone
       let customerEmail: string | null = null;
       let customerPhone: string | null = null;
       if (deal.customer_name) {
-        const { data: customer } = await supabase
+        const { data: customer } = await conRegistro(supabase
           .from("customers")
           .select("email, phone")
           .eq("org_id", activeOrg.id)
           .ilike("name", deal.customer_name)
-          .maybeSingle();
+          .maybeSingle());
         customerEmail = customer?.email ?? null;
         customerPhone = customer?.phone ?? null;
       }
@@ -895,21 +896,21 @@ export default function PipelineKanbanTab() {
     if (!activeOrg) return;
     try {
       // 1. Find customer email by name (best-effort match)
-      const { data: customer } = await supabase
+      const { data: customer } = await conRegistro(supabase
         .from("customers")
         .select("id, email, name")
         .eq("org_id", activeOrg.id)
         .ilike("name", deal.customer_name)
-        .maybeSingle();
+        .maybeSingle());
       if (!customer?.email) return; // no email → can't drip
 
       // 2. Find active sequences matching trigger
-      const { data: sequences } = await supabase
+      const { data: sequences } = await conRegistro(supabase
         .from("drip_sequences")
         .select("id")
         .eq("org_id", activeOrg.id)
         .eq("trigger_event", trigger)
-        .eq("active", true);
+        .eq("active", true));
       if (!sequences || sequences.length === 0) return;
 
       // 3. For each sequence, count steps to set total_steps + next_send_at
@@ -919,13 +920,13 @@ export default function PipelineKanbanTab() {
           .select("id", { count: "exact", head: true })
           .eq("sequence_id", seq.id);
 
-        const { data: firstStep } = await supabase
+        const { data: firstStep } = await conRegistro(supabase
           .from("drip_sequence_steps")
           .select("day_offset")
           .eq("sequence_id", seq.id)
           .order("step_order", { ascending: true })
           .limit(1)
-          .maybeSingle();
+          .maybeSingle());
 
         const nextSendAt = new Date();
         nextSendAt.setDate(nextSendAt.getDate() + (firstStep?.day_offset ?? 1));
@@ -1014,12 +1015,12 @@ export default function PipelineKanbanTab() {
   const fireStageAutomations = async (deal: Deal, stageLabel: string) => {
     if (!activeOrg) return;
     try {
-      const { data: flows } = await supabase
+      const { data: flows } = await conRegistro(supabase
         .from("automation_flows")
         .select("id, action_type, action_config, trigger_config")
         .eq("org_id", activeOrg.id)
         .eq("active", true)
-        .eq("trigger_type", "deal_stage_change");
+        .eq("trigger_type", "deal_stage_change"));
       if (!flows || flows.length === 0) return;
 
       // Filter client-side by stage label match

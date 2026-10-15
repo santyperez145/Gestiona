@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveOrgId } from './orgContext';
 
@@ -34,7 +35,7 @@ export async function logAudit(
   options?: AuditOptions,
 ) {
   try {
-    const { data: userRes } = await supabase.auth.getUser();
+    const { data: userRes } = await conRegistro(supabase.auth.getUser());
     const { error } = await supabase.from('audit_logs').insert({
       user_id: userId,
       org_id: getActiveOrgId() || null,

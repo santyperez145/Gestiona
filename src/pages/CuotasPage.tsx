@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
@@ -54,11 +55,11 @@ export default function CuotasPage() {
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("installment_schedule")
       .select("*, sale:sale_id(product_name, customer_name, total_ars, installments)")
       .eq("org_id", activeOrg.id)
-      .order("due_date");
+      .order("due_date"));
     setInstallments((data || []) as Installment[]);
     setLoading(false);
   };

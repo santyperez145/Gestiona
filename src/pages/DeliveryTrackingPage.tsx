@@ -1,4 +1,4 @@
-﻿import { registrarError } from "@/lib/registroDeErrores";
+﻿import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -284,8 +284,8 @@ function TrackingModal({ delivery, onClose, onUpdate }: {
     setAdding(false);
     if (error) { toast.error("No se guardó la novedad: " + error.message); return; }
     setNewDesc("");
-    const { data } = await supabase.from("delivery_events").select("*")
-      .eq("delivery_id", delivery.id).order("created_at", { ascending: false });
+    const { data } = await conRegistro(supabase.from("delivery_events").select("*")
+      .eq("delivery_id", delivery.id).order("created_at", { ascending: false }));
     setEvents(data || []);
     onUpdate();
   }
@@ -419,8 +419,8 @@ export default function DeliveryTrackingPage() {
   async function loadData() {
     if (!orgId) return;
     setLoading(true);
-    const { data } = await supabase.from("deliveries").select("*")
-      .eq("org_id", orgId).order("created_at", { ascending: false }).limit(300);
+    const { data } = await conRegistro(supabase.from("deliveries").select("*")
+      .eq("org_id", orgId).order("created_at", { ascending: false }).limit(300));
     setDeliveries(data || []);
     setLoading(false);
   }

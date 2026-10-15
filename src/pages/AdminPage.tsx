@@ -1,4 +1,4 @@
-﻿import { registrarError } from "@/lib/registroDeErrores";
+﻿import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -73,7 +73,7 @@ export default function AdminPage() {
 
   const checkAdminAndLoad = async () => {
     if (!user) return;
-    const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    const { data: roleData } = await conRegistro(supabase.from("user_roles").select("role").eq("user_id", user.id));
     const admin = roleData?.some(r => r.role === "admin") || false;
     setIsAdmin(admin);
     if (admin) {
@@ -85,11 +85,11 @@ export default function AdminPage() {
   };
 
   const loadVendorData = async () => {
-    const { data: profiles } = await supabase.from("profiles").select("*");
+    const { data: profiles } = await conRegistro(supabase.from("profiles").select("*"));
     if (!profiles) return;
-    const { data: roles } = await supabase.from("user_roles").select("*");
-    const { data: allSales } = await supabase.from("sales").select("*").order("date", { ascending: false });
-    const { data: allProducts } = await supabase.from("products").select("user_id, id");
+    const { data: roles } = await conRegistro(supabase.from("user_roles").select("*"));
+    const { data: allSales } = await conRegistro(supabase.from("sales").select("*").order("date", { ascending: false }));
+    const { data: allProducts } = await conRegistro(supabase.from("products").select("user_id, id"));
 
     const vendorMap: Record<string, VendorStats> = {};
     for (const p of profiles) {
@@ -584,9 +584,9 @@ function SystemAuditLogTab() {
       setTotal(count ?? 0);
     }
 
-    const { data: sumData } = await supabase.rpc("get_audit_summary", {
+    const { data: sumData } = await conRegistro(supabase.rpc("get_audit_summary", {
       p_org_id: orgId, p_from: filterFrom + "T00:00:00Z", p_to: filterTo + "T23:59:59Z",
-    });
+    }));
     if (sumData) setSummary(sumData as AuditSummaryRow[]);
 
     setLoading(false);

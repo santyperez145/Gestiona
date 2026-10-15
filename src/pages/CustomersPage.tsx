@@ -1,4 +1,4 @@
-﻿import { registrarError } from "@/lib/registroDeErrores";
+﻿import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { claveDeCompra, diaDeCompra, frecuenciaEnDias } from "@/lib/comprasDeCliente";
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -2156,12 +2156,12 @@ export default function CustomersPage() {
             tag:      Array.isArray(c.tags) ? (c.tags as string[]).join(",") : "",
             source:   "customer_create",
           };
-          const { data: assigned } = await supabase.rpc("apply_territory_rules", {
+          const { data: assigned } = await conRegistro(supabase.rpc("apply_territory_rules", {
             p_org_id:      created.org_id,
             p_entity_type: "customer",
             p_entity_id:   created.id,
             p_attributes:  attributes,
-          });
+          }));
           if (assigned) {
             // Optional: bubble up a subtle toast (skip if you want it silent)
             toast.message("📍 Cliente asignado por regla de territorio", { duration: 3000 });

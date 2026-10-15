@@ -1,4 +1,5 @@
-﻿import { fmtPct } from "@/lib/porcentaje";
+﻿import { conRegistro } from "@/lib/registroDeErrores";
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
@@ -265,12 +266,12 @@ export default function ProveedoresPage() {
   const loadPurchases = async (supplierId: string) => {
     if (purchases[supplierId]) return;
     setLoadingPurchases(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("purchases")
       .select("id, product_name, quantity, total_ars, date")
       .eq("supplier_id", supplierId)
       .order("date", { ascending: false })
-      .limit(10);
+      .limit(10));
     setPurchases(prev => ({ ...prev, [supplierId]: (data || []) as PurchaseSummary[] }));
     setLoadingPurchases(false);
   };

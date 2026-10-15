@@ -1,15 +1,16 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveOrgId } from '@/lib/orgContext';
 import { fetchOrgProducts } from '@/lib/supabaseStore';
 
 async function getThreshold(orgId: string): Promise<number> {
-  const { data } = await supabase.from('settings').select('low_stock_threshold').eq('org_id', orgId).maybeSingle();
+  const { data } = await conRegistro(supabase.from('settings').select('low_stock_threshold').eq('org_id', orgId).maybeSingle());
   return Number(data?.low_stock_threshold ?? 3);
 }
 
 export async function checkStockAfterSale(productId: string, productName: string, _userId?: string) {
-  const { data: product } = await supabase.from('products').select('stock, org_id').eq('id', productId).single();
+  const { data: product } = await conRegistro(supabase.from('products').select('stock, org_id').eq('id', productId).single());
   if (!product) return;
 
   const orgId = product.org_id || getActiveOrgId();

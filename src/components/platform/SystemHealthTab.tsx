@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -123,10 +124,10 @@ export default function SystemHealthTab() {
 
     // Get edge function activity from integration_logs
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: logs } = await supabase
+    const { data: logs } = await conRegistro(supabase
       .from("integration_logs")
       .select("integration, status")
-      .gte("created_at", since);
+      .gte("created_at", since));
 
     if (logs) {
       const grouped: Record<string, { invocations: number; errors: number }> = {};

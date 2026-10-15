@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { conRegistro } from "@/lib/registroDeErrores";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -270,11 +271,11 @@ function PLItemsDialog({ open, list, products, orgId, onClose }: PLItemsDialogPr
   const loadItems = useCallback(async () => {
     if (!list) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("price_list_items")
       .select("*, product:products(id,name,price:sale_price_ars,category)")
       .eq("price_list_id", list.id)
-      .order("created_at");
+      .order("created_at"));
     setItems(data ?? []);
     setLoading(false);
   }, [list]);

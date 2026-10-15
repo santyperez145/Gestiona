@@ -1,4 +1,4 @@
-import { registrarError } from "@/lib/registroDeErrores";
+import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from "react";
 import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
@@ -781,13 +781,13 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const { data } = await conRegistro(supabase
         .from("sales")
         .select("id, product_name, product_id, variant_id, quantity, returned_quantity, total_ars, customer_name, date, returned")
         .eq("org_id", orgId)
         .eq("returned", false)
         .order("date", { ascending: false })
-        .limit(50);
+        .limit(50));
       setRecentSales(data || []);
       setLoading(false);
     })();
@@ -1484,11 +1484,11 @@ export default function POSPage() {
     const timeout = setTimeout(async () => {
       setVipLoading(true);
       try {
-        const { data } = await supabase
+        const { data } = await conRegistro(supabase
           .from("loyalty_points")
           .select("delta")
           .eq("org_id", activeOrg.id)
-          .ilike("customer_name", customer.trim());
+          .ilike("customer_name", customer.trim()));
         const balance = (data || []).reduce((s: number, r: any) => s + Number(r.delta), 0);
         if (balance >= 1000) {
           const tier = { name: "Platino", pct: 10, points: balance };

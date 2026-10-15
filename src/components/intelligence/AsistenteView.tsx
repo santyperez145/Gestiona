@@ -4,6 +4,7 @@
 // «No deberían existir dos páginas de IA genéricas»: los copilotos de dominio
 // (pricing, restock, CRM coach, Finance) viven en su dominio; lo transversal
 // —hallazgos y conversaciones— vive acá, junto.
+import { conRegistro } from "@/lib/registroDeErrores";
 import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -161,7 +162,7 @@ export default function AsistenteView() {
   useEffect(() => { load(); }, [load]);
 
   async function loadMessages(sessionId: string) {
-    const { data } = await supabase.from("ai_chat_messages").select("*").eq("session_id", sessionId).order("created_at");
+    const { data } = await conRegistro(supabase.from("ai_chat_messages").select("*").eq("session_id", sessionId).order("created_at"));
     if (data) setMessages(data as ChatMessage[]);
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   }
@@ -188,7 +189,7 @@ export default function AsistenteView() {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
 
     // Persist user message
-    const { data: savedMsg } = await supabase.from("ai_chat_messages").insert({ session_id: activeSession.id, org_id: orgId, role: "user", content: userContent }).select().single();
+    const { data: savedMsg } = await conRegistro(supabase.from("ai_chat_messages").insert({ session_id: activeSession.id, org_id: orgId, role: "user", content: userContent }).select().single());
 
     // Update session title after first message
     if (activeSession.message_count === 0) {
@@ -228,7 +229,7 @@ export default function AsistenteView() {
     } as unknown as ChatMessage]);
 
     try {
-      const { data: sesion } = await supabase.auth.getSession();
+      const { data: sesion } = await conRegistro(supabase.auth.getSession());
       const token = sesion.session?.access_token;
       if (!token) throw new Error("Sesión vencida. Volvé a entrar.");
 
@@ -311,10 +312,10 @@ export default function AsistenteView() {
       return;
     }
 
-    const { data: aiMsg } = await supabase.from("ai_chat_messages").insert({
+    const { data: aiMsg } = await conRegistro(supabase.from("ai_chat_messages").insert({
       session_id: activeSession.id, org_id: orgId, role: "assistant",
       content: texto, model: selectedModel, tokens_used: tokens,
-    }).select().single();
+    }).select().single());
 
     setMessages(p => p.filter(m => m.id !== idTemp).concat(
       aiMsg ? [aiMsg as ChatMessage] : []));

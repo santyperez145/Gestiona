@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,11 +24,14 @@ export default function InvitationAcceptPage() {
   useEffect(() => {
     if (!token) return;
     (async () => {
-      const { data: inv } = await supabase.from('org_invitations').select('*').eq('token', token).maybeSingle();
+      const { data: inv, error: errorDeLectura } = await conRegistro(supabase.from('org_invitations').select('*').eq('token', token).maybeSingle());
+      // Un error de red no es una invitación inválida: antes decía «no
+      // encontrada o ya usada» y la persona creía que su link no servía.
+      if (errorDeLectura) { setError('No pudimos verificar la invitación. Revisá tu conexión y recargá la página.'); setLoading(false); return; }
       if (!inv) { setError('Invitación no encontrada o ya usada'); setLoading(false); return; }
       if (inv.accepted_at) { setError('Esta invitación ya fue aceptada'); setLoading(false); return; }
       if (new Date(inv.expires_at) < new Date()) { setError('La invitación expiró'); setLoading(false); return; }
-      const { data: o } = await supabase.from('organizations').select('id, name, logo_url').eq('id', inv.org_id).maybeSingle();
+      const { data: o } = await conRegistro(supabase.from('organizations').select('id, name, logo_url').eq('id', inv.org_id).maybeSingle());
       setInvite(inv); setOrg(o); setLoading(false);
     })();
   }, [token]);

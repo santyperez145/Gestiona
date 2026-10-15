@@ -4,6 +4,7 @@
 // El contenido es idéntico — PageHeader y acciones incluidas — porque este
 // paso mueve superficies, no reescribe cálculos: unificar los tres motores
 // en una autoridad server-side es INV-001, y va aparte a propósito.
+import { conRegistro } from "@/lib/registroDeErrores";
 import { hoyAR } from "@/lib/fechaAR";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
@@ -170,7 +171,7 @@ export default function ReposicionView() {
       // productos con costo en pesos: la inversión daba $0 y las órdenes de
       // compra salían en dólares con costo 0. Ahora se toma el costo en su
       // moneda y se expresa en pesos.
-      const { data: ajustes } = await supabase.from("settings").select("exchange_rate").eq("org_id", activeOrg.id).maybeSingle();
+      const { data: ajustes } = await conRegistro(supabase.from("settings").select("exchange_rate").eq("org_id", activeOrg.id).maybeSingle());
       const cotizacion = cotizacionDe(ajustes as { exchange_rate?: number | null } | null);
       const conCosto = ((products || []) as Omit<Product, "costo">[]).map(p => ({ ...p, costo: costoSugerido(p, "ARS", cotizacion) }));
       if (abcRes.error) {

@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { diaAR, hoyAR } from "@/lib/fechaAR";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Brain, Send, Loader2, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, ShoppingCart, Package, DollarSign, TrendingDown } from "lucide-react";
@@ -50,7 +51,7 @@ export default function NerqiaAI() {
     if (!orgId) return;
     try {
       // Traer ventas últimos 30 días (RPC que está en tipos)
-      const { data: sales } = await supabase.rpc("get_my_store_orders", { p_slug: "default" });
+      const { data: sales } = await conRegistro(supabase.rpc("get_my_store_orders", { p_slug: "default" }));
 
       if (!sales || sales.length === 0) {
         setInsights([{ id: "empty", type: "info", title: "Sin datos todavía", description: "Hacé tu primera venta para ver insights.", value: "", icon: ShoppingCart }]);

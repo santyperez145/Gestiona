@@ -6,6 +6,7 @@
  * the `role_permissions` table (org_id, role, module) — the same table
  * `useModulePermissions()`/`useHasPermission()` read from across the app.
  */
+import { conRegistro } from "@/lib/registroDeErrores";
 import { useEffect, useState, useCallback, Fragment } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,10 +63,10 @@ export default function PermissionsTab() {
   const load = useCallback(async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await conRegistro(supabase
       .from("role_permissions")
       .select("role, module, can_view, can_create, can_edit, can_delete, can_export")
-      .eq("org_id", activeOrg.id);
+      .eq("org_id", activeOrg.id));
 
     const map: Record<string, PermRow> = {};
     for (const role of ROLES.map((r) => r.value)) {

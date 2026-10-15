@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from "react";
+﻿import { conRegistro } from "@/lib/registroDeErrores";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -216,7 +217,7 @@ export default function PaymentLinksPage() {
       // Generate Mercado Pago link if configured
       if (orgSettings.mp_conectado && newLink) {
         try {
-          const { data: mpData } = await supabase.functions.invoke("mercadopago-link", {
+          const { data: mpData } = await conRegistro(supabase.functions.invoke("mercadopago-link", {
             body: {
               orgId: activeOrg.id,
               title: `Pago ${orgSettings.business_name} — ${customerName.trim()}`,
@@ -227,7 +228,7 @@ export default function PaymentLinksPage() {
               externalRef: newLink.external_ref,
             },
             headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
-          });
+          }));
           if (mpData?.url) {
             const { error: guardarError } = await supabase.from("payment_links").update({
               mp_link: mpData.url,

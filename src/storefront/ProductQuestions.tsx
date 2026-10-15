@@ -10,6 +10,7 @@
  * al comprador que acá no atiende nadie, y eso frena más ventas de las que
  * destraba. La propia queda visible para quien la hizo mientras espera.
  */
+import { conRegistro } from "@/lib/registroDeErrores";
 import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -54,7 +55,7 @@ export default function ProductQuestions({ productId }: { productId: string }) {
 
   const cargar = useCallback(async () => {
     if (!store?.slug) return;
-    const { data } = await supabase.rpc("get_store_questions", { p_slug: store.slug });
+    const { data } = await conRegistro(supabase.rpc("get_store_questions", { p_slug: store.slug }));
     const todas = (data ?? []) as unknown as StoreQuestion[];
     setPreguntas(todas.filter(q => q.product_id === productId));
     setCargando(false);
@@ -62,9 +63,9 @@ export default function ProductQuestions({ productId }: { productId: string }) {
 
   const cargarMias = useCallback(async () => {
     if (!store?.slug || !customer) { setMias([]); return; }
-    const { data } = await supabase.rpc("get_my_questions", {
+    const { data } = await conRegistro(supabase.rpc("get_my_questions", {
       p_slug: store.slug, p_product_id: productId,
-    });
+    }));
     setMias((data ?? []) as unknown as MiPregunta[]);
   }, [store?.slug, productId, customer]);
 

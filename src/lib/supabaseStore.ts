@@ -1,3 +1,4 @@
+import { conRegistro } from "@/lib/registroDeErrores";
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveOrgId, requireActiveOrgId } from './orgContext';
 import type { Database } from '@/integrations/supabase/types';
@@ -15,7 +16,7 @@ async function orgIdFor(_userId?: string, organizationId?: string): Promise<stri
   const cached = getActiveOrgId();
   if (cached) return cached;
   if (!_userId) throw new Error('No active organization');
-  const { data } = await supabase.from('memberships').select('org_id').eq('user_id', _userId).limit(1).maybeSingle();
+  const { data } = await conRegistro(supabase.from('memberships').select('org_id').eq('user_id', _userId).limit(1).maybeSingle());
   if (!data?.org_id) throw new Error('User has no organization');
   return data.org_id;
 }
@@ -389,13 +390,13 @@ export async function addSalesDB(sales: any[], source?: string) {
     // Si el cupón usado coincide con el código de un canje, la línea conserva
     // su atribución para que el ROI no se pierda al pasar por el RPC.
     if (sale.coupon_code) {
-      const { data: exch } = await supabase
+      const { data: exch } = await conRegistro(supabase
         .from('influencer_exchanges')
         .select('id')
         .eq('org_id', orgId)
         .eq('discount_code', sale.coupon_code)
         .limit(1)
-        .maybeSingle();
+        .maybeSingle());
       attributedExchangeId = exch?.id ?? null;
       const attribution = resolveSaleAttribution(sale.coupon_code, !!exch);
       if (attribution === 'influencer' || !sale.attribution_source) sale.attribution_source = attribution;
@@ -472,7 +473,7 @@ export async function getDebtsDB(userId: string, organizationId?: string) {
 
 export async function updateDebtDB(id: string, updates: any) {
   // Fetch previous to detect status transition for sale sync
-  const { data: prev } = await supabase.from('debts').select('*').eq('id', id).maybeSingle();
+  const { data: prev } = await conRegistro(supabase.from('debts').select('*').eq('id', id).maybeSingle());
   const { error } = await supabase.from('debts').update(updates).eq('id', id);
   if (error) throw error;
   // Sync linked sale.paid based on debt status transition
@@ -725,13 +726,13 @@ export function generateInfluencerCode(influencerName: string): string {
 
 export async function findExchangeByCode(code: string): Promise<any | null> {
   // Return the most recent exchange for this influencer code (all their canjes share one code)
-  const { data } = await supabase
+  const { data } = await conRegistro(supabase
     .from('influencer_exchanges')
     .select('*')
     .ilike('discount_code', code.trim())
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle());
   return data || null;
 }
 
@@ -1229,10 +1230,10 @@ export async function getOrgMembersWithProfilesDB(userId: string) {
   if (error) throw error;
   if (!members || members.length === 0) return [];
   const userIds = members.map((m: any) => m.user_id);
-  const { data: profiles } = await supabase
+  const { data: profiles } = await conRegistro(supabase
     .from('profiles')
     .select('user_id, display_name')
-    .in('user_id', userIds);
+    .in('user_id', userIds));
   const profileMap: Record<string, string> = {};
   (profiles || []).forEach((p: any) => { if (p.display_name) profileMap[p.user_id] = p.display_name; });
   return members.map((m: any) => ({
@@ -1283,7 +1284,7 @@ export type SavedCRMSegment = { id: string; name: string; segment: string };
 
 export async function getCRMSegmentsDB(userId: string): Promise<SavedCRMSegment[]> {
   const orgId = await orgIdFor(userId);
-  const { data } = await supabase.from('settings').select('crm_segments').eq('org_id', orgId).maybeSingle();
+  const { data } = await conRegistro(supabase.from('settings').select('crm_segments').eq('org_id', orgId).maybeSingle());
   if (!data?.crm_segments) return [];
   return data.crm_segments as SavedCRMSegment[];
 }

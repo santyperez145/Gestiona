@@ -5,6 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
+import { conRegistro } from "@/lib/registroDeErrores";
 import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
 import { useEffect, useState, useMemo } from "react";
@@ -237,7 +238,7 @@ export default function ResumenView() {
       // Load quotes for funnel
       let quotes: any[] = [];
       if (activeOrg) {
-        const { data } = await supabase.from("quotes").select("id,status,total_ars:total,created_at").eq("org_id", activeOrg.id);
+        const { data } = await conRegistro(supabase.from("quotes").select("id,status,total_ars:total,created_at").eq("org_id", activeOrg.id));
         quotes = data || [];
       }
       setRawData({ products, sales, expenses, quotes });
