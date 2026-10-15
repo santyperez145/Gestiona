@@ -834,6 +834,10 @@ export default function ProductsPage() {
     if (search && search.length >= 2 && searchMatchIds && !searchMatchIds.has(p.id)) return false;
     if (search && search.length < 2 && !normalizeText(p.name).includes(normalizeText(search)) && !normalizeText(p.brand ?? '').includes(normalizeText(search))) return false;
     if (filterCat !== 'all' && p.category !== filterCat) return false;
+    // Los archivados (con historia, «eliminados» sin borrarse) sólo se ven en
+    // su filtro; se reactivan con «Activo» en la ficha.
+    if (filterStock === 'archived') { if (p.is_active !== false) return false; }
+    else if (p.is_active === false) return false;
     if (filterStock === 'instock' && p.stock <= 0) return false;
     if (filterStock === 'low' && (p.stock > 3 || p.stock <= 0)) return false;
     if (filterStock === 'out' && p.stock > 0) return false;
@@ -957,13 +961,18 @@ export default function ProductsPage() {
       const resultado = await deleteProductsDB(ids, orgId, (hechos, total) => {
         if (total > 200) toast.loading(`Eliminando… ${hechos} de ${total}`, { id: aviso });
       });
-      eliminados = resultado.eliminados;
+      // Los archivados también salen de la lista y de la selección.
+      eliminados = [...resultado.eliminados, ...resultado.archivados];
+      const partes = [
+        resultado.eliminados.length ? `${plural(resultado.eliminados.length, "producto")} eliminado${resultado.eliminados.length === 1 ? '' : 's'}` : null,
+        resultado.archivados.length ? `${plural(resultado.archivados.length, "producto")} con ventas u operaciones archivado${resultado.archivados.length === 1 ? '' : 's'} (conservan su historia; se ven en el filtro «Archivados»)` : null,
+      ].filter(Boolean).join(" · ");
       if (resultado.pendientes.length) {
-        const message = `${plural(resultado.pendientes.length, "producto")} no se pudo eliminar. Revisá tus permisos o si tiene operaciones vinculadas.`;
-        toast.error(message, { id: aviso });
+        const message = `${plural(resultado.pendientes.length, "producto")} no se pudo eliminar. Revisá tus permisos.`;
+        toast.error(message, { id: aviso, description: partes || undefined });
         if (activeOrgIdRef.current === orgId) setDeleteError(message);
       } else {
-        toast.success(`${plural(eliminados.length, "producto")} eliminado${eliminados.length === 1 ? '' : 's'}`, { id: aviso });
+        toast.success(partes || "Listo", { id: aviso, duration: resultado.archivados.length ? 10000 : 4000 });
       }
       if (user && eliminados.length) {
         await logAudit(user.id, 'delete', 'product', eliminados.length === 1 ? eliminados[0] : orgId, {
@@ -972,7 +981,7 @@ export default function ProductsPage() {
         });
       }
     } catch (error) {
-      eliminados = (error as { eliminados?: string[] })?.eliminados ?? [];
+      eliminados = [...((error as { eliminados?: string[] })?.eliminados ?? []), ...((error as { archivados?: string[] })?.archivados ?? [])];
       console.error('[ProductsPage] delete failed', { orgId, deleted: eliminados.length, error });
       const code = (error as { code?: string })?.code;
       const message = code === '23503'
@@ -998,7 +1007,7 @@ export default function ProductsPage() {
     const orgId = activeOrg?.id;
     const ok = await ask({
       title: "Eliminar producto",
-      description: `¿Estás seguro de que quieres eliminar el producto "${p.name}"?`,
+      description: `Se elimina "${p.name}". Si ya tiene ventas, compras u otras operaciones, se archiva para conservar su historia.`,
       confirmText: "Eliminar",
       cancelText: "Cancelar",
       variant: "destructive",
@@ -1673,6 +1682,7 @@ export default function ProductsPage() {
               <SelectItem value="instock">En stock</SelectItem>
               <SelectItem value="low">Stock bajo</SelectItem>
               <SelectItem value="out">Sin stock</SelectItem>
+              <SelectItem value="archived">Archivados</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterExpiry} onValueChange={v => { setFilterExpiry(v); setPage(0); }}>

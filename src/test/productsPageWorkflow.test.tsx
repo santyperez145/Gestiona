@@ -53,7 +53,7 @@ beforeEach(() => {
   mocks.limit = null;
   Object.assign(mocks.permissions, { canCreate: true, canEdit: true, canDelete: true });
   for (const mock of [mocks.update, mocks.add, mocks.stock]) mock.mockReset().mockResolvedValue(undefined);
-  mocks.remove.mockReset().mockResolvedValue({ eliminados: ['product'], pendientes: [] });
+  mocks.remove.mockReset().mockResolvedValue({ eliminados: ['product'], archivados: [], pendientes: [] });
   mocks.success.mockClear(); mocks.error.mockClear();
   Element.prototype.scrollIntoView = vi.fn();
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} unobserve() {} });

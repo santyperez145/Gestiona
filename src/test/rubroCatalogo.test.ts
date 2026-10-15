@@ -32,7 +32,8 @@ describe("el catálogo sigue al rubro del comercio", () => {
 
   it("el borrado masivo va por lotes y avisa el resultado en pantalla", () => {
     const store = readFileSync("src/lib/supabaseStore.ts", "utf8");
-    expect(store).toContain(".delete().in('id', lote)");
+    // 2026-10-15: por lotes de 200 con eliminar_productos (archiva lo que tiene historia).
+    expect(store).toContain("supabase.rpc('eliminar_productos' as never, { p_org: orgId, p_ids: lote }");
     const page = readFileSync("src/pages/ProductsPage.tsx", "utf8");
     expect(page).toContain("toast.loading(`Eliminando");
   });

@@ -289,34 +289,48 @@ export async function updateProductDB(id: string, updates: any) {
   if (error) throw error;
 }
 
-export async function deleteProductDB(id: string, orgId = requireActiveOrgId()) {
-  const { error } = await supabase.from('products').delete().eq('id', id).eq('org_id', orgId).select('id').single();
-  if (error) throw error;
+/** Un producto: se borra o, si tiene operaciones, se archiva. Devuelve cuál. */
+export async function deleteProductDB(id: string, orgId = requireActiveOrgId()): Promise<'eliminado' | 'archivado'> {
+  const r = await deleteProductsDB([id], orgId);
+  if (r.archivados.includes(id)) return 'archivado';
+  if (r.eliminados.includes(id)) return 'eliminado';
+  throw new Error('No se pudo eliminar el producto: revisá tus permisos');
 }
 
 /**
- * Borra productos por lotes (200 por pedido). Devuelve los ids que ya no
- * existen al terminar: los borrados ahora y los que otro ya había borrado,
- * para que una lista desactualizada no se muestre como error de permisos.
+ * Borra productos por lotes de 200 con `eliminar_productos`
+ * (20261014003000): los que tienen ventas, compras, transferencias, lotes u
+ * otras operaciones se archivan en vez de borrarse, para no perder su
+ * historia; el resto se borra. `pendientes` son los que no se pudieron tocar
+ * (permisos o ya no existían y otro los borró: esos cuentan como eliminados).
  */
 export async function deleteProductsDB(
   ids: string[],
   orgId = requireActiveOrgId(),
   onProgress?: (hechos: number, total: number) => void,
-): Promise<{ eliminados: string[]; pendientes: string[] }> {
+): Promise<{ eliminados: string[]; archivados: string[]; pendientes: string[] }> {
   const eliminados: string[] = [];
+  const archivados: string[] = [];
   for (let i = 0; i < ids.length; i += 200) {
     const lote = ids.slice(i, i + 200);
-    const { error } = await supabase.from('products').delete().in('id', lote).eq('org_id', orgId);
-    if (error) throw Object.assign(error, { eliminados });
-    const { data: siguen, error: readError } = await supabase.from('products').select('id').in('id', lote).eq('org_id', orgId).limit(lote.length);
-    if (readError) throw Object.assign(readError, { eliminados });
-    const vivos = new Set((siguen ?? []).map(row => row.id));
-    eliminados.push(...lote.filter(id => !vivos.has(id)));
+    const { data, error } = await supabase.rpc('eliminar_productos' as never, { p_org: orgId, p_ids: lote } as never);
+    if (error) throw Object.assign(error, { eliminados, archivados });
+    const r = (data ?? {}) as { eliminados?: string[]; archivados?: string[] };
+    eliminados.push(...(r.eliminados ?? []));
+    archivados.push(...(r.archivados ?? []));
+    // Los que ya no existían (otro los borró) también están eliminados.
+    const tocados = new Set([...(r.eliminados ?? []), ...(r.archivados ?? [])]);
+    const restantes = lote.filter(id => !tocados.has(id));
+    if (restantes.length) {
+      const { data: siguen, error: readError } = await supabase.from('products').select('id').in('id', restantes).eq('org_id', orgId).limit(restantes.length);
+      if (readError) throw Object.assign(readError, { eliminados, archivados });
+      const vivos = new Set((siguen ?? []).map(row => row.id));
+      eliminados.push(...restantes.filter(id => !vivos.has(id)));
+    }
     onProgress?.(Math.min(i + lote.length, ids.length), ids.length);
   }
-  const listos = new Set(eliminados);
-  return { eliminados, pendientes: ids.filter(id => !listos.has(id)) };
+  const listos = new Set([...eliminados, ...archivados]);
+  return { eliminados, archivados, pendientes: ids.filter(id => !listos.has(id)) };
 }
 
 /**
