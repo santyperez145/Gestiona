@@ -308,7 +308,10 @@ export function StoreProvider({
       // El catálogo sólo necesita el slug: se pide junto con la tienda en vez
       // de esperarla (2026-10-15: en Famatina arrancaba recién a los ~2 s).
       // Si por algún motivo no sirve, se vuelve a pedir con la tienda ya leída.
-      const catalogoTemprano = fetchStoreProducts("", slug, readOptions).catch(() => null);
+      const catalogoTemprano = fetchStoreProducts("", slug, readOptions);
+      // Si la tienda no existe nadie espera este pedido: que no quede como
+      // rechazo sin manejar. Una excepción sí llega al Promise.all de abajo.
+      catalogoTemprano.catch(() => {});
       const storeResponse = await retryAbortableRead(signal => (previewVersionId
         ? supabase.rpc("get_store_theme_preview", {
           p_slug: slug,
@@ -340,10 +343,10 @@ export function StoreProvider({
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
         // Se vuelve a pedir sólo si el temprano no pudo resolverse sin la
-        // organización (camino viejo) o se interrumpió; un error de lectura ya
-        // pasó por sus reintentos y repetirlos duplicaba la espera.
-        catalogoTemprano.then(r => (r && (r.ok || r.error.code !== CATALOGO_NECESITA_ORGANIZACION)
-          ? r : fetchStoreProducts(row.org_id, row.slug, readOptions))),
+        // organización (camino viejo). Un error o un corte ya pasaron por sus
+        // reintentos: repetirlos duplicaba la espera (8 intentos, E2E 15/10).
+        catalogoTemprano.then(r => (r.ok === false && r.error.code === CATALOGO_NECESITA_ORGANIZACION
+          ? fetchStoreProducts(row.org_id, row.slug, readOptions) : r)),
         retryAbortableRead(signal => supabase.rpc("get_store_perfume_details", { p_slug: slug }).abortSignal(signal), readOptions),
         fetchStoreVariants(slug, readOptions),
         retryAbortableRead(signal => supabase.rpc("get_store_reviews", { p_slug: slug }).abortSignal(signal), readOptions),
