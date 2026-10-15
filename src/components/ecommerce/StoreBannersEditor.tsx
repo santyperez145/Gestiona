@@ -129,11 +129,19 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
     next[idx] = { ...b, sort_order: otro.sort_order };
     next[idx + dir] = { ...otro, sort_order: b.sort_order };
     next.sort((x, y) => x.sort_order - y.sort_order);
+    const previos = banners;
     setBanners(next);
-    await Promise.all([
+    // Si no se guarda, vuelve el orden anterior (antes quedaba el nuevo en
+    // pantalla y al recargar volvía el viejo sin aviso, 2026-10-15).
+    const resultados = await Promise.all([
       supabase.from("store_banners").update({ sort_order: otro.sort_order }).eq("id", b.id),
       supabase.from("store_banners").update({ sort_order: b.sort_order }).eq("id", otro.id),
     ]);
+    const fallo = resultados.find(r => r.error)?.error;
+    if (fallo) {
+      setBanners(previos);
+      toast.error(`No se pudo guardar el orden: ${fallo.message}`);
+    }
   };
 
   if (!storeId) {

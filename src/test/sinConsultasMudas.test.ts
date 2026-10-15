@@ -24,4 +24,30 @@ describe("sin consultas que se tragan el error", () => {
     const mudas = archivos("src").filter(f => patron.test(fs.readFileSync(f, "utf8")));
     expect(mudas).toEqual([]);
   });
+
+  // 2026-10-15: `supabase.from(...).update(...)` suelto, sin await ni .then,
+  // no se envía nunca (el contador de prompts del asistente no subía).
+  it("ninguna consulta queda suelta sin enviarse", () => {
+    const sueltas: string[] = [];
+    for (const f of archivos("src")) {
+      const s = fs.readFileSync(f, "utf8");
+      const re = /^[ \t]*(?:supabase|sb)\s*\.(?:from|rpc)\(/gm;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(s))) {
+        const antes = s.slice(0, m.index).trimEnd();
+        if (!antes || !";{}".includes(antes[antes.length - 1])) continue;
+        let k = m.index, d = 0;
+        while (k < s.length) {
+          const c = s[k];
+          if ("([{".includes(c)) d++;
+          else if (")]}".includes(c)) { d--; if (d < 0) break; }
+          else if (c === ";" && d === 0) break;
+          k++;
+        }
+        const sentencia = s.slice(m.index, k);
+        if (!/\.then\(|\.catch\(/.test(sentencia)) sueltas.push(`${f}: ${sentencia.trim().slice(0, 80)}`);
+      }
+    }
+    expect(sueltas).toEqual([]);
+  });
 });

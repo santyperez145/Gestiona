@@ -145,12 +145,20 @@ export default function CategoriesEditor() {
     if (j < 0 || j >= filas.length) return;
     const reordenadas = [...filas];
     [reordenadas[i], reordenadas[j]] = [reordenadas[j], reordenadas[i]];
+    const previas = filas;
     setFilas(reordenadas);
     // Se persiste el orden de las dos que se movieron, no de toda la lista.
-    await Promise.all([
+    // Si no se guarda, vuelve el orden anterior: antes quedaba el nuevo en
+    // pantalla y al recargar volvía el viejo sin aviso (2026-10-15).
+    const resultados = await Promise.all([
       supabase.from("ecommerce_categories").update({ sort_order: j } as never).eq("id", f.id),
       supabase.from("ecommerce_categories").update({ sort_order: i } as never).eq("id", reordenadas[i].id),
     ]);
+    const fallo = resultados.find(r => r.error)?.error;
+    if (fallo) {
+      setFilas(previas);
+      toast.error(`No se pudo guardar el orden: ${fallo.message}`);
+    }
   }
 
   async function borrar(f: Fila) {

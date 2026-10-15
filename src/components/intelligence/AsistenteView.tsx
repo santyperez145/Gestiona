@@ -356,7 +356,8 @@ export default function AsistenteView() {
 
   function applyPrompt(p: PromptItem) {
     setInput(p.prompt);
-    supabase.from("ai_prompts_library").update({ use_count: p.use_count + 1 }).eq("id", p.id);
+    // Sin await ni .then la consulta no se enviaba: el contador no subía nunca.
+    void conRegistro(supabase.from("ai_prompts_library").update({ use_count: p.use_count + 1 }).eq("id", p.id));
     setShowPromptLib(false);
   }
 
