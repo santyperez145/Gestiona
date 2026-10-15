@@ -49873,6 +49873,7 @@ export type Database = {
           plataforma_ambiente: string | null
           plataforma_lista: boolean | null
           plataforma_razon_social: string | null
+          plataforma_verificada: boolean | null
           punto_venta: number | null
           razon_social: string | null
           ta_expires_at: string | null
@@ -50062,14 +50063,22 @@ export type Database = {
           certificate_fingerprint_sha256: string | null
           certificate_not_before: string | null
           certificate_valid: boolean | null
+          certificado_emisor: string | null
           comercios_delegados: number | null
           configured: boolean | null
           cuit: string | null
           environment: string | null
+          pedido_ambiente: string | null
+          pedido_creado_at: string | null
+          pedido_csr: string | null
+          pedido_pendiente: boolean | null
           razon_social: string | null
           ta_expires_at: string | null
           ticket_vigente: boolean | null
           updated_at: string | null
+          verificado_at: string | null
+          verificado_motivo: string | null
+          verificado_ok: boolean | null
         }
         Insert: {
           certificate_expires_at?: string | null

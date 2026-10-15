@@ -27,6 +27,10 @@ export type ConexionFiscal = {
   configured: boolean | null;
   motivo: string | null;
   delegacion_verificada: boolean | null;
+  /** Última prueba real del certificado de Nerqia contra ARCA: true, false o null (sin probar). */
+  plataforma_verificada?: boolean | null;
+  /** 'propio' usa su certificado: la prueba del de Nerqia no le aplica. */
+  modo?: string | null;
 };
 
 export type ComprobanteFiscalSalud = ComprobantePendienteFiscal & { issue_date: string | null };
@@ -64,16 +68,22 @@ export function saludFiscal(
     detalle: faltantes.length === 0 ? "Completos." : `Falta: ${faltantes.join(", ")}.`,
   });
 
+  // 2026-10-15: decía «Nerqia puede pedir autorización a ARCA» con un
+  // certificado de homologación que ARCA producción rechazaba. Ahora sale de la
+  // última prueba real del certificado.
   const conectado = !!conexion?.configured && conexion.motivo !== "falta_ambiente";
+  const sinProbar = conectado && conexion?.modo !== "propio" && conexion?.plataforma_verificada === null;
   controles.push({
     id: "conexion",
     titulo: "Conexión con ARCA",
-    estado: conectado ? "ok" : "falla",
-    detalle: conectado
-      ? "Nerqia puede pedir autorización a ARCA."
-      : conexion?.motivo === "falta_ambiente"
-        ? "El ambiente elegido no tiene certificado disponible."
-        : "Todavía no se puede pedir CAE.",
+    estado: conectado ? (sinProbar ? "atencion" : "ok") : "falla",
+    detalle: conexion?.motivo === "plataforma_rechazada"
+      ? "Nerqia está renovando su certificado de ARCA: por ahora no se pueden autorizar facturas. No es un problema de tu configuración."
+      : conectado
+        ? (sinProbar ? "Nerqia todavía no probó su certificado con ARCA." : "ARCA acepta el certificado de Nerqia.")
+        : conexion?.motivo === "falta_ambiente"
+          ? "El ambiente elegido no tiene certificado disponible."
+          : "Todavía no se puede pedir CAE.",
   });
 
   controles.push({

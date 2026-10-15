@@ -107,6 +107,15 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   `afip_connection_status` y los últimos 50 comprobantes, usando la misma regla
   de la bandeja. No consulta ARCA: un puntaje alto no certifica emisión. El
   certificado de plataforma no es visible para el comercio y se controla en Platform.
+  Lo que sí ve el comercio es el resultado de la última prueba real de ese
+  certificado contra WSAA (`plataforma_verificada`, motivo `plataforma_rechazada`):
+  un certificado rechazado es «falla» y uno sin probar, «atención».
+- Certificado de la plataforma (`afip-platform-cert`): «Generar pedido» crea la
+  clave RSA 2048 en el servidor (cifrada, no se descarga) y devuelve sólo el CSR.
+  El .crt que emite ARCA se prueba contra WSAA con esa clave antes de reemplazar
+  al activo; si ARCA lo rechaza no cambia nada. La carga manual de certificado y
+  clave rechaza uno emitido por «Computadores Test» como producción y se prueba
+  en el acto. Un cron repite la prueba y guarda resultado, motivo y emisor.
 - A4 y 80 mm muestran neto/IVA para A y NC A, precios finales para B/C y sus NC,
   transparencia, identidad congelada, CAE/QR y referencia de la NC. Homologación
   se identifica explícitamente y no es un comprobante productivo.

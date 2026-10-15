@@ -54,6 +54,24 @@ describe("salud fiscal", () => {
     expect(estado(saludFiscal(conexionLista, [autorizada("2026-08-01")], ahora), "cae_reciente")).toBe("atencion");
   });
 
+  // 2026-10-15: con el certificado de Nerqia rechazado por ARCA la pantalla
+  // decía «Nerqia puede pedir autorización a ARCA».
+  it("el certificado de Nerqia rechazado es falla y no culpa al comercio", () => {
+    const control = saludFiscal({ ...conexionLista, configured: false, motivo: "plataforma_rechazada", plataforma_verificada: false }, [], ahora)
+      .controles.find(c => c.id === "conexion");
+    expect(control?.estado).toBe("falla");
+    expect(control?.detalle).toMatch(/renovando su certificado/);
+    expect(control?.detalle).toMatch(/No es un problema de tu configuración/);
+  });
+
+  it("sin prueba real del certificado de Nerqia es atención; con certificado propio no aplica", () => {
+    const sinProbar = { ...conexionLista, modo: "delegado", plataforma_verificada: null };
+    expect(estado(saludFiscal(sinProbar, [], ahora), "conexion")).toBe("atencion");
+    expect(estado(saludFiscal({ ...sinProbar, modo: "propio" }, [], ahora), "conexion")).toBe("ok");
+    expect(saludFiscal({ ...sinProbar, plataforma_verificada: true }, [], ahora).controles.find(c => c.id === "conexion")?.detalle)
+      .toBe("ARCA acepta el certificado de Nerqia.");
+  });
+
   it("la activación en revisión es atención, no falla", () => {
     expect(estado(saludFiscal({ ...conexionLista, delegacion_verificada: false, motivo: "esperando_plataforma" }, [], ahora), "delegacion")).toBe("atencion");
   });

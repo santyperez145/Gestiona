@@ -50,6 +50,7 @@ interface AfipConnectionStatus {
   delegacion_solicitada_at: string | null;
   delegacion_revisada_at: string | null;
   delegacion_verificada: boolean | null;
+  plataforma_verificada?: boolean | null;
   plataforma_ambiente: string | null;
 }
 
@@ -136,7 +137,7 @@ export default function AFIPPage() {
         // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
         // una columna que no existe— y con `strictNullChecks: false` el cast a
         // la interface hace que TypeScript crea que el campo está.
-        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente")
+        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente, plataforma_verificada")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
@@ -334,6 +335,8 @@ export default function AFIPPage() {
         cuitDelComercio={connection?.cuit ?? null}
         ambiente={connection?.environment ?? null}
         ultimoDiagnostico={connection?.last_error ?? null}
+        delegacionVerificada={connection?.delegacion_verificada ?? null}
+        delegacionSolicitada={!!connection?.delegacion_solicitada_at}
         canVerify={canEdit}
         onVerificado={load}
       />}

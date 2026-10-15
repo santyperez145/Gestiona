@@ -47,6 +47,14 @@ interface Estado {
   certificate_expires_at: string | null;
   certificate_fingerprint_sha256: string | null;
   certificate_valid: boolean | null;
+  certificado_emisor?: string | null;
+  verificado_ok?: boolean | null;
+  verificado_motivo?: string | null;
+  verificado_at?: string | null;
+  pedido_pendiente?: boolean | null;
+  pedido_csr?: string | null;
+  pedido_ambiente?: string | null;
+  pedido_creado_at?: string | null;
 }
 
 interface SolicitudDelegacion {
@@ -364,7 +372,7 @@ export default function PlatformAfipPage() {
         </div>
       </div>
 
-      {!cargando && <RenovarCertificadoArca cuit={cuit} razonSocial={razonSocial} ambiente={environment} />}
+      {!cargando && <RenovarCertificadoArca estado={estado} onCambio={() => void cargar()} />}
 
       {cargando ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

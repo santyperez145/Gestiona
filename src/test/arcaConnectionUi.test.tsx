@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ConectarAfip from "@/components/afip/ConectarAfip";
+import { esCertificadoDePrueba } from "@/components/platform/RenovarCertificadoArca";
 
 const { invoke, rpc } = vi.hoisted(() => ({ invoke: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke }, rpc } }));
@@ -45,5 +46,30 @@ describe("ARCA connection recovery and write permissions", () => {
     invoke.mockRejectedValue(new Error("ZZ secret")); render(<ConectarAfip {...props} motivo="sin_delegacion_necesaria" />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Reintentar ahora" })).toBeEnabled());
     expect(screen.getByText(/Tus datos se conservan/)).toBeVisible(); expect(props.onVerificado).not.toHaveBeenCalled();
+  });
+});
+
+// 2026-10-15: el certificado de Nerqia era de homologación cargado como
+// producción y ARCA lo rechazaba; el comercio veía «todo listo».
+describe("certificado de Nerqia rechazado por ARCA", () => {
+  it("avisa que no es del comercio y deja adelantar la delegación", () => {
+    render(<ConectarAfip {...props} motivo="plataforma_rechazada" />);
+    expect(screen.getByText("Nerqia está renovando su certificado de ARCA")).toBeVisible();
+    expect(screen.getByText(/No es un problema de tu configuración/)).toBeVisible();
+    expect(screen.getByRole("button", { name: activation })).toBeEnabled();
+  });
+  it("no repite la guía si el comercio ya delegó o pidió la activación", () => {
+    const view = render(<ConectarAfip {...props} motivo="plataforma_rechazada" delegacionVerificada />);
+    expect(screen.getByText(/tu delegación ya está verificada/)).toBeVisible();
+    expect(screen.queryByRole("button", { name: activation })).not.toBeInTheDocument();
+    view.rerender(<ConectarAfip {...props} motivo="plataforma_rechazada" delegacionSolicitada />);
+    expect(screen.getByText(/ya recibimos tu solicitud de activación/)).toBeVisible();
+    expect(screen.queryByRole("button", { name: activation })).not.toBeInTheDocument();
+  });
+  it("reconoce un certificado de homologación cargado como producción", () => {
+    expect(esCertificadoDePrueba({ environment: "produccion", certificado_emisor: "CN=Computadores Test, O=AFIP, C=AR" })).toBe(true);
+    expect(esCertificadoDePrueba({ environment: "homologacion", certificado_emisor: "CN=Computadores Test, O=AFIP, C=AR" })).toBe(false);
+    expect(esCertificadoDePrueba({ environment: "produccion", certificado_emisor: "CN=Computadores, O=AFIP, C=AR" })).toBe(false);
+    expect(esCertificadoDePrueba(null)).toBe(false);
   });
 });

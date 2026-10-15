@@ -47,6 +47,12 @@ export type MotivoAfip =
    * siempre.
    */
   | "sin_delegacion_necesaria"
+  /**
+   * ARCA rechazó el certificado de Nerqia en la última prueba real
+   * (2026-10-15: era de homologación cargado como producción). No es del
+   * comercio; igual puede adelantar la delegación mientras Nerqia lo renueva.
+   */
+  | "plataforma_rechazada"
   | "falta_delegar"
   | "esperando_plataforma"
   | "requiere_correccion"
@@ -60,6 +66,9 @@ interface Props {
   cuitDelComercio: string | null;
   ambiente: string | null;
   ultimoDiagnostico?: string | null;
+  /** Si ya delegó (o pidió la activación), no se le vuelve a mostrar la guía. */
+  delegacionVerificada?: boolean | null;
+  delegacionSolicitada?: boolean;
   canVerify: boolean;
   /** Para reconsultar el estado después de verificar. */
   onVerificado: () => void;
@@ -74,7 +83,7 @@ function formatearCuit(cuit: string | null): string {
 
 export default function ConectarAfip({
   orgId, motivo, plataformaCuit, plataformaRazonSocial, cuitDelComercio, ambiente,
-  ultimoDiagnostico, onVerificado, canVerify,
+  ultimoDiagnostico, onVerificado, canVerify, delegacionVerificada, delegacionSolicitada,
 }: Props) {
   const [verificando, setVerificando] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
@@ -266,6 +275,24 @@ export default function ConectarAfip({
     );
   }
 
+  // El certificado de Nerqia está rechazado pero el comercio ya hizo su parte:
+  // mostrarle otra vez la guía lo haría repetir un trámite que ya cumplió.
+  if (motivo === "plataforma_rechazada" && (delegacionVerificada || delegacionSolicitada)) {
+    return (
+      <Card role="status" className="p-4 flex items-start gap-3 border-amber-500/40 bg-amber-500/5">
+        <Clock className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
+        <div className="text-sm">
+          <p className="font-medium">Nerqia está renovando su certificado de ARCA</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Por ahora no se pueden autorizar facturas con CAE. No es un problema de tu configuración:
+            {delegacionVerificada ? " tu delegación ya está verificada" : " ya recibimos tu solicitud de activación"} y
+            no tenés que repetir nada. Cuando el certificado esté renovado vas a poder facturar.
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
   if (motivo === "falta_datos_fiscales") {
     return (
       <Card className="p-4 flex items-start gap-3 border-amber-500/40 bg-amber-500/5">
@@ -325,9 +352,23 @@ export default function ConectarAfip({
     );
   }
 
-  // falta_delegar — el caso principal: hay que guiarlo.
+  // falta_delegar — el caso principal: hay que guiarlo. Con el certificado de
+  // Nerqia rechazado se muestra igual, con el aviso arriba: la delegación es
+  // del comercio y puede adelantarla mientras Nerqia renueva el suyo.
   return (
     <Card className="p-4 space-y-4">
+      {motivo === "plataforma_rechazada" && (
+        <div role="status" className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+          <Clock className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
+          <div className="text-sm">
+            <p className="font-medium">Nerqia está renovando su certificado de ARCA</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Por ahora no se pueden autorizar facturas con CAE. No es un problema de tu configuración:
+              tus datos se conservan y podés adelantar la delegación de abajo.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex items-start gap-3">
         <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div>

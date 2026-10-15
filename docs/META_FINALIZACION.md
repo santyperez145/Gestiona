@@ -23,7 +23,16 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 - [x] Factura de homologación guiada (vigesimoprimera corrida): el paso «Primera factura con CAE» abre Facturas con la factura de prueba precargada (consumidor final, «Factura de prueba (homologación)» por $100); el comercio revisa y confirma, y la factura sigue el circuito normal de autorización. Sólo en homologación: en producción no se precarga nada y se avisa por qué. **Gate externo pendiente:** obtener el primer CAE real de prueba con un comercio delegado.
 - [x] POS: "Facturar todas las ventas" por organización; un cliente con CUIT activa la factura del ticket.
 - [x] Commerce: cada pedido pagado genera su factura y se autoriza en ARCA vía outbox (`orden.pagada` → `facturar_orden_pagada` → `factura.creada` → `afip-authorize`); el lote muestra el resultado y qué hacer por pedido.
-- [x] Asistente de renovación de certificado (2026-10-11, vigesimoctava corrida): Platform › ARCA › «Renovar el certificado paso a paso». Arma los comandos de openssl (clave y CSR con el subject que pide ARCA) con el CUIT y la razón social del formulario, dice dónde subir el pedido según el ambiente (Administración de Certificados Digitales / WSASS) y qué cargar acá. La clave se genera en la computadora del dueño. **Acción del dueño cuando venza:** seguir esos tres pasos.
+- [x] Asistente de renovación de certificado (2026-10-11, vigesimoctava corrida): Platform › ARCA › «Renovar el certificado paso a paso». Desde el 2026-10-15 el pedido se genera en el servidor (ver abajo); los comandos de openssl se retiraron.
+- [x] Certificado de la plataforma probado de verdad (2026-10-15). El guardado como producción era de homologación (emisor «Computadores Test») y WSAA producción lo rechazaba con `cms.cert.untrusted`, así que ningún comercio podía facturar. La pantalla igual decía «Nerqia puede pedir autorización a ARCA». Ahora:
+  - `afip-platform-cert` v26 prueba el certificado contra WSAA (staff con «Probar con ARCA», o cron) y guarda el resultado y el emisor.
+  - Genera el pedido (CSR) en el servidor: la clave es RSA 2048 y queda cifrada, sin salir nunca del servidor.
+  - Recibe sólo el .crt y lo activa únicamente si ARCA lo acepta.
+  - La carga manual rechaza un certificado de homologación marcado como producción y se prueba en el acto.
+  - `afip_connection_status` suma `plataforma_rechazada` y `plataforma_verificada`. El comercio ve «Nerqia está renovando su certificado», que no es un problema suyo, y puede adelantar la delegación; si ya delegó, no se le pide de nuevo.
+  - La salud fiscal deja de dar «ok» sin una prueba real.
+  - Prueba diaria por cron (`certificado-arca-prueba-diaria`, 06:07 UTC). Migraciones 20261015000600, 000700 y 000800; matrices `scripts/certificado-plataforma-matrix.sql` y `scripts/conexion-certificado-matrix.sql`.
+  - **Acción del dueño (intransferible):** Platform › ARCA › «Generar pedido» (producción) → subir el .csr en ARCA con la clave fiscal del CUIT 20-44648443-6 (alias `nerqia`) → cargar el .crt → asociar `nerqia` a wsfe en el Administrador de Relaciones.
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.
