@@ -433,6 +433,11 @@ export default function KardexPage() {
               <div className="flex flex-col items-center justify-center h-40 text-muted-foreground gap-2">
                 <History className="w-10 h-10 opacity-30" />
                 <p>Sin movimientos para los filtros seleccionados</p>
+                {/* El período por defecto es 30 días: sin esta salida, un
+                    negocio sin ventas recientes veía el Kardex «vacío». */}
+                {datePreset !== -1 && (
+                  <Button variant="outline" size="sm" onClick={() => setDatePreset(-1)}>Ver todo el historial</Button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">

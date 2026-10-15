@@ -371,6 +371,13 @@ export function storePublishCta(input: { canPublish: boolean }): {
   return { kind: 'complete', label: 'Pagos y envíos' };
 }
 
+/** Quien llegó a un paso del embudo pasó por los anteriores (datos medidos desde fechas distintas). */
+export function embudoMonotono(total: number, conItems: number, checkout: number, convertidas: number) {
+  const c = Math.min(convertidas, total);
+  const k = Math.min(Math.max(checkout, c), total);
+  return { conItems: Math.min(Math.max(conItems, k), total), checkout: k, convertidas: c };
+}
+
 function pct(part: number, total: number): number {
   if (total <= 0) return 0;
   return parseFloat(((part / total) * 100).toFixed(1));
@@ -412,12 +419,16 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     convertedSessions,
     recoverableCarts,
   ] = numbers as number[];
+  // El embudo puede venir invertido con datos reales: el evento «agregó al
+  // carrito» se empezó a medir el 2026-09-04 y hubo pagos de carritos armados
+  // antes (Exentry: 2 sesiones que iniciaron el pago y 1 con productos). Antes
+  // eso descartaba todo el bloque («Las métricas recibidas no son válidas»);
+  // ahora se acepta y se muestra corregido (quien llegó al paso siguiente pasó
+  // por el anterior). Lo estructural sigue validándose.
   if (
     ordersPaid > ordersTotal
     || attributedOrders > ordersTotal
     || sessionsWithItems > sessionsTotal
-    || checkoutStartedSessions > sessionsWithItems
-    || convertedSessions > checkoutStartedSessions
   ) return null;
 
   if (!Array.isArray(row.channels)) return null;
@@ -448,12 +459,7 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
       channelOrdersPaid,
       channelPaidRevenue,
     ] = values as number[];
-    if (
-      channelSessionsWithItems > sessions
-      || channelCheckoutStarted > channelSessionsWithItems
-      || channelConverted > channelCheckoutStarted
-      || channelOrdersPaid > orders
-    ) return null;
+    if (channelSessionsWithItems > sessions || channelOrdersPaid > orders) return null;
     seenChannels.add(channel);
     channels.push({
       channel: channel as StoreTrafficChannelId,
@@ -528,17 +534,21 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
   ) {
     return null;
   }
+  const embudo = embudoMonotono(sessionsTotal, sessionsWithItems, checkoutStartedSessions, convertedSessions);
   return {
     ordersTotal,
     ordersPaid,
     paidRevenueArs,
     attributedOrders,
     sessionsTotal,
-    sessionsWithItems,
-    checkoutStartedSessions,
-    convertedSessions,
+    sessionsWithItems: embudo.conItems,
+    checkoutStartedSessions: embudo.checkout,
+    convertedSessions: embudo.convertidas,
     recoverableCarts,
-    channels,
+    channels: channels.map(c => {
+      const e = embudoMonotono(c.sessions, c.sessionsWithItems, c.checkoutStartedSessions, c.convertedSessions);
+      return { ...c, sessionsWithItems: e.conItems, checkoutStartedSessions: e.checkout, convertedSessions: e.convertidas };
+    }),
     periodFrom,
     periodTo,
     comparison,

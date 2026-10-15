@@ -1092,7 +1092,7 @@ export default function EcommerceStorePage() {
         <div>
           <p className="text-sm font-semibold">Rendimiento de la tienda</p>
           <p className="text-xs text-muted-foreground">
-            {performancePeriod ?? "Calculando el período…"}
+            {performancePeriod ?? (performanceError ? "Sin métricas del período" : "Calculando el período…")}
             {comparisonCopy ? ` · ${comparisonCopy}` : ""}
           </p>
         </div>
