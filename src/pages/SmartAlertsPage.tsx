@@ -1,415 +1,258 @@
-﻿import { fechaLocal } from "@/lib/fechaAR";
-import { useState, useEffect } from "react";
+// Alertas: lo que te avisó Nerqia y las reglas que lo deciden.
+//
+// 2026-10-15: se rehízo. Antes administraba `smart_alert_rules`, que sólo
+// evalúa el motor de presupuestos (una regla de stock o clientes creada acá no
+// disparaba nunca), mientras las reglas que sí corren todos los días
+// (`alert_rules`, función check-alerts) no se veían en ninguna pantalla. La
+// pestaña de eventos leía `alert_events`, donde no llegan los resúmenes
+// diarios, y la de canales decía «Configurado» fijo con botones que sólo
+// mostraban un aviso. Ver `src/lib/reglasDeAlertas.ts`.
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bell, Check, Loader2, Settings, Smartphone } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import {
-  Bell, AlertTriangle, CheckCircle, Info, Zap, Plus,
-  Mail, MessageCircle, Webhook, Smartphone, Clock, Filter,
-  XCircle, Eye, Settings, Loader2
-} from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import { useAuth } from "@/lib/auth";
+import { useModulePerms } from "@/lib/permissionsContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { fechaLocal } from "@/lib/fechaAR";
+import { rutaDelAviso } from "@/lib/rutaDelAviso";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
+import {
+  REGLAS_DE_ALERTA, describirRegla, validarUmbral, type DefinicionDeRegla, type TipoDeRegla,
+} from "@/lib/reglasDeAlertas";
+import PageHeader from "@/components/shared/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface AlertRule {
+interface Aviso {
   id: string;
-  name: string;
-  category: string;
-  metric: string;
-  condition_op: string;
-  threshold: number;
-  priority: string;
-  channels: string[];
-  cooldown_min: number;
-  is_active: boolean;
-  last_triggered: string | null;
-  trigger_count: number;
+  origen: "notificacion" | "evento";
+  titulo: string;
+  mensaje: string;
+  fecha: string;
+  pendiente: boolean;
+  ruta: string | null;
 }
 
-interface AlertEvent {
-  id: string;
-  rule_name: string;
-  category: string;
-  priority: string;
-  title: string;
-  message: string;
-  metric_value: number | null;
+interface FilaRegla {
+  id?: string;
+  type: TipoDeRegla;
+  enabled: boolean;
   threshold_value: number | null;
-  acknowledged_at: string | null;
-  created_at: string;
+  threshold_days: number | null;
+  last_run_at: string | null;
 }
 
-const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: typeof Bell }> = {
-  critical: { label: "Crítico",  color: "bg-red-500/15 text-red-400 border-red-500/20",       icon: XCircle },
-  high:     { label: "Alto",     color: "bg-orange-500/15 text-orange-400 border-orange-500/20", icon: AlertTriangle },
-  medium:   { label: "Medio",    color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20", icon: Bell },
-  low:      { label: "Bajo",     color: "bg-blue-500/15 text-blue-400 border-blue-500/20",   icon: Info },
-  info:     { label: "Info",     color: "bg-muted/40 text-muted-foreground border-border/40", icon: Info },
-};
+const cuando = (iso: string) =>
+  fechaLocal(iso).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
-const CHANNEL_ICONS: Record<string, { label: string; icon: typeof Bell }> = {
-  app:      { label: "App",      icon: Bell },
-  email:    { label: "Email",    icon: Mail },
-  whatsapp: { label: "WhatsApp", icon: MessageCircle },
-  slack:    { label: "Slack",    icon: Zap },
-  webhook:  { label: "Webhook",  icon: Webhook },
-};
+function Regla({ def, fila, puedeEditar, onGuardada }: {
+  def: DefinicionDeRegla; fila: FilaRegla | undefined; puedeEditar: boolean; onGuardada: (f: FilaRegla) => void;
+}) {
+  const { activeOrg } = useOrg();
+  const actual = Number(fila?.[def.campo] ?? def.porDefecto);
+  const [texto, setTexto] = useState(String(actual));
+  const [guardando, setGuardando] = useState(false);
+  useEffect(() => { setTexto(String(actual)); }, [actual]);
+  const activa = fila?.enabled ?? false;
 
+  const guardar = async (cambios: { enabled?: boolean; valor?: number }) => {
+    if (!activeOrg) return;
+    setGuardando(true);
+    try {
+      const payload = {
+        org_id: activeOrg.id,
+        type: def.tipo,
+        enabled: cambios.enabled ?? activa,
+        [def.campo]: cambios.valor ?? actual,
+      };
+      const { data, error } = await supabase
+        .from("alert_rules")
+        .upsert(payload, { onConflict: "org_id,type" })
+        .select("id, type, enabled, threshold_value, threshold_days, last_run_at")
+        .single();
+      if (error) throw error;
+      onGuardada(data as FilaRegla);
+      toast.success(cambios.enabled === undefined ? "Umbral guardado" : cambios.enabled ? "Regla activada" : "Regla pausada");
+    } catch (e) {
+      toast.error(`No se pudo guardar la regla: ${mensajeDeError(e)}`);
+    } finally {
+      setGuardando(false);
+    }
+  };
 
-function PriorityBadge({ priority }: { priority: string }) {
-  const cfg = PRIORITY_CONFIG[priority] ?? PRIORITY_CONFIG.info;
-  const Icon = cfg.icon;
+  const guardarUmbral = () => {
+    const r = validarUmbral(def, texto);
+    if ("error" in r) { toast.error(r.error); return; }
+    if (r.valor === actual) return;
+    void guardar({ valor: r.valor });
+  };
+
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.color}`}>
-      <Icon className="w-3 h-3" />{cfg.label}
-    </span>
+    <div className="flex flex-col gap-3 border-b border-border/40 py-4 last:border-0 sm:flex-row sm:items-center">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{def.titulo}</p>
+        <p className="text-xs text-muted-foreground">{describirRegla(def, actual)}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground/80">
+          {!fila ? "Sin configurar" : fila.last_run_at ? `Revisada el ${cuando(fila.last_run_at)}` : "Todavía no se revisó"}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <Input
+          className="h-8 w-28 text-right tabular-nums" inputMode="decimal" aria-label={`Umbral de ${def.titulo} en ${def.unidad}`}
+          value={texto} disabled={!puedeEditar || guardando}
+          onChange={e => setTexto(e.target.value)} onBlur={guardarUmbral}
+          onKeyDown={e => { if (e.key === "Enter") guardarUmbral(); }}
+        />
+        <span className="w-14 text-xs text-muted-foreground">{def.unidad}</span>
+        {guardando ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : (
+          <Switch checked={activa} disabled={!puedeEditar} aria-label={`${activa ? "Pausar" : "Activar"} ${def.titulo}`}
+            onCheckedChange={v => void guardar({ enabled: v })} />
+        )}
+      </div>
+    </div>
   );
 }
 
 export default function SmartAlertsPage() {
   usePageTitle("Alertas");
   const { activeOrg } = useOrg();
-  const [tab, setTab] = usePersistedState<"events" | "rules" | "config">(
-    orgViewKey("smart-alerts.tab", activeOrg?.id),
-    "events",
-  );
-  const [rules, setRules] = useState<AlertRule[]>([]);
-  const [events, setEvents] = useState<AlertEvent[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [showNew, setShowNew] = useState(false);
-  const [newRule, setNewRule] = useState({ name: "", category: "stock", metric: "stock_level", condition_op: "lt", threshold: "0", priority: "medium" });
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const ajustes = useModulePerms("settings");
+  const [tab, setTab] = usePersistedState<"avisos" | "reglas" | "canales">(orgViewKey(activeOrg?.id, "alertas:tab"), "avisos");
+  const [avisos, setAvisos] = useState<Aviso[]>([]);
+  const [reglas, setReglas] = useState<FilaRegla[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!activeOrg) return;
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [rulesRes, eventsRes] = await Promise.all([
-          supabase
-            .from("smart_alert_rules")
-            .select("id, name, category, metric, condition_op, threshold, priority, channels, cooldown_min, is_active, last_triggered, trigger_count")
-            .eq("org_id", activeOrg.id)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("alert_events")
-            .select("id, rule_name, category, priority, title, message, metric_value, threshold_value, acknowledged_at, created_at")
-            .eq("org_id", activeOrg.id)
-            .order("created_at", { ascending: false })
-            .limit(100),
-        ]);
-        setRules(
-          (rulesRes.data ?? []).map(r => ({
-            ...r,
-            threshold: Number(r.threshold),
-            last_triggered: r.last_triggered ?? null,
-          }))
-        );
-        setEvents(
-          (eventsRes.data ?? []).map(e => ({
-            ...e,
-            metric_value: e.metric_value !== null ? Number(e.metric_value) : null,
-            threshold_value: e.threshold_value !== null ? Number(e.threshold_value) : null,
-          }))
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [activeOrg]);
+  const cargar = useCallback(async () => {
+    if (!activeOrg || !user) return;
+    setCargando(true);
+    setError(null);
+    const [notifRes, eventosRes, reglasRes] = await Promise.all([
+      supabase.from("notifications").select("id, title, message, read, created_at, entity_type, entity_id")
+        .eq("org_id", activeOrg.id).eq("user_id", user.id).order("created_at", { ascending: false }).limit(60),
+      supabase.from("alert_events").select("id, title, message, acknowledged_at, created_at")
+        .eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(60),
+      supabase.from("alert_rules").select("id, type, enabled, threshold_value, threshold_days, last_run_at")
+        .eq("org_id", activeOrg.id),
+    ]);
+    const fallo = notifRes.error ?? eventosRes.error ?? reglasRes.error;
+    if (fallo) setError(mensajeDeError(fallo));
+    const lista: Aviso[] = [
+      ...(notifRes.data ?? []).map(n => ({
+        id: n.id, origen: "notificacion" as const, titulo: n.title, mensaje: n.message ?? "",
+        fecha: n.created_at, pendiente: !n.read, ruta: rutaDelAviso(n),
+      })),
+      ...(eventosRes.data ?? []).map(e => ({
+        id: e.id, origen: "evento" as const, titulo: e.title, mensaje: e.message ?? "",
+        fecha: e.created_at, pendiente: !e.acknowledged_at, ruta: null,
+      })),
+    ].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    setAvisos(lista);
+    setReglas((reglasRes.data ?? []) as FilaRegla[]);
+    setCargando(false);
+  }, [activeOrg, user]);
 
-  const unacked = events.filter(e => !e.acknowledged_at).length;
+  useEffect(() => { void cargar(); }, [cargar]);
 
-  const filteredEvents = events.filter(e =>
-    (priorityFilter === "all" || e.priority === priorityFilter) &&
-    (categoryFilter === "all" || e.category === categoryFilter)
-  );
-
-  const acknowledge = async (id: string) => {
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from("alert_events")
-      .update({ acknowledged_at: now, acknowledged_by: (await supabase.auth.getUser()).data.user?.id })
-      .eq("id", id);
-    if (error) { toast.error("No se pudo reconocer la alerta: " + error.message); return; }
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, acknowledged_at: now } : e));
-    toast.success("Alerta reconocida");
+  const marcarLeido = async (a: Aviso) => {
+    const { error: e } = a.origen === "notificacion"
+      ? await supabase.from("notifications").update({ read: true }).eq("id", a.id)
+      : await supabase.from("alert_events").update({ acknowledged_at: new Date().toISOString(), acknowledged_by: user?.id }).eq("id", a.id);
+    if (e) { toast.error(`No se pudo marcar como leído: ${mensajeDeError(e)}`); return; }
+    setAvisos(prev => prev.map(x => x.id === a.id ? { ...x, pendiente: false } : x));
   };
 
-  const toggleRule = async (id: string) => {
-    const rule = rules.find(r => r.id === id);
-    if (!rule) return;
-    const newActive = !rule.is_active;
-    const { error } = await supabase
-      .from("smart_alert_rules")
-      .update({ is_active: newActive })
-      .eq("id", id);
-    if (error) { toast.error("No se pudo cambiar la regla: " + error.message); return; }
-    setRules(prev => prev.map(r => r.id === id ? { ...r, is_active: newActive } : r));
-  };
-
-  const handleCreateRule = async () => {
-    if (!newRule.name.trim()) { toast.error("Ingresá un nombre"); return; }
-    if (!activeOrg) return;
-    const payload = {
-      org_id: activeOrg.id,
-      name: newRule.name,
-      category: newRule.category,
-      metric: newRule.metric,
-      condition_op: newRule.condition_op,
-      threshold: parseFloat(newRule.threshold) || 0,
-      priority: newRule.priority,
-      channels: ["app"],
-      cooldown_min: 60,
-      is_active: true,
-    };
-    const { data, error } = await supabase
-      .from("smart_alert_rules")
-      .insert(payload)
-      .select()
-      .single();
-    if (error) { toast.error("Error al crear regla"); return; }
-    setRules(prev => [{ ...data, threshold: Number(data.threshold), last_triggered: data.last_triggered ?? null }, ...prev]);
-    toast.success("Regla creada");
-    setShowNew(false);
-  };
-
-  const stats = {
-    critical: events.filter(e => e.priority === "critical" && !e.acknowledged_at).length,
-    high: events.filter(e => e.priority === "high" && !e.acknowledged_at).length,
-    active_rules: rules.filter(r => r.is_active).length,
-  };
+  const pendientes = avisos.filter(a => a.pendiente).length;
+  const porTipo = useMemo(() => new Map(reglas.map(r => [r.type, r])), [reglas]);
+  const activas = reglas.filter(r => r.enabled).length;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="workspace-page space-y-5">
       <PageHeader
         icon={Bell}
-        title="Motor de Alertas Inteligentes"
-        description="Reglas automáticas, notificaciones multicanal y gestión de incidentes"
-        actions={
-          <div className="flex items-center flex-wrap gap-2">
-            {unacked > 0 && <Badge className="bg-destructive text-destructive-foreground">{unacked} sin reconocer</Badge>}
-            <Button onClick={() => setShowNew(true)}><Plus className="w-4 h-4 mr-2" />Nueva Regla</Button>
-          </div>
-        }
+        title="Alertas"
+        description="Lo que Nerqia te avisó y las reglas que deciden cuándo avisarte."
       />
 
-      {/* New Rule Dialog */}
-      <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Crear Regla de Alerta</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div><Label>Nombre</Label><Input value={newRule.name} onChange={e => setNewRule(n => ({ ...n, name: e.target.value }))} placeholder="Ej: Stock bajo de producto crítico" /></div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Categoría</Label>
-                <Select value={newRule.category} onValueChange={v => setNewRule(n => ({ ...n, category: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[["stock","Stock"],["sales","Ventas"],["financial","Financiero"],["operations","Operaciones"],["customer","Cliente"],["business","Negocio"],["system","Sistema"]].map(([c, label]) => <SelectItem key={c} value={c} className="capitalize">{label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Prioridad</Label>
-                <Select value={newRule.priority} onValueChange={v => setNewRule(n => ({ ...n, priority: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="critical">Crítico</SelectItem>
-                    <SelectItem value="high">Alto</SelectItem>
-                    <SelectItem value="medium">Medio</SelectItem>
-                    <SelectItem value="low">Bajo</SelectItem>
-                    <SelectItem value="info">Informativo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Condición</Label>
-                <Select value={newRule.condition_op} onValueChange={v => setNewRule(n => ({ ...n, condition_op: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lt">Menor que</SelectItem>
-                    <SelectItem value="gt">Mayor que</SelectItem>
-                    <SelectItem value="lte">Menor o igual</SelectItem>
-                    <SelectItem value="gte">Mayor o igual</SelectItem>
-                    <SelectItem value="eq">Igual a</SelectItem>
-                    <SelectItem value="change_pct">Cambio % vs período anterior</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Umbral</Label><Input type="number" value={newRule.threshold} onChange={e => setNewRule(n => ({ ...n, threshold: e.target.value }))} /></div>
-            </div>
-            <Button className="w-full" onClick={handleCreateRule}>Crear Regla</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPICard label="Críticas"       value={stats.critical}    icon={XCircle}      color="destructive" />
-        <KPICard label="Altas"          value={stats.high}        icon={AlertTriangle} color="warning" />
-        <KPICard label="Sin Reconocer"  value={unacked}           icon={Bell}          color="blue" />
-        <KPICard label="Reglas Activas" value={stats.active_rules} icon={CheckCircle}  color="success" />
-      </div>
+      {error && (
+        <p className="rounded-[8px] border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          No pudimos leer todas las alertas: {error}
+        </p>
+      )}
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
         <TabsList>
-          <TabsTrigger value="events" className="relative">
-            Eventos
-            {unacked > 0 && <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">{unacked}</span>}
-          </TabsTrigger>
-          <TabsTrigger value="rules">Reglas</TabsTrigger>
-          <TabsTrigger value="config">Configuración</TabsTrigger>
+          <TabsTrigger value="avisos">Avisos{pendientes > 0 ? ` (${pendientes})` : ""}</TabsTrigger>
+          <TabsTrigger value="reglas">Reglas ({activas} activas)</TabsTrigger>
+          <TabsTrigger value="canales">Cómo te llegan</TabsTrigger>
         </TabsList>
 
-        {/* EVENTS */}
-        <TabsContent value="events" className="space-y-4 pb-12">
-          <div className="flex gap-2">
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="Prioridad" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="Categoría" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {["stock","sales","financial","operations","customer"].map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {unacked > 0 && (
-              <Button variant="outline" size="sm" onClick={async () => {
-                const now = new Date().toISOString();
-                if (activeOrg) {
-                  const { error } = await supabase
-                    .from("alert_events")
-                    .update({ acknowledged_at: now })
-                    .eq("org_id", activeOrg.id)
-                    .is("acknowledged_at", null);
-                  if (error) { toast.error("No se pudieron reconocer las alertas: " + error.message); return; }
-                }
-                setEvents(prev => prev.map(e => ({ ...e, acknowledged_at: e.acknowledged_at ?? now })));
-                toast.success("Todas las alertas reconocidas");
-              }}>Reconocer todas</Button>
-            )}
-          </div>
-          <div className="space-y-2 pb-12">
-            {filteredEvents.map(event => (
-              <Card key={event.id} className={`${!event.acknowledged_at ? `border-l-4 ${event.priority === "critical" ? "border-l-red-500" : event.priority === "high" ? "border-l-orange-500" : "border-l-yellow-500"}` : "opacity-60"}`}>
-                <CardContent className="p-4 flex items-start gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <PriorityBadge priority={event.priority} />
-                      <span className="font-medium text-sm">{event.title}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{event.rule_name} · {new Date(event.created_at).toLocaleString("es-AR")}</p>
-                    <p className="text-sm mt-1">{event.message}</p>
-                    {event.metric_value !== null && event.threshold_value !== null && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Valor actual: <strong>{event.metric_value}</strong> | Umbral: <strong>{event.threshold_value}</strong>
-                      </p>
-                    )}
+        <TabsContent value="avisos" className="mt-4">
+          {cargando ? (
+            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cargando</div>
+          ) : avisos.length === 0 ? (
+            <p className="rounded-xl border border-border/40 bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+              Todavía no hay avisos. Cuando una regla encuentre algo, aparece acá y en la campana.
+            </p>
+          ) : (
+            <div className="divide-y divide-border/40 rounded-xl border border-border/40 bg-card">
+              {avisos.map(a => (
+                <div key={`${a.origen}:${a.id}`} className={`flex items-start gap-3 px-4 py-3 ${a.pendiente ? "bg-primary/5" : ""}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm ${a.pendiente ? "font-medium" : "text-muted-foreground"}`}>{a.titulo}</p>
+                    {a.mensaje && <p className="mt-0.5 text-xs text-muted-foreground">{a.mensaje}</p>}
+                    <p className="mt-1 text-[11px] text-muted-foreground/80">{cuando(a.fecha)}</p>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    {!event.acknowledged_at && (
-                      <Button size="sm" variant="outline" onClick={() => acknowledge(event.id)}>
-                        <CheckCircle className="w-3 h-3 mr-1" />OK
+                  <div className="flex shrink-0 gap-1">
+                    {a.ruta && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { if (a.pendiente) void marcarLeido(a); navigate(a.ruta!); }}>
+                        Ver
                       </Button>
                     )}
-                    {event.acknowledged_at && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3 text-green-500" />Reconocida
-                      </span>
+                    {a.pendiente && (
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => void marcarLeido(a)}>
+                        <Check className="mr-1 h-3 w-3" />Leído
+                      </Button>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="reglas" className="mt-4">
+          <div className="rounded-xl border border-border/40 bg-card px-4">
+            <p className="flex items-center gap-2 border-b border-border/40 py-3 text-xs text-muted-foreground">
+              <Settings className="h-3.5 w-3.5" />
+              Se revisan todas las mañanas. Cada regla manda un solo resumen, que se actualiza mientras no lo leas.
+              {!ajustes.canEdit && " Para cambiarlas necesitás permiso de Ajustes."}
+            </p>
+            {REGLAS_DE_ALERTA.map(def => (
+              <Regla key={def.tipo} def={def} fila={porTipo.get(def.tipo)} puedeEditar={ajustes.canEdit}
+                onGuardada={f => setReglas(prev => [...prev.filter(r => r.type !== f.type), f])} />
             ))}
-            {filteredEvents.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>No hay alertas que coincidan</p>
-              </div>
-            )}
           </div>
         </TabsContent>
 
-        {/* RULES */}
-        <TabsContent value="rules" className="space-y-3 pb-12">
-          {rules.map(rule => (
-            <Card key={rule.id} className={!rule.is_active ? "opacity-50" : ""}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <Switch checked={rule.is_active} onCheckedChange={() => toggleRule(rule.id)} />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{rule.name}</span>
-                    <PriorityBadge priority={rule.priority} />
-                    <span className="text-xs text-muted-foreground capitalize bg-muted px-1.5 py-0.5 rounded">{rule.category}</span>
-                  </div>
-                  <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
-                    <span>Métrica: {rule.metric}</span>
-                    <span>Umbral: {rule.condition_op} {rule.threshold}</span>
-                    <span>Tolerancia: {rule.cooldown_min}min</span>
-                    <span>Disparos: {rule.trigger_count}</span>
-                  </div>
-                  <div className="flex gap-1 mt-1">
-                    {rule.channels.map(ch => {
-                      const cfg = CHANNEL_ICONS[ch];
-                      if (!cfg) return null;
-                      const Icon = cfg.icon;
-                      return <span key={ch} className="flex items-center gap-0.5 text-xs bg-muted px-1.5 py-0.5 rounded"><Icon className="w-3 h-3" />{cfg.label}</span>;
-                    })}
-                  </div>
-                </div>
-                {rule.last_triggered && (
-                  <p className="text-xs text-muted-foreground text-right flex-shrink-0">
-                    Último: {fechaLocal(rule.last_triggered).toLocaleDateString("es-AR")}
-                  </p>
-                )}
-                <Button size="sm" variant="ghost" onClick={() => toast.info("Editando regla...")}><Settings className="w-4 h-4" /></Button>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="config">
-          <Card className="max-w-lg">
-            <CardHeader><CardTitle className="text-base">Canales de Notificación</CardTitle></CardHeader>
-            <CardContent className="space-y-4 pb-12">
-              {Object.entries(CHANNEL_ICONS).map(([key, cfg]) => {
-                const Icon = cfg.icon;
-                const isConfigured = key === "app" || key === "email";
-                return (
-                  <div key={key} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium text-sm">{cfg.label}</p>
-                        <p className="text-xs text-muted-foreground">{isConfigured ? "Configurado" : "No configurado"}</p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={() => toast.info(`Configurando ${cfg.label}...`)}>
-                      {isConfigured ? "Editar" : "Conectar"}
-                    </Button>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+        <TabsContent value="canales" className="mt-4">
+          <div className="max-w-xl space-y-3 rounded-xl border border-border/40 bg-card p-5 text-sm">
+            <p className="flex items-start gap-2"><Bell className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span><strong>En Nerqia:</strong> cada aviso llega a la campana de arriba a la derecha y a la pestaña Avisos. Tocarlo te lleva a la pantalla donde se resuelve.</span>
+            </p>
+            <p className="flex items-start gap-2"><Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span><strong>En el celular:</strong> si activaste las notificaciones de Nerqia en tu teléfono, los avisos nuevos también te llegan ahí.</span>
+            </p>
+            <p className="text-xs text-muted-foreground">Los avisos son para el dueño y los administradores del negocio.</p>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
