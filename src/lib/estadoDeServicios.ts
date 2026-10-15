@@ -17,6 +17,8 @@ export function estadoDeServicios(f: {
   /** Último respaldo del negocio; undefined = cargando, null = ninguno o no se pudo leer. */
   ultimoRespaldo: { status: string; created_at: string } | null | undefined;
   puedeVerRespaldos: boolean;
+  /** ¿El plan vigente incluye IA? undefined = cargando. */
+  iaIncluida?: boolean;
   ahora?: Date;
 }): EstadoDeServicio[] {
   const ahora = f.ahora ?? new Date();
@@ -47,7 +49,13 @@ export function estadoDeServicios(f: {
       : { id: "whatsapp", nombre: "WhatsApp en automatizaciones", detalle: "Todavía no disponible: los flujos usan correo. Para tu propio número, conectá WhatsApp abajo", estado: "no_disponible", etiqueta: "Próximamente" };
 
   return [
-    { id: "ia", nombre: "Inteligencia Artificial", detalle: "Chat, predicciones, descripciones automáticas", estado: "activo", etiqueta: "✓ Activo" },
+    // 2026-10-15: decía «✓ Activo» fijo también con la prueba vencida, cuando
+    // el plan ya no incluye IA.
+    f.iaIncluida === undefined
+      ? { id: "ia", nombre: "Inteligencia Artificial", detalle: "Asistente y descripciones automáticas", estado: "sin_datos", etiqueta: "…" }
+      : f.iaIncluida
+        ? { id: "ia", nombre: "Inteligencia Artificial", detalle: "Asistente y descripciones automáticas", estado: "activo", etiqueta: "✓ Activo" }
+        : { id: "ia", nombre: "Inteligencia Artificial", detalle: "Asistente y descripciones automáticas: vienen con los planes pagos", estado: "no_disponible", etiqueta: "Plan pago" },
     correo("correo", "Emails transaccionales", "Facturas por email, recuperación de contraseña"),
     correo("campanas", "Campañas de email", "Email marketing a tus clientes"),
     respaldos,

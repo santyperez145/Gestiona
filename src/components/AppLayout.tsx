@@ -579,7 +579,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           if (motivoDeCorte === 'prueba_finalizada') return (
             <div className="bg-primary/5 border-b border-border px-4 py-2.5 flex items-center gap-3">
-              <p className="text-sm flex-1">Estás en el plan Inicial, gratis: ventas, stock, caja y tienda siguen funcionando. La IA, los respaldos y la marca propia vienen con los planes pagos; mirá cuánto te ahorrás contra lo que pagás hoy.</p>
+              <p className="text-sm flex-1">Estás en el plan Inicial, gratis: ventas, stock, caja y tienda siguen funcionando. El asistente con IA y la tienda con tu marca vienen con los planes pagos; tus respaldos siguen haciéndose. Mirá cuánto te ahorrás contra lo que pagás hoy.</p>
               {/* E5 (TESIS §9): el argumento de pagar es lo que Nerqia reemplaza.
                   La prueba de extras dura 14 días y la oferta del Inicio sale a
                   las 4 semanas: este aviso es el primer contacto con el plan. */}

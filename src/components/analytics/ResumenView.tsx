@@ -31,7 +31,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
-import PredictiveAnalyticsTab from "@/components/analytics/PredictiveAnalyticsTab";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { plural } from "@/lib/plural";
@@ -202,10 +201,15 @@ function buildRentabilidadData(sales: any[], products: any[]) {
 export default function ResumenView() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
-  const [analyticsTab, setAnalyticsTab] = usePersistedState(
+  const [analyticsTabGuardada, setAnalyticsTab] = usePersistedState(
     orgViewKey("analytics.tab", activeOrg?.id),
     "trend",
   );
+  // «Predicción con IA» se sacó el 2026-10-15: no tenía ninguna fuente de datos
+  // (nada llenaba pronósticos, anomalías ni recomendaciones) y «Recalcular»
+  // esperaba 1,5 s y decía «Forecast recalculado». Quien la tenía guardada
+  // abre en Pronóstico, que sí se arma con las ventas.
+  const analyticsTab = analyticsTabGuardada === "predictivo" ? "forecast" : analyticsTabGuardada;
   const [rawData, setRawData] = useState<any>(null);
   const [year, setYear] = usePersistedState<"0" | "1">(
     orgViewKey("analytics.year", activeOrg?.id),
@@ -588,7 +592,6 @@ export default function ResumenView() {
           <TabsTrigger value="trend" className="text-xs">Tendencia</TabsTrigger>
           <TabsTrigger value="forecast" className="text-xs">Pronóstico</TabsTrigger>
           <TabsTrigger value="demand" className="text-xs">Demanda</TabsTrigger>
-          <TabsTrigger value="predictivo" className="text-xs">Predicción con IA</TabsTrigger>
           <TabsTrigger value="yoy" className="text-xs">Año contra año</TabsTrigger>
           <TabsTrigger value="products" className="text-xs">Productos</TabsTrigger>
           <TabsTrigger value="customers" className="text-xs">Clientes</TabsTrigger>
@@ -1066,11 +1069,6 @@ export default function ResumenView() {
         {/* DEMAND FORECAST TAB */}
         <TabsContent value="demand" className="mt-4 space-y-4">
           <ProductDemandTab products={rawData.products} sales={rawData.sales} />
-        </TabsContent>
-
-        {/* PREDICTIVE AI TAB */}
-        <TabsContent value="predictivo" className="mt-4 space-y-4">
-          <PredictiveAnalyticsTab />
         </TabsContent>
 
         {/* FUNNEL TAB */}

@@ -3,6 +3,7 @@ import { Sparkles, Mail, Database, MessageSquare, CreditCard, Info } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { estadoDeServicios, type EstadoDeServicio } from "@/lib/estadoDeServicios";
+import { useEntitlements } from "@/lib/useEntitlements";
 
 /**
  * Servicios que vienen con Nerqia (claves de la plataforma, el comercio no
@@ -27,6 +28,7 @@ const TONO: Record<EstadoDeServicio["estado"], string> = {
 
 export default function PlatformServicesPanel() {
   const { activeOrg, activeRole } = useOrg();
+  const { canUseAI, loading: cargandoPlan } = useEntitlements();
   const [servicios, setServicios] = useState<EstadoDeServicio[]>(() => estadoDeServicios({ mensajeria: undefined, ultimoRespaldo: undefined, puedeVerRespaldos: false }));
 
   useEffect(() => {
@@ -46,16 +48,17 @@ export default function PlatformServicesPanel() {
         mensajeria: mensajeria.error ? null : (mensajeria.data as { email_listo?: boolean; smtp_configurado?: boolean; whatsapp_listo?: boolean } | null),
         ultimoRespaldo: respaldo.error ? null : (respaldo.data as { status: string; created_at: string } | null),
         puedeVerRespaldos,
+        iaIncluida: cargandoPlan ? undefined : canUseAI,
       }));
     });
     return () => { vigente = false; };
-  }, [activeOrg, activeRole]);
+  }, [activeOrg, activeRole, canUseAI, cargandoPlan]);
 
   return (
     <div className="bg-gradient-to-br from-primary/5 to-transparent border border-primary/20 rounded-xl overflow-hidden">
       <div className="px-5 py-3 border-b border-primary/10 flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-primary" />
-        <span className="text-sm font-semibold">Incluido en tu plan</span>
+        <span className="text-sm font-semibold">Servicios de Nerqia</span>
         <span className="text-xs text-muted-foreground ml-auto">Sin configuración de tu parte</span>
       </div>
       <div className="px-5 py-4">

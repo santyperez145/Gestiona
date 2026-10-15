@@ -27,3 +27,13 @@ describe("servicios incluidos", () => {
     expect(panel).toContain('supabase.rpc("mensajeria_de_plataforma")');
   });
 });
+
+describe("la IA sigue al plan", () => {
+  it("con la prueba vencida no dice «Activo»", async () => {
+    const { estadoDeServicios } = await import("@/lib/estadoDeServicios");
+    const base = { mensajeria: { email_listo: true }, ultimoRespaldo: null, puedeVerRespaldos: false };
+    expect(estadoDeServicios({ ...base, iaIncluida: false }).find(s => s.id === "ia")?.etiqueta).toBe("Plan pago");
+    expect(estadoDeServicios({ ...base, iaIncluida: true }).find(s => s.id === "ia")?.etiqueta).toBe("✓ Activo");
+    expect(estadoDeServicios(base).find(s => s.id === "ia")?.etiqueta).toBe("…");
+  });
+});
