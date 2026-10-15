@@ -1,6 +1,7 @@
+import fs from "node:fs";
 import { describe, it, expect } from "vitest";
 import {
-  leerSaldo, validarRetiro, validarCbu, formatearCbu, explicarPendiente,
+  leerSaldo, validarRetiro, validarCbu, formatearCbu, explicarPendiente, detalleLegible,
   saldoVacio, ESTADO_RETIRO, type SaldoBilletera,
 } from "@/lib/wallet";
 
@@ -118,6 +119,34 @@ describe("explicarPendiente", () => {
   it("no dice nada si no hay pendiente", () => {
     expect(explicarPendiente(saldo())).toBeNull();
     expect(explicarPendiente(null)).toBeNull();
+  });
+
+  // 2026-10-15: decía «Se libera solo» aunque nada lo liberaba, y le echaba la
+  // culpa a Mercado Pago de un cobro con tarjeta de otro procesador.
+  it("dice cuándo acredita Mercado Pago y qué hay que conciliar a mano", () => {
+    const fmt = (n: number) => `$${n}`;
+    const texto = explicarPendiente(saldo({ pendiente: 1000 }), [
+      { tipo: "mercado_pago", cobros: 2, monto: 300, proxima_fecha: "2026-10-20" },
+      { tipo: "por_conciliar", cobros: 1, monto: 700, proxima_fecha: null },
+    ], fmt, "2026-10-15");
+    expect(texto).toContain("Mercado Pago acredita $300 a partir del 20/10/2026");
+    expect(texto).toContain("$700 es un cobro con tarjeta del mostrador");
+    expect(texto).not.toContain("Se libera solo");
+  });
+
+  it("sin desglose no inventa una fecha ni un procesador", () => {
+    expect(explicarPendiente(saldo({ pendiente: 5 }), [])).toBe("Ya lo cobraste, pero el procesador de pagos todavía no lo acreditó.");
+  });
+
+  it("los movimientos muestran el medio con su nombre", () => {
+    expect(detalleLegible("Cobro de venta (mercado_pago)")).toBe("Cobro de venta (Mercado Pago)");
+    expect(detalleLegible(null)).toBe("");
+  });
+
+  it("la billetera se acredita sola cada hora desde la base", () => {
+    const sql = fs.readFileSync("supabase/migrations/20261015000200_billetera_acredita_lo_liberado.sql", "utf8");
+    expect(sql).toContain("cron.schedule('billetera-acreditar-liberados'");
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.wallet_acreditar_cobro(uuid) FROM PUBLIC, anon, authenticated");
   });
 });
 

@@ -37,7 +37,7 @@ import {
   ArrowUpRight, ArrowDownLeft, Landmark, Info, RefreshCw, CircleCheck, CircleX,
 } from "lucide-react";
 import {
-  leerSaldo, validarRetiro, validarCbu, formatearCbu, explicarPendiente,
+  leerSaldo, validarRetiro, validarCbu, formatearCbu, explicarPendiente, detalleLegible, type PendientePorOrigen,
   saldoVacio, ESTADO_RETIRO, type SaldoBilletera, type EstadoRetiro,
 } from "@/lib/wallet";
 import {
@@ -93,6 +93,7 @@ export default function WalletPage() {
   const [saldo, setSaldo] = useState<SaldoBilletera>(saldoVacio);
   const [cuentas, setCuentas] = useState<CuentaBancaria[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [origenesPendiente, setOrigenesPendiente] = useState<PendientePorOrigen[] | null>(null);
   const [retiros, setRetiros] = useState<Retiro[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -113,7 +114,7 @@ export default function WalletPage() {
     if (!activeOrg) return;
     setLoading(true);
 
-    const [saldoRes, ctasRes, movRes, retRes] = await Promise.all([
+    const [saldoRes, ctasRes, movRes, retRes, pendRes] = await Promise.all([
       supabase.rpc("wallet_saldo", { p_org: activeOrg.id }),
       supabase.from("wallet_bank_accounts")
         .select("id,alias,titular,cbu,banco,is_default")
@@ -127,6 +128,9 @@ export default function WalletPage() {
         .select("id,monto,estado,created_at,motivo_rechazo,referencia,payment_method,pagado_at,bank_account_id")
         .eq("org_id", activeOrg.id)
         .order("created_at", { ascending: false }).limit(20),
+      supabase.from("wallet_pendiente" as never)
+        .select("tipo,cobros,monto,proxima_fecha")
+        .eq("org_id" as never, activeOrg.id as never),
     ]);
 
     // Un error acá no puede volverse "tenés cero": son problemas opuestos, y
@@ -141,6 +145,9 @@ export default function WalletPage() {
 
     if (ctasRes.error) console.error("cuentas", ctasRes.error);
     if (movRes.error) console.error("movimientos", movRes.error);
+    // Sin el desglose, el aviso dice lo general en vez de inventar una fecha.
+    if (pendRes.error) console.error("wallet_pendiente", pendRes.error);
+    setOrigenesPendiente(pendRes.error ? null : ((pendRes.data ?? []) as unknown as PendientePorOrigen[]));
 
     setCuentas((ctasRes.data ?? []) as CuentaBancaria[]);
     setMovimientos((movRes.data ?? []) as Movimiento[]);
@@ -248,7 +255,7 @@ export default function WalletPage() {
           reference: referenciaRetiro.trim(),
           paymentMethod: metodoRetiro,
         });
-        toast.success("Transferencia confirmada y conciliada en Finance");
+        toast.success("Transferencia confirmada y registrada en tus finanzas");
       } else {
         await rejectWalletWithdrawal(retiroActivo.id, motivoRetiro.trim());
         toast.success("Reserva cancelada; el saldo volvió a estar disponible");
@@ -266,7 +273,7 @@ export default function WalletPage() {
     }
   };
 
-  const avisoPendiente = explicarPendiente(saldo);
+  const avisoPendiente = explicarPendiente(saldo, origenesPendiente, formatARS);
 
   return (
     <div className="workspace-page space-y-5">
@@ -327,7 +334,7 @@ export default function WalletPage() {
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <p className="text-muted-foreground">
           <strong className="text-foreground">Nerqia no mueve el dinero.</strong>{" "}
-          El retiro reserva saldo para evitar duplicados. Después de transferir desde tu proveedor o banco, confirmalo con el número de operación para reflejarlo en Finance.
+          El retiro reserva saldo para evitar duplicados. Después de transferir desde tu proveedor o banco, confirmalo con el número de operación para reflejarlo en tus finanzas.
         </p>
       </div>
 
@@ -371,7 +378,7 @@ export default function WalletPage() {
                       <td className="px-4 py-2.5">
                         <span className="block">{m.descripcion}</span>
                         {m.detalle && (
-                          <span className="block text-[11px] text-muted-foreground">{m.detalle}</span>
+                          <span className="block text-[11px] text-muted-foreground">{detalleLegible(m.detalle)}</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5">

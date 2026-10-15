@@ -11,6 +11,8 @@
  * base: el cliente puede estar mirando un saldo de hace treinta segundos.
  */
 
+import { nombreDelMedio } from "@/lib/mediosDePago";
+
 export interface SaldoBilletera {
   /** Cobrado y todavía no acreditado por el procesador. */
   pendiente: number;
@@ -129,14 +131,58 @@ export function formatearCbu(valor: string | null | undefined): string {
   return limpio.replace(/(.{4})/g, "$1 ").trim();
 }
 
+/** Una parte de lo pendiente, según su origen (vista `wallet_pendiente`). */
+export interface PendientePorOrigen {
+  /** mercado_pago: se acredita sola en su fecha. por_conciliar: cobro del mostrador a confirmar. */
+  tipo: "mercado_pago" | "por_conciliar" | string;
+  cobros: number;
+  monto: number;
+  proxima_fecha: string | null;
+}
+
+const fechaCorta = (iso: string) => {
+  const [a, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}/${a}`;
+};
+
 /**
  * Qué se le dice al comercio sobre su plata pendiente.
  *
- * Es el número que más confunde: está cobrado pero no se puede usar. Explicarlo
- * en una línea evita el ticket de soporte "me falta plata".
+ * Es el número que más confunde: está cobrado pero no se puede usar. Hasta el
+ * 2026-10-15 decía siempre «MercadoPago todavía no lo acreditó. Se libera
+ * solo.», aunque nada lo liberaba y aunque fuera un cobro con tarjeta de otro
+ * procesador que hay que conciliar a mano. Ahora dice lo que pasa con cada
+ * parte: cuándo la acredita Mercado Pago, o qué falta hacer.
  */
-export function explicarPendiente(saldo: SaldoBilletera | null | undefined): string | null {
+export function explicarPendiente(
+  saldo: SaldoBilletera | null | undefined,
+  origenes: PendientePorOrigen[] | null = null,
+  fmt: (n: number) => string = n => `$${n.toLocaleString("es-AR")}`,
+  hoy: string = new Date().toISOString().slice(0, 10),
+): string | null {
   const p = Number(saldo?.pendiente ?? 0);
   if (p <= 0) return null;
-  return "Ya lo cobraste, pero MercadoPago todavía no lo acreditó. Se libera solo.";
+  if (!origenes || origenes.length === 0) {
+    return "Ya lo cobraste, pero el procesador de pagos todavía no lo acreditó.";
+  }
+  const partes: string[] = [];
+  const mp = origenes.find(o => o.tipo === "mercado_pago");
+  if (mp && Number(mp.monto) > 0) {
+    partes.push(mp.proxima_fecha && mp.proxima_fecha.slice(0, 10) > hoy
+      ? `Mercado Pago acredita ${fmt(Number(mp.monto))} a partir del ${fechaCorta(mp.proxima_fecha)}.`
+      : `Mercado Pago ya liberó ${fmt(Number(mp.monto))}: pasa a disponible en la próxima hora.`);
+  }
+  const pos = origenes.find(o => o.tipo === "por_conciliar");
+  if (pos && Number(pos.monto) > 0) {
+    const n = Number(pos.cobros);
+    partes.push(`${fmt(Number(pos.monto))} ${n === 1 ? "es un cobro" : `son ${n} cobros`} con tarjeta del mostrador: cuando el procesador te pague, confirmalo con su arancel real en Entradas y salidas → Liquidaciones.`);
+  }
+  return partes.length > 0
+    ? partes.join(" ")
+    : "Ya lo cobraste, pero el procesador de pagos todavía no lo acreditó.";
+}
+
+/** «Cobro de venta (mercado_pago)» → «Cobro de venta (Mercado Pago)». */
+export function detalleLegible(detalle: string | null | undefined): string {
+  return String(detalle ?? "").replace(/\(([a-z_]+)\)/g, (_, codigo: string) => `(${nombreDelMedio(codigo)})`);
 }
