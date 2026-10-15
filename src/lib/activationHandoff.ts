@@ -43,7 +43,7 @@ export function firstProductEmptyCopy(goal: HandoffGoal | null) {
   if (goal === 'online') {
     return {
       title: 'Todavía no hay nada que publicar',
-      description: 'La tienda vende el catálogo del Business Core. Cargá un producto con precio y stock; después volvés a Commerce a publicar.',
+      description: 'La tienda vende los productos de tu catálogo. Cargá uno con precio y stock; después volvés a la tienda a publicarlo.',
       actionLabel: 'Cargar el primer producto',
     };
   }

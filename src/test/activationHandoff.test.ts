@@ -53,7 +53,7 @@ describe('firstProductPath', () => {
 describe('copy del primer producto', () => {
   it('POS pide stock del mostrador y online no promete una vitrina llena', () => {
     expect(firstProductEmptyCopy('pos').title).toContain('mostrador');
-    expect(firstProductEmptyCopy('online').description).toContain('Business Core');
+    expect(firstProductEmptyCopy('online').description).toContain('tu catálogo');
     expect(firstProductEmptyCopy(null).title).toBe('Todavía no hay productos');
     expect(firstProductFormDescription('online')).toMatch(/mismo catálogo/);
     expect(firstProductFormDescription('pos')).toMatch(/mostrador/);

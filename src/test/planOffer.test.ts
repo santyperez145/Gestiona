@@ -64,7 +64,15 @@ describe("Oferta de planes desde datos reales", () => {
       "Productos ilimitados",
       "Ventas ilimitadas",
       "Usuarios ilimitados",
-      "300 acciones/mes",
+      "Asistente con IA: 300 acciones/mes",
+    ]);
+    expect(limitesDelPlan({ ...plan, backups_enabled: true, custom_branding: true })).toEqual([
+      "Productos ilimitados",
+      "Ventas ilimitadas",
+      "Usuarios ilimitados",
+      "Asistente con IA: 300 acciones/mes",
+      "Respaldo diario de tus datos",
+      "Tienda con tu marca, sin la de Nerqia",
     ]);
   });
 });

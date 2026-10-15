@@ -64,7 +64,7 @@ export async function getFinanceCoreSnapshot(orgId: string): Promise<FinanceCore
   if (error) throw error;
 
   const row = data?.[0];
-  if (!row) throw new Error('No hay un snapshot del Business Core disponible.');
+  if (!row) throw new Error('Todavía no hay un resumen de los datos de tu negocio. Probá de nuevo en un momento.');
 
   return {
     suppliersCount: Number(row.suppliers_count || 0),

@@ -367,7 +367,7 @@ export default function AFIPPage() {
       <section className="bg-card border border-border/40 rounded-xl overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border/40">
           <div>
-            <h2 className="font-semibold">Comprobantes del Business Core</h2>
+            <h2 className="font-semibold">Comprobantes de tus ventas</h2>
             <p className="text-xs text-muted-foreground mt-1">Una factura se autoriza desde Facturas; esta pantalla nunca inventa importes, clientes ni CAE.</p>
           </div>
           <Button size="icon" variant="ghost" onClick={() => void load()} disabled={loading} aria-label="Actualizar estado ARCA">

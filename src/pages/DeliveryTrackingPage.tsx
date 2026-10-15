@@ -235,7 +235,7 @@ function DeliveryForm({ open, onClose, editing, orgId, onSaved }: {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>COD (cobrar al entregar)</Label>
+            <div><Label>Cobrar al entregar</Label>
               <Input type="number" min="0" value={f.cod_amount} onChange={e => upd("cod_amount", e.target.value)} />
             </div>
             <div><Label>Estado</Label>
@@ -491,7 +491,7 @@ export default function DeliveryTrackingPage() {
         <KPICard label="Total envíos" value={deliveries.length} icon={Package} color="primary" />
         <KPICard label="En tránsito" value={inTransit} icon={Truck} color="blue" />
         <KPICard label="Entregados hoy" value={todayDelivered} icon={CheckCircle2} color="success" />
-        <KPICard label="COD pendiente" value={fmtCurrency(pendingCOD)} icon={DollarSign} color="warning" />
+        <KPICard label="A cobrar al entregar" value={fmtCurrency(pendingCOD)} icon={DollarSign} color="warning" />
       </div>
 
       {/* Filters */}

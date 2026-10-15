@@ -192,7 +192,7 @@ export default function TeamPage() {
         icon={Users}
         eyebrow="Commerce · Operación"
         title="Equipo"
-        description="Roles para tienda, mostrador y pedidos — sin diluir el Business Core."
+        description="Quién entra a tu negocio y qué puede hacer en la tienda, el mostrador y los pedidos."
       />
 
       {inviteEmailError && (

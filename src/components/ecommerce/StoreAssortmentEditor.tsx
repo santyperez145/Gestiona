@@ -286,7 +286,7 @@ export default function StoreAssortmentEditor({
       <WorkspaceState
         kind="empty-first-use"
         title="Creá una tienda para definir su surtido"
-        description="Los productos siguen en el Business Core; cada vitrina decide cuáles publica."
+        description="Los productos son los de tu catálogo; cada vitrina decide cuáles publica."
       />
     );
   }
@@ -386,7 +386,7 @@ export default function StoreAssortmentEditor({
           title={debouncedQuery || filter !== "all" ? "No hay coincidencias" : "Todavía no hay productos"}
           description={debouncedQuery || filter !== "all"
             ? "Probá otra búsqueda o cambiá el filtro."
-            : "Creá el primer producto en el Business Core para publicarlo en esta tienda."}
+            : "Creá el primer producto en tu catálogo para publicarlo en esta tienda."}
         />
       ) : (
         <div className="commerce-store-panel overflow-hidden">
@@ -552,7 +552,7 @@ export default function StoreAssortmentEditor({
           <DialogHeader>
             <DialogTitle>Presentación en {storeName || "esta tienda"}</DialogTitle>
             <DialogDescription>
-              {editing?.name}. Dejá un campo vacío para heredar el valor del Business Core.
+              {editing?.name}. Dejá un campo vacío para usar el valor del catálogo.
             </DialogDescription>
           </DialogHeader>
           {editing && draft ? (

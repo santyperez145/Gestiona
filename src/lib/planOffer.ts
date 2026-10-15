@@ -54,7 +54,12 @@ export function limitesDelPlan(plan: PlanOffer): string[] {
     plan.max_users == null
       ? "Usuarios ilimitados"
       : `Hasta ${planQuantity(plan.max_users)} usuarios`,
-    ...(plan.ai_enabled ? [planAI(plan)] : []),
+    // 2026-10-15: el aviso de la prueba vencida dice que la IA, los respaldos
+    // y la marca propia vienen con los planes pagos, y las tarjetas no lo
+    // mostraban: decían «300 acciones/mes» sin decir de qué.
+    ...(plan.ai_enabled ? [`Asistente con IA: ${planAI(plan)}`] : []),
+    ...(plan.backups_enabled ? ["Respaldo diario de tus datos"] : []),
+    ...(plan.custom_branding ? ["Tienda con tu marca, sin la de Nerqia"] : []),
   ];
 }
 

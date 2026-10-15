@@ -112,7 +112,7 @@ function Countdown({ endsAt }: { endsAt: string | null }) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function PromotionsPage() {
-  usePageTitle("Promociones & Flash Sales");
+  usePageTitle("Promociones");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const { ask, dialog } = useConfirmDialog();
@@ -286,7 +286,7 @@ export default function PromotionsPage() {
         icon={Zap}
         eyebrow="Commerce · Conversión"
         title="Promociones"
-        description="Flash sales y reglas de descuento que el checkout y el POS aplican con la misma autoridad."
+        description="Ofertas por tiempo limitado y reglas de descuento que la tienda online y el mostrador aplican igual."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>

@@ -263,7 +263,7 @@ export function storeMissingCopy() {
   return {
     title: 'Creá la tienda online',
     description:
-      'Todavía no hay vitrina. Guardá nombre y dirección (slug) para poder cargar legales, banners y compartir el link. El catálogo es el del Business Core.',
+      'Todavía no hay vitrina. Guardá nombre y dirección (slug) para poder cargar legales, banners y compartir el link. La vitrina muestra los productos de tu catálogo.',
     actionLabel: 'Configurar y guardar',
   };
 }

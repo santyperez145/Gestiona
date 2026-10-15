@@ -44,7 +44,7 @@ export default function FinanceProductGate({ children }: { children: React.React
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
           {requested
-            ? `Nerqia recibió la solicitud de ${activeOrg?.name || 'esta organización'}. Habilitar el producto no cambia compras, deudas ni asientos: Finance usa el mismo Business Core.`
+            ? `Nerqia recibió la solicitud de ${activeOrg?.name || 'esta organización'}. Habilitar el producto no cambia compras, deudas ni asientos: Finance usa los mismos datos de tu negocio.`
             : permissionDenied
               ? 'El producto está habilitado para la organización, pero el permiso finance.view está desactivado para tu rol. Pedile acceso a un owner o administrador.'
               : 'El piloto organiza facturas de proveedor sobre los proveedores, compras, obligaciones y ledger que ya existen. La captura nunca registra stock ni deuda sin revisión.'}
