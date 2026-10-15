@@ -87,7 +87,8 @@ export function useExchangeRates(autoFetch = true) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  /** Devuelve las cotizaciones traídas, o null si no se pudo. */
+  const refresh = useCallback(async (): Promise<ExchangeRates | null> => {
     setLoading(true);
     setError(null);
     try {
@@ -99,8 +100,10 @@ export function useExchangeRates(autoFetch = true) {
       }
       saveCache(fetched);
       setRates(fetched);
+      return fetched;
     } catch (e: any) {
       setError(e.message ?? "Error al obtener cotizaciones");
+      return null;
     } finally {
       setLoading(false);
     }

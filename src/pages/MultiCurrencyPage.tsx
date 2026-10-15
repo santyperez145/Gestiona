@@ -1,5 +1,6 @@
 import { fechaLocal } from "@/lib/fechaAR";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -105,6 +106,24 @@ export default function MultiCurrencyPage() {
   const [showAddRate, setShowAddRate] = useState(false);
   const [newRate, setNewRate] = useState({ currency_from: "USD", currency_to: "ARS", rate: "", rate_type: "custom" });
   const [rates, setRates] = useState<Record<string, RateInfo>>({});
+  // 2026-10-15: la pantalla sólo leía tasas cargadas a mano (no había ninguna
+  // en toda la plataforma) y «Actualizar tasas» no hacía nada más que decir
+  // «Tasas actualizadas». Ahora, si no hay una tasa propia de ese tipo, se
+  // muestra la del día (dolarapi.com, con Bluelytics de respaldo) y el botón
+  // la trae de verdad.
+  const { rates: vivo, loading: cargandoVivo, refresh: refrescarVivo } = useExchangeRates(true);
+  const tasas = useMemo(() => {
+    const out: Record<string, RateInfo> = { ...rates };
+    if (vivo) {
+      for (const rt of RATE_TYPES) {
+        const valor = Number(vivo[rt.id as keyof typeof vivo]);
+        if (!out[rt.id] && valor > 0) {
+          out[rt.id] = { rate: valor, change: 0, updated: `del día · ${vivo.source}` };
+        }
+      }
+    }
+    return out;
+  }, [rates, vivo]);
   const [sparklineData, setSparklineData] = useState<Record<string, number[]>>({});
   const [exposure, setExposure] = useState<ExposureRow[]>([]);
   const [transactions, setTransactions] = useState<MCTransaction[]>([]);
@@ -200,7 +219,7 @@ export default function MultiCurrencyPage() {
   }, [orgId]);
 
   // Conversion result — use loaded rate or fallback to 1
-  const selectedRateData = rates[selectedRate] ?? { rate: 1, change: 0, updated: "—" };
+  const selectedRateData = tasas[selectedRate] ?? { rate: 1, change: 0, updated: "—" };
   const convResult = convFrom === "USD" && convTo === "ARS"
     ? Number(convAmount) * selectedRateData.rate
     : convFrom === "ARS" && convTo === "USD"
@@ -223,9 +242,9 @@ export default function MultiCurrencyPage() {
   const TABS = [
     { id: "rates",        label: "Tipos de Cambio" },
     { id: "converter",    label: "Conversor" },
-    { id: "exposure",     label: "Exposición FX" },
+    { id: "exposure",     label: "Exposición en moneda extranjera" },
     { id: "transactions", label: "Transacciones" },
-    { id: "history",      label: "Historial de Cotización" },
+    { id: "history",      label: "Historial de cotizaciones" },
   ];
 
   return (
@@ -233,10 +252,14 @@ export default function MultiCurrencyPage() {
       <PageHeader
         icon={Globe}
         title="Monedas y cotizaciones"
-        description="Tipos de cambio en tiempo real, conversor y exposición FX"
+        description="Cotizaciones del día, conversor y cuánto tenés en moneda extranjera"
         actions={
           <div className="flex items-center flex-wrap gap-2">
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Tasas actualizadas")}>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs" disabled={cargandoVivo} onClick={async () => {
+              const r = await refrescarVivo();
+              if (r) toast.success("Cotizaciones actualizadas");
+              else toast.error("No pudimos traer las cotizaciones. Probá de nuevo en un momento.");
+            }}>
               <RefreshCw className="w-3 h-3" />Actualizar tasas
             </Button>
             <Button size="sm" onClick={() => setShowAddRate(true)} className="gap-1.5 gradient-gold text-primary-foreground">
@@ -262,13 +285,13 @@ export default function MultiCurrencyPage() {
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">USD / ARS — Cotizaciones</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {RATE_TYPES.filter(rt => rates[rt.id]).map(rt => (
-                <RateCard key={rt.id} type={rt.id} data={rates[rt.id]}
+              {RATE_TYPES.filter(rt => tasas[rt.id]).map(rt => (
+                <RateCard key={rt.id} type={rt.id} data={tasas[rt.id]}
                   sparkData={sparklineData[rt.id] ?? []} selected={selectedRate === rt.id}
                   onClick={() => setSelectedRate(rt.id)} />
               ))}
-              {!loadingData && Object.keys(rates).length === 0 && (
-                <p className="col-span-4 text-sm text-muted-foreground text-center py-4">Sin tipos de cambio registrados. Agregá una tasa manual.</p>
+              {!loadingData && !cargandoVivo && Object.keys(tasas).length === 0 && (
+                <p className="col-span-4 text-sm text-muted-foreground text-center py-4">No pudimos traer las cotizaciones del día. Tocá «Actualizar tasas» o cargá una tasa manual.</p>
               )}
             </div>
           </div>
@@ -280,7 +303,7 @@ export default function MultiCurrencyPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">
-                    {["Divisa", "Nombre", "Tipo Cambio", "Variación", "Trend"].map(h => (
+                    {["Divisa", "Nombre", "Cotización", "Variación", "Tendencia"].map(h => (
                       <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
                     ))}
                   </tr>
@@ -381,7 +404,7 @@ export default function MultiCurrencyPage() {
         <div className="space-y-4">
           <div className="bg-card border border-border/40 rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border/40">
-              <h3 className="font-semibold flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Exposición FX Neta</h3>
+              <h3 className="font-semibold flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Exposición neta en moneda extranjera</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Cuentas por cobrar vs pagar en moneda extranjera</p>
             </div>
             <div className="overflow-x-auto">
@@ -395,7 +418,7 @@ export default function MultiCurrencyPage() {
                 </thead>
                 <tbody>
                   {exposure.length === 0 && (
-                    <tr><td colSpan={7} className="px-4 py-4 text-xs text-muted-foreground text-center">Sin datos de exposición FX</td></tr>
+                    <tr><td colSpan={7} className="px-4 py-4 text-xs text-muted-foreground text-center">Sin saldos en moneda extranjera</td></tr>
                   )}
                   {exposure.map(e => {
                     const net = e.receivables - e.payables;
