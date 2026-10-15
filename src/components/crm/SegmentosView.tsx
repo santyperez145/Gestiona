@@ -343,7 +343,7 @@ export default function SegmentosView() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KPICard label="Campeones"         value={championsCount} sub="máximo valor y frecuencia"    icon={Crown}         color="warning"     />
         <KPICard label="En riesgo"         value={atRiskCount}    sub="acción urgente requerida"      icon={AlertTriangle} color="destructive" />
-        <KPICard label="Revenue total"     value={fmt(totalRevenue)} sub="todos los clientes"         icon={DollarSign}    color="success"     />
+        <KPICard label="Facturación total"     value={fmt(totalRevenue)} sub="todos los clientes"         icon={DollarSign}    color="success"     />
         <KPICard label="Score RFM promedio" value={avgRFMScore}   sub={`${plural(rfmData.length, "cliente")}`}  icon={BarChart3}     color="blue"        />
       </div>
 

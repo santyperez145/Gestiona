@@ -3808,7 +3808,7 @@ function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Clientes únicos", value: rows.length.toLocaleString("es-AR"), icon: Users, color: "text-primary" },
-          { label: "Revenue por cliente", value: formatARS(rows.length > 0 ? grandTotal / rows.length : 0), icon: DollarSign, color: "text-emerald-400" },
+          { label: "Facturación por cliente", value: formatARS(rows.length > 0 ? grandTotal / rows.length : 0), icon: DollarSign, color: "text-emerald-400" },
           { label: "Ticket promedio", value: formatARS(sales.length > 0 ? grandTotal / sales.length : 0), icon: TrendingUp, color: "text-yellow-400" },
           { label: `Concentración top ${top20Count}`, value: `${concentration.toFixed(0)}%`, icon: BarChart2, color: concentration > 80 ? "text-destructive" : concentration > 60 ? "text-yellow-400" : "text-emerald-400" },
         ].map(k => (

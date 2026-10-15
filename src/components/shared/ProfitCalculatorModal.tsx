@@ -197,7 +197,7 @@ export default function ProfitCalculatorModal({ open, onClose, product, exchange
                 <p className="text-sm font-semibold font-mono">{fmt(calc.totalInvest)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground">Revenue total</p>
+                <p className="text-[10px] text-muted-foreground">Ingresos totales</p>
                 <p className="text-sm font-semibold font-mono text-green-400">{fmt(calc.totalRevenue)}</p>
               </div>
               <div>

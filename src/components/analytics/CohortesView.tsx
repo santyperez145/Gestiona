@@ -284,8 +284,8 @@ export default function CohortesView() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Revenue hoy" value={`$${(todayRev / 1000).toFixed(0)}K`} icon={DollarSign} color="success" trend={snapshots.length > 1 ? { value: revTrend, label: "vs ayer" } : undefined} sub="ingresos del día" />
-        <KPICard label="Revenue período" value={`$${(weekRev / 1000).toFixed(0)}K`} icon={TrendingUp} color="primary" sub={dateFrom ? "período seleccionado" : "últimos 7 días"} />
+        <KPICard label="Ingresos de hoy" value={`$${(todayRev / 1000).toFixed(0)}K`} icon={DollarSign} color="success" trend={snapshots.length > 1 ? { value: revTrend, label: "vs ayer" } : undefined} sub="ingresos del día" />
+        <KPICard label="Ingresos del período" value={`$${(weekRev / 1000).toFixed(0)}K`} icon={TrendingUp} color="primary" sub={dateFrom ? "período seleccionado" : "últimos 7 días"} />
         <KPICard label="AOV promedio" value={`$${(snapshots[0]?.aov ?? 0).toLocaleString("es-AR")}`} icon={Users} color="blue" sub="ticket promedio" />
         <KPICard label="Reportes guardados" value={savedReports.length} icon={BarChart3} color="purple" sub={`${savedReports.filter(r => r.pinned).length} fijados`} />
       </div>
@@ -306,7 +306,7 @@ export default function CohortesView() {
           {/* Revenue trend chart */}
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold flex items-center gap-2"><LineChart className="w-4 h-4 text-primary" />Revenue últimos 7 días</h3>
+              <h3 className="font-semibold flex items-center gap-2"><LineChart className="w-4 h-4 text-primary" />Ingresos de los últimos 7 días</h3>
               <Badge className="bg-primary/15 text-primary border-0 text-xs">diario</Badge>
             </div>
             <RevTrend data={snapshots} />
@@ -325,7 +325,7 @@ export default function CohortesView() {
           {/* Category breakdown */}
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold flex items-center gap-2"><PieChart className="w-4 h-4 text-primary" />Revenue por Categoría</h3>
+              <h3 className="font-semibold flex items-center gap-2"><PieChart className="w-4 h-4 text-primary" />Ingresos por categoría</h3>
             </div>
             <div className="space-y-3">
               {categoryRev.length === 0 ? (
@@ -557,7 +557,7 @@ export default function CohortesView() {
 
             {/* Quick drill by product — top 5 from real sale_items */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Top Productos por Revenue</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Productos que más facturan</h4>
               <div className="space-y-2">
                 {topProducts.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">Sin datos de ventas disponibles</p>

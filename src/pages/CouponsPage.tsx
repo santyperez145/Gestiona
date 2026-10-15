@@ -365,7 +365,7 @@ export default function CouponsPage() {
                   </div>
                   {(c.usageRevenue || 0) > 0 && (
                     <div className="text-center hidden md:block">
-                      <p className="text-xs text-muted-foreground">Revenue</p>
+                      <p className="text-xs text-muted-foreground">Ventas</p>
                       <p className="text-sm font-bold text-emerald-400">{formatARS(c.usageRevenue || 0)}</p>
                     </div>
                   )}

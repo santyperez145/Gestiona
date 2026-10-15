@@ -186,6 +186,10 @@ export default function PLDashboardPage() {
   const currentYm = selectedYm || yyyymm(new Date());
   const currentPL = monthlyPL.find(m => m.ym === currentYm) || null;
   const prevPL = monthlyPL.find(m => m.ym === addMonth(currentYm, -1)) || null;
+  // Un mes sin movimiento vale cero, no «sin datos» (2026-10-15: con ventas por
+  // $1,1 M en la tabla, los indicadores de octubre decían «— Sin datos»).
+  const etiquetaMes = (() => { const [a, m] = currentYm.split("-").map(Number); return `${MONTHS_SHORT[m - 1]} ${a}`; })();
+  const sinMovimiento = `Sin ventas en ${etiquetaMes}`;
 
   // ── YTD totals ─────────────────────────────────────────────────────────────
   const ytd = useMemo(() => {
@@ -230,7 +234,7 @@ export default function PLDashboardPage() {
 
   const exportCSV = () => {
     const rows = [
-      ["Mes", "Ingresos", "COGS", "Ganancia Bruta", "Mg Bruta %", "Gastos", "Ganancia Neta", "Mg Neta %"],
+      ["Mes", "Ingresos", "Costo de lo vendido", "Ganancia bruta", "Margen bruto %", "Gastos", "Ganancia neta", "Margen neto %"],
       ...monthlyPL.map(m => [m.label, m.revenue, m.cogs, m.grossProfit, `${m.grossMargin}%`, m.expenses, m.netProfit, `${m.netMargin}%`]),
     ].map(r => r.join(",")).join("\n");
     const a = document.createElement("a");
@@ -305,32 +309,32 @@ export default function PLDashboardPage() {
       {/* ── KPI Cards ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
-          label="Revenue"
-          value={currentPL ? fmtK(currentPL.revenue) : "—"}
-          sub={currentPL ? `${currentPL.label}` : "Sin datos"}
+          label="Ingresos del mes"
+          value={fmtK(currentPL?.revenue ?? 0)}
+          sub={currentPL ? `${currentPL.label}` : sinMovimiento}
           icon={DollarSign}
           color="primary"
           trend={revenueTrend}
         />
         <KPICard
-          label="Margen Bruto"
+          label="Margen bruto"
           value={currentPL ? `${currentPL.grossMargin}%` : "—"}
-          sub={currentPL ? fmt(currentPL.grossProfit) : "Sin datos"}
+          sub={currentPL ? fmt(currentPL.grossProfit) : sinMovimiento}
           icon={BarChart2}
           color="blue"
         />
         <KPICard
-          label="Ganancia Neta"
-          value={currentPL ? fmtK(currentPL.netProfit) : "—"}
-          sub={currentPL ? `Margen neto ${currentPL.netMargin}%` : "Sin datos"}
+          label="Ganancia neta"
+          value={fmtK(currentPL?.netProfit ?? 0)}
+          sub={currentPL ? `Margen neto ${currentPL.netMargin}%` : sinMovimiento}
           icon={currentPL && currentPL.netProfit >= 0 ? TrendingUp : TrendingDown}
           color={currentPL && currentPL.netProfit < 0 ? "destructive" : "success"}
           trend={netProfitTrend}
         />
         <KPICard
-          label="Gastos Operativos"
-          value={currentPL ? fmtK(currentPL.expenses) : "—"}
-          sub={currentPL ? currentPL.label : "Sin datos"}
+          label="Gastos operativos"
+          value={fmtK(currentPL?.expenses ?? 0)}
+          sub={currentPL ? currentPL.label : sinMovimiento}
           icon={Wallet}
           color="warning"
         />
@@ -339,9 +343,9 @@ export default function PLDashboardPage() {
       {/* ── Tabs ────────────────────────────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={value => setActiveTab(value)}>
         <TabsList>
-          <TabsTrigger value="mensual">P&amp;L Mensual</TabsTrigger>
-          <TabsTrigger value="ytd">YTD</TabsTrigger>
-          <TabsTrigger value="gastos">Desglose de Gastos</TabsTrigger>
+          <TabsTrigger value="mensual">Mes a mes</TabsTrigger>
+          <TabsTrigger value="ytd">En el año</TabsTrigger>
+          <TabsTrigger value="gastos">Desglose de gastos</TabsTrigger>
           <TabsTrigger value="comparacion">Comparación</TabsTrigger>
           <TabsTrigger value="escenarios">Escenarios</TabsTrigger>
         </TabsList>
@@ -383,7 +387,7 @@ export default function PLDashboardPage() {
               <div className="space-y-1 pb-12">
                 {[
                   { label: "Ingresos por ventas", value: currentPL.revenue, indent: 0, bold: false, color: "text-foreground" },
-                  { label: "Costo de mercadería vendida (COGS)", value: -currentPL.cogs, indent: 1, bold: false, color: "text-orange-400" },
+                  { label: "Costo de lo vendido", value: -currentPL.cogs, indent: 1, bold: false, color: "text-orange-400" },
                   { label: "GANANCIA BRUTA", value: currentPL.grossProfit, indent: 0, bold: true, color: currentPL.grossProfit >= 0 ? "text-blue-400" : "text-red-400", border: true },
                   { label: `Margen bruto: ${currentPL.grossMargin}%`, value: null, indent: 1, bold: false, color: "text-muted-foreground" },
                   { label: "Gastos operativos", value: -currentPL.expenses, indent: 1, bold: false, color: "text-red-400" },
@@ -398,8 +402,8 @@ export default function PLDashboardPage() {
                       <div className="flex items-center gap-3">
                         {prevPL && (
                           <DeltaChip
-                            curr={row.label.includes("COGS") ? currentPL.cogs : row.label.includes("Gasto") ? currentPL.expenses : row.label.includes("BRUTA") ? currentPL.grossProfit : row.label.includes("NETA") ? currentPL.netProfit : currentPL.revenue}
-                            prev={row.label.includes("COGS") ? prevPL.cogs : row.label.includes("Gasto") ? prevPL.expenses : row.label.includes("BRUTA") ? prevPL.grossProfit : row.label.includes("NETA") ? prevPL.netProfit : prevPL.revenue}
+                            curr={row.label.includes("Costo de lo vendido") ? currentPL.cogs : row.label.includes("Gasto") ? currentPL.expenses : row.label.includes("BRUTA") ? currentPL.grossProfit : row.label.includes("NETA") ? currentPL.netProfit : currentPL.revenue}
+                            prev={row.label.includes("Costo de lo vendido") ? prevPL.cogs : row.label.includes("Gasto") ? prevPL.expenses : row.label.includes("BRUTA") ? prevPL.grossProfit : row.label.includes("NETA") ? prevPL.netProfit : prevPL.revenue}
                           />
                         )}
                         <span className={`font-mono text-sm font-semibold ${row.color}`}>{fmt(Math.abs(row.value))}</span>
@@ -433,7 +437,7 @@ export default function PLDashboardPage() {
 
           {/* Waterfall bar chart */}
           <div className="rounded-xl border border-border/60 bg-card p-5">
-            <h3 className="text-sm font-semibold mb-4">Waterfall mensual</h3>
+            <h3 className="text-sm font-semibold mb-4">Cómo se forma el resultado de cada mes</h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthlyPL.slice(-6)} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -460,12 +464,12 @@ export default function PLDashboardPage() {
                   <tr className="border-b border-border/40 text-xs text-muted-foreground bg-muted/10">
                     <th className="px-4 py-3 text-left">Mes</th>
                     <th className="px-4 py-3 text-right">Ingresos</th>
-                    <th className="px-4 py-3 text-right">COGS</th>
-                    <th className="px-4 py-3 text-right">Ganancia Bruta</th>
-                    <th className="px-4 py-3 text-right">Mg Bruto</th>
+                    <th className="px-4 py-3 text-right">Costo de lo vendido</th>
+                    <th className="px-4 py-3 text-right">Ganancia bruta</th>
+                    <th className="px-4 py-3 text-right">Margen bruto</th>
                     <th className="px-4 py-3 text-right">Gastos</th>
-                    <th className="px-4 py-3 text-right">Ganancia Neta</th>
-                    <th className="px-4 py-3 text-right">Mg Neto</th>
+                    <th className="px-4 py-3 text-right">Ganancia neta</th>
+                    <th className="px-4 py-3 text-right">Margen neto</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
@@ -503,7 +507,7 @@ export default function PLDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
               { label: "Ingresos totales", value: ytd.revenue, icon: <DollarSign className="w-4 h-4 text-primary" />, color: "border-primary/20" },
-              { label: "COGS", value: ytd.cogs, icon: <ShoppingCart className="w-4 h-4 text-orange-400" />, color: "border-orange-500/20" },
+              { label: "Costo de lo vendido", value: ytd.cogs, icon: <ShoppingCart className="w-4 h-4 text-orange-400" />, color: "border-orange-500/20" },
               { label: "Ganancia bruta", value: ytd.grossProfit, icon: <TrendingUp className="w-4 h-4 text-blue-400" />, color: "border-blue-500/20" },
               { label: "Gastos operativos", value: ytd.expenses, icon: <Wallet className="w-4 h-4 text-red-400" />, color: "border-red-500/20" },
               { label: "Ganancia neta", value: ytd.netProfit, icon: ytd.netProfit >= 0 ? <TrendingUp className="w-4 h-4 text-emerald-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />, color: ytd.netProfit >= 0 ? "border-emerald-500/20" : "border-red-500/20" },
@@ -614,7 +618,7 @@ export default function PLDashboardPage() {
                     <div className="space-y-2 pb-12">
                       {[
                         { label: "Ingresos", value: pl.revenue, color: "text-foreground" },
-                        { label: "COGS", value: pl.cogs, color: "text-orange-400" },
+                        { label: "Costo de lo vendido", value: pl.cogs, color: "text-orange-400" },
                         { label: "Ganancia Bruta", value: pl.grossProfit, color: "text-blue-400" },
                         { label: "Gastos", value: pl.expenses, color: "text-red-400" },
                         { label: "Ganancia Neta", value: pl.netProfit, color: pl.netProfit >= 0 ? "text-emerald-400" : "text-red-400" },
@@ -675,7 +679,7 @@ export default function PLDashboardPage() {
                   <tbody className="divide-y divide-border/30">
                     {[
                       { label: "Ingresos", curr: currentPL.revenue, prev: prevPL.revenue },
-                      { label: "COGS", curr: currentPL.cogs, prev: prevPL.cogs },
+                      { label: "Costo de lo vendido", curr: currentPL.cogs, prev: prevPL.cogs },
                       { label: "Ganancia Bruta", curr: currentPL.grossProfit, prev: prevPL.grossProfit },
                       { label: "Gastos Operativos", curr: currentPL.expenses, prev: prevPL.expenses },
                       { label: "Ganancia Neta", curr: currentPL.netProfit, prev: prevPL.netProfit },
