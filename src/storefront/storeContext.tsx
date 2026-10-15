@@ -304,6 +304,10 @@ export function StoreProvider({
     setLoadError(false);
 
     (async () => {
+      // El catálogo sólo necesita el slug: se pide junto con la tienda en vez
+      // de esperarla (2026-10-15: en Famatina arrancaba recién a los ~2 s).
+      // Si por algún motivo no sirve, se vuelve a pedir con la tienda ya leída.
+      const catalogoTemprano = fetchStoreProducts("", slug, readOptions).catch(() => null);
       const storeResponse = await retryAbortableRead(signal => (previewVersionId
         ? supabase.rpc("get_store_theme_preview", {
           p_slug: slug,
@@ -334,7 +338,7 @@ export function StoreProvider({
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
-        fetchStoreProducts(row.org_id, row.slug, readOptions),
+        catalogoTemprano.then(r => (r?.ok ? r : fetchStoreProducts(row.org_id, row.slug, readOptions))),
         retryAbortableRead(signal => supabase.rpc("get_store_perfume_details", { p_slug: slug }).abortSignal(signal), readOptions),
         fetchStoreVariants(slug, readOptions),
         retryAbortableRead(signal => supabase.rpc("get_store_reviews", { p_slug: slug }).abortSignal(signal), readOptions),
