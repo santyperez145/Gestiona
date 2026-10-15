@@ -448,12 +448,18 @@ export default function LocationsPage() {
     await load();
   };
 
+  // La base rechaza la baja de la principal o de una sucursal con stock, caja
+  // abierta o tienda online (20261014002700) y dice qué hacer antes.
   const deleteLoc = async (loc: Location) => {
-    if (!(await ask({ title: `¿Eliminar "${loc.name}"?`, confirmText: "Eliminar", variant: "destructive" }))) return;
+    if (!(await ask({
+      title: `¿Dar de baja "${loc.name}"?`,
+      description: "Deja de aparecer para vender y mover stock. Su historial se conserva.",
+      confirmText: "Dar de baja", variant: "destructive",
+    }))) return;
     const { error } = await supabase.from("locations").update({ active: false }).eq("id", loc.id);
-    if (error) { toast.error("No se pudo eliminar el local: " + error.message); return; }
+    if (error) { toast.error("No se puede dar de baja", { description: error.message, duration: 10000 }); return; }
     await load();
-    toast.success("Local eliminado");
+    toast.success(`${loc.name} dada de baja`);
   };
 
   return (
@@ -566,7 +572,7 @@ export default function LocationsPage() {
                         <Edit2 className="w-3.5 h-3.5" />
                       </Button>
                       {!loc.is_main && (
-                        <Button variant="ghost" size="sm" onClick={() => deleteLoc(loc)}>
+                        <Button variant="ghost" size="sm" onClick={() => deleteLoc(loc)} aria-label={`Dar de baja ${loc.name}`} title="Dar de baja">
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </Button>
                       )}
