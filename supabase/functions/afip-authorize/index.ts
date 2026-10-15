@@ -22,7 +22,7 @@
  * environment, tipo_emisor.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { resolverCredencialesAfip, guardarTicketAcceso } from "../_shared/afipCredenciales.ts";
 import {
   extraerXml as extractXml,

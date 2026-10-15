@@ -11,7 +11,7 @@
  *   - whatsapp_digest_enabled = true in settings (opt-in, defaults to false)
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 

@@ -2,7 +2,7 @@
 // Runs daily via pg_cron. Finds unpaid debts past their due date,
 // creates in-app notifications for org admins AND sends a WhatsApp
 // alert via Evolution API if the org has it configured.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 

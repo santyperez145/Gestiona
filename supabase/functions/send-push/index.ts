@@ -14,7 +14,7 @@
  * Uses the Web Push Protocol directly (no npm dependencies) with Deno's crypto.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(

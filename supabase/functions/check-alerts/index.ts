@@ -18,7 +18,7 @@
  * leído en las últimas 24 h no se repite.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { exigirCronOUsuario } from "../_shared/cronAuth.ts";
 import { leerPaginado } from "../_shared/leerPaginado.ts";

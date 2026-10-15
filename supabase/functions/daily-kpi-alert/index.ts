@@ -1,7 +1,7 @@
 // Edge function: daily-kpi-alert
 // Runs nightly via pg_cron. Sends a daily performance summary notification
 // and alerts if key metrics (sales, margin) are below configured thresholds.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { mensajeDeError } from "../_shared/errorMessage.ts";
 import { exigirCron } from "../_shared/cronAuth.ts";

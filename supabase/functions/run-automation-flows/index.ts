@@ -6,7 +6,7 @@
 //                     stock_out, new_customer, big_sale
 // Supported actions:  notification, email, whatsapp_message,
 //                     create_task, create_purchase_order, webhook
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";

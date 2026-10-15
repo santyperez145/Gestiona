@@ -22,7 +22,7 @@
  *     USING (user_id = auth.uid());
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,

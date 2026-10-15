@@ -12,7 +12,7 @@
  * Cache de 30 días por CUIT (arca_padron_cache) y tope de consultas nuevas
  * por organización y día (arca_padron_consultas).
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { descifrarSecreto } from "../_shared/secretos.ts";
 import { pedirTicketWsaa } from "../_shared/wsaaLogin.ts";
 import {

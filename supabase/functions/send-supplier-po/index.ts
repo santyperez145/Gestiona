@@ -13,7 +13,7 @@
  * enviarse, una orden en borrador pasa a «enviada» y queda la fecha de envío.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { emailFailure } from "../_shared/emailErrors.ts";

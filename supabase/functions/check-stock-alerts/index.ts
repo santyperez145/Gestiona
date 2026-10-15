@@ -1,6 +1,6 @@
 // Edge function: check-stock-alerts
 // Runs daily via pg_cron. Finds products below threshold and creates notifications.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(
