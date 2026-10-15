@@ -1,4 +1,5 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { fmtPct } from "@/lib/porcentaje";
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -1048,7 +1049,7 @@ export default function ProveedoresPage() {
                               <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                                 <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                               </div>
-                              <span className="text-xs text-muted-foreground w-10 text-right">{pct.toFixed(1)}%</span>
+                              <span className="text-xs text-muted-foreground w-10 text-right">{fmtPct(pct)}</span>
                             </div>
                           </td>
                         </tr>

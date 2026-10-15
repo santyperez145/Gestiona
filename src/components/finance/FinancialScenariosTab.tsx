@@ -4,6 +4,7 @@
  *
  * What-if / scenario modeling: P&L projections, breakeven calculator, cash flow projection, variance analysis.
  */
+import { fmtPct } from "@/lib/porcentaje";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -137,7 +138,7 @@ function BreakevenCalc() {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
           <p className="text-xs text-blue-400 font-medium mb-1">Margen de Contribución</p>
-          <p className="text-3xl font-bold text-blue-400">{contributionMarginPct.toFixed(1)}%</p>
+          <p className="text-3xl font-bold text-blue-400">{fmtPct(contributionMarginPct)}</p>
         </div>
         <div className="bg-primary/10 border border-purple-500/20 rounded-xl p-4 text-center">
           <p className="text-xs text-primary font-medium mb-1">Punto de Equilibrio (ARS)</p>
@@ -164,7 +165,7 @@ function BreakevenCalc() {
               <div className="bg-green-400 h-full flex-1" />
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              Margen de seguridad: <span className={safetyMargin > 0 ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>{safetyMargin.toFixed(1)}%</span>
+              Margen de seguridad: <span className={safetyMargin > 0 ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>{fmtPct(safetyMargin)}</span>
               {safetyMargin < 0 && " ⚠️ Estás por debajo del punto de equilibrio"}
             </p>
           </div>
@@ -476,7 +477,7 @@ export default function FinancialScenariosTab() {
                         {v.varAbs > 0 ? "+" : ""}{(v.varAbs / 1000).toFixed(0)}K
                       </td>
                       <td className={`py-3 px-4 text-right font-medium ${v.varPct > 0 ? "text-emerald-400" : v.varPct < 0 ? "text-red-400" : ""}`}>
-                        {v.varPct > 0 ? "+" : ""}{v.varPct.toFixed(1)}%
+                        {v.varPct > 0 ? "+" : ""}{fmtPct(v.varPct)}
                       </td>
                     </tr>
                   ))}

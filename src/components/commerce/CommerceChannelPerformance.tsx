@@ -1,4 +1,5 @@
 /* Rediseño CommerceChannelPerformance: paleta token, sin IDs expuestos */
+import { fmtPct } from "@/lib/porcentaje";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, ShoppingBag, Store, Globe } from "lucide-react";
@@ -91,7 +92,7 @@ export default function CommerceChannelPerformance({
                   <div className="text-right shrink-0 ml-2">
                     <p className="font-semibold tabular-nums">${channel.revenue.toLocaleString("es-AR")}</p>
                     <Badge variant="secondary" className="text-xs mt-1">
-                      {percentage.toFixed(1)}%
+                      {fmtPct(percentage)}
                     </Badge>
                   </div>
                 </div>

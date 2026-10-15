@@ -4,6 +4,7 @@
  * el GMV en riesgo, el recuperado y la tasa de conversión por período.
  */
 
+import { fmtPct } from "@/lib/porcentaje";
 import { useEffect, useState } from "react";
 import { Calendar, Download, Filter, TrendingUp, Package, Mail, AlertTriangle } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
@@ -188,7 +189,7 @@ export default function RecoveryLedger({ orgId, storeId, storeSlug }: Props) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Tasa de recuperación</p>
-              <p className="text-xl font-bold">{recoveryRate.toFixed(1)}%</p>
+              <p className="text-xl font-bold">{fmtPct(recoveryRate)}</p>
             </div>
           </div>
         </div>

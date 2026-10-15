@@ -1,4 +1,5 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { fmtPct } from "@/lib/porcentaje";
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -117,7 +118,7 @@ function printExpensesReport(expenses: any[], getCategoryLabel: (c: string) => s
   const byCat: Record<string, number> = {};
   expenses.forEach(e => { byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount_ars); });
   const catRows = Object.entries(byCat).sort(([, a], [, b]) => b - a)
-    .map(([cat, amt]) => `<tr><td>${getCategoryLabel(cat)}</td><td style="text-align:right">$${amt.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td><td style="text-align:right">${((amt / total) * 100).toFixed(1)}%</td></tr>`).join('');
+    .map(([cat, amt]) => `<tr><td>${getCategoryLabel(cat)}</td><td style="text-align:right">$${amt.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td><td style="text-align:right">${fmtPct(((amt / total) * 100))}</td></tr>`).join('');
   const detailRows = expenses.sort((a, b) => b.date.localeCompare(a.date))
     .map(e => `<tr><td>${e.date}</td><td>${e.description || ''}</td><td>${getCategoryLabel(e.category)}</td><td style="text-align:right">$${Number(e.amount_ars).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td></tr>`).join('');
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte de Gastos</title><style>

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from "react";
+﻿import { fmtPct } from "@/lib/porcentaje";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -388,7 +389,7 @@ export default function InfluencerExchangesPage() {
                   <p className="text-xs text-muted-foreground">{bp.category || "—"} · @{bp.instagram_handle || "—"}</p>
                   <div className="mt-2 flex gap-2">
                     <span className="text-xs text-muted-foreground">{(bp.followers_ig || 0).toLocaleString()} seg.</span>
-                    <span className="text-xs text-muted-foreground">{(bp.engagement_rate || 0).toFixed(1)}% engagement</span>
+                    <span className="text-xs text-muted-foreground">{fmtPct(bp.engagement_rate || 0)} de interacción</span>
                   </div>
                 </div>
               ))}

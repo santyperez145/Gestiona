@@ -1,3 +1,4 @@
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { roleLabel } from "@/lib/roleLabels";
@@ -354,7 +355,7 @@ export default function ReportsPage() {
     const rows: any[] = [
       [{ content: 'Ingresos por ventas', styles: { fontStyle: 'bold' } }, { content: fmt(periodRevenue), styles: { halign: 'right', fontStyle: 'bold' } }],
       ['(-) Costo de mercadería vendida (COGS)', { content: '-' + fmt(periodCOGS), styles: { halign: 'right', textColor: [180, 60, 60] } }],
-      [{ content: '= Ganancia bruta', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, { content: fmt(periodGrossProfit) + `  (${grossMarginPct.toFixed(1)}%)`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } }],
+      [{ content: '= Ganancia bruta', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, { content: fmt(periodGrossProfit) + `  (${fmtPct(grossMarginPct)})`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } }],
       [{ content: '(-) Gastos operativos', styles: { fontStyle: 'bold' } }, { content: '-' + fmt(totalOpex), styles: { halign: 'right', textColor: [180, 60, 60], fontStyle: 'bold' } }],
       ...Object.entries(expensesByCategory).map(([cat, val]) => [
         { content: '    · ' + getCategoryLabel(cat), styles: { textColor: [110, 110, 110], fontSize: 9 } },
@@ -372,7 +373,7 @@ export default function ReportsPage() {
 
     rows.push([
       { content: '= GANANCIA NETA', styles: { fontStyle: 'bold', fillColor: [212, 168, 67], textColor: [26, 26, 46], fontSize: 12 } },
-      { content: fmt(netIncome) + `  (${netMarginPct.toFixed(1)}%)`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [212, 168, 67], textColor: [26, 26, 46], fontSize: 12 } },
+      { content: fmt(netIncome) + `  (${fmtPct(netMarginPct)})`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [212, 168, 67], textColor: [26, 26, 46], fontSize: 12 } },
     ]);
 
     autoTable(doc, {
@@ -400,7 +401,7 @@ export default function ReportsPage() {
     const pageW = doc.internal.pageSize.getWidth();
     const biz = (settings.business_name || 'Negocio').toUpperCase();
     const fmt = (n: number) => formatARS(Math.round(n));
-    const fmtPct = (n: number) => `${n.toFixed(1)}%`;
+    const fmtPct = (n: number) => `${fmtPct(n)}`;
 
     // ── Header ──────────────────────────────────────────────────────────────
     doc.setFillColor(26, 26, 46);
@@ -623,8 +624,8 @@ export default function ReportsPage() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Ingresos del período" value={formatARS(periodRevenue)} icon={TrendingUp} color="primary" sub={filtered.label} />
-        <KPICard label="Ganancia bruta" value={formatARS(periodGrossProfit)} icon={DollarSign} color={periodGrossProfit > 0 ? "success" : "destructive"} sub={`${grossMarginPct.toFixed(1)}% margen`} />
-        <KPICard label="Resultado neto" value={formatARS(netIncome)} icon={BarChart2} color={netIncome > 0 ? "success" : "destructive"} sub={`${netMarginPct.toFixed(1)}% margen neto`} />
+        <KPICard label="Ganancia bruta" value={formatARS(periodGrossProfit)} icon={DollarSign} color={periodGrossProfit > 0 ? "success" : "destructive"} sub={`${fmtPct(grossMarginPct)} margen`} />
+        <KPICard label="Resultado neto" value={formatARS(netIncome)} icon={BarChart2} color={netIncome > 0 ? "success" : "destructive"} sub={`${fmtPct(netMarginPct)} margen neto`} />
         <KPICard label="Ventas registradas" value={filtered.sales.length} icon={Receipt} color="blue" sub={`${filtered.purchases.length} compras`} />
       </div>
 
@@ -685,7 +686,7 @@ export default function ReportsPage() {
                       <p className="text-base md:text-lg font-bold font-mono tracking-tight mt-1">{formatARS(k.curr)}</p>
                       {pct !== null ? (
                         <p className={`text-[10px] mt-0.5 font-medium ${good ? "text-green-400" : "text-red-400"}`}>
-                          {pct >= 0 ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}% vs anterior
+                          {pct >= 0 ? "▲" : "▼"} {fmtPct(Math.abs(pct))} vs anterior
                         </p>
                       ) : (
                         <p className="text-[10px] text-muted-foreground/50 mt-0.5">Sin comparación</p>
@@ -727,8 +728,8 @@ export default function ReportsPage() {
               <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Métricas de Rendimiento</h2>
               <div className="space-y-3 pb-12">
                 {[
-                  ['Margen Bruto', totalSalesARS > 0 ? `${((grossProfitARS / totalSalesARS) * 100).toFixed(1)}%` : '0%', 'text-emerald-400'],
-                  ['ROI', `${roi.toFixed(1)}%`, 'text-primary'],
+                  ['Margen Bruto', totalSalesARS > 0 ? `${fmtPct(((grossProfitARS / totalSalesARS) * 100))}` : '0%', 'text-emerald-400'],
+                  ['ROI', `${fmtPct(roi)}`, 'text-primary'],
                   ['Inversión Total', `${formatUSD(totalPurchasesUSD)} (${formatARS(totalPurchasesARS)})`, 'text-yellow-400'],
                   ['Ticket Promedio', formatARS(sales.length > 0 ? totalSalesARS / sales.length : 0), ''],
                   ['Ganancia Promedio/Venta', formatARS(sales.length > 0 ? grossProfitARS / sales.length : 0), 'text-emerald-400'],
@@ -804,7 +805,7 @@ export default function ReportsPage() {
                       <p className="font-mono font-bold text-sm mt-0.5">{formatARS(k.curr)}</p>
                       {d && (
                         <p className={`text-[10px] mt-0.5 font-medium ${good ? "text-green-400" : "text-red-400"}`}>
-                          {d.up ? "▲" : "▼"} {Math.abs(d.pct).toFixed(1)}% vs período anterior
+                          {d.up ? "▲" : "▼"} {fmtPct(Math.abs(d.pct))} vs período anterior
                         </p>
                       )}
                       {!d && <p className="text-[10px] text-muted-foreground/50 mt-0.5">Sin datos anteriores</p>}
@@ -844,7 +845,7 @@ export default function ReportsPage() {
             <div className="space-y-1 font-mono text-sm">
               <Row label="Ingresos por ventas" value={formatARS(periodRevenue)} bold />
               <Row label="(-) Costo de mercadería vendida" value={`-${formatARS(periodCOGS)}`} negative />
-              <Row label="= Ganancia bruta" value={`${formatARS(periodGrossProfit)}  (${grossMarginPct.toFixed(1)}%)`} bold highlight="muted" />
+              <Row label="= Ganancia bruta" value={`${formatARS(periodGrossProfit)}  (${fmtPct(grossMarginPct)})`} bold highlight="muted" />
               <Row label="(-) Gastos operativos" value={`-${formatARS(totalOpex)}`} negative bold />
               {Object.entries(expensesByCategory).map(([cat, val]) => (
                 <Row key={cat} label={`    · ${getCategoryLabel(cat)}`} value={`-${formatARS(val)}`} dim />
@@ -856,7 +857,7 @@ export default function ReportsPage() {
                   <Row label={`(-) IIBB (${settings.tax_iibb_percent}%)`} value={`-${formatARS(periodTaxes.iibb)}`} negative />
                 </>
               )}
-              <Row label="= GANANCIA NETA" value={`${formatARS(netIncome)}  (${netMarginPct.toFixed(1)}%)`} bold highlight="gold" />
+              <Row label="= GANANCIA NETA" value={`${formatARS(netIncome)}  (${fmtPct(netMarginPct)})`} bold highlight="gold" />
             </div>
           </div>
         </TabsContent>
@@ -1045,7 +1046,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
     doc.text(`Unidades: ${totalUnits.toLocaleString("es-AR")}`, 40, summaryY);
     doc.text(`Val. Costo: ${formatARS(totalCostValue)}`, 160, summaryY);
     doc.text(`Val. Retail: ${formatARS(totalRetailValue)}`, 310, summaryY);
-    doc.text(`Margen no realizado: ${unrealizedMargin.toFixed(1)}%`, 470, summaryY);
+    doc.text(`Margen no realizado: ${fmtPct(unrealizedMargin)}`, 470, summaryY);
     doc.text(`USD inmovilizado: ${formatUSD(totalCostUSD)}`, 630, summaryY);
 
     autoTable(doc, {
@@ -1058,12 +1059,12 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
         r.stock,
         formatARS(r.costARS).replace("$ ", "$ "),
         formatARS(Number(r.sale_price_ars) || 0).replace("$ ", "$ "),
-        `${r.margin.toFixed(1)}%`,
+        `${fmtPct(r.margin)}`,
         formatARS(r.costValue).replace("$ ", "$ "),
         formatARS(r.retailValue).replace("$ ", "$ "),
         r.days_remaining !== null ? `${r.days_remaining}d` : "—",
       ]),
-      foot: [["TOTAL", "", "", totalUnits, "", "", `${unrealizedMargin.toFixed(1)}%`, formatARS(totalCostValue), formatARS(totalRetailValue), ""]],
+      foot: [["TOTAL", "", "", totalUnits, "", "", `${fmtPct(unrealizedMargin)}`, formatARS(totalCostValue), formatARS(totalRetailValue), ""]],
       styles: { fontSize: 7.5, cellPadding: 3 },
       headStyles: { fillColor: [40, 40, 40], textColor: [255, 255, 255], fontSize: 8 },
       footStyles: { fillColor: [240, 240, 240], fontStyle: "bold", fontSize: 8 },
@@ -1102,7 +1103,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
           { label: "Unidades en stock", value: totalUnits.toLocaleString("es-AR"), icon: Boxes, color: "text-primary" },
           { label: "Valor al costo (ARS)", value: formatARS(totalCostValue), icon: DollarSign, color: "text-yellow-400" },
           { label: "Valor retail (ARS)", value: formatARS(totalRetailValue), icon: TrendingUp, color: "text-emerald-400" },
-          { label: "Margen no realizado", value: `${unrealizedMargin.toFixed(1)}%`, icon: Package, color: unrealizedMargin >= 30 ? "text-emerald-400" : unrealizedMargin >= 15 ? "text-yellow-400" : "text-destructive" },
+          { label: "Margen no realizado", value: `${fmtPct(unrealizedMargin)}`, icon: Package, color: unrealizedMargin >= 30 ? "text-emerald-400" : unrealizedMargin >= 15 ? "text-yellow-400" : "text-destructive" },
         ].map(k => (
           <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
             <div className="flex items-center justify-between mb-1">
@@ -1241,7 +1242,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
                     <td className="px-3 py-2.5 text-right text-xs text-muted-foreground hidden lg:table-cell font-mono">{formatARS(r.costARS)}</td>
                     <td className="px-3 py-2.5 text-right text-xs font-mono">{formatARS(Number(r.sale_price_ars) || 0)}</td>
                     <td className={`px-3 py-2.5 text-right text-xs font-bold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : "text-destructive"}`}>
-                      {r.margin.toFixed(1)}%
+                      {fmtPct(r.margin)}
                     </td>
                     <td className="px-3 py-2.5 text-right text-xs font-mono text-yellow-400">{formatARS(r.costValue)}</td>
                     <td className="px-3 py-2.5 text-right text-xs font-mono text-emerald-400">{formatARS(r.retailValue)}</td>
@@ -1270,7 +1271,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
                   <td className="px-3 py-2.5 text-center">{totalUnits}</td>
                   <td className="hidden lg:table-cell" />
                   <td />
-                  <td className="px-3 py-2.5 text-right">{unrealizedMargin.toFixed(1)}%</td>
+                  <td className="px-3 py-2.5 text-right">{fmtPct(unrealizedMargin)}</td>
                   <td className="px-3 py-2.5 text-right text-yellow-400 font-mono">{formatARS(totalCostValue)}</td>
                   <td className="px-3 py-2.5 text-right text-emerald-400 font-mono">{formatARS(totalRetailValue)}</td>
                   <td />
@@ -1473,7 +1474,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
                     <p className="text-[10px] text-muted-foreground">{roleLabel(r.role)}</p>
                   </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground bg-muted rounded-[5px] px-2 py-0.5">{sharePct.toFixed(1)}%</span>
+                <span className="text-[10px] text-muted-foreground bg-muted rounded-[5px] px-2 py-0.5">{fmtPct(sharePct)}</span>
               </div>
               <div className="w-full bg-muted rounded-full h-1.5">
                 <div className="h-1.5 rounded-full transition-all" style={{ width: `${sharePct}%`, background: SELLER_COLORS[i % SELLER_COLORS.length] }} />
@@ -1481,7 +1482,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div><p className="text-muted-foreground">Facturado</p><p className="font-bold text-emerald-400">{formatARS(r.totalARS)}</p></div>
                 <div><p className="text-muted-foreground">Ganancia</p><p className="font-bold">{formatARS(r.profit)}</p></div>
-                <div><p className="text-muted-foreground">Margen</p><p className={`font-bold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : "text-destructive"}`}>{r.margin.toFixed(1)}%</p></div>
+                <div><p className="text-muted-foreground">Margen</p><p className={`font-bold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : "text-destructive"}`}>{fmtPct(r.margin)}</p></div>
                 <div><p className="text-muted-foreground">Unidades</p><p className="font-bold">{r.count}</p></div>
                 <div><p className="text-muted-foreground">Clientes</p><p className="font-bold">{r.customersCount}</p></div>
                 <div><p className="text-muted-foreground">Ticket prom.</p><p className="font-bold">{formatARS(r.avgTicket)}</p></div>
@@ -2501,7 +2502,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
                       </td>
                       <td className="px-3 py-2.5 text-right text-xs">
                         <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-semibold ${r.margin >= 40 ? "bg-emerald-500/15 text-emerald-400" : r.margin >= 20 ? "bg-yellow-500/15 text-yellow-400" : "bg-red-500/15 text-red-400"}`}>
-                          {r.margin.toFixed(1)}%
+                          {fmtPct(r.margin)}
                         </span>
                       </td>
                       <td className={`px-3 py-2.5 text-right text-xs font-semibold ${marginDiff >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
@@ -2520,7 +2521,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
                     <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold text-emerald-400">{formatARS(r.profit)}</td>
                     <td className="px-4 py-2.5 text-right">
                       <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-[5px] ${r.margin >= 40 ? "bg-emerald-500/15 text-emerald-400" : r.margin >= 20 ? "bg-yellow-500/15 text-yellow-400" : "bg-red-500/15 text-red-400"}`}>
-                        {r.margin.toFixed(1)}%
+                        {fmtPct(r.margin)}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.units}</td>
@@ -2678,7 +2679,7 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
                     <td className="px-4 py-3 text-right font-mono text-xs">{formatARS(r.revenue)}</td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-emerald-400">{formatARS(r.profit)}</td>
                     <td className="px-4 py-3 text-right text-xs">
-                      <span className={`font-semibold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : "text-destructive"}`}>{r.margin.toFixed(1)}%</span>
+                      <span className={`font-semibold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : "text-destructive"}`}>{fmtPct(r.margin)}</span>
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-muted-foreground">{r.units}</td>
                     <td className="px-4 py-3 text-right text-xs">
@@ -2686,7 +2687,7 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
                         <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="text-muted-foreground w-10 text-right">{pct.toFixed(1)}%</span>
+                        <span className="text-muted-foreground w-10 text-right">{fmtPct(pct)}</span>
                       </div>
                     </td>
                   </tr>
@@ -2846,7 +2847,7 @@ function BrandStatsTab({ sales, products, settings, period }: { sales: any[]; pr
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Marca líder", value: topBrand?.revenue > 0 ? topBrand.brand : "—", sub: topBrand?.revenue > 0 ? formatARS(topBrand.revenue) : "sin ventas", color: "text-primary" },
-          { label: "Más rentable", value: mostProfitable ? mostProfitable.brand : "—", sub: mostProfitable ? `${mostProfitable.margin.toFixed(1)}% margen` : "sin ventas", color: "text-emerald-400" },
+          { label: "Más rentable", value: mostProfitable ? mostProfitable.brand : "—", sub: mostProfitable ? `${fmtPct(mostProfitable.margin)} margen` : "sin ventas", color: "text-emerald-400" },
           { label: "Capital inmovilizado", value: formatARS(totals.capital), sub: `${rows.length} marcas`, color: "text-yellow-400" },
           { label: "Ingresos totales", value: formatARS(totals.revenue), sub: `${formatARS(totals.profit)} ganancia`, color: "text-blue-400" },
         ].map(k => (
@@ -2930,11 +2931,11 @@ function BrandStatsTab({ sales, products, settings, period }: { sales: any[]; pr
                     <td className="px-4 py-3 text-right font-mono text-xs">{formatARS(r.revenue)}</td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-emerald-400">{formatARS(r.profit)}</td>
                     <td className="px-4 py-3 text-right text-xs">
-                      <span className={`font-semibold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : r.revenue > 0 ? "text-destructive" : "text-muted-foreground"}`}>{r.revenue > 0 ? `${r.margin.toFixed(1)}%` : "—"}</span>
+                      <span className={`font-semibold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : r.revenue > 0 ? "text-destructive" : "text-muted-foreground"}`}>{r.revenue > 0 ? `${fmtPct(r.margin)}` : "—"}</span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs">{r.units}</td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-yellow-400">{formatARS(r.capital)}</td>
-                    <td className="px-4 py-3 text-right text-xs text-muted-foreground">{pct.toFixed(1)}%</td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground">{fmtPct(pct)}</td>
                   </tr>
                 );
               })}
@@ -3066,7 +3067,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
     const positive = invert ? d < 0 : d >= 0;
     return (
       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-[5px] ${positive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-        {d >= 0 ? '+' : ''}{d.toFixed(1)}%
+        {d >= 0 ? '+' : ''}{fmtPct(d)}
       </span>
     );
   };
@@ -3076,7 +3077,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
     { label: 'Ganancia bruta (ARS)', a: A.profit, b: B.profit, fmt: formatARS },
     { label: 'Gastos (ARS)', a: A.expAmt, b: B.expAmt, fmt: formatARS, invert: true },
     { label: 'Resultado neto (ARS)', a: A.netResult, b: B.netResult, fmt: formatARS },
-    { label: 'Margen bruto', a: A.margin, b: B.margin, fmt: (n: number) => `${n.toFixed(1)}%` },
+    { label: 'Margen bruto', a: A.margin, b: B.margin, fmt: (n: number) => `${fmtPct(n)}` },
     { label: 'Ticket promedio (ARS)', a: A.ticket, b: B.ticket, fmt: formatARS },
     { label: 'Unidades vendidas', a: A.units, b: B.units, fmt: (n: number) => n.toString() },
     { label: 'Transacciones', a: A.count, b: B.count, fmt: (n: number) => n.toString() },
@@ -3166,7 +3167,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
           'comparativa-periodos.csv',
           ['Métrica', `Período A (${aFrom} a ${aTo})`, `Período B (${bFrom} a ${bTo})`, 'Variación %'],
           metrics.map(({ label, a, b, fmt: fmtFn }) => {
-            const d = b === 0 ? '—' : `${((a - b) / Math.abs(b) * 100).toFixed(1)}%`;
+            const d = b === 0 ? '—' : `${fmtPct(((a - b) / Math.abs(b) * 100))}`;
             return [label, fmtFn(a), fmtFn(b), d];
           })
         )}>
@@ -3176,7 +3177,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
           const labelA = `${aFrom} → ${aTo}`;
           const labelB = `${bFrom} → ${bTo}`;
           const tableRows = metrics.map(({ label, a, b, fmt: fmtFn }) => {
-            const d = b === 0 ? '—' : `${((a - b) / Math.abs(b) * 100).toFixed(1)}%`;
+            const d = b === 0 ? '—' : `${fmtPct(((a - b) / Math.abs(b) * 100))}`;
             return `<tr><td>${label}</td><td style="text-align:right;font-weight:600">${fmtFn(a)}</td><td style="text-align:right;color:#888">${fmtFn(b)}</td><td style="text-align:right;color:${b > 0 && a >= b ? '#4ade80' : '#f87171'}">${d}</td></tr>`;
           }).join('');
           const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comparativa de períodos</title>
@@ -3469,7 +3470,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
   const fmtARS = (v: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
 
   const printPDF = () => {
-    const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+    const fmtPct = (v: number) => `${fmtPct(v)}`;
     const rows = chartData.filter(d => d.revenue > 0).map(d => `
       <tr>
         <td>${d.label}</td>
@@ -3493,10 +3494,10 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
 <h1>Tendencia de Márgenes — Últimos ${plural(months, "mes", "meses")}</h1>
 <p class="sub">Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
 <div class="kpi">
-  <div class="kpi-item"><div class="val">${avgGrossMargin.toFixed(1)}%</div><div class="lbl">Margen bruto promedio</div></div>
-  ${lastMonth?.revenue > 0 ? `<div class="kpi-item"><div class="val">${lastMonth.grossMargin.toFixed(1)}%</div><div class="lbl">Margen mes actual</div></div>` : ''}
-  ${bestMonth ? `<div class="kpi-item"><div class="val">${bestMonth.grossMargin.toFixed(1)}%</div><div class="lbl">Mejor mes (${bestMonth.label})</div></div>` : ''}
-  ${worstMonth ? `<div class="kpi-item"><div class="val">${worstMonth.grossMargin.toFixed(1)}%</div><div class="lbl">Peor mes (${worstMonth.label})</div></div>` : ''}
+  <div class="kpi-item"><div class="val">${fmtPct(avgGrossMargin)}</div><div class="lbl">Margen bruto promedio</div></div>
+  ${lastMonth?.revenue > 0 ? `<div class="kpi-item"><div class="val">${fmtPct(lastMonth.grossMargin)}</div><div class="lbl">Margen mes actual</div></div>` : ''}
+  ${bestMonth ? `<div class="kpi-item"><div class="val">${fmtPct(bestMonth.grossMargin)}</div><div class="lbl">Mejor mes (${bestMonth.label})</div></div>` : ''}
+  ${worstMonth ? `<div class="kpi-item"><div class="val">${fmtPct(worstMonth.grossMargin)}</div><div class="lbl">Peor mes (${worstMonth.label})</div></div>` : ''}
 </div>
 <table>
   <thead><tr><th>Mes</th><th>Ingresos</th><th>Gan. Bruta</th><th>Margen %</th><th>Gastos</th><th>Gan. Neta</th><th>Margen Neto %</th></tr></thead>
@@ -3531,12 +3532,12 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Margen bruto promedio</p>
-          <p className="text-xl font-bold font-mono tracking-tight text-primary">{avgGrossMargin.toFixed(1)}%</p>
+          <p className="text-xl font-bold font-mono tracking-tight text-primary">{fmtPct(avgGrossMargin)}</p>
         </div>
         <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Margen mes actual</p>
           <p className={`text-xl font-bold font-mono tracking-tight ${(lastMonth?.grossMargin ?? 0) >= 30 ? 'text-emerald-400' : (lastMonth?.grossMargin ?? 0) >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
-            {lastMonth?.revenue > 0 ? `${lastMonth.grossMargin.toFixed(1)}%` : '—'}
+            {lastMonth?.revenue > 0 ? `${fmtPct(lastMonth.grossMargin)}` : '—'}
           </p>
           {prevMonth?.revenue > 0 && (
             <p className={`text-[10px] mt-0.5 ${trend >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
@@ -3546,12 +3547,12 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
         </div>
         <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Mejor mes</p>
-          <p className="text-xl font-bold font-mono tracking-tight text-emerald-400">{bestMonth ? `${bestMonth.grossMargin.toFixed(1)}%` : '—'}</p>
+          <p className="text-xl font-bold font-mono tracking-tight text-emerald-400">{bestMonth ? `${fmtPct(bestMonth.grossMargin)}` : '—'}</p>
           <p className="text-[10px] text-muted-foreground">{bestMonth?.label}</p>
         </div>
         <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Peor mes</p>
-          <p className="text-xl font-bold font-mono tracking-tight text-destructive">{worstMonth ? `${worstMonth.grossMargin.toFixed(1)}%` : '—'}</p>
+          <p className="text-xl font-bold font-mono tracking-tight text-destructive">{worstMonth ? `${fmtPct(worstMonth.grossMargin)}` : '—'}</p>
           <p className="text-[10px] text-muted-foreground">{worstMonth?.label}</p>
         </div>
       </div>
@@ -3565,7 +3566,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartColors.text }} />
             <YAxis tick={{ fontSize: 10, fill: chartColors.text }} unit="%" domain={[0, 'auto']} />
             <Tooltip
-              formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen bruto']}
+              formatter={(v: number) => [`${fmtPct(v)}`, 'Margen bruto']}
               contentStyle={chartTooltipStyle}
             />
             <ReferenceLine y={avgGrossMargin} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 2" label={{ value: `Prom ${avgGrossMargin.toFixed(0)}%`, fill: chartColors.text, fontSize: 10 }} />
@@ -3583,7 +3584,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartColors.text }} />
             <YAxis tick={{ fontSize: 10, fill: chartColors.text }} unit="%" />
             <Tooltip
-              formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen neto']}
+              formatter={(v: number) => [`${fmtPct(v)}`, 'Margen neto']}
               contentStyle={chartTooltipStyle}
             />
             <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
@@ -3638,12 +3639,12 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
                 <td className={`px-4 py-2.5 text-right text-xs font-medium ${row.net >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>{fmtARS(row.net)}</td>
                 <td className="px-4 py-2.5 text-right text-xs">
                   <span className={`font-semibold ${row.grossMargin >= 30 ? 'text-emerald-400' : row.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
-                    {row.revenue > 0 ? `${row.grossMargin.toFixed(1)}%` : '—'}
+                    {row.revenue > 0 ? `${fmtPct(row.grossMargin)}` : '—'}
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-right text-xs">
                   <span className={`font-semibold ${row.netMargin >= 10 ? 'text-emerald-400' : row.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>
-                    {row.revenue > 0 ? `${row.netMargin.toFixed(1)}%` : '—'}
+                    {row.revenue > 0 ? `${fmtPct(row.netMargin)}` : '—'}
                   </span>
                 </td>
               </tr>
@@ -3730,14 +3731,14 @@ function PeriodComparisonPanel({ sales, expenses }: { sales: any[]; expenses: an
                   ))}
                   <tr>
                     <td className="py-2 pr-4 text-muted-foreground">Margen bruto %</td>
-                    <td className={`py-2 px-3 text-right font-semibold ${dataA.grossMargin >= 30 ? 'text-emerald-400' : dataA.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>{dataA.grossMargin.toFixed(1)}%</td>
-                    <td className={`py-2 px-3 text-right font-semibold text-muted-foreground`}>{dataB.grossMargin.toFixed(1)}%</td>
+                    <td className={`py-2 px-3 text-right font-semibold ${dataA.grossMargin >= 30 ? 'text-emerald-400' : dataA.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>{fmtPct(dataA.grossMargin)}</td>
+                    <td className={`py-2 px-3 text-right font-semibold text-muted-foreground`}>{fmtPct(dataB.grossMargin)}</td>
                     <td className="py-2 pl-3 text-right"><Delta a={dataA.grossMargin} b={dataB.grossMargin} pct /></td>
                   </tr>
                   <tr>
                     <td className="py-2 pr-4 text-muted-foreground">Margen neto %</td>
-                    <td className={`py-2 px-3 text-right font-semibold ${dataA.netMargin >= 15 ? 'text-emerald-400' : dataA.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>{dataA.netMargin.toFixed(1)}%</td>
-                    <td className="py-2 px-3 text-right font-semibold text-muted-foreground">{dataB.netMargin.toFixed(1)}%</td>
+                    <td className={`py-2 px-3 text-right font-semibold ${dataA.netMargin >= 15 ? 'text-emerald-400' : dataA.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>{fmtPct(dataA.netMargin)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-muted-foreground">{fmtPct(dataB.netMargin)}</td>
                     <td className="py-2 pl-3 text-right"><Delta a={dataA.netMargin} b={dataB.netMargin} pct /></td>
                   </tr>
                 </tbody>
@@ -3868,7 +3869,7 @@ function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
                   <td className="px-3 py-2.5 text-right text-xs font-mono text-primary">{formatARS(r.total)}</td>
                   <td className="px-3 py-2.5 text-right text-xs font-mono text-emerald-400">{formatARS(r.profit)}</td>
                   <td className="px-3 py-2.5 text-right text-xs font-mono">{formatARS(r.avgTicket)}</td>
-                  <td className="px-3 py-2.5 text-right text-xs text-muted-foreground hidden md:table-cell">{r.share.toFixed(1)}%</td>
+                  <td className="px-3 py-2.5 text-right text-xs text-muted-foreground hidden md:table-cell">{fmtPct(r.share)}</td>
                   <td className="px-3 py-2.5 text-right text-xs text-muted-foreground">
                     {r.lastDate ? new Date(r.lastDate + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "—"}
                   </td>
@@ -4178,7 +4179,7 @@ function ByWeekTab({ sales }: { sales: any[] }) {
           <h3 className="text-sm font-semibold">Ventas semana a semana</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             Semana actual: <span className={`font-semibold ${deltaRev >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {deltaRev >= 0 ? '▲' : '▼'} {Math.abs(deltaRev).toFixed(1)}%
+              {deltaRev >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(deltaRev))}
             </span> vs semana anterior
           </p>
         </div>
@@ -4250,14 +4251,14 @@ function ByWeekTab({ sales }: { sales: any[] }) {
                   <td className="px-4 py-3 text-right text-emerald-400 hidden md:table-cell">{w.profit > 0 ? formatARS(w.profit) : <span className="text-muted-foreground text-xs">—</span>}</td>
                   <td className="px-4 py-3 text-right hidden md:table-cell">
                     <span className={`font-semibold ${margin >= 30 ? 'text-green-400' : margin >= 15 ? 'text-yellow-400' : 'text-red-400'}`}>
-                      {w.revenue > 0 ? `${margin.toFixed(1)}%` : '—'}
+                      {w.revenue > 0 ? `${fmtPct(margin)}` : '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right text-muted-foreground">{w.count}</td>
                   <td className="px-4 py-3 text-right hidden sm:table-cell">
                     {delta !== null ? (
                       <span className={`text-xs font-semibold ${delta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
+                        {delta >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(delta))}
                       </span>
                     ) : <span className="text-muted-foreground text-xs">—</span>}
                   </td>
@@ -4722,7 +4723,7 @@ function ForecastTab({ sales, products }: { sales: any[]; products: any[] }) {
         <p className="text-xs font-semibold text-primary flex items-center gap-1.5">Metodología</p>
         <p className="text-xs text-muted-foreground">
           Regresión lineal OLS (Ordinary Least Squares) sobre los últimos <strong>{lookback} días</strong> de ventas diarias.
-          R² = <strong className={r2Color}>{(r2 * 100).toFixed(1)}%</strong> — indica qué tan bien el modelo se ajusta a los datos históricos.
+          R² = <strong className={r2Color}>{fmtPct((r2 * 100))}</strong> — indica qué tan bien el modelo se ajusta a los datos históricos.
           Rango de confianza al <strong>80%</strong>. No considera estacionalidad ni eventos extraordinarios.
         </p>
       </div>

@@ -5,6 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -629,7 +630,7 @@ export default function TablerosView() {
                       <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: g.color }} />
                       </div>
-                      <p className="text-right text-xs text-muted-foreground">{pct.toFixed(1)}%</p>
+                      <p className="text-right text-xs text-muted-foreground">{fmtPct(pct)}</p>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground/70">
                       <span>{g.period_start} → {g.period_end}</span>

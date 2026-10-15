@@ -1,3 +1,4 @@
+import { fmtPct } from "@/lib/porcentaje";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -242,8 +243,8 @@ export default function PLDashboardPage() {
     const d = changePct(curr, prev);
     if (d === null) return null;
     if (Math.abs(d) < 0.5) return <span className="flex items-center gap-0.5 text-xs text-muted-foreground"><Minus className="w-3 h-3" />0%</span>;
-    if (d > 0) return <span className="flex items-center gap-0.5 text-xs text-emerald-400"><ArrowUpRight className="w-3 h-3" />+{d.toFixed(1)}%</span>;
-    return <span className="flex items-center gap-0.5 text-xs text-red-400"><ArrowDownRight className="w-3 h-3" />{d.toFixed(1)}%</span>;
+    if (d > 0) return <span className="flex items-center gap-0.5 text-xs text-emerald-400"><ArrowUpRight className="w-3 h-3" />+{fmtPct(d)}</span>;
+    return <span className="flex items-center gap-0.5 text-xs text-red-400"><ArrowDownRight className="w-3 h-3" />{fmtPct(d)}</span>;
   };
 
   // ── Trend value for KPICard (percentage vs prev month) ────────────────────
@@ -690,7 +691,7 @@ export default function PLDashboardPage() {
                               <span className="text-muted-foreground">—</span>
                             ) : (
                               <span className={`font-semibold ${delta >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                {delta >= 0 ? "+" : ""}{delta.toFixed(1)}%
+                                {delta >= 0 ? "+" : ""}{fmtPct(delta)}
                               </span>
                             )}
                           </td>

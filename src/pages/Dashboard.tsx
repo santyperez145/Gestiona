@@ -1,3 +1,4 @@
+import { fmtPct } from "@/lib/porcentaje";
 import { diaAR, hoyAR } from "@/lib/fechaAR";
 import { claveDeCompra, contarCompras } from "@/lib/comprasDeCliente";
 import { lazy, Suspense, useEffect, useState, useMemo, useRef } from "react";
@@ -410,7 +411,7 @@ function GaugeChart({ value, max, label, color }: { value: number; max: number; 
         {pct > 0 && (
           <path d={`M 10 50 A 40 40 0 ${largeArc} 1 ${x} ${y}`} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" />
         )}
-        <text x="50" y="45" textAnchor="middle" className="text-[10px] font-bold" fill="currentColor">{value.toFixed(1)}%</text>
+        <text x="50" y="45" textAnchor="middle" className="text-[10px] font-bold" fill="currentColor">{fmtPct(value)}</text>
       </svg>
       <span className="text-[10px] text-muted-foreground mt-1">{label}</span>
     </div>
@@ -460,7 +461,7 @@ function FinancialSection({ stats }: { stats: any }) {
           <Slider value={simRate} onValueChange={setSimRate} min={Math.round(currentRate * 0.7)} max={Math.round(currentRate * 1.5)} step={10} className="w-full" />
           <div className="flex justify-between text-[10px] text-muted-foreground"><span>-30%</span><span className={`font-bold ${rateChange > 0 ? 'text-destructive' : rateChange < 0 ? 'text-emerald-400' : ''}`}>{rateChange > 0 ? '+' : ''}{ratePct}%</span><span>+50%</span></div>
           <div className="space-y-1 text-xs">
-            <div className="flex justify-between"><span className="text-muted-foreground">Margen prom.</span><span className={avgSimMargin > 20 ? 'text-emerald-400 font-bold' : 'text-destructive font-bold'}>{avgSimMargin.toFixed(1)}%</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Margen prom.</span><span className={avgSimMargin > 20 ? 'text-emerald-400 font-bold' : 'text-destructive font-bold'}>{fmtPct(avgSimMargin)}</span></div>
             {losers > 0 && <p className="text-destructive text-[10px] font-medium flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{losers} productos a pérdida con este TC</p>}
           </div>
         </div>
@@ -1497,7 +1498,7 @@ export default function Dashboard() {
     const revenue = formatARS(liveTodaySales?.total ?? 0);
     const count = liveTodaySales?.count ?? 0;
     const margin = stats.grossProfitARS > 0 && stats.totalSalesARS > 0
-      ? ` · Margen ${((stats.grossProfitARS / stats.totalSalesARS) * 100).toFixed(1)}%`
+      ? ` · Margen ${fmtPct(((stats.grossProfitARS / stats.totalSalesARS) * 100))}`
       : "";
     const text = `📊 Resumen ${today}\n💰 Ventas: ${revenue} (${count} venta${count !== 1 ? "s" : ""}${margin})\n\nVía Nerqia`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
@@ -1608,7 +1609,7 @@ export default function Dashboard() {
     const monthName = now.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
     const margin = stats.monthSalesARS > 0 ? ((stats.monthGrossProfit / stats.monthSalesARS) * 100).toFixed(1) : '0';
     const top3 = stats.topMonthProducts.slice(0, 3).map((p: any) => p.name).join(', ') || 'Sin datos';
-    const growth = stats.salesGrowth > 0 ? `+${stats.salesGrowth.toFixed(1)}%` : `${stats.salesGrowth.toFixed(1)}%`;
+    const growth = stats.salesGrowth > 0 ? `+${fmtPct(stats.salesGrowth)}` : `${fmtPct(stats.salesGrowth)}`;
     const summary = `📊 Resumen de ${monthName}: Facturé ${formatARS(stats.monthSalesARS)} (${growth} vs mes anterior), ganancia bruta ${formatARS(stats.monthGrossProfit)} (${margin}% margen). Top productos: ${top3}. Gastos: ${formatARS(stats.totalMonthExpenses)}. Resultado neto estimado: ${formatARS(stats.netMonthProfitARS)}.`;
     setMonthlySummary(summary);
     setMonthlySummaryDismissed(false);
@@ -2312,7 +2313,7 @@ export default function Dashboard() {
                 const pct = (delta / stats.prevTotalMonthExpenses) * 100;
                 return (
                   <p className={`text-[10px] font-medium ${delta > 0 ? 'text-destructive' : 'text-emerald-400'}`}>
-                    {delta > 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}% vs mes anterior
+                    {delta > 0 ? '▲' : '▼'} {fmtPct(Math.abs(pct))} vs mes anterior
                   </p>
                 );
               })()}
@@ -2618,7 +2619,7 @@ export default function Dashboard() {
               <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>Mismo mes {new Date().getFullYear() - 1}: {formatARS(stats.yoySalesARS)}</span>
                 <span className={`font-semibold ${stats.yoyGrowth >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
-                  {stats.yoyGrowth >= 0 ? '▲' : '▼'} {Math.abs(stats.yoyGrowth).toFixed(1)}% interanual
+                  {stats.yoyGrowth >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(stats.yoyGrowth))} interanual
                 </span>
               </div>
             )}
@@ -3150,7 +3151,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `${v.toFixed(0)}%`} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen']} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${fmtPct(v)}`, 'Margen']} />
                 <Line type="monotone" dataKey="margin" stroke={chartColors.margin} strokeWidth={2} dot={{ r: 4, fill: chartColors.margin }} name="Margen" />
               </LineChart>
             </ResponsiveContainer>
@@ -3299,7 +3300,7 @@ export default function Dashboard() {
                   <div key={p.name} className="flex items-center justify-between text-sm">
                     <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-emerald-400 font-bold">{p.margin.toFixed(1)}%</span>
+                      <span className="text-emerald-400 font-bold">{fmtPct(p.margin)}</span>
                       <span className="text-xs text-muted-foreground">{formatARS(p.profitARS)}/u</span>
                     </div>
                   </div>
@@ -3319,7 +3320,7 @@ export default function Dashboard() {
                     <div key={p.name} className="flex items-center justify-between text-sm">
                       <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-yellow-400 font-bold">{p.margin.toFixed(1)}%</span>
+                        <span className="text-yellow-400 font-bold">{fmtPct(p.margin)}</span>
                         <span className="text-[10px] text-muted-foreground">Mín: {formatARS(suggestedPrice)}</span>
                       </div>
                     </div>
@@ -3592,7 +3593,7 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">Ventas</span>
                 <span className={`font-bold flex items-center gap-1 ${stats.salesGrowth >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                   {stats.salesGrowth >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
-                  {Math.abs(stats.salesGrowth).toFixed(1)}%
+                  {fmtPct(Math.abs(stats.salesGrowth))}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">{formatARS(stats.monthSalesARS)} este mes</p>
@@ -3602,7 +3603,7 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">Ganancia</span>
                 <span className={`font-bold flex items-center gap-1 ${stats.profitGrowth >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                   {stats.profitGrowth >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
-                  {Math.abs(stats.profitGrowth).toFixed(1)}%
+                  {fmtPct(Math.abs(stats.profitGrowth))}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">{formatARS(stats.monthGrossProfit)} bruta</p>

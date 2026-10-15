@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from "react";
+﻿import { fmtPct } from "@/lib/porcentaje";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -183,7 +184,7 @@ export default function CurrencyHistoryTab() {
     const count = Number(data?.updated ?? 0);
     if (count === 0) { toast.error("Sin productos para actualizar"); return; }
 
-    toast.success(`Actualización aplicada: ${plural(count, "producto")} actualizados (+${pctChange.toFixed(1)}%)`);
+    toast.success(`Actualización aplicada: ${plural(count, "producto")} actualizados (+${fmtPct(pctChange)})`);
     setBulkOpen(false);
     loadData();
   }
@@ -439,7 +440,7 @@ export default function CurrencyHistoryTab() {
             {bulkForm.rate_before && bulkForm.rate_after && (
               <div className="rounded-lg bg-muted/50 p-3 text-sm">
                 <p>Variación: <strong className="text-destructive">
-                  +{(((Number(bulkForm.rate_after) - Number(bulkForm.rate_before)) / Number(bulkForm.rate_before)) * 100 + Number(bulkForm.margin_value)).toFixed(1)}%
+                  +{fmtPct((((Number(bulkForm.rate_after) - Number(bulkForm.rate_before)) / Number(bulkForm.rate_before)) * 100 + Number(bulkForm.margin_value)))}
                 </strong> en precios</p>
               </div>
             )}

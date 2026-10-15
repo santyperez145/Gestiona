@@ -1,3 +1,4 @@
+import { fmtPct } from "@/lib/porcentaje";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -637,7 +638,7 @@ export default function EmailCampaignsPage() {
 
   const totalSentEmails = campaigns.reduce((s, c) => s + (c.sent_count || 0), 0);
   const totalOpensEmails = campaigns.reduce((s, c) => s + (c.open_count || 0), 0);
-  const openRate = totalSentEmails > 0 ? `${(totalOpensEmails / totalSentEmails * 100).toFixed(1)}%` : "—";
+  const openRate = totalSentEmails > 0 ? `${fmtPct((totalOpensEmails / totalSentEmails * 100))}` : "—";
 
   return (
     <div className="space-y-6 pb-12">
@@ -869,7 +870,7 @@ export default function EmailCampaignsPage() {
                             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                               <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(openRate, 100)}%` }} />
                             </div>
-                            <span className="text-xs font-semibold font-mono text-emerald-400 w-16 text-right">{openRate.toFixed(1)}% <span className="text-muted-foreground font-normal">({camp.open_count ?? 0})</span></span>
+                            <span className="text-xs font-semibold font-mono text-emerald-400 w-16 text-right">{fmtPct(openRate)} <span className="text-muted-foreground font-normal">({camp.open_count ?? 0})</span></span>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-1.5 w-28 shrink-0">
@@ -879,7 +880,7 @@ export default function EmailCampaignsPage() {
                             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                               <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(clickRate, 100)}%` }} />
                             </div>
-                            <span className="text-xs font-semibold text-blue-400 w-16 text-right">{clickRate.toFixed(1)}% <span className="text-muted-foreground font-normal">({camp.click_count ?? 0})</span></span>
+                            <span className="text-xs font-semibold text-blue-400 w-16 text-right">{fmtPct(clickRate)} <span className="text-muted-foreground font-normal">({camp.click_count ?? 0})</span></span>
                           </div>
                           {(camp.unsubscribe_count ?? 0) > 0 && (
                             <div className="flex items-center gap-1.5 text-xs text-red-400">

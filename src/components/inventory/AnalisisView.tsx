@@ -4,6 +4,7 @@
 // El contenido es idéntico — PageHeader y acciones incluidas — porque este
 // paso mueve superficies, no reescribe cálculos: unificar los tres motores
 // en una autoridad server-side es INV-001, y va aparte a propósito.
+import { fmtPct } from "@/lib/porcentaje";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -94,7 +95,7 @@ function RevenueBar({ pct, abc }: { pct: number; abc: "A" | "B" | "C" }) {
       <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
         <div className={`h-full ${colors[abc]} rounded-full`} style={{ width: `${Math.min(100, pct * 2)}%` }} />
       </div>
-      <span className="text-xs text-muted-foreground w-10 text-right">{pct.toFixed(1)}%</span>
+      <span className="text-xs text-muted-foreground w-10 text-right">{fmtPct(pct)}</span>
     </div>
   );
 }
@@ -235,7 +236,7 @@ export default function AnalisisView() {
                         <span className="text-xs text-muted-foreground/70">{rows.length} productos</span>
                       </div>
                       <p className="font-bold text-xl text-foreground">${rev.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</p>
-                      <p className="text-xs text-muted-foreground">{pct.toFixed(1)}% del revenue total</p>
+                      <p className="text-xs text-muted-foreground">{fmtPct(pct)} del revenue total</p>
                       <div className="h-2 bg-muted/40 rounded-full"><div className={`h-full ${cfg.dot} rounded-full`} style={{ width: `${pct}%` }} /></div>
                     </div>
                   );
@@ -283,7 +284,7 @@ export default function AnalisisView() {
                           <td className={`px-4 py-3 text-xs font-medium flex items-center gap-1 ${velCfg.color}`}>{velCfg.icon}{velCfg.label}</td>
                           <td className="px-4 py-3 font-medium">${r.total_revenue.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</td>
                           <td className="px-4 py-3"><RevenueBar pct={r.revenue_pct} abc={r.abc_class} /></td>
-                          <td className="px-4 py-3 text-muted-foreground">{r.cumulative_pct.toFixed(1)}%</td>
+                          <td className="px-4 py-3 text-muted-foreground">{fmtPct(r.cumulative_pct)}</td>
                           <td className="px-4 py-3 text-muted-foreground">{(r.products as ABCRow["products"])?.stock ?? "—"}</td>
                           <td className="px-4 py-3 text-muted-foreground">{r.days_on_hand > 0 ? `${r.days_on_hand.toFixed(0)} ${palabra(Number(r.days_on_hand.toFixed(0)), "día")}` : "—"}</td>
                           <td className="px-4 py-3"><Badge className={`${riskCfg.color} flex items-center gap-1 text-xs`}>{riskCfg.icon}{riskCfg.label}</Badge></td>

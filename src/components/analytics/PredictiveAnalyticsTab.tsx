@@ -1,3 +1,4 @@
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -312,7 +313,7 @@ export default function PredictiveAnalyticsTab() {
                       <span>Esperado: <span className="font-semibold text-foreground">{a.expected.toLocaleString()}</span></span>
                       <span>Real: <span className={`font-semibold ${up ? "text-emerald-400" : "text-red-400"}`}>{a.actual.toLocaleString()}</span></span>
                       <span className={`font-semibold ${up ? "text-emerald-400" : "text-red-400"}`}>
-                        {up ? "+" : ""}{a.deviation.toFixed(1)}%
+                        {up ? "+" : ""}{fmtPct(a.deviation)}
                       </span>
                     </div>
                     <div className="bg-muted/20 rounded-lg p-2.5 text-xs flex items-center gap-2">

@@ -5,6 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
@@ -569,13 +570,13 @@ export default function ResumenView() {
         <KPICard
           label="Clientes únicos"
           value={derived.uniqueCustomers}
-          sub={`${plural(derived.totalUnits, "unidad", "unidades")}`}
+          sub={`compraron ${plural(derived.totalUnits, "unidad", "unidades")}`}
           icon={Users}
           color="blue"
         />
         <KPICard
           label="Margen promedio"
-          value={`${derived.avgMargin.toFixed(1)}%`}
+          value={`${fmtPct(derived.avgMargin)}`}
           sub="sobre ingresos"
           icon={Percent}
           color="warning"
@@ -773,7 +774,7 @@ export default function ResumenView() {
                       <td className="px-4 py-2.5 text-right text-xs font-mono">{formatARS(p.revenue)}</td>
                       <td className="px-4 py-2.5 text-right text-xs font-mono text-green-400">{formatARS(p.profit)}</td>
                       <td className={`px-4 py-2.5 text-right text-xs font-mono ${p.margin >= 30 ? "text-green-400" : p.margin >= 15 ? "text-yellow-400" : "text-red-400"}`}>
-                        {p.margin.toFixed(1)}%
+                        {fmtPct(p.margin)}
                       </td>
                       <td className="px-4 py-2.5 text-right text-xs">{p.units}</td>
                     </tr>
@@ -845,7 +846,7 @@ export default function ResumenView() {
                         <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
                           <div className="h-full rounded-full bg-primary/70" style={{ width: `${barPct}%` }} />
                         </div>
-                        <span className="text-[10px] text-muted-foreground w-10 text-right shrink-0">{barPct.toFixed(1)}%</span>
+                        <span className="text-[10px] text-muted-foreground w-10 text-right shrink-0">{fmtPct(barPct)}</span>
                         <span className={`text-[10px] w-12 text-right shrink-0 ${cumPct >= 80 ? "text-yellow-400" : "text-muted-foreground"}`}>↑{cumPct.toFixed(0)}%</span>
                       </div>
                     );
@@ -945,7 +946,7 @@ export default function ResumenView() {
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">{formatARS(cat.value)}</span>
                           <span className="text-xs font-mono font-semibold" style={{ color: PALETTE[i % PALETTE.length] }}>
-                            {pct.toFixed(1)}%
+                            {fmtPct(pct)}
                           </span>
                         </div>
                       </div>
@@ -1204,10 +1205,10 @@ export default function ResumenView() {
                             <div className="w-16 h-1.5 bg-muted/40 rounded-full overflow-hidden">
                               <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(p.revPct, 100)}%` }} />
                             </div>
-                            <span className="text-xs text-muted-foreground w-10 text-right">{p.revPct.toFixed(1)}%</span>
+                            <span className="text-xs text-muted-foreground w-10 text-right">{fmtPct(p.revPct)}</span>
                           </div>
                         </td>
-                        <td className="p-3 text-right text-xs text-muted-foreground">{p.cumPct.toFixed(1)}%</td>
+                        <td className="p-3 text-right text-xs text-muted-foreground">{fmtPct(p.cumPct)}</td>
                         <td className="p-3 text-right text-xs">{p.units}</td>
                       </tr>
                     ))}
@@ -1324,7 +1325,7 @@ export default function ResumenView() {
                           <td className="px-4 py-3 text-right text-emerald-400 hidden sm:table-cell">{formatARS(item.profit)}</td>
                           <td className="px-4 py-3 text-right">
                             <span className={`font-semibold text-sm ${item.margin >= 30 ? 'text-green-400' : item.margin >= 15 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {item.margin.toFixed(1)}%
+                              {fmtPct(item.margin)}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right text-muted-foreground text-xs hidden md:table-cell">{item.units}</td>
@@ -1352,7 +1353,7 @@ export default function ResumenView() {
               { label: "Semana anterior", value: formatARS(derived.weekTotalPrev), color: "text-muted-foreground" },
               {
                 label: "Diferencia",
-                value: derived.weekTotalPrev > 0 ? `${derived.weekTotalThis > derived.weekTotalPrev ? '+' : ''}${(((derived.weekTotalThis - derived.weekTotalPrev) / derived.weekTotalPrev) * 100).toFixed(1)}%` : '—',
+                value: derived.weekTotalPrev > 0 ? `${derived.weekTotalThis > derived.weekTotalPrev ? '+' : ''}${fmtPct((((derived.weekTotalThis - derived.weekTotalPrev) / derived.weekTotalPrev) * 100))}` : '—',
                 color: derived.weekTotalThis >= derived.weekTotalPrev ? 'text-emerald-400' : 'text-destructive',
               },
             ].map(k => (
@@ -1454,7 +1455,7 @@ export default function ResumenView() {
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-muted-foreground">{formatARS(p.profit)}</span>
-                            <span className="font-bold text-green-400 w-12 text-right">{p.margin.toFixed(1)}%</span>
+                            <span className="font-bold text-green-400 w-12 text-right">{fmtPct(p.margin)}</span>
                           </div>
                         </div>
                         <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
@@ -1480,7 +1481,7 @@ export default function ResumenView() {
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-muted-foreground">{formatARS(p.profit)}</span>
-                            <span className={`font-bold w-12 text-right ${p.margin < 10 ? 'text-red-400' : p.margin < 20 ? 'text-yellow-400' : 'text-muted-foreground'}`}>{p.margin.toFixed(1)}%</span>
+                            <span className={`font-bold w-12 text-right ${p.margin < 10 ? 'text-red-400' : p.margin < 20 ? 'text-yellow-400' : 'text-muted-foreground'}`}>{fmtPct(p.margin)}</span>
                           </div>
                         </div>
                         <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
@@ -1520,7 +1521,7 @@ export default function ResumenView() {
                       {(() => {
                         const rev = derived.rentabilidad.byCategory.reduce((s, c) => s + c.revenue, 0);
                         const prof = derived.rentabilidad.byCategory.reduce((s, c) => s + c.profit, 0);
-                        return rev > 0 ? `${((prof / rev) * 100).toFixed(1)}%` : '—';
+                        return rev > 0 ? `${fmtPct(((prof / rev) * 100))}` : '—';
                       })()}
                     </span>
                   </div>
@@ -1536,7 +1537,7 @@ export default function ResumenView() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} angle={-35} textAnchor="end" interval={0} />
                     <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={38} />
-                    <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}%`, "Margen"]} />
+                    <Tooltip {...tooltipStyle} formatter={(v: number) => [`${fmtPct(v)}`, "Margen"]} />
                     <Bar dataKey="margin" name="Margen %" radius={[4, 4, 0, 0]}>
                       {[...derived.rentabilidad.top5, ...derived.rentabilidad.bottom5.filter(p => !derived.rentabilidad.top5.find(t => t.name === p.name))].slice(0, 15).sort((a, b) => b.margin - a.margin).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.margin >= 30 ? "hsl(150,60%,40%)" : entry.margin >= 15 ? "hsl(40,70%,50%)" : "hsl(0,65%,55%)"} />
@@ -1839,7 +1840,7 @@ export default function ResumenView() {
                               <td className="px-4 py-3 text-right">{formatARS(seller.avgTicket)}</td>
                               <td className="px-4 py-3 text-right">
                                 <span className={`font-semibold ${seller.margin >= 30 ? "text-green-400" : seller.margin >= 15 ? "text-yellow-400" : "text-red-400"}`}>
-                                  {seller.margin.toFixed(1)}%
+                                  {fmtPct(seller.margin)}
                                 </span>
                               </td>
                             </tr>
@@ -1936,7 +1937,7 @@ export default function ResumenView() {
                     <p className="text-2xl font-display font-bold">{formatARS(thisMonthExp)}</p>
                     <p className={`text-xs flex items-center gap-1 mt-0.5 ${expDelta >= 0 ? "text-red-400" : "text-green-400"}`}>
                       {expDelta >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {expDelta >= 0 ? "+" : ""}{expDelta.toFixed(1)}% vs mes ant.
+                      {expDelta >= 0 ? "+" : ""}{fmtPct(expDelta)} vs mes ant.
                     </p>
                   </div>
                   <div className="bg-card border border-border rounded-2xl p-4">
@@ -1992,7 +1993,7 @@ export default function ResumenView() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-sm font-medium capitalize">{row.cat}</span>
-                              <span className="text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
+                              <span className="text-xs text-muted-foreground">{fmtPct(pct)}</span>
                             </div>
                             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                               <div className="h-full rounded-full" style={{ width: `${pct}%`, background: PALETTE[idx % PALETTE.length] }} />
@@ -2038,7 +2039,7 @@ export default function ResumenView() {
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 text-right font-bold">{formatARS(v.total)}</td>
-                                <td className="px-4 py-3 text-right text-muted-foreground">{pct.toFixed(1)}%</td>
+                                <td className="px-4 py-3 text-right text-muted-foreground">{fmtPct(pct)}</td>
                               </tr>
                             );
                           })}
@@ -2170,7 +2171,7 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">vs promedio mensual</p>
           <p className={`text-lg font-bold flex items-center justify-center gap-1 ${trendPct >= 0 ? "text-emerald-400" : "text-destructive"}`}>
             {trendPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            {trendPct >= 0 ? "+" : ""}{trendPct.toFixed(1)}%
+            {trendPct >= 0 ? "+" : ""}{fmtPct(trendPct)}
           </p>
         </div>
       </div>

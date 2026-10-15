@@ -16,9 +16,10 @@
  * Usage:
  *   const { used, quota, percent, usedHuman, quotaHuman, requestPersistent } = useStorageEstimate();
  *
- *   <p>{usedHuman} usado de {quotaHuman} ({percent.toFixed(1)}%)</p>
+ *   <p>{usedHuman} usado de {quotaHuman} ({fmtPct(percent)})</p>
  *   <Button onClick={requestPersistent}>Proteger datos</Button>
  */
+import { fmtPct } from "@/lib/porcentaje";
 import { useState, useEffect, useCallback } from "react";
 
 function formatBytes(bytes: number): string {

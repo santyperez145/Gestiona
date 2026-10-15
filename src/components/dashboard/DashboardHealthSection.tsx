@@ -1,3 +1,4 @@
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
 import { AlertTriangle, CheckCircle2, CircleAlert } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
@@ -58,7 +59,7 @@ export default function DashboardHealthSection({
     { label: "Ventas hoy", value: `${formatARS(todaySales)} · ${salesPct.toFixed(0)}% del promedio`, score: salesPct >= 80 ? 2 : salesPct >= 40 ? 1 : 0 },
     { label: "Stock critico", value: outOfStock === 0 ? "Sin productos agotados" : `${outOfStock} sin stock`, score: outOfStock === 0 ? 2 : outOfStock <= 3 ? 1 : 0 },
     { label: "Deudas vencidas", value: overdueDebts === 0 ? "Sin vencimientos" : `${overdueDebts} vencidas`, score: overdueDebts === 0 ? 2 : overdueDebts <= 2 ? 1 : 0 },
-    { label: "Margen del mes", value: `${margin.toFixed(1)}%`, score: margin >= 25 ? 2 : margin >= 10 ? 1 : 0 },
+    { label: "Margen del mes", value: `${fmtPct(margin)}`, score: margin >= 25 ? 2 : margin >= 10 ? 1 : 0 },
     { label: "Stock sin rotacion", value: agingCount30 === 0 ? "Todo con movimiento" : `${agingCount30} productos en 30 dias`, score: agingCount30 === 0 ? 2 : agingCount30 <= 5 ? 1 : 0 },
   ];
   const overall = scoreLevel(Math.min(...signals.map(signal => signal.score)));

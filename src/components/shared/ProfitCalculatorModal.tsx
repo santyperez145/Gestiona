@@ -11,6 +11,7 @@
  *
  * Can be opened standalone or pre-filled from a product.
  */
+import { fmtPct } from "@/lib/porcentaje";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
@@ -178,7 +179,7 @@ export default function ProfitCalculatorModal({ open, onClose, product, exchange
               {[
                 { label: "Precio venta", value: fmt(calc.salePrice), icon: DollarSign, highlight: false },
                 { label: "Ganancia/ud", value: fmt(calc.profit), icon: TrendingUp, highlight: calc.profit > 0 },
-                { label: "Margen", value: `${calc.margin.toFixed(1)}%`, icon: Percent, highlight: calc.margin >= 30 },
+                { label: "Margen", value: `${fmtPct(calc.margin)}`, icon: Percent, highlight: calc.margin >= 30 },
                 { label: "ROI", value: `${calc.roi.toFixed(0)}%`, icon: TrendingUp, highlight: calc.roi >= 80 },
               ].map(item => (
                 <div key={item.label} className={`p-3 rounded-xl border ${item.highlight ? "border-primary/30 bg-primary/5" : "border-border/40 bg-muted/20"}`}>

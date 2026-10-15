@@ -5,6 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
+import { fmtPct } from "@/lib/porcentaje";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -195,8 +196,8 @@ export default function PronosticoView() {
 
   const TrendChip = ({ pct }: { pct: number }) => {
     if (Math.abs(pct) < 1) return <span className="flex items-center gap-1 text-xs text-muted-foreground"><Minus className="w-3 h-3" />Estable</span>;
-    if (pct > 0) return <span className="flex items-center gap-1 text-xs text-emerald-400"><TrendingUp className="w-3 h-3" />+{pct.toFixed(1)}%</span>;
-    return <span className="flex items-center gap-1 text-xs text-red-400"><TrendingDown className="w-3 h-3" />{pct.toFixed(1)}%</span>;
+    if (pct > 0) return <span className="flex items-center gap-1 text-xs text-emerald-400"><TrendingUp className="w-3 h-3" />+{fmtPct(pct)}</span>;
+    return <span className="flex items-center gap-1 text-xs text-red-400"><TrendingDown className="w-3 h-3" />{fmtPct(pct)}</span>;
   };
 
   if (loading) return (
@@ -271,7 +272,7 @@ export default function PronosticoView() {
         />
         <KPICard
           label="Tendencia 3M"
-          value={`${trend >= 0 ? "+" : ""}${trend.toFixed(1)}%`}
+          value={`${trend >= 0 ? "+" : ""}${fmtPct(trend)}`}
           sub={`Ajuste R²: ${(r2 * 100).toFixed(0)}%`}
           icon={trend >= 0 ? TrendingUp : TrendingDown}
           color={trend >= 0 ? "success" : "destructive"}
@@ -349,7 +350,7 @@ export default function PronosticoView() {
                     <td className="py-3 px-4 text-right">
                       {vsMeta !== null ? (
                         <span className={`text-xs font-semibold ${vsMeta >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {vsMeta >= 0 ? "+" : ""}{vsMeta.toFixed(1)}%
+                          {vsMeta >= 0 ? "+" : ""}{fmtPct(vsMeta)}
                         </span>
                       ) : <span className="text-xs text-muted-foreground">—</span>}
                     </td>

@@ -1,4 +1,5 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { fmtPct } from "@/lib/porcentaje";
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useRef, useMemo, useDeferredValue, type ReactNode } from "react";
 import Fuse from "fuse.js";
 import { useCallback } from "react";
@@ -3352,7 +3353,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             {salePrice > 0 && (() => {
               const margin = ((salePrice - totalCostARS) / salePrice) * 100;
               const clr = margin >= 50 ? "text-emerald-400" : margin >= 35 ? "text-blue-400" : margin >= 20 ? "text-yellow-400" : "text-red-400";
-              return <span className={`text-[11px] font-bold ${clr}`}>Margen actual: {margin.toFixed(1)}%</span>;
+              return <span className={`text-[11px] font-bold ${clr}`}>Margen actual: {fmtPct(margin)}</span>;
             })()}
           </div>
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
@@ -4267,7 +4268,7 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
                   </div>
                   {h.change_pct != null && (
                     <span className={`font-bold shrink-0 ${up ? "text-emerald-400" : "text-destructive"}`}>
-                      {up ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
+                      {up ? "▲" : "▼"} {fmtPct(Math.abs(pct))}
                     </span>
                   )}
                 </div>

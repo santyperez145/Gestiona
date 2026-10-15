@@ -1,4 +1,5 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { fmtPct } from "@/lib/porcentaje";
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -806,7 +807,7 @@ export default function CashFlowPage() {
                               <td className="py-3 px-4 text-muted-foreground font-mono text-xs">{i + 1}</td>
                               <td className="py-3 px-4 font-medium">{c.label}</td>
                               <td className="py-3 px-4 text-right text-destructive font-semibold">{fmt(c.total)}</td>
-                              <td className="py-3 px-4 text-right text-xs text-muted-foreground">{pct.toFixed(1)}%</td>
+                              <td className="py-3 px-4 text-right text-xs text-muted-foreground">{fmtPct(pct)}</td>
                               <td className="py-3 px-4">
                                 <div className="h-2 bg-muted/40 rounded overflow-hidden w-32">
                                   <div

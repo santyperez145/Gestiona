@@ -1,3 +1,4 @@
+import { fmtPct } from "@/lib/porcentaje";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -64,8 +65,8 @@ export default function MetricTile({ label, value, sub, icon: Icon, tone = "prim
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           {change && (
             <span className={cn("font-semibold tabular-nums", sube ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}
-              aria-label={`${sube ? "Subió" : "Bajó"} ${Math.abs(change.value).toFixed(1)}%${change.label ? ` ${change.label}` : ""}`}>
-              {sube ? "↑" : "↓"} {Math.abs(change.value).toFixed(1)}%
+              aria-label={`${sube ? "Subió" : "Bajó"} ${fmtPct(Math.abs(change.value))}${change.label ? ` ${change.label}` : ""}`}>
+              {sube ? "↑" : "↓"} {fmtPct(Math.abs(change.value))}
               {change.label && <span className="ml-1 font-normal text-muted-foreground">{change.label}</span>}
             </span>
           )}

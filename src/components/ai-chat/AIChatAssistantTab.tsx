@@ -1,3 +1,4 @@
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
@@ -1000,7 +1001,7 @@ function QueryProductAnalysisCard({ userId, initialName, onDone }: { userId: str
                 { label: "Unidades (30d)", value: `${units30} u.` },
                 { label: "Facturado (30d)", value: `$${rev30.toLocaleString('es-AR', { maximumFractionDigits: 0 })}` },
                 { label: "Ganancia (30d)", value: `$${profit30.toLocaleString('es-AR', { maximumFractionDigits: 0 })}` },
-                { label: "Margen (30d)", value: `${margin30.toFixed(1)}%` },
+                { label: "Margen (30d)", value: `${fmtPct(margin30)}` },
               ].map(k => (
                 <div key={k.label} className="bg-muted/40 rounded-lg px-2.5 py-2">
                   <p className="text-[10px] text-muted-foreground">{k.label}</p>
@@ -1380,7 +1381,7 @@ function SalesSummaryCard({ userId, initialPeriod, onDone }: {
 
           {/* Margin + trend */}
           <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-            <span>📊 Margen: <span className={`font-semibold ${result.margin >= 30 ? "text-green-400" : result.margin >= 15 ? "text-amber-400" : "text-red-400"}`}>{result.margin.toFixed(1)}%</span></span>
+            <span>📊 Margen: <span className={`font-semibold ${result.margin >= 30 ? "text-green-400" : result.margin >= 15 ? "text-amber-400" : "text-red-400"}`}>{fmtPct(result.margin)}</span></span>
             {result.delta !== null && (
               <span>vs anterior: <span className={`font-semibold ${result.delta >= 0 ? "text-green-400" : "text-red-400"}`}>{result.delta >= 0 ? "▲" : "▼"} {Math.abs(result.delta).toFixed(0)}%</span></span>
             )}

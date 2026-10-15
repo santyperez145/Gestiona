@@ -1,4 +1,5 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { fmtPct } from "@/lib/porcentaje";
+import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { broadcastSync } from "@/lib/broadcastSync";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
@@ -185,7 +186,7 @@ function SaleTicketInspector({
                         {formatARS(detail.profitArs)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        {detail.marginPercent === null ? "Margen no calculable" : `${detail.marginPercent.toFixed(1)}% del ticket`}
+                        {detail.marginPercent === null ? "Margen no calculable" : `${fmtPct(detail.marginPercent)} del ticket`}
                       </p>
                     </div>
                   </div>
@@ -826,7 +827,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
 <div class="kpis">
   <div class="kpi"><div class="val">${fmtARS(totalSales)}</div><div class="lbl">Total facturado</div></div>
   <div class="kpi"><div class="val">${fmtARS(totalProfit)}</div><div class="lbl">Ganancia neta</div></div>
-  <div class="kpi"><div class="val">${marginPct.toFixed(1)}%</div><div class="lbl">Margen</div></div>
+  <div class="kpi"><div class="val">${fmtPct(marginPct)}</div><div class="lbl">Margen</div></div>
   <div class="kpi"><div class="val">${filtered.length}</div><div class="lbl">Ventas</div></div>
 </div>
 <h2>Por método de pago</h2>
@@ -1044,7 +1045,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
         onChange={(tab) => setSalesWorkspaceTab(tab as "sales" | "performance")}
         tabs={[
           { id: "sales", label: "Ventas", icon: ShoppingCart, count: filtered.length },
-          { id: "performance", label: "Rendimiento", icon: TrendingUp, count: `${marginPct.toFixed(1)}% margen` },
+          { id: "performance", label: "Rendimiento", icon: TrendingUp, count: `${fmtPct(marginPct)} margen` },
         ]}
         meta={<span>{formatARS(totalSales)} en el período seleccionado</span>}
       />
@@ -1098,7 +1099,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
       <div className="workspace-sales-kpis grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Total facturado" value={formatARS(totalSales)} icon={DollarSign} color="primary" sub={`${filtered.length} venta${filtered.length !== 1 ? 's' : ''}`} trend={prevPeriod && delta(totalSales, prevPeriod.totalSales) !== undefined ? { value: delta(totalSales, prevPeriod.totalSales)!, label: "vs período ant." } : undefined} />
         <KPICard label="Ganancia neta" value={formatARS(totalProfit)} icon={TrendingUp} color="success" sub={formatUSD(totalProfitUSD)} trend={prevPeriod && delta(totalProfit, prevPeriod.totalProfit) !== undefined ? { value: delta(totalProfit, prevPeriod.totalProfit)!, label: "vs período ant." } : undefined} />
-        <KPICard label="Margen promedio" value={`${marginPct.toFixed(1)}%`} icon={Percent} color={marginPct >= 30 ? "success" : marginPct >= 15 ? "warning" : "destructive"} />
+        <KPICard label="Margen promedio" value={`${fmtPct(marginPct)}`} icon={Percent} color={marginPct >= 30 ? "success" : marginPct >= 15 ? "warning" : "destructive"} />
         <KPICard label="Cobradas / Deben" value={`${paidCount} / ${debtCount}`} icon={Ticket} color={debtCount > 0 ? "warning" : "success"} sub={debtCount > 0 ? `${formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente` : "todo cobrado"} trend={prevPeriod && delta(filtered.length, prevPeriod.count) !== undefined ? { value: delta(filtered.length, prevPeriod.count)!, label: "ventas vs ant." } : undefined} />
       </div>
 
@@ -1128,7 +1129,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold font-mono">{formatARS(data.total)}</span>
-                        <span className="text-muted-foreground w-10 text-right">{pct.toFixed(1)}%</span>
+                        <span className="text-muted-foreground w-10 text-right">{fmtPct(pct)}</span>
                       </div>
                     </div>
                     <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
@@ -1381,7 +1382,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                           <p className="font-medium">{c.name}</p>
                           <div className="flex items-center gap-1 mt-0.5">
                             <div className="h-1 bg-primary/60 rounded-full" style={{ width: `${Math.min(share * 2, 60)}px` }} />
-                            <span className="text-[10px] text-muted-foreground">{share.toFixed(1)}%</span>
+                            <span className="text-[10px] text-muted-foreground">{fmtPct(share)}</span>
                           </div>
                         </div>
                       </div>
@@ -1498,7 +1499,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                           <p className="font-medium text-sm">{p.name}</p>
                           <div className="flex items-center gap-1 mt-0.5">
                             <div className="h-1 bg-primary/50 rounded-full" style={{ width: `${Math.min(share * 1.5, 80)}px` }} />
-                            <span className="text-[10px] text-muted-foreground">{share.toFixed(1)}%</span>
+                            <span className="text-[10px] text-muted-foreground">{fmtPct(share)}</span>
                           </div>
                         </div>
                       </td>
@@ -1506,7 +1507,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                       <td className="px-4 py-3 text-right font-bold">{formatARS(p.total)}</td>
                       <td className="px-4 py-3 text-right text-emerald-400 hidden md:table-cell">{formatARS(p.profit)}</td>
                       <td className={`px-4 py-3 text-right hidden lg:table-cell font-semibold text-xs ${margin >= 30 ? 'text-emerald-400' : margin >= 15 ? 'text-yellow-400' : 'text-destructive'}`}>
-                        {margin.toFixed(1)}%
+                        {fmtPct(margin)}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground hidden xl:table-cell">
                         {new Date(p.lastDate + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
@@ -1810,7 +1811,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
               <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Totales del período</span>
               <span className="font-bold text-primary">{formatARS(totalSales)}</span>
               <span className="text-emerald-400 text-xs">{formatARS(totalProfit)} ganancia</span>
-              <span className="text-muted-foreground text-xs">{marginPct.toFixed(1)}% margen</span>
+              <span className="text-muted-foreground text-xs">{fmtPct(marginPct)} margen</span>
               <span className="text-muted-foreground text-xs">{filtered.length} ventas</span>
               {debtCount > 0 && <span className="text-destructive text-xs font-medium">{formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente</span>}
             </div>

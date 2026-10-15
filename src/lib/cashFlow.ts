@@ -1,6 +1,7 @@
 /**
  * Cash flow projection helpers — fully driven by user settings (no hardcoded thresholds).
  */
+import { fmtPct } from "@/lib/porcentaje";
 import { calculateTaxes } from './supabaseStore';
 
 export interface CashFlowMovement {
@@ -202,10 +203,10 @@ export function computeHealthScore(opts: {
   return {
     total,
     components: [
-      { label: 'Margen', value: Math.round(scoreMargin), weight: 25, raw: `${margin.toFixed(1)}%`, hint: `Margen actual ${margin.toFixed(1)}% (objetivo > ${marginAlertPercent}%)` },
+      { label: 'Margen', value: Math.round(scoreMargin), weight: 25, raw: `${fmtPct(margin)}`, hint: `Margen actual ${fmtPct(margin)} (objetivo > ${marginAlertPercent}%)` },
       { label: 'Liquidez', value: Math.round(scoreLiquidity), weight: 20, raw: `${liquidityRatio.toFixed(1)}×`, hint: `Caja cubre ${liquidityRatio.toFixed(1)}× los gastos del mes` },
       { label: 'Rotación', value: Math.round(scoreTurnover), weight: 20, raw: `${inventoryTurnoverDays.toFixed(0)}d`, hint: `Stock rota cada ${inventoryTurnoverDays.toFixed(0)} días` },
-      { label: 'Crecimiento', value: Math.round(scoreGrowth), weight: 20, raw: `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`, hint: `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}% vs mes anterior` },
+      { label: 'Crecimiento', value: Math.round(scoreGrowth), weight: 20, raw: `${growth >= 0 ? '+' : ''}${fmtPct(growth)}`, hint: `${growth >= 0 ? '+' : ''}${fmtPct(growth)} vs mes anterior` },
       { label: 'Cobranza', value: Math.round(scoreOverdue), weight: 15, raw: `${overdueRatio.toFixed(0)}% vencido`, hint: `${overdueRatio.toFixed(0)}% de las deudas están vencidas` },
     ],
   };

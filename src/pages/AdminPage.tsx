@@ -1,4 +1,5 @@
-﻿import { hoyAR, mesAR } from "@/lib/fechaAR";
+﻿import { fmtPct } from "@/lib/porcentaje";
+import { hoyAR, mesAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -210,7 +211,7 @@ export default function AdminPage() {
         <KPICard label="Transacciones" value={totals.sales} icon={BarChart3} color="blue" sub="totales" />
         <KPICard label="Facturación" value={formatARS(totals.revenue)} icon={DollarSign} color="success" sub="ingresos" />
         <KPICard label="Ganancia" value={formatARS(totals.profit)} icon={TrendingUp} color="success" sub="neta" />
-        <KPICard label="Margen" value={`${totals.margin.toFixed(1)}%`} icon={Activity} color={totals.margin >= 20 ? "success" : "warning"} sub="promedio" />
+        <KPICard label="Margen" value={`${fmtPct(totals.margin)}`} icon={Activity} color={totals.margin >= 20 ? "success" : "warning"} sub="promedio" />
         <KPICard label="Ticket Prom." value={formatARS(totals.avgTicket)} icon={Award} color="purple" sub="por venta" />
       </div>
 
