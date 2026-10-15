@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { fechaLocal } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { llamarIA } from "@/lib/ia";
 import { getMarketingPostsDB, addMarketingPostDB, updateMarketingPostDB, deleteMarketingPostDB, getProductsDB } from "@/lib/supabaseStore";
@@ -323,7 +324,7 @@ export default function MarketingPage() {
                       {post.hashtags.length > 8 && <span className="text-[10px] text-muted-foreground">+{post.hashtags.length - 8}</span>}
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground">{new Date(post.created_at).toLocaleDateString('es-AR')}</p>
+                  <p className="text-[10px] text-muted-foreground">{fechaLocal(post.created_at).toLocaleDateString('es-AR')}</p>
                 </div>
               ))}
             </div>

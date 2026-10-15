@@ -8,6 +8,7 @@
  * Los tokens viven en `payment_connections` (RLS, cero policies). El panel
  * lee `payment_connection_status` y `medios_de_pago_de`.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -212,7 +213,7 @@ export default function PaymentConnectionsPanel({
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vence</p>
               <p className="text-sm font-medium">
                 {mp?.expires_at
-                  ? new Date(mp.expires_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
+                  ? fechaLocal(mp.expires_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
                   : "—"}
               </p>
             </div>

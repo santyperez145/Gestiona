@@ -1,5 +1,5 @@
 import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe } from "@/lib/exchangeRate";
@@ -904,7 +904,7 @@ function QueryDebtCard({ userId, initialName, onDone }: { userId: string; initia
               <p className="text-sm font-bold text-primary">{name}: {formatARS(result.total)} pendientes ({result.count} deuda{result.count !== 1 ? "s" : ""})</p>
               {result.items.slice(0, 5).map((d: any) => (
                 <div key={d.id} className="flex justify-between text-xs text-muted-foreground border-t border-border/50 pt-1">
-                  <span>{d.due_date ? `Vence ${new Date(d.due_date).toLocaleDateString("es-AR")}` : "Sin vencimiento"}</span>
+                  <span>{d.due_date ? `Vence ${fechaLocal(d.due_date).toLocaleDateString("es-AR")}` : "Sin vencimiento"}</span>
                   <span className="font-semibold text-foreground">{formatARS(Number(d.remaining_ars))}</span>
                 </div>
               ))}
@@ -2020,7 +2020,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
             </div>
             <div className="bg-muted/40 rounded-lg px-2.5 py-2">
               <p className="text-[10px] text-muted-foreground">Última compra</p>
-              <p className="font-bold text-sm">{result.lastPurchase ? new Date(result.lastPurchase.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" }) : "—"}</p>
+              <p className="font-bold text-sm">{result.lastPurchase ? fechaLocal(result.lastPurchase.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" }) : "—"}</p>
             </div>
             <div className={`rounded-lg px-2.5 py-2 ${result.pending > 0 ? "bg-red-500/10" : "bg-muted/40"}`}>
               <p className="text-[10px] text-muted-foreground">Deuda pendiente</p>
@@ -2051,7 +2051,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
                 const val = result.monthly[k] || 0;
                 const max = Math.max(...result.monthKeys.map((mk: string) => result.monthly[mk] || 0));
                 const pct = max > 0 ? Math.round((val / max) * 100) : 0;
-                const label = new Date(k + "-01").toLocaleDateString("es-AR", { month: "short", year: "2-digit" });
+                const label = new Date(k + "-01T12:00:00").toLocaleDateString("es-AR", { month: "short", year: "2-digit" });
                 return (
                   <div key={k} className="space-y-0.5">
                     <div className="flex items-center justify-between text-xs">
@@ -2515,12 +2515,12 @@ export default function AIChatAssistantTab() {
                 <MessageSquare className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{c.title}</p>
-                  <p className="text-[10px] text-muted-foreground">{new Date(c.savedAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="text-[10px] text-muted-foreground">{fechaLocal(c.savedAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0 transition-all">
                   <button onClick={e => {
                     e.stopPropagation();
-                    const date = new Date(c.savedAt).toLocaleDateString('es-AR');
+                    const date = fechaLocal(c.savedAt).toLocaleDateString('es-AR');
                     const header = `${c.title}\n${date}\n${'─'.repeat(50)}\n\n`;
                     const body = c.messages.map(m => `${m.role === 'user' ? '👤 Usuario' : '🤖 IA'}:\n${m.content}\n`).join('\n──────────────────────────────────────\n\n');
                     const blob = new Blob([header + body], { type: 'text/plain;charset=utf-8' });

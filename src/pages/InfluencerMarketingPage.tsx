@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { Link } from 'react-router-dom';
 import { ArrowRight, ClipboardList, Gift, Mail, Plus, Target, Users, Wallet } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -41,7 +42,7 @@ export default function InfluencerMarketingPage() {
           <WorkspaceState kind="empty-first-use" title="Sin invitaciones pendientes" description="Invitá a un creador desde el directorio y verás su respuesta acá." />
         ) : <div className="divide-y divide-border">{pendingInvites.slice(0, 5).map(item => {
           const creator = (creators.data ?? []).find(c => c.id === item.influencer_id);
-          return <div key={item.id} className="flex items-center gap-3 py-4"><Mail className="h-5 w-5 shrink-0 text-primary" /><div className="min-w-0 flex-1"><p className="break-words text-sm font-medium">{creator?.name ?? 'Creador'}</p><p className="mt-1 text-xs text-muted-foreground">Vence el {new Date(item.expires_at).toLocaleDateString('es-AR')}</p></div><Badge variant="outline">{INVITATION_LABELS[item.status] ?? item.status}</Badge></div>;
+          return <div key={item.id} className="flex items-center gap-3 py-4"><Mail className="h-5 w-5 shrink-0 text-primary" /><div className="min-w-0 flex-1"><p className="break-words text-sm font-medium">{creator?.name ?? 'Creador'}</p><p className="mt-1 text-xs text-muted-foreground">Vence el {fechaLocal(item.expires_at).toLocaleDateString('es-AR')}</p></div><Badge variant="outline">{INVITATION_LABELS[item.status] ?? item.status}</Badge></div>;
         })}</div>}
       </section>
     )}

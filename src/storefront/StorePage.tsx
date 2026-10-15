@@ -5,6 +5,7 @@
  * necesitan igual para armar el footer, así que un fetch por página sería una
  * ida al servidor de más.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
@@ -51,7 +52,7 @@ export default function StorePage() {
       <h1 className="text-2xl font-semibold">{page.title}</h1>
       <div className="mt-6">{renderMarkdown(page.content)}</div>
       <p className="text-xs mt-10 pt-4 border-t" style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-muted))" }}>
-        Última actualización: {new Date(page.updated_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
+        Última actualización: {fechaLocal(page.updated_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
       </p>
     </article>
   );

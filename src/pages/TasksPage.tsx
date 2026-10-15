@@ -1,4 +1,4 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -307,7 +307,7 @@ export default function TasksPage() {
               t.category || '',
               STATUS_CONFIG[t.status]?.label || t.status,
               t.due_date || '',
-              t.completed_at ? new Date(t.completed_at).toLocaleDateString('es-AR') : '',
+              t.completed_at ? fechaLocal(t.completed_at).toLocaleDateString('es-AR') : '',
             ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
             const csv = bom + [headers.join(','), ...rows].join('\n');
             const a = document.createElement('a');

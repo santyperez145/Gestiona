@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -741,7 +742,7 @@ export default function CashSessionPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">
-                        {new Date(s.opened_at).toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" })}
+                        {fechaLocal(s.opened_at).toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" })}
                       </p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" />

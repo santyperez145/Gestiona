@@ -10,6 +10,7 @@
  * carrier/shipping_service de la orden; el padre puede pasar `esRetiro` si
  * ya lo sabe (gracias) para no esperar al round-trip.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { carrierLabel } from "@/lib/carriers";
@@ -43,7 +44,7 @@ interface Tracking {
 }
 
 const fecha = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "long" }) : null;
+  iso ? fechaLocal(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "long" }) : null;
 
 const ICONOS: Record<string, typeof Check> = {
   pending: Check,

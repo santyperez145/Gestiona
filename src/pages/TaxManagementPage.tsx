@@ -1,4 +1,4 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -619,7 +619,7 @@ export default function TaxManagementPage() {
                           </Badge>
                         </td>
                         <td className={`py-2 px-3 text-right text-xs ${isOverdue ? "text-red-600 font-semibold" : "text-muted-foreground"}`}>
-                          {d.due_date ? new Date(d.due_date).toLocaleDateString("es-AR") : "—"}
+                          {d.due_date ? fechaLocal(d.due_date).toLocaleDateString("es-AR") : "—"}
                           {isOverdue && " ⚠"}
                         </td>
                         <td className="py-2 px-3">
@@ -696,7 +696,7 @@ export default function TaxManagementPage() {
                 <tbody>
                   {filteredWithholdings.map(w => (
                     <tr key={w.id} className="border-b hover:bg-muted/20">
-                      <td className="py-2 px-3 text-muted-foreground">{new Date(w.date).toLocaleDateString("es-AR")}</td>
+                      <td className="py-2 px-3 text-muted-foreground">{fechaLocal(w.date).toLocaleDateString("es-AR")}</td>
                       <td className="py-2 px-3">
                         <Badge className={`text-xs ${TAX_TYPE_CONFIG[w.withholding_type]?.color ?? "bg-muted/40 text-foreground/80"}`}>
                           {w.withholding_type.toUpperCase()}

@@ -1,4 +1,4 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useNavigate } from "react-router-dom";
 import EditorDePresupuesto, { type PresupuestoEditable } from "@/components/presupuestos/EditorDePresupuesto";
@@ -96,8 +96,8 @@ async function generatePDF(quote: Quote, orgName: string, orgId?: string) {
   doc.setFontSize(10);
   doc.text(quote.quote_number, PW - 15, 15, { align: "right" });
   doc.setFontSize(9);
-  doc.text(`Fecha: ${new Date(quote.created_at).toLocaleDateString("es-AR")}`, PW - 15, 22, { align: "right" });
-  if (quote.valid_until) doc.text(`Válido hasta: ${new Date(quote.valid_until).toLocaleDateString("es-AR")}`, PW - 15, 29, { align: "right" });
+  doc.text(`Fecha: ${fechaLocal(quote.created_at).toLocaleDateString("es-AR")}`, PW - 15, 22, { align: "right" });
+  if (quote.valid_until) doc.text(`Válido hasta: ${fechaLocal(quote.valid_until).toLocaleDateString("es-AR")}`, PW - 15, 29, { align: "right" });
 
   doc.setTextColor(30, 30, 30);
   doc.setFontSize(10);
@@ -337,8 +337,8 @@ export default function PresupuestosPage() {
     const lines = [
       `*Presupuesto ${q.quote_number}*`,
       `Cliente: ${q.customer_name}`,
-      `Fecha: ${new Date(q.created_at).toLocaleDateString("es-AR")}`,
-      q.valid_until ? `Válido hasta: ${new Date(q.valid_until).toLocaleDateString("es-AR")}` : "",
+      `Fecha: ${fechaLocal(q.created_at).toLocaleDateString("es-AR")}`,
+      q.valid_until ? `Válido hasta: ${fechaLocal(q.valid_until).toLocaleDateString("es-AR")}` : "",
       "",
       "*Ítems:*",
       ...q.items.map(it => `• ${it.description} × ${it.qty} = ${formatARS(it.total)}`),
@@ -550,8 +550,8 @@ export default function PresupuestosPage() {
             q.customer_phone || '',
             Number(q.total).toFixed(2),
             STATUS_CONFIG[q.status]?.label || q.status,
-            q.valid_until ? new Date(q.valid_until).toLocaleDateString('es-AR') : '',
-            new Date(q.created_at).toLocaleDateString('es-AR'),
+            q.valid_until ? fechaLocal(q.valid_until).toLocaleDateString('es-AR') : '',
+            fechaLocal(q.created_at).toLocaleDateString('es-AR'),
             q.notes || '',
           ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
           const csv = bom + [headers.join(','), ...rows].join('\n');
@@ -606,7 +606,7 @@ export default function PresupuestosPage() {
                         <div key={q.id} className="flex items-center gap-3 px-4 py-2.5">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
                           <span className="text-xs text-muted-foreground">#{q.quote_number}</span>
-                          <span className="text-xs text-muted-foreground flex-1">{q.valid_until ? `Válido hasta ${new Date(q.valid_until).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}` : ''}</span>
+                          <span className="text-xs text-muted-foreground flex-1">{q.valid_until ? `Válido hasta ${fechaLocal(q.valid_until).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}` : ''}</span>
                           <span className="font-semibold text-sm">{formatARS(Number(q.total))}</span>
                         </div>
                       );
@@ -647,8 +647,8 @@ export default function PresupuestosPage() {
                   </div>
                   <p className="font-semibold text-sm mt-0.5">{q.customer_name}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleDateString("es-AR")}</span>
-                    {q.valid_until && <span className="text-xs text-muted-foreground">válido hasta {new Date(q.valid_until).toLocaleDateString("es-AR")}</span>}
+                    <span className="text-xs text-muted-foreground">{fechaLocal(q.created_at).toLocaleDateString("es-AR")}</span>
+                    {q.valid_until && <span className="text-xs text-muted-foreground">válido hasta {fechaLocal(q.valid_until).toLocaleDateString("es-AR")}</span>}
                     <span className="text-sm font-bold text-primary">{formatARS(q.total)}</span>
                   </div>
                 </div>
@@ -756,7 +756,7 @@ export default function PresupuestosPage() {
                     )}
                     {q.converted_at && (
                       <span className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-xs font-medium text-emerald-500 bg-emerald-500/10 border border-emerald-500/20"
-                        title={`Vendido el ${new Date(q.converted_at).toLocaleDateString("es-AR")}`}>
+                        title={`Vendido el ${fechaLocal(q.converted_at).toLocaleDateString("es-AR")}`}>
                         <CheckCircle2 className="w-3 h-3" /> Vendido
                       </span>
                     )}

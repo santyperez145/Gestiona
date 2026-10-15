@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { fmtPct } from "@/lib/porcentaje";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
@@ -839,7 +840,7 @@ export default function EmailCampaignsPage() {
                         <><span>·</span><span className="text-blue-400 flex items-center gap-1"><Clock className="w-3 h-3" />Programado: {new Date(camp.scheduled_at).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span></>
                       )}
                       <span>·</span>
-                      <span>{new Date(camp.created_at).toLocaleDateString("es-AR")}</span>
+                      <span>{fechaLocal(camp.created_at).toLocaleDateString("es-AR")}</span>
                     </div>
                     {/* Coupon attribution line */}
                     {camp.coupon_code && (() => {

@@ -1,5 +1,5 @@
 ﻿import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR, mesAR } from "@/lib/fechaAR";
+import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -405,7 +405,7 @@ export default function AdminPage() {
                       <td className="px-4 py-3 text-right text-emerald-400 font-medium">{formatARS(v.totalProfit)}</td>
                       <td className="px-4 py-3 text-right">{formatARS(v.avgTicket)}</td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {v.lastSale ? new Date(v.lastSale).toLocaleDateString("es-AR") : "—"}
+                        {v.lastSale ? fechaLocal(v.lastSale).toLocaleDateString("es-AR") : "—"}
                       </td>
                     </tr>
                   ))}

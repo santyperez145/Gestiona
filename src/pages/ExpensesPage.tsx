@@ -1,5 +1,5 @@
 ﻿import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -741,7 +741,7 @@ export default function ExpensesPage() {
                             )}
                             {e.recurring && e.recurring_next_date && (
                               <p className="text-[10px] text-yellow-400/70 mt-0.5">
-                                próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                                próx. {fechaLocal(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                               </p>
                             )}
                           </td>
@@ -795,7 +795,7 @@ export default function ExpensesPage() {
                             {formatDateAR(e.date)}
                             {e.recurring && e.recurring_next_date && (
                               <span className="ml-2 text-yellow-400/70">
-                                próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                                próx. {fechaLocal(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                               </span>
                             )}
                           </p>
@@ -1102,7 +1102,7 @@ export default function ExpensesPage() {
                       <p className="text-sm font-medium truncate">{e.description || '—'}</p>
                       <p className="text-xs text-muted-foreground">
                         {e.recurring_frequency === 'monthly' ? 'Mensual' : e.recurring_frequency === 'weekly' ? 'Semanal' : e.recurring_frequency === 'yearly' ? 'Anual' : 'Diario'}
-                        {e.recurring_next_date && ` · próx. ${new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}`}
+                        {e.recurring_next_date && ` · próx. ${fechaLocal(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}`}
                       </p>
                     </div>
                     <span className="font-bold text-destructive font-mono shrink-0">-{formatARS(Number(e.amount_ars))}</span>

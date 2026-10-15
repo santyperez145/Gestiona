@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState } from "react";
 import { ExternalLink, Gift, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -52,7 +53,7 @@ function ExchangeItem({ exchange }: { exchange: CreatorExchange }) {
       </div>
       {exchange.goal_notes && <p className="mt-3 whitespace-pre-wrap break-words text-sm">{exchange.goal_notes}</p>}
       {exchange.content_submitted_at && (
-        <p className="mt-3 text-xs text-muted-foreground">Contenido enviado el {new Date(exchange.content_submitted_at).toLocaleDateString("es-AR")}. {closed ? "Canje cerrado." : "Pendiente de revisión de la marca."}</p>
+        <p className="mt-3 text-xs text-muted-foreground">Contenido enviado el {fechaLocal(exchange.content_submitted_at).toLocaleDateString("es-AR")}. {closed ? "Canje cerrado." : "Pendiente de revisión de la marca."}</p>
       )}
       {exchange.content_url?.startsWith("https://") && <a className="mt-2 inline-flex items-center gap-1 text-sm text-primary underline" href={exchange.content_url} target="_blank" rel="noopener noreferrer">Ver contenido <ExternalLink className="h-3.5 w-3.5" /></a>}
       {!closed && (

@@ -1,5 +1,5 @@
 ﻿import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useRef, useMemo, useDeferredValue, type ReactNode } from "react";
 import Fuse from "fuse.js";
 import { useCallback } from "react";
@@ -306,7 +306,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
       'Precio Desc. ARS': Number(p.discount_price_ars) || '',
       'Ganancia ARS': Number(p.profit_per_unit_ars),
       'Stock': p.stock,
-      'Última Mod.': new Date(p.updated_at).toLocaleDateString('es-AR'),
+      'Última Mod.': fechaLocal(p.updated_at).toLocaleDateString('es-AR'),
     }));
     const ws = utils.json_to_sheet(rows);
     ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
@@ -318,7 +318,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
     'Nombre': p.name, 'Marca': p.brand, 'Categoría': getCategoryLabel(p.category),
     'Costo USD': Number(p.total_cost_usd), 'Venta ARS': Number(p.sale_price_ars),
     'Desc. ARS': Number(p.discount_price_ars) || '', 'Ganancia ARS': Number(p.profit_per_unit_ars),
-    'Stock': p.stock, 'Última Mod.': new Date(p.updated_at).toLocaleDateString('es-AR'),
+    'Stock': p.stock, 'Última Mod.': fechaLocal(p.updated_at).toLocaleDateString('es-AR'),
   }));
   const wsAll = utils.json_to_sheet(allRows);
   wsAll['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
@@ -4260,7 +4260,7 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
               return (
                 <div key={h.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/40 text-xs">
                   <div className="flex-1 min-w-0">
-                    <p className="text-muted-foreground">{new Date(h.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
+                    <p className="text-muted-foreground">{fechaLocal(h.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
                     <p className="font-medium">
                       {h.old_price_ars ? formatARS(Number(h.old_price_ars)) : "—"} → <span className="text-primary font-bold">{formatARS(Number(h.new_price_ars))}</span>
                     </p>

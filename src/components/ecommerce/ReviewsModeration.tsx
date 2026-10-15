@@ -5,6 +5,7 @@
  * responderle. Una respuesta pública a una queja suele valer más que la queja
  * misma, así que responder está a un clic.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -174,7 +175,7 @@ export default function ReviewsModeration({ storeId }: { storeId: string | null 
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 truncate">
-                  {r.products?.name ?? "Producto"} · {new Date(r.created_at).toLocaleDateString("es-AR")}
+                  {r.products?.name ?? "Producto"} · {fechaLocal(r.created_at).toLocaleDateString("es-AR")}
                 </p>
               </div>
               <div className="flex gap-2">

@@ -1,4 +1,4 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -187,7 +187,7 @@ export default function DebtsPage() {
           <td>${d.product_name || '—'}</td>
           <td style="text-align:right">$${Number(d.amount_ars).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
           <td style="text-align:right;font-weight:bold">$${Number(d.remaining_ars).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
-          <td>${d.date ? new Date(d.date).toLocaleDateString("es-AR") : "—"}</td>
+          <td>${d.date ? fechaLocal(d.date).toLocaleDateString("es-AR") : "—"}</td>
           <td>${d.due_date ? new Date(d.due_date + "T12:00:00").toLocaleDateString("es-AR") : "—"}</td>
           <td style="text-align:center">${isOver && daysOver > 0 ? `<span style="color:#ef4444;font-weight:bold">+${daysOver}d</span>` : isOver ? "Vencida" : "—"}</td>
         </tr>`;

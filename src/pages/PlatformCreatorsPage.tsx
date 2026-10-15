@@ -6,6 +6,7 @@
  * Los montos son read-only: la plata la decide cada marca desde su panel;
  * plataforma audita y advierte estancadas sin exponer datos personales.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -28,7 +29,7 @@ const money = (v: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(v);
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  d ? fechaLocal(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
 const WITHDRAWAL_STATES: Record<string, string> = {
   pending: "En revisión", approved: "Aprobado", paid: "Pagado", rejected: "Rechazado",

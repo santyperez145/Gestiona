@@ -1,4 +1,4 @@
-﻿import { hoyAR } from "@/lib/fechaAR";
+﻿import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -490,7 +490,7 @@ export default function LoyaltyPointsTab() {
                   (b.balance * ptVal).toFixed(2),
                   b.totalEarned,
                   b.totalRedeemed,
-                  new Date(b.lastActivity).toLocaleDateString('es-AR'),
+                  fechaLocal(b.lastActivity).toLocaleDateString('es-AR'),
                 ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
               });
               const csv = bom + [headers.join(','), ...rows].join('\n');

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { fechaLocal } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -395,8 +396,8 @@ export default function WhatsAppCampaignsPage() {
                   </div>
                   <p className="text-sm text-foreground/90 line-clamp-2">{camp.message}</p>
                   <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-                    <span>{new Date(camp.created_at).toLocaleDateString("es-AR")}</span>
-                    {camp.sent_at && <span>Enviado {new Date(camp.sent_at).toLocaleDateString("es-AR")}</span>}
+                    <span>{fechaLocal(camp.created_at).toLocaleDateString("es-AR")}</span>
+                    {camp.sent_at && <span>Enviado {fechaLocal(camp.sent_at).toLocaleDateString("es-AR")}</span>}
                     {camp.sent_count > 0 && <span className="text-emerald-400">{camp.sent_count} ✓</span>}
                     {camp.failed_count > 0 && <span className="text-red-400">{camp.failed_count} ✗</span>}
                   </div>

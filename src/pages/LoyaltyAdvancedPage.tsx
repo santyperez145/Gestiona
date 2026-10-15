@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -458,7 +459,7 @@ export default function LoyaltyAdvancedPage() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{m.lifetime_points.toLocaleString("es-AR")}</td>
                         <td className="px-4 py-3 text-muted-foreground/60 text-xs">
-                          {m.last_activity ? new Date(m.last_activity).toLocaleDateString("es-AR") : "—"}
+                          {m.last_activity ? fechaLocal(m.last_activity).toLocaleDateString("es-AR") : "—"}
                         </td>
                         <td className="px-4 py-3">
                           <Button variant="outline" size="sm" onClick={() => { setSelectedMember(m); setAdjustForm({ transaction_type: "adjust", points: "", description: "" }); setShowAdjustDialog(true); }}>
@@ -493,7 +494,7 @@ export default function LoyaltyAdvancedPage() {
                     const isPos = t.points >= 0;
                     return (
                       <tr key={t.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-3 text-muted-foreground">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{fechaLocal(t.created_at).toLocaleDateString("es-AR")}</td>
                         <td className="px-4 py-3 font-medium text-foreground">{(t.loyalty_members as LoyaltyTransaction["loyalty_members"])?.customers?.name ?? "—"}</td>
                         <td className="px-4 py-3"><span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span></td>
                         <td className={`px-4 py-3 font-semibold ${isPos ? "text-green-600" : "text-red-500"}`}>

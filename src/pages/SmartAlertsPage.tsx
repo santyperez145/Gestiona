@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from "react";
+﻿import { fechaLocal } from "@/lib/fechaAR";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -376,7 +377,7 @@ export default function SmartAlertsPage() {
                 </div>
                 {rule.last_triggered && (
                   <p className="text-xs text-muted-foreground text-right flex-shrink-0">
-                    Último: {new Date(rule.last_triggered).toLocaleDateString("es-AR")}
+                    Último: {fechaLocal(rule.last_triggered).toLocaleDateString("es-AR")}
                   </p>
                 )}
                 <Button size="sm" variant="ghost" onClick={() => toast.info("Editando regla...")}><Settings className="w-4 h-4" /></Button>

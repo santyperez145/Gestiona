@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 /**
  * Estado de las integraciones (2026-10-14, funciones incoherentes).
  *
@@ -29,7 +30,7 @@ export interface FuentesDeIntegraciones {
   fallidas: Array<TarjetaDeIntegracion["id"]>;
 }
 
-const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+const fecha = (iso: string) => fechaLocal(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 export function estadoDeIntegraciones(f: FuentesDeIntegraciones, ahora = new Date()): TarjetaDeIntegracion[] {
   const fallo = (id: TarjetaDeIntegracion["id"]) => f.fallidas.includes(id);

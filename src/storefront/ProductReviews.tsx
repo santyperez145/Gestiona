@@ -5,6 +5,7 @@
  * componente sólo decide qué mostrar. Sin esa regla las reseñas se llenan de
  * spam y dejan de servir, que es peor que no tenerlas.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -219,7 +220,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                 </span>
               )}
               <span className="text-xs ml-auto" style={{ color: "hsl(var(--st-muted))" }}>
-                {new Date(r.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
+                {fechaLocal(r.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
               </span>
             </div>
             {r.title && <p className="text-sm font-medium mt-1.5">{r.title}</p>}

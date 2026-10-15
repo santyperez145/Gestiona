@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { roleLabel } from "@/lib/roleLabels";
 import { useOrg } from "@/lib/orgContext";
@@ -249,7 +250,7 @@ export default function SellerCommissionsPage() {
           <SelectContent>
             {MONTHS.map(m => (
               <SelectItem key={m} value={m}>
-                {new Date(m + "-01").toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
+                {new Date(m + "-01T12:00:00").toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -266,7 +267,7 @@ export default function SellerCommissionsPage() {
             p.commission_percent,
             Number(p.commission_ars).toFixed(2),
             p.status === 'paid' ? 'Pagada' : 'Pendiente',
-            p.paid_at ? new Date(p.paid_at).toLocaleDateString('es-AR') : '',
+            p.paid_at ? fechaLocal(p.paid_at).toLocaleDateString('es-AR') : '',
           ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');

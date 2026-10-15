@@ -10,6 +10,7 @@
  * al comprador que acá no atiende nadie, y eso frena más ventas de las que
  * destraba. La propia queda visible para quien la hizo mientras espera.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +37,7 @@ interface MiPregunta {
 }
 
 const fecha = (iso: string) =>
-  new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+  fechaLocal(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
 
 export default function ProductQuestions({ productId }: { productId: string }) {
   const { store, basePath: base } = useStore();

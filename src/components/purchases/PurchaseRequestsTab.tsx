@@ -12,6 +12,7 @@
  * de compra real (`convertir_solicitud_en_orden`) y queda recibida sola cuando
  * esa orden se recibe completa.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -246,7 +247,7 @@ export default function PurchaseRequestsTab() {
                         {s.priority !== "normal" && <Badge variant={s.priority === "urgent" ? "destructive" : "secondary"}>{PRIORIDADES[s.priority] ?? s.priority}</Badge>}
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {s.requested_by}{s.department ? ` · ${s.department}` : ""} · {new Date(s.created_at).toLocaleDateString("es-AR")}
+                        {s.requested_by}{s.department ? ` · ${s.department}` : ""} · {fechaLocal(s.created_at).toLocaleDateString("es-AR")}
                         {s.needed_by ? ` · para el ${new Date(`${s.needed_by}T12:00:00`).toLocaleDateString("es-AR")}` : ""}
                         {s.purchase_orders ? ` · orden ${s.purchase_orders.order_number}` : ""}
                       </p>

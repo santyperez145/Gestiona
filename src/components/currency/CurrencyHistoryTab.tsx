@@ -1,4 +1,5 @@
-﻿import { fmtPct } from "@/lib/porcentaje";
+﻿import { fechaLocal } from "@/lib/fechaAR";
+import { fmtPct } from "@/lib/porcentaje";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -48,7 +49,7 @@ function fmtRate(n: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 2 }).format(n);
 }
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+  return fechaLocal(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 const SOURCE_LABELS: Record<string, string> = {

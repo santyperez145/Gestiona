@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -572,7 +573,7 @@ function BannersTab() {
                 <div className="text-xs text-muted-foreground">
                   <Switch checked={b.active} onCheckedChange={() => toggleActive(b)} />
                   <span className="ml-2">{b.active ? 'Activo' : 'Pausado'}</span>
-                  {b.expires_at && <span className="ml-2">· Expira {new Date(b.expires_at).toLocaleDateString('es-AR')}</span>}
+                  {b.expires_at && <span className="ml-2">· Expira {fechaLocal(b.expires_at).toLocaleDateString('es-AR')}</span>}
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(b); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>

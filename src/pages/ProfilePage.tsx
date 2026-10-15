@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { createClient } from '@supabase/supabase-js';
@@ -537,7 +538,7 @@ export default function ProfilePage() {
           <div className="info-row">
             <span>Cuenta creada</span>
             <span className="font-mono text-[11px] text-muted-foreground/60">
-              {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-AR', { dateStyle: 'long' }) : '—'}
+              {user?.created_at ? fechaLocal(user.created_at).toLocaleDateString('es-AR', { dateStyle: 'long' }) : '—'}
             </span>
           </div>
         </div>
@@ -637,7 +638,7 @@ export default function ProfilePage() {
                       <Smartphone className="w-4 h-4 text-emerald-400" />
                       <div>
                         <p className="text-sm font-medium text-emerald-300">{factor.friendly_name || 'Authenticator App'}</p>
-                        <p className="text-[10px] text-muted-foreground">TOTP · activado {new Date(factor.created_at).toLocaleDateString('es-AR')}</p>
+                        <p className="text-[10px] text-muted-foreground">TOTP · activado {fechaLocal(factor.created_at).toLocaleDateString('es-AR')}</p>
                       </div>
                     </div>
                     <Button

@@ -15,6 +15,7 @@
  * `wallet_movimientos` son las partidas mismas. No hay una tabla de saldo que
  * pueda desincronizarse.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -372,7 +373,7 @@ export default function WalletPage() {
                   {movimientos.map(m => (
                     <tr key={m.id} className="border-b border-border/30 last:border-0">
                       <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground text-xs">
-                        {new Date(m.fecha).toLocaleDateString("es-AR")}
+                        {fechaLocal(m.fecha).toLocaleDateString("es-AR")}
                         <span className="block text-[10px] opacity-60">#{m.asiento}</span>
                       </td>
                       <td className="px-4 py-2.5">
@@ -457,7 +458,7 @@ export default function WalletPage() {
                     <div>
                       <p className="text-sm font-medium tabular-nums">{formatARS(r.monto)}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {new Date(r.created_at).toLocaleDateString("es-AR")}
+                        {fechaLocal(r.created_at).toLocaleDateString("es-AR")}
                         {cuenta ? ` · ${cuenta.alias}` : ""}
                       </p>
                       {r.referencia && <p className="mt-1 text-[11px] text-muted-foreground">Operación: {r.referencia}</p>}

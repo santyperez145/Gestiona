@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useWishlist } from "./wishlist";
@@ -367,7 +368,7 @@ export default function StoreAccount() {
                       {p.order_number}
                     </Link>
                     <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
-                      {new Date(p.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
+                      {fechaLocal(p.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
                     </p>
                   </div>
                   <div className="text-right">

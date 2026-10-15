@@ -1,4 +1,4 @@
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from "react";
 import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
 import PosCustomerPicker, { etiquetaCliente, type PosCustomer } from "@/components/pos/PosCustomerPicker";
@@ -869,7 +869,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
                       <Package className="w-4 h-4 text-muted-foreground shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{s.product_name}</p>
-                        <p className="text-xs text-muted-foreground">{s.customer_name || "Sin nombre"} · {new Date(s.date).toLocaleDateString("es-AR")}</p>
+                        <p className="text-xs text-muted-foreground">{s.customer_name || "Sin nombre"} · {fechaLocal(s.date).toLocaleDateString("es-AR")}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-sm font-mono font-semibold">{formatARS(Number(s.total_ars))}</p>

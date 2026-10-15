@@ -14,7 +14,7 @@
  *   - Export to CSV
  *   - Summary KPIs: total income, total expenses, net balance
  */
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -75,7 +75,7 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-AR", {
+  return fechaLocal(iso).toLocaleDateString("es-AR", {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
@@ -87,7 +87,7 @@ function formatDate(iso: string) {
 function downloadCSV(movements: Movement[]) {
   const header = "Fecha,Tipo,Fuente,Descripcion,Contraparte,Metodo de pago,Monto ARS\n";
   const rows = movements.map(m => [
-    new Date(m.happened_at).toLocaleDateString("es-AR"),
+    fechaLocal(m.happened_at).toLocaleDateString("es-AR"),
     esIngreso(m) ? "Ingreso" : "Egreso",
     SOURCE_LABELS[m.source_type] ?? m.source_type,
     `"${m.description.replace(/"/g, '""')}"`,

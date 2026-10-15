@@ -10,6 +10,7 @@
  *   orgId     — org ID for RLS
  *   width     — chart pixel width (default 72)
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState, memo } from "react";
 import { LineChart, Line, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +49,7 @@ function PriceSparklineInner({ productId, orgId, width = 72 }: Props) {
       .then(({ data: rows }) => {
         if (!rows?.length) { setLoading(false); return; }
         const pts: Point[] = rows.map(r => ({
-          date: new Date(r.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }),
+          date: fechaLocal(r.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }),
           price: Number(r.new_price_ars),
         }));
         CACHE.set(key, pts);

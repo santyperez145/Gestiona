@@ -4,6 +4,7 @@
 // pantallas mostraban la MISMA autoridad (`social_posts`) — el duplicado ya no
 // era de modelo sino de superficie. La consolidación 2026-08-27 la vuelve una
 // vista de /marketing; la ruta vieja redirige con ?vista=planner.
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { llamarIA } from "@/lib/ia";
 import { supabase } from "@/integrations/supabase/client";
@@ -103,7 +104,7 @@ const IDEA_CATEGORIES = ["producto", "educativo", "entretenimiento", "promocion"
 const PLATFORM_EMOJI: Record<string, string> = Object.fromEntries(PLATFORMS.map(p => [p.value, p.emoji]));
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+  return fechaLocal(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 const EMPTY_POST = {

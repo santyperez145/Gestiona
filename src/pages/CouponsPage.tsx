@@ -4,7 +4,7 @@
  * Create, manage and track promotional discount codes.
  * Reads from the `coupons` table and `sales` table for usage analytics.
  */
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
@@ -336,7 +336,7 @@ export default function CouponsPage() {
                       {c.valid_until && (
                         <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                           <Clock className="w-3 h-3" />
-                          Vence {new Date(c.valid_until).toLocaleDateString("es-AR")}
+                          Vence {fechaLocal(c.valid_until).toLocaleDateString("es-AR")}
                         </span>
                       )}
                       {linkedPromo && (
@@ -588,7 +588,7 @@ export default function CouponsPage() {
                   ].filter(Boolean).join(" + ")}
                 </p>
                 {form.maxUses && <p className="text-muted-foreground mt-0.5">Máx {form.maxUses} uso{Number(form.maxUses) !== 1 ? "s" : ""}</p>}
-                {form.validUntil && <p className="text-muted-foreground">Hasta {new Date(form.validUntil).toLocaleDateString("es-AR")}</p>}
+                {form.validUntil && <p className="text-muted-foreground">Hasta {fechaLocal(form.validUntil).toLocaleDateString("es-AR")}</p>}
               </div>
             )}
 

@@ -4,6 +4,7 @@
 // El contenido es idéntico — PageHeader y acciones incluidas — porque este
 // paso mueve superficies, no reescribe cálculos: unificar los tres motores
 // en una autoridad server-side es INV-001, y va aparte a propósito.
+import { fechaLocal } from "@/lib/fechaAR";
 import { fmtPct } from "@/lib/porcentaje";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -317,7 +318,7 @@ export default function AnalisisView() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-foreground">{(s.products as DemandSignal["products"])?.name ?? "—"}</p>
                         <Badge className={`${cfg.color} text-xs`}>{cfg.label}</Badge>
-                        <span className="text-xs text-muted-foreground/70 ml-auto">{new Date(s.detected_at).toLocaleDateString("es-AR")}</span>
+                        <span className="text-xs text-muted-foreground/70 ml-auto">{fechaLocal(s.detected_at).toLocaleDateString("es-AR")}</span>
                       </div>
                       {s.description && <p className="text-sm text-muted-foreground mt-1">{s.description}</p>}
                       <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground/70">

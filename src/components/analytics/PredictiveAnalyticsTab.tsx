@@ -1,5 +1,5 @@
 import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -83,7 +83,7 @@ export default function PredictiveAnalyticsTab() {
       .limit(7)
       .then(({ data }) => {
         setForecast((data ?? []).map((f: any) => ({
-          day: new Date(f.forecast_date).toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
+          day: fechaLocal(f.forecast_date).toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
           predicted: Number(f.predicted_revenue),
           lo: Number(f.confidence_lo),
           hi: Number(f.confidence_hi),

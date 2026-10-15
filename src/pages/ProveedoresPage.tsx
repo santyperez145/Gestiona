@@ -1,5 +1,5 @@
 ﻿import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -618,7 +618,7 @@ export default function ProveedoresPage() {
                     <div className="space-y-1 pb-12">
                       {(purchases[s.id] || []).map(p => (
                         <div key={p.id} className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{new Date(p.date).toLocaleDateString("es-AR")}</span>
+                          <span className="text-muted-foreground">{fechaLocal(p.date).toLocaleDateString("es-AR")}</span>
                           <span className="flex-1 px-3 truncate">{p.product_name}</span>
                           <span className="text-muted-foreground">×{p.quantity}</span>
                           <span className="ml-3 font-medium">${p.total_ars?.toLocaleString("es-AR")}</span>
@@ -799,7 +799,7 @@ export default function ProveedoresPage() {
                           <p className="text-xs text-muted-foreground truncate mt-0.5">{d.description}</p>
                           {d.due_date && (
                             <p className={`text-[10px] mt-0.5 ${overdue ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
-                              Vence: {new Date(d.due_date).toLocaleDateString('es-AR')}
+                              Vence: {fechaLocal(d.due_date).toLocaleDateString('es-AR')}
                             </p>
                           )}
                         </div>

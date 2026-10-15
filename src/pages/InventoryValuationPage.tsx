@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Download, History, Layers, Package, RefreshCw, Save, ShieldCheck, TrendingDown, Wallet } from "lucide-react";
@@ -15,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Root as Tabs, Content as TabsContent, List as TabsList, Trigger as TabsTrigger } from "@radix-ui/react-tabs";
 
 const money = (value: number | null) => value === null ? "Pendiente" : formatARS(value);
-const date = (value: string | null) => value ? new Date(value).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" }) : "Sin evidencia";
+const date = (value: string | null) => value ? fechaLocal(value).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" }) : "Sin evidencia";
 const title = (row: Pick<CapitalItem, "product_name" | "variant_name" | "sku">) => <div className="min-w-0"><p className="line-clamp-2 break-words font-medium">{row.product_name}</p>
   <p className="line-clamp-2 break-words text-xs text-muted-foreground">{[row.variant_name, row.sku].filter(Boolean).join(" · ") || "Sin SKU"}</p></div>;
 const cell = "px-3 py-3 text-right tabular-nums break-words";

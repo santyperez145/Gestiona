@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -26,7 +27,7 @@ interface PolicyRow {
 }
 
 const fmtDate = (d: string) =>
-  new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+  fechaLocal(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 export default function FinancePolicyPanel() {
   const { activeOrg, activeRole } = useOrg();
   const queryClient = useQueryClient();

@@ -63,3 +63,12 @@ describe("el recorrido de una pantalla habla de esa pantalla", () => {
     expect(tutorialDeRuta({ id: "zz-x", path: "/zz", label: "Cupones" }).resumen).toBe("Cupones: para qué sirve esta pantalla y cómo usarla.");
   });
 });
+
+describe("una fecha sin hora se muestra en su día", () => {
+  it("el 1/10 no se muestra como 30/9", async () => {
+    const { fechaLocal } = await import("@/lib/fechaAR");
+    expect(fechaLocal("2026-10-01").getDate()).toBe(1);
+    expect(fechaLocal("2026-10").getMonth()).toBe(9);
+    expect(fechaLocal("2026-10-15T15:30:00Z").toISOString()).toBe("2026-10-15T15:30:00.000Z");
+  });
+});

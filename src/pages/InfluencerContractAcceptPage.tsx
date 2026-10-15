@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CalendarClock, Check, Clock, FileSignature, ShieldAlert, Wallet, X } from 'lucide-react';
@@ -35,7 +36,7 @@ const fmtMoney = (v: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+  d ? fechaLocal(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
 export default function InfluencerContractAcceptPage() {
   const { token } = useParams<{ token: string }>();

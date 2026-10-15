@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
@@ -124,7 +125,7 @@ export default function UnlinkedSalesPanel() {
                 <p className="text-sm font-medium truncate">{f.customer_name}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {f.ventas} {f.ventas === 1 ? 'compra' : 'compras'} · {fmt(Number(f.total_ars))}
-                  {f.ultima_venta && ` · última ${new Date(f.ultima_venta).toLocaleDateString('es-AR')}`}
+                  {f.ultima_venta && ` · última ${fechaLocal(f.ultima_venta).toLocaleDateString('es-AR')}`}
                 </p>
               </div>
               <Button

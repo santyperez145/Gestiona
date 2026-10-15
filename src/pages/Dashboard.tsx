@@ -1,5 +1,5 @@
 import { fmtPct } from "@/lib/porcentaje";
-import { diaAR, hoyAR } from "@/lib/fechaAR";
+import { diaAR, hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { claveDeCompra, contarCompras } from "@/lib/comprasDeCliente";
 import { lazy, Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
@@ -1133,7 +1133,7 @@ export default function Dashboard() {
       }
     });
     const dailySales = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, data]) => ({
-      date: new Date(date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }),
+      date: fechaLocal(date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }),
       ...data,
     }));
 

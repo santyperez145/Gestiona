@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, Globe2, MonitorSmartphone, PackageCheck, RefreshCw, Search, ShoppingBag, Sparkles, Store, Users } from "lucide-react";
@@ -53,7 +54,7 @@ function formatARS(value: number) {
 }
 
 function formatDate(value: string | null) {
-  return value ? new Date(value).toLocaleDateString("es-AR") : "Sin fecha";
+  return value ? fechaLocal(value).toLocaleDateString("es-AR") : "Sin fecha";
 }
 
 function formatDateTime(value: string | null) {

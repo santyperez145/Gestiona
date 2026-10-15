@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -627,7 +628,7 @@ export default function LocationsPage() {
                   <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Sin transferencias registradas</td></tr>
                 ) : transfers.map((t) => (
                   <tr key={t.id} className="border-b border-border/20 hover:bg-muted/20">
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{fechaLocal(t.created_at).toLocaleDateString("es-AR")}</td>
                     <td className="px-4 py-3 font-medium text-sm">
                       {t.product_name}{t.variant_name ? ` — ${t.variant_name}` : ""}
                     </td>

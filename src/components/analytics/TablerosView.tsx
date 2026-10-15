@@ -6,7 +6,7 @@
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
 import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -673,7 +673,7 @@ export default function TablerosView() {
                         <Switch checked={a.is_active} onCheckedChange={() => toggleAlert(a)} />
                       </td>
                       <td className="px-4 py-3 text-muted-foreground/70 text-xs">
-                        {a.last_triggered ? new Date(a.last_triggered).toLocaleDateString("es-AR") : "Nunca"}
+                        {a.last_triggered ? fechaLocal(a.last_triggered).toLocaleDateString("es-AR") : "Nunca"}
                       </td>
                       <td className="px-4 py-3">
                         <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"

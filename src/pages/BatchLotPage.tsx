@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { fechaLocal } from "@/lib/fechaAR";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -321,7 +322,7 @@ export default function BatchLotPage() {
                               <span className="text-muted-foreground">{MVT_LABELS[m.movement_type]}</span>
                               {m.notes && <span className="text-muted-foreground/60">· {m.notes}</span>}
                               <span className="ml-auto text-muted-foreground/50">
-                                {new Date(m.created_at).toLocaleDateString("es-AR")}
+                                {fechaLocal(m.created_at).toLocaleDateString("es-AR")}
                               </span>
                             </div>
                           ))}

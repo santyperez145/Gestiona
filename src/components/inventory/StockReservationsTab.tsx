@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -234,7 +235,7 @@ export default function StockReservationsTab() {
                         </div>
                       ) : (
                         <span className="text-[11px] text-[color:var(--muted)]">
-                          {r.resolved_at ? new Date(r.resolved_at).toLocaleDateString("es-AR") : "—"}
+                          {r.resolved_at ? fechaLocal(r.resolved_at).toLocaleDateString("es-AR") : "—"}
                         </span>
                       )}
                     </td>

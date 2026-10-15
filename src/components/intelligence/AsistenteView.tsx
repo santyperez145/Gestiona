@@ -4,6 +4,7 @@
 // «No deberían existir dos páginas de IA genéricas»: los copilotos de dominio
 // (pricing, restock, CRM coach, Finance) viven en su dominio; lo transversal
 // —hallazgos y conversaciones— vive acá, junto.
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -422,7 +423,7 @@ export default function AsistenteView() {
                   <MessageSquare className="w-4 h-4 shrink-0 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate">{s.title}</p>
-                    <p className="text-xs text-muted-foreground">{s.message_count} msgs · {new Date(s.updated_at).toLocaleDateString("es-AR")}</p>
+                    <p className="text-xs text-muted-foreground">{s.message_count} msgs · {fechaLocal(s.updated_at).toLocaleDateString("es-AR")}</p>
                   </div>
                   <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
                     <button onClick={e => { e.stopPropagation(); pinSession(s); }} className={`p-0.5 rounded ${s.is_pinned ? "text-yellow-500" : "text-muted-foreground hover:text-yellow-500"}`}><Pin className="w-3 h-3" /></button>

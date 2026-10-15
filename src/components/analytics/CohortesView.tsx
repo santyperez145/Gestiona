@@ -5,7 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
-import { mesAR } from "@/lib/fechaAR";
+import { mesAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -121,7 +121,7 @@ export default function CohortesView() {
           chart: r.chart_type ?? "bar",
           pinned: r.is_pinned,
           runs: r.run_count,
-          last_run: r.last_run_at ? new Date(r.last_run_at).toLocaleDateString("es-AR") : "—",
+          last_run: r.last_run_at ? fechaLocal(r.last_run_at).toLocaleDateString("es-AR") : "—",
           shared: r.is_shared,
         })));
       });

@@ -1,5 +1,5 @@
 import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { roleLabel } from "@/lib/roleLabels";
 import { useNavigate } from "react-router-dom";
@@ -281,11 +281,11 @@ export default function ReportsPage() {
 
   const handlePDFSales = () => exportPDF('Reporte de Ventas',
     ['Fecha','Producto','Cliente','Cant.','Total ARS','Ganancia','Estado'],
-    sales.map((s: any) => [new Date(s.date).toLocaleDateString('es-AR'), s.product_name, s.customer_name || '—', s.quantity, formatARS(Number(s.total_ars)), formatARS(Number(s.profit_ars)), s.paid ? 'Pagado' : 'Debe'])
+    sales.map((s: any) => [fechaLocal(s.date).toLocaleDateString('es-AR'), s.product_name, s.customer_name || '—', s.quantity, formatARS(Number(s.total_ars)), formatARS(Number(s.profit_ars)), s.paid ? 'Pagado' : 'Debe'])
   );
   const handlePDFPurchases = () => exportPDF('Reporte de Compras',
     ['Fecha','Producto','Cant.','Unit. USD','Pasero','Total USD','Total ARS'],
-    purchases.map((p: any) => [new Date(p.date).toLocaleDateString('es-AR'), p.product_name, p.quantity, formatUSD(Number(p.unit_cost_usd)), formatUSD(Number(p.total_usd) - Number(p.unit_cost_usd) * p.quantity), formatUSD(Number(p.total_usd)), formatARS(Number(p.total_ars))])
+    purchases.map((p: any) => [fechaLocal(p.date).toLocaleDateString('es-AR'), p.product_name, p.quantity, formatUSD(Number(p.unit_cost_usd)), formatUSD(Number(p.total_usd) - Number(p.unit_cost_usd) * p.quantity), formatUSD(Number(p.total_usd)), formatARS(Number(p.total_ars))])
   );
 
   // ===== CSV P&L mensual =====
@@ -1405,7 +1405,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
         }
         const trendData = months.map(mo => {
           const entry: Record<string, any> = {
-            label: new Date(mo + '-01').toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }),
+            label: new Date(mo + '-01T12:00:00').toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }),
           };
           rows.forEach(r => { entry[r.name.split(' ')[0]] = r.byMonth[mo] || 0; });
           return entry;
@@ -3008,7 +3008,7 @@ function SuppliersTab({ purchases }: { purchases: any[] }) {
                   <td className="p-3 text-right font-semibold text-yellow-400">U$S {s.totalUSD.toFixed(0)}</td>
                   <td className="p-3 text-right text-muted-foreground">{s.totalARS > 0 ? `$${Math.round(s.totalARS).toLocaleString('es-AR')}` : "—"}</td>
                   <td className="p-3 text-right text-muted-foreground">U$S {(s.totalUSD / s.count).toFixed(0)}</td>
-                  <td className="p-3 text-right text-muted-foreground">{s.lastDate ? new Date(s.lastDate).toLocaleDateString('es-AR') : "—"}</td>
+                  <td className="p-3 text-right text-muted-foreground">{s.lastDate ? fechaLocal(s.lastDate).toLocaleDateString('es-AR') : "—"}</td>
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -3408,7 +3408,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
                     {t.notes && <span className="ml-2 text-muted-foreground text-xs italic">{t.notes}</span>}
                   </div>
                   <span className="text-[10px] text-muted-foreground shrink-0">
-                    {new Date(t.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                    {fechaLocal(t.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                   </span>
                 </div>
               );

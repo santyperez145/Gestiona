@@ -10,6 +10,7 @@
  * el débito una vez y MP cobra solo cada período, avisando por webhook. Acá no
  * pasa ninguna tarjeta — se manda al comercio al link de MercadoPago.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { supabase } from "@/integrations/supabase/client";
@@ -282,7 +283,7 @@ export default function MiPlanPage() {
                   {esInicial ? 'Fin de la prueba de extras' : sub.cancela_al_final ? "Vence el" : "Renueva el"}
                 </p>
                 <p className="text-sm font-medium">
-                  {new Date(sub.renueva_el).toLocaleDateString("es-AR")}
+                  {fechaLocal(sub.renueva_el).toLocaleDateString("es-AR")}
                 </p>
                 {typeof sub.dias_restantes === "number" && (
                   <p className="text-[11px] text-muted-foreground">
@@ -360,7 +361,7 @@ export default function MiPlanPage() {
               {sub?.renueva_el ? (
                 <>
                   Cancelaste la renovación. Seguís con tu plan hasta el{" "}
-                  <strong>{new Date(sub.renueva_el).toLocaleDateString("es-AR",
+                  <strong>{fechaLocal(sub.renueva_el).toLocaleDateString("es-AR",
                     { day: "2-digit", month: "long", year: "numeric" })}</strong>
                   {typeof sub.dias_restantes === "number" && sub.dias_restantes >= 0
                     ? <> — {sub.dias_restantes === 0 ? "es hoy" : `faltan ${sub.dias_restantes} día${sub.dias_restantes === 1 ? "" : "s"}`}</>
@@ -525,8 +526,8 @@ export default function MiPlanPage() {
                   <tr key={f.id} className="border-b border-border/30 last:border-0">
                     <td className="px-4 py-2.5 font-mono text-xs">{f.numero}</td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(f.periodo_desde).toLocaleDateString("es-AR")} –{" "}
-                      {new Date(f.periodo_hasta).toLocaleDateString("es-AR")}
+                      {fechaLocal(f.periodo_desde).toLocaleDateString("es-AR")} –{" "}
+                      {fechaLocal(f.periodo_hasta).toLocaleDateString("es-AR")}
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`text-[11px] px-1.5 py-0.5 rounded border ${

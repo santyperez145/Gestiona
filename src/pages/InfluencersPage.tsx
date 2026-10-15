@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -58,7 +59,7 @@ export default function InfluencersPage() {
       const invitation = await createInfluencerInvitation(creator.id);
       const url = `${window.location.origin}/invitacion-creador/${invitation.token}`;
       await navigator.clipboard.writeText(url);
-      toast.success(`Invitación creada. Enlace copiado para ${creator.name}. Vence el ${new Date(invitation.expires_at).toLocaleDateString('es-AR')}.`);
+      toast.success(`Invitación creada. Enlace copiado para ${creator.name}. Vence el ${fechaLocal(invitation.expires_at).toLocaleDateString('es-AR')}.`);
       await refresh();
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : '';

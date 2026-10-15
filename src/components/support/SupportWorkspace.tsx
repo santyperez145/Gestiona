@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -51,7 +52,7 @@ function relativeTime(value: string) {
   if (minutes < 60) return `hace ${minutes} min`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `hace ${hours} h`;
-  return new Date(value).toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
+  return fechaLocal(value).toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
 }
 
 interface SupportWorkspaceProps {

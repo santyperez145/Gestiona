@@ -1,4 +1,4 @@
-import { hoyAR, mesAR } from "@/lib/fechaAR";
+import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -197,7 +197,7 @@ export default function CuotasPage() {
           <SelectContent>
             {months.map(m => (
               <SelectItem key={m} value={m}>
-                {new Date(m + "-01").toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
+                {new Date(m + "-01T12:00:00").toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -210,7 +210,7 @@ export default function CuotasPage() {
             i.sale?.customer_name || '', i.sale?.product_name || '',
             i.installment_number, Number(i.amount_ars).toFixed(2),
             i.due_date, i.paid ? 'Pagada' : 'Pendiente',
-            i.paid_at ? new Date(i.paid_at).toLocaleDateString('es-AR') : '',
+            i.paid_at ? fechaLocal(i.paid_at).toLocaleDateString('es-AR') : '',
           ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');

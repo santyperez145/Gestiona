@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Check, Clock, Mail, ShieldAlert, X } from 'lucide-react';
@@ -134,7 +135,7 @@ export default function InfluencerInvitationPage() {
           ) : (
             <>
               <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" /> Responder antes del {new Date(invitation.expires_at).toLocaleDateString('es-AR')}
+                <Clock className="h-3.5 w-3.5" /> Responder antes del {fechaLocal(invitation.expires_at).toLocaleDateString('es-AR')}
               </p>
               {error && <p role="alert" className="mt-3 text-center text-sm text-destructive">{error}</p>}
               <div className="mt-4 grid grid-cols-2 gap-3">

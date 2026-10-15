@@ -1,5 +1,5 @@
 import { facturaCobrada, type OrigenesCobrados } from "@/lib/facturaCobrada";
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { facturaDePrueba } from "@/lib/recorridoAltaFiscal";
 import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
@@ -1495,10 +1495,10 @@ export default function InvoicesPage() {
               STATUS_CONFIG[visibleInvoiceStatus(inv)]?.label || inv.status,
               Number(inv.total).toFixed(2),
               inv.tax_pct,
-              new Date(inv.issue_date).toLocaleDateString('es-AR'),
-              inv.due_date ? new Date(inv.due_date).toLocaleDateString('es-AR') : '',
+              fechaLocal(inv.issue_date).toLocaleDateString('es-AR'),
+              inv.due_date ? fechaLocal(inv.due_date).toLocaleDateString('es-AR') : '',
               inv.cae || '',
-              inv.paid_at ? new Date(inv.paid_at).toLocaleDateString('es-AR') : '',
+              inv.paid_at ? fechaLocal(inv.paid_at).toLocaleDateString('es-AR') : '',
             ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
             const csv = bom + [headers.join(','), ...rows].join('\n');
             const a = document.createElement('a');

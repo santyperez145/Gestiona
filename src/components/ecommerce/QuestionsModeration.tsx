@@ -8,6 +8,7 @@
  * Al guardar la respuesta la pregunta se vuelve pública: mientras no la tenga,
  * la ve sólo quien preguntó.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -151,7 +152,7 @@ export default function QuestionsModeration({ storeId }: { storeId: string | nul
               <div className="min-w-0">
                 <p className="text-sm font-medium">{q.question}</p>
                 <p className="text-xs text-muted-foreground mt-1 truncate">
-                  {q.author_name} · {q.products?.name ?? "Producto"} · {new Date(q.created_at).toLocaleDateString("es-AR")}
+                  {q.author_name} · {q.products?.name ?? "Producto"} · {fechaLocal(q.created_at).toLocaleDateString("es-AR")}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">

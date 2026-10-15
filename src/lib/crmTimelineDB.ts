@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { supabase as _supabase } from '@/integrations/supabase/client';
 
 // customer_timeline_360 es un RPC nuevo: los tipos generados aún no lo traen.
@@ -63,7 +64,7 @@ export function timelineKindMeta(kind: TimelineEvent['kind']) {
 }
 
 const fmtFecha = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
+  fechaLocal(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const fmtHora = (iso: string) =>
   new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });

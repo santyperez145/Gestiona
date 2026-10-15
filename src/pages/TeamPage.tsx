@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
@@ -274,7 +275,7 @@ export default function TeamPage() {
                       {m.display_name || "Miembro sin nombre"}
                       {m.role === 'owner' && <Crown className="w-3.5 h-3.5 text-primary" />}
                     </div>
-                    <div className="text-xs text-muted-foreground">Desde {new Date(m.joined_at).toLocaleDateString('es-AR')}</div>
+                    <div className="text-xs text-muted-foreground">Desde {fechaLocal(m.joined_at).toLocaleDateString('es-AR')}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -308,7 +309,7 @@ export default function TeamPage() {
               <div key={i.id} className="flex items-center justify-between py-3 gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">{i.email}</div>
-                  <div className="text-xs text-muted-foreground">Rol: {i.role} · Expira {new Date(i.expires_at).toLocaleDateString('es-AR')}</div>
+                  <div className="text-xs text-muted-foreground">Rol: {i.role} · Expira {fechaLocal(i.expires_at).toLocaleDateString('es-AR')}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => copyInviteLink(i.token)}><Copy className="w-3.5 h-3.5 mr-1" />Copiar enlace</Button>

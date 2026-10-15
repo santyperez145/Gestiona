@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
@@ -297,7 +298,7 @@ export default function PaymentSettlementsPanel() {
                   return (
                     <tr key={t.id} className={t.status === 'rejected' ? 'opacity-50' : ''}>
                       <td className="py-1.5 pr-2 text-muted-foreground whitespace-nowrap">
-                        {new Date(t.created_at).toLocaleDateString('es-AR')}
+                        {fechaLocal(t.created_at).toLocaleDateString('es-AR')}
                       </td>
                       <td className="py-1.5 pr-2">{SOURCE_LABEL[t.source] || t.source}</td>
                       <td className="py-1.5 pr-2 text-muted-foreground">
@@ -320,7 +321,7 @@ export default function PaymentSettlementsPanel() {
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                         {t.status === 'pending' && t.expected_release_at && (
                           <p className="text-[9px] text-muted-foreground mt-0.5">
-                            acredita {new Date(t.expected_release_at).toLocaleDateString('es-AR')}
+                            acredita {fechaLocal(t.expected_release_at).toLocaleDateString('es-AR')}
                           </p>
                         )}
                       </td>

@@ -1,4 +1,4 @@
-﻿import { hoyAR, mesAR } from "@/lib/fechaAR";
+﻿import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { claveDeCompra, diaDeCompra, frecuenciaEnDias } from "@/lib/comprasDeCliente";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { mensajeDeError } from "@/lib/cuentaCorriente";
@@ -671,7 +671,7 @@ function CustomerSalesTimeline({
                     {!s.paid && <span className="text-[10px] bg-destructive/20 text-destructive rounded px-1">DEBE</span>}
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    {new Date(s.date).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                    {fechaLocal(s.date).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
                     {s.payment_method && <span className={`ml-1 ${PAY_COLOR[s.payment_method] ?? ""}`}>· {s.payment_method}</span>}
                   </p>
                 </div>
@@ -709,8 +709,8 @@ function CustomerSalesTimeline({
                   <div>
                     <p className="text-xs font-medium">{d.description || "Deuda sin descripción"}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {new Date(d.date).toLocaleDateString("es-AR")}
-                      {d.due_date && ` · vence ${new Date(d.due_date).toLocaleDateString("es-AR")}`}
+                      {fechaLocal(d.date).toLocaleDateString("es-AR")}
+                      {d.due_date && ` · vence ${fechaLocal(d.due_date).toLocaleDateString("es-AR")}`}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -909,7 +909,7 @@ function CustomerDealsTab({ customer, orgId }: { customer: CustomerRef; orgId: s
               </div>
               {d.expected_close && (
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Cierre estimado: {new Date(d.expected_close).toLocaleDateString("es-AR")}
+                  Cierre estimado: {fechaLocal(d.expected_close).toLocaleDateString("es-AR")}
                 </p>
               )}
             </div>
@@ -992,7 +992,7 @@ function CustomerQuotesTab({ customer, orgId }: { customer: CustomerRef; orgId: 
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {new Date(q.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                  {fechaLocal(q.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
                   {q.valid_until && ` · válido hasta ${new Date(q.valid_until + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}`}
                 </p>
                 {q.notes && <p className="text-[10px] text-muted-foreground truncate max-w-[200px] mt-0.5">{q.notes}</p>}
@@ -1190,7 +1190,7 @@ function CommunicationsLog({ orgId, userId, customer }: { orgId: string; userId:
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground leading-tight">{e.summary}</p>
                   <p className="text-muted-foreground text-[10px] mt-0.5">
-                    {t?.label} · {new Date(e.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })} {new Date(e.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                    {t?.label} · {fechaLocal(e.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })} {new Date(e.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                   {hasFollowUp && (
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -1228,7 +1228,7 @@ function exportCustomer360PDF(c: any, recentSales: any[], businessName: string) 
 
   const salesRows = recentSales.slice(0, 10).map(s => `
     <tr>
-      <td>${new Date(s.date).toLocaleDateString('es-AR')}</td>
+      <td>${fechaLocal(s.date).toLocaleDateString('es-AR')}</td>
       <td>${s.product_name || '—'}</td>
       <td>${s.quantity || 1}</td>
       <td>${fmt(Number(s.total_ars))}</td>
@@ -1341,7 +1341,7 @@ function exportAccountStatementPDF(
   for (const s of customerSales) {
     const amount = Number(s.total_ars || 0);
     transactions.push({
-      date: s.date ? new Date(s.date).toLocaleDateString('es-AR') : '—',
+      date: s.date ? fechaLocal(s.date).toLocaleDateString('es-AR') : '—',
       desc: s.product_name || 'Venta',
       debit: amount,
       credit: s.paid ? amount : 0,
@@ -1353,7 +1353,7 @@ function exportAccountStatementPDF(
   for (const d of customerDebts) {
     if (!d.paid) {
       transactions.push({
-        date: d.created_at ? new Date(d.created_at).toLocaleDateString('es-AR') : '—',
+        date: d.created_at ? fechaLocal(d.created_at).toLocaleDateString('es-AR') : '—',
         desc: d.concept || d.note || 'Deuda pendiente',
         debit: Number(d.amount || d.remaining_ars || 0),
         credit: 0,
@@ -3502,7 +3502,7 @@ export default function CustomersPage() {
 
                     <div className="workspace-customer-row__cell" data-label="Compras">
                       <strong>{c.purchaseCount}</strong>
-                      <span>{c.purchaseCount > 0 ? `Última ${new Date(c.lastPurchase).toLocaleDateString("es-AR")}` : "Sin actividad"}</span>
+                      <span>{c.purchaseCount > 0 ? `Última ${fechaLocal(c.lastPurchase).toLocaleDateString("es-AR")}` : "Sin actividad"}</span>
                     </div>
                     <div className="workspace-customer-row__cell" data-label="Facturación">
                       <strong>{formatARS(c.totalSpent)}</strong>
@@ -3791,7 +3791,7 @@ export default function CustomersPage() {
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="bg-muted rounded-lg p-2.5">
                               <span className="text-muted-foreground">Primera compra</span>
-                              <p className="font-medium">{new Date(c.firstPurchase).toLocaleDateString("es-AR")}</p>
+                              <p className="font-medium">{fechaLocal(c.firstPurchase).toLocaleDateString("es-AR")}</p>
                             </div>
                             <div className="bg-muted rounded-lg p-2.5">
                               <span className="text-muted-foreground">Unidades totales</span>
@@ -3970,7 +3970,7 @@ export default function CustomersPage() {
                                   <div key={d.id} className="flex items-center justify-between rounded-lg bg-destructive/8 border border-destructive/20 px-3 py-2">
                                     <div>
                                       <p className="text-xs font-medium">{d.description || "Deuda"}</p>
-                                      <p className="text-[10px] text-muted-foreground">{new Date(d.date).toLocaleDateString("es-AR")}</p>
+                                      <p className="text-[10px] text-muted-foreground">{fechaLocal(d.date).toLocaleDateString("es-AR")}</p>
                                     </div>
                                     <span className="text-xs font-mono font-semibold text-destructive">{formatARS(Number(d.remaining_ars || d.amount_ars))}</span>
                                   </div>
@@ -4240,7 +4240,7 @@ export default function CustomersPage() {
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="bg-muted rounded-lg p-2.5">
                           <span className="text-muted-foreground">Primera compra</span>
-                          <p className="font-medium">{new Date(c.firstPurchase).toLocaleDateString("es-AR")}</p>
+                          <p className="font-medium">{fechaLocal(c.firstPurchase).toLocaleDateString("es-AR")}</p>
                         </div>
                         <div className="bg-muted rounded-lg p-2.5">
                           <span className="text-muted-foreground">Unidades totales</span>

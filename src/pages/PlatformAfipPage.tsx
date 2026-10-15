@@ -9,6 +9,7 @@
  * `afip_platform_status`, que dice si está cargado y cuándo vence el ticket,
  * nunca el contenido.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { usePlatformAccess } from '@/lib/usePermissions';
@@ -240,7 +241,7 @@ export default function PlatformAfipPage() {
           icon={listo ? ShieldCheck : ShieldAlert}
           color={listo ? 'success' : 'destructive'}
           sub={estado?.certificate_expires_at
-            ? `Vence ${new Date(estado.certificate_expires_at).toLocaleDateString('es-AR')}`
+            ? `Vence ${fechaLocal(estado.certificate_expires_at).toLocaleDateString('es-AR')}`
             : estado?.environment === 'produccion' ? 'Producción · vigencia sin registrar' : 'Homologación · vigencia sin registrar'}
         />
         <KPICard
@@ -442,7 +443,7 @@ export default function PlatformAfipPage() {
             )}
             {estado?.updated_at && (
               <Badge variant="secondary">
-                Actualizado {new Date(estado.updated_at).toLocaleDateString('es-AR')}
+                Actualizado {fechaLocal(estado.updated_at).toLocaleDateString('es-AR')}
               </Badge>
             )}
             {estado?.certificate_fingerprint_sha256 && (

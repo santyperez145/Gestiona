@@ -1,4 +1,4 @@
-import { hoyAR } from "@/lib/fechaAR";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import CambioDePrecioDialog from "@/components/platform/CambioDePrecioDialog";
@@ -158,7 +158,7 @@ const adminCall = async (action: string, params: Record<string, unknown> = {}) =
   return data;
 };
 
-const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('es-AR') : '—';
+const fmt = (d: string | null) => d ? fechaLocal(d).toLocaleDateString('es-AR') : '—';
 const fmtFull = (d: string | null) => d ? new Date(d).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 
 // ── Main Component ────────────────────────────────────────────────────────────

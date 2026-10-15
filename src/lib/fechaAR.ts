@@ -29,3 +29,16 @@ export function hoyAR(): string {
 export function mesAR(): string {
   return hoyAR().slice(0, 7);
 }
+
+/**
+ * Una fecha para mostrar. «2026-10-01» sin hora es medianoche UTC, que en
+ * Argentina todavía es el 30/9: Cuotas mostraba «septiembre» en octubre y los
+ * vencimientos salían un día antes. A una fecha sin hora se le pone mediodía
+ * local; un instante con hora se deja como está.
+ */
+export function fechaLocal(valor: Date | string | number | null | undefined): Date {
+  if (typeof valor === "string" && /^\d{4}-\d{2}(-\d{2})?$/.test(valor)) {
+    return new Date(`${valor.length === 7 ? `${valor}-01` : valor}T12:00:00`);
+  }
+  return valor instanceof Date ? valor : new Date(valor ?? "");
+}

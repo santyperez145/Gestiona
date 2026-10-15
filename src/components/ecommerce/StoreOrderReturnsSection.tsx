@@ -4,6 +4,7 @@
  * Muestra el historial de solicitudes asociadas al pedido y permite crear una
  * devolución directamente para cumplir con la Ley 24.240 o garantías comerciales.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -200,7 +201,7 @@ export default function StoreOrderReturnsSection({ detail, orgId, canEdit }: Pro
 
               <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
                 <span className="text-muted-foreground">
-                  {new Date(r.created_at).toLocaleDateString("es-AR")}
+                  {fechaLocal(r.created_at).toLocaleDateString("es-AR")}
                 </span>
                 <Link
                   to={`/ventas?tab=Devoluciones&search=${encodeURIComponent(r.rma_number || "")}`}

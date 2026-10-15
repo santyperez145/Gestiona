@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -662,7 +663,7 @@ export default function PlatformCommissionsPage() {
                     {grossProfit.map(g => (
                       <tr key={g.transaccion_id} className="hover:bg-muted/20">
                         <td className="px-3 py-2 whitespace-nowrap">
-                          {new Date(g.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                          {fechaLocal(g.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
                         </td>
                         <td className="px-3 py-2 max-w-[180px] truncate" title={g.comercio || ''}>
                           {g.comercio || <span className="text-muted-foreground">—</span>}

@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CreatorProvider, useCreator, type CreatorCampaign, type CreatorChatMessage, type CreatorContract, type CreatorPayoutDestination } from "@/lib/creatorContext";
@@ -46,7 +47,7 @@ const fmtMoney = (v: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(v);
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  d ? fechaLocal(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
 const CHANNEL_LABELS: Record<string, string> = {
   instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube", multiple: "Varias redes",
@@ -756,7 +757,7 @@ function CreatorPortalContent() {
                       <div className="min-w-0">
                         <p className="text-sm font-semibold tabular-nums">{fmtMoney(Number(w.amount_ars))}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          {new Date(w.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                          {fechaLocal(w.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
                           {w.processed_at && " · procesado"}
                         </p>
                         {w.payout_provider_label && (

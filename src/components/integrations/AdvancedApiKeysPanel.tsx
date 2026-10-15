@@ -10,6 +10,7 @@
  * Function `public-api` chequea de verdad — si se agrega un endpoint, su scope
  * se agrega en los tres lugares juntos.
  */
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -232,8 +233,8 @@ export default function AdvancedApiKeysPanel() {
                 <div className="text-left text-xs text-muted-foreground shrink-0 sm:text-right">
                   <p>{(k.request_count ?? 0).toLocaleString("es-AR")} requests</p>
                   <p>Límite: {k.rate_limit_rpm} rpm</p>
-                  {k.last_used_at && <p>Último: {new Date(k.last_used_at).toLocaleDateString("es-AR")}</p>}
-                  {k.expires_at && <p className={new Date(k.expires_at) < new Date() ? "text-destructive" : ""}>Expira: {new Date(k.expires_at).toLocaleDateString("es-AR")}</p>}
+                  {k.last_used_at && <p>Último: {fechaLocal(k.last_used_at).toLocaleDateString("es-AR")}</p>}
+                  {k.expires_at && <p className={new Date(k.expires_at) < new Date() ? "text-destructive" : ""}>Expira: {fechaLocal(k.expires_at).toLocaleDateString("es-AR")}</p>}
                 </div>
                 {!k.revoked_at && (
                   <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 shrink-0" onClick={() => revokeKey(k.id)}>

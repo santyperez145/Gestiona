@@ -1,3 +1,4 @@
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -454,7 +455,7 @@ export default function MultiCurrencyPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs font-semibold">${t.base_amount.toLocaleString("es-AR")}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{fechaLocal(t.created_at).toLocaleDateString("es-AR")}</td>
                   </tr>
                 ))}
               </tbody>
