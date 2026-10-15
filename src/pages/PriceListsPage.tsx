@@ -455,7 +455,7 @@ export default function PriceListsPage() {
         icon={Tag}
         eyebrow="Commerce · Precios"
         title="Listas de precios"
-        description="Segmentación por cliente y canal — el checkout y el POS leen la misma lista."
+        description="Precios distintos por cliente o canal; la tienda online y el mostrador usan la misma lista."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={exportCSV}>
