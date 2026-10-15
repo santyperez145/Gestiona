@@ -355,7 +355,7 @@ export default function FinancialMovementsPage() {
                     <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[140px] truncate">
                       {m.counterparty ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell capitalize text-xs">
+                    <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell text-xs">
                       {m.payment_method === "sin_dato" ? "Sin dato" : nombreDelMedio(m.payment_method)}
                     </td>
                     <td className={`px-4 py-3 text-right font-mono font-semibold ${esIngreso(m) ? "text-emerald-400" : "text-red-400"}`}>

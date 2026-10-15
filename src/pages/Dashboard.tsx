@@ -1135,7 +1135,10 @@ export default function Dashboard() {
 
     const customers = new Set(sales.filter((s: any) => s.customer_name).map((s: any) => s.customer_name));
     const inventoryValueUSD = products.reduce((s: number, p: any) => s + (Number(p.total_cost_usd) * p.stock), 0);
-    const totalStock = products.reduce((s: number, p: any) => s + p.stock, 0);
+    // Los archivados (con historia, 2026-10-15) no son inventario ni alertas;
+    // sus ventas siguen contando arriba.
+    const activos = products.filter((p: any) => p.is_active !== false);
+    const totalStock = activos.reduce((s: number, p: any) => s + p.stock, 0);
     const profitMargin = totalSalesARS > 0 ? (grossProfitARS / totalSalesARS) * 100 : 0;
     const roi = totalPurchasesUSD > 0 ? (grossProfitUSD / totalPurchasesUSD) * 100 : 0;
 
@@ -1145,8 +1148,8 @@ export default function Dashboard() {
     const lowStockThreshold = Number(settings.low_stock_threshold ?? 3);
     const marginAlertPct = Number(settings.margin_alert_percent ?? 30);
     const expenseRatioAlertPct = Number(settings.expense_ratio_alert_percent ?? 40);
-    const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= lowStockThreshold);
-    const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
+    const lowStockProducts = activos.filter((p: any) => p.stock > 0 && p.stock <= lowStockThreshold);
+    const outOfStockProducts = activos.filter((p: any) => p.stock <= 0);
     // Para el Foco: sin stock y con ventas en el período. En un catálogo
     // grande la mayoría de los artículos no se tiene en stock (Famatina:
     // 4.723 de 5.500 en cero, ninguno vendido) y avisar de todos es ruido.
@@ -1410,7 +1413,7 @@ export default function Dashboard() {
     const weekNetCashFlow = weekIncome - weekExpensesAmt - weekPurchasesAmt;
 
     return {
-      totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
+      totalProducts: activos.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
       totalPurchasesUSD, totalPurchasesARS,
       totalDebtsARS: pendingDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0),
       pendingDebts: pendingDebts.length,
