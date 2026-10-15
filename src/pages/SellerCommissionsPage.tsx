@@ -184,7 +184,7 @@ export default function SellerCommissionsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users}
-        title="Comisiones de Vendedores"
+        title="Comisiones de vendedores"
         description="Configurá y liquidá comisiones por ventas de tu equipo"
         badge={pendingTotal > 0 ? { label: `${formatARS(pendingTotal)} pendiente`, variant: "warning" } : undefined}
       />

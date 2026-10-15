@@ -223,7 +223,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
 
   // ── Fidelidad ────────────────────────────────────────────────
   "/fidelidad": {
-    title: "Programa de Fidelidad",
+    title: "Programa de fidelidad",
     subtitle: "Puntos, tiers y canjes",
     color: "text-yellow-400",
     tips: [
@@ -395,7 +395,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
 
   // ── Comisiones ───────────────────────────────────────────────
   "/comisiones": {
-    title: "Comisiones de Vendedores",
+    title: "Comisiones de vendedores",
     subtitle: "Liquidación de comisiones por período",
     color: "text-primary",
     tips: [

@@ -684,7 +684,7 @@ export default function PLDashboardPage() {
                       { label: "Ingresos", curr: currentPL.revenue, prev: prevPL.revenue },
                       { label: "Costo de lo vendido", curr: currentPL.cogs, prev: prevPL.cogs },
                       { label: "Ganancia Bruta", curr: currentPL.grossProfit, prev: prevPL.grossProfit },
-                      { label: "Gastos Operativos", curr: currentPL.expenses, prev: prevPL.expenses },
+                      { label: "Gastos operativos", curr: currentPL.expenses, prev: prevPL.expenses },
                       { label: "Ganancia Neta", curr: currentPL.netProfit, prev: prevPL.netProfit },
                     ].map(row => {
                       const delta = changePct(row.curr, row.prev);

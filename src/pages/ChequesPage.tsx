@@ -157,7 +157,7 @@ export default function ChequesPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={FileText}
-        title="Cheques Diferidos"
+        title="Cheques diferidos"
         description="Seguimiento de cheques recibidos y emitidos"
         badge={
           overdue.length > 0

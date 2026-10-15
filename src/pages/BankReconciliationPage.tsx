@@ -313,7 +313,7 @@ export default function BankReconciliationPage() {
       {/* Header */}
       <PageHeader
         icon={Landmark}
-        title="Conciliación Bancaria"
+        title="Conciliación bancaria"
         description="Reconciliá movimientos bancarios con ventas y gastos del sistema"
         actions={
           <div className="flex flex-wrap gap-2 flex-wrap">

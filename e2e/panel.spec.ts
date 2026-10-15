@@ -509,7 +509,7 @@ test.describe("gastos", () => {
     });
 
     await page.goto("/gastos");
-    await expect(page.getByRole("heading", { level: 1, name: "Gastos Operativos" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Gastos operativos" })).toBeVisible();
     // La sesión guardada puede renovarse durante el arranque. Esta guarda mide
     // exclusivamente los errores que produzca la interacción del comprobante.
     await page.waitForTimeout(750);

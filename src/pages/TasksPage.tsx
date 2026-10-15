@@ -211,7 +211,7 @@ export default function TasksPage() {
       {/* Header */}
       <BusinessPageHeader
         icon={CheckSquare}
-        title="Agenda de Tareas"
+        title="Agenda de tareas"
         description="Organizá y seguí las tareas de tu negocio"
         badge={overdue.length > 0 ? `${overdue.length} vencida${overdue.length > 1 ? "s" : ""}` : pending.length === 0 ? "¡Todo al día ✓" : undefined}
         actions={

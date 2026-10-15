@@ -127,7 +127,7 @@ const EMPTY_RATE = {
 };
 
 export default function TaxManagementPage() {
-  usePageTitle("Gestión Impositiva");
+  usePageTitle("Gestión impositiva");
   const { ask, dialog } = useConfirmDialog();
   const { orgId } = useOrganization();
 
@@ -357,7 +357,7 @@ export default function TaxManagementPage() {
       {dialog}
       <PageHeader
         icon={Receipt}
-        title="Gestión Impositiva"
+        title="Gestión impositiva"
         description="IVA, IIBB, retenciones y declaraciones AFIP"
         actions={<div className="flex flex-wrap gap-2">
           {taxRates.length === 0 && (

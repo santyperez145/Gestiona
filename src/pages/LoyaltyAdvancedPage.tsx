@@ -289,7 +289,7 @@ export default function LoyaltyAdvancedPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Crown}
-        title="Programa de Fidelidad"
+        title="Programa de fidelidad"
         description="Puntos, tiers, recompensas y canjes avanzados"
         actions={
           <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 text-xs hover:bg-muted/50 transition-colors">

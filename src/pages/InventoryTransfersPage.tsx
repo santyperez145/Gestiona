@@ -77,7 +77,7 @@ const emptyForm = () => ({
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function InventoryTransfersPage() {
-  usePageTitle("Transferencias de Inventario");
+  usePageTitle("Transferencias de inventario");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const { ask, dialog } = useConfirmDialog();
@@ -245,7 +245,7 @@ export default function InventoryTransfersPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={ArrowRightLeft}
-        title="Transferencias de Inventario"
+        title="Transferencias de inventario"
         description="Mover stock entre sucursales y depósitos · trazabilidad completa"
         actions={
           <div className="flex flex-wrap gap-2">

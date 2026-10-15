@@ -319,7 +319,7 @@ export default function KardexPage() {
       {/* Header */}
       <PageHeader
         icon={History}
-        title="Kardex de Stock"
+        title="Kardex de stock"
         description="Historial completo de movimientos de inventario"
         actions={
           <div className="flex flex-wrap gap-2">

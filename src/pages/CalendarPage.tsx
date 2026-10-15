@@ -61,7 +61,7 @@ function addMonths(date: Date, n: number): Date {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CalendarPage() {
-  usePageTitle("Calendario de Negocios");
+  usePageTitle("Calendario de negocios");
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
 
@@ -263,7 +263,7 @@ export default function CalendarPage() {
     <div className="space-y-6 pb-12">
       <BusinessPageHeader
         icon={Calendar}
-        title="Calendario de Negocios"
+        title="Calendario de negocios"
         description="Vista unificada de tareas, deals, follow-ups y cobros"
         actions={
           <Button variant="outline" size="sm" onClick={load}><RefreshCw className="w-3.5 h-3.5" /></Button>

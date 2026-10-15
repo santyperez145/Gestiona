@@ -558,7 +558,7 @@ export default function ExpensesPage() {
       <PageHeader
         icon={Wallet}
         eyebrow="Finance · Gastos"
-        title="Gastos Operativos"
+        title="Gastos operativos"
         description="Lo que gasta el negocio, por categoría, para ver la ganancia real."
         badge={{ label: formatARS(totals.total), variant: "destructive" }}
         actions={
