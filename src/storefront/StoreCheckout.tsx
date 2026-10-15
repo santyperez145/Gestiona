@@ -52,7 +52,7 @@ export default function StoreCheckout() {
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
   const {
-    store, products, cart, subtotal, promo2x, shippingCost, fmt,
+    store, products, catalogoParcial, cart, subtotal, promo2x, shippingCost, fmt,
     clearCart, rememberCartEmail, cartToken, visitToken, basePath: base,
   } = useStore();
   const navigate = useNavigate();
@@ -369,6 +369,16 @@ export default function StoreCheckout() {
   }, [cart, store?.currency, subtotal, trackingRuntimeReady]);
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  // El descuento por medio de pago se calcula con el precio de cada producto:
+  // se espera al catálogo entero, no a la primera página.
+  if (catalogoParcial) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-24 text-center" role="status" aria-live="polite">
+        <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>Preparando tu compra…</p>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (

@@ -23,7 +23,7 @@ const ORDENES = [
 ];
 
 export default function StoreProducts() {
-  const { products, perfumes, categorias: cats2, priceOf, fmt, store } = useStore();
+  const { products, catalogoParcial, perfumes, categorias: cats2, priceOf, fmt, store } = useStore();
   const [params, setParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -239,6 +239,8 @@ export default function StoreProducts() {
           </h1>
           <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
             {filtrados.length} {filtrados.length === 1 ? "producto" : "productos"}
+            {/* La primera página no es el total: el resto está llegando. */}
+            {catalogoParcial && <span role="status" aria-live="polite"> · cargando más…</span>}
             {activos > 0 ? ` · ${activos} filtro${activos === 1 ? "" : "s"}` : ""}
           </p>
           {busqueda.aproximada && filtrados.length > 0 && (

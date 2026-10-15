@@ -20,7 +20,7 @@ type EstadoRecuperacion = "cargando" | "vacio" | "error" | "catalogo" | "listo";
 
 export default function StoreCartRecovery() {
   const { token } = useParams<{ token: string }>();
-  const { store, restoreCart, loading, loadError, reload, basePath: base } = useStore();
+  const { store, restoreCart, loading, catalogoParcial, loadError, reload, basePath: base } = useStore();
   const navigate = useNavigate();
   const [estado, setEstado] = useState<EstadoRecuperacion>("cargando");
   const yaCorrio = useRef(false);
@@ -50,7 +50,8 @@ export default function StoreCartRecovery() {
   }, [token, store, restoreCart, navigate, base]);
 
   useEffect(() => {
-    if (!token || !store || loading) return;
+    // El carrito se rearma con el catálogo entero, no con la primera página.
+    if (!token || !store || loading || catalogoParcial) return;
     if (loadError) {
       setEstado("catalogo");
       return;
@@ -58,7 +59,7 @@ export default function StoreCartRecovery() {
     if (yaCorrio.current) return;
     yaCorrio.current = true;
     void intentar();
-  }, [token, store, loading, loadError, intentar]);
+  }, [token, store, loading, catalogoParcial, loadError, intentar]);
 
   const card = (titulo: string, detalle: string, accion: { label: string; onClick: () => void }, state: string) => (
     <div className="max-w-md mx-auto px-4 py-24 text-center" data-storefront-state={state} role={state === "vacio" ? undefined : "alert"}>

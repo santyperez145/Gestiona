@@ -121,6 +121,29 @@ const PUBLIC_BRANDING_COLUMNS =
  * Esconderlos pierde la visita, el lugar en Google y la señal de demanda. La
  * tienda los muestra al final y con el botón de compra cambiado.
  */
+/**
+ * Primeros productos de la vitrina y el total (2026-10-15), para mostrar antes
+ * de que llegue el catálogo entero. `null` si la función todavía no existe o
+ * no se pudo leer: la tienda sigue esperando el completo, como antes. No
+ * reintenta: si falla, el completo ya está en camino.
+ */
+export async function fetchStoreCatalogInicio(
+  storeSlug: string,
+  options: AbortableReadOptions = {},
+): Promise<{ total: number; productos: CatalogProduct[] } | null> {
+  const r = await retryAbortableRead(signal => supabase.rpc(
+    'get_store_catalog_inicio' as never,
+    { p_slug: storeSlug, p_limite: 48 } as never,
+  ).abortSignal(signal), { ...options, delaysMs: [] });
+  if (r.error) {
+    if (!isMissingFunction(r.error)) console.warn('[catálogo] primera página no disponible:', r.error.message);
+    return null;
+  }
+  const d = r.data as unknown as { total?: unknown; productos?: unknown } | null;
+  if (!d || !Array.isArray(d.productos) || typeof d.total !== 'number') return null;
+  return { total: d.total, productos: d.productos as CatalogProduct[] };
+}
+
 /** Código del resultado de `fetchStoreProducts` sin organización en el camino viejo. */
 export const CATALOGO_NECESITA_ORGANIZACION = "NERQIA_SIN_ORG";
 

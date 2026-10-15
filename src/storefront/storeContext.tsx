@@ -15,6 +15,7 @@ import { precioDeCatalogo } from "@/lib/storefrontSeo";
 import { precioDeVariante } from "@/lib/storeProductVariant";
 import type { CategoriaTienda } from "@/lib/storeCategories";
 import {
+  fetchStoreCatalogInicio,
   fetchStoreProducts,
   fetchStoreVariants,
   getActiveStoreCart,
@@ -163,6 +164,8 @@ interface Ctx {
   /** Vacío en slug.nerqia.app; /tienda/:slug en el host compartido. */
   basePath: string;
   loading: boolean;
+  /** Se muestra la primera página; el catálogo entero todavía está llegando. */
+  catalogoParcial: boolean;
   notFound: boolean;
   /** Red o catálogo fallaron: no es un 404. */
   loadError: boolean;
@@ -268,6 +271,8 @@ export function StoreProvider({
   const [pages, setPages] = useState<StorePage[]>([]);
   const [banners, setBanners] = useState<StoreBanner[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Sólo la primera página del catálogo; el resto está llegando. */
+  const [catalogoParcial, setCatalogoParcial] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
@@ -301,6 +306,7 @@ export function StoreProvider({
     // cargar la tienda» (E2E del 14/10, captura en el artefacto del CI).
     const readOptions = { signal: controller.signal, delaysMs: STORE_READ_RETRY_DELAYS_MS };
     setLoading(true);
+    setCatalogoParcial(false);
     setNotFound(false);
     setLoadError(false);
 
@@ -312,6 +318,11 @@ export function StoreProvider({
       // Si la tienda no existe nadie espera este pedido: que no quede como
       // rechazo sin manejar. Una excepción sí llega al Promise.all de abajo.
       catalogoTemprano.catch(() => {});
+      // La primera página (48 productos) llega en una fracción del catálogo
+      // entero: en Famatina, 23 KB contra 5,5 MB (2026-10-15). Se muestra
+      // enseguida y el completo la reemplaza cuando llega. Si falla, se espera
+      // el completo como antes.
+      const inicioTemprano = previewVersionId ? Promise.resolve(null) : fetchStoreCatalogInicio(slug, readOptions).catch(() => null);
       const storeResponse = await retryAbortableRead(signal => (previewVersionId
         ? supabase.rpc("get_store_theme_preview", {
           p_slug: slug,
@@ -338,15 +349,20 @@ export function StoreProvider({
         payment_methods: mediosDePagoOfrecibles(row.payment_methods),
       });
 
-      const [pRes, dRes, vRes, rRes, gRes, bRes, cRes, qRes] = await Promise.all([
-        // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
-        // migración todavía no esté aplicada — si no, la tienda se muestra
-        // vacía aunque haya productos cargados.
-        // Se vuelve a pedir sólo si el temprano no pudo resolverse sin la
-        // organización (camino viejo). Un error o un corte ya pasaron por sus
-        // reintentos: repetirlos duplicaba la espera (8 intentos, E2E 15/10).
-        catalogoTemprano.then(r => (r.ok === false && r.error.code === CATALOGO_NECESITA_ORGANIZACION
-          ? fetchStoreProducts(row.org_id, row.slug, readOptions) : r)),
+      // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
+      // migración todavía no esté aplicada. Se vuelve a pedir sólo si el
+      // temprano no pudo resolverse sin la organización (camino viejo): un
+      // error o un corte ya pasaron por sus reintentos y repetirlos duplicaba
+      // la espera (8 intentos, E2E 15/10).
+      let completoListo: Awaited<ReturnType<typeof fetchStoreProducts>> | null = null;
+      const completo = catalogoTemprano
+        .then(r => (r.ok === false && r.error.code === CATALOGO_NECESITA_ORGANIZACION
+          ? fetchStoreProducts(row.org_id, row.slug, readOptions) : r))
+        .then(r => { completoListo = r; return r; });
+      completo.catch(() => {});
+
+      const [inicio, dRes, vRes, rRes, gRes, bRes, cRes, qRes] = await Promise.all([
+        inicioTemprano,
         retryAbortableRead(signal => supabase.rpc("get_store_perfume_details", { p_slug: slug }).abortSignal(signal), readOptions),
         fetchStoreVariants(slug, readOptions),
         retryAbortableRead(signal => supabase.rpc("get_store_reviews", { p_slug: slug }).abortSignal(signal), readOptions),
@@ -357,19 +373,29 @@ export function StoreProvider({
       ]);
       if (cancelled) return;
 
-      if (!pRes.ok) {
-        setLoadError(true);
-        setLoading(false);
-        return;
-      }
-
       // Los agotados se muestran, pero últimos: la tienda tiene que verse
       // llena de lo que sí se puede comprar.
-      const lista = pRes.data as unknown as StoreProduct[];
-      setProducts([
+      const aplicarLista = (lista: StoreProduct[]) => setProducts([
         ...lista.filter(x => Number(x.stock) > 0),
         ...lista.filter(x => Number(x.stock) <= 0),
       ]);
+      const listo = completoListo as Awaited<ReturnType<typeof fetchStoreProducts>> | null;
+      let parcial = false;
+      if (listo) {
+        if (!listo.ok) { setLoadError(true); setLoading(false); return; }
+        aplicarLista(listo.data as unknown as StoreProduct[]);
+      } else if (inicio && inicio.total <= inicio.productos.length) {
+        aplicarLista(inicio.productos as unknown as StoreProduct[]);
+      } else if (inicio) {
+        aplicarLista(inicio.productos as unknown as StoreProduct[]);
+        parcial = true;
+      } else {
+        const r = await completo;
+        if (cancelled) return;
+        if (!r.ok) { setLoadError(true); setLoading(false); return; }
+        aplicarLista(r.data as unknown as StoreProduct[]);
+      }
+      setCatalogoParcial(parcial);
       const map: Record<string, PerfumeDetail> = {};
       ((dRes.data ?? []) as PerfumeDetail[]).forEach(d => { map[d.product_id] = d; });
       setPerfumes(map);
@@ -402,6 +428,16 @@ export function StoreProvider({
       // es como venía funcionando. No tener reglas es un estado válido.
       setReglasCantidad((qRes?.data ?? []) as unknown as ReglaCantidad[]);
       setLoading(false);
+
+      // Con la primera página en pantalla, el catálogo entero termina de
+      // llegar. Si falla, la tienda muestra el error de siempre.
+      if (parcial) {
+        const r = await completo;
+        if (cancelled) return;
+        if (!r.ok) { setLoadError(true); return; }
+        aplicarLista(r.data as unknown as StoreProduct[]);
+        setCatalogoParcial(false);
+      }
     })().catch(error => {
       controller.abort();
       if (cancelled) return;
@@ -628,7 +664,7 @@ export function StoreProvider({
   // vista se rearma siempre con catálogo actual para no revivir precio/stock.
   useEffect(() => {
     // Never reconcile a saved cart against an unavailable/partial catalog.
-    if (loading || loadError || buyerIdentityLoading || !store || !cartToken) return;
+    if (loading || catalogoParcial || loadError || buyerIdentityLoading || !store || !cartToken) return;
     if (previewMode) {
       setCartHydrated(true);
       setCartSyncStatus("local");
@@ -680,7 +716,7 @@ export function StoreProvider({
     });
 
     return () => { cancelled = true; };
-  }, [loading, loadError, buyerIdentityLoading, buyerSession?.user.id, buyerCustomer?.id, store, slug, cartToken, products, variantsByProduct, priceOf, persist, previewMode]);
+  }, [loading, catalogoParcial, loadError, buyerIdentityLoading, buyerSession?.user.id, buyerCustomer?.id, store, slug, cartToken, products, variantsByProduct, priceOf, persist, previewMode]);
 
   // Debounce corto: el carrito sigue respondiendo en memoria, y una ráfaga de
   // clics en + termina en una sola escritura. Los errores quedan visibles en
@@ -750,7 +786,7 @@ export function StoreProvider({
 
     return {
       basePath,
-      loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
+      loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
       addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf,
       cartSyncStatus, cartSyncNotice, cartToken, visitToken,
       cartRevealTick,
@@ -767,7 +803,7 @@ export function StoreProvider({
         : null,
       priceOf, fmt,
     };
-  }, [basePath, loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, setCartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
+  }, [basePath, loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, setCartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

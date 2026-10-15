@@ -37,7 +37,7 @@ import {
 export default function StoreProduct() {
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   const { productId } = useParams<{ productId: string }>();
-  const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart, basePath: base } = useStore();
+  const { store, products, catalogoParcial, perfumes, variantsByProduct, priceOf, fmt, addToCart, basePath: base } = useStore();
 
   // El mejor descuento por medio de pago que ofrece la tienda, o null.
   const descuentoPago = mejorDescuento(store?.payment_methods ?? null, store?.payment_discounts ?? null);
@@ -145,6 +145,16 @@ export default function StoreProduct() {
   // vuelve a montar. Reobservar al cambiar la selección evita que el botón
   // nuevo herede `aria-hidden` del nodo anterior ya desconectado.
   }, [productId, products, variantId]);
+
+  // Con la primera página en pantalla, un producto del resto todavía no
+  // llegó: no está «no encontrado», está cargando.
+  if (!p && catalogoParcial) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-24 text-center" role="status" aria-live="polite">
+        <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>Cargando el producto…</p>
+      </div>
+    );
+  }
 
   if (!p) {
     return (

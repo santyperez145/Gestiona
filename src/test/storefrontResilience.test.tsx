@@ -57,7 +57,7 @@ describe("la vitrina distingue 404 de red caída", () => {
     expect(estado).toContain("min-h-11");
 
     expect(ctx).toContain("setLoadError(true)");
-    expect(ctx).toContain("if (!pRes.ok)");
+    expect(ctx).toContain("if (!r.ok) { setLoadError(true);");
     expect(ctx).not.toMatch(/storeResponse\.error[\s\S]{0,80}setNotFound\(true\)/);
   });
 });
