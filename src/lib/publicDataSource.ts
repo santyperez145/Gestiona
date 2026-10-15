@@ -121,6 +121,9 @@ const PUBLIC_BRANDING_COLUMNS =
  * Esconderlos pierde la visita, el lugar en Google y la señal de demanda. La
  * tienda los muestra al final y con el botón de compra cambiado.
  */
+/** Código del resultado de `fetchStoreProducts` sin organización en el camino viejo. */
+export const CATALOGO_NECESITA_ORGANIZACION = "NERQIA_SIN_ORG";
+
 export async function fetchStoreProducts(
   orgId: string,
   storeSlug?: string,
@@ -158,6 +161,13 @@ export async function fetchStoreProducts(
     console.warn(
       '[catálogo] get_store_catalog_products() todavía no existe; usando la vista compatible.',
     );
+  }
+
+  // Las vistas por organización necesitan saber de qué negocio es. La tienda
+  // pide el catálogo antes de leer la tienda (sólo con el slug): si llega acá
+  // sin organización, lo dice en vez de leer «todos los productos de nadie».
+  if (!orgId) {
+    return { ok: false, error: { code: CATALOGO_NECESITA_ORGANIZACION, message: "El catálogo necesita la organización de la tienda" } as PgError };
   }
 
   // `store_catalog_products` es igual a `catalog_products` pero sin exigir

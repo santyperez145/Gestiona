@@ -22,6 +22,7 @@ import {
   retryPublicRead,
   saveActiveStoreCart,
   type StoreVariant,
+  CATALOGO_NECESITA_ORGANIZACION,
 } from "@/lib/publicDataSource";
 import { mediosDePagoOfrecibles } from "@/lib/gestionaPay";
 import { cartShippingCellText, cartShippingDisplay } from "@/lib/storeCartShipping";
@@ -338,7 +339,11 @@ export function StoreProvider({
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
-        catalogoTemprano.then(r => (r?.ok ? r : fetchStoreProducts(row.org_id, row.slug, readOptions))),
+        // Se vuelve a pedir sólo si el temprano no pudo resolverse sin la
+        // organización (camino viejo) o se interrumpió; un error de lectura ya
+        // pasó por sus reintentos y repetirlos duplicaba la espera.
+        catalogoTemprano.then(r => (r && (r.ok || r.error.code !== CATALOGO_NECESITA_ORGANIZACION)
+          ? r : fetchStoreProducts(row.org_id, row.slug, readOptions))),
         retryAbortableRead(signal => supabase.rpc("get_store_perfume_details", { p_slug: slug }).abortSignal(signal), readOptions),
         fetchStoreVariants(slug, readOptions),
         retryAbortableRead(signal => supabase.rpc("get_store_reviews", { p_slug: slug }).abortSignal(signal), readOptions),
