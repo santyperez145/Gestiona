@@ -95,7 +95,7 @@ function RateCard({ type, data, sparkData, selected, onClick }: any) {
 }
 
 export default function MultiCurrencyPage() {
-  usePageTitle("Multi-Divisa & FX");
+  usePageTitle("Monedas y cotizaciones");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"rates" | "converter" | "exposure" | "transactions" | "history">("rates");
   const [selectedRate, setSelectedRate] = useState("blue");
@@ -232,7 +232,7 @@ export default function MultiCurrencyPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Globe}
-        title="Multi-Divisa & FX"
+        title="Monedas y cotizaciones"
         description="Tipos de cambio en tiempo real, conversor y exposición FX"
         actions={
           <div className="flex items-center flex-wrap gap-2">

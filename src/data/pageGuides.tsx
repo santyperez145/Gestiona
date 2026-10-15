@@ -337,7 +337,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
     subtitle: "Gestión de pendientes del equipo",
     color: "text-cyan-400",
     tips: [
-      { icon: Kanban, title: "Vista Kanban con drag-drop", desc: "Arrastrá las tareas entre las columnas Pendiente / En progreso / Completada. El estado se actualiza automáticamente." },
+      { icon: Kanban, title: "Tablero por estado", desc: "Arrastrá las tareas entre las columnas Pendiente / En progreso / Completada. El estado se actualiza automáticamente." },
       { icon: CheckSquare, title: "Subtareas colapsables", desc: "Hacé click en '+subtarea' dentro de un card para añadir subtareas. El badge N/total muestra el progreso en tiempo real." },
       { icon: Flag, title: "Prioridad con colores", desc: "Alta = rojo, Media = naranja, Baja = gris. Las tareas urgentes aparecen destacadas tanto en lista como en kanban." },
       { icon: Users, title: "Tareas creadas desde CRM", desc: "Desde CustomersPage podés crear tareas de seguimiento en lote para clientes seleccionados, con due_date = mañana." },

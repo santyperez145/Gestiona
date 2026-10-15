@@ -67,7 +67,7 @@ function fmtDate(d: string | null) {
 }
 
 export default function BatchLotPage() {
-  usePageTitle("Lotes & Vencimientos");
+  usePageTitle("Lotes y vencimientos");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -194,7 +194,7 @@ export default function BatchLotPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Layers}
-        title="Lotes & Vencimientos"
+        title="Lotes y vencimientos"
         description="Trazabilidad completa por lote: fechas de vencimiento, movimientos y cuarentenas."
         actions={
           <div className="flex flex-wrap gap-2">

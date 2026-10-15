@@ -291,7 +291,7 @@ export default function CalendarPage() {
           description="deudas por cobrar"
         />
         <BusinessKPICard
-          title="Deals & Follow-ups"
+          title="Negocios y seguimientos"
           value={totalThisMonth.filter(e => e.type === "deal" || e.type === "followup").length}
           icon={TrendingUp}
           description="en seguimiento"

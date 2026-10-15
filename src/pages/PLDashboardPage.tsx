@@ -76,7 +76,7 @@ interface MonthlyPL {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function PLDashboardPage() {
-  usePageTitle("Dashboard P&L");
+  usePageTitle("Estado de resultados");
   const { activeOrg } = useOrg();
   const config = useBusinessConfig();
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -266,7 +266,7 @@ export default function PLDashboardPage() {
       {/* ── PageHeader ──────────────────────────────────────────────────────── */}
       <PageHeader
         icon={TrendingUp}
-        title="Dashboard P&L"
+        title="Estado de resultados"
         description="Estado de resultados en tiempo real"
         actions={
           <div className="flex flex-wrap items-center gap-2 flex-wrap">

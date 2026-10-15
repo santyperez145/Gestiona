@@ -647,7 +647,7 @@ test.describe("POS", () => {
     for (const width of [360, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(turnoUrl);
-      await expect(page.getByRole("heading", { name: "Apertura & Cierre de Caja" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Apertura y cierre de caja" })).toBeVisible();
       await expect(
         page.getByRole("combobox", { name: "Sucursal de la sesión de caja" })
           .or(page.getByRole("link", { name: "Configurar sucursal" })),

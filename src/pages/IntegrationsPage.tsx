@@ -51,7 +51,7 @@ function fmtDate(d: string | null) {
 }
 
 export default function IntegrationsPage() {
-  usePageTitle("Integraciones & API");
+  usePageTitle("Integraciones y API");
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();

@@ -397,7 +397,7 @@ export default function CashSessionPage() {
       {/* Header */}
       <PageHeader
         icon={Banknote}
-        title="Apertura & Cierre de Caja"
+        title="Apertura y cierre de caja"
         description="Controlá cada turno de tu punto de venta"
         badge={
           openSession

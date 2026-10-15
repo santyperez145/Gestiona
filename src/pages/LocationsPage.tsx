@@ -374,7 +374,7 @@ function AdjustVariantStockDialog({
 // `transfer_stock_between_locations`, que validan.
 
 export default function LocationsPage() {
-  usePageTitle("Sucursales & Depósitos");
+  usePageTitle("Sucursales y depósitos");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const { ask, dialog } = useConfirmDialog();
