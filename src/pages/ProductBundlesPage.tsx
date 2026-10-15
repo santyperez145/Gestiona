@@ -62,7 +62,7 @@ const emptyForm = () => ({
 });
 
 export default function ProductBundlesPage() {
-  usePageTitle("Bundles / Kits");
+  usePageTitle("Combos y kits");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const { ask, dialog } = useConfirmDialog();
@@ -209,7 +209,7 @@ export default function ProductBundlesPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Layers}
-        title="Bundles / Kits"
+        title="Combos y kits"
         description="Productos agrupados que se venden como uno · stock se deduce de cada componente"
         actions={
           <div className="flex flex-wrap gap-2">

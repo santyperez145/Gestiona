@@ -864,7 +864,7 @@ export default function SubscriptionsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={CreditCard}
-        title="Suscripciones & Recurrencia"
+        title="Suscripciones y cobros recurrentes"
         description="Gestioná planes, suscriptores y facturación automática"
         actions={
           <div className="flex flex-wrap gap-2">

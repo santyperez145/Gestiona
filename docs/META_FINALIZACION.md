@@ -142,6 +142,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
     · Estado de resultados tenía «Escenarios»: se creaban vacíos y no había cómo cargarles partidas, con 2026, caja inicial de $50.000 y cobranza del 85% fijas en el código, y había 0 en toda la plataforma. Se sacó, y quien la tenía guardada abre en «Mes a mes».
     · Los campos personalizados de clientes y productos no tienen alta, pero sólo aparecen si existen, así que no muestran nada falso.
     `src/test/sinTablasHuerfanas.test.ts`.
+  - Recorrido completo de la app publicada (2026-10-15): las 64 pantallas del menú cargaron con su título, sin errores de consola, sin 404, sin pantallas de error y sin «NaN», «undefined» ni «[object Object]» en pantalla. Las 273 funciones de base, 258 tablas o vistas y 43 funciones de servidor que usa el cliente existen. Quedaban tres títulos en inglés: «Cash Flow», «Bundles / Kits» y «Suscripciones & Recurrencia», que pasan a «Flujo de caja», «Combos y kits» y «Suscripciones y cobros recurrentes».
   - Más del recorrido en vivo (2026-10-15):
     - Reposición calculaba la inversión y armaba las órdenes de compra con `cost_usd`. Famatina tiene 11.518 productos con costo en pesos: la inversión daba $0 y las órdenes salían en dólares con costo 0. Ahora calcula y pide en pesos, con el costo de cada producto en su moneda.
     - Análisis llamaba «Ganancia Neta» a la ganancia bruta (sin gastos) y mostraba «↑ 0.0% vs año ant.» sin año anterior. Tenía etiquetas en inglés (Revenue, Forecast, Cohorts, Mix) y pestañas con emojis.

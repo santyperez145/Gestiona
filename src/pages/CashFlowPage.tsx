@@ -74,7 +74,7 @@ const EMPTY_ENTRY = {
 };
 
 export default function CashFlowPage() {
-  usePageTitle("Cash Flow");
+  usePageTitle("Flujo de caja");
   const { orgId } = useOrganization();
 
   const [entries, setEntries] = useState<CashflowEntry[]>([]);
@@ -366,7 +366,7 @@ export default function CashFlowPage() {
       {/* ── Page Header ──────────────────────────────────────────── */}
       <PageHeader
         icon={BarChart3}
-        title="Cash Flow"
+        title="Flujo de caja"
         description="Flujo de caja real y proyectado"
         actions={AddMovimientoDialog}
       />
