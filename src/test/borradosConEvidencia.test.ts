@@ -16,4 +16,10 @@ describe("lo que tiene evidencia no se borra", () => {
     expect(fs.readFileSync("supabase/migrations/20261014002400_venta_cobrada_no_se_borra.sql", "utf8")).toContain("BEFORE DELETE ON public.sales");
     expect(fs.readFileSync("supabase/migrations/20261014002500_deuda_cobrada_no_se_borra.sql", "utf8")).toContain("BEFORE DELETE ON public.debts");
   });
+
+  it("tampoco se reescribe: importe, cantidad, producto y cobro de una venta con evidencia", () => {
+    const m = fs.readFileSync("supabase/migrations/20261014002900_venta_con_evidencia_no_se_reescribe.sql", "utf8");
+    expect(m).toContain("BEFORE UPDATE ON public.sales");
+    expect(m).toContain("corregila con una devolución");
+  });
 });
