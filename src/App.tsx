@@ -26,6 +26,7 @@ import BrandLogo from "@/components/shared/BrandLogo";
 import { routeAliasDestination } from "@/lib/routeAliasDestination";
 import AccessLoadError from "@/components/auth/AccessLoadError";
 import { usePoliticaMfa } from "@/hooks/usePoliticaMfa";
+import { esRutaPublica } from "@/lib/rutasPublicas";
 
 function BusinessAliasRedirect({ destination, preserveSearch }: { destination: string; preserveSearch?: string[] }) {
   const { search } = useLocation();
@@ -426,6 +427,14 @@ function OrganizationScope() {
     return () => { active = false; };
   }, [client, readyScope, requestedScope]);
 
+  // Las páginas públicas (tienda, links de pago, invitaciones) no dependen de
+  // la organización del panel. Antes, con una sesión del panel abierta, la
+  // organización terminaba de cargar a ~1 s y remontaba todo: la tienda
+  // cancelaba su catálogo y lo volvía a pedir de cero (medido en Famatina el
+  // 2026-10-15: productos a los 6,5 s en vez de ~5,5 s).
+  if (esRutaPublica(location.pathname)) {
+    return <ApplicationRoutes key="public" />;
+  }
   if (requestedScope !== readyScope) {
     return <AppLoader label="Cambiando organización..." />;
   }
