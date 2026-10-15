@@ -823,7 +823,7 @@ function PORow({ order, focusAction, online, onEdit, onAdvanceStatus, onSend, on
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PurchaseOrdersPage() {
-  usePageTitle("Órdenes de Compra");
+  usePageTitle("Órdenes de compra");
   const { activeOrg } = useOrg();
   const { online } = useNetworkStatus();
   const { ask, dialog } = useConfirmDialog();

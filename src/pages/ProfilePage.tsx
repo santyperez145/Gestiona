@@ -43,7 +43,7 @@ const ROLE_COLOR: Record<string, string> = {
 };
 
 export default function ProfilePage() {
-  usePageTitle("Mi Perfil");
+  usePageTitle("Mi perfil");
   const { user } = useAuth();
   const { memberships, isPlatformAdmin, activeOrg } = useOrg();
   const currentProfileUser = useRef(user);

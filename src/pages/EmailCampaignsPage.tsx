@@ -188,7 +188,7 @@ function buildBrandedEmail(bodyHtml: string, logoUrl: string | null, businessNam
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EmailCampaignsPage() {
-  usePageTitle("Email Marketing");
+  usePageTitle("Campañas de email");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { ask, dialog } = useConfirmDialog();
@@ -646,7 +646,7 @@ export default function EmailCampaignsPage() {
       <PageHeader
         icon={Mail}
         eyebrow="Commerce · Recuperación"
-        title="Email Marketing"
+        title="Campañas de email"
         description="Campañas a compradores con email — recuperación y aviso, no otro CRM."
         badge={
           campaigns.filter(c => c.status === "sent").length > 0
