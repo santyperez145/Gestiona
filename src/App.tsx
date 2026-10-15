@@ -25,6 +25,7 @@ import PlatformSeoHead from "@/components/seo/PlatformSeoHead";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { routeAliasDestination } from "@/lib/routeAliasDestination";
 import AccessLoadError from "@/components/auth/AccessLoadError";
+import { usePoliticaMfa } from "@/hooks/usePoliticaMfa";
 
 function BusinessAliasRedirect({ destination, preserveSearch }: { destination: string; preserveSearch?: string[] }) {
   const { search } = useLocation();
@@ -197,18 +198,7 @@ function PlatformRoutes() {
 function FinanceRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { activeOrg, activeRole, platformRole, loading: orgLoading, loadError, platformLoadError, refresh } = useOrg();
-  const [orgRequiresMfa, setOrgRequiresMfa] = useState(false);
-  const [mfaPolicyLoading, setMfaPolicyLoading] = useState(true);
-
-  useEffect(() => {
-    if (!activeOrg?.id) { setOrgRequiresMfa(false); setMfaPolicyLoading(false); return; }
-    setMfaPolicyLoading(true);
-    supabase.from('settings').select('mfa_required').eq('org_id', activeOrg.id).maybeSingle()
-      .then(
-        ({ data }) => { setOrgRequiresMfa(Boolean(data?.mfa_required)); setMfaPolicyLoading(false); },
-        () => { setOrgRequiresMfa(false); setMfaPolicyLoading(false); },
-      );
-  }, [activeOrg?.id]);
+  const { cargando: mfaPolicyLoading, requerido: orgRequiresMfa } = usePoliticaMfa(activeOrg?.id);
 
   if (authLoading || orgLoading || mfaPolicyLoading) return <AppLoader label="Verificando acceso a Finance..." />;
   if (!user) return <AuthPage />;
@@ -248,19 +238,9 @@ function FinanceRoutes() {
 function InfluencerMarketingRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { activeOrg, activeRole, platformRole, loading: orgLoading, loadError, platformLoadError, refresh } = useOrg();
-  const [mfaPolicy, setMfaPolicy] = useState<{ orgId: string; required: boolean } | null>(null);
-  useEffect(() => {
-    if (!activeOrg?.id) return;
-    let cancelled = false;
-    const orgId = activeOrg.id;
-    supabase.from('settings').select('mfa_required').eq('org_id', orgId).maybeSingle().then(
-      ({ data, error }) => { if (!cancelled) setMfaPolicy({ orgId, required: error ? true : Boolean(data?.mfa_required) }); },
-      () => { if (!cancelled) setMfaPolicy({ orgId, required: true }); },
-    );
-    return () => { cancelled = true; };
-  }, [activeOrg?.id]);
+  const mfaPolicy = usePoliticaMfa(activeOrg?.id);
 
-  if (authLoading || orgLoading || (activeOrg && mfaPolicy?.orgId !== activeOrg.id)) return <AppLoader label="Verificando acceso a Influencers..." />;
+  if (authLoading || orgLoading || mfaPolicy.cargando) return <AppLoader label="Verificando acceso a Influencers..." />;
   if (!user) return <AuthPage />;
   if (loadError || (!activeOrg && platformLoadError)) return <AccessLoadError onRetry={refresh} />;
   if (!activeOrg || !activeRole) {
@@ -271,7 +251,7 @@ function InfluencerMarketingRoutes() {
   const childRoutes = routes.filter(route => route.path !== "/influencer-marketing");
 
   return (
-    <MfaGate isAdmin={activeRole === 'owner' || activeRole === 'admin'} orgRequiresMfa={mfaPolicy?.required ?? true}>
+    <MfaGate isAdmin={activeRole === 'owner' || activeRole === 'admin'} orgRequiresMfa={mfaPolicy.requerido}>
       <PermissionsProvider>
         <InfluencerMarketingLayout key={activeOrg.id + ':' + activeRole}>
           <InfluencerMarketingGate>
@@ -300,15 +280,10 @@ function ProtectedRoutes() {
   const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
   const { activeOrg, isPlatformAdmin, loadError, platformLoadError, refresh } = useOrg();
   const { pathname } = useLocation();
-  // Enforcement de 2FA por organización (settings.mfa_required).
-  const [orgRequiresMfa, setOrgRequiresMfa] = useState(false);
-  useEffect(() => {
-    if (!activeOrg?.id) { setOrgRequiresMfa(false); return; }
-    supabase.from('settings').select('mfa_required').eq('org_id', activeOrg.id).maybeSingle()
-      .then(({ data }) => setOrgRequiresMfa(!!data?.mfa_required), () => {});
-  }, [activeOrg?.id]);
+  // Enforcement de 2FA por organización (settings.mfa_required). Falla cerrado.
+  const { cargando: mfaPolicyLoading, requerido: orgRequiresMfa } = usePoliticaMfa(activeOrg?.id);
 
-  if (authLoading || roleLoading) return <AppLoader />;
+  if (authLoading || roleLoading || (user && mfaPolicyLoading)) return <AppLoader />;
   // Root path shows landing page for unauthenticated visitors
   if (!user && pathname === '/') return <LandingPage />;
   if (!user) return <AuthPage />;
@@ -336,7 +311,7 @@ function ProtectedRoutes() {
   }
 
   return (
-    <MfaGate isAdmin={isAdmin} orgRequiresMfa={!!orgRequiresMfa}>
+    <MfaGate isAdmin={isAdmin} orgRequiresMfa={orgRequiresMfa}>
     <PermissionsProvider>
     <AppLayout>
       <Suspense fallback={<PageLoader />}>
