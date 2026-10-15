@@ -37,6 +37,9 @@ interface Props {
   children: React.ReactNode;
 }
 
+/** Esperas entre reintentos de la verificación ante un error pasajero. */
+export const ESPERAS_DE_REINTENTO_MS = [700, 2_000, 5_000];
+
 export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   const [state, setState] = useState<GateState>("checking");
   const [code, setCode] = useState("");
@@ -52,8 +55,18 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   const authOperation = useRef(false);
   const observedSession = useRef<string | null>(null);
 
-  const check = useCallback(async () => {
+  const check = useCallback(async (intento = 0): Promise<void> => {
     const requestId = ++generation.current;
+    // 2026-10-15: un error pasajero (red, límite del servicio de autenticación)
+    // dejaba «No pudimos verificar tu acceso» al primer intento. Se reintenta
+    // solo antes de pedirle a la persona que reintente. Reintentar nunca abre
+    // el acceso: sólo vuelve a preguntar.
+    const fallo = () => {
+      if (requestId !== generation.current) return;
+      const espera = ESPERAS_DE_REINTENTO_MS[intento];
+      if (espera === undefined) { setState("unavailable"); return; }
+      window.setTimeout(() => { if (requestId === generation.current) void check(intento + 1); }, espera);
+    };
     try {
       const [{ data: aal, error: aalErr }, { data: factors, error: factorsErr }] = await Promise.all([
         supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
@@ -61,7 +74,7 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
       ]);
       if (requestId !== generation.current) return;
       if (aalErr || factorsErr) {
-        setState("unavailable");
+        fallo();
         return;
       }
       const { decision, factorId: fid } = decideMfaState(
@@ -89,7 +102,7 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
       setState(rememberedUntil ? "ok" : decision);
     } catch {
       // El acceso no se abre si no pudimos comprobar el segundo factor.
-      if (requestId === generation.current) setState("unavailable");
+      fallo();
     }
   }, [isAdmin, orgRequiresMfa]);
 

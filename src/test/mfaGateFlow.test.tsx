@@ -75,12 +75,34 @@ describe("MfaGate de la plataforma", () => {
     expect(await screen.findByTestId("protected-app")).toBeInTheDocument();
   });
 
-  it("nunca abre el panel si la comprobación falla", async () => {
-    mocks.aal.mockRejectedValue(new Error("network"));
-    gate();
-    expect(await screen.findByText("No pudimos verificar tu acceso")).toBeInTheDocument();
-    expect(screen.queryByTestId("protected-app")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reintentar verificación" })).toBeInTheDocument();
+  it("nunca abre el panel si la comprobación falla, después de reintentar sola", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      mocks.aal.mockRejectedValue(new Error("network"));
+      gate();
+      await vi.advanceTimersByTimeAsync(9_000);
+      expect(await screen.findByText("No pudimos verificar tu acceso")).toBeInTheDocument();
+      expect(mocks.aal).toHaveBeenCalledTimes(4);
+      expect(screen.queryByTestId("protected-app")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Reintentar verificación" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // 2026-10-15: un error pasajero dejaba «No pudimos verificar tu acceso» al
+  // primer intento (el E2E del panel lo vio dos veces en un día).
+  it("un error pasajero se reintenta solo y no muestra la pantalla de error", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      mocks.aal.mockRejectedValueOnce(new Error("429")).mockResolvedValue({ data: { currentLevel: "aal2", nextLevel: "aal2" }, error: null });
+      gate();
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(await screen.findByTestId("protected-app")).toBeInTheDocument();
+      expect(screen.queryByText("No pudimos verificar tu acceso")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("permite una nueva sesión AAL1 sólo con permiso vigente de servidor", async () => {
