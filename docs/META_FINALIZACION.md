@@ -158,7 +158,7 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
 
 **Lo que sólo puede hacer el dueño (lista al 2026-10-11, en orden de impacto)**
 
-1. **Famatina, catálogo (E1 y E3):** en el Inicio, «Retomar» en «Tu catálogo quedó a mitad» › «Reanudar aplicación» (faltan ~6.000 de 11.534; simulado completo el 2026-10-13). Los intentos anteriores ya no hay que descartarlos a mano: la poda diaria los cancela desde el 2026-10-14. Avisar para borrar `zz_backup_productos_famatina`. Revisar con Famatina los 21 productos con precio de lista menor al costo.
+1. **Famatina, catálogo (E1 y E3):** completo: 11.518 productos activos de 11.534 filas del archivo (medido 2026-10-14) y la tienda los muestra todos. Los lotes de intentos anteriores que quedaron preparados los cancela la poda diaria. **Decisión del dueño:** confirmar que se puede borrar la copia `zz_backup_productos_famatina`; son datos de un comercio y no se borran sin su confirmación. Revisar con Famatina los 21 productos con precio de lista menor al costo.
 2. **Famatina, 16/10 (vence la prueba, E5):** pedirle que cargue en Mi plan lo que paga hoy por otras herramientas. Marcar como leídas las notificaciones viejas (Famatina: 10.552 de stock bajo; Exentry Imports: ~1.100 repetidas), que ya no se generan.
 3. **E2, antes del 31/10:** las 15 entrevistas (5 por puerta) con la guía de Platform › Métricas › «Entrevistas E2», cargadas el mismo día.
 4. **E4:** ofrecer el portal de creadores a 3 marcas y pedir que sus creadores compartan «Invitá marcas».
