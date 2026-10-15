@@ -850,11 +850,18 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
     const toMark = paged.filter(s => selectedIds.has(s.id) && !s.paid);
     if (!toMark.length) return;
     setBulkLoading(true);
-    await Promise.all(toMark.map(s => updateSaleDB(s.id, { paid: true }, s)));
+    // Cada una por separado: una fiada con saldo la rechaza la base
+    // (20261014002800) y no tiene que frenar ni esconder a las demás.
+    const resultados = await Promise.allSettled(toMark.map(s => updateSaleDB(s.id, { paid: true }, s)));
+    const rechazadas = resultados.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+    const hechas = resultados.length - rechazadas.length;
     setSelectedIds(new Set());
     reload();
     setBulkLoading(false);
-    toast.success(`${toMark.length} venta${toMark.length !== 1 ? 's' : ''} marcada${toMark.length !== 1 ? 's' : ''} como cobrada${toMark.length !== 1 ? 's' : ''}`);
+    if (hechas > 0) toast.success(`${hechas} venta${hechas !== 1 ? 's' : ''} marcada${hechas !== 1 ? 's' : ''} como cobrada${hechas !== 1 ? 's' : ''}`);
+    if (rechazadas.length > 0) {
+      toast.error(`${rechazadas.length} no se ${rechazadas.length === 1 ? "pudo" : "pudieron"} marcar`, { description: mensajeDeError(rechazadas[0].reason, "Reintentá en unos minutos"), duration: 10000 });
+    }
   };
 
   const markSinglePaid = async (s: any) => {
