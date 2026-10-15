@@ -477,7 +477,7 @@ function ActualizarAlNavegar() {
 function VersionNueva({ intentarSola }: { intentarSola: boolean }) {
   const [manual, setManual] = useState(!intentarSola);
   useEffect(() => {
-    if (intentarSola && !recuperarVersionSola()) setManual(true);
+    if (intentarSola && recuperarVersionSola() === null) setManual(true);
   }, [intentarSola]);
   if (!manual) return <AppLoader label="Actualizando a la versión nueva…" />;
   return (

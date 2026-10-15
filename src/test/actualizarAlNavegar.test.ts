@@ -28,13 +28,22 @@ describe("actualizar al navegar", () => {
     expect(recargas.n).toBe(1);
   });
 
-  it("nunca recarga en bucle: una vez por minuto como mucho", async () => {
+  // 2026-10-15: durante una publicación el servidor dio 404 unos segundos y el
+  // único intento por minuto se gastó ahí. Ahora: hasta tres, con esperas de
+  // 0, 8 y 20 s, en una ventana de dos minutos; nunca en bucle.
+  it("nunca recarga en bucle: hasta tres veces en dos minutos, con esperas", async () => {
     const sw = await import("@/lib/swUpdate");
     sw.announceUpdateAvailable();
     expect(sw.recargarPorVersionNueva(1_000_000)).toBe(true);
-    expect(sw.recargarPorVersionNueva(1_030_000)).toBe(false);
-    expect(sw.recargarPorVersionNueva(1_061_000)).toBe(true);
-    expect(recargas.n).toBe(2);
+    expect(sw.esperaParaRecargar(1_003_000)).toBe(5_000);
+    expect(sw.recargarPorVersionNueva(1_003_000)).toBe(false);
+    expect(sw.recargarPorVersionNueva(1_009_000)).toBe(true);
+    expect(sw.esperaParaRecargar(1_010_000)).toBe(19_000);
+    expect(sw.recargarPorVersionNueva(1_030_000)).toBe(true);
+    expect(sw.esperaParaRecargar(1_060_000)).toBeNull();
+    expect(sw.recargarPorVersionNueva(1_060_000)).toBe(false);
+    expect(recargas.n).toBe(3);
+    expect(sw.recargarPorVersionNueva(1_125_000)).toBe(true);
   });
 
   it("un archivo viejo que falla hasta 4 s después de navegar cuenta como parte de la navegación", async () => {
@@ -54,22 +63,26 @@ describe("actualizar al navegar", () => {
 
   // 2026-10-14: al entrar justo después de un despliegue quedaba frenada en
   // «Nueva versión disponible» hasta tocar «Actualizar».
-  it("recién cargada, un archivo viejo carga la versión nueva sola (una vez por minuto)", async () => {
+  it("recién cargada, un archivo viejo carga la versión nueva sola, reintentando con espera", async () => {
+    vi.useFakeTimers();
     const sw = await import("@/lib/swUpdate");
-    expect(sw.recuperarVersionSola(1_000_000, 3_000)).toBe(true);
+    expect(sw.recuperarVersionSola(1_000_000, 3_000)).toBe(0);
     expect(recargas.n).toBe(1);
-    expect(sw.recuperarVersionSola(1_010_000, 3_000)).toBe(false);
+    expect(sw.recuperarVersionSola(1_002_000, 3_000)).toBe(6_000);
+    vi.advanceTimersByTime(6_000);
+    expect(recargas.n).toBe(2);
+    vi.useRealTimers();
   });
 
   it("con la página abierta hace rato y sin navegar, no recarga sola (puede haber trabajo)", async () => {
     const sw = await import("@/lib/swUpdate");
-    expect(sw.recuperarVersionSola(1_000_000, 600_000)).toBe(false);
+    expect(sw.recuperarVersionSola(1_000_000, 600_000)).toBeNull();
     expect(recargas.n).toBe(0);
   });
 
   it("el error de versión vieja usa el componente que intenta solo", () => {
     const app = fs.readFileSync("src/App.tsx", "utf8");
     expect(app).toContain("<VersionNueva intentarSola={isStaleBuildError(error)} />");
-    expect(app).toContain("if (intentarSola && !recuperarVersionSola()) setManual(true);");
+    expect(app).toContain("if (intentarSola && recuperarVersionSola() === null) setManual(true);");
   });
 });
