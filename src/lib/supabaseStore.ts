@@ -21,68 +21,8 @@ async function orgIdFor(_userId?: string, organizationId?: string): Promise<stri
 }
 
 // ========= FINANCIAL MOVEMENTS (Ledger) =========
-/**
- * Espejo operativo heredado. El libro de partida doble es la autoridad; esta
- * tabla alimenta vistas antiguas de caja. Sus vocabularios reales son
- * `in|out`, un source acotado y un canal de cobro: no los nombres de pantalla.
- */
-export async function recordFinancialMovement(params: {
-  orgId: string;
-  direction: 'income' | 'expense';
-  sourceType: 'sale' | 'purchase' | 'expense' | 'adjustment';
-  sourceId?: string | null;
-  amountArs: number;
-  description: string;
-  counterparty?: string | null;
-  paymentMethod?: string;
-  channel?: string;
-  affectsCash?: boolean;
-  affectsBank?: boolean;
-  cashSessionId?: string | null;
-  happenedAt?: string;
-  createdBy?: string | null;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  const direction = params.direction === 'income' ? 'in' : 'out';
-  const sourceType = params.sourceType === 'purchase'
-    ? 'supplier_payment'
-    : params.sourceType === 'adjustment'
-      ? 'manual'
-      : params.sourceType;
-  const method = (params.paymentMethod ?? 'efectivo').toLowerCase();
-  const channel = ['efectivo', 'cash'].includes(method)
-    ? 'cash'
-    : ['transferencia', 'deposito'].includes(method)
-      ? 'bank'
-      : ['credito', 'debito', 'tarjeta', 'mercado_pago', 'mercadopago', 'qr', 'modo'].includes(method)
-        ? 'card'
-        : ['fiado', 'cuenta_corriente'].includes(method)
-          ? 'store_credit'
-          : 'other';
-
-  const { error } = await supabase.from('financial_movements').insert({
-      org_id: params.orgId,
-      direction,
-      source_type: sourceType,
-      source_id: params.sourceId ?? null,
-      amount_ars: params.amountArs,
-      description: params.description,
-      counterparty: params.counterparty ?? null,
-      payment_method: params.paymentMethod ?? 'efectivo',
-      channel,
-      affects_cash: params.affectsCash ?? true,
-      affects_bank: params.affectsBank ?? false,
-      cash_session_id: params.cashSessionId ?? null,
-      happened_at: params.happenedAt ?? new Date().toISOString(),
-      created_by: params.createdBy ?? null,
-      metadata: (params.metadata ?? {}) as any,
-    });
-  if (error) {
-    // La operacion principal ya puede estar confirmada, por eso deja evidencia
-    // sin presentar el espejo heredado como una transaccion atomica.
-    console.error('[financial_movements] No se pudo registrar el espejo operativo:', error);
-  }
-}
+// Movimientos (financial_movements) los escribe la base junto con cada
+// operación (compras, gastos, cobros): no hay escritor desde el navegador.
 
 // ========= PRODUCTS =========
 type ProductRow = Database['public']['Tables']['products']['Row'];
@@ -1134,21 +1074,9 @@ export async function addExpenseDB(expense: any) {
   const orgId = expense.org_id || requireActiveOrgId();
   const { error } = await supabase.from('expenses').insert({ ...expense, org_id: orgId });
   if (error) throw error;
-  // Ledger entry
-  await recordFinancialMovement({
-    orgId,
-    direction: 'expense',
-    sourceType: 'expense',
-    sourceId: expense.id ?? null,
-    amountArs: expense.amount_ars ?? expense.amount ?? 0,
-    description: expense.description || `Gasto: ${expense.category ?? 'General'}`,
-    counterparty: expense.vendor ?? null,
-    paymentMethod: expense.payment_method ?? 'efectivo',
-    channel: 'expense',
-    happenedAt: expense.date ? new Date(expense.date + 'T12:00:00').toISOString() : undefined,
-    createdBy: expense.user_id ?? null,
-    metadata: { category: expense.category, vendor: expense.vendor },
-  });
+  // El egreso en Movimientos lo crea, actualiza y borra la base junto con el
+  // gasto (trg_egreso_de_gasto, 20261014002600). Acá se anotaba aparte, sin
+  // atomicidad, y editar o borrar el gasto lo dejaba desparejo.
 }
 
 export async function updateExpenseDB(id: string, updates: any) {
