@@ -259,7 +259,7 @@ export default function CouponsPage() {
         icon={Tag}
         eyebrow="Commerce · Cupones"
         title="Cupones"
-        description="Códigos para tienda y recuperación — sin inventar descuentos en el cliente."
+        description="Códigos de descuento para la tienda online y para recuperar carritos."
         actions={
           <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={openCreate}>
             <Plus className="w-3.5 h-3.5" /> Nuevo Cupón

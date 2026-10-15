@@ -556,9 +556,9 @@ export default function ExpensesPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Wallet}
-        eyebrow="Finance · Core"
+        eyebrow="Finance · Gastos"
         title="Gastos Operativos"
-        description="Egresos por categoría — puente al margen real sin duplicar el Core."
+        description="Lo que gasta el negocio, por categoría, para ver la ganancia real."
         badge={{ label: formatARS(totals.total), variant: "destructive" }}
         actions={
           <div className="flex flex-wrap gap-2">
@@ -597,7 +597,7 @@ export default function ExpensesPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard icon={TrendingDown} label="Total del período" value={formatARS(totals.total)} color="destructive" sub={plural(filtered.length, "gasto")} trend={prevMonthTotal ? { value: ((totals.total - prevMonthTotal) / prevMonthTotal) * 100, label: "vs mes ant." } : undefined} />
-        <KPICard icon={Wallet} label="Promedio por gasto" value={filtered.length > 0 ? formatARS(totals.total / filtered.length) : "$0"} color="primary" />
+        <KPICard icon={Wallet} label="Promedio por gasto" value={formatARS(filtered.length > 0 ? totals.total / filtered.length : 0)} color="primary" />
         <KPICard icon={Repeat} label="Recurrentes" value={totals.recurring} color="warning" sub="se auto-generan" />
         <KPICard icon={Filter} label="Categorías activas" value={totals.chartData.length} color="blue" />
       </div>

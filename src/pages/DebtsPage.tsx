@@ -265,7 +265,7 @@ export default function DebtsPage() {
           sub={`${partialCount} pago${partialCount !== 1 ? "s" : ""} parcial${partialCount !== 1 ? "es" : ""}`} />
         <KPICard label="Cobrado" value={formatARS(totalPaid)} icon={CheckCircle2} color="success"
           sub={`${paid.length} deuda${paid.length !== 1 ? "s" : ""} saldadas`} />
-        <KPICard label="Prom. por deudor" value={uniqueDebtors > 0 ? formatARS(totalPending / uniqueDebtors) : "$0"} icon={DollarSign} color="primary"
+        <KPICard label="Prom. por deudor" value={formatARS(uniqueDebtors > 0 ? totalPending / uniqueDebtors : 0)} icon={DollarSign} color="primary"
           sub="deuda promedio" />
       </div>
 

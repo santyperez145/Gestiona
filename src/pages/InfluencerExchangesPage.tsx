@@ -464,7 +464,7 @@ export default function InfluencerExchangesPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader icon={Gift} title="Influencer Marketing" description="Canjes, campañas, contratos, pagos y portal de marca — datos reales del Core" />
+      <PageHeader icon={Gift} title="Influencer Marketing" description="Canjes, campañas, contratos, pagos y portal de marca, con los datos reales de tu negocio." />
 
       {/* Tabs internos */}
       <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-xl w-fit">

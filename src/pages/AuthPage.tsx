@@ -18,7 +18,7 @@ import {
 const SHOWCASE_ITEMS = [
   { icon: Store, title: 'Tienda online lista', description: 'Catálogo, checkout, pagos y dominio en un solo lugar.' },
   { icon: PackageCheck, title: 'Pedidos conectados', description: 'Cada venta actualiza stock y deja margen visible.' },
-  { icon: CircleDollarSign, title: 'Cobros y costos', description: 'Transferencia, Pay y comisiones sin inventar números.' },
+  { icon: CircleDollarSign, title: 'Cobros y costos', description: 'Transferencias, Mercado Pago y comisiones, con los números reales.' },
 ];
 
 type AuthMode = 'login' | 'register' | 'forgot' | 'otp';

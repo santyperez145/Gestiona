@@ -1,3 +1,4 @@
+import { facturaCobrada, type OrigenesCobrados } from "@/lib/facturaCobrada";
 import { hoyAR } from "@/lib/fechaAR";
 import { facturaDePrueba } from "@/lib/recorridoAltaFiscal";
 import { selloHechoConNerqia } from "@/lib/selloNerqia";
@@ -76,6 +77,7 @@ interface Invoice {
   currency: string; subtotal: number; tax_pct: number; tax_amount: number; total: number;
   paid_at: string | null; created_at: string;
   sale_id: string | null;
+  ecommerce_order_id?: string | null;
   invoice_items?: InvoiceItem[];
   // AFIP fields
   tipo_comprobante: number | null;
@@ -421,6 +423,7 @@ export default function InvoicesPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [cobrados, setCobrados] = useState<OrigenesCobrados>({ pedidos: new Set(), ventas: new Set() });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -744,7 +747,21 @@ export default function InvoicesPage() {
       setInvoices([]);
       setLoadError(error.message);
     } else {
-      setInvoices((data || []) as unknown as Invoice[]);
+      const lista = (data || []) as unknown as Invoice[];
+      setInvoices(lista);
+      // Una factura de un pedido o una venta ya cobrados está cobrada.
+      const pedidos = [...new Set(lista.map(i => i.ecommerce_order_id).filter(Boolean))] as string[];
+      const ventas = [...new Set(lista.map(i => i.sale_id).filter(Boolean))] as string[];
+      const [pedRes, venRes] = await Promise.all([
+        pedidos.length ? supabase.from("ecommerce_orders").select("id").in("id", pedidos).eq("payment_status", "paid") : Promise.resolve({ data: [], error: null }),
+        ventas.length ? supabase.from("sales").select("id").in("id", ventas).eq("paid", true) : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (pedRes.error) console.error("No se pudo leer el cobro de los pedidos", pedRes.error);
+      if (venRes.error) console.error("No se pudo leer el cobro de las ventas", venRes.error);
+      setCobrados({
+        pedidos: new Set(((pedRes.data ?? []) as { id: string }[]).map(r => r.id)),
+        ventas: new Set(((venRes.data ?? []) as { id: string }[]).map(r => r.id)),
+      });
     }
     setLoading(false);
   }, [activeOrg]);
@@ -999,11 +1016,14 @@ export default function InvoicesPage() {
     }
   };
 
+  const cobrada = (i: Invoice) => facturaCobrada(i, cobrados);
   const stats = {
     total: invoices.length,
-    paid: invoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0),
-    pending: invoices.filter((i) => i.status === "sent").reduce((s, i) => s + Number(i.total), 0),
-    overdue: invoices.filter((i) => i.status === "overdue").length,
+    paid: invoices.filter(cobrada).reduce((s, i) => s + Number(i.total), 0),
+    paidCount: invoices.filter(cobrada).length,
+    pending: invoices.filter((i) => i.status === "sent" && !cobrada(i)).reduce((s, i) => s + Number(i.total), 0),
+    pendingCount: invoices.filter((i) => i.status === "sent" && !cobrada(i)).length,
+    overdue: invoices.filter((i) => i.status === "overdue" && !cobrada(i)).length,
   };
 
   const fiscalSummary = useMemo(() => resumenPendientesFiscales(invoices), [invoices]);
@@ -1035,7 +1055,7 @@ export default function InvoicesPage() {
         icon={Receipt}
         eyebrow="Finance · Comprobantes"
         title="Facturas"
-        description={afipConfigured ? "Comprobantes con autorización ARCA — sin inventar CUIT ni tarifas." : "Comprobantes del Core. ARCA se conecta cuando la ley y la config lo permitan."}
+        description={afipConfigured ? "Facturas electrónicas autorizadas por ARCA, con los datos fiscales de tu negocio." : "Tus comprobantes. Conectá ARCA en Ajustes para emitir facturas electrónicas."}
         badge={
           stats.overdue > 0
             ? { label: `${stats.overdue} vencida${stats.overdue > 1 ? "s" : ""}`, variant: "destructive" }
@@ -1166,9 +1186,9 @@ export default function InvoicesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Facturas totales" value={stats.total} icon={FileText} color="primary" />
         <KPICard label="Cobrado" value={formatARS(stats.paid)} icon={CheckCircle2} color="success"
-          sub={`${plural(invoices.filter(i => i.status === "paid").length, "factura")}`} />
+          sub={`${plural(stats.paidCount, "factura")}`} />
         <KPICard label="Pendiente cobro" value={formatARS(stats.pending)} icon={Clock} color="blue"
-          sub={`${invoices.filter(i => i.status === "sent").length} enviadas`} />
+          sub={`${stats.pendingCount} ${stats.pendingCount === 1 ? "enviada" : "enviadas"}`} />
         <KPICard label="Vencidas" value={stats.overdue} icon={XCircle}
           color={stats.overdue > 0 ? "destructive" : "success"} />
       </div>
@@ -1544,7 +1564,7 @@ export default function InvoicesPage() {
         ) : (
           <div className="divide-y divide-border">
             {filteredInvoices.map((inv) => {
-              const sc = STATUS_CONFIG[visibleInvoiceStatus(inv)] || STATUS_CONFIG.draft;
+              const sc = STATUS_CONFIG[cobrada(inv) ? "paid" : visibleInvoiceStatus(inv)] || STATUS_CONFIG.draft;
               const Icon = sc.icon;
               const isOpen = expanded === inv.id;
               const tipoCbte = inv.tipo_comprobante ? TIPO_CBTE[inv.tipo_comprobante] : null;
@@ -1690,7 +1710,7 @@ export default function InvoicesPage() {
                           <Send className="w-4 h-4 text-blue-400" />
                         </Button>
                       )}
-                      {canManage && inv.status === "sent" && (
+                      {canManage && inv.status === "sent" && !cobrada(inv) && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Marcar como pagada"
                           onClick={() => updateStatus(inv.id, "paid")}
                         >

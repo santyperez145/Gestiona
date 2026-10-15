@@ -564,7 +564,7 @@ export default function ReportsPage() {
         icon={BarChart2}
         eyebrow="Commerce · Evidencia"
         title="Reportes"
-        description="Ventas, margen y canales medibles — sin inventar tracción."
+        description="Ventas, margen y canales de tu negocio, con números reales."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleMonthlyReportPDF} className="gradient-gold text-primary-foreground gap-1.5 font-semibold"><Sparkles className="w-3.5 h-3.5" />Reporte del mes PDF</Button>
