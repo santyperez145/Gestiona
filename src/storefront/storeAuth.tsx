@@ -9,7 +9,7 @@
  * lo decide `memberships`, que estos usuarios no tienen.
  */
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
@@ -77,7 +77,24 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
   const [loading, setLoading] = useState(true);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
 
-  const refresh = useCallback(async () => {
+  // 2026-10-15: cada visita a la tienda pedía la ficha del comprador hasta 4
+  // veces (al montar y con cada evento de sesión: el inicial, la renovación
+  // del token…). Se pide una vez por usuario; dos pedidos a la vez comparten
+  // el mismo.
+  const enCurso = useRef<{ clave: string; promesa: Promise<void> } | null>(null);
+  const usuarioCargado = useRef<string | null | undefined>(undefined);
+
+  const refresh = useCallback(async (forzar = false) => {
+    const { data: { session: actual } } = await supabase.auth.getSession();
+    const clave = `${slug}|${actual?.user.id ?? ""}`;
+    if (!forzar && enCurso.current?.clave === clave) return enCurso.current.promesa;
+    const promesa = cargar();
+    enCurso.current = { clave, promesa };
+    try { await promesa; } finally { if (enCurso.current?.promesa === promesa) enCurso.current = null; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+
+  const cargar = async () => {
     setLoading(true);
     const { data: { session: s }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
@@ -112,16 +129,19 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
       console.error(`[cuenta tienda] no se pudo cargar la ficha de ${slug}`, error);
       setCustomer(null);
     }
+    usuarioCargado.current = s.user.id;
     setLoading(false);
-  }, [slug]);
+  };
 
   useEffect(() => {
-    refresh();
+    usuarioCargado.current = undefined;
+    void refresh();
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
       setSession(s);
-      if (!s) setCustomer(null);
-      else refresh();
+      if (!s) { setCustomer(null); usuarioCargado.current = null; return; }
+      // La renovación del token o el evento inicial no cambian de comprador.
+      if (s.user.id !== usuarioCargado.current || event === "USER_UPDATED") void refresh(event === "USER_UPDATED");
     });
     return () => sub.subscription.unsubscribe();
   }, [refresh]);
@@ -147,7 +167,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
       if (!data.session) return { needsConfirm: true };
       const { error: perfilError } = await supabase.rpc("upsert_store_customer", { p_slug: slug, p_name: name, p_phone: null });
       if (perfilError) console.error("[tienda] la cuenta se creó pero no el perfil de cliente; se reintenta al entrar", perfilError);
-      await refresh();
+      await refresh(true);
       return {};
     },
 
@@ -158,7 +178,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
           error: customerAuthError(error, "signin"),
         };
       }
-      await refresh();
+      await refresh(true);
       return {};
     },
 
@@ -188,7 +208,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
         type: "email",
       });
       if (error) return { error: customerAuthError(error, "verify") };
-      await refresh();
+      await refresh(true);
       return {};
     },
 
@@ -217,7 +237,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
       return {};
     },
 
-    refresh,
+    refresh: () => refresh(true),
   }), [loading, session, customer, passwordRecovery, slug, basePath, refresh]);
 
   return <StoreAuthContext.Provider value={value}>{children}</StoreAuthContext.Provider>;
