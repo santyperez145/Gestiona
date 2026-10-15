@@ -1,8 +1,11 @@
 /**
- * FinancialMovementsPage — Real-time general ledger.
+ * FinancialMovementsPage — todo el dinero que entró y salió del negocio.
  *
- * Shows every financial_movements record (sales income, purchase expenses,
- * general expenses) in a chronological ledger with:
+ * 2026-10-15 (funciones incoherentes): leía sólo `financial_movements` (1 fila
+ * en toda la plataforma) y comparaba la dirección con 'income'/'expense'
+ * cuando la base guarda 'in'/'out': los totales daban siempre $0. Ahora lee
+ * `movimientos_de_dinero` (ventas cobradas, cobros de cuenta corriente,
+ * reintegros, pagos a proveedores, gastos y compras) y muestra:
  *   - Running balance (cash + bank balances)
  *   - Direction color-coding (income=green, expense=red)
  *   - Source-type badge (venta / compra / gasto)
@@ -27,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { plural } from "@/lib/plural";
+import { nombreDelMedio } from "@/lib/mediosDePago";
 import {
   TrendingUp, TrendingDown, Wallet, RefreshCw, Download,
   Search, ArrowUpCircle, ArrowDownCircle, Filter, X,
@@ -37,28 +41,30 @@ import KPICard from "@/components/shared/KPICard";
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Movement = {
   id: string;
-  direction: string;        // 'income' | 'expense'
-  source_type: string;      // 'sale' | 'purchase' | 'expense' | 'adjustment'
+  direction: "in" | "out";
+  source_type: string;
   source_id: string | null;
   amount_ars: number;
   description: string;
   counterparty: string | null;
   payment_method: string;
-  channel: string;
-  affects_cash: boolean;
-  affects_bank: boolean;
   happened_at: string;
-  created_at: string;
-  metadata: Record<string, unknown>;
 };
+const esIngreso = (m: Pick<Movement, "direction">) => m.direction === "in";
+const TOPE = 1000;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const SOURCE_LABELS: Record<string, string> = {
   sale: "Venta",
-  purchase: "Compra",
+  debt_payment: "Cobro de cuenta corriente",
+  return: "Devolución",
+  supplier_payment: "Proveedor",
   expense: "Gasto",
-  adjustment: "Ajuste",
-};
+  manual: "Manual",
+  cash_open: "Apertura de caja",
+  cash_close: "Cierre de caja",
+  influencer_payment: "Pago a creador",
+};;
 
 const SOURCE_COLORS: Record<string, string> = {
   sale: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -81,12 +87,12 @@ function downloadCSV(movements: Movement[]) {
   const header = "Fecha,Tipo,Fuente,Descripcion,Contraparte,Metodo de pago,Monto ARS\n";
   const rows = movements.map(m => [
     new Date(m.happened_at).toLocaleDateString("es-AR"),
-    m.direction === "income" ? "Ingreso" : "Egreso",
+    esIngreso(m) ? "Ingreso" : "Egreso",
     SOURCE_LABELS[m.source_type] ?? m.source_type,
     `"${m.description.replace(/"/g, '""')}"`,
     `"${(m.counterparty ?? "").replace(/"/g, '""')}"`,
-    m.payment_method,
-    m.direction === "income" ? m.amount_ars : -m.amount_ars,
+    nombreDelMedio(m.payment_method),
+    esIngreso(m) ? m.amount_ars : -m.amount_ars,
   ].join(",")).join("\n");
   const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -99,7 +105,7 @@ function downloadCSV(movements: Movement[]) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function FinancialMovementsPage() {
-  usePageTitle("Libro Mayor");
+  usePageTitle("Entradas y salidas");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
 
@@ -108,7 +114,8 @@ export default function FinancialMovementsPage() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [dirFilter, setDirFilter] = useState<"all" | "income" | "expense">("all");
+  const [dirFilter, setDirFilter] = useState<"all" | "in" | "out">("all");
+  const [alcanzoTope, setAlcanzoTope] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -118,20 +125,22 @@ export default function FinancialMovementsPage() {
     setLoading(true);
     try {
       let q = supabase
-        .from("financial_movements")
-        .select("*")
+        .from("movimientos_de_dinero" as never)
+        .select("id, direction, source_type, source_id, amount_ars, description, counterparty, payment_method, happened_at")
         .eq("org_id", activeOrg.id)
         .order("happened_at", { ascending: false })
-        .limit(500);
+        .limit(TOPE);
 
       if (dateFrom) q = q.gte("happened_at", dateFrom);
       if (dateTo)   q = q.lte("happened_at", dateTo + "T23:59:59");
 
       const { data, error } = await q;
       if (error) throw error;
-      setMovements((data || []) as Movement[]);
+      const filas = ((data || []) as unknown as Movement[]).map(m => ({ ...m, amount_ars: Number(m.amount_ars) || 0, description: m.description ?? "" }));
+      setMovements(filas);
+      setAlcanzoTope(filas.length >= TOPE);
     } catch (e: any) {
-      toast.error("Error al cargar movimientos: " + e.message);
+      toast.error("No se pudieron cargar los movimientos", { description: e?.message });
     } finally {
       setLoading(false);
     }
@@ -149,15 +158,15 @@ export default function FinancialMovementsPage() {
       list = list.filter(m =>
         m.description.toLowerCase().includes(q) ||
         (m.counterparty ?? "").toLowerCase().includes(q) ||
-        m.payment_method.toLowerCase().includes(q)
+        nombreDelMedio(m.payment_method).toLowerCase().includes(q)
       );
     }
     return list;
   }, [movements, dirFilter, typeFilter, search]);
 
   // KPIs
-  const totalIncome  = useMemo(() => filtered.filter(m => m.direction === "income").reduce((s, m) => s + m.amount_ars, 0), [filtered]);
-  const totalExpense = useMemo(() => filtered.filter(m => m.direction === "expense").reduce((s, m) => s + m.amount_ars, 0), [filtered]);
+  const totalIncome  = useMemo(() => filtered.filter(esIngreso).reduce((s, m) => s + m.amount_ars, 0), [filtered]);
+  const totalExpense = useMemo(() => filtered.filter(m => !esIngreso(m)).reduce((s, m) => s + m.amount_ars, 0), [filtered]);
   const netBalance   = totalIncome - totalExpense;
 
   // Running balance (oldest first)
@@ -165,7 +174,7 @@ export default function FinancialMovementsPage() {
     const sorted = [...filtered].reverse();
     let running = 0;
     return sorted.map(m => {
-      running += m.direction === "income" ? m.amount_ars : -m.amount_ars;
+      running += esIngreso(m) ? m.amount_ars : -m.amount_ars;
       return { ...m, running };
     }).reverse();
   }, [filtered]);
@@ -177,8 +186,8 @@ export default function FinancialMovementsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Wallet}
-        title="Movimientos financieros"
-        description="Libro mayor de todos los ingresos y egresos del negocio"
+        title="Entradas y salidas"
+        description="Todo el dinero que entró y salió: ventas cobradas, cobros de cuenta corriente, devoluciones, proveedores y gastos"
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -200,14 +209,14 @@ export default function FinancialMovementsPage() {
           value={formatARS(totalIncome)}
           icon={TrendingUp}
           color="success"
-          sub={`${plural(filtered.filter(m => m.direction === "income").length, "movimiento")}`}
+          sub={`${plural(filtered.filter(esIngreso).length, "movimiento")}`}
         />
         <KPICard
           label="Total egresos"
           value={formatARS(totalExpense)}
           icon={TrendingDown}
           color="destructive"
-          sub={`${plural(filtered.filter(m => m.direction === "expense").length, "movimiento")}`}
+          sub={`${plural(filtered.filter(m => !esIngreso(m)).length, "movimiento")}`}
         />
         <KPICard
           label="Balance neto"
@@ -223,6 +232,12 @@ export default function FinancialMovementsPage() {
 
       {/* F5.4 — El banco contra el libro */}
       <BankReconciliationPanel />
+
+      {alcanzoTope && (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-2 text-xs text-muted-foreground" role="status">
+          Se muestran los {TOPE.toLocaleString("es-AR")} movimientos más recientes: elegí un rango de fechas para ver el resto y para que los totales sean del período completo.
+        </p>
+      )}
 
       {/* Filters */}
       <div className="bg-card border border-border/60 rounded-xl p-4 shadow-card">
@@ -248,8 +263,8 @@ export default function FinancialMovementsPage() {
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="income">Ingresos</SelectItem>
-                <SelectItem value="expense">Egresos</SelectItem>
+                <SelectItem value="in">Ingresos</SelectItem>
+                <SelectItem value="out">Egresos</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -261,10 +276,7 @@ export default function FinancialMovementsPage() {
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="sale">Ventas</SelectItem>
-                <SelectItem value="purchase">Compras</SelectItem>
-                <SelectItem value="expense">Gastos</SelectItem>
-                <SelectItem value="adjustment">Ajustes</SelectItem>
+                {Object.entries(SOURCE_LABELS).map(([valor, nombre]) => <SelectItem key={valor} value={valor}>{nombre}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -334,7 +346,7 @@ export default function FinancialMovementsPage() {
                     </td>
                     <td className="px-4 py-3 max-w-[220px]">
                       <div className="flex items-center gap-2">
-                        {m.direction === "income"
+                        {esIngreso(m)
                           ? <ArrowUpCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                           : <ArrowDownCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
                         <span className="truncate font-medium">{m.description}</span>
@@ -344,10 +356,10 @@ export default function FinancialMovementsPage() {
                       {m.counterparty ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell capitalize text-xs">
-                      {m.payment_method ?? "—"}
+                      {m.payment_method === "sin_dato" ? "Sin dato" : nombreDelMedio(m.payment_method)}
                     </td>
-                    <td className={`px-4 py-3 text-right font-mono font-semibold ${m.direction === "income" ? "text-emerald-400" : "text-red-400"}`}>
-                      {m.direction === "income" ? "+" : "−"}{formatARS(m.amount_ars)}
+                    <td className={`px-4 py-3 text-right font-mono font-semibold ${esIngreso(m) ? "text-emerald-400" : "text-red-400"}`}>
+                      {esIngreso(m) ? "+" : "−"}{formatARS(m.amount_ars)}
                     </td>
                     <td className={`px-4 py-3 text-right font-mono text-xs hidden lg:table-cell ${m.running >= 0 ? "text-muted-foreground" : "text-red-400"}`}>
                       {formatARS(m.running)}
