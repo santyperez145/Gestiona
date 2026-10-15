@@ -81,10 +81,13 @@ function RateCard({ type, data, sparkData, selected, onClick }: any) {
       className={`bg-card border rounded-xl p-4 text-left transition-all w-full ${selected ? "border-primary/60 bg-primary/5" : "border-border/40 hover:border-primary/30"}`}>
       <div className="flex items-center justify-between mb-1">
         <span className={`text-xs font-semibold ${RATE_TYPES.find(r => r.id === type)?.color}`}>{RATE_TYPES.find(r => r.id === type)?.label}</span>
-        <div className="flex items-center gap-1 text-xs">
-          {up ? <TrendingUp className="w-3 h-3 text-emerald-400" /> : <TrendingDown className="w-3 h-3 text-red-400" />}
-          <span className={up ? "text-emerald-400" : "text-red-400"}>{up ? "+" : ""}{data.change}</span>
-        </div>
+        {/* Sin una cotización anterior no hay variación que mostrar: «+0» decía que no se movió. */}
+        {!data.updated.startsWith("del día") && (
+          <div className="flex items-center gap-1 text-xs">
+            {up ? <TrendingUp className="w-3 h-3 text-emerald-400" /> : <TrendingDown className="w-3 h-3 text-red-400" />}
+            <span className={up ? "text-emerald-400" : "text-red-400"}>{up ? "+" : ""}{data.change}</span>
+          </div>
+        )}
       </div>
       <p className="text-2xl font-bold font-display">${data.rate.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</p>
       <div className="flex items-center justify-between mt-2">
