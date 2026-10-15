@@ -2170,7 +2170,8 @@ export default function CustomersPage() {
   };
 
   const handleUpdate = async (id: string, data: Partial<CustomerProfile>) => {
-    await updateCustomerDB(id, data);
+    try { await updateCustomerDB(id, data); }
+    catch (err) { toast.error(mensajeDeError(err, "No se pudo actualizar el cliente")); return; }
     toast.success("Cliente actualizado");
     await loadData();
   };

@@ -12,6 +12,7 @@ import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 import CommerceKPICard from "@/components/commerce/CommerceKPICard";
 import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { toast } from "sonner";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { supabase } from "@/integrations/supabase/client";
 import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
 import OfferRecommenderPanel from "@/components/marketing/OfferRecommenderPanel";
@@ -840,14 +841,19 @@ function ManualPostForm({ userId, onSave, postTypes }: { userId: string; onSave:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) { toast.error("Agregá un título"); return; }
-    await addMarketingPostDB({
-      user_id: userId,
-      title: title.trim(),
-      content,
-      post_type: postType,
-      status: 'draft',
-      ai_generated: false,
-    });
+    try {
+      await addMarketingPostDB({
+        user_id: userId,
+        title: title.trim(),
+        content,
+        post_type: postType,
+        status: 'draft',
+        ai_generated: false,
+      });
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo crear la publicación"));
+      return;
+    }
     toast.success("Publicación creada");
     onSave();
   };

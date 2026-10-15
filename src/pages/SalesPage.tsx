@@ -858,7 +858,8 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
   };
 
   const markSinglePaid = async (s: any) => {
-    await updateSaleDB(s.id, { paid: true }, s);
+    try { await updateSaleDB(s.id, { paid: true }, s); }
+    catch (err) { toast.error(mensajeDeError(err, "No se pudo marcar como cobrada")); return; }
     reload();
     toast.success(`Venta de ${s.product_name} marcada como cobrada ✓`);
   };

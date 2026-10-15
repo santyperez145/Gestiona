@@ -67,6 +67,7 @@ import {
 import KPICard from "@/components/shared/KPICard";
 import IdentityHealthPanel from "@/components/shared/IdentityHealthPanel";
 import { toast } from "sonner";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
 import WorkspaceState from "@/components/shared/WorkspaceState";
@@ -712,12 +713,17 @@ export default function ProductsPage() {
   // es la única autoridad: la base calcula el delta y asienta el movimiento.
   const handleInlineStockChange = async (productId: string, newStock: number) => {
     if (!user) return;
-    await setStockAbsoluteDB({
-      productId,
-      newStock,
-      userId: user.id,
-      notes: "Ajuste de stock desde Productos",
-    });
+    try {
+      await setStockAbsoluteDB({
+        productId,
+        newStock,
+        userId: user.id,
+        notes: "Ajuste de stock desde Productos",
+      });
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo ajustar el stock"));
+      return;
+    }
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock } : p));
     toast.success("Stock actualizado");
   };
@@ -1015,6 +1021,7 @@ export default function ProductsPage() {
 
   const toggleQuickDiscount = async (p: any) => {
     const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars);
+    try {
     if (hasDiscount) {
       await updateProductDB(p.id, { discount_price_ars: null });
       toast.success(`Descuento removido de "${p.name}"`);
@@ -1023,6 +1030,10 @@ export default function ProductsPage() {
       const discounted = calcAutoDiscountPrice(Number(p.sale_price_ars), pct);
       await updateProductDB(p.id, { discount_price_ars: discounted });
       toast.success(`Descuento de ${pct}% aplicado a "${p.name}" → ${formatARS(discounted)}`);
+    }
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo cambiar el descuento"));
+      return;
     }
     reload();
   };

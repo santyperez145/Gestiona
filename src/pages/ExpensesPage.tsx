@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp, Copy, ChevronUp, ChevronDown, Sparkles, AlertCircle, RefreshCw, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import ReceiptScanner from "@/components/shared/ReceiptScanner";
@@ -509,7 +510,8 @@ export default function ExpensesPage() {
   }, [expenses]);
 
   const handleDelete = async (id: string) => {
-    await deleteExpenseDB(id);
+    try { await deleteExpenseDB(id); }
+    catch (err) { toast.error(mensajeDeError(err, "No se pudo eliminar el gasto")); return; }
     if (user) await logAudit(user.id, 'delete', 'expense', id, {});
     toast.success("Gasto eliminado");
     reload();
@@ -517,7 +519,7 @@ export default function ExpensesPage() {
 
   const handleDuplicate = async (e: any) => {
     if (!user) return;
-    await addExpenseDB({
+    try { await addExpenseDB({
       user_id: user.id,
       org_id: e.org_id,
       description: e.description,
@@ -526,7 +528,8 @@ export default function ExpensesPage() {
       date: new Date().toISOString().slice(0, 10),
       payment_method: e.payment_method || "efectivo",
       recurring: false,
-    });
+    }); }
+    catch (err) { toast.error(mensajeDeError(err, "No se pudo duplicar el gasto")); return; }
     toast.success(`Gasto duplicado para hoy`);
     reload();
   };

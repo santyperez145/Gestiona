@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { Sparkles, Plus, Copy, Heart, Download, Globe, Lock, Search, Tag, ArrowUpRight, BarChart3 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 import { addMarketingPostDB } from "@/lib/supabaseStore";
@@ -160,7 +161,12 @@ export default function MarketingTemplatesTab() {
 
   const handleUse = async (tpl: Template) => {
     if (!user) return;
-    await addMarketingPostDB({ user_id: user.id, title: tpl.title, content: tpl.content, post_type: tpl.post_type, status: "draft", ai_generated: false });
+    try {
+      await addMarketingPostDB({ user_id: user.id, title: tpl.title, content: tpl.content, post_type: tpl.post_type, status: "draft", ai_generated: false });
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudo usar la plantilla"));
+      return;
+    }
     // ⚠️ El contador lo suma la base, no el navegador. `uses_count + 1` leído
     //    del estado local es leer-modificar-escribir: dos personas que usan la
     //    misma plantilla a la vez leen N y escriben N+1 las dos, y se pierde

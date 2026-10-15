@@ -17,6 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, setStockAbsoluteDB, addSaleDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { fechaArgentina, nuevaClaveCompra, registrarCompraDB } from "@/lib/compras";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { requireActiveOrgId } from "@/lib/orgContext";
 import KPICard from "@/components/shared/KPICard";
 
@@ -812,11 +813,15 @@ function QueryStockCard({ userId, initialName, onDone }: { userId: string; initi
   const search = async () => {
     if (!name.trim()) return;
     setLoading(true);
-    const products = await getProductsDB(userId);
-    const found = products.filter((p: any) => p.name.toLowerCase().includes(name.toLowerCase().trim()));
-    setResults(found);
-    setSearched(true);
-    setLoading(false);
+    try {
+      const products = await getProductsDB(userId);
+      setResults(products.filter((p: any) => p.name.toLowerCase().includes(name.toLowerCase().trim())));
+      setSearched(true);
+    } catch (err) {
+      toast.error(mensajeDeError(err, "No se pudieron buscar los productos"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { if (initialName) search(); }, []);

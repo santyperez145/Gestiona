@@ -16,6 +16,7 @@ import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 import CommerceKPICard from "@/components/commerce/CommerceKPICard";
 import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { toast } from "sonner";
+import { mensajeDeError } from "@/lib/cuentaCorriente";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { BarChart3, CheckCircle, Copy, DollarSign, ExternalLink, Gift, Link2, Megaphone, Target, TrendingUp } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -71,7 +72,10 @@ export default function InfluencerExchangesPage() {
   }, [typeConfigs]);
 
   const reload = async () => {
-    if (user) { setExchanges(await getExchangesDB(user.id)); setLoading(false); }
+    if (!user) return;
+    try { setExchanges(await getExchangesDB(user.id)); }
+    catch (err) { toast.error(mensajeDeError(err, "No se pudieron cargar los canjes")); }
+    finally { setLoading(false); }
   };
 
   const reloadAll = async () => {
@@ -157,7 +161,8 @@ export default function InfluencerExchangesPage() {
   const totalPaid = payments.filter((p: any) => p.status === "completed").reduce((s, p) => s + Number(p.amount || 0), 0);
 
   const handleDelete = async (ex: any) => {
-    await deleteExchangeDB(ex.id);
+    try { await deleteExchangeDB(ex.id); }
+    catch (err) { toast.error(mensajeDeError(err, "No se pudo eliminar el canje")); return; }
     if (user) await logAudit(user.id, 'delete', 'exchange', ex.id, { influencer: ex.influencer_name, product: ex.product_name });
     reload();
     toast.success("Canje eliminado");
@@ -166,13 +171,15 @@ export default function InfluencerExchangesPage() {
   const handleUpdateStatus = async (ex: any, newStatus: string) => {
     const updates: any = { status: newStatus };
     if (newStatus === 'publicado' && ex.actual_posts === 0) updates.actual_posts = 1;
-    await updateExchangeDB(ex.id, updates);
+    try { await updateExchangeDB(ex.id, updates); }
+    catch (err) { toast.error(mensajeDeError(err, "No se pudo cambiar el estado")); return; }
     reload();
     toast.success(`Estado actualizado a ${STATUS_MAP[newStatus]?.label}`);
   };
 
   const handleUpdatePosts = async (ex: any, posts: number) => {
-    await updateExchangeDB(ex.id, { actual_posts: posts });
+    try { await updateExchangeDB(ex.id, { actual_posts: posts }); }
+    catch (err) { toast.error(mensajeDeError(err, "No se pudieron guardar las publicaciones")); return; }
     reload();
   };
 
