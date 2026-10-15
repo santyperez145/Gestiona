@@ -5,18 +5,22 @@ import { describe, expect, it } from "vitest";
 const fn = readFileSync(resolve(process.cwd(), "supabase/functions/check-alerts/index.ts"), "utf8");
 
 describe("check-alerts no repite avisos", () => {
-  it("no crea un aviso igual a uno sin leer ni a uno de las últimas 24 h", () => {
+  it("un resumen por regla: el sin leer se actualiza y el leído en 24 h no se repite", () => {
     expect(fn).toContain(".or(`read.eq.false,created_at.gte.${cutoff24h}`)");
+    expect(fn).toContain('.eq("entity_type", "ruta")');
+    expect(fn).toContain("const previa = sinLeer.get(clave);");
+    expect(fn).toContain("if (recientes.has(clave)) continue;");
   });
 
-  it("reconoce el mismo aviso por título (el mensaje cambia a diario)", () => {
-    expect(fn).toContain("if (recentMessages.has(`${adminId}|${alert.title}`)) continue;");
-    expect(fn).not.toContain("recentMessages.has(`${adminId}|${alert.message}`)");
-  });
-
-  it("consulta en tandas y no se traga un error", () => {
-    expect(fn).toContain(".in(\"title\", titulos.slice(i, i + 50))");
+  it("no se traga un error al leer los avisos previos", () => {
     expect(fn).toContain("if (errPrevias) throw new Error(");
+  });
+
+  // 2026-10-15: una corrida dejó 51 avisos, uno por cliente o producto.
+  it("no vuelve a crear un aviso por cliente o por producto", () => {
+    expect(fn).not.toContain("Cliente inactivo: ${");
+    expect(fn).not.toContain("Stock bajo: ${");
+    expect(fn).not.toContain(".limit(20)");
   });
 });
 

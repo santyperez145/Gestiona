@@ -19,6 +19,6 @@ describe("las funciones leen deudas con sus columnas reales", () => {
   it("check-alerts usa status y remaining_ars y no se calla el error", () => {
     const src = readFileSync(resolve(process.cwd(), "supabase/functions/check-alerts/index.ts"), "utf8");
     expect(src).toContain('.in("status", ["pending", "partial"])');
-    expect(src).toContain("if (errDeudas) throw new Error(");
+    expect(src).toContain("throw new Error(`no se pudieron leer las deudas: ");
   });
 });

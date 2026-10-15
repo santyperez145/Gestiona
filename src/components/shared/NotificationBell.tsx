@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { rutaDelAviso } from "@/lib/rutaDelAviso";
 import { Bell, Package, AlertTriangle, DollarSign, Info, Check, Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,12 +24,16 @@ interface Notification {
   type: string;
   read: boolean;
   created_at: string;
+  /** 'ruta' + una ruta del panel: el aviso lleva adonde se resuelve. */
+  entity_type?: string | null;
+  entity_id?: string | null;
 }
 
 export default function NotificationBell({ collapsed }: { collapsed?: boolean }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchNotifications = useCallback(async () => {
@@ -188,7 +194,11 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
                   return (
                     <div
                       key={n.id}
-                      onClick={() => !n.read && markOneRead(n.id)}
+                      onClick={() => {
+                        if (!n.read) markOneRead(n.id);
+                        const ruta = rutaDelAviso(n);
+                        if (ruta) { setOpen(false); navigate(ruta); }
+                      }}
                       className={`px-4 py-3 border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}
                     >
                       <div className="flex gap-3">
