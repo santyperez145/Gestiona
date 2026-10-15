@@ -107,7 +107,7 @@ const EMPTY_FORM = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CouponsPage() {
-  usePageTitle("Cupones & Descuentos");
+  usePageTitle("Cupones y descuentos");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
 
@@ -271,7 +271,7 @@ export default function CouponsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Cupones activos" value={String(kpis.active)} icon={Tag} sub={`${coupons.length} total`} />
         <KPICard label="Usos totales" value={String(kpis.totalUses)} icon={BarChart3} sub="Veces canjeados" />
-        <KPICard label="Revenue con cupones" value={formatARS(kpis.totalRevenue)} icon={DollarSign} sub="Ventas con código aplicado" color="success" />
+        <KPICard label="Ventas con cupones" value={formatARS(kpis.totalRevenue)} icon={DollarSign} sub="Ventas con código aplicado" color="success" />
         <KPICard label="Vencidos/Agotados" value={String(kpis.expired)} icon={AlertTriangle} sub="Ya no son canjeables" color="warning" />
       </div>
 

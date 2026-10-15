@@ -162,7 +162,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
       { icon: MessageCircle, title: "WhatsApp masivo a deudores", desc: "El botón 'Recordar >30d' envía mensajes personalizados a todos los deudores con más de 30 días de antigüedad usando el template de Ajustes." },
       { icon: CreditCard, title: "Plan de pago en cuotas", desc: "Desde cada deuda podés crear un plan de cuotas con frecuencia semanal/quincenal/mensual. Marcá las cuotas pagadas individualmente." },
       { icon: CalendarDays, title: "Proyección de cobros 30d", desc: "El tab 'Próximos cobros' muestra los cobros esperados en 4 buckets (hoy / 1-7d / 8-15d / 16-30d) con barras de totalización." },
-      { icon: BarChart2, title: "Aging de deudas", desc: "El panel de aging agrupa las deudas por antigüedad (0-30 / 31-60 / 61-90 / >90 días) con colores de alerta y totales USD." },
+      { icon: BarChart2, title: "Deudas por antigüedad", desc: "Agrupa lo que te deben por antigüedad (0-30 / 31-60 / 61-90 / >90 días), con colores de alerta y totales en pesos." },
     ],
   },
 
@@ -188,7 +188,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
     tips: [
       { icon: CreditCard, title: "Pagos parciales", desc: "Registrá pagos parciales a proveedores. El historial muestra cuánto quedó pendiente y las fechas de cada pago." },
       { icon: MessageCircle, title: "Contacto clickeable", desc: "El teléfono abre WhatsApp directamente y el email abre el cliente de correo. Comunicación rápida sin copiar datos." },
-      { icon: BarChart2, title: "Aging de cuentas a pagar", desc: "El panel de aging muestra lo que debés a cada proveedor agrupado por antigüedad (0-30 / 31-60 / 61-90 / >90 días)." },
+      { icon: BarChart2, title: "Lo que debés, por antigüedad", desc: "Muestra lo que le debés a cada proveedor agrupado por antigüedad (0-30 / 31-60 / 61-90 / >90 días)." },
       { icon: TrendingUp, title: "Ranking en Reportes", desc: "El tab 'Proveedores' en Reportes muestra el ranking por monto USD, share % del total, cantidad de compras y promedio." },
     ],
   },

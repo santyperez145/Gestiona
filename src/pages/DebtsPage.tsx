@@ -274,7 +274,7 @@ export default function DebtsPage() {
         {([
           { id: 'pending' as const, label: 'Pendientes', icon: AlertCircle, count: pending.length },
           { id: 'cobros' as const, label: 'Próximos cobros', icon: Calendar, count: (() => { const today = new Date(); today.setHours(0,0,0,0); const nw = new Date(today); nw.setDate(nw.getDate()+7); return pending.filter(d => { if (!d.due_date) return false; const dd = new Date(d.due_date+"T12:00:00"); return dd >= today && dd <= nw; }).length; })() },
-          { id: 'aging' as const, label: 'Aging', icon: BarChart2, count: 0 },
+          { id: 'aging' as const, label: 'Antigüedad', icon: BarChart2, count: 0 },
           { id: 'payments' as const, label: 'Historial', icon: DollarSign, count: paid.length },
           { id: 'paid' as const, label: 'Cobradas', icon: CheckCircle2, count: paid.length },
         ]).map(t => (
@@ -407,7 +407,7 @@ export default function DebtsPage() {
         return (
           <div className="mb-5 bg-card border border-border/60 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Aging de cuentas a cobrar</h3>
+              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Lo que te deben, por antigüedad</h3>
               {(() => {
                 const over30 = pending.filter(d => {
                   const age = Math.floor((now - new Date(d.date).getTime()) / 86400000);

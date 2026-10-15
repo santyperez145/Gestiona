@@ -51,3 +51,15 @@ describe("una compra es un ticket, no un renglón", () => {
     expect(frecuenciaEnDias(["2026-04-10", "2026-04-10", "2026-05-02", "2026-05-02"])).toBe(22);
   });
 });
+
+describe("el recorrido de una pantalla habla de esa pantalla", () => {
+  it("no usa la descripción del grupo del menú", async () => {
+    const { tutorialDeRuta } = await import("@/lib/tutorials");
+    const t = tutorialDeRuta(
+      { id: "zz-devoluciones", path: "/zz", label: "Devoluciones", areaHint: "Cuentas por cobrar, facturas ARCA e impuestos" },
+      [{ title: "Reintegros", desc: "" }, { title: "Stock", desc: "" }],
+    );
+    expect(t.resumen).toBe("Reintegros y stock.");
+    expect(tutorialDeRuta({ id: "zz-x", path: "/zz", label: "Cupones" }).resumen).toBe("Cupones: para qué sirve esta pantalla y cómo usarla.");
+  });
+});

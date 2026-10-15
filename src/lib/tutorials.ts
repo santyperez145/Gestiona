@@ -223,7 +223,10 @@ export function tutorialDeRuta(ruta: RutaParaTutorial, consejos: { title: string
   const pasosConsejos = consejos.slice(0, 5).map(c => ({ titulo: c.title, texto: c.desc }));
   return {
     id: ruta.id, ruta: ruta.path, titulo: ruta.label, minutos: Math.max(1, Math.ceil((pasosConsejos.length + 3) / 3)),
-    resumen: ruta.areaHint ?? "Qué hace esta pantalla y cómo pedir ayuda.",
+    // El resumen es de esta pantalla. Antes era la descripción del grupo del
+    // menú: Devoluciones decía «Cuentas por cobrar, facturas ARCA e
+    // impuestos» (2026-10-15).
+    resumen: resumenDePantalla(ruta.label, consejos),
     pasos: [
       {
         titulo: ruta.label, target: ENCABEZADO,
@@ -234,6 +237,14 @@ export function tutorialDeRuta(ruta: RutaParaTutorial, consejos: { title: string
       { titulo: "¿Seguís con dudas?", target: "[data-tour='ayuda']", texto: "En la Academia tenés lecciones paso a paso, y en Soporte hablás con el equipo." },
     ],
   };
+}
+
+/** «Proveedores: datos, productos asociados y saldo.» a partir de la guía de la pantalla. */
+export function resumenDePantalla(label: string, consejos: { title: string }[]): string {
+  const temas = consejos.slice(0, 3).map((c, i) => (i === 0 ? c.title : c.title.charAt(0).toLowerCase() + c.title.slice(1)));
+  if (temas.length === 0) return `${label}: para qué sirve esta pantalla y cómo usarla.`;
+  const lista = temas.length === 1 ? temas[0] : `${temas.slice(0, -1).join(", ")} y ${temas[temas.length - 1]}`;
+  return `${lista}.`;
 }
 
 /** Porcentaje de un camino completado según los ids vistos. */

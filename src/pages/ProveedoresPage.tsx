@@ -383,7 +383,7 @@ export default function ProveedoresPage() {
       <BusinessPageHeader
         icon={Truck}
         title="Proveedores"
-        description={`${suppliers.filter(s => s.active).length} activos · ${formatARS(totalPending)} pendiente · alimentan el stock único`}
+        description={`${suppliers.filter(s => s.active).length} activos · ${formatARS(totalPending)} pendiente de pago`}
         badge={pendingDebts.length > 0 ? `${pendingDebts.length} deuda${pendingDebts.length > 1 ? "s" : ""} pendiente${pendingDebts.length > 1 ? "s" : ""}` : undefined}
         actions={
           <div className="flex flex-wrap gap-2">
@@ -447,7 +447,7 @@ export default function ProveedoresPage() {
       <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit">
         {([
           { id: 'proveedores', label: 'Proveedores', icon: Store },
-          { id: 'aging', label: 'Aging AP', icon: Clock },
+          { id: 'aging', label: 'Antigüedad de deudas', icon: Clock },
           { id: 'pagos', label: 'Pagos', icon: CreditCard },
           { id: 'analytics', label: 'Analítica', icon: BarChart2 },
         ] as const).map(tab => (
@@ -728,7 +728,7 @@ export default function ProveedoresPage() {
               const grandTotal = bucketed.reduce((s, b) => s + b.total, 0);
               return (
                 <div className="bg-card border border-border/60 rounded-xl p-4">
-                  <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Aging de deudas pendientes</h3>
+                  <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Deudas pendientes por antigüedad</h3>
                   <div className="space-y-2 pb-12">
                     {bucketed.map(b => {
                       const pct = grandTotal > 0 ? (b.total / grandTotal) * 100 : 0;
@@ -910,7 +910,7 @@ export default function ProveedoresPage() {
               <CreditCard className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
               <p className="font-medium">{payments.length === 0 ? "Todavía no hay pagos registrados" : "No hay pagos que coincidan"}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {payments.length === 0 ? "Los pagos parciales o totales de Aging AP aparecerán acá." : "Probá otro texto o método de pago."}
+                {payments.length === 0 ? "Los pagos que registres a tus proveedores aparecen acá." : "Probá otro texto o método de pago."}
               </p>
             </div>
           ) : (
