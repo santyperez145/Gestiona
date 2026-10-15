@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import {
   Receipt, Plus, TrendingUp, AlertCircle, CheckCircle,
   Clock, FileText, Building2, DollarSign, Percent, Scale, Loader2
@@ -68,6 +69,16 @@ interface WithholdingRecord {
   created_at: string;
 }
 
+// 2026-10-15: la pestaña IIBB pedía «Agregá las jurisdicciones provinciales»
+// y no había cómo: la tabla no se escribía desde ningún lado.
+const PROVINCIAS = [
+  "Buenos Aires", "CABA", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes", "Entre Ríos",
+  "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro",
+  "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero",
+  "Tierra del Fuego", "Tucumán",
+];
+const EMPTY_IIBB = { province: "", regime: "local", rate_pct: "", registration_number: "", cuit: "" };
+
 interface IibbRegistration {
   id: string;
   province: string;
@@ -117,12 +128,16 @@ const EMPTY_RATE = {
 
 export default function TaxManagementPage() {
   usePageTitle("Gestión Impositiva");
+  const { ask, dialog } = useConfirmDialog();
   const { orgId } = useOrganization();
 
   const [taxRates, setTaxRates]         = useState<TaxRate[]>([]);
   const [declarations, setDeclarations] = useState<TaxDeclaration[]>([]);
   const [withholdings, setWithholdings] = useState<WithholdingRecord[]>([]);
   const [iibbRegs, setIibbRegs]         = useState<IibbRegistration[]>([]);
+  const [iibbOpen, setIibbOpen] = useState(false);
+  const [iibbForm, setIibbForm] = useState({ ...EMPTY_IIBB });
+  const [savingIibb, setSavingIibb] = useState(false);
   const [loading, setLoading]           = useState(true);
   const [activeTab, setActiveTab]       = usePersistedState(
     orgViewKey("taxes.tab", orgId),
@@ -271,6 +286,44 @@ export default function TaxManagementPage() {
     load();
   }
 
+  async function saveIibb() {
+    if (!orgId) return;
+    if (!iibbForm.province) return toast.error("Elegí la provincia");
+    const alicuota = Number(String(iibbForm.rate_pct).replace(",", "."));
+    if (!Number.isFinite(alicuota) || alicuota < 0 || alicuota > 20) return toast.error("La alícuota va de 0 a 20%");
+    const cuit = iibbForm.cuit.replace(/\D/g, "");
+    if (cuit && cuit.length !== 11) return toast.error("El CUIT tiene 11 dígitos");
+    if (iibbRegs.some(r => r.province === iibbForm.province)) return toast.error(`Ya cargaste ${iibbForm.province}`);
+    setSavingIibb(true);
+    const { error } = await supabase.from("iibb_registrations").insert({
+      org_id: orgId,
+      province: iibbForm.province,
+      regime: iibbForm.regime,
+      rate_pct: alicuota,
+      registration_number: iibbForm.registration_number.trim() || null,
+      cuit: cuit || null,
+    });
+    setSavingIibb(false);
+    if (error) { toast.error(`No se pudo guardar: ${error.message}`); return; }
+    toast.success(`${iibbForm.province} agregada`);
+    setIibbOpen(false);
+    setIibbForm({ ...EMPTY_IIBB });
+    load();
+  }
+
+  async function toggleIibb(reg: IibbRegistration) {
+    const { error } = await supabase.from("iibb_registrations").update({ active: !reg.active }).eq("id", reg.id);
+    if (error) { toast.error(`No se pudo cambiar: ${error.message}`); return; }
+    setIibbRegs(prev => prev.map(r => r.id === reg.id ? { ...r, active: !r.active } : r));
+  }
+
+  async function deleteIibb(reg: IibbRegistration) {
+    if (!(await ask({ title: `¿Borrar la inscripción de ${reg.province}?`, confirmText: "Borrar" }))) return;
+    const { error } = await supabase.from("iibb_registrations").delete().eq("id", reg.id);
+    if (error) { toast.error(`No se pudo borrar: ${error.message}`); return; }
+    setIibbRegs(prev => prev.filter(r => r.id !== reg.id));
+  }
+
   const fmt = (n: number) => `$${Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2 })}`;
 
   const filteredDecls = declarations.filter(d => {
@@ -301,6 +354,7 @@ export default function TaxManagementPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      {dialog}
       <PageHeader
         icon={Receipt}
         title="Gestión Impositiva"
@@ -759,7 +813,55 @@ export default function TaxManagementPage() {
         </TabsContent>
 
         {/* IIBB */}
-        <TabsContent value="iibb" className="mt-4">
+        <TabsContent value="iibb" className="mt-4 space-y-4">
+          <div className="flex justify-end">
+            <Dialog open={iibbOpen} onOpenChange={o => { setIibbOpen(o); if (!o) setIibbForm({ ...EMPTY_IIBB }); }}>
+              <DialogTrigger asChild>
+                <Button><Plus className="w-4 h-4 mr-2" /> Agregar jurisdicción</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Inscripción de Ingresos Brutos</DialogTitle></DialogHeader>
+                <div className="space-y-3">
+                  <div>
+                    <Label>Provincia</Label>
+                    <Select value={iibbForm.province} onValueChange={v => setIibbForm(f => ({ ...f, province: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Elegí la provincia" /></SelectTrigger>
+                      <SelectContent>
+                        {PROVINCIAS.map(p => <SelectItem key={p} value={p} disabled={iibbRegs.some(r => r.province === p)}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Régimen</Label>
+                    <Select value={iibbForm.regime} onValueChange={v => setIibbForm(f => ({ ...f, regime: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="local">Local (una sola provincia)</SelectItem>
+                        <SelectItem value="convenio">Convenio multilateral</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Alícuota (%)</Label>
+                      <Input inputMode="decimal" value={iibbForm.rate_pct} placeholder="3,5" onChange={e => setIibbForm(f => ({ ...f, rate_pct: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label>N.º de inscripción</Label>
+                      <Input value={iibbForm.registration_number} onChange={e => setIibbForm(f => ({ ...f, registration_number: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>CUIT (opcional)</Label>
+                    <Input inputMode="numeric" value={iibbForm.cuit} placeholder="20-12345678-9" onChange={e => setIibbForm(f => ({ ...f, cuit: e.target.value }))} />
+                  </div>
+                  <Button className="w-full" onClick={saveIibb} disabled={savingIibb}>
+                    {savingIibb && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Guardar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           {iibbRegs.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground/70">
               <Building2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -778,8 +880,14 @@ export default function TaxManagementPage() {
                     <p className="text-2xl font-bold text-purple-600">{reg.rate_pct}%</p>
                     {reg.registration_number && <p className="text-sm text-muted-foreground">Nro: {reg.registration_number}</p>}
                     {reg.cuit && <p className="text-xs text-muted-foreground/70 font-mono">{reg.cuit}</p>}
-                    <div className={`text-xs font-medium ${reg.active ? "text-green-600" : "text-muted-foreground/70"}`}>
-                      {reg.active ? "● Activo" : "● Inactivo"}
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-medium ${reg.active ? "text-green-600" : "text-muted-foreground/70"}`}>
+                        {reg.active ? "● Activa" : "● Pausada"}
+                      </span>
+                      <span className="flex gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => toggleIibb(reg)}>{reg.active ? "Pausar" : "Activar"}</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => deleteIibb(reg)}>Borrar</Button>
+                      </span>
                     </div>
                   </CardContent>
                 </Card>

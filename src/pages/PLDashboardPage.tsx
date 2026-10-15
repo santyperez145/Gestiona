@@ -17,7 +17,6 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import FinancialScenariosTab from "@/components/finance/FinancialScenariosTab";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -83,10 +82,15 @@ export default function PLDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [months, setMonths] = useState(12);
   const [selectedYm, setSelectedYm] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = usePersistedState(
+  const [tabGuardada, setActiveTab] = usePersistedState(
     orgViewKey("pl-dashboard.tab", activeOrg?.id),
     "mensual",
   );
+  // «Escenarios» se sacó el 2026-10-15: los escenarios se creaban vacíos y no
+  // había cómo cargarles partidas (nada escribe `financial_line_items`), con
+  // fechas de 2026, caja inicial de $50.000 y cobranza del 85% fijas en el
+  // código. Quien la tenía guardada abre en «Mes a mes».
+  const activeTab = tabGuardada === "escenarios" ? "mensual" : tabGuardada;
   const { from: dateFrom, to: dateTo, inRange } = useDateRangeFilter();
   const { storeId } = useStoreFilter();
 
@@ -347,7 +351,6 @@ export default function PLDashboardPage() {
           <TabsTrigger value="ytd">En el año</TabsTrigger>
           <TabsTrigger value="gastos">Desglose de gastos</TabsTrigger>
           <TabsTrigger value="comparacion">Comparación</TabsTrigger>
-          <TabsTrigger value="escenarios">Escenarios</TabsTrigger>
         </TabsList>
 
         {/* ── Tab: Mensual ──────────────────────────────────────────────────── */}
@@ -711,11 +714,6 @@ export default function PLDashboardPage() {
               Se necesitan al menos dos meses de datos para mostrar la comparación.
             </div>
           )}
-        </TabsContent>
-
-        {/* ── Tab: Escenarios ───────────────────────────────────────────────── */}
-        <TabsContent value="escenarios">
-          <FinancialScenariosTab />
         </TabsContent>
       </Tabs>
     </div>

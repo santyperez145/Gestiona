@@ -42,25 +42,6 @@ interface RateInfo {
   updated: string;
 }
 
-interface ExposureRow {
-  currency: string;
-  receivables: number;
-  payables: number;
-  spot: number;
-}
-
-interface MCTransaction {
-  id: string;
-  entity_type: string;
-  base_currency: string;
-  transaction_currency: string;
-  base_amount: number;
-  transaction_amount: number;
-  exchange_rate: number;
-  rate_type: string;
-  created_at: string;
-}
-
 function MiniSparkline({ data, color = "#f59e0b" }: { data: number[]; color?: string }) {
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -101,7 +82,7 @@ function RateCard({ type, data, sparkData, selected, onClick }: any) {
 export default function MultiCurrencyPage() {
   usePageTitle("Monedas y cotizaciones");
   const { orgId } = useOrganization();
-  const [tab, setTab] = useState<"rates" | "converter" | "exposure" | "transactions" | "history">("rates");
+  const [tab, setTab] = useState<"rates" | "converter" | "history">("rates");
   const [selectedRate, setSelectedRate] = useState("blue");
   const [convFrom, setConvFrom] = useState("USD");
   const [convTo, setConvTo] = useState("ARS");
@@ -128,8 +109,6 @@ export default function MultiCurrencyPage() {
     return out;
   }, [rates, vivo]);
   const [sparklineData, setSparklineData] = useState<Record<string, number[]>>({});
-  const [exposure, setExposure] = useState<ExposureRow[]>([]);
-  const [transactions, setTransactions] = useState<MCTransaction[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [otherRates, setOtherRates] = useState<Array<{ code: string; rate: number; change: number; spark: number[] }>>([]);
 
@@ -180,45 +159,12 @@ export default function MultiCurrencyPage() {
           return { code, rate: Number(latest.rate), change, spark };
         }).filter((r): r is { code: string; rate: number; change: number; spark: number[] } => r !== null);
         setOtherRates(otherArr);
-      });
+      })
+      .then(() => setLoadingData(false), () => setLoadingData(false));
+    // 2026-10-15: se sacaron «Exposición» y «Transacciones». Leían `fx_exposure`
+    // y `multi_currency_transactions`, que no escribe nada en toda la
+    // plataforma: estaban siempre vacías y no había cómo cargarlas.
 
-    // Fetch FX exposure
-    supabase
-      .from("fx_exposure")
-      .select("currency_code, receivables_fc, payables_fc, spot_rate")
-      .eq("org_id", orgId)
-      .order("snapshot_date", { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        if (!data) return;
-        // Take latest snapshot per currency
-        const seen = new Set<string>();
-        const rows: ExposureRow[] = [];
-        for (const r of data) {
-          if (!seen.has(r.currency_code)) {
-            seen.add(r.currency_code);
-            rows.push({
-              currency: r.currency_code,
-              receivables: Number(r.receivables_fc),
-              payables: Number(r.payables_fc),
-              spot: Number(r.spot_rate),
-            });
-          }
-        }
-        setExposure(rows);
-      });
-
-    // Fetch recent multi-currency transactions
-    supabase
-      .from("multi_currency_transactions")
-      .select("id, entity_type, base_currency, transaction_currency, base_amount, transaction_amount, exchange_rate, rate_type, created_at")
-      .eq("org_id", orgId)
-      .order("created_at", { ascending: false })
-      .limit(30)
-      .then(({ data }) => {
-        if (data) setTransactions(data as MCTransaction[]);
-        setLoadingData(false);
-      });
   }, [orgId]);
 
   // Conversion result — use loaded rate or fallback to 1
@@ -245,8 +191,6 @@ export default function MultiCurrencyPage() {
   const TABS = [
     { id: "rates",        label: "Tipos de Cambio" },
     { id: "converter",    label: "Conversor" },
-    { id: "exposure",     label: "Exposición en moneda extranjera" },
-    { id: "transactions", label: "Transacciones" },
     { id: "history",      label: "Historial de cotizaciones" },
   ];
 
@@ -255,7 +199,7 @@ export default function MultiCurrencyPage() {
       <PageHeader
         icon={Globe}
         title="Monedas y cotizaciones"
-        description="Cotizaciones del día, conversor y cuánto tenés en moneda extranjera"
+        description="Cotizaciones del día, conversor e historial"
         actions={
           <div className="flex items-center flex-wrap gap-2">
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" disabled={cargandoVivo} onClick={async () => {
@@ -403,94 +347,6 @@ export default function MultiCurrencyPage() {
       )}
 
       {/* ─── Exposure tab ─── */}
-      {tab === "exposure" && (
-        <div className="space-y-4">
-          <div className="bg-card border border-border/40 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-border/40">
-              <h3 className="font-semibold flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Exposición neta en moneda extranjera</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Cuentas por cobrar vs pagar en moneda extranjera</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/40 bg-muted/20">
-                    {["Divisa", "Por Cobrar (ME)", "Por Pagar (ME)", "Neto (ME)", "Spot", "Neto (ARS)", "Riesgo"].map(h => (
-                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {exposure.length === 0 && (
-                    <tr><td colSpan={7} className="px-4 py-4 text-xs text-muted-foreground text-center">Sin saldos en moneda extranjera</td></tr>
-                  )}
-                  {exposure.map(e => {
-                    const net = e.receivables - e.payables;
-                    const netARS = net * e.spot;
-                    const info = CURRENCIES_INFO[e.currency];
-                    if (!info) return null;
-                    return (
-                      <tr key={e.currency} className="border-b border-border/20 hover:bg-muted/20">
-                        <td className="px-4 py-3"><div className="flex items-center gap-2"><span>{info.flag}</span><span className="font-mono font-bold text-xs">{e.currency}</span></div></td>
-                        <td className="px-4 py-3 text-xs text-emerald-400">{info.symbol}{e.receivables.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-xs text-red-400">{info.symbol}{e.payables.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-xs font-semibold">{info.symbol}{net.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-xs font-mono">{e.spot.toLocaleString("es-AR")}</td>
-                        <td className="px-4 py-3 text-sm font-bold">${netARS.toLocaleString("es-AR")}</td>
-                        <td className="px-4 py-3">
-                          <Badge className={`text-xs ${Math.abs(netARS) > 10000000 ? "bg-red-500/15 text-red-400 border-0" : Math.abs(netARS) > 5000000 ? "bg-yellow-500/15 text-yellow-400 border-0" : "bg-emerald-500/15 text-emerald-400 border-0"}`}>
-                            {Math.abs(netARS) > 10000000 ? "Alto" : Math.abs(netARS) > 5000000 ? "Medio" : "Bajo"}
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Transactions tab ─── */}
-      {tab === "transactions" && (
-        <div className="bg-card border border-border/40 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/40 bg-muted/20">
-                  {["Tipo", "Entidad", "Divisa", "Monto ME", "Tipo Cambio", "Monto ARS", "Fecha"].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-xs text-muted-foreground">Sin transacciones multi-divisa registradas</td>
-                  </tr>
-                ) : transactions.map(t => (
-                  <tr key={t.id} className="border-b border-border/20 hover:bg-muted/20">
-                    <td className="px-4 py-3"><Badge className="text-xs bg-muted text-muted-foreground border-0">{t.entity_type}</Badge></td>
-                    <td className="px-4 py-3 text-xs font-medium">—</td>
-                    <td className="px-4 py-3 text-xs font-mono">{t.transaction_currency} → {t.base_currency}</td>
-                    <td className="px-4 py-3 text-xs">{t.transaction_currency === "USD" ? "US$" : "$"}{t.transaction_amount.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-xs">
-                      <div>
-                        <span className="font-mono">{t.exchange_rate.toLocaleString("es-AR")}</span>
-                        <Badge className={`ml-1.5 text-[9px] ${RATE_TYPES.find(r => r.id === t.rate_type)?.color} bg-muted border-0`}>{t.rate_type}</Badge>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs font-semibold">${t.base_amount.toLocaleString("es-AR")}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{fechaLocal(t.created_at).toLocaleDateString("es-AR")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ─── History tab — ported from the old /tipo-cambio page ─── */}
       {tab === "history" && <CurrencyHistoryTab />}
 
       {/* ─── Add rate dialog ─── */}
