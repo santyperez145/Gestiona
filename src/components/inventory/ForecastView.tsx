@@ -4,6 +4,7 @@
 // El contenido es idéntico — PageHeader y acciones incluidas — porque este
 // paso mueve superficies, no reescribe cálculos: unificar los tres motores
 // en una autoridad server-side es INV-001, y va aparte a propósito.
+import { registrarError } from "@/lib/registroDeErrores";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -114,7 +115,7 @@ function ConfigDialog({ open, product, orgId, onClose, onSaved }: ConfigDialogPr
     supabase.from("forecast_configs")
       .select("*").eq("org_id", orgId).eq("product_id", product.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         if (data) {
           setExistingId(data.id);
           setLeadTime(String(data.lead_time_days));

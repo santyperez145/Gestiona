@@ -1,4 +1,5 @@
-﻿import { fechaLocal } from "@/lib/fechaAR";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { llamarIA } from "@/lib/ia";
@@ -77,7 +78,7 @@ export default function MarketingPage() {
     // son una lista de la base. Lo que ya no hace es viajar al prompt: eso lo
     // resuelve la Edge Function leyendo `settings.industry_code` con el JWT
     // del usuario. El campo `industry` que se mandaba nunca se leyó.
-    supabase.from('settings').select('industry_code').limit(1).maybeSingle().then(({ data }) => {
+    supabase.from('settings').select('industry_code').limit(1).maybeSingle().then(({ data, error }) => { if (error) registrarError(error);
       listMarketingThemes(data?.industry_code || null).then(setThemes, () => {});
     }, () => {});
   }, [user]);

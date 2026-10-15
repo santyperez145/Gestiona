@@ -1,3 +1,4 @@
+import { registrarError } from "@/lib/registroDeErrores";
 import { fmtPct } from "@/lib/porcentaje";
 import { diaAR, hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { claveDeCompra, contarCompras } from "@/lib/comprasDeCliente";
@@ -950,7 +951,7 @@ export default function Dashboard() {
       return;
     }
     supabase.from('cash_sessions').select('id, opened_at').eq('org_id', activeOrg.id).eq('status', 'open').maybeSingle()
-      .then(({ data }) => setOpenCashSession(data || null));
+      .then(({ data, error }) => { if (error) registrarError(error); setOpenCashSession(data || null); });
   }, [activeOrg?.id]);
 
   const [showTodayDetail, setShowTodayDetail] = useState(false);

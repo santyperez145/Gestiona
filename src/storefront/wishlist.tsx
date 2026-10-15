@@ -8,6 +8,7 @@
  * El alternado es optimista: el corazón se pinta al instante y se revierte si
  * el servidor rechaza. Esperar 300ms por un corazón se siente roto.
  */
+import { registrarError } from "@/lib/registroDeErrores";
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from "react";
@@ -32,7 +33,7 @@ export function WishlistProvider({ slug, children }: { slug: string; children: R
   useEffect(() => {
     if (!customer) { setIds(new Set()); return; }
     let cancelled = false;
-    supabase.rpc("get_my_wishlist", { p_slug: slug }).then(({ data }) => {
+    supabase.rpc("get_my_wishlist", { p_slug: slug }).then(({ data, error }) => { if (error) registrarError(error);
       if (cancelled) return;
       setIds(new Set(((data ?? []) as { product_id: string }[]).map(r => r.product_id)));
     }, () => {});

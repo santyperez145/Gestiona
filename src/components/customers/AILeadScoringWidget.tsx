@@ -1,3 +1,4 @@
+import { registrarError } from "@/lib/registroDeErrores";
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +71,7 @@ export default function AILeadScoringWidget() {
       .not("stage", "in", "(cerrado,perdido)")
       .order("updated_at", { ascending: false })
       .limit(200)
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         // La columna real del monto en `deals` es `value_ars`.
         setDeals((data ?? []).map((d: any) => ({ ...d, amount: Number(d.value_ars) || 0 })) as Deal[]);
         setLoading(false);

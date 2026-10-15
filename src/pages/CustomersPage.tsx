@@ -1,4 +1,5 @@
-﻿import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { claveDeCompra, diaDeCompra, frecuenciaEnDias } from "@/lib/comprasDeCliente";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { mensajeDeError } from "@/lib/cuentaCorriente";
@@ -285,7 +286,7 @@ function CustomerFormModal({
       .eq("org_id", orgId)
       .eq("entity_type", "customer")
       .order("sort_order")
-      .then(({ data }) => { if (data) setCustomFieldDefs(data as CustomFieldDef[]); });
+      .then(({ data, error }) => { if (error) registrarError(error); if (data) setCustomFieldDefs(data as CustomFieldDef[]); });
   }, [orgId]);
   const { supported: contactsSupported, pick: pickContact, picking } = useContactPicker();
 
@@ -1689,7 +1690,7 @@ export default function CustomersPage() {
       .eq('org_id', activeOrg.id)
       .eq('paid', false)
       .order('due_date', { ascending: true })
-      .then(({ data }) => setInstallments(data || []));
+      .then(({ data, error }) => { if (error) registrarError(error); setInstallments(data || []); });
   }, [activeOrg]);
 
   const handleMergeCustomers = async () => {

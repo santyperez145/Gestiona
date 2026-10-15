@@ -1,4 +1,5 @@
-﻿import { fmtPct } from "@/lib/porcentaje";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -837,7 +838,7 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     if (!open) return;
-    supabase.from("profiles").select("*").then(({ data }) => setProfiles(data || []));
+    supabase.from("profiles").select("*").then(({ data, error }) => { if (error) registrarError(error); setProfiles(data || []); });
   }, [open]);
 
   const handleAssign = async () => {

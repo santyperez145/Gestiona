@@ -1,4 +1,5 @@
-﻿import { hoyAR, fechaLocal } from "@/lib/fechaAR";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { selloHechoConNerqia } from "@/lib/selloNerqia";
 import { useNavigate } from "react-router-dom";
 import EditorDePresupuesto, { type PresupuestoEditable } from "@/components/presupuestos/EditorDePresupuesto";
@@ -309,7 +310,7 @@ export default function PresupuestosPage() {
     load();
     if (activeOrg) {
       supabase.from("organizations").select("name").eq("id", activeOrg.id).maybeSingle()
-        .then(({ data }) => { if (data?.name) setOrgName(data.name); });
+        .then(({ data, error }) => { if (error) registrarError(error); if (data?.name) setOrgName(data.name); });
     }
   }, [activeOrg]);
 

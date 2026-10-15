@@ -1,3 +1,4 @@
+import { registrarError } from "@/lib/registroDeErrores";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from "react";
 import { buscarLiteral, camposProducto, crearIndiceBusqueda } from "@/lib/catalogSearch";
@@ -1181,7 +1182,7 @@ export default function POSPage() {
       .eq("active", true)
       .order("is_main", { ascending: false })
       .order("name")
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         if (cancelled) return;
         const locs = (data || []) as Array<{ id: string; name: string; is_main: boolean }>;
         setLocations(locs);
@@ -1796,7 +1797,7 @@ export default function POSPage() {
       .eq("org_id", activeOrg.id)
       .eq("is_active", true)
       .order("name")
-      .then(({ data }) => setBundles((data || []) as any));
+      .then(({ data, error }) => { if (error) registrarError(error); setBundles((data || []) as any); });
   }, [activeOrg?.id]);
 
   // ── Filtered products ──

@@ -1,4 +1,5 @@
-﻿import { fmtPct } from "@/lib/porcentaje";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useRef, useMemo, useDeferredValue, type ReactNode } from "react";
 import Fuse from "fuse.js";
@@ -2205,7 +2206,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       .eq("org_id", orgId)
       .eq("entity_type", "product")
       .order("sort_order")
-      .then(({ data }) => { if (data) setCustomFieldDefs(data); });
+      .then(({ data, error }) => { if (error) registrarError(error); if (data) setCustomFieldDefs(data); });
   }, [orgId]);
 
   useEffect(() => {
@@ -2276,7 +2277,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       .select("*")
       .eq("product_id", product.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         if (!data) return;
         setModelo(data.modelo || '');
         setFamiliaOlfativa(data.familia_olfativa || '');
@@ -2344,7 +2345,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   useEffect(() => {
     if (!orgId) return;
     supabase.from('suppliers').select('id,name').eq('org_id', orgId).order('name')
-      .then(({ data }) => setSuppliers((data ?? []) as { id: string; name: string }[]), () => {});
+      .then(({ data, error }) => { if (error) registrarError(error); setSuppliers((data ?? []) as { id: string; name: string }[]); }, (e) => registrarError(e));
   }, [orgId]);
 
   const cost = parseFloat(costUSD) || 0;

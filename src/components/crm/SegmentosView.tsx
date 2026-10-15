@@ -14,6 +14,7 @@
 // cliente escrito de dos formas era dos filas del RFM, con recencia, frecuencia
 // y valor partidos — un «Campeón» podía figurar como dos clientes mediocres.
 // Medido al migrar: 33 de 34 ventas ya tenían customer_id.
+import { registrarError } from "@/lib/registroDeErrores";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -148,12 +149,12 @@ export default function SegmentosView() {
       .select("customer_id, customer_name, total_ars, created_at")
       .eq("org_id", activeOrg.id)
       .gte("created_at", since.toISOString())
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         setSales((data as Sale[]) || []);
         setLoading(false);
       });
     // `sales` no guarda el email del cliente: se resuelve desde `customers`.
-    supabase.from("customers").select("id, name, email").eq("org_id", activeOrg.id).then(({ data }) => {
+    supabase.from("customers").select("id, name, email").eq("org_id", activeOrg.id).then(({ data, error }) => { if (error) registrarError(error);
       const porId: Record<string, { name: string; email: string }> = {};
       const porNombre: Record<string, string> = {};
       const ids: Record<string, string> = {};

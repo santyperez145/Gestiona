@@ -1,4 +1,5 @@
-﻿import { fmtPct } from "@/lib/porcentaje";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { broadcastSync } from "@/lib/broadcastSync";
@@ -1938,7 +1939,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       .eq("active", true)
       .order("is_main", { ascending: false })
       .order("name")
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         const locs = (data || []) as Array<{ id: string; name: string; is_main: boolean }>;
         setLocations(locs);
         if (!editItem && locs.length > 0) {

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -471,7 +472,7 @@ function InvoicesModal({ open, sub, onClose, onRefresh }: InvoicesModalProps) {
       .eq("subscription_id", sub.id)
       .order("created_at", { ascending: false })
       // status/currency son TEXT con CHECK en DB → llegan como string
-      .then(({ data }) => { setInvoices((data ?? []) as SubscriptionInvoice[]); setLoading(false); });
+      .then(({ data, error }) => { if (error) registrarError(error); setInvoices((data ?? []) as SubscriptionInvoice[]); setLoading(false); });
   }, [open, sub]);
 
   const markPaid = async (inv: SubscriptionInvoice) => {

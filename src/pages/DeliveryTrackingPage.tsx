@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -271,7 +272,7 @@ function TrackingModal({ delivery, onClose, onUpdate }: {
   useEffect(() => {
     supabase.from("delivery_events").select("*")
       .eq("delivery_id", delivery.id).order("created_at", { ascending: false })
-      .then(({ data }) => setEvents(data || []));
+      .then(({ data, error }) => { if (error) registrarError(error); setEvents(data || []); });
   }, [delivery.id]);
 
   async function addEvent() {

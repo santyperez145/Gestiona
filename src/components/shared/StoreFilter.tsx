@@ -8,6 +8,7 @@
  * Gracefully renders nothing when the org has 0 or 1 locations configured —
  * there's nothing meaningful to scope by ("all stores" is already the state).
  */
+import { registrarError } from "@/lib/registroDeErrores";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
@@ -41,7 +42,7 @@ export function useStoreFilter() {
       .eq("active", true)
       .order("is_main", { ascending: false })
       .order("name")
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         if (!cancelled) {
           setLocations(data || []);
           setLoading(false);

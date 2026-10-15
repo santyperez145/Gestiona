@@ -1,3 +1,4 @@
+import { registrarError } from "@/lib/registroDeErrores";
 import { useState, useEffect, useRef } from "react";
 import { llamarIA } from "@/lib/ia";
 import { useAuth } from "@/lib/auth";
@@ -503,7 +504,7 @@ export function InstagramStoryGenerator() {
         if (def) setTemplate(def.code);
       }
     });
-    supabase.from('settings').select('default_cta_text').limit(1).maybeSingle().then(({ data }) => {
+    supabase.from('settings').select('default_cta_text').limit(1).maybeSingle().then(({ data, error }) => { if (error) registrarError(error);
       if (data?.default_cta_text) setDefaultCta(data.default_cta_text);
     });
   }, [user, open]);

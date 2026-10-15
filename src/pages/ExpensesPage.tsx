@@ -1,4 +1,5 @@
-﻿import { fmtPct } from "@/lib/porcentaje";
+﻿import { registrarError } from "@/lib/registroDeErrores";
+import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -1273,7 +1274,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
       .eq("active", true)
       .order("is_main", { ascending: false })
       .order("name")
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         const locs = (data || []) as Array<{ id: string; name: string; is_main: boolean }>;
         setLocations(locs);
         if (!editItem && locs.length > 0) {

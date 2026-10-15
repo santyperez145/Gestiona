@@ -1,3 +1,4 @@
+import { registrarError } from "@/lib/registroDeErrores";
 import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
@@ -1904,7 +1905,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
   useEffect(() => {
     if (!activeOrg) return;
     supabase.from("suppliers").select("id, name, phone, email, notes").eq("org_id", activeOrg.id)
-      .then(({ data }) => setSuppliers(data || []));
+      .then(({ data, error }) => { if (error) registrarError(error); setSuppliers(data || []); });
   }, [activeOrg]);
 
   useEffect(() => {

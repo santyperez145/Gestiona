@@ -5,6 +5,7 @@
  * componente sólo decide qué mostrar. Sin esa regla las reseñas se llenan de
  * spam y dejan de servir, que es peor que no tenerlas.
  */
+import { registrarError } from "@/lib/registroDeErrores";
 import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -82,7 +83,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     if (!store?.slug || !customer) { setPermiso(null); return; }
     supabase
       .rpc("can_review_product", { p_slug: store.slug, p_product_id: productId })
-      .then(({ data }) => setPermiso(data as unknown as { can: boolean; reason?: string }), () => {});
+      .then(({ data, error }) => { if (error) registrarError(error); setPermiso(data as unknown as { can: boolean; reason?: string }); }, (e) => registrarError(e));
   }, [store?.slug, productId, customer]);
 
   const enviar = async (e: React.FormEvent) => {

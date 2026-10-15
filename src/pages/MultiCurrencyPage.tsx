@@ -1,3 +1,4 @@
+import { registrarError } from "@/lib/registroDeErrores";
 import { fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
@@ -124,7 +125,7 @@ export default function MultiCurrencyPage() {
       .or(`org_id.eq.${orgId},org_id.is.null`)
       .order("valid_from", { ascending: false })
       .limit(200)
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         if (!data) return;
         const usdRows = data.filter(r => r.currency_from === "USD");
         const byType: Record<string, RateInfo> = {};

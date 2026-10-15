@@ -1,3 +1,4 @@
+import { registrarError } from "@/lib/registroDeErrores";
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +37,7 @@ export default function InfluencerROIWidget() {
       .from("influencer_exchanges")
       .select("id, influencer_name, product_value_ars, quantity, sales_generated_ars, influencer_followers, actual_posts, expected_posts, status")
       .eq("org_id", activeOrg.id)
-      .then(({ data }) => {
+      .then(({ data, error }) => { if (error) registrarError(error);
         setExchanges((data as ExchangeRow[]) ?? []);
         setLoading(false);
       });
