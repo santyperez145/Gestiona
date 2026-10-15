@@ -14,11 +14,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronUp, ChevronDown, Edit, Eye, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Tag, DollarSign, ChevronLeft, ChevronUp, ChevronDown, Edit, Eye, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { mensajeDeError } from "@/lib/cuentaCorriente";
+import { nombreDelMedio } from "@/lib/mediosDePago";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -58,6 +59,8 @@ const PAYMENT_BADGE: Record<string, string> = {
   debito: 'bg-primary/15 text-primary',
   credito: 'bg-yellow-500/15 text-yellow-400',
   fiado: 'bg-destructive/15 text-destructive',
+  mercado_pago: 'bg-sky-500/15 text-sky-500',
+  mercadopago: 'bg-sky-500/15 text-sky-500',
 };
 
 // ============ LINE ITEM TYPE ============
@@ -673,7 +676,7 @@ export default function SalesPage() {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100, 100, 100);
-    doc.text(`Método de pago: ${s.payment_method || "efectivo"}`, 14, y);
+    doc.text(`Método de pago: ${nombreDelMedio(s.payment_method)}`, 14, y);
     if (s.notes) {
       y += 6;
       doc.text(`Nota: ${s.notes}`, 14, y);
@@ -758,7 +761,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
       Number(s.total_ars).toFixed(2),
       Number(s.profit_ars || 0).toFixed(2),
       Number(s.profit_usd || 0).toFixed(2),
-      s.payment_method || 'efectivo',
+      nombreDelMedio(s.payment_method),
       s.paid ? 'Sí' : 'No',
       s.discount_applied ? 'Sí' : 'No',
       s.invoice_id ? 'Sí' : 'No',
@@ -791,7 +794,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
     const methods = Object.entries(byMethod).sort((a, b) => b[1].total - a[1].total);
     const methodRows = methods.map(([m, d]) => `
       <tr>
-        <td style="text-transform:capitalize">${m}</td>
+        <td>${nombreDelMedio(m)}</td>
         <td style="text-align:right">${d.count}</td>
         <td style="text-align:right;font-weight:bold">${fmtARS(d.total)}</td>
         <td style="text-align:right;color:#16a34a">${fmtARS(d.paid)}</td>
@@ -1119,7 +1122,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                   <div key={method}>
                     <div className="flex items-center justify-between text-xs mb-1">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${PAYMENT_BADGE[method] || 'bg-muted text-muted-foreground'}`}>{method}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${PAYMENT_BADGE[method] || 'bg-muted text-muted-foreground'}`}>{nombreDelMedio(method)}</span>
                         <span className="text-muted-foreground">{data.count} venta{data.count !== 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1225,7 +1228,10 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todo método</SelectItem>
-            {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+            {/* Los medios que aparecen en las ventas (la caja y la tienda usan
+                más que el formulario manual: Mercado Pago, QR, MODO…). */}
+            {Array.from(new Set([...PAYMENT_METHODS.map(m => m.value), ...sales.map((s: any) => s.payment_method || 'efectivo')]))
+              .map(m => <SelectItem key={m} value={m}>{nombreDelMedio(m)}</SelectItem>)}
           </SelectContent>
         </Select>
         {isAdmin && (() => {
@@ -1437,7 +1443,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                       <div key={s.id} className="px-4 py-2.5 flex items-center justify-between">
                         <span className="text-sm">{s.product_name} <span className="text-xs text-muted-foreground">×{s.quantity}</span></span>
                         <div className="flex items-center gap-3">
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>{s.payment_method || 'efectivo'}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>{nombreDelMedio(s.payment_method)}</span>
                           <span className="text-sm font-medium">{formatARS(Number(s.total_ars))}</span>
                         </div>
                       </div>
@@ -1639,7 +1645,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                         )}
                         {s.discount_applied && (
                           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20" title="Precio con descuento aplicado">
-                            🏷️ Desc.
+                            <Tag className="w-3 h-3" />Desc.
                           </span>
                         )}
                       </div>
@@ -1647,8 +1653,8 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{s.customer_name || '—'}</td>
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden xl:table-cell">{(s as any).seller_name || '—'}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
-                        {s.payment_method || 'efectivo'}
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
+                        {nombreDelMedio(s.payment_method)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -1738,8 +1744,8 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                     <p className="text-xs text-muted-foreground">{formatDateAR(s.date)} · {s.customer_name || 'Sin cliente'}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
-                      {s.payment_method || 'efectivo'}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
+                      {nombreDelMedio(s.payment_method)}
                     </span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'}`}>
                       {s.paid ? 'Pagado' : 'Debe'}
@@ -1750,8 +1756,8 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                       </span>
                     )}
                     {s.discount_applied && (
-                      <span className="px-1.5 py-0 rounded text-[10px] font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                        🏷️ Desc.
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0 rounded text-[10px] font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                        <Tag className="w-3 h-3" />Desc.
                       </span>
                     )}
                   </div>
@@ -2216,7 +2222,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Medio:</span>
-          <span className="capitalize font-medium">{paymentMethod}{!isFiado ? ' · Pagado' : ' · Deuda'}</span>
+          <span className="font-medium">{nombreDelMedio(paymentMethod)}{!isFiado ? ' · Pagado' : ' · Deuda'}</span>
         </div>
       </div>
 

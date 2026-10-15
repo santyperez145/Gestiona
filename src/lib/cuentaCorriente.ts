@@ -27,11 +27,11 @@ export interface Deudor {
 }
 
 export const MEDIOS_DE_COBRO = [
-  { value: "efectivo", label: "💵 Efectivo" },
-  { value: "transferencia", label: "🏦 Transferencia" },
-  { value: "debito", label: "💳 Débito" },
-  { value: "credito", label: "💳 Crédito" },
-  { value: "mercadopago", label: "📱 Mercado Pago" },
+  { value: "efectivo", label: "Efectivo" },
+  { value: "transferencia", label: "Transferencia" },
+  { value: "debito", label: "Tarjeta de débito" },
+  { value: "credito", label: "Tarjeta de crédito" },
+  { value: "mercadopago", label: "Mercado Pago" },
 ] as const;
 
 /** El texto que manda la base (p. ej. «El pago supera lo que se debe»), sea Error u objeto. */
