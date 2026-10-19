@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-10-08. Este documento define la dirección visual y los próximos
+**Corte:** 2026-10-19. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -63,10 +63,10 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 
 | Superficie | Dirección | Estado comprobado | Próximo cierre |
 |---|---|---|---|
-| Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada/responsive; ambas homes indexadas y sitemap Correcto en Console el 2026-10-08. 7 clics/24 impresiones en 02/09–05/10; www excluido como alternativa canónica. XML/JSON-LD accesibles, sin cambiar la UI humana. | Catálogo restante y conversión real; no ranking garantizado. [Evidencia](docs/SEO_INDEXACION.md). |
+| Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Home Nerqia conserva 200/canonical/JSON-LD el 19/10. Indexación y sitemap Correcto de Console corresponden al 08/10, no a una lectura actual; tiendas en incidente de rastreo. | Recuperar superficies de tienda y revalidar Console antes de certificar cobertura; no ranking garantizado. [Evidencia](docs/SEO_INDEXACION.md). |
 | Business | Workspace claro, rail persistente, topbar, tabs y tablas densas. | Shell y primitives transversales; páginas críticas migradas. | Eliminar CSS heredado y cerrar estados restantes. |
 | Commerce admin | Configuración, rendimiento, voz, catálogo, páginas, diseño, pagos/envíos. | Selector de tienda compartido con Pedidos; datos reales en producción. | Surtido multi-tienda y responsive autenticado. |
-| Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema/favicon, SPA/restauración y retry sin perder carrito; búsqueda coherente, aproximados rotulados y filtros; combobox con foco/IDs únicos/touch 44 px y links nombrados. PR19 `6644f613` READY, 27 coincidencias reales; texto conservado al repetir Enter (2026-10-08). | Performance de campo y compradores. |
+| Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema/favicon, SPA/restauración y búsqueda accesible implementados. Incidente 19/10: Exentry/Famatina sirven 503 a crawler y sitemaps, sin JSON-LD; el shell humano 200 no prueba catálogo funcional. Supabase informa `INACTIVE`. | Recuperar backend, catálogo real y HTML equivalente; errores recuperables sin falso vacío. Revisar caché/reintento de fallos de sitemap, luego performance de campo/compradores. [Evidencia](docs/SEO_INDEXACION.md). |
 | Acceso y correo | Identidad Nerqia clara en el alta y seguridad sin jerga del proveedor. | Confirmación propia publicada en Auth; gate con enrolamiento, opt-in «Recordar este navegador durante 7 días» y recuperación TOTP; dispositivos revocables con vencimiento; proxy probado sin pedir secretos al browser. | Preview/release y circuito browser tras configurar secreto server-side; remitente Auth SMTP, entrega real y enforcement MFA transversal. |
 | Finance | Trabajo de gasto, documentos y aprobación; no espejo de Business. | Layout/entitlement e Inbox técnico. | Primer documento real y políticas preventivas. |
 | Platform | Control plane violeta, colas y Merchant 360. | Shell, MFA, áreas operativas; Mensajería separa diagnóstico de staff, acción del comercio y copy del comprador, con alertas persistentes en campañas/SMTP/equipo. | Completar matriz visual autenticada y estados reales de webhook/Auth SMTP. |

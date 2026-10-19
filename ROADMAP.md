@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Estado:** canónico. **Revisión:** 2026-10-08. **Owner:** Producto / CTO.
+**Estado:** canónico. **Revisión:** 2026-10-19. **Owner:** Producto / CTO.
 Decisiones activas y próximos cierres, no un diario: Git conserva la historia y [el índice](docs/INDICE.md) los contratos.
 
 ## Objetivo
@@ -81,7 +81,7 @@ faltante queda parcial; ausente no significa cero ni resultado conciliado.
 
 | Dominio | Base implementada / comprobación interna | Próximo gate |
 |---|---|---|
-| Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; búsqueda unificada exacta/aproximada, filtros/teclado y links nombrados. PR19 `6644f613` READY, `lataffa` trae 27 productos; Enter repetido conserva texto. Console 2026-10-08 confirma ambas homes, sitemap Correcto y 7 clics/24 impresiones (02/09–05/10); www es alternativa canónica, no otra ficha. [UI](docs/INTERFAZ.md). | Cobertura restante, pago/fulfillment y conversión de campo; [evidencia SEO fechada](docs/SEO_INDEXACION.md). |
+| Commerce | Storefront, variantes, checkout/pedidos, recuperación, SEO, temas, dominios y surtido multitienda; búsqueda unificada y accesible, PR19 `6644f613` READY. Console confirmó ambas homes el 08/10; no es una lectura actual. **Incidente 19/10:** sitemaps y HTML crawler de Exentry/Famatina responden 503; índice raíz cae de 3 hijos a 1. Supabase productivo informa `INACTIVE`; Vercel sigue READY. No demuestra desindexación. [Evidencia](docs/SEO_INDEXACION.md). | Primero recuperar backend con el dueño y verificar rastreo/catálogo/aceptación; no ocultar fallos como lista vacía ni reenviar indexación durante 503. Después cobertura restante, pago/fulfillment y conversión de campo. |
 | Migración | Worker Excel/CSV hasta 50.000 filas; detección y columna→destino visible/editable con ejemplos, omisión, conflictos, moneda y confirmación, incluyendo Shopify/Tiendanube sin perder variantes; sesión reanudable, staging/Kardex compartidos. | Importación comercial autorizada, latencia de cohorte, catálogo/POS offline a escala y export real Shopify/Tiendanube; [contrato](docs/IMPORTACION_PRODUCTOS.md), C22.2. |
 | Planes | Inicial gratuito persistente, Commerce ilimitado en planes estándar, ahorro anual real y cupo IA; catálogo/Platform/Mi plan conectados. | Cerrar las brechas por capacidad del [benchmark vigente](docs/PLANES.md), sin vender servicios ni paridad no certificados. |
 | Business | POS/offline, Kardex, compras, clientes, ventas, devoluciones, ledger e invariantes de stock/dinero. | Segunda organización, conteo físico y primera operación sin corrección SQL. |

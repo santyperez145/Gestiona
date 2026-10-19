@@ -1,6 +1,6 @@
 # SEO e indexación de Nerqia y sus tiendas
 
-Última revisión: **2026-10-08**.
+Última revisión: **2026-10-19**.
 
 ## Objetivo y límite honesto
 
@@ -10,6 +10,12 @@ responde de verdad a la intención de búsqueda. **El código no puede garantiza
 la primera posición ni una fecha de aparición.** Google decide si indexa y cómo
 ordena; incluso una solicitud manual puede tardar días o semanas y no garantiza
 inclusión.
+
+**Estado actual (2026-10-19): incidente de rastreo abierto.** Exentry y
+Ferretería Famatina responden 503 en sitemaps y HTML para crawler; el índice
+raíz conserva sólo plataforma. Supabase informa el proyecto productivo
+`INACTIVE`. La indexación confirmada en septiembre/octubre es evidencia
+histórica, no una comprobación de inclusión actual ni una desindexación probada.
 
 La medición del 2026-09-04 ya muestra un cambio externo verificable: la búsqueda
 pública `site:nerqia.app` devuelve la plataforma **Nerqia | Sistema de gestión
@@ -140,6 +146,57 @@ Console recuperada. Siguen abiertos el resto del catálogo, crecimiento de
 consultas relevantes y conversión orgánica; no hace falta reenviar las homes.
 La consolidación de www se observa en la próxima actualización del agregado,
 sin retiradas manuales, `noindex` ni solicitudes repetidas de indexación.
+
+### Incidente de disponibilidad de tiendas — 2026-10-19
+
+Lecturas de sólo lectura entre **22:15:40 y 22:16:17 UTC**, repetidas con
+query nueva y `X-Vercel-Cache: MISS`, para distinguir origen de caché:
+
+- Último readback sano del monitor: **2026-10-18 11:56:07–28 UTC**, índice y
+  tres hijos XML 200 para Mozilla/Googlebot; plataforma 3 URLs, Exentry 73 y
+  Famatina 12.653, sin duplicados. Esto mide URLs publicadas, no indexadas.
+- `https://nerqia.app/sitemap.xml` sigue 200 XML pero pasa de **3 hijos a 1**:
+  conserva sólo `sitemap-platform.xml` (200, tres URLs). Un índice accesible
+  o XML parseable **no prueba que conserve la cobertura de tiendas**.
+- `https://exentryimports.nerqia.app/sitemap.xml` y
+  `https://ferreteriafamatina.nerqia.app/sitemap.xml`: **503** para ambas UA,
+  `urlset` vacío de 110 bytes y `X-Robots-Tag: noindex, nofollow`. Sin
+  `Retry-After`; la respuesta declara caché pública breve, un punto a corregir.
+- Ambas homes para Googlebot: **503**, `Retry-After: 300`, canonical propio,
+  meta `noindex,nofollow`, título «Tienda temporalmente no disponible» y sin
+  JSON-LD. No se disfraza una fuente caída como una tienda vacía con 200.
+- Robots de los tres hosts sigue 200, pero el de plataforma deja de enumerar
+  las dos tiendas. Nerqia conserva home 200, canonical propio, `index,follow`
+  y JSON-LD parseable. El shell SPA humano de tienda sigue 200; **no certifica
+  que el catálogo cargue al ejecutar JavaScript**.
+- `npx supabase projects list --output json` informa **`INACTIVE`** para el
+  proyecto productivo `hummeopatkniwkyrrhwc` (`Gestionappia`). Es consistente
+  con la indisponibilidad de la fuente; no se verificó el motivo de la
+  inactividad ni se reactivó, cambió plan o modificó información comercial.
+- Vercel conserva producción **READY**, deploy
+  `dpl_BtPMbvTTRmTMgpjnLyVeAT3KqLhi`, commit
+  `60de9945800bd377adf8510d41e9ea7d386a1082`. READY no acredita backend sano.
+- Google Search integrado no entrega resultados verificables y la consulta
+  pública directa sólo devuelve el shell de redirección de Google. No hay
+  navegador con sesión disponible para Console: aceptación actual, cobertura,
+  consultas y acciones manuales **no revalidadas**. No se interpreta una
+  búsqueda vacía como desindexación ni se anuncia nueva inclusión.
+
+**Recuperación pendiente — dueño/operaciones:** revisar en
+[Supabase](https://supabase.com/dashboard/project/hummeopatkniwkyrrhwc) la causa
+de `INACTIVE` y reactivar/restaurar según el estado y condiciones del servicio,
+sin asumir autorización para nuevos cargos. Después comprobar catálogo público,
+homes/robots/sitemaps completos para ambas UA y aceptación en Console. No
+solicitar indexación repetidamente mientras persistan 503; no alterar DNS,
+canonical, productos ni slugs para ocultar la indisponibilidad.
+
+**Mejora técnica pendiente:** `api/sitemap-index.ts` convierte el fallo de
+`list_published_store_slugs` en lista vacía y responde 200; `api/robots.ts`
+también omite tiendas ante ese fallo. Distinguir error de ausencia real y
+preservar una estrategia de reintento/fuente válida sin fijar slugs a mano.
+Revisar `no-store`/`Retry-After` para 503 de sitemap y probar recuperación.
+Registrar este incidente no repara el servicio ni certifica desindexación,
+recuperación, resultados enriquecidos o Core Web Vitals.
 
 Evidencia reproducible en la propiedad verificada:
 [Sitemaps](https://search.google.com/search-console/sitemaps?resource_id=sc-domain%3Anerqia.app),
