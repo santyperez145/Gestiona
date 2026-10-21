@@ -11,8 +11,17 @@ const dependencyAudit = readFileSync(resolve(root, "scripts/audit-dependencies.m
 const app = readFileSync(resolve(root, "src/App.tsx"), "utf8");
 const appLayout = readFileSync(resolve(root, "src/components/AppLayout.tsx"), "utf8");
 
+/**
+ * La versión más vieja instalada del paquete, esté arriba o anidada: npm puede
+ * moverlo adentro de quien lo usa (pasó con @vitest/mocker al subir vitest) y
+ * una copia anidada vieja es igual de vulnerable.
+ */
 function version(paquete: string): string {
-  return lock.packages?.[`node_modules/${paquete}`]?.version ?? "0.0.0";
+  const instaladas = Object.entries(lock.packages ?? {})
+    .filter(([ruta]) => ruta === `node_modules/${paquete}` || ruta.endsWith(`/node_modules/${paquete}`))
+    .map(([, info]) => String((info as { version?: string }).version ?? "0.0.0"));
+  if (instaladas.length === 0) return "0.0.0";
+  return instaladas.reduce((min, v) => (alMenos(v, min) ? min : v));
 }
 
 function numerica(valor: string): number[] {
@@ -34,9 +43,9 @@ describe("dependencias sin alertas productivas conocidas", () => {
     ["react-router-dom", "7.18.0"],
     ["dompurify", "3.4.13"],
     ["nanoid", "3.3.18"],
-    ["vite", "8.2.2"],
-    ["vitest", "5.0.0"],
-    ["@vitest/mocker", "5.0.0"],
+    ["vite", "8.2.4"],
+    ["vitest", "5.0.3"],
+    ["@vitest/mocker", "5.0.3"],
     ["@vitejs/plugin-react", "6.1.1"],
     ["vite-plugin-pwa", "1.3.0"],
   ])("%s queda en una línea parcheada", (paquete, minimo) => {
