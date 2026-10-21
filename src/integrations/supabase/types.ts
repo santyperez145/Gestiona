@@ -6506,6 +6506,87 @@ export type Database = {
           },
         ]
       }
+      comprobantes_de_compra: {
+        Row: {
+          alicuotas: Json
+          cuit_emisor: string
+          created_at: string
+          created_by: string | null
+          exento: number
+          fecha: string
+          id: string
+          impuestos_internos: number
+          no_gravado: number
+          notas: string | null
+          numero: number
+          org_id: string
+          otros_tributos: number
+          percepcion_iibb: number
+          percepcion_iva: number
+          percepcion_municipal: number
+          percepcion_nacionales: number
+          periodo: string
+          punto_venta: number
+          razon_social_emisor: string
+          supplier_id: string | null
+          tipo_comprobante: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          alicuotas?: Json
+          cuit_emisor: string
+          created_at?: string
+          created_by?: string | null
+          exento?: number
+          fecha: string
+          id?: string
+          impuestos_internos?: number
+          no_gravado?: number
+          notas?: string | null
+          numero: number
+          org_id: string
+          otros_tributos?: number
+          percepcion_iibb?: number
+          percepcion_iva?: number
+          percepcion_municipal?: number
+          percepcion_nacionales?: number
+          periodo: string
+          punto_venta: number
+          razon_social_emisor: string
+          supplier_id?: string | null
+          tipo_comprobante: number
+          total: number
+          updated_at?: string
+        }
+        Update: {
+          alicuotas?: Json
+          cuit_emisor?: string
+          created_at?: string
+          created_by?: string | null
+          exento?: number
+          fecha?: string
+          id?: string
+          impuestos_internos?: number
+          no_gravado?: number
+          notas?: string | null
+          numero?: number
+          org_id?: string
+          otros_tributos?: number
+          percepcion_iibb?: number
+          percepcion_iva?: number
+          percepcion_municipal?: number
+          percepcion_nacionales?: number
+          periodo?: string
+          punto_venta?: number
+          razon_social_emisor?: string
+          supplier_id?: string | null
+          tipo_comprobante?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       content_ideas: {
         Row: {
           category: string

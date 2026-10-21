@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mesAR } from "@/lib/fechaAR";
 import { libroIvaVentas, periodoAPresentar, rangoDelPeriodo, type ComprobanteVenta } from "@/lib/libroIvaVentas";
+import { posicionIva, type LibroIvaCompras } from "@/lib/libroIvaCompras";
+import ComprobantesDeCompra from "@/components/afip/ComprobantesDeCompra";
 
 const PAGINA = 1000;
 const ars = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
@@ -31,7 +33,8 @@ function descargar(nombre: string, contenido: string) {
 
 type Lectura = { estado: "cargando" } | { estado: "error"; mensaje: string } | { estado: "listo"; comprobantes: ComprobanteVenta[]; homologacion: number };
 
-export default function LibroIvaDigital({ orgId, monotributo }: { orgId: string | null; monotributo: boolean }) {
+export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId: string | null; monotributo: boolean; canEdit: boolean }) {
+  const [resumenCompras, setResumenCompras] = useState<LibroIvaCompras["resumen"] | null>(null);
   const [periodo, setPeriodo] = useState(() => periodoAPresentar(mesAR()));
   const [lectura, setLectura] = useState<Lectura>({ estado: "cargando" });
 
@@ -80,7 +83,7 @@ export default function LibroIvaDigital({ orgId, monotributo }: { orgId: string 
         <div className="flex items-start gap-3">
           <BookOpen className="w-5 h-5 text-primary mt-0.5 shrink-0" />
           <div>
-            <h2 id="libro-iva-titulo" className="font-semibold">Libro IVA Digital — ventas</h2>
+            <h2 id="libro-iva-titulo" className="font-semibold">Libro IVA Digital</h2>
             <p className="text-xs text-muted-foreground mt-1">
               Los dos archivos que se importan en ARCA › Portal IVA › Libro IVA Digital, armados con tus facturas autorizadas.
               Pasáselos a tu contador o importalos vos.
@@ -187,6 +190,28 @@ export default function LibroIvaDigital({ orgId, monotributo }: { orgId: string 
             </div>
           )}
         </>
+      )}
+
+      {!monotributo && (
+        <div className="border-t border-border/40 pt-4 space-y-4">
+          {libro && lectura.estado === "listo" && resumenCompras && (() => {
+            const p = posicionIva(libro.resumen.debitoFiscal, resumenCompras);
+            return (
+              <div className="rounded-lg border border-border/40 p-3 text-sm space-y-1" aria-label="Posición de IVA del período">
+                <p className="font-medium">Posición de IVA del período</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                  <span className="text-muted-foreground">Débito fiscal (ventas)</span><span className="text-right">{ars(p.debitoFiscal)}</span>
+                  <span className="text-muted-foreground">Crédito fiscal (compras)</span><span className="text-right">− {ars(p.creditoFiscal)}</span>
+                  <span className="text-muted-foreground">Percepciones de IVA sufridas</span><span className="text-right">− {ars(p.percepcionesIva)}</span>
+                  <span className="font-medium">{p.saldo >= 0 ? "Saldo a pagar" : "Saldo técnico a favor"}</span>
+                  <span className="text-right font-semibold">{ars(Math.abs(p.saldo))}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Referencia del mes: no incluye retenciones sufridas ni saldos de períodos anteriores. La declaración jurada la presentás vos o tu contador.</p>
+              </div>
+            );
+          })()}
+          <ComprobantesDeCompra orgId={orgId} periodo={periodo} canEdit={canEdit} onResumen={setResumenCompras} />
+        </div>
       )}
     </section>
   );
