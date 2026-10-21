@@ -372,7 +372,7 @@ export default function AFIPPage() {
 
       {!connectionError && connection?.tipo_emisor === "monotributo" && <MonotributoPanel orgId={orgId} />}
 
-      {!connectionError && <LibroIvaDigital orgId={orgId} monotributo={connection?.tipo_emisor === "monotributo"} />}
+      {!connectionError && <LibroIvaDigital orgId={orgId} monotributo={connection?.tipo_emisor === "monotributo"} canEdit={canEdit} />}
 
       <section className="bg-card border border-border/40 rounded-xl overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border/40">
