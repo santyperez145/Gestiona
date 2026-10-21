@@ -149,7 +149,9 @@ export function libroIvaVentas(comprobantes: ComprobanteVenta[]): LibroIvaVentas
       importe(0), // percepciones municipales
       importe(0), // impuestos internos
       "PES", "0001000000", String(cantidad),
-      soloTasaCero ? "E" : "0",
+      // «No corresponde» es un espacio: el importador de ARCA rechaza el «0»
+      // que aceptaba el ex CITI («el código de Operación es inválido»).
+      soloTasaCero ? "E" : " ",
       importe(0), // otros tributos
       "00000000", // vencimiento de pago: sólo servicios
     ].join(""));

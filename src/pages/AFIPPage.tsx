@@ -12,6 +12,7 @@ import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
+import MonotributoPanel from "@/components/afip/MonotributoPanel";
 import { saludFiscal } from "@/lib/fiscalHealth";
 import KPICard from "@/components/shared/KPICard";
 import { fechaFiscalArgentina } from "@/lib/arcaInvoice";
@@ -368,6 +369,8 @@ export default function AFIPPage() {
         <KPICard label="Con error" value={metrics.failed} icon={XCircle} color="destructive" />
         <KPICard label="Facturado con CAE" value={formatARS(metrics.billed)} icon={FileText} color="blue" />
       </div>
+
+      {!connectionError && connection?.tipo_emisor === "monotributo" && <MonotributoPanel orgId={orgId} />}
 
       {!connectionError && <LibroIvaDigital orgId={orgId} monotributo={connection?.tipo_emisor === "monotributo"} />}
 

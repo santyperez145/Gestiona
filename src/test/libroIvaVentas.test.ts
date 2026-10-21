@@ -26,7 +26,7 @@ describe("Libro IVA Digital — ventas", () => {
     expect(r.slice(228, 231)).toBe("PES");
     expect(r.slice(231, 241)).toBe("0001000000");
     expect(r.slice(241, 242)).toBe("1");
-    expect(r.slice(242, 243)).toBe("0");
+    expect(r.slice(242, 243)).toBe(" ");
     expect(r.slice(258, 266)).toBe("00000000");
   });
 
@@ -58,6 +58,11 @@ describe("Libro IVA Digital — ventas", () => {
     expect(r.slice(78, 108).trim()).toBe("CONSUMIDOR FINAL");
     expect(documentoDelComprador("30.123.456")).toEqual({ tipo: 99, numero: "0" });
     expect(documentoDelComprador("30123456")).toEqual({ tipo: 96, numero: "30123456" });
+  });
+
+  it("operación sólo al 0 %: código E", () => {
+    const exenta = { ...base, tax_amount: 0, tax_pct: 0, total: 1000 };
+    expect(renglones(libroIvaVentas([exenta]).cbte)[0].slice(242, 243)).toBe("E");
   });
 
   it("factura C: sin alícuotas", () => {

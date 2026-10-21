@@ -114,7 +114,8 @@ general vive en [CONFIGURACION.md](CONFIGURACION.md); normativa en [LEGAL.md](LE
   con CAE y fuera de homologación. Importes en pesos con dos decimales
   implícitos; notas de crédito con importes positivos (el tipo las identifica)
   y restando en el resumen. Comprobantes C sin renglón de alícuota. Código de
-  operación «E» sólo si todas las alícuotas son 0 %; si no, «0».
+  operación «E» sólo si todas las alícuotas son 0 %; si no, un espacio («no
+  corresponde»: el importador de ARCA rechaza el «0» que aceptaba el ex CITI).
 - Certificado de la plataforma (`afip-platform-cert`): «Generar pedido» crea la
   clave RSA 2048 en el servidor (cifrada, no se descarga) y devuelve sólo el CSR.
   El .crt que emite ARCA se prueba contra WSAA con esa clave antes de reemplazar
