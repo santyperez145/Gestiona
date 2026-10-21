@@ -11,6 +11,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
+import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
 import { saludFiscal } from "@/lib/fiscalHealth";
 import KPICard from "@/components/shared/KPICard";
 import { fechaFiscalArgentina } from "@/lib/arcaInvoice";
@@ -51,6 +52,7 @@ interface AfipConnectionStatus {
   delegacion_revisada_at: string | null;
   delegacion_verificada: boolean | null;
   plataforma_verificada?: boolean | null;
+  tipo_emisor?: string | null;
   plataforma_ambiente: string | null;
 }
 
@@ -137,7 +139,7 @@ export default function AFIPPage() {
         // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
         // una columna que no existe— y con `strictNullChecks: false` el cast a
         // la interface hace que TypeScript crea que el campo está.
-        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente, plataforma_verificada")
+        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente, plataforma_verificada, tipo_emisor")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
@@ -366,6 +368,8 @@ export default function AFIPPage() {
         <KPICard label="Con error" value={metrics.failed} icon={XCircle} color="destructive" />
         <KPICard label="Facturado con CAE" value={formatARS(metrics.billed)} icon={FileText} color="blue" />
       </div>
+
+      {!connectionError && <LibroIvaDigital orgId={orgId} monotributo={connection?.tipo_emisor === "monotributo"} />}
 
       <section className="bg-card border border-border/40 rounded-xl overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border/40">
