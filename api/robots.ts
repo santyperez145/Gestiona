@@ -36,6 +36,10 @@ export default async function handler(req: Request): Promise<Response> {
   const hostedSlug = resolution.slug;
   const origin = resolvedStoreOrigin(url, resolution);
   const sitemaps = ["/sitemap.xml"];
+  // Si no se pudieron leer las tiendas, el robots sale igual (un 5xx en
+  // robots.txt frena el rastreo de todo el sitio) pero se guarda poco: así la
+  // lista completa vuelve apenas se recupera la base.
+  let tiendasLeidas = true;
 
   if (resolution.customDomain && !hostedSlug) {
     return new Response("User-agent: *\nDisallow: /\n", {
@@ -59,18 +63,21 @@ export default async function handler(req: Request): Promise<Response> {
       const slugs = Array.isArray(rows)
         ? rows.map((r: { slug?: string }) => String(r?.slug ?? "").trim()).filter(Boolean)
         : [];
+      if (!res.ok || !Array.isArray(rows)) tiendasLeidas = false;
       for (const slug of slugs) {
         sitemaps.push(`https://${slug}.${BRAND_DOMAIN}/sitemap.xml`);
       }
-    } catch {
-      /* el índice raíz sigue yendo */
+    } catch (error) {
+      // El índice raíz sigue declarado y lista las tiendas cuando vuelve la base.
+      tiendasLeidas = false;
+      console.error("robots: no se pudieron leer las tiendas", error);
     }
   }
 
   return new Response(cuerpoRobots(origin, sitemaps, { hostedStore: Boolean(hostedSlug) }), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": tiendasLeidas ? "public, max-age=3600" : "public, max-age=300",
     },
   });
 }

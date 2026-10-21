@@ -240,6 +240,17 @@ buscaba aportar.
 D5.24 queda certificado. Esto prueba que Google puede recorrer el grafo; no que
 ya lo haya indexado ni que le asigne una posición concreta.
 
+### Fallo de la base: 503, no un índice recortado — 2026-10-21
+
+El 2026-10-19 la base productiva quedó inactiva (factura de infraestructura
+impaga) y el índice raíz siguió respondiendo 200 con sólo la plataforma: para
+Google, las tiendas habían dejado de existir. Desde ahora, si no se pueden leer
+las tiendas, `api/sitemap-index.ts` responde 503 con `Retry-After: 300` y
+`no-store`. El sitemap de cada tienda en 503 también lleva `Retry-After` y
+`no-store`. `api/robots.ts` sigue en 200 (un 5xx en robots frena el rastreo de
+todo el sitio) pero se guarda cinco minutos en vez de una hora cuando no pudo
+leer las tiendas. Tests en `src/test/platformSeo.test.ts`.
+
 ## Criterio competitivo
 
 Las referencias verificadas al 2026-09-03 no dependen de una lista oculta de

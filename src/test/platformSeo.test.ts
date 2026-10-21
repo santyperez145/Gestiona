@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import platformSeoHandler from '../../api/platform-seo';
 import platformSitemapHandler from '../../api/platform-sitemap';
-import sitemapIndexHandler from '../../api/sitemap-index';
+import { indiceDeSitemaps } from '../../api/sitemap-index';
 import { platformCrawlerTarget } from '../../middleware';
 import {
   PLATFORM_SEO_PAGES,
@@ -65,7 +65,7 @@ describe('SEO público de Nerqia', () => {
     }
     expect(xml).not.toContain('/privacidad');
 
-    const index = await sitemapIndexHandler(new Request('https://nerqia.app/sitemap.xml'));
+    const index = await indiceDeSitemaps(null);
     expect(await index.text()).toContain('https://nerqia.app/sitemap-platform.xml');
 
     const vercel = JSON.parse(readFileSync(resolve(process.cwd(), 'vercel.json'), 'utf8')) as {
@@ -80,5 +80,36 @@ describe('SEO público de Nerqia', () => {
       source: '/pricing',
       destination: '/precios',
     }));
+  });
+});
+
+// 2026-10-19: con la base caída el índice respondía 200 con sólo la plataforma.
+describe('índice de sitemaps cuando falla la base', () => {
+  it('lista cada tienda publicada además de la plataforma', async () => {
+    const res = await indiceDeSitemaps(async () => ['exentryimports', 'ferreteriafamatina']);
+    const xml = await res.text();
+    expect(res.status).toBe(200);
+    expect(xml).toContain('https://exentryimports.nerqia.app/sitemap.xml');
+    expect(xml).toContain('https://ferreteriafamatina.nerqia.app/sitemap.xml');
+    expect(xml).toContain('https://nerqia.app/sitemap-platform.xml');
+  });
+
+  it('si no se pueden leer las tiendas responde 503 sin guardar, en vez de un índice recortado', async () => {
+    const original = console.error;
+    console.error = () => {};
+    const res = await indiceDeSitemaps(async () => { throw new Error('503'); });
+    console.error = original;
+    expect(res.status).toBe(503);
+    expect(res.headers.get('retry-after')).toBe('300');
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(await res.text()).not.toContain('<sitemapindex');
+  });
+
+  it('el sitemap de tienda y robots no conservan un fallo pasajero', () => {
+    const tienda = readFileSync(resolve(process.cwd(), 'api/sitemap.ts'), 'utf8');
+    expect(tienda).toContain('status >= 500 ? "no-store"');
+    expect(tienda).toContain('{ "Retry-After": "300" }');
+    const robots = readFileSync(resolve(process.cwd(), 'api/robots.ts'), 'utf8');
+    expect(robots).toContain('tiendasLeidas ? "public, max-age=3600" : "public, max-age=300"');
   });
 });

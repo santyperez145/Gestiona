@@ -51,7 +51,10 @@ export default async function handler(req: Request): Promise<Response> {
         status,
         headers: {
           "Content-Type": "application/xml; charset=utf-8",
-          "Cache-Control": indexable ? "public, max-age=3600" : "public, max-age=60",
+          // Un 503 es pasajero: que nadie lo guarde y que Google vuelva en
+          // cinco minutos, en vez de quedarse una hora con el sitemap vacío.
+          "Cache-Control": status >= 500 ? "no-store" : indexable ? "public, max-age=3600" : "public, max-age=60",
+          ...(status >= 500 ? { "Retry-After": "300" } : {}),
           ...(!indexable ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
         },
       },
