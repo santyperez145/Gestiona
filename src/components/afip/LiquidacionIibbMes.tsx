@@ -64,6 +64,9 @@ export default function LiquidacionIibbMes({ liquidacion }: { liquidacion: Liqui
         </div>
       )}
 
+      {l.exportaciones !== 0 && (
+        <p className="text-xs text-muted-foreground">Las exportaciones del mes ({ars(l.exportaciones)}) no integran la base de Ingresos Brutos.</p>
+      )}
       {l.percepcionesDeCompras > 0 && (
         <p className="text-xs text-muted-foreground">
           Tus compras traen {ars(l.percepcionesDeCompras)} de percepciones de IIBB: restalas en la jurisdicción que corresponda (el comprobante de compra no dice de cuál es).

@@ -180,7 +180,9 @@ export function libroIvaVentas(comprobantes: ComprobanteVenta[]): LibroIvaVentas
       moneda, ceros(Math.round(cotizacion * 1_000_000), 10), String(cantidad),
       // «No corresponde» es un espacio: el importador de ARCA rechaza el «0»
       // que aceptaba el ex CITI («el código de Operación es inválido»).
-      netoGravado === 0 && exento > 0 ? "E" : netoGravado === 0 && noGravado > 0 ? "N" : soloTasaCero ? "E" : " ",
+      // La factura E y sus notas son exportaciones al exterior («X»), no operaciones exentas.
+      [19, 20, 21].includes(tipo) ? "X"
+        : netoGravado === 0 && exento > 0 ? "E" : netoGravado === 0 && noGravado > 0 ? "N" : soloTasaCero ? "E" : " ",
       importe(tributo([2, 9, 99])), // otros tributos
       // Vencimiento de pago: sólo servicios (concepto 2 o 3).
       [2, 3].includes(Number(c.concepto)) ? fecha(c.due_date || c.issue_date) : "00000000",

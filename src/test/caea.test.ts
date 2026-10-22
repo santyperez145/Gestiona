@@ -83,6 +83,7 @@ describe("CAEA: el panel", () => {
     expect(puedeEmitirEnContingencia({ ...sinRed, afip_status: "rejected" }, true)).toBe(false);
     expect(puedeEmitirEnContingencia({ ...sinRed, afip_status: "processing" }, true)).toBe(false);
     expect(puedeEmitirEnContingencia({ ...sinRed, tipo_comprobante: 206 }, true)).toBe(false);
+    expect(puedeEmitirEnContingencia({ ...sinRed, tipo_comprobante: 19 }, true)).toBe(false);
     expect(puedeEmitirEnContingencia({ ...sinRed, cae: "31234567890123" }, true)).toBe(false);
   });
   it("lee el estado del informe y nombra la quincena", async () => {

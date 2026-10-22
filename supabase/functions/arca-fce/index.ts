@@ -14,7 +14,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { resolverCredencialesAfip } from "../_shared/afipCredenciales.ts";
-import { pedirTicketWsaa } from "../_shared/wsaaLogin.ts";
+import { ticketPorServicio, type AmbienteArca } from "../_shared/ticketServicio.ts";
 import { clasificarRechazoWsaa } from "../_shared/certificadoArcaReglas.ts";
 import {
   WSFECRED_SERVICIO, WSFECRED_URL, WsfecredError, leerObligadoRecepcion, soapObligadoRecepcion,
@@ -29,44 +29,6 @@ const corsHeaders = {
 
 const responder = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-const WSAA_URL = {
-  produccion: "https://wsaa.afip.gov.ar/ws/services/LoginCms",
-  homologacion: "https://wsaahomo.afip.gov.ar/ws/services/LoginCms",
-} as const;
-
-type Ambiente = "produccion" | "homologacion";
-
-async function ticket(orgId: string, environment: Ambiente, cert: string, key: string) {
-  const vigente = (exp: string | null | undefined) => !!exp && new Date(exp) > new Date(Date.now() + 5 * 60_000);
-  const leer = async () => (await supabase.from("afip_ta_por_servicio").select("token, sign, expires_at")
-    .eq("org_id", orgId).eq("servicio", WSFECRED_SERVICIO).eq("environment", environment).maybeSingle()).data;
-
-  const guardado = await leer();
-  if (guardado && vigente(guardado.expires_at)) return guardado;
-
-  const clave = `afip:ta:${orgId}:${WSFECRED_SERVICIO}:${environment}`;
-  const { data: gane } = await supabase.rpc("afip_ta_lease_tomar", { p_clave: clave, p_segundos: 45 });
-  if (!gane) {
-    for (let i = 0; i < 6; i++) {
-      await new Promise(r => setTimeout(r, 1500));
-      const otro = await leer();
-      if (otro && vigente(otro.expires_at)) return otro;
-    }
-  }
-  try {
-    const ta = await pedirTicketWsaa(WSAA_URL[environment], cert, key, WSFECRED_SERVICIO);
-    const { error } = await supabase.from("afip_ta_por_servicio").upsert({
-      org_id: orgId, servicio: WSFECRED_SERVICIO, environment,
-      token: ta.token, sign: ta.sign, expires_at: ta.expiresAt, updated_at: new Date().toISOString(),
-    });
-    if (error) console.error("[fce] no se guardó el ticket", error.message);
-    return { token: ta.token, sign: ta.sign, expires_at: ta.expiresAt };
-  } finally {
-    const { error } = await supabase.rpc("afip_ta_lease_soltar", { p_clave: clave });
-    if (error) console.error("[fce] no se soltó el lease", error.message);
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -92,10 +54,15 @@ Deno.serve(async (req) => {
   const resuelto = await resolverCredencialesAfip(supabase, orgId);
   if (!resuelto.cred) return responder({ ok: false, code: "sin_certificado", error: resuelto.error });
   const cred = resuelto.cred;
-  const environment: Ambiente = cred.environment === "produccion" ? "produccion" : "homologacion";
+  // El ticket de wsfecred se guarda por comercio: con el certificado de la
+  // plataforma sería uno compartido y el segundo comercio quedaría afuera.
+  if (cred.modo !== "propio") {
+    return responder({ ok: false, code: "sin_certificado_propio", error: "La consulta de Factura de Crédito se hace con tu propio certificado de ARCA. Cargalo en ARCA → Certificado." });
+  }
+  const environment: AmbienteArca = cred.environment === "produccion" ? "produccion" : "homologacion";
 
   try {
-    const ta = await ticket(orgId, environment, cred.certificate, cred.private_key);
+    const ta = await ticketPorServicio(supabase, { orgId, servicio: WSFECRED_SERVICIO, environment, certificate: cred.certificate, privateKey: cred.private_key });
     const resp = await fetch(WSFECRED_URL[environment], {
       method: "POST",
       headers: { "Content-Type": "text/xml; charset=utf-8", SOAPAction: "http://ar.gob.afip.wsfecred/FECredService/consultarMontoObligadoRecepcion" },

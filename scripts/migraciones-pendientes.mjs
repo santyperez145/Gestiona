@@ -39,6 +39,7 @@ export const MATRICES = {
   '20261022000800': 'scripts/percepciones-automaticas-matrix.sql',
   '20261022000900': 'scripts/caea-contingencia-matrix.sql',
   '20261022001000': 'scripts/iibb-coeficiente-matrix.sql',
+  '20261022001100': 'scripts/factura-exportacion-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

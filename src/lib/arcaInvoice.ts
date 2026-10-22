@@ -209,6 +209,7 @@ export function condicionIvaLabel(value: string | number | null | undefined): st
     "4": "IVA Sujeto Exento",
     "5": "Consumidor Final",
     "6": "Responsable Monotributo",
+    "9": "Cliente del Exterior",
   };
   return labels[String(value ?? "")] ?? "Condición IVA no informada";
 }

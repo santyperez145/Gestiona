@@ -10,6 +10,8 @@
  *     de cada jurisdicción (el del CM05), que tiene que sumar 1.
  *   · Impuesto determinado = base × alícuota; se le restan las retenciones
  *     sufridas de esa jurisdicción.
+ *   · Las exportaciones (factura E y sus notas) no integran la base: se
+ *     informan aparte.
  *
  * Las percepciones de IIBB de las compras no traen jurisdicción: se informan
  * aparte para que el contador las impute; no se restan a ciegas.
@@ -18,7 +20,7 @@
  * saldos a favor anteriores, anticipos ni deducciones especiales.
  */
 import { importesWsfe } from "../../supabase/functions/_shared/wsfeComprobante";
-import { NOTAS_DE_CREDITO } from "../../supabase/functions/_shared/comprobantesArca";
+import { EXPORTACION, NOTAS_DE_CREDITO } from "../../supabase/functions/_shared/comprobantesArca";
 import type { ComprobanteVenta } from "./libroIvaVentas";
 import type { Celda, RetencionSufrida } from "./subdiarioIva";
 
@@ -48,6 +50,8 @@ export interface LiquidacionIibb {
   /** Retenciones de IIBB cuya jurisdicción no es ninguna de las inscriptas. */
   retencionesSinJurisdiccion: number;
   percepcionesDeCompras: number;
+  /** Lo exportado en el mes (en pesos): no integra la base de IIBB. */
+  exportaciones: number;
   avisos: string[];
   problemas: { id: string; comprobante: string; motivo: string }[];
 }
@@ -83,8 +87,10 @@ export function liquidacionIibb(args: {
 }): LiquidacionIibb {
   const problemas: LiquidacionIibb["problemas"] = [];
   let baseTotal = 0;
+  let exportaciones = 0;
   for (const c of args.comprobantes) {
     try {
+      if (EXPORTACION.has(Number(c.tipo_comprobante))) { exportaciones += baseIibb(c); continue; }
       baseTotal += baseIibb(c);
     } catch (e) {
       problemas.push({ id: c.id, comprobante: c.number ?? `${c.punto_venta ?? "?"}-${c.numero_afip ?? "?"}`, motivo: e instanceof Error ? e.message : String(e) });
@@ -128,7 +134,7 @@ export function liquidacionIibb(args: {
     })
     .sort((a, b) => b.base - a.base || a.jurisdiccion.localeCompare(b.jurisdiccion));
 
-  return { baseTotal, renglones, retencionesSinJurisdiccion, percepcionesDeCompras: r2(args.percepcionesDeCompras), avisos, problemas };
+  return { baseTotal, renglones, retencionesSinJurisdiccion, percepcionesDeCompras: r2(args.percepcionesDeCompras), exportaciones: r2(exportaciones), avisos, problemas };
 }
 
 export function hojaIibb(l: LiquidacionIibb): Celda[][] {
@@ -137,6 +143,7 @@ export function hojaIibb(l: LiquidacionIibb): Celda[][] {
     filas.push([r.jurisdiccion, r.regimen === "convenio" ? "Convenio Multilateral" : "Local", r.coeficiente, r.base, r.alicuota, r.impuesto, r.retenciones ? -r.retenciones : 0, r.saldo]);
   }
   filas.push([], ["Base imponible total del mes", "", "", l.baseTotal]);
+  if (l.exportaciones) filas.push(["Exportaciones del mes (no integran la base)", "", "", l.exportaciones]);
   if (l.percepcionesDeCompras) filas.push(["Percepciones de IIBB en compras (imputar por jurisdicción)", "", "", -l.percepcionesDeCompras]);
   if (l.retencionesSinJurisdiccion) filas.push(["Retenciones de IIBB sin jurisdicción inscripta", "", "", -l.retencionesSinJurisdiccion]);
   filas.push([], ["Borrador: no incluye saldos a favor anteriores, anticipos ni deducciones especiales."]);

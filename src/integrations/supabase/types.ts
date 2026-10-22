@@ -1353,6 +1353,12 @@ export type Database = {
           },
         ]
       }
+      arca_parametros_fex: {
+        Row: { actualizado_at: string; datos: Json; environment: string; tipo: string }
+        Insert: { actualizado_at?: string; datos: Json; environment: string; tipo: string }
+        Update: { actualizado_at?: string; datos?: Json; environment?: string; tipo?: string }
+        Relationships: []
+      }
       afip_credentials: {
         Row: {
           certificate: string | null
@@ -22977,6 +22983,8 @@ export type Database = {
           emisor_ingresos_brutos: string | null
           emisor_inicio_actividades: string | null
           emisor_razon_social: string | null
+          exportacion: Json | null
+          fex_request_id: number | null
           fiscal_issued_at: string | null
           fiscal_snapshot_source: string | null
           id: string
@@ -23040,6 +23048,8 @@ export type Database = {
           emisor_ingresos_brutos?: string | null
           emisor_inicio_actividades?: string | null
           emisor_razon_social?: string | null
+          exportacion?: Json | null
+          fex_request_id?: number | null
           fiscal_issued_at?: string | null
           fiscal_snapshot_source?: string | null
           id?: string
@@ -23103,6 +23113,8 @@ export type Database = {
           emisor_ingresos_brutos?: string | null
           emisor_inicio_actividades?: string | null
           emisor_razon_social?: string | null
+          exportacion?: Json | null
+          fex_request_id?: number | null
           fiscal_issued_at?: string | null
           fiscal_snapshot_source?: string | null
           id?: string
@@ -59905,6 +59917,8 @@ export type Database = {
       datos_fce: { Args: { p_org: string }; Returns: Json }
       datos_percepciones: { Args: { p_org: string }; Returns: Json }
       estado_contingencia: { Args: { p_org: string }; Returns: Json }
+      estado_exportacion: { Args: { p_org: string }; Returns: Json }
+      configurar_exportacion: { Args: { p_org: string; p_punto_venta_exportacion: number | null }; Returns: Json }
       configurar_contingencia: { Args: { p_habilitada: boolean; p_org: string; p_punto_venta_caea: number | null }; Returns: Json }
       configurar_percepciones: {
         Args: { p_iibb_agente: boolean; p_iibb_minimo: number; p_iibb_padron: string | null; p_iibb_sin_padron: number | null; p_iva_agente: boolean; p_iva_alicuota: number | null; p_org: string }

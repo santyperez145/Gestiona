@@ -242,6 +242,7 @@ const MENSAJES_EMISION: Array<[RegExp, string]> = [
   [/No hay un CAEA vigente/i, "No hay un CAEA vigente para la fecha de la factura. Nerqia lo pide antes de cada quincena; si recién activaste la contingencia, tocá «Pedir CAEA ahora»."],
   [/no es fiscal/i, "Este comprobante no es una factura fiscal."],
   [/Credito MiPyME/i, "La Factura de Crédito MiPyME no se emite en contingencia."],
+  [/exportacion/i, "La factura de exportación no se emite en contingencia: ARCA no tiene CAEA para WSFEX."],
   [/dueno o un administrador/i, "Sólo el dueño o un administrador pueden emitir en contingencia."],
 ];
 
@@ -255,6 +256,7 @@ async function emitir(orgId: string, invoiceId: string, userId: string) {
   const tipo = Number(inv.tipo_comprobante);
   if (!tipo) return responder({ ok: false, error: mensajeDeEmision("no es fiscal") });
   if (FCE.has(tipo)) return responder({ ok: false, error: mensajeDeEmision("Credito MiPyME") });
+  if (tipo === 19 || tipo === 20 || tipo === 21) return responder({ ok: false, error: mensajeDeEmision("exportacion") });
 
   // Validar el comprobante completo antes de numerarlo: lo que ARCA rechazaría
   // al informarlo, mejor saberlo ahora que con la factura entregada.

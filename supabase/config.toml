@@ -101,3 +101,7 @@ verify_jwt = true
 # 2026-10-22: CAEA de contingencia (cron con x-cron-secret o dueño/administrador con sesión).
 [functions.arca-caea]
 verify_jwt = true
+
+# 2026-10-22: Factura de exportación E (WSFEX). La llama afip-authorize (outbox o panel) y el panel para parámetros y cotización.
+[functions.arca-fex]
+verify_jwt = true

@@ -7,10 +7,13 @@
  * sola fuente no se puede olvidar ninguna.
  */
 
-/** Facturas: A, B, C y sus equivalentes de crédito MiPyME. */
-export const FACTURAS = new Set([1, 6, 11, 201, 206, 211]);
-export const NOTAS_DE_DEBITO = new Set([2, 7, 12, 202, 207, 212]);
-export const NOTAS_DE_CREDITO = new Set([3, 8, 13, 203, 208, 213]);
+/** Facturas: A, B, C, sus equivalentes de crédito MiPyME y la de exportación E (19). */
+export const FACTURAS = new Set([1, 6, 11, 201, 206, 211, 19]);
+export const NOTAS_DE_DEBITO = new Set([2, 7, 12, 202, 207, 212, 20]);
+export const NOTAS_DE_CREDITO = new Set([3, 8, 13, 203, 208, 213, 21]);
+
+/** Exportación (WSFEX): factura E, nota de débito y nota de crédito. */
+export const EXPORTACION = new Set([19, 20, 21]);
 
 /** Clase A: discrimina IVA y exige el CUIT del receptor. */
 export const CLASE_A = new Set([1, 2, 3, 201, 202, 203]);
@@ -31,6 +34,7 @@ export const esFce = (tipo: unknown) => FCE.has(Number(tipo));
 export const FACTURA_DE_LA_NOTA: Record<number, number> = {
   2: 1, 3: 1, 7: 6, 8: 6, 12: 11, 13: 11,
   202: 201, 203: 201, 207: 206, 208: 206, 212: 211, 213: 211,
+  20: 19, 21: 19,
 };
 
 export const NOMBRE_DE_COMPROBANTE: Record<number, string> = {
@@ -40,6 +44,7 @@ export const NOMBRE_DE_COMPROBANTE: Record<number, string> = {
   201: "Factura de Crédito Electrónica MiPyME A", 202: "Nota de débito electrónica MiPyME A", 203: "Nota de crédito electrónica MiPyME A",
   206: "Factura de Crédito Electrónica MiPyME B", 207: "Nota de débito electrónica MiPyME B", 208: "Nota de crédito electrónica MiPyME B",
   211: "Factura de Crédito Electrónica MiPyME C", 212: "Nota de débito electrónica MiPyME C", 213: "Nota de crédito electrónica MiPyME C",
+  19: "Factura de exportación E", 20: "Nota de débito de exportación E", 21: "Nota de crédito de exportación E",
 };
 
 /** Letra del comprobante: A, B o C (la FCE conserva la de su clase). */

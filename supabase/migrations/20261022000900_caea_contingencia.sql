@@ -188,6 +188,10 @@ BEGIN
   IF v_inv.tipo_comprobante BETWEEN 201 AND 213 THEN
     RAISE EXCEPTION 'La Factura de Credito MiPyME no se emite en contingencia';
   END IF;
+  -- La factura E se autoriza por WSFEX, que no tiene CAEA.
+  IF v_inv.tipo_comprobante IN (19, 20, 21) THEN
+    RAISE EXCEPTION 'La factura de exportacion no se emite en contingencia';
+  END IF;
   -- Un pedido de CAE con número reservado pudo haber llegado a ARCA: si se
   -- emitiera también por CAEA, la venta tendría dos comprobantes.
   IF v_inv.afip_candidate_number IS NOT NULL THEN

@@ -488,6 +488,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Factura de exportación (19, 20, 21): la autoriza WSFEX en `arca-fex`.
+    // El outbox y el panel siguen llamando acá; se reenvía con la misma
+    // autoridad (secreto de cron o sesión), y arca-fex vuelve a verificarla.
+    if ([19, 20, 21].includes(Number(invoice.tipo_comprobante))) {
+      return await reenviarAExportacion(req, invoiceId, llamadaOutbox);
+    }
+
     // Verify the same write role that the server-side reservation enforces.
     if (!llamadaOutbox) {
       const { data: membership } = await supabase
@@ -1034,6 +1041,25 @@ function round2(n: number): number {
 function defaultTipoCbte(tipoEmisor: string): number {
   // monotributista → 11 (Factura C), responsable inscripto → 6 (Factura B, default)
   return tipoEmisor === "responsable_inscripto" ? 6 : 11;
+}
+
+async function reenviarAExportacion(req: Request, invoiceId: string, outbox: boolean): Promise<Response> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  for (const h of ["Authorization", "apikey"]) {
+    const v = req.headers.get(h);
+    if (v) headers[h] = v;
+  }
+  if (outbox) headers["x-cron-secret"] = req.headers.get("x-cron-secret") ?? "";
+  try {
+    const resp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/arca-fex`, {
+      method: "POST", headers, body: JSON.stringify({ action: "autorizar", invoice_id: invoiceId }),
+      signal: AbortSignal.timeout(120_000),
+    });
+    return new Response(await resp.text(), { status: resp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (e) {
+    console.error("[ARCA] no se pudo reenviar la factura de exportación", e instanceof Error ? e.message : e);
+    return err("No se pudo autorizar la factura de exportación. Reintentá en unos minutos.", 503);
+  }
 }
 
 function ok(data: unknown, status = 200) {

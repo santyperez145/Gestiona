@@ -55,7 +55,7 @@ describe("autoridad transaccional de facturación", () => {
     expect(manualGuard).toContain("_crear_factura_manual_interna(p_org, p_customer, p_items, p_fiscal, NULL)");
     expect(manualGuard).toContain("jsonb_build_object('tax_pct', 0)");
     expect(manualGuard).toContain("REVOKE ALL ON FUNCTION public._crear_factura_manual_interna");
-    expect(page).toContain('!afipConfigured || suggestedVoucher?.letra === "C" ? 0');
+    expect(page).toContain('!afipConfigured || suggestedVoucher?.letra === "C" || esExportacion ? 0');
   });
 
   it("limita las alicuotas fiscales en UI y base", () => {

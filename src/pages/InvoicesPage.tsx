@@ -56,6 +56,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { INVOICE_TAX_RATES, manualInvoiceTaxSummary, netoDesdePrecioFinal, updateDefaultInvoiceTaxRate, type TratamientoRenglon } from "@/lib/manualInvoiceTax";
 import DetalleFiscalFactura from "@/components/invoices/DetalleFiscalFactura";
 import FacturaDeCreditoMipyme from "@/components/invoices/FacturaDeCreditoMipyme";
+import FacturaDeExportacion from "@/components/invoices/FacturaDeExportacion";
 import { detalleFiscalInicial, detalleFiscalParaEnviar, erroresDelDetalleFiscal, type DetalleFiscal } from "@/lib/detalleFiscal";
 import ProductCombobox from "@/components/shared/ProductCombobox";
 import { productoPorCodigo } from "@/lib/presupuestos";
@@ -118,6 +119,8 @@ interface Invoice {
   fiscal_issued_at: string | null;
   nota_credito_de: string | null;
   nota_debito_de?: string | null;
+  /** Factura E (20261022001100). */
+  exportacion?: { tipo_expo?: number; pais_destino?: number; incoterms?: string; forma_pago?: string; idioma?: number } | null;
 }
 
 interface AfipSettings {
@@ -153,6 +156,9 @@ const TIPO_CBTE: Record<number, { short: string; title: string; creditNote: bool
   211: { short: "FCE C", title: "FACTURA DE CRÉDITO ELECTRÓNICA MiPyME C", creditNote: false },
   212: { short: "ND FCE C", title: "NOTA DE DÉBITO ELECTRÓNICA MiPyME C", creditNote: false },
   213: { short: "NC FCE C", title: "NOTA DE CRÉDITO ELECTRÓNICA MiPyME C", creditNote: true },
+  19: { short: "E", title: "FACTURA DE EXPORTACIÓN E", creditNote: false },
+  20: { short: "ND E", title: "NOTA DE DÉBITO POR OPERACIONES CON EL EXTERIOR E", creditNote: false },
+  21: { short: "NC E", title: "NOTA DE CRÉDITO POR OPERACIONES CON EL EXTERIOR E", creditNote: true },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
@@ -317,6 +323,9 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
       : null,
     extranjera
       ? `Moneda: ${inv.currency === "USD" ? "dólares estadounidenses" : "euros"}${inv.moneda_cotizacion ? ` · Cotización ${formatARS(Number(inv.moneda_cotizacion))}` : ""}${inv.cancela_misma_moneda ? " · Se cancela en la misma moneda" : ""}`
+      : null,
+    inv.exportacion
+      ? `Exportación de ${inv.exportacion.tipo_expo === 1 ? "bienes" : inv.exportacion.tipo_expo === 2 ? "servicios" : "otros"} · País de destino (código ARCA) ${inv.exportacion.pais_destino ?? "—"}${inv.exportacion.incoterms ? ` · Incoterm ${inv.exportacion.incoterms}` : ""}${inv.exportacion.forma_pago ? ` · Forma de pago: ${inv.exportacion.forma_pago}` : ""}`
       : null,
   ].filter(Boolean) as string[];
   if (extras.length) {
@@ -901,7 +910,7 @@ export default function InvoicesPage() {
     const next = new URLSearchParams(searchParams);
     next.delete("nc");
     setSearchParams(next, { replace: true });
-    if (!inv.cae || ![1, 6, 11].includes(inv.tipo_comprobante ?? 0)) {
+    if (!inv.cae || ![1, 6, 11, 19].includes(inv.tipo_comprobante ?? 0)) {
       toast.warning("Esa factura no tiene CAE: no lleva nota de crédito fiscal.");
       return;
     }
@@ -917,10 +926,14 @@ export default function InvoicesPage() {
   const suggestedVoucher = afipConfigured && afipSettings?.afip_tipo_emisor
     ? tipoDeComprobante(afipSettings.afip_tipo_emisor, form.receiver_condition)
     : null;
-  const effectiveTaxPct = !afipConfigured || suggestedVoucher?.letra === "C" ? 0 : Number(form.tax_pct);
-  const esClaseC = suggestedVoucher?.letra === "C";
+  // Factura E: al exterior, sin IVA; cada renglón va exento.
+  const esExportacion = afipConfigured && sourceSaleGrossTotal === null && Boolean(detalleFiscal.exportacion);
+  const effectiveTaxPct = !afipConfigured || suggestedVoucher?.letra === "C" || esExportacion ? 0 : Number(form.tax_pct);
+  const esClaseC = suggestedVoucher?.letra === "C" && !esExportacion;
   // En una factura C no hay exento ni no gravado: todo renglón cuenta como gravado.
-  const itemsParaCalcular = esClaseC ? items.map(it => ({ ...it, tratamiento: "gravado" as const })) : items;
+  const itemsParaCalcular = esExportacion
+    ? items.map(it => ({ ...it, tratamiento: "exento" as const }))
+    : esClaseC ? items.map(it => ({ ...it, tratamiento: "gravado" as const })) : items;
   const manualTaxSummary = manualInvoiceTaxSummary(itemsParaCalcular, {
     fiscalEnabled: afipConfigured,
     classC: esClaseC,
@@ -963,13 +976,13 @@ export default function InvoicesPage() {
     }
     if (!form.customer_name.trim()) { toast.error("Nombre del cliente requerido"); return; }
     if (items.every((it) => !it.description.trim())) { toast.error("Agregá al menos un ítem"); return; }
-    if (afipSettings?.afip_cuit && form.receiver_condition !== "consumidor_final" && !validarCuit(form.customer_tax_id)) {
+    if (afipSettings?.afip_cuit && !esExportacion && form.receiver_condition !== "consumidor_final" && !validarCuit(form.customer_tax_id)) {
       toast.error("La condición fiscal elegida requiere un CUIT válido");
       return;
     }
     const fceVigente = detalleFiscal.fce && form.receiver_condition !== "consumidor_final";
     const erroresFiscales = afipConfigured && sourceSaleGrossTotal === null
-      ? erroresDelDetalleFiscal({ ...detalleFiscal, fce: fceVigente }, { vencimiento: form.due_date, cuitCliente: form.customer_tax_id })
+      ? erroresDelDetalleFiscal({ ...detalleFiscal, fce: fceVigente && !esExportacion, exportacion: esExportacion ? detalleFiscal.exportacion : null }, { vencimiento: form.due_date, cuitCliente: form.customer_tax_id, hoy: hoyAR() })
       : [];
     if (erroresFiscales.length) { toast.error(erroresFiscales[0]); return; }
     setSaving(true);
@@ -990,7 +1003,7 @@ export default function InvoicesPage() {
         // Concepto, servicio, moneda y tributos (20261022000600). La factura de
         // una venta toma el concepto del comercio en la base.
         ...(afipConfigured && sourceSaleGrossTotal === null
-          ? detalleFiscalParaEnviar({ ...detalleFiscal, fce: detalleFiscal.fce && form.receiver_condition !== "consumidor_final" })
+          ? detalleFiscalParaEnviar({ ...detalleFiscal, fce: detalleFiscal.fce && !esExportacion && form.receiver_condition !== "consumidor_final" })
           : {}),
       };
       const sourceSaleId = fromSaleId.current;
@@ -1009,11 +1022,11 @@ export default function InvoicesPage() {
               quantity: item.quantity,
               unit_price: item.unit_price,
               tax_rate: afipConfigured
-                ? suggestedVoucher?.letra === "C" || (item.tratamiento ?? "gravado") !== "gravado"
+                ? esExportacion || suggestedVoucher?.letra === "C" || (item.tratamiento ?? "gravado") !== "gravado"
                   ? 0
                   : Number(item.tax_rate ?? effectiveTaxPct)
                 : null,
-              tratamiento: suggestedVoucher?.letra === "C" ? "gravado" : item.tratamiento ?? "gravado",
+              tratamiento: esExportacion ? "exento" : suggestedVoucher?.letra === "C" ? "gravado" : item.tratamiento ?? "gravado",
             })),
             p_fiscal: fiscalPayload,
             p_sale_id: null,
@@ -1434,7 +1447,7 @@ export default function InvoicesPage() {
             {afipConfigured && suggestedVoucher && (
               <div className="md:col-span-2 flex items-center justify-between rounded-[8px] border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
                 <span className="text-muted-foreground">Comprobante determinado por la identidad fiscal</span>
-                <Badge variant="outline" className="border-primary/30 text-primary">{detalleFiscal.fce && form.receiver_condition !== "consumidor_final" ? `Factura de Crédito MiPyME ${suggestedVoucher.letra}` : `Factura ${suggestedVoucher.letra}`}</Badge>
+                <Badge variant="outline" className="border-primary/30 text-primary">{esExportacion ? "Factura de exportación E" : detalleFiscal.fce && form.receiver_condition !== "consumidor_final" ? `Factura de Crédito MiPyME ${suggestedVoucher.letra}` : `Factura ${suggestedVoucher.letra}`}</Badge>
               </div>
             )}
           </div>
@@ -1557,7 +1570,11 @@ export default function InvoicesPage() {
               calculandoPercepciones={calculandoPercepciones}
               onPercepcionesDelCliente={esAgenteDePercepcion ? () => void calcularPercepciones() : undefined} />
           )}
-          {afipConfigured && sourceSaleGrossTotal === null && form.receiver_condition !== "consumidor_final" && (
+          {afipConfigured && sourceSaleGrossTotal === null && (
+            <FacturaDeExportacion valor={detalleFiscal} onChange={setDetalleFiscal} orgId={activeOrg?.id}
+              ambiente={afipSettings?.afip_environment ?? null} puedeActualizar={canOpenArcaSettings} />
+          )}
+          {afipConfigured && sourceSaleGrossTotal === null && !esExportacion && form.receiver_condition !== "consumidor_final" && (
             <FacturaDeCreditoMipyme valor={detalleFiscal} onChange={setDetalleFiscal} orgId={activeOrg?.id} cuitCliente={form.customer_tax_id} total={total} />
           )}
 
@@ -1902,7 +1919,7 @@ export default function InvoicesPage() {
                           <CheckCircle2 className="w-4 h-4 text-green-400" />
                         </Button>
                       )}
-                      {canManage && inv.cae && [1, 6, 11].includes(inv.tipo_comprobante ?? 0) && (
+                      {canManage && inv.cae && [1, 6, 11, 19].includes(inv.tipo_comprobante ?? 0) && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Crear Nota de Crédito"
                           onClick={() => abrirNotaDeCredito(inv)} disabled={creatingNC === inv.id}
                         >
@@ -1911,7 +1928,7 @@ export default function InvoicesPage() {
                             : <FileMinus className="w-4 h-4 text-orange-400" />}
                         </Button>
                       )}
-                      {canManage && inv.cae && [1, 6, 11].includes(inv.tipo_comprobante ?? 0) && (
+                      {canManage && inv.cae && [1, 6, 11, 19].includes(inv.tipo_comprobante ?? 0) && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Crear Nota de Débito"
                           onClick={() => { setNdDialogInv(inv); setNdReason(""); setNdAmount(""); }}
                           disabled={creatingND === inv.id}

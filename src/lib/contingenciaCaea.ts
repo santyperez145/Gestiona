@@ -33,8 +33,8 @@ interface FacturaParaContingencia {
   caea_informe_error?: string | null;
 }
 
-/** La Factura de Crédito MiPyME y sus notas no se emiten en contingencia. */
-const FCE = new Set([201, 202, 203, 206, 207, 208, 211, 212, 213]);
+/** La Factura de Crédito MiPyME, la de exportación y sus notas no se emiten en contingencia. */
+const SIN_CAEA = new Set([201, 202, 203, 206, 207, 208, 211, 212, 213, 19, 20, 21]);
 
 /**
  * Se ofrece sólo cuando ARCA no respondió: con un rechazo o un error de
@@ -42,7 +42,7 @@ const FCE = new Set([201, 202, 203, 206, 207, 208, 211, 212, 213]);
  * informarlo.
  */
 export function puedeEmitirEnContingencia(inv: FacturaParaContingencia, habilitada: boolean): boolean {
-  return habilitada && !inv.cae && !!inv.tipo_comprobante && !FCE.has(inv.tipo_comprobante)
+  return habilitada && !inv.cae && !!inv.tipo_comprobante && !SIN_CAEA.has(inv.tipo_comprobante)
     && (inv.afip_status === "network_error" || inv.afip_status === "error");
 }
 
