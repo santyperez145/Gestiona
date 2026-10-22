@@ -2,7 +2,8 @@
  * CalendarPage — /calendario
  *
  * Unified business calendar showing tasks, deal close dates,
- * CRM follow-ups, debt due dates, and recurring expenses.
+ * CRM follow-ups, debt due dates, recurring expenses, supplier payments
+ * and cheques (2026-10-22: pagos a proveedores y cheques a depositar o debitar).
  * CSS-only calendar grid — no external library required.
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -12,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
 import {
   Calendar, ChevronLeft, ChevronRight, CheckSquare,
-  TrendingUp, Users, AlertCircle, DollarSign, RefreshCw,
+  TrendingUp, Users, AlertCircle, DollarSign, RefreshCw, Truck, Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +23,7 @@ import { useNavigate } from "react-router-dom";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type EventType = "task" | "deal" | "followup" | "debt" | "expense";
+type EventType = "task" | "deal" | "followup" | "debt" | "expense" | "pago" | "cheque";
 
 interface CalEvent {
   id: string;
@@ -40,6 +41,8 @@ const EVENT_CONFIG: Record<EventType, { color: string; bg: string; dot: string; 
   followup: { color: "text-blue-400",    bg: "bg-blue-500/15",     dot: "bg-blue-400",     icon: Users,       label: "Follow-up" },
   debt:     { color: "text-red-400",     bg: "bg-red-500/15",      dot: "bg-red-400",      icon: AlertCircle, label: "Cobro" },
   expense:  { color: "text-orange-400",  bg: "bg-orange-500/15",   dot: "bg-orange-400",   icon: DollarSign,  label: "Gasto" },
+  pago:     { color: "text-rose-500",    bg: "bg-rose-500/15",     dot: "bg-rose-500",     icon: Truck,       label: "Pago a proveedor" },
+  cheque:   { color: "text-violet-500",  bg: "bg-violet-500/15",   dot: "bg-violet-500",   icon: Landmark,    label: "Cheque" },
 };
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -83,7 +86,7 @@ export default function CalendarPage() {
       const rangeStart = addMonths(currentMonth, -1);
       const rangeEnd   = addMonths(currentMonth, 2);
 
-      const [tasksRes, dealsRes, followupsRes, debtsRes, expensesRes] = await Promise.all([
+      const [tasksRes, dealsRes, followupsRes, debtsRes, expensesRes, pagosRes, chequesRes] = await Promise.all([
         supabase
           .from("tasks")
           .select("id, title, due_date, priority, status")
@@ -123,6 +126,22 @@ export default function CalendarPage() {
           .eq("recurring", true)
           .gte("date", isoDate(rangeStart))
           .lte("date", isoDate(rangeEnd)),
+        // Lo que hay que pagar a proveedores y los cheques por depositar o debitar.
+        supabase
+          .from("supplier_debts")
+          .select("id, supplier_name, description, due_date, remaining_ars")
+          .eq("org_id", activeOrg.id)
+          .neq("status", "paid")
+          .not("due_date", "is", null)
+          .gte("due_date", isoDate(rangeStart))
+          .lte("due_date", isoDate(rangeEnd)),
+        supabase
+          .from("cheques")
+          .select("id, type, customer_name, bank_name, check_number, amount_ars, due_date")
+          .eq("org_id", activeOrg.id)
+          .eq("status", "pending")
+          .gte("due_date", isoDate(rangeStart))
+          .lte("due_date", isoDate(rangeEnd)),
       ]);
 
       // Antes nadie miraba `.error`: una consulta caída borraba sus eventos sin
@@ -130,6 +149,7 @@ export default function CalendarPage() {
       const fuentes: Array<[string, { error: unknown }]> = [
         ["Tareas", tasksRes], ["Oportunidades", dealsRes], ["Seguimientos", followupsRes],
         ["Saldos a cobrar", debtsRes], ["Gastos recurrentes", expensesRes],
+        ["Pagos a proveedores", pagosRes], ["Cheques", chequesRes],
       ];
       const conError = fuentes.filter(([, res]) => res.error);
       conError.forEach(([nombre, res]) => console.error(`[calendario] ${nombre}`, res.error));
@@ -194,6 +214,32 @@ export default function CalendarPage() {
           type: "expense",
           amount: e.amount_ars,
           link: "/finance/gastos",
+        });
+      });
+
+      (pagosRes.data || []).forEach((d: any) => {
+        if (!d.due_date || Number(d.remaining_ars) <= 0) return;
+        allEvents.push({
+          id: `pago-${d.id}`,
+          date: d.due_date.slice(0, 10),
+          title: `Pagar a ${d.supplier_name}`,
+          type: "pago",
+          amount: d.remaining_ars,
+          link: "/proveedores",
+        });
+      });
+
+      (chequesRes.data || []).forEach((c: any) => {
+        if (!c.due_date) return;
+        const quien = c.customer_name ? ` de ${c.customer_name}` : "";
+        allEvents.push({
+          id: `cheque-${c.id}`,
+          date: c.due_date.slice(0, 10),
+          // Un cheque recibido se deposita; uno emitido se debita de la cuenta.
+          title: c.type === "issued" ? `Se debita cheque N.º ${c.check_number ?? "s/n"}${quien ? ` a ${c.customer_name}` : ""}` : `Depositar cheque${quien}`,
+          type: "cheque",
+          amount: c.amount_ars,
+          link: "/cheques",
         });
       });
 

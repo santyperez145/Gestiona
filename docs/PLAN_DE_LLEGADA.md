@@ -101,13 +101,13 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 | Orden de compra | lista |
 | Recepción | lista |
 | Factura del proveedor (con IVA) | lista |
-| Cuenta corriente del proveedor | parcial |
-| Orden de pago | falta |
+| Cuenta corriente del proveedor | enlazada a sus facturas el 22/10 |
+| Orden de pago | construida el 22/10 |
 | Libro IVA de compras | listo |
 
 - [~] **Enlazar la factura del proveedor con la compra y la deuda** (construido el 22/10: «A cuenta corriente» en el Libro IVA Compras; la orden de compra se guarda si se indica). Al cargar la factura del proveedor, se asocia a la compra o a la recepción y genera la deuda en su cuenta corriente. *Terminado:* la deuda del proveedor coincide con sus facturas menos sus pagos, sin cargar nada dos veces.
 - [~] **Orden de pago** (construida el 22/10: varios medios, cheques de cartera, comprobante impreso; falta calcular la retención del agente). Pagar una o varias facturas con varios medios (efectivo, transferencia, cheque propio o de terceros) y emitir el comprobante. Si el comercio es agente, calcular la retención y emitir su certificado. *Terminado:* una orden de pago impresa que cancela dos facturas, con el cheque de terceros dado de baja de la cartera.
-- [ ] Antigüedad de deudas con proveedores y vencimientos en la agenda.
+- [x] Antigüedad de deudas con proveedores (ya existía en Proveedores) y vencimientos en la agenda (22/10: el Calendario muestra los pagos a proveedores y los cheques a depositar o debitar).
 
 **Stock, caja y precios:** multidepósito, kardex, toma física, lotes, valuación, turnos de caja con arqueo, listas de precios y actualización masiva ya existen.
 - [ ] Verificar con el catálogo real de Famatina (5.500 productos). *Terminado:* un ajuste masivo de precios y una toma física, de punta a punta, sin ayuda.
