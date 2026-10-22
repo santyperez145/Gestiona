@@ -215,3 +215,27 @@ export function entradaParaPlanilla(bytes: Uint8Array): { tipo: "array"; datos: 
   }
   return { tipo: "string", datos: texto.replace(/^\uFEFF/, "") };
 }
+
+/**
+ * Los bytes que hay que leer. ARCA a veces entrega un .zip con el .csv
+ * adentro: se lo abre acá. Un .xlsx también es un ZIP, pero trae
+ * `[Content_Types].xml` y va entero a SheetJS.
+ */
+export async function bytesDeArchivoArca(archivo: Blob): Promise<Uint8Array> {
+  const crudo = typeof archivo.arrayBuffer === "function"
+    ? await archivo.arrayBuffer()
+    : await new Promise<ArrayBuffer>((ok, mal) => {
+      const lector = new FileReader();
+      lector.onload = () => ok(lector.result as ArrayBuffer);
+      lector.onerror = () => mal(lector.error);
+      lector.readAsArrayBuffer(archivo);
+    });
+  const bytes = new Uint8Array(crudo);
+  if (!(bytes[0] === 0x50 && bytes[1] === 0x4b)) return bytes;
+  const { default: JSZip } = await import("jszip");
+  const zip = await JSZip.loadAsync(bytes);
+  if (zip.file("[Content_Types].xml")) return bytes;
+  const adentro = Object.values(zip.files).find(f => !f.dir && /\.(csv|txt|xlsx?)$/i.test(f.name));
+  if (!adentro) throw new Error("El .zip no trae un archivo de comprobantes.");
+  return await adentro.async("uint8array");
+}

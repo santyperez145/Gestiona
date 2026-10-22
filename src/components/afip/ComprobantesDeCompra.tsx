@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { consultarPadron } from "@/lib/arcaPadron";
 import { rangoDelPeriodo } from "@/lib/libroIvaVentas";
-import { entradaParaPlanilla, leerMisComprobantes, type FilaImportada } from "@/lib/misComprobantes";
+import { bytesDeArchivoArca, entradaParaPlanilla, leerMisComprobantes, type FilaImportada } from "@/lib/misComprobantes";
 import {
   TIPOS_DE_COMPRA, discriminaIva, erroresDeComprobante, leerImporte, libroIvaCompras,
   type AlicuotaCompra, type ComprobanteCompra, type LibroIvaCompras,
@@ -179,7 +179,7 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
       // SheetJS sólo cuando hace falta: pesa y la mayoría no importa nunca.
       const XLSX = await import("xlsx");
       // raw: los montos del CSV llegan con coma decimal y no se reinterpretan.
-      const entrada = entradaParaPlanilla(new Uint8Array(await archivo.arrayBuffer()));
+      const entrada = entradaParaPlanilla(await bytesDeArchivoArca(archivo));
       const libro = XLSX.read(entrada.datos, { type: entrada.tipo, raw: true, cellDates: true });
       const hoja = libro.Sheets[libro.SheetNames[0]];
       const matriz = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, raw: true, defval: "" });
@@ -192,7 +192,7 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
       });
     } catch (e) {
       console.error("Compras: no se pudo leer el archivo de ARCA", e);
-      toast.error("No se pudo leer el archivo. Si ARCA te dio un .zip, abrilo y subí el archivo de adentro.");
+      toast.error("No se pudo leer el archivo. Subilo tal como lo descargaste de ARCA (.zip, .csv o Excel).");
     }
   };
 
@@ -237,7 +237,7 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
             <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
               title="En ARCA: Mis Comprobantes › Recibidos › elegí el período › CSV o Excel">
               <FileUp className="w-3.5 h-3.5" />Importar de ARCA
-              <input type="file" accept=".csv,.xlsx,.xls,.txt" className="sr-only"
+              <input type="file" accept=".zip,.csv,.xlsx,.xls,.txt" className="sr-only"
                 onChange={ev => { void leerArchivoDeArca(ev.target.files?.[0]); ev.target.value = ""; }} />
             </label>
             <Button size="sm" variant="outline" onClick={() => { setForm(vacio(periodo)); setAbierto(true); }}>

@@ -16,6 +16,7 @@ import ContingenciaCaea from "@/components/afip/ContingenciaCaea";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
+import ConciliacionArca from "@/components/afip/ConciliacionArca";
 import ConectarCertificadoPropio from "@/components/afip/ConectarCertificadoPropio";
 import { estadoCertificado } from "@/lib/certificadoPropio";
 import { COLUMNAS_CERTIFICADO_PROPIO, conColumnasDelCertificado } from "@/lib/conexionFiscalLectura";
@@ -409,6 +410,7 @@ export default function AFIPPage() {
       {!connectionError && connection?.tipo_emisor === "monotributo" && <MonotributoPanel orgId={orgId} />}
 
       {!connectionError && <LibroIvaDigital orgId={orgId} monotributo={connection?.tipo_emisor === "monotributo"} canEdit={canEdit} />}
+      {!connectionError && <ConciliacionArca orgId={orgId} />}
 
       <section className="bg-card border border-border/40 rounded-xl overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border/40">

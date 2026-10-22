@@ -84,6 +84,13 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
   - las percepciones de IIBB de las compras se muestran aparte, porque el comprobante no dice de qué jurisdicción son.
 
   Va como hoja «Ingresos Brutos» en el Excel del contador. Migración 20261022001000 (coeficiente) con su simulacro (`scripts/iibb-coeficiente-matrix.sql`); código en `src/lib/liquidacionIibb.ts`. **Pendiente:** contrastarlo con la liquidación de un contador sobre un mes real (gate externo).
+- [x] Conciliación con «Mis Comprobantes – Emitidos» (2026-10-22). En ARCA › «Conciliar con ARCA» el comercio sube el archivo tal como lo descarga (.zip, .csv o Excel) y Nerqia lo compara con lo autorizado en esas fechas:
+  - ⚠️ un CAE que ARCA otorgó y Nerqia no guardó (la factura quedó «sin conexión» con ese número reservado) se marca en rojo con su factura: reautorizarla la duplicaría;
+  - lo que está en Nerqia y no en ARCA explica el motivo: CAEA todavía no informado, punto de venta filtrado en la descarga, o no registrado;
+  - diferencias de CAE, importe (sólo en la misma moneda) o fecha, y lo emitido por fuera de Nerqia;
+  - el detalle completo baja en Excel.
+
+  El archivo se lee con las reglas del de Recibidos (columnas por nombre, coma decimal, fechas en cualquier formato), y ahora los dos aceptan el .zip de ARCA. Código en `src/lib/conciliacionArca.ts`. **Pendiente:** probarlo con el archivo real de un comercio (gate externo).
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.
