@@ -76,6 +76,14 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
   - Un cron cada 6 horas informa cada comprobante (FECAEARegInformativo) en orden de número, y los puntos de venta sin movimiento (FECAEASinMovimientoInformar). La factura muestra «Por informar», «Informada» o el motivo del rechazo.
 
   Migración 20261022000900 con su simulacro (`scripts/caea-contingencia-matrix.sql`). **Pendiente:** aplicar, desplegar `arca-caea`, y que el comercio dé de alta el punto de venta CAEA en ARCA (gate externo).
+- [x] Ingresos Brutos del mes (2026-10-22). En el Libro IVA Digital, al lado de la posición de IVA, «Ingresos Brutos del período» arma el borrador de cada jurisdicción:
+  - la base imponible es lo autorizado en el mes sin IVA ni otros tributos, en pesos, con las notas de crédito restando;
+  - el contribuyente local la lleva entera a su jurisdicción; en Convenio Multilateral se reparte con el coeficiente del CM05 que se carga en cada inscripción (Impuestos → IIBB);
+  - se aplica la alícuota y se restan las retenciones sufridas de esa jurisdicción;
+  - avisa lo que no cierra: coeficientes que no suman 1, más de una inscripción local, retenciones de una jurisdicción no inscripta, comprobantes que no se pueden desglosar;
+  - las percepciones de IIBB de las compras se muestran aparte, porque el comprobante no dice de qué jurisdicción son.
+
+  Va como hoja «Ingresos Brutos» en el Excel del contador. Migración 20261022001000 (coeficiente) con su simulacro (`scripts/iibb-coeficiente-matrix.sql`); código en `src/lib/liquidacionIibb.ts`. **Pendiente:** contrastarlo con la liquidación de un contador sobre un mes real (gate externo).
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.

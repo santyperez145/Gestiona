@@ -18920,6 +18920,7 @@ export type Database = {
       iibb_registrations: {
         Row: {
           active: boolean
+          coeficiente: number | null
           created_at: string
           cuit: string | null
           id: string
@@ -18931,6 +18932,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          coeficiente?: number | null
           created_at?: string
           cuit?: string | null
           id?: string
@@ -18942,6 +18944,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          coeficiente?: number | null
           created_at?: string
           cuit?: string | null
           id?: string

@@ -1,5 +1,7 @@
 ﻿import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import { isMissingColumn } from "@/lib/publicDataSource";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -77,7 +79,14 @@ const PROVINCIAS = [
   "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero",
   "Tierra del Fuego", "Tucumán",
 ];
-const EMPTY_IIBB = { province: "", regime: "local", rate_pct: "", registration_number: "", cuit: "" };
+const EMPTY_IIBB = { province: "", regime: "local", rate_pct: "", registration_number: "", cuit: "", coeficiente: "" };
+
+/** «0,4321» → 0.4321. El coeficiente unificado del CM05 va de 0 (exclusive) a 1. */
+function leerCoeficiente(texto: string): number | null {
+  const n = Number(texto.trim().replace(",", "."));
+  return Number.isFinite(n) && n > 0 && n <= 1 ? Math.round(n * 1e6) / 1e6 : null;
+}
+const PESTANAS_IMPUESTOS = ["declarations", "withholdings", "rates", "iibb"];
 
 interface IibbRegistration {
   id: string;
@@ -86,6 +95,8 @@ interface IibbRegistration {
   cuit: string | null;
   registration_number: string | null;
   rate_pct: number;
+  /** Coeficiente unificado del Convenio Multilateral (20261022001000). */
+  coeficiente?: number | null;
   active: boolean;
 }
 
@@ -138,12 +149,20 @@ export default function TaxManagementPage() {
   const [iibbOpen, setIibbOpen] = useState(false);
   const [iibbForm, setIibbForm] = useState({ ...EMPTY_IIBB });
   const [savingIibb, setSavingIibb] = useState(false);
+  const [editCoef, setEditCoef] = useState<{ id: string; valor: string } | null>(null);
   const [loading, setLoading]           = useState(true);
   const [activeTab, setActiveTab]       = usePersistedState(
     orgViewKey("taxes.tab", orgId),
     "declarations",
   );
   const [seeding, setSeeding]           = useState(false);
+
+  // `?tab=iibb` (desde la liquidación de IIBB del Libro IVA) abre esa pestaña.
+  const [searchParams] = useSearchParams();
+  const tabPedida = searchParams.get("tab");
+  useEffect(() => {
+    if (tabPedida && PESTANAS_IMPUESTOS.includes(tabPedida)) setActiveTab(tabPedida);
+  }, [tabPedida, setActiveTab]);
 
   // Declaration dialog
   const [declOpen, setDeclOpen] = useState(false);
@@ -294,6 +313,9 @@ export default function TaxManagementPage() {
     const cuit = iibbForm.cuit.replace(/\D/g, "");
     if (cuit && cuit.length !== 11) return toast.error("El CUIT tiene 11 dígitos");
     if (iibbRegs.some(r => r.province === iibbForm.province)) return toast.error(`Ya cargaste ${iibbForm.province}`);
+    const convenio = iibbForm.regime === "convenio";
+    const coeficiente = convenio ? leerCoeficiente(iibbForm.coeficiente) : null;
+    if (convenio && coeficiente === null) return toast.error("Cargá el coeficiente unificado de tu CM05: un número mayor que 0 y hasta 1 (por ejemplo 0,4321)");
     setSavingIibb(true);
     const { error } = await supabase.from("iibb_registrations").insert({
       org_id: orgId,
@@ -302,8 +324,10 @@ export default function TaxManagementPage() {
       rate_pct: alicuota,
       registration_number: iibbForm.registration_number.trim() || null,
       cuit: cuit || null,
+      ...(convenio ? { coeficiente } : {}),
     });
     setSavingIibb(false);
+    if (error && isMissingColumn(error)) { toast.error("Falta aplicar una actualización de la base para guardar el coeficiente. Probá más tarde."); return; }
     if (error) { toast.error(`No se pudo guardar: ${error.message}`); return; }
     toast.success(`${iibbForm.province} agregada`);
     setIibbOpen(false);
@@ -315,6 +339,18 @@ export default function TaxManagementPage() {
     const { error } = await supabase.from("iibb_registrations").update({ active: !reg.active }).eq("id", reg.id);
     if (error) { toast.error(`No se pudo cambiar: ${error.message}`); return; }
     setIibbRegs(prev => prev.map(r => r.id === reg.id ? { ...r, active: !r.active } : r));
+  }
+
+  async function guardarCoeficiente() {
+    if (!editCoef) return;
+    const coeficiente = leerCoeficiente(editCoef.valor);
+    if (coeficiente === null) { toast.error("El coeficiente va de 0 a 1 (por ejemplo 0,4321)"); return; }
+    const { error } = await supabase.from("iibb_registrations").update({ coeficiente }).eq("id", editCoef.id);
+    if (error && isMissingColumn(error)) { toast.error("Falta aplicar una actualización de la base para guardar el coeficiente. Probá más tarde."); return; }
+    if (error) { toast.error(`No se pudo guardar: ${error.message}`); return; }
+    setIibbRegs(prev => prev.map(r => r.id === editCoef.id ? { ...r, coeficiente } : r));
+    setEditCoef(null);
+    toast.success("Coeficiente guardado");
   }
 
   async function deleteIibb(reg: IibbRegistration) {
@@ -851,6 +887,13 @@ export default function TaxManagementPage() {
                       <Input value={iibbForm.registration_number} onChange={e => setIibbForm(f => ({ ...f, registration_number: e.target.value }))} />
                     </div>
                   </div>
+                  {iibbForm.regime === "convenio" && (
+                    <div>
+                      <Label htmlFor="iibb-coeficiente">Coeficiente unificado (CM05)</Label>
+                      <Input id="iibb-coeficiente" inputMode="decimal" value={iibbForm.coeficiente} placeholder="0,4321" onChange={e => setIibbForm(f => ({ ...f, coeficiente: e.target.value }))} />
+                      <p className="mt-1 text-[11px] text-muted-foreground">El de esta jurisdicción en tu CM05 del año. Los de todas tienen que sumar 1.</p>
+                    </div>
+                  )}
                   <div>
                     <Label>CUIT (opcional)</Label>
                     <Input inputMode="numeric" value={iibbForm.cuit} placeholder="20-12345678-9" onChange={e => setIibbForm(f => ({ ...f, cuit: e.target.value }))} />
@@ -878,6 +921,25 @@ export default function TaxManagementPage() {
                       <Badge variant="outline" className="text-xs">{reg.regime === "local" ? "Local" : reg.regime === "convenio" ? "Convenio multilateral" : "CM"}</Badge>
                     </div>
                     <p className="text-2xl font-bold text-purple-600">{reg.rate_pct}%</p>
+                    {reg.regime !== "local" && (editCoef?.id === reg.id ? (
+                      <form className="flex items-end gap-2" onSubmit={e => { e.preventDefault(); void guardarCoeficiente(); }}>
+                        <div className="flex-1">
+                          <Label htmlFor={`coef-${reg.id}`} className="text-xs">Coeficiente (CM05)</Label>
+                          <Input id={`coef-${reg.id}`} inputMode="decimal" className="h-8" autoFocus value={editCoef.valor} onChange={e => setEditCoef({ id: reg.id, valor: e.target.value })} />
+                        </div>
+                        <Button type="submit" size="sm" className="h-8">Guardar</Button>
+                        <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => setEditCoef(null)}>Cancelar</Button>
+                      </form>
+                    ) : (
+                      <p className="flex items-center justify-between text-sm">
+                        <span className={reg.coeficiente ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}>
+                          {reg.coeficiente ? `Coeficiente ${Number(reg.coeficiente).toLocaleString("es-AR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })}` : "Falta el coeficiente"}
+                        </span>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditCoef({ id: reg.id, valor: reg.coeficiente ? String(reg.coeficiente).replace(".", ",") : "" })}>
+                          {reg.coeficiente ? "Cambiar" : "Cargar"}
+                        </Button>
+                      </p>
+                    ))}
                     {reg.registration_number && <p className="text-sm text-muted-foreground">Nro: {reg.registration_number}</p>}
                     {reg.cuit && <p className="text-xs text-muted-foreground/70 font-mono">{reg.cuit}</p>}
                     <div className="flex items-center justify-between">

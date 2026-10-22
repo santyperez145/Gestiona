@@ -19,6 +19,8 @@ import { posicionIva, type ComprobanteCompra, type LibroIvaCompras } from "@/lib
 import { hojaPosicion, hojaRetenciones, subdiarioCompras, subdiarioVentas, totalesDeRetenciones, type RetencionSufrida } from "@/lib/subdiarioIva";
 import RetencionesSufridas from "@/components/afip/RetencionesSufridas";
 import ComprobantesDeCompra from "@/components/afip/ComprobantesDeCompra";
+import LiquidacionIibbMes from "@/components/afip/LiquidacionIibbMes";
+import { hojaIibb, liquidacionIibb, type InscripcionIibb } from "@/lib/liquidacionIibb";
 
 const PAGINA = 1000;
 const ars = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
@@ -48,6 +50,24 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
   const [retenciones, setRetenciones] = useState<RetencionSufrida[]>([]);
   const retencionesIva = totalesDeRetenciones(retenciones).iva;
   const [periodo, setPeriodo] = useState(() => periodoAPresentar(mesAR()));
+  const [inscripciones, setInscripciones] = useState<InscripcionIibb[] | null>(null);
+
+  // Inscripciones de IIBB para la liquidación del mes. Sin la migración
+  // 20261022001000 se leen sin coeficiente y la pantalla pide cargarlo.
+  useEffect(() => {
+    if (!orgId) return;
+    let vigente = true;
+    void (async () => {
+      let r = await supabase.from("iibb_registrations").select("id, province, regime, rate_pct, coeficiente, active").eq("org_id", orgId);
+      if (r.error && isMissingColumn(r.error)) {
+        r = await supabase.from("iibb_registrations").select("id, province, regime, rate_pct, active").eq("org_id", orgId) as typeof r;
+      }
+      if (!vigente) return;
+      if (r.error) { console.error("Libro IVA: no se pudieron leer las inscripciones de IIBB", r.error); setInscripciones(null); return; }
+      setInscripciones((r.data ?? []) as InscripcionIibb[]);
+    })();
+    return () => { vigente = false; };
+  }, [orgId]);
   const [lectura, setLectura] = useState<Lectura>({ estado: "cargando" });
 
   const leer = useCallback(async (signal: { cancelado: boolean }) => {
@@ -97,6 +117,10 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
   }, [leer]);
 
   const libro = useMemo(() => lectura.estado === "listo" ? libroIvaVentas(lectura.comprobantes) : null, [lectura]);
+  const iibb = useMemo(() => lectura.estado === "listo" && inscripciones ? liquidacionIibb({
+    comprobantes: lectura.comprobantes, inscripciones, retenciones,
+    percepcionesDeCompras: compras.reduce((s, c) => s + Number(c.percepcion_iibb || 0), 0),
+  }) : null, [lectura, inscripciones, retenciones, compras]);
   const sufijo = periodo.replace("-", "");
 
   /** Subdiario de ventas, compras y posición en un solo archivo. */
@@ -112,6 +136,7 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(subdiarioCompras(compras)), "Compras");
         if (resumenCompras) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaPosicion(posicionIva(libro.resumen.debitoFiscal, resumenCompras, retencionesIva))), "Posición");
         if (retenciones.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaRetenciones(retenciones)), "Retenciones");
+        if (iibb?.renglones.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaIibb(iibb)), "Ingresos Brutos");
       }
       if (ventas.revisar.length) {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Fecha", "Comprobante", "Motivo"], ...ventas.revisar]), "A revisar");
@@ -262,6 +287,7 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
               </div>
             );
           })()}
+          {libro && lectura.estado === "listo" && <LiquidacionIibbMes liquidacion={iibb} />}
           <ComprobantesDeCompra orgId={orgId} periodo={periodo} canEdit={canEdit} onResumen={alCambiarCompras} />
           <RetencionesSufridas orgId={orgId} periodo={periodo} canEdit={canEdit} onCambio={setRetenciones} />
         </div>

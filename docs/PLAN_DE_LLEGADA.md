@@ -71,7 +71,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 - [~] **Contingencia CAEA** (construida el 22/10): si ARCA no responde, la factura sale con el CAEA de la quincena y se informa sola antes de la fecha tope. *Terminado:* un comprobante emitido con CAEA en homologación e informado con resultado «A».
 - [~] **Factura de Crédito Electrónica MiPyME (FCE)** (construida el 22/10: emisión, notas, CBU y consulta de obligación en WSFECRED). *Terminado:* una FCE emitida en homologación con el certificado asociado a FCE, y el circuito de aceptación y rechazo del comprador explicado.
 - [~] El Libro IVA Digital (ventas y compras), el subdiario en Excel, las retenciones sufridas y el monotributo están construidos. *Terminado:* un contador importa el mes real en el aplicativo de ARCA sin correcciones.
-- [ ] **Ingresos Brutos del mes:** base imponible por jurisdicción (local y Convenio Multilateral) y las percepciones y retenciones sufridas, todo listo para el contador. *Terminado:* el resumen de IIBB de un mes real coincide con lo que liquida el contador.
+- [~] **Ingresos Brutos del mes** (construido el 22/10: liquidación por jurisdicción en el Libro IVA, coeficiente CM05 por inscripción, retenciones restadas, hoja en el Excel del contador): base imponible por jurisdicción (local y Convenio Multilateral) y las percepciones y retenciones sufridas, todo listo para el contador. *Terminado:* el resumen de IIBB de un mes real coincide con lo que liquida el contador.
 - [ ] Controlador fiscal: certificación en Modo Entrenamiento con el equipo real (gate externo, ya listado en la meta).
 
 ### C. Gestión completa (el sistema de gestión del comercio)
