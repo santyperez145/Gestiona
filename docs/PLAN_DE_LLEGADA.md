@@ -120,7 +120,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 
 - [x] Un solo stock: el pedido online genera la venta y la venta mueve el stock, con el mismo trigger que el local.
 - [~] Pedido pagado → venta → factura automática en ARCA (outbox). *Terminado:* un pedido real con CAE.
-- [ ] **Del pedido online al remito y al envío.** Remito desde el pedido, etiqueta y seguimiento, con el mismo circuito que una venta del local. *Terminado:* un pedido online despachado con remito y seguimiento.
+- [~] **Del pedido online al remito y al envío** (22/10: «Remito» en el envío del pedido, con la venta que creó el pago; la etiqueta y el seguimiento ya estaban). Remito desde el pedido, etiqueta y seguimiento, con el mismo circuito que una venta del local. *Terminado:* un pedido online despachado con remito y seguimiento.
 - [ ] **Precio y stock por canal.** Precio online distinto si el comercio quiere, y stock reservado para la tienda. *Terminado:* las dos reglas configuradas y respetadas en el checkout.
 - [ ] **Cliente único.** El comprador online es el mismo cliente del local, con CUIT para la factura A y cuenta corriente si corresponde.
 - [ ] **Migración desde Tiendanube o desde una planilla** (experimento E3). *Terminado:* catálogo publicado en menos de 30 minutos.

@@ -5,6 +5,10 @@
  * preparar (crea la entrega con la dirección que ya cargó el comprador),
  * imprimir la etiqueta, y anotar el número de seguimiento.
  *
+ * El remito (2026-10-22) sale de la venta que generó el pedido, con el mismo
+ * diálogo y las mismas reglas que una venta del local: entregas parciales,
+ * numeración y talonario.
+ *
  * La etiqueta se imprime desde acá y no se pide por API a Correo Argentino ni
  * Andreani: esos contratos no están verificados y no hay credenciales. Cuando
  * las haya, el número entra por `set_order_tracking` igual que si se copiara a
@@ -22,10 +26,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { CARRIER_LABELS, CARRIER_IDS, carrierLabel } from "@/lib/carriers";
-import { useHasPermission } from "@/lib/usePermissions";
+import { useHasPermission, useModulePermissions } from "@/lib/usePermissions";
+import { useUserRole } from "@/lib/useUserRole";
+import { useOrg } from "@/lib/orgContext";
+import EmitirRemitoDialog, { type VentaParaRemito } from "@/components/remitos/EmitirRemitoDialog";
 import { canFulfillStoreOrder, isStorePaymentReversed } from "@/lib/storeOrderPayment";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
-import { Truck, Printer, Loader2, Check, PackageCheck, Home, Store } from "lucide-react";
+import { Truck, Printer, Loader2, Check, PackageCheck, Home, Store, FileText } from "lucide-react";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 export interface OrderForShipment {
@@ -63,6 +70,11 @@ export default function OrderShipmentDialog({
   // La base vuelve a verificarlo; esto sólo evita ofrecer acciones que van a
   // fallar a quien tiene acceso de lectura al ecommerce.
   const canEditEcommerce = useHasPermission("ecommerce", "edit");
+  const puedeRemitir = useModulePermissions("sales").canCreate;
+  const { isAdmin } = useUserRole();
+  const { activeOrg } = useOrg();
+  const [remito, setRemito] = useState<VentaParaRemito | null>(null);
+  const [buscandoVenta, setBuscandoVenta] = useState(false);
   const [entrega, setEntrega] = useState<Entrega | null>(null);
   const [cargando, setCargando] = useState(false);
   const [preparando, setPreparando] = useState(false);
@@ -233,7 +245,20 @@ export default function OrderShipmentDialog({
   const entregada = entrega?.status === "delivered" || order.fulfillment_status === "delivered";
   const yaDespachada = !!entrega?.external_tracking || enCamino || entregada;
 
+  // El remito lleva las líneas de la venta que creó el pago del pedido.
+  const abrirRemito = async () => {
+    setBuscandoVenta(true);
+    const { data, error } = await supabase.from("sales")
+      .select("id, product_name, quantity, returned_quantity, sale_transaction_id")
+      .eq("ecommerce_order_id", order.id).order("created_at");
+    setBuscandoVenta(false);
+    if (error) { toast.error("No se pudo leer la venta del pedido. Probá de nuevo."); return; }
+    if (!data?.length) { toast.error("El pedido todavía no tiene su venta registrada: se crea al confirmarse el pago."); return; }
+    setRemito({ saleTransactionId: data[0].sale_transaction_id ?? null, codigo: order.order_number, clienteNombre: order.customer_name, lineas: data });
+  };
+
   return (
+    <>
     <Dialog open={!!order} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
@@ -378,9 +403,18 @@ export default function OrderShipmentDialog({
               Marcar entregado
             </Button>
           )}
+          {puedeRemitir && !cargando && !sinPagar && (
+            <Button variant="outline" className="gap-1.5 text-xs" disabled={buscandoVenta} onClick={() => void abrirRemito()}>
+              {buscandoVenta ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+              Remito
+            </Button>
+          )}
           <Button variant="ghost" className="text-xs" onClick={onClose}>Cerrar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <EmitirRemitoDialog open={Boolean(remito)} onOpenChange={o => { if (!o) setRemito(null); }}
+      orgId={activeOrg?.id} venta={remito} puedeConfigurar={isAdmin} onEmitido={() => onDone()} />
+    </>
   );
 }
