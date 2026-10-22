@@ -39317,6 +39317,158 @@ export type Database = {
           },
         ]
       }
+      remito_items: {
+        Row: {
+          cantidad: number
+          descripcion: string
+          id: string
+          org_id: string
+          product_id: string | null
+          remito_id: string
+          sale_id: string | null
+          unidad: string
+        }
+        Insert: {
+          cantidad: number
+          descripcion: string
+          id?: string
+          org_id: string
+          product_id?: string | null
+          remito_id: string
+          sale_id?: string | null
+          unidad?: string
+        }
+        Update: {
+          cantidad?: number
+          descripcion?: string
+          id?: string
+          org_id?: string
+          product_id?: string | null
+          remito_id?: string
+          sale_id?: string | null
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remito_items_remito_id_fkey"
+            columns: ["remito_id"]
+            isOneToOne: false
+            referencedRelation: "remitos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      remito_talonarios: {
+        Row: {
+          cai: string | null
+          cai_vence: string | null
+          org_id: string
+          proximo_numero: number
+          punto_venta: number
+          updated_at: string
+        }
+        Insert: {
+          cai?: string | null
+          cai_vence?: string | null
+          org_id: string
+          proximo_numero?: number
+          punto_venta?: number
+          updated_at?: string
+        }
+        Update: {
+          cai?: string | null
+          cai_vence?: string | null
+          org_id?: string
+          proximo_numero?: number
+          punto_venta?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      remitos: {
+        Row: {
+          anulado_at: string | null
+          anulado_motivo: string | null
+          bultos: number | null
+          cai: string | null
+          cai_vence: string | null
+          cliente_cuit: string | null
+          cliente_domicilio: string | null
+          cliente_nombre: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          entregado_at: string | null
+          estado: string
+          fecha: string
+          id: string
+          letra: string
+          numero: number
+          observaciones: string | null
+          org_id: string
+          punto_venta: number
+          recibio_dni: string | null
+          recibio_nombre: string | null
+          sale_transaction_id: string | null
+          transportista: string | null
+          valor_declarado: number | null
+        }
+        Insert: {
+          anulado_at?: string | null
+          anulado_motivo?: string | null
+          bultos?: number | null
+          cai?: string | null
+          cai_vence?: string | null
+          cliente_cuit?: string | null
+          cliente_domicilio?: string | null
+          cliente_nombre: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          entregado_at?: string | null
+          estado?: string
+          fecha: string
+          id?: string
+          letra: string
+          numero: number
+          observaciones?: string | null
+          org_id: string
+          punto_venta: number
+          recibio_dni?: string | null
+          recibio_nombre?: string | null
+          sale_transaction_id?: string | null
+          transportista?: string | null
+          valor_declarado?: number | null
+        }
+        Update: {
+          anulado_at?: string | null
+          anulado_motivo?: string | null
+          bultos?: number | null
+          cai?: string | null
+          cai_vence?: string | null
+          cliente_cuit?: string | null
+          cliente_domicilio?: string | null
+          cliente_nombre?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          entregado_at?: string | null
+          estado?: string
+          fecha?: string
+          id?: string
+          letra?: string
+          numero?: number
+          observaciones?: string | null
+          org_id?: string
+          punto_venta?: number
+          recibio_dni?: string | null
+          recibio_nombre?: string | null
+          sale_transaction_id?: string | null
+          transportista?: string | null
+          valor_declarado?: number | null
+        }
+        Relationships: []
+      }
       retenciones_sufridas: {
         Row: {
           agente_cuit: string
@@ -59718,6 +59870,22 @@ export type Database = {
           p_payload?: Json
         }
         Returns: string
+      }
+      emitir_remito: { Args: { p_datos: Json; p_org: string }; Returns: Json }
+      marcar_remito_entregado: {
+        Args: { p_recibio_dni: string | null; p_recibio_nombre: string; p_remito: string }
+        Returns: Json
+      }
+      anular_remito: { Args: { p_motivo: string; p_remito: string }; Returns: Json }
+      configurar_talonario_remitos: {
+        Args: {
+          p_cai: string | null
+          p_cai_vence: string | null
+          p_org: string
+          p_proximo_numero?: number | null
+          p_punto_venta: number
+        }
+        Returns: Json
       }
       emitir_nota_credito: {
         Args: { p_importe?: number | null; p_invoice_id: string; p_motivo: string }

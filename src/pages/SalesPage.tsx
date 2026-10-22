@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Tag, DollarSign, ChevronLeft, ChevronUp, ChevronDown, Edit, Eye, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Tag, DollarSign, ChevronLeft, ChevronUp, ChevronDown, Edit, Eye, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2, Truck } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { ensureSaleTransactionInvoice, printFiscalInvoiceById } from "@/lib/saleInvoice";
 import { escapePrintHtml, printSaleReceipt } from "@/lib/saleReceipt";
+import EmitirRemitoDialog, { type VentaParaRemito } from "@/components/remitos/EmitirRemitoDialog";
 
 import { plural } from "@/lib/plural";
 import ProductCombobox from "@/components/shared/ProductCombobox";
@@ -108,6 +109,7 @@ function SaleTicketInspector({
   onInvoice,
   canInvoice,
   invoiceBusy,
+  onRemito,
 }: {
   open: boolean;
   orgId?: string;
@@ -119,6 +121,8 @@ function SaleTicketInspector({
   onInvoice: () => void;
   canInvoice: boolean;
   invoiceBusy: boolean;
+  /** Sin permiso para emitir remitos no se muestra. */
+  onRemito?: () => void;
 }) {
   const navigate = useNavigate();
   return (
@@ -282,6 +286,11 @@ function SaleTicketInspector({
                     : detail.invoicedLines > 0 ? "Imprimir factura" : "Crear e imprimir factura"}
                 </Button>
               )}
+              {onRemito && (
+                <Button variant="outline" onClick={onRemito}>
+                  <Truck className="mr-2 h-4 w-4" />Remito
+                </Button>
+              )}
               <Button onClick={onAnalyze} className="bg-primary text-primary-foreground hover:bg-primary/90">Analizar rendimiento</Button>
             </div>
           </>
@@ -315,6 +324,7 @@ export default function SalesPage() {
   const { nombre: nombreCategoria } = useOrgCategoryNames(activeOrg?.id);
   const { isAdmin } = useUserRole();
   const invoicePermissions = useModulePermissions("invoices");
+  const salesPermissions = useModulePermissions("sales");
   // If vendedor, only show their own sales
   const sellerFilter = !isAdmin ? (localStorage.getItem('gestiona.pos.seller') || null) : null;
   const navigate = useNavigate();
@@ -415,6 +425,14 @@ export default function SalesPage() {
     () => buildSaleTicketDetail(sales, selectedSaleId),
     [sales, selectedSaleId],
   );
+  const [remitoAbierto, setRemitoAbierto] = useState(false);
+  // Memorizada: el diálogo relee lo pendiente cada vez que cambia la venta.
+  const ventaParaRemito = useMemo<VentaParaRemito | null>(() => saleTicketDetail ? {
+    saleTransactionId: saleTicketDetail.selected.sale_transaction_id ?? null,
+    codigo: saleTicketDetail.code,
+    clienteNombre: saleTicketDetail.customerName,
+    lineas: saleTicketDetail.lines,
+  } : null, [saleTicketDetail]);
 
   const openSaleDetail = (saleId: string) => {
     const next = new URLSearchParams(searchParams);
@@ -995,12 +1013,15 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
           ? invoicePermissions.canView
           : invoicePermissions.canEdit}
         invoiceBusy={ticketInvoiceBusy || invoicePermissions.loading}
+        onRemito={salesPermissions.canCreate && saleTicketDetail ? () => setRemitoAbierto(true) : undefined}
         onAnalyze={() => {
           closeSaleDetail();
           setSalesWorkspaceTab("performance");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
+      <EmitirRemitoDialog open={remitoAbierto && Boolean(ventaParaRemito)} onOpenChange={setRemitoAbierto}
+        orgId={activeOrg?.id} venta={ventaParaRemito} puedeConfigurar={isAdmin} />
       <PageHeader
         icon={ShoppingCart}
         eyebrow="Commerce · Canales"

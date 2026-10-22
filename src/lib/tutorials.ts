@@ -113,6 +113,16 @@ export const TUTORIALES: Record<string, Tutorial> = {
       { titulo: "Venta manual", texto: "Para registrar una venta fuera de la caja, buscá el producto en el selector y completá cantidad y medio de pago." },
     ],
   },
+  remitos: {
+    id: "remitos", ruta: "/remitos", titulo: "Remitos y entregas", minutos: 3,
+    resumen: "Documentar entregas, mandar una venta en varios viajes y llevar el talonario con CAI.",
+    pasos: [
+      { titulo: "Qué se entregó y a quién", target: ENCABEZADO, texto: "Cada remito tiene número propio, fecha, destinatario y renglones. Se emite desde la venta (botón «Remito» en la ficha) o suelto, para muestras y préstamos." },
+      { titulo: "Entregas parciales", target: "[data-tour='remitos-vistas']", texto: "Si una venta sale en varios viajes, cada remito descuenta de lo pendiente. «Por entregar» lista las ventas a medias y deja remitir lo que falta en un clic." },
+      { titulo: "Confirmar la entrega", target: "[data-tour='remitos-lista']", texto: "Cuando vuelve el duplicado firmado, marcalo «Entregado» con el nombre de quien recibió. Si un remito se cargó mal, anulalo: el número no se reusa y lo entregado vuelve a pendiente." },
+      { titulo: "Remito R o X", target: "[data-tour='remitos-indicadores']", texto: "Con el CAI de un talonario autorizado por ARCA el remito sale «R» y ampara el traslado. Sin CAI sale «X», constancia de entrega. Te avisamos antes de que el CAI venza." },
+    ],
+  },
   kardex: {
     id: "kardex", ruta: "/kardex", titulo: "Movimientos de stock", minutos: 3,
     resumen: "Ajustes, conteos físicos e historial de cada producto.",
@@ -202,7 +212,7 @@ export const TUTORIALES: Record<string, Tutorial> = {
 
 export const CAMINOS: CaminoAprendizaje[] = [
   { id: "primeros-pasos", titulo: "Primeros pasos", descripcion: "Lo mínimo para empezar a vender.", lecciones: ["bienvenida", "ajustes", "productos", "caja"] },
-  { id: "local", titulo: "Vender en el local", descripcion: "Caja, clientes, fiado y listas de precios.", lecciones: ["caja", "clientes", "deudas", "listas_precios", "ventas"] },
+  { id: "local", titulo: "Vender en el local", descripcion: "Caja, clientes, fiado y listas de precios.", lecciones: ["caja", "clientes", "deudas", "listas_precios", "ventas", "remitos"] },
   { id: "stock", titulo: "Stock y compras", descripcion: "Catálogo, movimientos, compras y proveedores.", lecciones: ["productos", "kardex", "compras", "proveedores"] },
   { id: "fiscal", titulo: "Facturación ARCA", descripcion: "Conectar ARCA y emitir comprobantes.", lecciones: ["afip", "facturas"] },
   { id: "online", titulo: "Tienda online", descripcion: "Publicar tu catálogo y despachar pedidos.", lecciones: ["tienda_online", "pedidos_online"] },

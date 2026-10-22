@@ -116,7 +116,7 @@ describe("estructura de la navegación", () => {
 
   it("las cobranzas viven en Finance y respetan el orden del documento", () => {
     const finanzas = itemsDe("finance").map(i => i.to);
-    const cobranzas = ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones"];
+    const cobranzas = ["/deudas", "/presupuestos", "/remitos", "/cuotas", "/facturas", "/devoluciones"];
     expect(finanzas.slice(0, cobranzas.length)).toEqual(cobranzas);
   });
 
@@ -124,6 +124,7 @@ describe("estructura de la navegación", () => {
     expect(itemsDe("finance").map(i => i.to)).toEqual([
       "/deudas",
       "/presupuestos",
+      "/remitos",
       "/cuotas",
       "/facturas",
       "/devoluciones",

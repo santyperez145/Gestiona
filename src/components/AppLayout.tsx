@@ -455,7 +455,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-            className="workspace-command-search hidden lg:flex h-9 w-[240px] items-center gap-2 rounded-md border border-border/80 bg-background/80 px-3 text-left text-[11px] text-muted-foreground/70 transition-colors hover:border-primary/40 hover:text-foreground"
+            className="workspace-command-search hidden lg:flex h-9 w-[240px] items-center gap-2 rounded-md border border-border/80 bg-background/80 px-3 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             aria-label="Buscar en Nerqia"
           >
             <Search className="h-3.5 w-3.5 shrink-0" />
@@ -463,7 +463,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <kbd className="rounded-[4px] border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">Ctrl K</kbd>
           </button>
 
-          <div className={`workspace-topbar__status hidden xl:flex items-center gap-2 text-[11px] ${online ? 'text-muted-foreground/75' : 'text-destructive'}`}>
+          <div className={`workspace-topbar__status hidden xl:flex items-center gap-2 text-[11px] ${online ? 'text-muted-foreground' : 'text-destructive'}`}>
             <span className={`status-dot ${online ? 'bg-emerald-500' : 'bg-destructive'}`} />
             {online ? 'Operativo' : 'Sin conexion'}
           </div>
@@ -480,8 +480,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="workspace-mobile-bar workspace-mobile-bar__inner md:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
           style={{ background: 'hsl(var(--sidebar-background) / 0.92)', backdropFilter: 'blur(16px) saturate(160%)' }}>
           <button
+            type="button"
             onClick={() => setMobileOpen(true)}
-            className="flex items-center justify-center w-7 h-7 rounded-[6px] border border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border/70 transition-all"
+            aria-label="Abrir menú"
+            className="flex items-center justify-center w-7 h-7 rounded-[6px] border border-border/40 text-muted-foreground hover:text-foreground hover:border-border/70 transition-all"
           >
             <Menu className="w-4 h-4" />
           </button>

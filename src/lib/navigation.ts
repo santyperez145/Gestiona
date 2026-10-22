@@ -68,7 +68,7 @@ const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
   marketing: ["/marketing", "/email-campaigns", "/whatsapp-campaigns", "/fidelidad", "/catalogo", "/afiliados", "/referidos"],
   influencers: ["/influencers", "/canjes", "/brief-composer", "/campaign-matching"],
   "influencer-marketing": ["/influencer-marketing"],
-  finance: ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones", "/billetera", "/movimientos", "/comisiones", "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones"],
+  finance: ["/deudas", "/presupuestos", "/remitos", "/cuotas", "/facturas", "/devoluciones", "/billetera", "/movimientos", "/comisiones", "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones"],
   reportes: ["/reportes", "/ia"],
   sistema: ["/soporte", "/alertas", "/integraciones", "/equipo", "/ajustes", "/admin", "/calidad-datos", "/mi-plan", "/perfil"],
 };
@@ -204,7 +204,7 @@ export const NIVEL_DE_DESTINO: Record<string, 1 | 2 | 3> = {
   "/tienda-online": 1, "/pedidos-online": 1,
   // Cobros y facturación
   "/facturas": 1, "/deudas": 1,
-  "/afip": 2, "/presupuestos": 2, "/cuotas": 2, "/devoluciones": 2, "/billetera": 2, "/impuestos": 2,
+  "/afip": 2, "/presupuestos": 2, "/remitos": 2, "/cuotas": 2, "/devoluciones": 2, "/billetera": 2, "/impuestos": 2,
   "/movimientos": 3, "/cheques": 3, "/comisiones": 3, "/multi-divisa": 3, "/suscripciones": 3,
   // Stock y compras
   "/compras": 1, "/proveedores": 1,

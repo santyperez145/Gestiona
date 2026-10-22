@@ -65,7 +65,7 @@ import {
   Shield, ShoppingBag, ShoppingCart, Sparkles, Star, Tag,
   TrendingUp, Trophy, Truck, UserCircle, UserPlus, Users,
   Users2, Wallet, ArrowDownUp, Warehouse, Zap, Target, Search,
-  GraduationCap,
+  GraduationCap, PackageCheck,
 } from "lucide-react";
 import { lazy } from "react";
 import type { ComponentType, LazyExoticComponent } from "react";
@@ -233,6 +233,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "listas_precios", path: "/listas-precios", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PriceListsPage")), module: "products", aliases: [{ path: "/listas-de-precios", redirectTo: "/listas-precios" }], status: "canonical", nav: { label: "Listas de precios", icon: Tag, group: "business", keywords: ["mayorista", "minorista", "precio por cliente"] } },
   { id: "valuacion_inventario", path: "/valuacion-inventario", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InventoryValuationPage")), module: "inventory", aliases: [{ path: "/inventario-aging", redirectTo: "/valuacion-inventario" }], status: "canonical", nav: { label: "Capital en inventario", icon: Layers, group: "business", keywords: ["cuánto vale el stock", "fifo", "valuación", "costo histórico", "rotación"] } },
   { id: "deudas", path: "/deudas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DebtsPage")), module: "sales", status: "canonical", nav: { label: "Deudas", icon: AlertCircle, group: "finance", keywords: ["me deben", "cuentas por cobrar", "fiado", "moroso"] } },
+  { id: "remitos", path: "/remitos", roles: AMBOS, component: lazy(() => import("@/pages/RemitosPage")), module: "sales", status: "canonical", nav: { label: "Remitos", icon: PackageCheck, group: "finance", keywords: ["entregas", "entrega parcial", "remito r", "remito x", "cai", "despacho", "mayorista", "guía"] } },
   { id: "cuotas", path: "/cuotas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CuotasPage")), module: "sales", status: "canonical", nav: { label: "Cuotas", icon: CreditCard, group: "finance", keywords: ["financiación", "plan de pago", "vencimientos"] } },
   { id: "presupuestos", path: "/presupuestos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PresupuestosPage")), module: "sales", status: "canonical", nav: { label: "Presupuestos", icon: ClipboardList, group: "finance", keywords: ["cotización", "quotes", "proforma"] } },
   { id: "facturas", path: "/facturas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InvoicesPage")), module: "invoices", status: "canonical", nav: { label: "Facturas", icon: FileText, group: "finance", keywords: ["comprobantes", "invoices"] } },

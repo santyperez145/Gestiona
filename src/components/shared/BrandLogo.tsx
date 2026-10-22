@@ -31,6 +31,8 @@ export default function BrandLogo({
   return (
     <span
       className={cn('brand-logo inline-flex min-w-0 items-center gap-2.5', className)}
+      // Sin rol, axe rechaza el aria-label en un span: «img» lo vuelve un nombre válido.
+      role={decorative ? undefined : 'img'}
       aria-label={decorative ? undefined : label}
       aria-hidden={decorative ? true : undefined}
     >
