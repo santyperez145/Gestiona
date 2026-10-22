@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { vi } from "vitest";
 import { webcrypto } from "node:crypto";
 
 // El entorno jsdom trae un crypto propio sin randomUUID ni subtle. Bajo el
@@ -27,3 +28,10 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => {},
   }),
 });
+
+// El aviso de servicio caído consulta el servidor al montarse. En los tests de
+// pantallas no se sale a la red: se lo da por disponible. Su propia lógica se
+// prueba en disponibilidadDelServicio.test.tsx.
+vi.mock("@/hooks/useDisponibilidadDelServicio", () => ({
+  useDisponibilidadDelServicio: () => ({ estado: "disponible", reintentar: () => {} }),
+}));

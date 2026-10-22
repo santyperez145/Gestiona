@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import AvisoServicioNoDisponible from "@/components/shared/AvisoServicioNoDisponible";
 import { PAGE_GUIDES } from "@/data/pageGuides";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Bell, Tag, Calendar, Layers, ArrowRightLeft, UserPlus, Trophy, Share2, ScanBarcode, Users2, Scale, Globe, Warehouse, LineChart, Shield, ChevronRight } from "lucide-react";
 import { lazy, Suspense, useState, useMemo, useEffect } from "react";
@@ -663,6 +664,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               onAction={refreshPermissions}
               className="mb-4"
             />}
+            <AvisoServicioNoDisponible soloCaida className="mb-4" />
             {children}
           </div>
         </div>

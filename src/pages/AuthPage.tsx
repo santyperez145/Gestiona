@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AvisoServicioNoDisponible from "@/components/shared/AvisoServicioNoDisponible";
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -218,6 +219,7 @@ export default function AuthPage() {
             <h2>{heading.title}</h2>
             <p>{heading.lead}</p>
           </div>
+          <AvisoServicioNoDisponible className="mb-4" />
 
           {mode === 'forgot' || mode === 'otp' ? (
             <form onSubmit={handleSubmit} className="auth-form">
@@ -313,7 +315,7 @@ export default function AuthPage() {
                 <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Nerqia' : role === 'creator' ? 'Crear mi cuenta de creador' : 'Crear mi workspace'} <ArrowRight /></Button>
               </form>
               <p className="auth-channel-note" role="note">
-                El acceso por WhatsApp todavía no está disponible: Meta Cloud Messaging tiene que estar probado (`whatsapp_listo`) antes de ofrecer códigos por ese canal.
+                El ingreso con código por WhatsApp todavía no está disponible.
               </p>
               <p className="auth-legal">Al continuar aceptás los <Link to="/terminos">términos de uso</Link> y la <Link to="/privacidad">política de privacidad</Link>.</p>
             </>

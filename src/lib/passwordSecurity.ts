@@ -63,7 +63,8 @@ export function authErrorForCustomer(error: unknown, fallback = 'No pudimos comp
     return 'El enlace o código venció. Solicitá uno nuevo.';
   }
   if (/network|failed to fetch|fetch failed/.test(value)) {
-    return 'No pudimos conectarnos. Revisá tu conexión e intentá nuevamente.';
+    // Puede ser la conexión del comercio o Nerqia: no se le echa la culpa a él.
+    return 'No pudimos conectarnos con Nerqia. Si tu internet funciona, el problema es nuestro: volvé a probar en unos minutos.';
   }
   if (/provider.*not enabled|unsupported provider/.test(value)) {
     return 'Este método de acceso no está disponible por el momento.';
