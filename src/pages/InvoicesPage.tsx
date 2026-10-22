@@ -8,6 +8,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useClipboard } from "@/hooks/useClipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingFunction } from "@/lib/publicDataSource";
+import { esCaea, informeCaea, puedeEmitirEnContingencia } from "@/lib/contingenciaCaea";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { formatARS, getProductsDB } from "@/lib/supabaseStore";
@@ -109,6 +110,9 @@ interface Invoice {
   receptor_tipo_documento: number | null;
   moneda_cotizacion: number | null;
   codigo_autorizacion_tipo: string | null;
+  /** Contingencia CAEA: cuándo se informó a ARCA, o por qué la rechazó. */
+  caea_informado_at?: string | null;
+  caea_informe_error?: string | null;
   arca_qr_payload: unknown;
   fiscal_snapshot_source: string | null;
   fiscal_issued_at: string | null;
@@ -480,6 +484,8 @@ export default function InvoicesPage() {
   const [calculandoPercepciones, setCalculandoPercepciones] = useState(false);
   const [esAgenteDePercepcion, setEsAgenteDePercepcion] = useState(false);
   const [datosFce, setDatosFce] = useState<{ cbu: string; alias: string; transferencia: "SCA" | "ADC" }>({ cbu: "", alias: "", transferencia: "SCA" });
+  const [contingenciaCaea, setContingenciaCaea] = useState(false);
+  const [emitiendoCaea, setEmitiendoCaea] = useState<string | null>(null);
   useEffect(() => {
     if (!activeOrg?.id) return;
     let vigente = true;
@@ -503,6 +509,12 @@ export default function InvoicesPage() {
       const f = (data ?? {}) as { cbu?: string | null; alias?: string | null; transferencia?: string | null };
       setDatosFce({ cbu: f.cbu ?? "", alias: f.alias ?? "", transferencia: f.transferencia === "ADC" ? "ADC" : "SCA" });
       setDetalleFiscal(d => (d.fceCbu ? d : { ...d, fceCbu: f.cbu ?? "", fceAlias: f.alias ?? "", fceTransferencia: f.transferencia === "ADC" ? "ADC" : "SCA" }));
+    });
+    // ¿Puede emitir con CAEA si ARCA no responde?
+    void supabase.rpc("estado_contingencia", { p_org: activeOrg.id }).then(({ data, error }) => {
+      if (!vigente) return;
+      if (error) { if (!isMissingFunction(error)) console.error("estado_contingencia", error); return; }
+      setContingenciaCaea(Boolean((data as { habilitada?: boolean } | null)?.habilitada));
     });
     return () => { vigente = false; };
   }, [activeOrg?.id]);
@@ -760,6 +772,34 @@ export default function InvoicesPage() {
       load();
     } finally {
       setAuthorizingId(null);
+    }
+  };
+
+  /**
+   * Contingencia CAEA: ARCA no respondió y la factura sale con el CAEA de la
+   * quincena. El servidor se niega si hay un pedido de CAE sin confirmar.
+   */
+  const handleEmitirConCaea = async (inv: Invoice) => {
+    if (!activeOrg) return;
+    const seguro = await ask({
+      title: "¿Emitir con CAEA?",
+      description: "ARCA no está respondiendo. La factura sale ahora con el CAEA de la quincena, en el punto de venta de contingencia, y Nerqia se la informa a ARCA cuando vuelva. Después no hace falta reintentar el CAE.",
+      confirmText: "Emitir con CAEA",
+      variant: "default",
+    });
+    if (!seguro) return;
+    setEmitiendoCaea(inv.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("arca-caea", { body: { action: "emitir", org_id: activeOrg.id, invoice_id: inv.id } });
+      const mensaje = await mensajeDeEdgeFunction(error, data);
+      const r = (data ?? {}) as { ok?: boolean; numero_afip?: number; informada?: boolean };
+      if (mensaje || !r.ok) { toast.error(mensaje || "No se pudo emitir en contingencia."); return; }
+      toast.success(r.informada
+        ? `Factura emitida con CAEA (N° ${r.numero_afip}) e informada a ARCA.`
+        : `Factura emitida con CAEA (N° ${r.numero_afip}). Nerqia la informa a ARCA cuando responda.`);
+    } finally {
+      setEmitiendoCaea(null);
+      void load();
     }
   };
 
@@ -1746,7 +1786,19 @@ export default function InvoicesPage() {
                           {/* AFIP status badge */}
                           {inv.afip_status === "authorized" && inv.cae && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-green-500/10 text-green-400 border border-green-500/20">
-                              <ShieldCheck className="w-3 h-3" />CAE
+                              <ShieldCheck className="w-3 h-3" />{esCaea(inv) ? "CAEA" : "CAE"}
+                            </span>
+                          )}
+                          {informeCaea(inv) === "pendiente" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20"
+                              title="Emitida con CAEA: falta informarla a ARCA. Nerqia lo reintenta solo.">
+                              <Clock className="w-3 h-3" />Por informar
+                            </span>
+                          )}
+                          {informeCaea(inv) === "rechazado" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20"
+                              title={inv.caea_informe_error ?? undefined}>
+                              <ShieldAlert className="w-3 h-3" />Informe rechazado
                             </span>
                           )}
                           {inv.cae && !!inv.afip_observaciones?.length && (
@@ -1886,10 +1938,15 @@ export default function InvoicesPage() {
                       {inv.cae && (
                         <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20 space-y-1">
                           <p className="text-xs font-semibold text-green-400 flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5" />Autorizada por ARCA
+                            <ShieldCheck className="w-3.5 h-3.5" />{esCaea(inv) ? "Emitida con CAEA (contingencia)" : "Autorizada por ARCA"}
                           </p>
+                          {informeCaea(inv) === "informado" && <p className="text-xs text-muted-foreground">Informada a ARCA el {fechaFiscalArgentina(inv.caea_informado_at!)}.</p>}
+                          {informeCaea(inv) === "pendiente" && <p className="text-xs text-amber-700 dark:text-amber-300">Falta informarla a ARCA: Nerqia lo reintenta solo, antes de la fecha tope.</p>}
+                          {informeCaea(inv) === "rechazado" && (
+                            <p role="alert" className="text-xs text-red-500">ARCA rechazó el informe: {inv.caea_informe_error}. Corregilo en ARCA o escribinos; reintentalo desde ARCA → Contingencia.</p>
+                          )}
                           <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
-                            CAE: {inv.cae}
+                            {esCaea(inv) ? "CAEA" : "CAE"}: {inv.cae}
                             <button
                               className="opacity-40 hover:opacity-100 transition-opacity shrink-0"
                               title="Copiar CAE"
@@ -1972,6 +2029,13 @@ export default function InvoicesPage() {
                                 onClick={() => handleAuthorizeAfip(inv)}
                               >
                                 Reintentar autorización
+                              </Button>
+                            )}
+                            {canManage && puedeEmitirEnContingencia(inv, contingenciaCaea) && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs" disabled={emitiendoCaea === inv.id}
+                                onClick={() => void handleEmitirConCaea(inv)}
+                              >
+                                {emitiendoCaea === inv.id && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}Emitir con CAEA
                               </Button>
                             )}
                             {canOpenArcaSettings && (inv.afip_status === "config_error" ||

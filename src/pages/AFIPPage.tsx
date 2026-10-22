@@ -12,6 +12,7 @@ import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
 import ConceptoDeFacturacion from "@/components/afip/ConceptoDeFacturacion";
 import DatosFceComercio from "@/components/afip/DatosFceComercio";
 import PercepcionesConfig from "@/components/afip/PercepcionesConfig";
+import ContingenciaCaea from "@/components/afip/ContingenciaCaea";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
@@ -383,7 +384,7 @@ export default function AFIPPage() {
           en Ajustes → Sistema, a dos clics de acá. */}
       <div id="datos-fiscales" className="scroll-mt-20">
         <AfipConfigForm canEdit={canEdit} onSaved={load} />
-        {orgId && <div className="mt-4 space-y-4"><ConceptoDeFacturacion orgId={orgId} canEdit={canEdit} /><DatosFceComercio orgId={orgId} canEdit={canEdit} /><PercepcionesConfig orgId={orgId} canEdit={canEdit} /></div>}
+        {orgId && <div className="mt-4 space-y-4"><ConceptoDeFacturacion orgId={orgId} canEdit={canEdit} /><DatosFceComercio orgId={orgId} canEdit={canEdit} /><PercepcionesConfig orgId={orgId} canEdit={canEdit} /><ContingenciaCaea orgId={orgId} canEdit={canEdit} /></div>}
       </div>
 
       <div className={`rounded-xl border p-4 ${readiness.className}`}>

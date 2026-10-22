@@ -59901,6 +59901,8 @@ export type Database = {
       concepto_de_facturacion: { Args: { p_org: string }; Returns: number }
       datos_fce: { Args: { p_org: string }; Returns: Json }
       datos_percepciones: { Args: { p_org: string }; Returns: Json }
+      estado_contingencia: { Args: { p_org: string }; Returns: Json }
+      configurar_contingencia: { Args: { p_habilitada: boolean; p_org: string; p_punto_venta_caea: number | null }; Returns: Json }
       configurar_percepciones: {
         Args: { p_iibb_agente: boolean; p_iibb_minimo: number; p_iibb_padron: string | null; p_iibb_sin_padron: number | null; p_iva_agente: boolean; p_iva_alicuota: number | null; p_org: string }
         Returns: Json

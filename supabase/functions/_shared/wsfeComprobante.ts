@@ -126,6 +126,32 @@ export function opcionalesFce(tipoCbte: number, d: DatosFce): OpcionalWsfe[] {
   ];
 }
 
+/**
+ * La quincena de una fecha, como la pide FECAEASolicitar: período AAAAMM y
+ * orden 1 (del 1 al 15) o 2 (del 16 a fin de mes).
+ */
+export function quincenaDe(fecha: string): { periodo: number; orden: 1 | 2; desde: string; hasta: string } {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(fecha);
+  if (!m) throw new Error("La fecha no es válida.");
+  const [anio, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+  const orden = dia <= 15 ? 1 : 2;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    periodo: anio * 100 + mes, orden,
+    desde: `${m[1]}-${m[2]}-${orden === 1 ? "01" : "16"}`,
+    hasta: `${m[1]}-${m[2]}-${orden === 1 ? "15" : pad(ultimo)}`,
+  };
+}
+
+/** La quincena siguiente (para pedir el CAEA antes de que empiece). */
+export function quincenaSiguiente(fecha: string) {
+  const actual = quincenaDe(fecha);
+  const d = new Date(`${actual.hasta}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return quincenaDe(d.toISOString().slice(0, 10));
+}
+
 /** ARS → PES, USD → DOL, EUR → 060 (FEParamGetTiposMonedas). */
 export function monedaWsfe(currency: string | null | undefined): "PES" | "DOL" | "060" {
   const c = String(currency ?? "ARS").toUpperCase();
@@ -191,6 +217,11 @@ export function detalleWsfe(c: ComprobanteParaWsfe, args: {
   /** Cotización oficial que devolvió ARCA (FEParamGetCotizacion), si la factura no trae una. */
   cotizacionOficial?: number | null;
   opcionales?: OpcionalWsfe[];
+  /**
+   * Comprobante de contingencia: se arma como `FECAEADetRequest` (para
+   * FECAEARegInformativo) con el CAEA y la fecha y hora de generación.
+   */
+  caea?: { codigo: string; generado: Date } | null;
 }): string {
   const { tipoCbte, numero } = args;
   const imp = importesWsfe(c, tipoCbte);
@@ -233,7 +264,15 @@ export function detalleWsfe(c: ComprobanteParaWsfe, args: {
   const opcionales = args.opcionales?.length ? `<ar:Opcionales>${args.opcionales.map(o =>
     `<ar:Opcional><ar:Id>${xmlTexto(o.id)}</ar:Id><ar:Valor>${xmlTexto(o.valor)}</ar:Valor></ar:Opcional>`).join("")}</ar:Opcionales>` : "";
 
-  return `<ar:FECAEDetRequest>` +
+  const etiqueta = args.caea ? "FECAEADetRequest" : "FECAEDetRequest";
+  let caea = "";
+  if (args.caea) {
+    if (!/^\d{14}$/.test(args.caea.codigo)) throw new Error("El CAEA tiene 14 dígitos.");
+    // Hora de Argentina, AAAAMMDDHHMMSS.
+    const ar = new Date(args.caea.generado.getTime() - 3 * 3600_000).toISOString();
+    caea = `<ar:CAEA>${args.caea.codigo}</ar:CAEA><ar:CbteFchHsGen>${ar.slice(0, 19).replace(/[-T:]/g, "")}</ar:CbteFchHsGen>`;
+  }
+  return `<ar:${etiqueta}>` +
     `<ar:Concepto>${concepto}</ar:Concepto>` +
     `<ar:DocTipo>${docTipo}</ar:DocTipo><ar:DocNro>${docNro}</ar:DocNro>` +
     `<ar:CbteDesde>${numero}</ar:CbteDesde><ar:CbteHasta>${numero}</ar:CbteHasta>` +
@@ -250,5 +289,6 @@ export function detalleWsfe(c: ComprobanteParaWsfe, args: {
     tributos +
     (TIPOS_C.has(tipoCbte) ? "" : ivaWsfe(c, tipoCbte)) +
     opcionales +
-    `</ar:FECAEDetRequest>`;
+    caea +
+    `</ar:${etiqueta}>`;
 }

@@ -144,3 +144,66 @@ export function leerCotizacionWsfe(xml: string): number {
   }
   return n;
 }
+
+// ── CAEA (contingencia) ─────────────────────────────────────────────────────
+
+export type CaeaWsfe = {
+  caea: string;
+  periodo: number;
+  orden: 1 | 2;
+  vigDesde: string;
+  vigHasta: string;
+  topeInforme: string;
+};
+
+const fechaWsfeIso = (v: unknown): string | null => {
+  const t = texto(v);
+  return /^\d{8}$/.test(t) ? `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6, 8)}` : null;
+};
+
+/**
+ * Respuesta de FECAEASolicitar o FECAEAConsultar. Si ARCA responde con
+ * errores, se devuelven para decidir: el 15008 (ya se otorgó un CAEA para
+ * ese período) se resuelve consultándolo.
+ */
+export function leerCaeaWsfe(xml: string, operacion: "FECAEASolicitar" | "FECAEAConsultar"): { caea: CaeaWsfe | null; errores: MensajeWsfe[] } {
+  const body = parseBody(xml) as Record<string, any> | undefined;
+  const value = body?.[`${operacion}Response`]?.[`${operacion}Result`];
+  if (body?.Fault || !value || typeof value !== "object") {
+    throw new ArcaReadError("invalid_response", "ARCA no respondió el pedido de CAEA. Probá de nuevo.");
+  }
+  const errores = mensajes(value.Errors?.Err);
+  const r = value.ResultGet as Record<string, unknown> | undefined;
+  const caea = texto(r?.CAEA);
+  const periodo = Number(texto(r?.Periodo));
+  const orden = Number(texto(r?.Orden));
+  const vigDesde = fechaWsfeIso(r?.FchVigDesde), vigHasta = fechaWsfeIso(r?.FchVigHasta), tope = fechaWsfeIso(r?.FchTopeInf);
+  if (/^\d{14}$/.test(caea) && /^\d{6}$/.test(String(periodo)) && (orden === 1 || orden === 2) && vigDesde && vigHasta && tope) {
+    return { caea: { caea, periodo, orden, vigDesde, vigHasta, topeInforme: tope }, errores };
+  }
+  return { caea: null, errores };
+}
+
+/** Respuesta de FECAEARegInformativo para un comprobante. */
+export function leerInformeCaeaWsfe(xml: string): { resultado: "A" | "R" | null; errores: MensajeWsfe[]; observaciones: MensajeWsfe[] } {
+  const body = parseBody(xml) as Record<string, any> | undefined;
+  const value = body?.FECAEARegInformativoResponse?.FECAEARegInformativoResult;
+  if (body?.Fault || !value || typeof value !== "object") {
+    throw new ArcaReadError("invalid_response", "ARCA no confirmó el informe del comprobante. Se reintenta.");
+  }
+  const detalle = lista(value.FeDetResp?.FECAEADetResponse)[0] ?? {};
+  const obs = detalle.Observaciones as Record<string, unknown> | undefined;
+  const r = texto(detalle.Resultado) || texto(value.FeCabResp?.Resultado);
+  return { resultado: r === "A" || r === "R" ? r : null, errores: mensajes(value.Errors?.Err), observaciones: mensajes(obs?.Obs) };
+}
+
+/** Respuesta de FECAEASinMovimientoInformar. */
+export function leerSinMovimientoWsfe(xml: string): { resultado: "A" | "R" | null; errores: MensajeWsfe[] } {
+  const body = parseBody(xml) as Record<string, any> | undefined;
+  const value = body?.FECAEASinMovimientoInformarResponse?.FECAEASinMovimientoInformarResult;
+  if (body?.Fault || !value || typeof value !== "object") {
+    throw new ArcaReadError("invalid_response", "ARCA no confirmó el informe sin movimiento. Se reintenta.");
+  }
+  const r = texto(value.Resultado);
+  return { resultado: r === "A" || r === "R" ? r : null, errores: mensajes(value.Errors?.Err) };
+}

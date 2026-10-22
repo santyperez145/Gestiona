@@ -97,3 +97,7 @@ verify_jwt = true
 # 2026-10-22: ¿el cliente está obligado a recibir FCE? (WSFECRED), con el certificado del comercio.
 [functions.arca-fce]
 verify_jwt = true
+
+# 2026-10-22: CAEA de contingencia (cron con x-cron-secret o dueño/administrador con sesión).
+[functions.arca-caea]
+verify_jwt = true

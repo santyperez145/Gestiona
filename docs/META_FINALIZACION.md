@@ -68,6 +68,14 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
   En la factura, «Percepciones del cliente» calcula la percepción con la alícuota vigente del padrón (o la de quien no está, o ninguna si está de baja) y la de IVA, y reemplaza esas dos sin tocar los demás tributos. Si el padrón no está vigente, avisa.
 
   Migración 20261022000800 con su simulacro (`scripts/percepciones-automaticas-matrix.sql`); código en `src/lib/padronIibb.ts` y `src/components/afip/PercepcionesConfig.tsx`. **Pendiente:** validar la importación con el archivo real del mes de un comercio agente (gate externo).
+- [x] Contingencia CAEA (2026-10-22): si ARCA no responde, la factura sale igual.
+  - En ARCA › «Si ARCA no responde (CAEA)» el dueño la activa con un punto de venta propio para CAEA, distinto del de CAE.
+  - `arca-caea` pide el CAEA de la quincena en curso, y el de la siguiente desde 5 días antes; si ya estaba otorgado, lo consulta.
+  - En una factura «Sin conexión ARCA» aparece «Emitir con CAEA»: numera en el punto de venta CAEA y la deja autorizada con código «A», con su QR.
+  - ⚠️ No se emite por CAEA si hay un pedido de CAE sin confirmar: ese CAE puede existir y la venta tendría dos comprobantes. La Factura de Crédito MiPyME tampoco va por contingencia.
+  - Un cron cada 6 horas informa cada comprobante (FECAEARegInformativo) en orden de número, y los puntos de venta sin movimiento (FECAEASinMovimientoInformar). La factura muestra «Por informar», «Informada» o el motivo del rechazo.
+
+  Migración 20261022000900 con su simulacro (`scripts/caea-contingencia-matrix.sql`). **Pendiente:** aplicar, desplegar `arca-caea`, y que el comercio dé de alta el punto de venta CAEA en ARCA (gate externo).
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.
