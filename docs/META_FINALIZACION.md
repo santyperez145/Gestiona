@@ -49,6 +49,14 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
   - **Factura impresa y ticket:** muestran el período, la moneda y cada parte del total.
   - **Validación previa:** el armado del comprobante (`_shared/wsfeComprobante.ts`, en el orden del WSDL) se valida entero antes de hablar con ARCA.
   - Migración 20261022000600 con su simulacro `scripts/comprobante-completo-matrix.sql` (sin aplicar: base inactiva). Tests en `src/test/wsfeComprobante.test.ts`, `libroIvaVentas`, `subdiarioIva` y `manualInvoiceTax`. Hay que redesplegar `afip-authorize`.
+- [x] Factura de Crédito Electrónica MiPyME (2026-10-22, RG 4367). La FCE es obligatoria cuando una pyme le vende a una empresa grande por encima del monto que fija ARCA. Ahora:
+  - **Tipos:** se emiten los 201, 206 y 211 (factura A, B y C), sus notas de débito (202, 207, 212) y de crédito (203, 208, 213).
+  - **Datos de la factura:** vencimiento del pago, CBU del emisor (2101), alias (2102) y modalidad de transferencia SCA o ADC (27). El CBU se valida con sus dígitos verificadores, en la base y en el cliente.
+  - **Notas:** asocian la FCE con CUIT y fecha, y dicen si la anulan (22).
+  - **Consulta de obligación:** «¿Está obligado a recibirla?» le pregunta a WSFECRED (`arca-fce`, contrato tomado del WSDL oficial) si el cliente está obligado y desde qué monto.
+  - **Configuración:** el CBU del comercio se carga una vez en ARCA. El ticket de WSAA de cada servicio queda por comercio (`afip_ta_por_servicio`, sólo el servidor).
+  - **Listas unificadas:** las listas de clases de comprobante que estaban repetidas en ocho archivos quedaron en `_shared/comprobantesArca.ts`.
+  - Migración 20261022000700 con su simulacro (`scripts/factura-credito-mipyme-matrix.sql`). **Pendiente:** aplicar, desplegar `arca-fce` y `afip-authorize`, y que el comercio asocie su certificado al servicio de FCE en ARCA (gate externo).
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.

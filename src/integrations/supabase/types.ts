@@ -59899,6 +59899,8 @@ export type Database = {
         Returns: string
       }
       concepto_de_facturacion: { Args: { p_org: string }; Returns: number }
+      datos_fce: { Args: { p_org: string }; Returns: Json }
+      configurar_fce: { Args: { p_alias: string | null; p_cbu: string | null; p_org: string; p_transferencia: string }; Returns: Json }
       configurar_concepto_de_facturacion: { Args: { p_concepto: number; p_org: string }; Returns: number }
       emitir_remito: { Args: { p_datos: Json; p_org: string }; Returns: Json }
       marcar_remito_entregado: {

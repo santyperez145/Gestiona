@@ -14,6 +14,7 @@ import {
   posParseFacturarResult,
   type PosFacturaEstado,
 } from "@/lib/posComprobante";
+import { esClaseA } from "../../supabase/functions/_shared/comprobantesArca";
 
 export type FiscalTicketItem = {
   description: string;
@@ -162,7 +163,7 @@ export async function printFiscalInvoiceTicket(
   try {
     const groups = invoiceIvaGroups(invoice);
     const items = invoiceDisplayLines(invoice);
-    const discriminatesVat = [1, 2, 3].includes(Number(invoice.tipo_comprobante));
+    const discriminatesVat = esClaseA(invoice.tipo_comprobante);
     const documentType = invoice.tipo_comprobante ? DOCUMENT_TYPE[invoice.tipo_comprobante] : null;
     const qrUrl = printableArcaQrUrl(invoice);
     const authorized = Boolean(qrUrl);

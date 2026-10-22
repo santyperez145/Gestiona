@@ -13,10 +13,11 @@
 import { invoiceIvaGroups } from "../../supabase/functions/_shared/invoiceIva";
 import type { ComprobanteVenta } from "@/lib/libroIvaVentas";
 import { esNotaDeCredito, TIPOS_DE_COMPRA, type ComprobanteCompra } from "@/lib/libroIvaCompras";
+import { CLASE_C, NOTAS_DE_CREDITO } from "../../supabase/functions/_shared/comprobantesArca";
 
 export type Celda = string | number;
 const TASAS = [21, 10.5, 27, 5, 2.5];
-const NC_VENTA = new Set([3, 8, 13]);
+const NC_VENTA = NOTAS_DE_CREDITO;
 const NOMBRES: Record<number, string> = {
   ...Object.fromEntries(TIPOS_DE_COMPRA.map(t => [t.codigo, t.nombre])),
 };
@@ -39,7 +40,7 @@ function totales(filas: Celda[][], desde: number): Celda[] {
   });
 }
 
-const COMPROBANTES_SIN_IVA = new Set([11, 12, 13]);
+const COMPROBANTES_SIN_IVA = CLASE_C;
 
 export function subdiarioVentas(comprobantes: ComprobanteVenta[]): { filas: Celda[][]; revisar: Celda[][] } {
   // Mismas columnas que compras: lo no gravado, lo exento y cada percepción por

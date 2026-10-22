@@ -4,6 +4,7 @@ import { remitenteDe } from "../_shared/remitente.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { emailFailure } from "../_shared/emailErrors.ts";
+import { esNotaDeCredito, esNotaDeDebito } from "../_shared/comprobantesArca.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,8 +90,8 @@ Deno.serve(async (req) => {
       const { data: items, error: itemsError } = await admin.from("invoice_items")
         .select("description, quantity, total").eq("invoice_id", documentId).order("id");
       if (itemsError) throw itemsError;
-      const isCredit = [3, 8, 13].includes(Number(invoice.tipo_comprobante));
-      const isDebit = [2, 7, 12].includes(Number(invoice.tipo_comprobante));
+      const isCredit = esNotaDeCredito(invoice.tipo_comprobante);
+      const isDebit = esNotaDeDebito(invoice.tipo_comprobante);
       document = {
         kind: "invoice",
         title: isCredit ? "Nota de crédito" : isDebit ? "Nota de débito" : invoice.cae ? "Factura" : "Comprobante comercial",

@@ -54,6 +54,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { INVOICE_TAX_RATES, manualInvoiceTaxSummary, netoDesdePrecioFinal, updateDefaultInvoiceTaxRate, type TratamientoRenglon } from "@/lib/manualInvoiceTax";
 import DetalleFiscalFactura from "@/components/invoices/DetalleFiscalFactura";
+import FacturaDeCreditoMipyme from "@/components/invoices/FacturaDeCreditoMipyme";
 import { detalleFiscalInicial, detalleFiscalParaEnviar, erroresDelDetalleFiscal, type DetalleFiscal } from "@/lib/detalleFiscal";
 import ProductCombobox from "@/components/shared/ProductCombobox";
 import { productoPorCodigo } from "@/lib/presupuestos";
@@ -64,6 +65,7 @@ type ProductoFactura = { id: string; name: string; brand?: string | null; sku?: 
 import { plural } from "@/lib/plural";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { resultadoLote, type ResultadoLote } from "@/lib/loteFacturacion";
+import { esClaseA, esNotaDeCredito } from "../../supabase/functions/_shared/comprobantesArca";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -138,6 +140,15 @@ const TIPO_CBTE: Record<number, { short: string; title: string; creditNote: bool
   11: { short: "C", title: "FACTURA C", creditNote: false },
   12: { short: "ND C", title: "NOTA DE DÉBITO C", creditNote: false },
   13: { short: "NC C", title: "NOTA DE CRÉDITO C", creditNote: true },
+  201: { short: "FCE A", title: "FACTURA DE CRÉDITO ELECTRÓNICA MiPyME A", creditNote: false },
+  202: { short: "ND FCE A", title: "NOTA DE DÉBITO ELECTRÓNICA MiPyME A", creditNote: false },
+  203: { short: "NC FCE A", title: "NOTA DE CRÉDITO ELECTRÓNICA MiPyME A", creditNote: true },
+  206: { short: "FCE B", title: "FACTURA DE CRÉDITO ELECTRÓNICA MiPyME B", creditNote: false },
+  207: { short: "ND FCE B", title: "NOTA DE DÉBITO ELECTRÓNICA MiPyME B", creditNote: false },
+  208: { short: "NC FCE B", title: "NOTA DE CRÉDITO ELECTRÓNICA MiPyME B", creditNote: true },
+  211: { short: "FCE C", title: "FACTURA DE CRÉDITO ELECTRÓNICA MiPyME C", creditNote: false },
+  212: { short: "ND FCE C", title: "NOTA DE DÉBITO ELECTRÓNICA MiPyME C", creditNote: false },
+  213: { short: "NC FCE C", title: "NOTA DE CRÉDITO ELECTRÓNICA MiPyME C", creditNote: true },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
@@ -172,7 +183,7 @@ function emptyItem(taxRate = 21): InvoiceItem {
 // ─────────────────────────────────────────────────────────────
 async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings | null) {
   const ivaGroups = invoiceIvaGroups(inv);
-  const discriminatesVat = [1, 2, 3].includes(Number(inv.tipo_comprobante));
+  const discriminatesVat = esClaseA(inv.tipo_comprobante);
   const qrUrl = printableArcaQrUrl(inv);
   const associated = await loadAssociatedFiscalInvoice(inv);
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -466,6 +477,7 @@ export default function InvoicesPage() {
   // Concepto del comercio (productos, servicios o ambos): la factura arranca con
   // ese. Sin la migración 20261022000600, se queda en productos.
   const [conceptoDelComercio, setConceptoDelComercio] = useState<1 | 2 | 3>(1);
+  const [datosFce, setDatosFce] = useState<{ cbu: string; alias: string; transferencia: "SCA" | "ADC" }>({ cbu: "", alias: "", transferencia: "SCA" });
   useEffect(() => {
     if (!activeOrg?.id) return;
     let vigente = true;
@@ -474,6 +486,14 @@ export default function InvoicesPage() {
       if (error) { if (!isMissingFunction(error)) console.error("concepto_de_facturacion", error); return; }
       const c = Number(data);
       if (c === 1 || c === 2 || c === 3) { setConceptoDelComercio(c); setDetalleFiscal(d => (d.tributos.length || d.concepto !== 1 ? d : { ...d, concepto: c })); }
+    });
+    // CBU, alias y transferencia del comercio para la factura de crédito MiPyME.
+    void supabase.rpc("datos_fce", { p_org: activeOrg.id }).then(({ data, error }) => {
+      if (!vigente) return;
+      if (error) { if (!isMissingFunction(error)) console.error("datos_fce", error); return; }
+      const f = (data ?? {}) as { cbu?: string | null; alias?: string | null; transferencia?: string | null };
+      setDatosFce({ cbu: f.cbu ?? "", alias: f.alias ?? "", transferencia: f.transferencia === "ADC" ? "ADC" : "SCA" });
+      setDetalleFiscal(d => (d.fceCbu ? d : { ...d, fceCbu: f.cbu ?? "", fceAlias: f.alias ?? "", fceTransferencia: f.transferencia === "ADC" ? "ADC" : "SCA" }));
     });
     return () => { vigente = false; };
   }, [activeOrg?.id]);
@@ -898,7 +918,10 @@ export default function InvoicesPage() {
       toast.error("La condición fiscal elegida requiere un CUIT válido");
       return;
     }
-    const erroresFiscales = afipConfigured && sourceSaleGrossTotal === null ? erroresDelDetalleFiscal(detalleFiscal) : [];
+    const fceVigente = detalleFiscal.fce && form.receiver_condition !== "consumidor_final";
+    const erroresFiscales = afipConfigured && sourceSaleGrossTotal === null
+      ? erroresDelDetalleFiscal({ ...detalleFiscal, fce: fceVigente }, { vencimiento: form.due_date, cuitCliente: form.customer_tax_id })
+      : [];
     if (erroresFiscales.length) { toast.error(erroresFiscales[0]); return; }
     setSaving(true);
     try {
@@ -917,7 +940,9 @@ export default function InvoicesPage() {
         tax_pct: effectiveTaxPct,
         // Concepto, servicio, moneda y tributos (20261022000600). La factura de
         // una venta toma el concepto del comercio en la base.
-        ...(afipConfigured && sourceSaleGrossTotal === null ? detalleFiscalParaEnviar(detalleFiscal) : {}),
+        ...(afipConfigured && sourceSaleGrossTotal === null
+          ? detalleFiscalParaEnviar({ ...detalleFiscal, fce: detalleFiscal.fce && form.receiver_condition !== "consumidor_final" })
+          : {}),
       };
       const sourceSaleId = fromSaleId.current;
       const { data, error } = sourceSaleId
@@ -983,7 +1008,7 @@ export default function InvoicesPage() {
     setSourceSaleLoading(false);
     setForm({ ...EMPTY_FORM });
     setItems([emptyItem()]);
-    setDetalleFiscal(detalleFiscalInicial(conceptoDelComercio));
+    setDetalleFiscal({ ...detalleFiscalInicial(conceptoDelComercio), fceCbu: datosFce.cbu, fceAlias: datosFce.alias, fceTransferencia: datosFce.transferencia });
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -1089,7 +1114,7 @@ export default function InvoicesPage() {
     if (fiscalGroup && grupoPendienteFiscal(inv) !== fiscalGroup) return false;
     if (filterStatus !== "all" && visibleInvoiceStatus(inv) !== filterStatus) return false;
     if (filterType !== "all") {
-      if (filterType === "NC" && ![3, 8, 13].includes(inv.tipo_comprobante ?? 0)) return false;
+      if (filterType === "NC" && !esNotaDeCredito(inv.tipo_comprobante)) return false;
       if (filterType === "ND" && ![2, 7, 12].includes(inv.tipo_comprobante ?? 0)) return false;
       if (filterType === "A" && inv.tipo_comprobante !== 1) return false;
       if (filterType === "B" && inv.tipo_comprobante !== 6) return false;
@@ -1340,7 +1365,7 @@ export default function InvoicesPage() {
             {afipConfigured && suggestedVoucher && (
               <div className="md:col-span-2 flex items-center justify-between rounded-[8px] border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
                 <span className="text-muted-foreground">Comprobante determinado por la identidad fiscal</span>
-                <Badge variant="outline" className="border-primary/30 text-primary">Factura {suggestedVoucher.letra}</Badge>
+                <Badge variant="outline" className="border-primary/30 text-primary">{detalleFiscal.fce && form.receiver_condition !== "consumidor_final" ? `Factura de Crédito MiPyME ${suggestedVoucher.letra}` : `Factura ${suggestedVoucher.letra}`}</Badge>
               </div>
             )}
           </div>
@@ -1460,6 +1485,9 @@ export default function InvoicesPage() {
 
           {afipConfigured && sourceSaleGrossTotal === null && (
             <DetalleFiscalFactura valor={detalleFiscal} onChange={setDetalleFiscal} netoGravado={subtotal} claseC={esClaseC} />
+          )}
+          {afipConfigured && sourceSaleGrossTotal === null && form.receiver_condition !== "consumidor_final" && (
+            <FacturaDeCreditoMipyme valor={detalleFiscal} onChange={setDetalleFiscal} orgId={activeOrg?.id} cuitCliente={form.customer_tax_id} total={total} />
           )}
 
           {/* Totals */}

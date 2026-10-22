@@ -16,6 +16,7 @@
  */
 import { invoiceIvaGroups, type InvoiceTaxDocument, type InvoiceTaxLine } from "./invoiceIva.ts";
 import { associatedVoucherXml, type AfipAssociatedVoucher } from "./afipAssociatedVoucher.ts";
+import { CLASE_A, CLASE_C, FCE, FCE_FACTURAS } from "./comprobantesArca.ts";
 
 /** Tipos de tributo de WSFE (FEParamGetTiposTributos). */
 export const TIPOS_DE_TRIBUTO: Record<number, string> = {
@@ -62,8 +63,8 @@ export interface ComprobanteParaWsfe extends InvoiceTaxDocument {
   invoice_items?: (InvoiceTaxLine & { tratamiento?: TratamientoIva | string | null })[];
 }
 
-const TIPOS_C = new Set([11, 12, 13, 211, 212, 213]);
-const TIPOS_A = new Set([1, 2, 3, 201, 202, 203]);
+const TIPOS_C = CLASE_C;
+const TIPOS_A = CLASE_A;
 
 function centavos(valor: unknown, campo: string): number {
   const n = Number(valor ?? 0);
@@ -77,6 +78,53 @@ const fechaWsfe = (iso: string, campo: string) => {
   return `${m[1]}${m[2]}${m[3]}`;
 };
 const xmlTexto = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * CBU válido: 22 dígitos con los dos verificadores del BCRA (bloque 1: banco
+ * y sucursal; bloque 2: cuenta).
+ */
+export function cbuValido(cbu: string | null | undefined): boolean {
+  const d = String(cbu ?? "").replace(/\D/g, "");
+  if (d.length !== 22) return false;
+  const verificador = (digitos: string, pesos: number[]) => {
+    const suma = [...digitos].reduce((s, c, i) => s + Number(c) * pesos[i % pesos.length], 0);
+    return (10 - (suma % 10)) % 10;
+  };
+  const bloque1 = d.slice(0, 8);
+  const bloque2 = d.slice(8);
+  return verificador(bloque1.slice(0, 7), [7, 1, 3, 9, 7, 1, 3]) === Number(bloque1[7])
+    && verificador(bloque2.slice(0, 13), [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3]) === Number(bloque2[13]);
+}
+
+export interface DatosFce {
+  fce_cbu?: string | null;
+  fce_alias?: string | null;
+  /** SCA: Sistema de Circulación Abierta; ADC: Agente de Depósito Colectivo. */
+  fce_transferencia?: string | null;
+  /** En una nota: si anula la factura porque el comprador la rechazó. */
+  fce_anulacion?: boolean | null;
+}
+
+/**
+ * Los opcionales que ARCA exige en la Factura de Crédito Electrónica MiPyME
+ * (RG 4367): en la factura, el CBU del emisor (2101), su alias (2102,
+ * opcional) y la modalidad de transferencia (27); en sus notas, si anulan la
+ * factura (22).
+ */
+export function opcionalesFce(tipoCbte: number, d: DatosFce): OpcionalWsfe[] {
+  if (!FCE.has(tipoCbte)) return [];
+  if (!FCE_FACTURAS.has(tipoCbte)) return [{ id: "22", valor: d.fce_anulacion ? "S" : "N" }];
+  const cbu = String(d.fce_cbu ?? "").replace(/\D/g, "");
+  if (!cbuValido(cbu)) throw new Error("La factura de crédito MiPyME necesita un CBU válido del emisor (22 dígitos).");
+  const transferencia = String(d.fce_transferencia ?? "SCA").toUpperCase();
+  if (transferencia !== "SCA" && transferencia !== "ADC") throw new Error("La transferencia de la factura de crédito es SCA o ADC.");
+  const alias = String(d.fce_alias ?? "").trim();
+  return [
+    { id: "2101", valor: cbu },
+    ...(alias ? [{ id: "2102", valor: alias.slice(0, 20) }] : []),
+    { id: "27", valor: transferencia },
+  ];
+}
 
 /** ARS → PES, USD → DOL, EUR → 060 (FEParamGetTiposMonedas). */
 export function monedaWsfe(currency: string | null | undefined): "PES" | "DOL" | "060" {

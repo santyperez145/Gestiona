@@ -15,6 +15,7 @@
  * La categoría depende también de la superficie, la energía y los alquileres;
  * esto sólo mira los ingresos, y lo dice.
  */
+import { NOTAS_DE_CREDITO as NOTAS_DE_CREDITO_ARCA } from "../../supabase/functions/_shared/comprobantesArca";
 
 export const ESCALA_MONOTRIBUTO = {
   vigenteDesde: "2026-08-01",
@@ -63,7 +64,7 @@ export interface SituacionMonotributo {
   escalaDesactualizada: boolean;
 }
 
-const NOTAS_DE_CREDITO = new Set([3, 8, 13]);
+const NOTAS_DE_CREDITO = NOTAS_DE_CREDITO_ARCA;
 
 /** Los 12 meses calendario completos anteriores a `hoy` más el mes en curso. */
 export function ventanaDeDoceMeses(hoy: string): { desde: string; hasta: string } {

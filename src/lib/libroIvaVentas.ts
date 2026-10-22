@@ -20,6 +20,7 @@
  */
 import { invoiceIvaGroups, type InvoiceTaxLine } from "../../supabase/functions/_shared/invoiceIva";
 import { monedaWsfe, type TributoDeComprobante } from "../../supabase/functions/_shared/wsfeComprobante";
+import { CLASE_C, NOTAS_DE_CREDITO as NOTAS_DE_CREDITO_ARCA } from "../../supabase/functions/_shared/comprobantesArca";
 
 export interface ComprobanteVenta {
   id: string;
@@ -64,8 +65,9 @@ export interface LibroIvaVentas {
 
 /** Códigos de alícuota del diseño de registro (los mismos Id de WSFE). */
 const CODIGO_ALICUOTA: Record<number, string> = { 0: "0003", 10.5: "0004", 21: "0005", 27: "0006", 5: "0008", 2.5: "0009" };
-const NOTAS_DE_CREDITO = new Set([3, 8, 13]);
-const COMPROBANTES_C = new Set([11, 12, 13]);
+// Incluyen la Factura de Crédito Electrónica MiPyME (203/208/213, 211-213).
+const NOTAS_DE_CREDITO = NOTAS_DE_CREDITO_ARCA;
+const COMPROBANTES_C = CLASE_C;
 const FIN_DE_LINEA = "\r\n";
 
 const ceros = (valor: number | string, largo: number) => String(valor).padStart(largo, "0").slice(-largo);

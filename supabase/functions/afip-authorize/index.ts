@@ -39,7 +39,7 @@ import {
   DEBIT_NOTE_TYPES,
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
-import { detalleWsfe, monedaWsfe } from "../_shared/wsfeComprobante.ts";
+import { detalleWsfe, monedaWsfe, opcionalesFce } from "../_shared/wsfeComprobante.ts";
 import { ArcaReadError, assertEnabledPoint, leerCotizacionWsfe, leerSolicitudCaeWsfe, puntosHabilitadosCae, leerUltimoAutorizadoWsfe, type MensajeWsfe } from "../_shared/wsfeRespuesta.ts";
 import { ArcaAutorizacionError, resumirRechazoArca } from "../_shared/arcaRechazos.ts";
 
@@ -529,7 +529,7 @@ Deno.serve(async (req) => {
       }
       const { data: source, error: sourceError } = await supabase
         .from("invoices")
-        .select("org_id, tipo_comprobante, punto_venta, numero_afip, cae, afip_status, afip_environment")
+        .select("org_id, tipo_comprobante, punto_venta, numero_afip, cae, afip_status, afip_environment, emisor_cuit, issue_date")
         .eq("id", originalId)
         .eq("org_id", invoice.org_id)
         .single();
@@ -593,7 +593,7 @@ Deno.serve(async (req) => {
     // sólo importa que el resto cierre.
     detalleWsfe(
       { ...invoice, invoice_items: invoice.invoice_items ?? [] },
-      { puntoVenta, tipoCbte, numero: 1, asociado: associatedInvoice, cotizacionOficial: 1 },
+      { puntoVenta, tipoCbte, numero: 1, asociado: associatedInvoice, cotizacionOficial: 1, opcionales: opcionalesFce(tipoCbte, invoice) },
     );
 
     // ── Step 1: Get / refresh Ticket de Acceso ────────────────
@@ -925,7 +925,7 @@ async function solicitarCAE(args: {
   // antes: productos, en pesos, todo gravado.
   const detalle = detalleWsfe(
     { ...invoice, invoice_items: invoice.invoice_items ?? [] },
-    { puntoVenta, tipoCbte, numero, asociado: associatedInvoice },
+    { puntoVenta, tipoCbte, numero, asociado: associatedInvoice, opcionales: opcionalesFce(tipoCbte, invoice) },
   );
 
   // ⚠️ **`FeCAEReq` envuelve a los dos bloques, y faltaba.** Sin él WSFE

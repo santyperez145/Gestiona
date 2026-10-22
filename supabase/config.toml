@@ -93,3 +93,7 @@ verify_jwt = false
 
 [functions.arca-padron]
 verify_jwt = true
+
+# 2026-10-22: ¿el cliente está obligado a recibir FCE? (WSFECRED), con el certificado del comercio.
+[functions.arca-fce]
+verify_jwt = true

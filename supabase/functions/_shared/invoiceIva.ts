@@ -1,4 +1,5 @@
 import { afipIvaId } from "./afipIva.ts";
+import { esClaseA, esClaseC, esNotaDeCredito } from "./comprobantesArca.ts";
 
 export type InvoiceTaxLine = {
   total: number;
@@ -55,7 +56,7 @@ export function invoiceIvaGroups(invoice: InvoiceTaxDocument): InvoiceIvaGroup[]
   }
   // Sólo lo gravado se desglosa por alícuota.
   const lines = allLines.filter(line => tratamientoDe(line) === "gravado");
-  const creditNote = [3, 8, 13].includes(Number(invoice.tipo_comprobante));
+  const creditNote = esNotaDeCredito(invoice.tipo_comprobante);
   const detailed = lines.some((line) => line.tax_rate != null || line.tax_amount != null);
   const groups = new Map<number, { base: number; amount: number }>();
   if (detailed) {
@@ -79,7 +80,7 @@ export function invoiceIvaGroups(invoice: InvoiceTaxDocument): InvoiceIvaGroup[]
       throw new Error("El desglose de los renglones no coincide con la cabecera fiscal.");
     }
   }
-  if ([11, 12, 13].includes(Number(invoice.tipo_comprobante))) {
+  if (esClaseC(invoice.tipo_comprobante)) {
     if (vat !== 0 || Number(invoice.tax_pct) !== 0 || [...groups.keys()].some((rate) => rate !== 0)) {
       throw new Error("Los comprobantes C no discriminan IVA.");
     }
@@ -108,7 +109,7 @@ export function invoiceDisplayLines<T extends InvoiceTaxLine & { quantity: numbe
     }
     cents(line.total);
   }
-  if ([1, 2, 3].includes(Number(invoice.tipo_comprobante))) return lines;
+  if (esClaseA(invoice.tipo_comprobante)) return lines;
   if (lines.every((line) => line.tax_amount != null)) {
     return lines.map((line) => {
       const total = (cents(line.total) + cents(line.tax_amount)) / 100;

@@ -22,8 +22,10 @@ describe("guardia de tipos de Edge Functions", () => {
     // recordados; no agrega un proveedor de identidad ni guarda códigos OTP.
     // 87 al 2026-10-10: `arca-padron`, consulta de CUIT al padrón A5 con el
     // certificado de la plataforma (cache 30 días, tope diario por organización).
+    // 88 al 2026-10-22: `arca-fce`, si un cliente está obligado a recibir
+    // Factura de Crédito Electrónica MiPyME (WSFECRED), con el certificado del comercio.
     // El número está fijo a propósito: agregar una Edge Function tiene que ser una decisión visible.
-    expect(count).toBe(87);
+    expect(count).toBe(88);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

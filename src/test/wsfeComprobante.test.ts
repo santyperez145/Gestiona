@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  detalleWsfe, documentoDelReceptor, importesWsfe, monedaWsfe, type ComprobanteParaWsfe,
+  cbuValido, detalleWsfe, documentoDelReceptor, importesWsfe, monedaWsfe, opcionalesFce, type ComprobanteParaWsfe,
 } from "../../supabase/functions/_shared/wsfeComprobante";
 
 const base = (cambios: Partial<ComprobanteParaWsfe> = {}): ComprobanteParaWsfe => ({
@@ -130,5 +130,37 @@ describe("piezas", () => {
     expect(documentoDelReceptor("20-12345678-6")).toEqual({ docTipo: 80, docNro: 20123456786 });
     expect(documentoDelReceptor("30.123.456")).toEqual({ docTipo: 96, docNro: 30123456 });
     expect(documentoDelReceptor("")).toEqual({ docTipo: 99, docNro: 0 });
+  });
+});
+
+describe("factura de crédito electrónica MiPyME", () => {
+  it("valida el CBU con sus dos dígitos verificadores", () => {
+    expect(cbuValido("0170099220000067797370")).toBe(true);
+    expect(cbuValido("2850590940090418135201")).toBe(true);
+    expect(cbuValido("0110599520000001234567")).toBe(false);
+    expect(cbuValido("123")).toBe(false);
+  });
+
+  it("la factura lleva CBU, alias y modalidad de transferencia", () => {
+    expect(opcionalesFce(201, { fce_cbu: "0170099220000067797370", fce_alias: "zz.cuenta", fce_transferencia: "adc" })).toEqual([
+      { id: "2101", valor: "0170099220000067797370" }, { id: "2102", valor: "zz.cuenta" }, { id: "27", valor: "ADC" },
+    ]);
+    expect(opcionalesFce(206, { fce_cbu: "0170099220000067797370" })).toEqual([
+      { id: "2101", valor: "0170099220000067797370" }, { id: "27", valor: "SCA" },
+    ]);
+    expect(() => opcionalesFce(211, { fce_cbu: "0110599520000001234567" })).toThrow("CBU válido");
+  });
+
+  it("sus notas dicen si anulan la factura; una factura común no lleva opcionales", () => {
+    expect(opcionalesFce(203, { fce_anulacion: true })).toEqual([{ id: "22", valor: "S" }]);
+    expect(opcionalesFce(208, {})).toEqual([{ id: "22", valor: "N" }]);
+    expect(opcionalesFce(1, { fce_cbu: "x" })).toEqual([]);
+  });
+
+  it("una FCE A va con IVA discriminado y CUIT, como la A", () => {
+    const xml = detalleWsfe(base({ due_date: "2026-11-21" }), { ...args, tipoCbte: 201, opcionales: opcionalesFce(201, { fce_cbu: "0170099220000067797370" }) });
+    expect(xml).toContain("<ar:Iva>");
+    expect(xml).toContain("<ar:Opcional><ar:Id>27</ar:Id><ar:Valor>SCA</ar:Valor></ar:Opcional>");
+    expect(() => detalleWsfe(base({ customer_tax_id: "", due_date: "2026-11-21" }), { ...args, tipoCbte: 201 })).toThrow("requiere el CUIT");
   });
 });
