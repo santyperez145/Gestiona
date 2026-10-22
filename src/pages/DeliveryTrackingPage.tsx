@@ -527,7 +527,7 @@ export default function DeliveryTrackingPage() {
           <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="rounded-xl border border-border/50 overflow-x-auto bg-[color:var(--b1)_/50]">
+        <div className="rounded-xl border border-border/50 overflow-x-auto bg-[color:var(--b1)_/50]" tabIndex={0} role="region" aria-label="Lista de envíos">
           <table className="w-full text-xs antialiased">
             <thead className="border-b border-border/50 bg-[color:var(--b2)_/50]">
               <tr className="text-[10px] text-[color:var(--bc)]">

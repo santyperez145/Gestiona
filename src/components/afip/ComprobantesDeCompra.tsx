@@ -330,7 +330,7 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
           <p className="text-sm text-muted-foreground">No hay comprobantes de compra cargados en este período.</p>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Comprobantes de compra del período">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-muted-foreground border-b border-border/40">

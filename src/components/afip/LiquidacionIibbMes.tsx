@@ -24,7 +24,7 @@ export default function LiquidacionIibbMes({ liquidacion }: { liquidacion: Liqui
           <Link to="/impuestos?tab=iibb" className="underline underline-offset-2">Impuestos → IIBB</Link> y acá aparece lo que te toca pagar en cada una.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Ingresos Brutos por jurisdicción">
           <table className="w-full text-xs">
             <caption className="sr-only">Liquidación de Ingresos Brutos por jurisdicción</caption>
             <thead>
