@@ -293,7 +293,7 @@ export default function TeamPage() {
                     <Badge variant="outline">{roleLabel(m.role)}</Badge>
                   )}
                   {canManage && m.role !== 'owner' && (
-                    <Button size="icon" variant="ghost" onClick={() => removeMember(m.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    <Button aria-label="Eliminar" title="Eliminar" size="icon" variant="ghost" onClick={() => removeMember(m.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   )}
                 </div>
               </div>
@@ -314,7 +314,7 @@ export default function TeamPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => copyInviteLink(i.token)}><Copy className="w-3.5 h-3.5 mr-1" />Copiar enlace</Button>
-                  {canManage && <Button size="icon" variant="ghost" onClick={() => revokeInvite(i.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                  {canManage && <Button aria-label="Eliminar" title="Eliminar" size="icon" variant="ghost" onClick={() => revokeInvite(i.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
                 </div>
               </div>
             ))}

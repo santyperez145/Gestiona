@@ -83,7 +83,7 @@ export default function PlatformHeader() {
             />
           </div>
 
-<Button variant="outline" size="sm" className="h-9 w-9 p-0 text-muted-foreground dark:text-muted-foreground">
+<Button aria-label="Configurar" title="Configurar" variant="outline" size="sm" className="h-9 w-9 p-0 text-muted-foreground dark:text-muted-foreground">
                 <Settings className="h-4 w-4" />
               </Button>
 
@@ -96,7 +96,7 @@ export default function PlatformHeader() {
 
               <Button size="sm" className="h-9 gap-2 bg-muted hover:bg-muted text-white dark:bg-muted dark:hover:bg-muted">
                 <Building2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Nuevo Merchant</span>
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Nuevo Merchant</span>
           </Button>
         </div>
       </div>

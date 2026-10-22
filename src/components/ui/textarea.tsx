@@ -3,7 +3,8 @@
  */
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { forwardRef, useId } from "react";
+import { forwardRef, useId, useLayoutEffect, useRef } from "react";
+import { asociarEtiquetaAnterior } from "@/lib/asociarEtiqueta";
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   helperText?: string;
@@ -17,6 +18,10 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const inputId = id || `nerqia-textarea-${generatedId}`;
     const helperId = `${inputId}-helper`;
     const errorId = `${inputId}-error`;
+    const propio = useRef<HTMLTextAreaElement | null>(null);
+    useLayoutEffect(() => {
+      if (!label) asociarEtiquetaAnterior(propio.current, propio.current?.parentElement);
+    }, [label, inputId]);
 
     const baseClasses = cn(
       "flex h-16 w-full rounded-[8px] border bg-card/90 px-3 py-2 text-sm resize-none",
@@ -38,7 +43,11 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         )}
         <textarea
           id={inputId}
-          ref={ref}
+          ref={el => {
+            propio.current = el;
+            if (typeof ref === "function") ref(el);
+            else if (ref) ref.current = el;
+          }}
           className={baseClasses}
           disabled={disabled}
           aria-describedby={error ? errorId : helperText ? helperId : undefined}

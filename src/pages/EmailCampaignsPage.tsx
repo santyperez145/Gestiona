@@ -694,7 +694,7 @@ export default function EmailCampaignsPage() {
             }`}
           >
             <tab.icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -894,7 +894,7 @@ export default function EmailCampaignsPage() {
                     })()}
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <Button
+                    <Button aria-label="Ver" title="Ver"
                       variant="outline" size="sm"
                       onClick={() => setPreview(camp)}
                     >
@@ -910,7 +910,7 @@ export default function EmailCampaignsPage() {
                         {sending === camp.id
                           ? <Loader2 className="w-4 h-4 animate-spin" />
                           : <Send className="w-4 h-4" />}
-                        <span className="ml-1 hidden sm:inline">Enviar</span>
+                        <span className="ml-1 sr-only sm:not-sr-only sm:whitespace-nowrap">Enviar</span>
                       </Button>
                     )}
                     <Button

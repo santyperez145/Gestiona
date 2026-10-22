@@ -183,11 +183,11 @@ function BundlesTab() {
                     )}
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(b); setOpen(true); }}>
+                    <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(b); setOpen(true); }}>
                       <Edit className="w-3.5 h-3.5" />
                     </Button>
                     <ConfirmDialog
-                      trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                      trigger={<Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                       title="¿Eliminar kit?" confirmText="Eliminar" onConfirm={() => handleDelete(b.id)}
                     />
                   </div>
@@ -435,9 +435,9 @@ function CombosTab() {
                   <span className="ml-2 text-xs text-emerald-400">Ahorro {formatARS(Number(c.savings_ars))}</span>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(c); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                  <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(c); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                   <ConfirmDialog
-                    trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                    trigger={<Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                     title="Eliminar combo?" confirmText="Eliminar" onConfirm={() => handleDelete(c.id)}
                   />
                 </div>
@@ -576,9 +576,9 @@ function BannersTab() {
                   {b.expires_at && <span className="ml-2">· Expira {fechaLocal(b.expires_at).toLocaleDateString('es-AR')}</span>}
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(b); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                  <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(b); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                   <ConfirmDialog
-                    trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                    trigger={<Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                     title="Eliminar banner?" confirmText="Eliminar" onConfirm={() => handleDelete(b.id)}
                   />
                 </div>

@@ -374,7 +374,7 @@ function PLItemsDialog({ open, list, products, orgId, onClose }: PLItemsDialogPr
                     {saving > 0 && <p className="text-xs text-emerald-400">-{savingPct}%</p>}
                     {saving < 0 && <p className="text-xs text-amber-400">+{Math.abs(savingPct)}%</p>}
                   </div>
-                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(item.id)}>
+                  <Button aria-label="Eliminar" title="Eliminar" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(item.id)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
@@ -515,13 +515,13 @@ export default function PriceListsPage() {
                   <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); setItemsDialogList(list); }}>
                     <Package className="w-3.5 h-3.5 mr-1" /> Precios
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); setEditingList(list); setPLFormOpen(true); }}>
+                  <Button aria-label="Editar" title="Editar" size="sm" variant="ghost" onClick={e => { e.stopPropagation(); setEditingList(list); setPLFormOpen(true); }}>
                     <Edit className="w-3.5 h-3.5" />
                   </Button>
                   <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); handleToggle(list); }}>
                     {list.is_active ? "Pausar" : "Activar"}
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={e => { e.stopPropagation(); handleDelete(list); }}>
+                  <Button aria-label="Eliminar" title="Eliminar" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={e => { e.stopPropagation(); handleDelete(list); }}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                   {expanded === list.id ? <ChevronUp className="w-4 h-4 ml-1 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 ml-1 text-muted-foreground" />}

@@ -425,7 +425,7 @@ export default function FinanceSolicitudesPage() {
           </div>
           <div className="mt-2 flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => void loadRequests()}>Reintentar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setLoadError(null)}><XCircle className="h-4 w-4" /></Button>
+            <Button aria-label="Quitar" title="Quitar" variant="ghost" size="sm" onClick={() => setLoadError(null)}><XCircle className="h-4 w-4" /></Button>
           </div>
         </div>
       )}
@@ -437,7 +437,7 @@ export default function FinanceSolicitudesPage() {
             <CheckCircle2 className="h-4 w-4" />
             <span>{notice}</span>
           </div>
-          <Button variant="ghost" size="sm" className="ml-auto mt-2" onClick={() => setNotice(null)}><XCircle className="h-4 w-4" /></Button>
+          <Button aria-label="Quitar" title="Quitar" variant="ghost" size="sm" className="ml-auto mt-2" onClick={() => setNotice(null)}><XCircle className="h-4 w-4" /></Button>
         </div>
       )}
 

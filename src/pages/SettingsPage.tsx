@@ -1933,7 +1933,7 @@ function ExpenseCategoriesSection({ userId }: { userId: string }) {
         <Input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="Ej.: Alquiler"
           onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())}
           className="bg-muted border-border" />
-        <Button variant="outline" onClick={add}><Plus className="w-3.5 h-3.5" /></Button>
+        <Button aria-label="Agregar" title="Agregar" variant="outline" onClick={add}><Plus className="w-3.5 h-3.5" /></Button>
       </div>
       <Button onClick={save} disabled={saving} className="w-full text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Categorías'}</Button>
     </div>
@@ -2149,7 +2149,7 @@ function ManagedBackupsSection() {
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">Snapshot privado semanal por organización · se conservan hasta 8 (56 días).</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading || !canManage}>
+        <Button aria-label="Actualizar" title="Actualizar" size="sm" variant="outline" onClick={() => void load()} disabled={loading || !canManage}>
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
         </Button>
       </div>
@@ -2278,7 +2278,7 @@ function CloudBackupsSection({ userId }: { userId: string }) {
                   {f.size ? ` · ${(f.size / 1024).toFixed(1)} KB` : ''}
                 </p>
               </div>
-              <Button size="sm" variant="ghost" className="h-7" onClick={() => downloadFile(f.name)}>
+              <Button aria-label="Descargar" title="Descargar" size="sm" variant="ghost" className="h-7" onClick={() => downloadFile(f.name)}>
                 <Download className="w-3 h-3" />
               </Button>
             </div>

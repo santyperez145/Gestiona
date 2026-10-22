@@ -123,11 +123,11 @@ export default function BrandKnowledgeTab() {
                         {it.clone_of && <p className="text-xs text-primary">Clon de: {it.clone_of}</p>}
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(it); setOpen(true); }}>
+                        <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(it); setOpen(true); }}>
                           <Edit className="w-3.5 h-3.5" />
                         </Button>
                         <ConfirmDialog
-                          trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                          trigger={<Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                           title={`Eliminar ${it.brand}?`}
                           confirmText="Eliminar"
                           onConfirm={() => handleDelete(it.id)}

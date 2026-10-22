@@ -66,7 +66,7 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
         </PopoverContent>
       </Popover>
       {hasFilter && (
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onChange(undefined, undefined)}>
+        <Button aria-label="Quitar" title="Quitar" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onChange(undefined, undefined)}>
           <X className="w-3.5 h-3.5" />
         </Button>
       )}

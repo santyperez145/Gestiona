@@ -590,13 +590,13 @@ function PlanCard({ plan, onEdit, onToggle, onDelete, onNewSub }: PlanCardProps)
         <Button size="sm" variant="outline" onClick={onNewSub}>
           <Plus className="w-3.5 h-3.5 mr-1" /> Suscribir
         </Button>
-        <Button size="sm" variant="ghost" onClick={onEdit}>
+        <Button aria-label="Editar" title="Editar" size="sm" variant="ghost" onClick={onEdit}>
           <Edit className="w-3.5 h-3.5" />
         </Button>
         <Button size="sm" variant="ghost" onClick={onToggle}>
           {plan.active ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
         </Button>
-        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={onDelete}>
+        <Button aria-label="Eliminar" title="Eliminar" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={onDelete}>
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
       </div>

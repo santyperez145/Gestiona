@@ -414,7 +414,7 @@ export default function WalletPage() {
           <div className="rounded-[8px] border border-border/80 bg-card">
             <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Cuentas para retirar</h2>
-              <Button variant="ghost" size="sm" onClick={() => setDialogCuenta(true)}>
+              <Button aria-label="Agregar cuenta bancaria" title="Agregar cuenta bancaria" variant="ghost" size="sm" onClick={() => setDialogCuenta(true)}>
                 <Plus className="w-4 h-4" />
               </Button>
             </div>

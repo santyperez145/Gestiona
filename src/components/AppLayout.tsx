@@ -299,7 +299,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </div>
-          <Button variant="ghost" size="sm" className="md:hidden shrink-0 text-sidebar-foreground h-7 w-7 p-0" onClick={() => setMobileOpen(false)}>
+          <Button aria-label="Quitar" title="Quitar" variant="ghost" size="sm" className="md:hidden shrink-0 text-sidebar-foreground h-7 w-7 p-0" onClick={() => setMobileOpen(false)}>
             <X className="w-4 h-4" />
           </Button>
         </div>

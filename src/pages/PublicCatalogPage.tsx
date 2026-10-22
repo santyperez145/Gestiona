@@ -887,7 +887,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
           style={{ background: "linear-gradient(135deg,#25D366,#128C7E)", boxShadow: "0 6px 24px rgba(37,211,102,0.45)" }}
         >
           <MessageCircle className="w-5 h-5" fill="white" />
-          <span className="hidden sm:inline">Consultar</span>
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Consultar</span>
         </a>
       )}
 
@@ -900,7 +900,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
         >
           <ShoppingCart className="w-5 h-5" />
           <span className="font-black">{cartCount}</span>
-          <span className="hidden sm:inline">· {fmtARS(cartTotal)}</span>
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">· {fmtARS(cartTotal)}</span>
         </button>
       )}
 

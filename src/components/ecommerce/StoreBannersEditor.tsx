@@ -197,10 +197,10 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
             </div>
             <div className="flex flex-col gap-1 pt-5">
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" className="px-2" disabled={idx === 0} onClick={() => mover(b, -1)}>
+                <Button aria-label="Subir" title="Subir" size="sm" variant="outline" className="px-2" disabled={idx === 0} onClick={() => mover(b, -1)}>
                   <ArrowUp className="w-3 h-3" />
                 </Button>
-                <Button size="sm" variant="outline" className="px-2" disabled={idx === banners.length - 1} onClick={() => mover(b, 1)}>
+                <Button aria-label="Bajar" title="Bajar" size="sm" variant="outline" className="px-2" disabled={idx === banners.length - 1} onClick={() => mover(b, 1)}>
                   <ArrowDown className="w-3 h-3" />
                 </Button>
               </div>
@@ -299,7 +299,7 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
               {guardando === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
               Guardar
             </Button>
-            <Button
+            <Button aria-label="Eliminar" title="Eliminar"
               size="sm" variant="outline"
               className="gap-1.5 text-xs text-red-500 hover:text-red-500"
               onClick={() => borrar(b)}

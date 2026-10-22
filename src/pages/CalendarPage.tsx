@@ -266,7 +266,7 @@ export default function CalendarPage() {
         title="Calendario de negocios"
         description="Vista unificada de tareas, deals, follow-ups y cobros"
         actions={
-          <Button variant="outline" size="sm" onClick={load}><RefreshCw className="w-3.5 h-3.5" /></Button>
+          <Button aria-label="Actualizar" title="Actualizar" variant="outline" size="sm" onClick={load}><RefreshCw className="w-3.5 h-3.5" /></Button>
         }
       />
 
@@ -318,13 +318,13 @@ export default function CalendarPage() {
           <div className="bg-card border border-border/60 rounded-2xl overflow-hidden">
             {/* Month nav */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
-              <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(m => addMonths(m, -1))}>
+              <Button aria-label="Anterior" title="Anterior" variant="ghost" size="sm" onClick={() => setCurrentMonth(m => addMonths(m, -1))}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <h2 className="text-sm font-semibold">
                 {MONTHS_ES[currentMonth.getMonth()]} {currentMonth.getFullYear()}
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(m => addMonths(m, 1))}>
+              <Button aria-label="Siguiente" title="Siguiente" variant="ghost" size="sm" onClick={() => setCurrentMonth(m => addMonths(m, 1))}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -369,7 +369,7 @@ export default function CalendarPage() {
                       className={`
                         min-h-[64px] p-1.5 border-b border-r border-border/20 text-left flex flex-col
                         transition-colors hover:bg-muted/20
-                        ${!day.inMonth ? "opacity-30" : ""}
+                        ${!day.inMonth ? "bg-muted/40" : ""}
                         ${isSelected ? "bg-primary/10 ring-1 ring-inset ring-primary/30" : ""}
                       `}
                     >

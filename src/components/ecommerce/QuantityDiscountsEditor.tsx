@@ -226,7 +226,7 @@ export default function QuantityDiscountsEditor({ categorias }: Props) {
               <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => alternar(r)}>
                 {r.is_active ? <><EyeOff className="w-3 h-3" />Pausar</> : <><Eye className="w-3 h-3" />Activar</>}
               </Button>
-              <Button size="sm" variant="outline" className="text-xs" onClick={() => borrar(r)}>
+              <Button aria-label="Eliminar" title="Eliminar" size="sm" variant="outline" className="text-xs" onClick={() => borrar(r)}>
                 <Trash2 className="w-3 h-3" />
               </Button>
             </div>

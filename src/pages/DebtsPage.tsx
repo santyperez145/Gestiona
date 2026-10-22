@@ -252,7 +252,7 @@ export default function DebtsPage() {
             {pending.length > 0 && (
               <button onClick={printDebtsPDF} className="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-border bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors" title="Imprimir PDF de deudas pendientes">
                 <Printer className="w-4 h-4" />
-                <span className="hidden sm:inline">PDF</span>
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">PDF</span>
               </button>
             )}
           </div>
@@ -283,7 +283,7 @@ export default function DebtsPage() {
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
             <t.icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{t.label}</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">{t.label}</span>
             {t.count > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tab === t.id ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>{t.count}</span>}
           </button>
         ))}
@@ -869,7 +869,7 @@ export default function DebtsPage() {
                             <MessageCircle className="w-3.5 h-3.5" />
                           </Button>
                           <ConfirmDialog
-                            trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                            trigger={<Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                             title="¿Eliminar deuda?"
                             description={`Se eliminará la deuda de ${d.customer_name} por ${formatARS(Number(d.amount_ars))}.`}
                             confirmText="Eliminar"
@@ -939,7 +939,7 @@ export default function DebtsPage() {
                       <MessageCircle className="w-3.5 h-3.5" />
                     </Button>
                     <ConfirmDialog
-                      trigger={<Button size="sm" variant="outline" className="h-8 w-8 p-0 border-destructive/30"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                      trigger={<Button aria-label="Eliminar" title="Eliminar" size="sm" variant="outline" className="h-8 w-8 p-0 border-destructive/30"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                       title="¿Eliminar deuda?"
                       confirmText="Eliminar"
                       onConfirm={() => handleDelete(d)}

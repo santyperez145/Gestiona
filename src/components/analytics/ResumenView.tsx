@@ -5,6 +5,7 @@
 // /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
 // paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
 // aparte a propósito.
+import GraficoAccesible from "@/components/shared/GraficoAccesible";
 import { conRegistro } from "@/lib/registroDeErrores";
 import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR } from "@/lib/fechaAR";
@@ -924,16 +925,16 @@ export default function ResumenView() {
               {derived.categoryMix.length === 0 ? (
                 <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">Sin datos</div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
+                <GraficoAccesible titulo="Mix de ganancia por categoría" datos={derived.categoryMix} formato={formatARS}><ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={derived.categoryMix} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                    <Pie rootTabIndex={-1} data={derived.categoryMix} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                       {derived.categoryMix.map((_: any, i: number) => (
                         <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                       ))}
                     </Pie>
                     <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
                   </PieChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer></GraficoAccesible>
               )}
             </div>
 

@@ -6609,11 +6609,12 @@
   }
 
   .light .page-header__eyebrow {
-    color: hsl(252 72% 48% / 0.78);
+    color: hsl(252 72% 44%);
   }
 
   .light .page-header__description {
-    color: hsl(240 4% 43% / 0.86);
+    /* Sin transparencia: sobre los fondos teñidos (Influencers) bajaba de 4,5:1. */
+    color: hsl(240 4% 38%);
   }
 
   .light .page-header__title {
@@ -6837,3 +6838,25 @@
     background: hsl(var(--background));
   }
 }
+
+/* ── Legibilidad (barrido de pantallas, 2026-10-22) ───────────────────────
+   1. El texto gris con opacidad (`text-muted-foreground/60…/80`) quedaba por
+      debajo de 4,5:1 —WCAG AA— en los dos temas: se usaba para jerarquía y
+      terminaba ilegible. Se deja en el gris de texto secundario, que ya es
+      más claro que el principal.
+   2. Los colores `-400` estaban pensados para el tema oscuro original. Sobre
+      blanco dan 2:1 («Activo», «Pagado», montos en verde). En el tema claro
+      se usa el tono 700 del mismo color. Va fuera de @layer para que no se
+      purgue y después de las utilidades para que gane. */
+.text-muted-foreground\/60,
+.text-muted-foreground\/70,
+.text-muted-foreground\/75,
+.text-muted-foreground\/80 { color: hsl(var(--muted-foreground)); }
+
+.light .text-emerald-400 { color: rgb(4 120 87); }
+.light .text-green-400 { color: rgb(21 128 61); }
+.light .text-yellow-400 { color: rgb(161 98 7); }
+.light .text-amber-400 { color: rgb(180 83 9); }
+.light .text-blue-400 { color: rgb(29 78 216); }
+.light .text-orange-400 { color: rgb(194 65 12); }
+.light .text-red-400 { color: rgb(185 28 28); }

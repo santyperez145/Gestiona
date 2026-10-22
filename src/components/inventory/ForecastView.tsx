@@ -466,7 +466,7 @@ export default function ForecastView() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Button size="sm" variant="ghost" onClick={() => setConfigDialogProduct(f.product)}>
+                      <Button aria-label="Configurar" title="Configurar" size="sm" variant="ghost" onClick={() => setConfigDialogProduct(f.product)}>
                         <Settings className="w-3.5 h-3.5" />
                       </Button>
                     </td>

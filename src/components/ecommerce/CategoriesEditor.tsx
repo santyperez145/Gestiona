@@ -278,10 +278,10 @@ export default function CategoriesEditor() {
                         }}
                         className="h-8 max-w-xs"
                       />
-                      <Button size="sm" className="h-8" onClick={() => renombrar(f)}>
+                      <Button aria-label="Confirmar" title="Confirmar" size="sm" className="h-8" onClick={() => renombrar(f)}>
                         <Check className="w-3.5 h-3.5" />
                       </Button>
-                      <Button size="sm" variant="outline" className="h-8" onClick={() => setEditando(null)}>
+                      <Button aria-label="Quitar" title="Quitar" size="sm" variant="outline" className="h-8" onClick={() => setEditando(null)}>
                         <X className="w-3.5 h-3.5" />
                       </Button>
                     </div>

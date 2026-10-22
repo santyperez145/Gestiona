@@ -312,7 +312,7 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
           <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground flex-1" disabled={!pName.trim() || !pPrice || loading} onClick={handleCreate}>
             {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear
           </Button>
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+          <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
         </div>
       </div>
     );
@@ -365,7 +365,7 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
           <Button size="sm" className="h-7 text-xs bg-yellow-500 text-white flex-1" disabled={!eDesc.trim() || !eAmount || loading} onClick={handleCreate}>
             {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Guardar
           </Button>
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+          <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
         </div>
       </div>
     );
@@ -468,7 +468,7 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
           <Button size="sm" className="h-7 text-xs bg-emerald-500 text-white flex-1" disabled={!cName.trim() || loading} onClick={handleCreate}>
             {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear
           </Button>
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+          <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
         </div>
       </div>
     );
@@ -542,7 +542,7 @@ function AdjustStockCard({ userId, onDone }: { userId: string; onDone: () => voi
         <Button size="sm" className="h-7 text-xs bg-orange-500 text-white flex-1" disabled={!selectedId || newStock === "" || loading} onClick={handleAdjust}>
           {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Package className="w-3 h-3 mr-1" />}Actualizar
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
       </div>
     </div>
   );
@@ -628,7 +628,7 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
         <Button size="sm" className="h-7 text-xs bg-emerald-500 text-white flex-1" disabled={!selectedId || !quantity || loading} onClick={handleCreate}>
           {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <ShoppingCart className="w-3 h-3 mr-1" />}Registrar
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
       </div>
     </div>
   );
@@ -710,7 +710,7 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
         <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground flex-1" disabled={!selectedId || loading} onClick={handleCreate}>
           {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Registrar
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
       </div>
     </div>
   );
@@ -1176,7 +1176,7 @@ function CustomerAnalysisCard({ userId, initialName, onDone }: { userId: string;
               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigate("/clientes")}>
                 Ver en CRM →
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto" onClick={onDone}><X className="w-3 h-3" /></Button>
+              <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs ml-auto" onClick={onDone}><X className="w-3 h-3" /></Button>
             </div>
           </div>
         );
@@ -1439,7 +1439,7 @@ function SendWaSegmentCard({ initialSegment, onDone }: { initialSegment?: string
         >
           <MessageSquare className="w-3 h-3" />Abrir campañas seguras
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
       </div>
     </div>
   );
@@ -1541,7 +1541,7 @@ function CreateTaskCard({ userId, onDone }: { userId: string; onDone: () => void
         <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-500 text-white flex-1" disabled={!title.trim() || loading} onClick={handleCreate}>
           {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear tarea
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
       </div>
     </div>
   );
@@ -1669,7 +1669,7 @@ function CreateQuoteCard({ userId, initialCustomer, initialProduct, initialAmoun
         <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground flex-1" disabled={!custName.trim() || loading} onClick={handleCreate}>
           {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear presupuesto
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
       </div>
     </div>
   );
@@ -2079,7 +2079,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1 flex-1" onClick={() => { navigate("/proveedores"); onDone(); }}>
               Ver proveedores →
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+            <Button aria-label="Cerrar" title="Cerrar" size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
           </div>
         </div>
       )}

@@ -856,7 +856,7 @@ export default function AutomationFlowsTab() {
                       ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       : <Play className="w-3.5 h-3.5" />}
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => { setEditingFlow(flow); setShowForm(true); }}>
+                  <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" onClick={() => { setEditingFlow(flow); setShowForm(true); }}>
                     <Edit2 className="w-3.5 h-3.5" />
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => toggleActive(flow)} disabled={isRetiredMarketingFlow(flow)} title={isRetiredMarketingFlow(flow) ? "Regla retirada" : flow.active ? "Pausar" : "Activar"}>
@@ -864,7 +864,7 @@ export default function AutomationFlowsTab() {
                       ? <Pause className="w-3.5 h-3.5 text-yellow-400" />
                       : <Zap className="w-3.5 h-3.5 text-emerald-400" />}
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => deleteFlow(flow.id)}>
+                  <Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" onClick={() => deleteFlow(flow.id)}>
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
                   </Button>
                 </div>

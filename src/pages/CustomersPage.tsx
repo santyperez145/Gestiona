@@ -3670,7 +3670,7 @@ export default function CustomersPage() {
                             {quickNoteSaving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-3 h-3" />}
                             Guardar nota
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setQuickNoteCustomer(null); setQuickNoteText(""); }}>
+                          <Button aria-label="Quitar" title="Quitar" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setQuickNoteCustomer(null); setQuickNoteText(""); }}>
                             <X className="w-3 h-3" />
                           </Button>
                         </div>
@@ -3706,7 +3706,7 @@ export default function CustomersPage() {
                           >
                             {merging ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Fusionar"}
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setMergingCustomer(null); setMergeTarget(""); }}>
+                          <Button aria-label="Quitar" title="Quitar" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setMergingCustomer(null); setMergeTarget(""); }}>
                             <X className="w-3.5 h-3.5" />
                           </Button>
                         </div>

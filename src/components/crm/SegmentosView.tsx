@@ -368,14 +368,14 @@ export default function SegmentosView() {
           <h3 className="text-sm font-semibold mb-4">Distribución de segmentos</h3>
           {pieData.length > 0 ? (
             <div className="flex items-center gap-4">
-              <ResponsiveContainer width="50%" height={180}>
+              <div aria-hidden="true" className="w-1/2 shrink-0"><ResponsiveContainer width="100%" height={180}>
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" stroke="none">
+                  <Pie rootTabIndex={-1} data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" stroke="none">
                     {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Tooltip formatter={(v: number) => [`${plural(v, "cliente")}`, ""]} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
               <div className="flex-1 space-y-1.5">
                 {pieData.sort((a, b) => b.value - a.value).slice(0, 6).map(d => (
                   <div key={d.name} className="flex items-center justify-between gap-2">

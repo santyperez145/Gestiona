@@ -63,8 +63,8 @@ export default function CommerceQuickActions({ actions = defaultActions }: Comme
   const colorClasses = {
     primary: "bg-primary text-primary-foreground hover:bg-primary/90",
     secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-    success: "bg-emerald-600 text-white hover:bg-emerald-700",
-    warning: "bg-amber-600 text-white hover:bg-amber-700",
+    success: "bg-emerald-700 text-white hover:bg-emerald-800",
+    warning: "bg-amber-700 text-white hover:bg-amber-800",
     destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
   };
 
@@ -96,7 +96,7 @@ export default function CommerceQuickActions({ actions = defaultActions }: Comme
                       )}
                     </p>
                     {action.description && (
-                      <p className="text-[10px] opacity-80 mt-0.5">{action.description}</p>
+                      <p className="text-[10px] opacity-95 mt-0.5">{action.description}</p>
                     )}
                   </div>
                 </Link>

@@ -592,8 +592,8 @@ export default function TablerosView() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => openEditWidget(w)}><Pencil className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={() => deleteWidget(w.id)}><Trash2 className="w-4 h-4" /></Button>
+                            <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" onClick={() => openEditWidget(w)}><Pencil className="w-4 h-4" /></Button>
+                            <Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={() => deleteWidget(w.id)}><Trash2 className="w-4 h-4" /></Button>
                           </div>
                         </td>
                       </tr>
@@ -676,7 +676,7 @@ export default function TablerosView() {
                         {a.last_triggered ? fechaLocal(a.last_triggered).toLocaleDateString("es-AR") : "Nunca"}
                       </td>
                       <td className="px-4 py-3">
-                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
+                        <Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
                           onClick={() => supabase.from("kpi_alerts").delete().eq("id", a.id).then(load)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>

@@ -327,7 +327,7 @@ export default function DripSequencesTab() {
             <h3 className="font-semibold text-sm flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" />Nueva secuencia de email
             </h3>
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowForm(false)}>
+            <Button aria-label="Quitar" title="Quitar" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowForm(false)}>
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -453,7 +453,7 @@ export default function DripSequencesTab() {
                           onClick={() => toggleActive(seq)}>
                           {seq.active ? <><Pause className="w-3 h-3 mr-1" />Pausar</> : <><Play className="w-3 h-3 mr-1" />Activar</>}
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400 hover:bg-red-500/10" onClick={() => deleteSeq(seq.id)}>
+                        <Button aria-label="Eliminar" title="Eliminar" size="icon" variant="ghost" className="h-7 w-7 text-red-400 hover:bg-red-500/10" onClick={() => deleteSeq(seq.id)}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </>
@@ -513,7 +513,7 @@ export default function DripSequencesTab() {
                             <Button size="sm" className="h-7 text-xs shrink-0" onClick={handleEnroll} disabled={enrollSaving || !enrollForm.email}>
                               {enrollSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setEnrollForm(null)}>
+                            <Button aria-label="Quitar" title="Quitar" size="sm" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setEnrollForm(null)}>
                               <X className="w-3 h-3" />
                             </Button>
                           </div>

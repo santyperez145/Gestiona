@@ -518,7 +518,7 @@ export default function DeliveryTrackingPage() {
             </SelectContent>
           </Select>
         )}
-        <Button variant="outline" size="icon" onClick={loadData}><RefreshCw className="w-4 h-4" /></Button>
+        <Button aria-label="Actualizar" title="Actualizar" variant="outline" size="icon" onClick={loadData}><RefreshCw className="w-4 h-4" /></Button>
       </div>
 
       {/* Table */}
@@ -583,10 +583,10 @@ export default function DeliveryTrackingPage() {
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="Tracking" onClick={() => setTracking(d)}>
                           <Navigation className="w-3.5 h-3.5" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditing(d); setFormOpen(true); }}>
+                        <Button aria-label="Editar" title="Editar" size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditing(d); setFormOpen(true); }}>
                           <Edit2 className="w-3.5 h-3.5" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteDelivery(d.id)}>
+                        <Button aria-label="Eliminar" title="Eliminar" size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteDelivery(d.id)}>
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>

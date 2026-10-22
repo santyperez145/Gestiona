@@ -289,7 +289,7 @@ export default function PromotionsPage() {
         description="Ofertas por tiempo limitado y reglas de descuento que la tienda online y el mostrador aplican igual."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+            <Button aria-label="Actualizar" title="Actualizar" variant="outline" size="sm" onClick={load} disabled={loading}>
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
             {isAdmin && (

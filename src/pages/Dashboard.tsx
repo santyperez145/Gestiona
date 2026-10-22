@@ -3112,14 +3112,14 @@ export default function Dashboard() {
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Ventas por Categoría</h2>
           {stats.salesByCategory.length > 0 ? (
             <div>
-              <ResponsiveContainer width="100%" height={150}>
+              <div aria-hidden="true"><ResponsiveContainer width="100%" height={150}>
                 <PieChart>
-                  <Pie data={stats.salesByCategory} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" stroke="none">
+                  <Pie rootTabIndex={-1} data={stats.salesByCategory} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" stroke="none">
                     {stats.salesByCategory.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v), 'Total']} />
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
               <div className="space-y-1.5 mt-2">
                 {stats.salesByCategory.map((cat: any, i: number) => (
                   <div key={cat.name} className="flex items-center justify-between text-xs">

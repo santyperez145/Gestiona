@@ -1146,7 +1146,7 @@ export default function EcommerceStorePage() {
       {/* Tabs */}
       <div className="commerce-store-tabs flex flex-wrap gap-1 w-fit max-w-full" role="tablist" aria-label="Configuración de la tienda">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => goToTab(t.id)}
+          <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => goToTab(t.id)}
             className={`commerce-store-tab min-h-11 px-3 py-1.5 text-sm font-semibold ${tab === t.id ? "is-active" : ""}`}>
             {t.label}
           </button>
@@ -1168,7 +1168,7 @@ export default function EcommerceStorePage() {
           <div className="commerce-store-tabs flex flex-wrap gap-1 w-fit max-w-full" role="tablist" aria-label="Voz del comprador">
             {(["opiniones", "preguntas"] as const).map(v => (
               <button
-                key={v} onClick={() => setVozTab(v)}
+                key={v} type="button" role="tab" aria-selected={vozTab === v} onClick={() => setVozTab(v)}
                 className={`commerce-store-tab min-h-11 px-3 py-1.5 text-sm font-semibold capitalize ${vozTab === v ? "is-active" : ""}`}
               >
                 {v}

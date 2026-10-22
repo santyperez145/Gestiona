@@ -249,7 +249,7 @@ export default function InventoryTransfersPage() {
         description="Mover stock entre sucursales y depósitos · trazabilidad completa"
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+            <Button aria-label="Actualizar" title="Actualizar" variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
             {isAdmin && (

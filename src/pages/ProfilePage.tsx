@@ -439,7 +439,7 @@ export default function ProfilePage() {
       {/* Avatar + Name */}
       <div className="relative space-y-5 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información personal</p>
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground font-display">Información personal</p>
 
         {/* Avatar */}
         <div className="flex items-center gap-5">
@@ -530,7 +530,7 @@ export default function ProfilePage() {
       {/* Account info */}
       <div className="relative space-y-3 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información de cuenta</p>
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground font-display">Información de cuenta</p>
         <div className="space-y-0">
           <div className="info-row">
             <span>ID de usuario</span>
@@ -550,7 +550,7 @@ export default function ProfilePage() {
       {/* Password change */}
       <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground font-display flex items-center gap-2">
           <Lock className="w-3 h-3" /> Cambiar contraseña
         </p>
         <div className="space-y-3 pb-12">
@@ -611,7 +611,7 @@ export default function ProfilePage() {
       <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <div className="flex items-center justify-between">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground font-display flex items-center gap-2">
             <Shield className="w-3 h-3" /> Autenticación de dos factores (2FA)
           </p>
           {!mfaLoading && mfaFactors.filter(f => f.status === 'verified').length > 0 && (
@@ -662,7 +662,7 @@ export default function ProfilePage() {
               <div className="rounded-[8px] border border-yellow-500/20 bg-yellow-500/5 px-4 py-3 flex items-start gap-3">
                 <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-yellow-300">2FA no configurado</p>
+                  <p className="text-sm font-medium text-amber-700 dark:text-yellow-300">2FA no configurado</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     Protegé tu cuenta con un código adicional de tu app de autenticación (Google Authenticator, Authy, etc.)
                   </p>
@@ -755,7 +755,7 @@ export default function ProfilePage() {
       {/* Memberships */}
       <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground font-display flex items-center gap-2">
           <Building2 className="w-3 h-3" /> Mis organizaciones
         </p>
         {memberships.length === 0

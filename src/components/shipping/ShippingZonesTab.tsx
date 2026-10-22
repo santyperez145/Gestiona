@@ -329,7 +329,7 @@ export default function ShippingZonesTab() {
                                     {r.free_above ? fmt(r.free_above) : '—'}
                                   </td>
                                   <td className="py-1.5 text-right">
-                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                                    <Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-6 w-6 p-0"
                                       onClick={() => deleteRate(r.id)}>
                                       <Trash2 className="w-3 h-3 text-destructive/70" />
                                     </Button>

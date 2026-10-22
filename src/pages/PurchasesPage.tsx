@@ -212,7 +212,7 @@ export default function PurchasesPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9" aria-label="Más acciones de compras">
-                  <MoreHorizontal className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Más acciones</span>
+                  <MoreHorizontal className="h-4 w-4 sm:mr-2" /><span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Más acciones</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">

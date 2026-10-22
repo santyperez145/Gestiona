@@ -1143,7 +1143,7 @@ export default function ProductsPage() {
           <div className="workspace-products-actions flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
             <Button variant="outline" size="sm" onClick={() => void reload()} disabled={refreshing} title="Actualizar catálogo" aria-label="Actualizar catálogo">
               <RefreshCw className={`w-4 h-4 sm:mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Actualizar</span>
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Actualizar</span>
             </Button>
             <div className="flex rounded-lg border border-border overflow-hidden h-9">
               <button type="button" aria-label="Vista lista" aria-pressed={productView === 'list'} onClick={() => setProductView('list')} className={`px-2.5 transition-colors ${productView === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista lista">
@@ -1157,7 +1157,7 @@ export default function ProductsPage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" aria-label="Más acciones de productos">
                   <MoreHorizontal className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Más acciones</span>
+                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Más acciones</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
@@ -3502,7 +3502,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             placeholder="nuevo, importado, oferta... (Enter para agregar)"
             className="bg-muted border-border text-sm flex-1"
           />
-          <Button type="button" variant="outline" size="sm" onClick={() => {
+          <Button aria-label="Agregar" title="Agregar" type="button" variant="outline" size="sm" onClick={() => {
             const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúüñ-]/g, '');
             if (t && !tags.includes(t)) { markDirty(); setTags([...tags, t]); }
             setTagInput('');

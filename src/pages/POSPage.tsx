@@ -636,7 +636,7 @@ ${paymentInfo}
                 <MessageCircle className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">MP por WhatsApp</span>
               </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 border-blue-500/30 text-blue-400" onClick={copyMpLink}>
+              <Button aria-label="Copiar" title="Copiar" variant="outline" size="sm" className="gap-1.5 border-blue-500/30 text-blue-400" onClick={copyMpLink}>
                 <Copy className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -3176,7 +3176,7 @@ export default function POSPage() {
         ) : (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
             <p className="font-semibold">Caja todavía no tiene una sucursal</p>
-            <p className="mt-0.5 text-amber-700/90 dark:text-amber-200/80">
+            <p className="mt-0.5 text-amber-800 dark:text-amber-200">
               La venta puede continuar, pero quedará sin turno hasta definir el punto de venta.
             </p>
             {isAdmin ? (
@@ -3807,6 +3807,8 @@ export default function POSPage() {
 
   return (
     <>
+      {/* La caja no lleva encabezado visible (es pantalla completa), pero el lector de pantalla necesita saber dónde está. */}
+      <h1 className="sr-only">Caja: vender en el local</h1>
       {dialog}
       {/* Variant Picker modal */}
       {variantPickerProduct && (
@@ -4241,11 +4243,11 @@ export default function POSPage() {
           </div>
           <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0 border-orange-500/40 text-orange-400 hover:bg-orange-500/10" onClick={() => setShowReturn(true)}>
             <Undo2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Devolver</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Devolver</span>
           </Button>
           <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0" onClick={() => scanning ? stopScan() : startScan()}>
             <QrCode className="w-4 h-4" />
-            <span className="hidden sm:inline">Escanear</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Escanear</span>
           </Button>
           <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0" onClick={togglePosTheme} title={posTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}>
             {posTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}

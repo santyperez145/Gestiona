@@ -1096,7 +1096,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                   </Button>
                   <Button size="sm" className="h-8" onClick={() => setCreateOrgDialog(true)}>
                     <UserPlus className="w-3.5 h-3.5 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Nueva org</span>
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Nueva org</span>
                   </Button>
                 </div>
               </div>
@@ -1166,7 +1166,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                             onClick={() => { setPlanDialog({ open: true, org: r }); setPlanDialogPlanId(r.plan_id || ''); }}>
                             <ChevronRight className="w-3 h-3 mr-1" />Plan
                           </Button>
-                          <Button variant="outline" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          <Button aria-label="Eliminar" title="Eliminar" variant="outline" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                             onClick={() => { setDeleteDialog({ open: true, org: r }); setDeleteConfirm(''); }}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
@@ -1664,7 +1664,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                   <History className="w-4 h-4 text-primary" />
                   <h3 className="font-semibold text-sm">Acciones de admins</h3>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={loadAdminLogs} disabled={loadingLogs}>
+                <Button aria-label="Actualizar" title="Actualizar" variant="ghost" size="sm" className="h-7 px-2" onClick={loadAdminLogs} disabled={loadingLogs}>
                   <RefreshCw className={`w-3.5 h-3.5 ${loadingLogs ? 'animate-spin' : ''}`} />
                 </Button>
               </div>

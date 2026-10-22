@@ -363,7 +363,7 @@ function POForm({ open, order, suppliers, products, orgId, onClose, onSaved }: P
                           {fmtCurrency(item.quantity_ordered * item.unit_cost, currency)}
                         </td>
                         <td className="px-3 py-2">
-                          <Button size="sm" variant="ghost" onClick={() => removeItem(i)}>
+                          <Button aria-label="Eliminar" title="Eliminar" size="sm" variant="ghost" onClick={() => removeItem(i)}>
                             <Trash2 className="w-3 h-3 text-muted-foreground" />
                           </Button>
                         </td>

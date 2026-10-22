@@ -115,7 +115,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
               className="platform-topbar-action flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[11px] transition-all"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Salir</span>
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Salir</span>
             </button>
           </div>
         </div>

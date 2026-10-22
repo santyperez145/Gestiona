@@ -258,7 +258,7 @@ function SegForm({ open, segment, orgId, onClose, onSaved }: SegFormProps) {
                       onChange={e => updateRule(i, "value", e.target.value)}
                       placeholder="Valor"
                     />
-                    <Button size="sm" variant="ghost" onClick={() => removeRule(i)}>
+                    <Button aria-label="Quitar" title="Quitar" size="sm" variant="ghost" onClick={() => removeRule(i)}>
                       <X className="w-3.5 h-3.5" />
                     </Button>
                   </div>

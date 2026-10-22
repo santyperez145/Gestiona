@@ -259,7 +259,7 @@ export default function SeguimientosView() {
               <SelectItem value="30">30 días</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="gap-1" onClick={load}>
+          <Button aria-label="Actualizar" title="Actualizar" variant="outline" size="sm" className="gap-1" onClick={load}>
             <RefreshCw className="w-3.5 h-3.5" />
           </Button>
         </div>

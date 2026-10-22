@@ -2,7 +2,7 @@
 import { fmtPct } from "@/lib/porcentaje";
 import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,45 +66,55 @@ export default function AdminPage() {
   const [sellerGoals, setSellerGoals] = useState<any[]>([]);
   const [vendorSearch, setVendorSearch] = useState("");
 
+  // El acceso y los datos son del negocio activo. Antes se decidía con la tabla
+  // global `user_roles` (de antes de las organizaciones): el dueño de un negocio
+  // veía «Acceso restringido» y las ventas se sumaban sin filtrar por negocio
+  // (barrido de pantallas, 2026-10-22).
+  const { orgId, role: rolEnElNegocio, loading: cargandoNegocio } = useOrganization();
+  const esAdminDelNegocio = rolEnElNegocio === "owner" || rolEnElNegocio === "admin";
+
   useEffect(() => {
-    if (!user) return;
+    if (!user || cargandoNegocio) return;
     checkAdminAndLoad();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, orgId, esAdminDelNegocio, cargandoNegocio]);
 
   const checkAdminAndLoad = async () => {
     if (!user) return;
-    const { data: roleData } = await conRegistro(supabase.from("user_roles").select("role").eq("user_id", user.id));
-    const admin = roleData?.some(r => r.role === "admin") || false;
-    setIsAdmin(admin);
-    if (admin) {
+    setIsAdmin(esAdminDelNegocio);
+    if (esAdminDelNegocio && orgId) {
       await loadVendorData();
-      getAuditLogsDB(100).then(setAuditLogs).catch(() => {});
-      getSellerGoalsDB(user.id).then(setSellerGoals).catch(() => {});
+      getAuditLogsDB(100).then(setAuditLogs).catch(e => registrarError(e));
+      getSellerGoalsDB(user.id).then(setSellerGoals).catch(e => registrarError(e));
     }
     setLoading(false);
   };
 
   const loadVendorData = async () => {
-    const { data: profiles } = await conRegistro(supabase.from("profiles").select("*"));
-    if (!profiles) return;
-    const { data: roles } = await conRegistro(supabase.from("user_roles").select("*"));
-    const { data: allSales } = await conRegistro(supabase.from("sales").select("*").order("date", { ascending: false }));
-    const { data: allProducts } = await conRegistro(supabase.from("products").select("user_id, id"));
+    if (!orgId) return;
+    const { data: miembros } = await conRegistro(supabase.from("memberships").select("user_id, role").eq("org_id", orgId));
+    if (!miembros) return;
+    const ids = miembros.map(m => m.user_id);
+    const [{ data: profiles }, { data: allSales }, { data: allProducts }] = await Promise.all([
+      conRegistro(supabase.from("profiles").select("user_id, display_name, phone").in("user_id", ids)),
+      conRegistro(supabase.from("sales").select("user_id, total_ars, profit_ars, date").eq("org_id", orgId).order("date", { ascending: false }).limit(10000)),
+      conRegistro(supabase.from("products").select("user_id, id").eq("org_id", orgId)),
+    ]);
+    const ROLES: Record<string, string> = { owner: "dueño", admin: "admin", vendedor: "vendedor", viewer: "viewer" };
 
     const vendorMap: Record<string, VendorStats> = {};
-    for (const p of profiles) {
-      const userRoles = roles?.filter(r => r.user_id === p.user_id) || [];
-      const role = userRoles.map(r => r.role).join(", ") || "viewer";
-      const userSales = (allSales || []).filter(s => s.user_id === p.user_id);
-      const userProducts = (allProducts || []).filter(pr => pr.user_id === p.user_id);
+    for (const m of miembros) {
+      const p = (profiles || []).find(pr => pr.user_id === m.user_id);
+      const userSales = (allSales || []).filter(s => s.user_id === m.user_id);
+      const userProducts = (allProducts || []).filter(pr => pr.user_id === m.user_id);
       const totalRevenue = userSales.reduce((sum, s) => sum + Number(s.total_ars), 0);
       const totalProfit = userSales.reduce((sum, s) => sum + Number(s.profit_ars), 0);
 
-      vendorMap[p.user_id] = {
-        userId: p.user_id,
-        email: p.phone || p.display_name || "—",
-        displayName: p.display_name || "Sin nombre",
-        role: role || "viewer",
+      vendorMap[m.user_id] = {
+        userId: m.user_id,
+        email: p?.phone || p?.display_name || "—",
+        displayName: p?.display_name || "Sin nombre",
+        role: ROLES[m.role] ?? m.role,
         totalSales: userSales.length,
         totalRevenue,
         totalProfit,
@@ -192,7 +202,7 @@ export default function AdminPage() {
           <Shield className="w-8 h-8 text-destructive" />
         </div>
         <h2 className="text-xl font-display font-bold mb-2">Acceso Restringido</h2>
-        <p className="text-muted-foreground text-sm">Solo los administradores pueden acceder a este panel.</p>
+        <p className="text-muted-foreground text-sm">Solo el dueño o un administrador del negocio pueden ver el rendimiento del equipo.</p>
       </div>
     );
   }
@@ -203,7 +213,7 @@ export default function AdminPage() {
         icon={Crown}
         title="Panel de Administración"
         description="Rendimiento de vendedores, metas, auditoría y gestión del equipo"
-        actions={<AssignRoleDialog onDone={loadVendorData} />}
+        actions={<Button variant="outline" className="gap-2" asChild><Link to="/equipo"><UserPlus className="w-4 h-4" />Gestionar equipo y roles</Link></Button>}
       />
 
       {/* ── KPIs ─────────────────────────────────────────────────────── */}
@@ -268,20 +278,23 @@ export default function AdminPage() {
                 <h3 className="font-semibold text-sm mb-1">Distribución de Roles</h3>
                 <p className="text-xs text-muted-foreground mb-3">{vendors.length} usuarios registrados</p>
                 {roleDistribution.length > 0 ? (
+                  // La leyenda de abajo dice lo mismo en texto: el gráfico se oculta al lector de pantalla.
+                  <div aria-hidden="true">
                   <ResponsiveContainer width="100%" height={140}>
                     <PieChart>
-                      <Pie data={roleDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={55} innerRadius={30}>
+                      <Pie rootTabIndex={-1} data={roleDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={55} innerRadius={30}>
                         {roleDistribution.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                       </Pie>
                       <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
                     </PieChart>
                   </ResponsiveContainer>
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center h-[140px] text-muted-foreground text-xs">Sin datos</div>
                 )}
                 <div className="flex flex-wrap gap-2 mt-2">
                   {roleDistribution.map((r, i) => {
-                    const roleLabel = r.name === "admin" ? "Administrador" : r.name === "vendedor" ? "Vendedor" : r.name === "viewer" ? "Solo lectura" : r.name;
+                    const roleLabel = r.name === "dueño" ? "Dueño" : r.name === "admin" ? "Administrador" : r.name === "vendedor" ? "Vendedor" : r.name === "viewer" ? "Solo lectura" : r.name;
                     return (
                       <div key={r.name} className="flex items-center gap-1.5 text-xs">
                         <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
@@ -329,7 +342,7 @@ export default function AdminPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{v.displayName}</p>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <Progress value={(v.totalRevenue / maxRev) * 100} className="h-1.5 flex-1 max-w-[120px]" />
+                        <Progress aria-label={`Participación de ${v.displayName} en la facturación`} value={(v.totalRevenue / maxRev) * 100} className="h-1.5 flex-1 max-w-[120px]" />
                         <span className="text-xs text-muted-foreground">{v.totalSales} ventas</span>
                       </div>
                     </div>
@@ -828,76 +841,6 @@ function SystemAuditLogTab() {
   );
 }
 
-// ─── Assign Role Dialog ────────────────────────────────────────────────────────
-function AssignRoleDialog({ onDone }: { onDone: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedRole, setSelectedRole] = useState<"admin" | "vendedor" | "viewer">("vendedor");
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    supabase.from("profiles").select("*").then(({ data, error }) => { if (error) registrarError(error); setProfiles(data || []); });
-  }, [open]);
-
-  const handleAssign = async () => {
-    if (!selectedUser) return;
-    setSaving(true);
-    try {
-      const { error: borrarError } = await supabase.from("user_roles").delete().eq("user_id", selectedUser);
-      if (borrarError) throw borrarError;
-      const { error } = await supabase.from("user_roles").insert({ user_id: selectedUser, role: selectedRole });
-      if (error) throw error;
-      toast.success(`Rol "${selectedRole}" asignado correctamente`);
-      setOpen(false);
-      onDone();
-    } catch (err: any) {
-      toast.error("Error: " + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2"><UserPlus className="w-4 h-4" />Asignar Rol</Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle className="font-display">Asignar Rol a Usuario</DialogTitle></DialogHeader>
-        <div className="space-y-4 pb-12">
-          <div>
-            <label className="text-sm text-muted-foreground">Usuario</label>
-            <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Seleccionar usuario..." /></SelectTrigger>
-              <SelectContent>
-                {profiles.map(p => (
-                  <SelectItem key={p.user_id} value={p.user_id}>{p.display_name || p.user_id}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Rol</label>
-            <Select value={selectedRole} onValueChange={v => setSelectedRole(v as "admin" | "vendedor" | "viewer")}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">🔑 Administrador</SelectItem>
-                <SelectItem value="vendedor">💼 Vendedor</SelectItem>
-                <SelectItem value="viewer">👁 Solo lectura</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={handleAssign} disabled={saving || !selectedUser} className="w-full gradient-gold text-primary-foreground font-semibold">
-            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Asignando...</> : "Asignar Rol"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ─── Seller Goals Tab ──────────────────────────────────────────────────────────
 function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: {
   vendors: VendorStats[];
@@ -1017,7 +960,7 @@ function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: {
                     {isAchieved && <span className="text-xs text-emerald-400 font-medium">✓ Alcanzada</span>}
                   </div>
                 </div>
-                <Progress value={progress} className={`h-2.5 mb-3 ${isAchieved ? "[&>div]:bg-emerald-500" : ""}`} />
+                <Progress aria-label="Avance de la meta" value={progress} className={`h-2.5 mb-3 ${isAchieved ? "[&>div]:bg-emerald-500" : ""}`} />
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="bg-muted/20 rounded-lg p-2 text-center">
                     <p className="text-muted-foreground mb-0.5">Vendido</p>

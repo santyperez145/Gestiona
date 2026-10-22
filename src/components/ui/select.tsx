@@ -184,6 +184,25 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
     const isDisabled = disabled || ctxDisabled;
     const typeahead = useRef<{ buffer: string; timer: number | null }>({ buffer: "", timer: null });
 
+    // Un combobox no toma el nombre de su contenido: sin etiqueta propia, el
+    // lector de pantalla anunciaba «combobox» a secas (axe `button-name` en 51
+    // pantallas, barrido del 2026-10-22). Si la pantalla no le dio nombre
+    // —aria-label, aria-labelledby o un <Label htmlFor>—, se nombra con el
+    // valor que muestra.
+    const valueId = `${listboxId}-value`;
+    const [nombrePropio, setNombrePropio] = useState<{ labelledby?: string; label?: string }>({});
+    const ariaLabel = props["aria-label"], ariaLabelledby = props["aria-labelledby"];
+    useLayoutEffect(() => {
+      const el = triggerRef.current;
+      if (!el || ariaLabel || ariaLabelledby || (el.labels?.length ?? 0) > 0) {
+        setNombrePropio(prev => (prev.labelledby || prev.label ? {} : prev));
+        return;
+      }
+      const valor = document.getElementById(valueId);
+      const siguiente = valor && el.contains(valor) ? { labelledby: valueId } : { label: el.textContent?.trim() || undefined };
+      setNombrePropio(prev => (prev.labelledby === siguiente.labelledby && prev.label === siguiente.label ? prev : siguiente));
+    });
+
     const moveHighlight = (delta: number) => {
       const options = enabledOptionsOf(contentRef.current);
       if (!options.length) return;
@@ -278,6 +297,8 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
         aria-controls={open ? listboxId : undefined}
         aria-activedescendant={open && highlighted ? optionDomId(listboxId, highlighted) : undefined}
         aria-autocomplete="none"
+        aria-labelledby={nombrePropio.labelledby}
+        aria-label={nombrePropio.label}
         className={cn(
           "flex h-10 w-full items-center justify-between rounded-[8px] border bg-card/90 px-3 py-2 text-sm",
           "placeholder:text-muted-foreground/60",
@@ -305,10 +326,10 @@ SelectTrigger.displayName = "SelectTrigger";
 
 // SelectValue: muestra la etiqueta legible del valor elegido (no el valor crudo).
 export function SelectValue({ placeholder }: SelectValueProps) {
-  const { value, labels } = useSelectContext();
+  const { value, labels, listboxId } = useSelectContext();
   const label = value ? labels.get(value) : "";
   return (
-    <span data-unresolved={value && !label ? "" : undefined} className={cn("min-w-0 flex-1 truncate text-left", label ? "text-foreground" : "text-muted-foreground")}>
+    <span id={`${listboxId}-value`} data-unresolved={value && !label ? "" : undefined} className={cn("min-w-0 flex-1 truncate text-left", label ? "text-foreground" : "text-muted-foreground")}>
       {value ? label || "Selección no disponible" : placeholder}
     </span>
   );

@@ -173,7 +173,7 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
                   </Button>
                 )}
                 {notifications.length > 0 && (
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={clearAll}>
+                  <Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={clearAll}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 )}

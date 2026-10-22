@@ -272,7 +272,7 @@ export default function BankReconciliationPanel() {
                         onClick={() => confirmar(line, true)}>
                         {confirmando === line.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                       </Button>
-                      <Button size="sm" variant="outline" className="h-7 px-2" disabled={confirmando === line.id}
+                      <Button aria-label="Quitar" title="Quitar" size="sm" variant="outline" className="h-7 px-2" disabled={confirmando === line.id}
                         onClick={() => confirmar(line, false)}>
                         <X className="w-3 h-3" />
                       </Button>

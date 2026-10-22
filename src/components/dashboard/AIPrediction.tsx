@@ -55,7 +55,7 @@ export default function AIPrediction({ sales }: { sales: any[] }) {
           <Brain className="w-4 h-4 text-primary" />
           {pred?.source === 'statistical' ? 'Proyección — Próximos 30 días' : 'Proyección IA — Próximos 30 días'}
         </h3>
-        <Button variant="ghost" size="sm" onClick={fetchPrediction} disabled={loading} className="h-7 w-7 p-0">
+        <Button aria-label="Actualizar" title="Actualizar" variant="ghost" size="sm" onClick={fetchPrediction} disabled={loading} className="h-7 w-7 p-0">
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
         </Button>
       </div>

@@ -87,7 +87,7 @@ export default function CommerceHeader() {
             />
           </div>
 
-          <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+          <Button aria-label="Configurar" title="Configurar" variant="ghost" size="sm" className="h-9 w-9 p-0">
             <Settings className="h-4 w-4" />
           </Button>
 
@@ -100,7 +100,7 @@ export default function CommerceHeader() {
 
           <Button size="sm" className="h-9 gap-2">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nuevo Pedido</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Nuevo Pedido</span>
           </Button>
         </div>
       </div>

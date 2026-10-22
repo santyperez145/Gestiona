@@ -82,13 +82,13 @@ export default function FinanceHeader() {
             />
           </div>
 
-          <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-teal-700 dark:text-teal-300">
+          <Button aria-label="Configurar" title="Configurar" variant="ghost" size="sm" className="h-9 w-9 p-0 text-teal-700 dark:text-teal-300">
             <Settings className="h-4 w-4" />
           </Button>
 
           <Button size="sm" className="h-9 gap-2 bg-teal-600 hover:bg-teal-700 text-white">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Registrar Gasto</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Registrar Gasto</span>
           </Button>
         </div>
       </div>

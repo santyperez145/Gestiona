@@ -269,7 +269,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado, onAbr
                 <Badge variant="outline" className="text-[10px]">
                   {p.motivo === "falta" ? "nueva" : "reemplaza"}
                 </Badge>
-                <Button size="sm" variant="ghost" onClick={() => setVerPrevia(p)}>
+                <Button aria-label="Ver vista previa" title="Ver vista previa" size="sm" variant="ghost" onClick={() => setVerPrevia(p)}>
                   <Eye className="w-3.5 h-3.5" />
                 </Button>
               </div>

@@ -291,7 +291,7 @@ export default function NerqiaAI() {
               className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none"
               style={{ borderRadius: "var(--st-radius, 0.5rem)" }}
             />
-            <Button type="submit" disabled={loading} size="sm">
+            <Button aria-label="Enviar" title="Enviar" type="submit" disabled={loading} size="sm">
               <Send className="w-4 h-4" />
             </Button>
           </form>

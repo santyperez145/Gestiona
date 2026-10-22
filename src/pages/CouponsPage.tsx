@@ -393,7 +393,7 @@ export default function CouponsPage() {
                   >
                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${c.active ? "translate-x-4" : "translate-x-0.5"}`} />
                   </button>
-                  <Button
+                  <Button aria-label="Eliminar" title="Eliminar"
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"

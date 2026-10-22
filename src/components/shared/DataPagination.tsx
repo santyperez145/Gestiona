@@ -57,7 +57,7 @@ export default function DataPagination({
           aria-label="Ir a la página anterior"
         >
           <ChevronLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Anterior</span>
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Anterior</span>
         </Button>
 
         <span className="min-w-20 text-center text-xs font-medium text-foreground tabular-nums">
@@ -73,7 +73,7 @@ export default function DataPagination({
           onClick={() => onPageChange(safePage + 1)}
           aria-label="Ir a la página siguiente"
         >
-          <span className="hidden sm:inline">Siguiente</span>
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Siguiente</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

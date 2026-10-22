@@ -2,8 +2,8 @@
  * Nerqia Input — Input con estilo cockpit
  */
 import { cn } from "@/lib/utils";
-import { forwardRef } from "react";
-import { useId } from "react";
+import { forwardRef, useId, useLayoutEffect, useRef } from "react";
+import { asociarEtiquetaAnterior } from "@/lib/asociarEtiqueta";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   helperText?: string;
@@ -17,6 +17,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || `nerqia-input-${generatedId}`;
     const helperId = `${inputId}-helper`;
     const errorId = `${inputId}-error`;
+    const propio = useRef<HTMLInputElement | null>(null);
+    useLayoutEffect(() => {
+      if (!label) asociarEtiquetaAnterior(propio.current, propio.current?.parentElement);
+    }, [label, inputId]);
 
     const baseClasses = cn(
       "flex h-10 w-full rounded-[8px] border bg-card/90 px-3 py-2 text-sm",
@@ -40,7 +44,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <input
           id={inputId}
-          ref={ref}
+          ref={el => {
+            propio.current = el;
+            if (typeof ref === "function") ref(el);
+            else if (ref) ref.current = el;
+          }}
           type={type}
           className={baseClasses}
           disabled={disabled}

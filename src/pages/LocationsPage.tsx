@@ -569,7 +569,7 @@ export default function LocationsPage() {
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => { setEditingLoc(loc); setShowForm(true); }}>
+                      <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" onClick={() => { setEditingLoc(loc); setShowForm(true); }}>
                         <Edit2 className="w-3.5 h-3.5" />
                       </Button>
                       {!loc.is_main && (

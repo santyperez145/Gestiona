@@ -1605,7 +1605,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
               <Button size="sm" variant="outline" className="h-8" onClick={printBulkReceipt} title="Imprimir recibo con todos los ítems seleccionados">
                 <Printer className="w-4 h-4 mr-1.5" />Recibo
               </Button>
-              <Button size="sm" variant="ghost" className="h-8" onClick={() => setSelectedIds(new Set())}>
+              <Button aria-label="Quitar" title="Quitar" size="sm" variant="ghost" className="h-8" onClick={() => setSelectedIds(new Set())}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -1741,9 +1741,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                             }}>
                             <FileText className={`w-3.5 h-3.5 ${s.invoice_id ? "text-blue-400" : "text-primary"}`} />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                          <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                           <ConfirmDialog
-                            trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                            trigger={<Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                             title="¿Eliminar esta venta?"
                             description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
                             confirmText="Eliminar"
@@ -1813,9 +1813,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                       </Button>
                     )}
                     {isAdmin && <>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
+                      <Button aria-label="Editar" title="Editar" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
                       <ConfirmDialog
-                        trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                        trigger={<Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                         title="¿Eliminar venta?"
                         confirmText="Eliminar"
                         onConfirm={() => handleDelete(s)}

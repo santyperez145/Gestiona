@@ -218,7 +218,7 @@ export default function MarketingPage() {
             }`}
           >
             <tab.icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -305,7 +305,7 @@ export default function MarketingPage() {
                       }}>
                         <Send className="w-3.5 h-3.5 text-emerald-400" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={async () => {
+                      <Button aria-label="Eliminar" title="Eliminar" variant="ghost" size="sm" onClick={async () => {
                         await deleteMarketingPostDB(post.id);
                         reload();
                         toast.success("Eliminado");
@@ -785,7 +785,7 @@ function UTMLinkBuilder() {
           {generated && (
             <div className="bg-muted/50 rounded-lg p-3 flex items-start gap-2">
               <p className="text-xs font-mono break-all flex-1 text-emerald-400">{generated}</p>
-              <Button variant="ghost" size="sm" onClick={copy} className="shrink-0"><Copy className="w-3.5 h-3.5" /></Button>
+              <Button aria-label="Copiar" title="Copiar" variant="ghost" size="sm" onClick={copy} className="shrink-0"><Copy className="w-3.5 h-3.5" /></Button>
             </div>
           )}
         </div>

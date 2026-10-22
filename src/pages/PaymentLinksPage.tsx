@@ -541,7 +541,7 @@ export default function PaymentLinksPage() {
 
                     {/* Cancel */}
                     {link.status === "pending" && (
-                      <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" onClick={() => cancelLink(link)}>
+                      <Button aria-label="Quitar" title="Quitar" size="sm" variant="ghost" className="text-xs text-muted-foreground" onClick={() => cancelLink(link)}>
                         <XCircle className="w-3.5 h-3.5" />
                       </Button>
                     )}
@@ -634,7 +634,7 @@ export default function PaymentLinksPage() {
                       min="0"
                       className="bg-muted border-border text-sm w-28"
                     />
-                    <Button
+                    <Button aria-label="Eliminar" title="Eliminar"
                       size="sm"
                       variant="ghost"
                       onClick={() => removeItem(idx)}

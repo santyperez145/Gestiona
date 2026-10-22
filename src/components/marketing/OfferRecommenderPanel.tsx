@@ -266,7 +266,7 @@ export default function OfferRecommenderPanel() {
                   {applyingId === r._id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
                   Aplicar
                 </Button>
-                {r._id && <Button size="sm" variant="ghost" disabled={!canEditMarketing || applyingId === r._id} onClick={() => dismiss(r._id)}><X className="w-3 h-3" /></Button>}
+                {r._id && <Button aria-label="Quitar" title="Quitar" size="sm" variant="ghost" disabled={!canEditMarketing || applyingId === r._id} onClick={() => dismiss(r._id)}><X className="w-3 h-3" /></Button>}
               </div>
             </Card>
           );
