@@ -78,6 +78,14 @@ jobs:
     name: Critical E2E (store + panel)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # La imagen oficial de Playwright trae Chromium y sus dependencias del
+    # sistema. Instalarlas con apt en cada corrida dependía del espejo de
+    # Ubuntu: el 2026-10-22 tardó 13 minutos y el job se canceló por tiempo
+    # sin haber probado nada. La versión tiene que ser la del lockfile
+    # (src/test/e2eCiGate.test.ts lo exige).
+    container:
+      image: mcr.microsoft.com/playwright:v1.59.1-noble
+      options: --ipc=host
     needs: build
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -113,9 +121,6 @@ jobs:
               exit 1
             fi
           done
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
 
       # Todos son de sólo lectura: tienda en escritorio/teléfono y superficies
       # críticas del panel con una identidad técnica sin MFA ni acceso Platform.

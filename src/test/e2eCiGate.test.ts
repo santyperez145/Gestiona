@@ -20,8 +20,15 @@ describe("puerta E2E de CI", () => {
     expect(config).not.toContain("reuseExistingServer: true");
   });
 
-  it("CI instala Chromium y ejecuta tienda desktop, mobile y panel", () => {
-    expect(workflow).toContain("npx playwright install --with-deps chromium");
+  it("CI corre en la imagen de Playwright de la versión instalada y ejecuta tienda desktop, mobile y panel", () => {
+    // Chromium y sus dependencias vienen en la imagen: nada se baja con apt en
+    // cada corrida. Si la imagen no es la versión del lockfile, Playwright no
+    // encuentra su navegador.
+    const lock = JSON.parse(read("package-lock.json")) as { packages: Record<string, { version?: string }> };
+    const version = lock.packages["node_modules/playwright"]?.version;
+    expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(workflow).toContain(`image: mcr.microsoft.com/playwright:v${version}-noble`);
+    expect(workflow).not.toContain("playwright install --with-deps");
     expect(workflow).toContain("npm run verify -- --stage=e2e");
     expect(verificationPlan(['--stage=e2e']).some(step => step.args.includes('test:e2e:ci'))).toBe(true);
     expect(packageJson).toContain(
