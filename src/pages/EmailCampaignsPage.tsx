@@ -748,9 +748,9 @@ export default function EmailCampaignsPage() {
           <div>
             El correo transaccional funciona (avisos, carrito abandonado), pero
             todavía no hay dominio propio verificado. Las campañas masivas
-            pueden ir a spam o chocar el tope diario de la casilla — pedí a
-            plataforma que configure <strong>email_dominio</strong> antes de
-            blastings grandes.
+            pueden ir a spam o chocar el tope diario de la casilla. Antes de
+            un envío grande, pedile a soporte de Nerqia que verifique tu
+            <strong>dominio de correo</strong>.
           </div>
         </div>
       )}

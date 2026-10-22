@@ -306,7 +306,7 @@ export default function ProductTypesManager({ orgId, open, onOpenChange, onChang
           </section>
         </div>
         <div className="flex items-center justify-between border-t border-border pt-3">
-          <p className="text-[11px] text-muted-foreground">Los productos existentes siguen usando su categoría y `custom_fields` hasta que se les asigne un tipo.</p>
+          <p className="text-[11px] text-muted-foreground">Los productos existentes siguen usando su categoría y sus campos adicionales hasta que se les asigne un tipo.</p>
           <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}><X className="w-3.5 h-3.5 mr-1.5" />Cerrar</Button>
         </div>
       </DialogContent>

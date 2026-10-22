@@ -2842,7 +2842,7 @@ export default function Dashboard() {
               );
             })}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">Basado en hora de registro (created_at) de todas las ventas</p>
+          <p className="text-[10px] text-muted-foreground mt-2">Según la hora en que se registró cada venta.</p>
         </div>
       )}
 

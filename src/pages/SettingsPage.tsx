@@ -1930,7 +1930,7 @@ function ExpenseCategoriesSection({ userId }: { userId: string }) {
         ))}
       </div>
       <div className="flex gap-2">
-        <Input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="nueva_categoria"
+        <Input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="Ej.: Alquiler"
           onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())}
           className="bg-muted border-border" />
         <Button variant="outline" onClick={add}><Plus className="w-3.5 h-3.5" /></Button>
