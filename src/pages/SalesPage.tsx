@@ -42,6 +42,7 @@ import { useModulePermissions } from "@/lib/usePermissions";
 import { ensureSaleTransactionInvoice, printFiscalInvoiceById } from "@/lib/saleInvoice";
 import { escapePrintHtml, printSaleReceipt } from "@/lib/saleReceipt";
 import EmitirRemitoDialog, { type VentaParaRemito } from "@/components/remitos/EmitirRemitoDialog";
+import DocumentosDeLaVenta from "@/components/sales/DocumentosDeLaVenta";
 
 import { plural } from "@/lib/plural";
 import ProductCombobox from "@/components/shared/ProductCombobox";
@@ -110,6 +111,7 @@ function SaleTicketInspector({
   canInvoice,
   invoiceBusy,
   onRemito,
+  documentosVersion,
 }: {
   open: boolean;
   orgId?: string;
@@ -123,6 +125,7 @@ function SaleTicketInspector({
   invoiceBusy: boolean;
   /** Sin permiso para emitir remitos no se muestra. */
   onRemito?: () => void;
+  documentosVersion: number;
 }) {
   const navigate = useNavigate();
   return (
@@ -199,6 +202,9 @@ function SaleTicketInspector({
                     La ganancia registrada es ingreso − costo de mercadería de las líneas. El margen canónico (comisión, envío real e IVA) está abajo cuando hay hechos — no se completa a ojo.
                   </p>
                 </section>
+
+                <DocumentosDeLaVenta orgId={orgId} saleIds={detail.lines.map(l => l.id)} version={documentosVersion}
+                  saleTransactionId={detail.selected.sale_transaction_id ?? null} lineas={detail.lines} total={detail.totalArs} />
 
                 <OperationMarginPanel orgId={orgId} operationId={detail.marginOperationId} />
 
@@ -426,6 +432,7 @@ export default function SalesPage() {
     [sales, selectedSaleId],
   );
   const [remitoAbierto, setRemitoAbierto] = useState(false);
+  const [documentosVersion, setDocumentosVersion] = useState(0);
   // Memorizada: el diálogo relee lo pendiente cada vez que cambia la venta.
   const ventaParaRemito = useMemo<VentaParaRemito | null>(() => saleTicketDetail ? {
     saleTransactionId: saleTicketDetail.selected.sale_transaction_id ?? null,
@@ -1014,6 +1021,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
           : invoicePermissions.canEdit}
         invoiceBusy={ticketInvoiceBusy || invoicePermissions.loading}
         onRemito={salesPermissions.canCreate && saleTicketDetail ? () => setRemitoAbierto(true) : undefined}
+        documentosVersion={documentosVersion}
         onAnalyze={() => {
           closeSaleDetail();
           setSalesWorkspaceTab("performance");
@@ -1021,7 +1029,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
         }}
       />
       <EmitirRemitoDialog open={remitoAbierto && Boolean(ventaParaRemito)} onOpenChange={setRemitoAbierto}
-        orgId={activeOrg?.id} venta={ventaParaRemito} puedeConfigurar={isAdmin} />
+        orgId={activeOrg?.id} venta={ventaParaRemito} puedeConfigurar={isAdmin} onEmitido={() => setDocumentosVersion(v => v + 1)} />
       <PageHeader
         icon={ShoppingCart}
         eyebrow="Commerce · Canales"

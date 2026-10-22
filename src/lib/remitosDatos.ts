@@ -64,6 +64,12 @@ export async function leerRemitos(orgId: string, f: FiltroRemitos = {}): Promise
   return comoLectura(r, "los remitos", normalizar);
 }
 
+/** Un remito por id, para abrirlo desde un enlace aunque no esté en el período de la lista. */
+export async function leerRemito(orgId: string, id: string): Promise<Lectura<Remito | null>> {
+  const r = await leerConReintento(() => supabase.from("remitos").select(COLUMNAS_REMITO).eq("org_id", orgId).eq("id", id).limit(1));
+  return comoLectura(r, "el remito", d => normalizar(d)[0] ?? null);
+}
+
 /** Los remitos que tocan alguno de estos renglones de venta (con todos sus renglones). */
 export async function leerRemitosDeVenta(orgId: string, saleIds: string[]): Promise<Lectura<Remito[]>> {
   if (saleIds.length === 0) return { estado: "listo", datos: [] };

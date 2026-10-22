@@ -1,7 +1,7 @@
 ﻿import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { selloHechoConNerqia } from "@/lib/selloNerqia";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import EditorDePresupuesto, { type PresupuestoEditable } from "@/components/presupuestos/EditorDePresupuesto";
 import { linkDePagoDePresupuesto } from "@/lib/linksDePago";
 import { mensajeDeError } from "@/lib/cuentaCorriente";
@@ -239,6 +239,14 @@ export default function PresupuestosPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Enlace directo desde la ficha de una venta: /presupuestos?presupuesto=<id>.
+  const [params] = useSearchParams();
+  const presupuestoPedido = params.get("presupuesto");
+  useEffect(() => {
+    if (!presupuestoPedido || !quotes.some(q => q.id === presupuestoPedido)) return;
+    setExpandedId(presupuestoPedido);
+    window.requestAnimationFrame(() => document.getElementById(`presupuesto-${presupuestoPedido}`)?.scrollIntoView({ block: "center", behavior: "smooth" }));
+  }, [presupuestoPedido, quotes]);
   const [viewByCustomer, setViewByCustomer] = useState(false);
   const [quoteSort, setQuoteSort] = useState<{ col: "date" | "total" | "customer"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
 
@@ -629,7 +637,7 @@ export default function PresupuestosPage() {
             const isExpired = daysUntilExpiry !== null && daysUntilExpiry < 0
               && q.status !== "accepted" && q.status !== "rejected";
             return (
-            <div key={q.id} className={`bg-card border rounded-[10px] overflow-hidden shadow-card ${isExpiringSoon ? "border-yellow-500/40" : isExpired ? "border-destructive/30" : "border-border/60"}`}>
+            <div key={q.id} id={`presupuesto-${q.id}`} className={`bg-card border rounded-[10px] overflow-hidden shadow-card ${presupuestoPedido === q.id ? "ring-2 ring-primary/40 " : ""}${isExpiringSoon ? "border-yellow-500/40" : isExpired ? "border-destructive/30" : "border-border/60"}`}>
               <div className="px-4 py-3.5 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -655,6 +663,9 @@ export default function PresupuestosPage() {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
+                    type="button"
+                    aria-label={expandedId === q.id ? "Ocultar detalle" : "Ver detalle"}
+                    aria-expanded={expandedId === q.id}
                     onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
                     className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
                   >

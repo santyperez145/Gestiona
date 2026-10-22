@@ -35,7 +35,7 @@ import {
   avisoDelCai, cantidadLegible, imprimirRemito, letraDelRemito, numeroDeRemito, remitosCsv,
   type EstadoRemito, type Remito, type Talonario,
 } from "@/lib/remitos";
-import { leerEntregasParciales, leerRemitos, leerTalonario, type Lectura, type VentaPorEntregar } from "@/lib/remitosDatos";
+import { leerEntregasParciales, leerRemito, leerRemitos, leerTalonario, type Lectura, type VentaPorEntregar } from "@/lib/remitosDatos";
 
 type Periodo = "mes" | "90" | "365" | "todo";
 type Carga<T> = Lectura<T> | { estado: "cargando" };
@@ -73,6 +73,23 @@ export default function RemitosPage() {
   const [entregar, setEntregar] = useState<Remito | null>(null);
   const [anular, setAnular] = useState<Remito | null>(null);
   const talonarioAbierto = params.get("talonario") === "1";
+  // Enlace directo desde la ficha de una venta: /remitos?remito=<id>.
+  const remitoPedido = params.get("remito");
+  useEffect(() => {
+    if (!orgId || !remitoPedido) return;
+    let vivo = true;
+    void leerRemito(orgId, remitoPedido).then(r => {
+      if (!vivo) return;
+      if (r.estado === "listo" && r.datos) setDetalle(r.datos);
+      else if (r.estado === "listo") toast.error("Ese remito no existe o no es de este negocio.");
+      else if (r.estado === "error") toast.error(r.mensaje);
+    });
+    return () => { vivo = false; };
+  }, [orgId, remitoPedido]);
+  const cerrarDetalle = () => {
+    setDetalle(null);
+    if (remitoPedido) { const p = new URLSearchParams(params); p.delete("remito"); setParams(p, { replace: true }); }
+  };
   const abrirTalonario = (abrir: boolean) => {
     const p = new URLSearchParams(params);
     if (abrir) p.set("talonario", "1"); else p.delete("talonario");
@@ -121,7 +138,7 @@ export default function RemitosPage() {
     descargarCsvContable(`remitos-${hoy}.csv`, remitosCsv(filtrados));
     toast.success(`${filtrados.length} ${filtrados.length === 1 ? "remito exportado" : "remitos exportados"}`);
   };
-  const alTerminar = () => { setEntregar(null); setAnular(null); setDetalle(null); void recargar(); };
+  const alTerminar = () => { setEntregar(null); setAnular(null); cerrarDetalle(); void recargar(); };
 
   const inactivo = remitos.estado === "inactivo" || talonario.estado === "inactivo";
 
@@ -340,7 +357,7 @@ export default function RemitosPage() {
       <EmitirRemitoDialog open={Boolean(nuevo)} onOpenChange={o => { if (!o) { setNuevo(null); void recargar(); } }}
         orgId={orgId} venta={nuevo?.venta ?? null} puedeConfigurar={isAdmin} />
       <DetalleDelRemito remito={detalle} emisor={emisor} puedeEntregar={puedeEmitir} puedeAnular={puedeAnular}
-        onCerrar={() => setDetalle(null)} onImprimir={imprimir} onEntregar={setEntregar} onAnular={setAnular} />
+        onCerrar={cerrarDetalle} onImprimir={imprimir} onEntregar={setEntregar} onAnular={setAnular} />
       <EntregarRemitoDialog remito={entregar} onCerrar={() => setEntregar(null)} onListo={alTerminar} />
       <AnularRemitoDialog remito={anular} onCerrar={() => setAnular(null)} onListo={alTerminar} />
       <TalonarioDialog open={talonarioAbierto && isAdmin} orgId={orgId} talonario={tal} ultimoPorPuntoDeVenta={ultimoPorPv}
