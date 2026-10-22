@@ -53,6 +53,10 @@ export type MotivoAfip =
    * comercio; igual puede adelantar la delegación mientras Nerqia lo renueva.
    */
   | "plataforma_rechazada"
+  /** Certificado propio (2026-10-22): los resuelve ConectarCertificadoPropio. */
+  | "certificado_vencido"
+  | "certificado_rechazado"
+  | "falta_verificar"
   | "falta_delegar"
   | "esperando_plataforma"
   | "requiere_correccion"

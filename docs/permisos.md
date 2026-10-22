@@ -2,10 +2,11 @@
 
 **Estado:** autoridad vigente. **Corte:** 2026-09-04.
 
-> **AFIP:** ninguna organización guarda su certificado. Desde
-> `20260827000050` todas facturan por delegación con el de la plataforma, y una
-> constraint impide guardar uno en `afip_credentials`. Detalle en
-> [CONTRIBUTING.md](../CONTRIBUTING.md) y en el ADR de la superficie fiscal.
+> **ARCA:** desde 2026-10-22 cada organización factura con su propio
+> certificado (`modo = 'propio'`, migración `20261022000100`). Lo cargan el
+> dueño o un administrador desde ARCA › «Conectá ARCA»; la clave se genera en el
+> servidor y se guarda cifrada. Detalle en
+> [ADR 007](ADR_007_CERTIFICADO_PROPIO_POR_COMERCIO.md).
 >
 > ⚠️ **El Ticket de Acceso es uno solo para todos los comercios delegados.**
 > WSAA lo entrega por (certificado, servicio) y rechaza el pedido siguiente

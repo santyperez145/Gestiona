@@ -1379,6 +1379,17 @@ export type Database = {
           ta_token: string | null
           tipo_emisor: string | null
           updated_at: string
+          certificado_emisor: string | null
+          certificado_verificado_at: string | null
+          certificado_verificado_motivo: string | null
+          certificado_verificado_ok: boolean | null
+          certificate_expires_at: string | null
+          certificate_fingerprint_sha256: string | null
+          certificate_not_before: string | null
+          pedido_ambiente: string | null
+          pedido_clave: string | null
+          pedido_creado_at: string | null
+          pedido_csr: string | null
         }
         Insert: {
           certificate?: string | null
@@ -1405,6 +1416,17 @@ export type Database = {
           ta_token?: string | null
           tipo_emisor?: string | null
           updated_at?: string
+          certificado_emisor?: string | null
+          certificado_verificado_at?: string | null
+          certificado_verificado_motivo?: string | null
+          certificado_verificado_ok?: boolean | null
+          certificate_expires_at?: string | null
+          certificate_fingerprint_sha256?: string | null
+          certificate_not_before?: string | null
+          pedido_ambiente?: string | null
+          pedido_clave?: string | null
+          pedido_creado_at?: string | null
+          pedido_csr?: string | null
         }
         Update: {
           certificate?: string | null
@@ -1431,6 +1453,17 @@ export type Database = {
           ta_token?: string | null
           tipo_emisor?: string | null
           updated_at?: string
+          certificado_emisor?: string | null
+          certificado_verificado_at?: string | null
+          certificado_verificado_motivo?: string | null
+          certificado_verificado_ok?: boolean | null
+          certificate_expires_at?: string | null
+          certificate_fingerprint_sha256?: string | null
+          certificate_not_before?: string | null
+          pedido_ambiente?: string | null
+          pedido_clave?: string | null
+          pedido_creado_at?: string | null
+          pedido_csr?: string | null
         }
         Relationships: [
           {
@@ -49960,6 +49993,15 @@ export type Database = {
           ta_expires_at: string | null
           ticket_vigente: boolean | null
           tipo_emisor: string | null
+          certificado_emisor: string | null
+          certificado_vence: string | null
+          certificado_verificado_at: string | null
+          certificado_verificado_motivo: string | null
+          certificado_verificado_ok: boolean | null
+          pedido_ambiente: string | null
+          pedido_creado_at: string | null
+          pedido_csr: string | null
+          pedido_pendiente: boolean | null
         }
         Insert: {
           configured?: never

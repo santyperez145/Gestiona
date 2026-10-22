@@ -17,8 +17,9 @@ describe("renovación del certificado de ARCA", () => {
   it("la clave del pedido se genera en el servidor y el certificado se prueba antes de activarlo", () => {
     const edge = leer("supabase/functions/afip-platform-cert/index.ts");
     expect(edge).toContain('action === "generar_pedido"');
-    expect(edge).toContain("crypto.subtle.generateKey");
-    expect(edge).toMatch(/pedirTicketWsaa\(WSAA_URL\(plat\.pedido_ambiente\)[\s\S]*ARCA no aceptó el certificado; no se cambió nada/);
+    expect(edge).toContain("generarClaveYPedido({ cuit: String(plat.cuit)");
+    expect(leer("supabase/functions/_shared/certificadoArca.ts")).toContain("crypto.subtle.generateKey");
+    expect(edge).toMatch(/pedirTicketWsaa\(wsaaUrl\(plat\.pedido_ambiente\)[\s\S]*ARCA no aceptó el certificado; no se cambió nada/);
     expect(edge).toMatch(/environment === "produccion" && \/test\/i\.test\(emisor\)/);
     expect(leer("src/components/platform/RenovarCertificadoArca.tsx")).not.toMatch(/openssl|BEGIN PRIVATE KEY/);
   });

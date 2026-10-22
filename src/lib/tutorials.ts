@@ -99,8 +99,8 @@ export const TUTORIALES: Record<string, Tutorial> = {
     id: "afip", ruta: "/afip", titulo: "Conectar ARCA", minutos: 5,
     resumen: "Certificado, punto de venta, ambiente y salud fiscal.",
     pasos: [
-      { titulo: "Conexión con ARCA", target: ENCABEZADO, texto: "Para facturar electrónicamente Nerqia necesita tu CUIT, un punto de venta habilitado para web services y la delegación o el certificado." },
-      { titulo: "Salud fiscal", texto: "El panel puntúa de 0 a 100 tu configuración: datos del emisor, conexión, delegación, ambiente, rechazos recientes y último CAE." },
+      { titulo: "Conexión con ARCA", target: ENCABEZADO, texto: "Para facturar electrónicamente Nerqia necesita tu CUIT, un punto de venta habilitado para web services y tu certificado de ARCA, que conectás desde esta página sin dar tu clave fiscal." },
+      { titulo: "Salud fiscal", texto: "El panel puntúa de 0 a 100 tu configuración: datos del emisor, conexión, punto de venta verificado, ambiente, rechazos recientes y último CAE." },
       { titulo: "Homologación y producción", texto: "Probá primero en homologación (comprobantes sin validez). Cuando todo esté verde, pasá a producción." },
       { titulo: "Vencimiento del certificado", texto: "Te avisamos 60, 30 y 7 días antes de que venza el certificado para que no se corte la facturación." },
     ],

@@ -81,8 +81,10 @@ describe("cifrado en reposo de secretos por tenant", () => {
     expect(afipCreed).toContain("descifrarSecreto(supabase, plat.private_key)");
     // Escritores: nunca se persiste en claro.
     expect(smtpEdge).toContain("password: await cifrarSecreto(admin, pass)");
-    expect(afipEdge).toContain("certificate: await cifrarSecreto(admin, certificate.trim())");
-    expect(afipEdge).toContain("private_key: await cifrarSecreto(admin, privateKey.trim())");
+    expect(afipEdge).toContain("certificate: await cifrarSecreto(admin, certPem)");
+    expect(afipEdge).toContain("certificate: await cifrarSecreto(admin, certificado.trim())");
+    expect(afipEdge).toContain("private_key: await cifrarSecreto(admin, clave.trim())");
+    expect(afipEdge).toContain("pedido_clave: await cifrarSecreto(admin, clavePem)");
     expect(afipPlatformEdge).toContain("certificate: encryptedCertificate");
     expect(afipPlatformEdge).toContain("private_key: encryptedPrivateKey");
     expect(afipPlatformEdge).toContain("cifrarSecreto(admin, certificate.trim())");

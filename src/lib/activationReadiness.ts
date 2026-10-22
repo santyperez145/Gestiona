@@ -54,7 +54,13 @@ function fiscalDetail(status: string | null | undefined): { detail: string; owne
     case 'listo':
       return { detail: 'ARCA ya devolvió evidencia de un ciclo de facturación real.', owner: 'shared' };
     case 'falta_certificado_propio':
-      return { detail: 'Falta cargar el certificado de homologación o producción para validar ARCA.', owner: 'merchant' };
+      return { detail: 'Falta conectar tu certificado de ARCA: generás el pedido en Nerqia y lo creás en ARCA con tu clave fiscal.', owner: 'merchant' };
+    case 'certificado_vencido':
+      return { detail: 'Tu certificado de ARCA venció: renovalo desde la página de ARCA.', owner: 'merchant' };
+    case 'certificado_rechazado':
+      return { detail: 'ARCA rechazó tu certificado o falta asociarlo a Facturación Electrónica.', owner: 'merchant' };
+    case 'falta_verificar':
+      return { detail: 'Tu certificado está activo; falta verificar el punto de venta con ARCA.', owner: 'merchant' };
     case 'falta_plataforma':
       return { detail: 'La plataforma todavía debe habilitar su certificado para el modo delegado.', owner: 'platform' };
     case 'falta_delegar':

@@ -42,6 +42,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [ADR 004 — Growth / Profit](ADR_004_GROWTH_PROFIT_SHARED_GRAPH.md): portfolio y Graph compartido; reemplazo parcial de ADR 002.
 - [ADR 005 — piloto POS / Creators](ADR_005_POS_PILOT_AND_CREATORS_SEQUENCE.md): precisa el gate operacional y reemplaza la pausa secundaria de ADR 004.
 - [ADR 006 — frontera entre negocios](ADR_006_FRONTERA_ENTRE_NEGOCIOS.md): vistas invoker y anon sin privilegios por defecto; lo público se lee por id.
+- [ADR 007 — certificado propio por comercio](ADR_007_CERTIFICADO_PROPIO_POR_COMERCIO.md): cada comercio factura con su certificado de ARCA; la clave se genera en el servidor.
 
 Los ADR aceptados no se reescriben para ocultar el contexto: una decisión nueva
 los reemplaza con otro ADR.

@@ -202,12 +202,14 @@ El 2026-10-09 se contrastaron con el manual 4.7 la estructura de respuesta de
 `FECAESolicitar`, los errores de infraestructura y los códigos traducidos
 (`src/test/arcaRechazos.test.ts`); siguen pendientes 4.8 de homologación, el
 resto de validaciones del request y una emisión real.
-Simplificar mediante delegación guiada, padrón autorizado, detección de puntos
-CAE y diagnóstico; no pedir clave fiscal ni eliminar autorizaciones de ARCA.
+Simplificar mediante certificado propio asistido (pedido generado en el
+servidor), padrón autorizado, detección de puntos CAE y diagnóstico; no pedir
+clave fiscal ni eliminar autorizaciones de ARCA.
 `ws_sr_constancia_inscripcion` reemplaza al padrón A5 según el
 [catálogo oficial](https://www.arca.gob.ar/ws/documentacion/catalogo.asp);
-su conexión/permiso se verifica por separado de WSFE. Un certificado privado
-por comercio contradice el contrato actual: requeriría un ADR y revisión de seguridad.
+su conexión/permiso se verifica por separado de WSFE. Desde el 2026-10-22 cada
+comercio factura con su propio certificado: decisión y revisión de seguridad en
+[ADR 007](ADR_007_CERTIFICADO_PROPIO_POR_COMERCIO.md).
 
 Referencias históricas revisadas el 2026-10-03: [manual WSFEv1 4.1 de ARCA](https://www.arca.gob.ar/ws/documentacion/manuales/manual-desarrollador-ARCA-COMPG-v4-1.pdf),
 [certificado de producción](https://arca.gob.ar/ws/WSAA/WSAA.ObtenerCertificado.pdf)
