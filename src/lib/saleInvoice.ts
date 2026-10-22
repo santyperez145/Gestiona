@@ -55,6 +55,13 @@ export type FiscalTicketInvoice = {
   arca_qr_payload?: unknown;
   nota_credito_de?: string | null;
   invoice_items?: FiscalTicketItem[];
+  concepto?: number | null;
+  servicio_desde?: string | null;
+  servicio_hasta?: string | null;
+  importe_no_gravado?: number | null;
+  importe_exento?: number | null;
+  importe_tributos?: number | null;
+  tributos?: { tipo: number; descripcion?: string | null; alicuota: number; importe: number }[] | null;
 };
 
 export type AssociatedFiscalInvoice = { title: string; number: string; issueDate: string };
@@ -206,6 +213,9 @@ export async function printFiscalInvoiceTicket(
       true,
     );
     center(`Fecha ${fechaFiscalArgentina(invoice.issue_date)}`, 7.5);
+    if (invoice.concepto && invoice.concepto !== 1 && invoice.servicio_desde && invoice.servicio_hasta) {
+      center(`Servicio del ${fechaFiscalArgentina(invoice.servicio_desde)} al ${fechaFiscalArgentina(invoice.servicio_hasta)}`, 7);
+    }
     if (invoice.afip_environment === "homologacion") {
       center("HOMOLOGACIÓN · SIN VALOR FISCAL", 8, true);
     }
@@ -235,10 +245,14 @@ export async function printFiscalInvoiceTicket(
       y += 4;
     }
     rule();
-    row("Subtotal", money(discriminatesVat ? invoice.subtotal : invoice.total));
+    const tributosTicket = invoice.tributos ?? [];
+    row("Subtotal", money(discriminatesVat ? invoice.subtotal : invoice.total - Number(invoice.importe_tributos ?? 0)));
     if (discriminatesVat) {
       for (const group of groups) row(`IVA ${group.rate}%`, money(group.amount));
+      if (Number(invoice.importe_exento ?? 0)) row("Exento", money(Number(invoice.importe_exento)));
+      if (Number(invoice.importe_no_gravado ?? 0)) row("No gravado", money(Number(invoice.importe_no_gravado)));
     }
+    for (const t of tributosTicket) row(t.descripcion || "Tributo", money(Number(t.importe)));
     row("TOTAL", money(invoice.total), true);
     rule();
 

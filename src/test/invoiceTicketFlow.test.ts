@@ -45,7 +45,9 @@ describe("factura ticket dentro y fuera del POS", () => {
     expect(invoices).toContain("printableArcaQrUrl(inv)");
     expect(invoices).toContain("loadAssociatedFiscalInvoice(inv)");
     expect(invoices).toContain("COMPROBANTE ASOCIADO");
-    expect(invoices).toContain('doc.text("Subtotal:"');
+    // El total se arma fila por fila: neto (o subtotal), IVA, exento, no gravado y tributos.
+    expect(invoices).toContain('"Neto gravado:" : "Subtotal:"');
+    expect(invoices).toContain('filaTotal("Exento:"');
   });
 
   it("el recibo comercial no se disfraza de factura", () => {

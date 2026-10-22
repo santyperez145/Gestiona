@@ -39,8 +39,13 @@ function totales(filas: Celda[][], desde: number): Celda[] {
   });
 }
 
+const COMPROBANTES_SIN_IVA = new Set([11, 12, 13]);
+
 export function subdiarioVentas(comprobantes: ComprobanteVenta[]): { filas: Celda[][]; revisar: Celda[][] } {
-  const encabezado = ["Fecha", "Comprobante", "Número", "Cliente", "CUIT / DNI", ...encabezadoAlicuotas(), "No gravado / exento", "Total"];
+  // Mismas columnas que compras: lo no gravado, lo exento y cada percepción por
+  // separado. Una factura en dólares o euros va en pesos, a su cotización.
+  const encabezado = ["Fecha", "Comprobante", "Número", "Cliente", "CUIT / DNI", ...encabezadoAlicuotas(),
+    "Sin IVA discriminado (C)", "No gravado", "Exento", "Percepción IVA", "Percepción IIBB", "Otros tributos", "Total"];
   const cuerpo: Celda[][] = [];
   const revisar: Celda[][] = [];
   const ordenados = [...comprobantes].sort((a, b) => a.issue_date.localeCompare(b.issue_date) || Number(a.numero_afip) - Number(b.numero_afip));
@@ -53,15 +58,25 @@ export function subdiarioVentas(comprobantes: ComprobanteVenta[]): { filas: Celd
       revisar.push([fechaAr(c.issue_date), numero(c.punto_venta, c.numero_afip), e instanceof Error ? e.message : "No se pudo desglosar"]);
       continue;
     }
-    const signo = NC_VENTA.has(tipo) ? -1 : 1;
+    const extranjera = Boolean(c.currency) && c.currency !== "ARS";
+    const cotizacion = extranjera ? Number(c.moneda_cotizacion) || 0 : 1;
+    if (cotizacion <= 0) {
+      revisar.push([fechaAr(c.issue_date), numero(c.punto_venta, c.numero_afip), "Está en moneda extranjera y no tiene cotización."]);
+      continue;
+    }
+    const factor = (NC_VENTA.has(tipo) ? -1 : 1) * cotizacion;
     const porTasa = new Map(grupos.map(g => [g.rate, g]));
-    const alicuotas = TASAS.flatMap(t => [signo * (porTasa.get(t)?.base ?? 0), signo * (porTasa.get(t)?.amount ?? 0)]);
-    const gravadoMasIva = grupos.filter(g => g.rate > 0).reduce((s, g) => s + g.base + g.amount, 0);
-    const resto = redondear(signo * (Number(c.total) - gravadoMasIva));
+    const tributo = (tipos: number[]) => (c.tributos ?? []).filter(t => tipos.includes(Number(t.tipo))).reduce((suma, t) => suma + Number(t.importe || 0), 0);
+    const alicuotas = TASAS.flatMap(t => [porTasa.get(t)?.base ?? 0, porTasa.get(t)?.amount ?? 0]);
+    // Un C no discrimina IVA; lo gravado al 0 % (operaciones viejas) también va acá.
+    const sinDiscriminar = COMPROBANTES_SIN_IVA.has(tipo) ? Number(c.subtotal) : porTasa.get(0)?.base ?? 0;
     cuerpo.push([
       fechaAr(c.issue_date), NOMBRES[tipo] ?? `Tipo ${tipo}`, numero(c.punto_venta, c.numero_afip),
       c.customer_name?.trim() || "Consumidor final", String(c.customer_tax_id ?? "").replace(/\D/g, "") || "—",
-      ...alicuotas.map(redondear), resto, redondear(signo * Number(c.total)),
+      ...alicuotas.map(v => redondear(factor * v)),
+      redondear(factor * sinDiscriminar), redondear(factor * Number(c.importe_no_gravado ?? 0)), redondear(factor * Number(c.importe_exento ?? 0)),
+      redondear(factor * tributo([6, 13])), redondear(factor * tributo([5, 7])), redondear(factor * tributo([1, 2, 3, 4, 8, 9, 99])),
+      redondear(factor * Number(c.total)),
     ]);
   }
   const filas = [encabezado, ...cuerpo];

@@ -22792,6 +22792,7 @@ export type Database = {
       }
       invoice_items: {
         Row: {
+          tratamiento: string
           description: string
           id: string
           invoice_id: string
@@ -22802,6 +22803,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          tratamiento?: string
           description: string
           id?: string
           invoice_id: string
@@ -22812,6 +22814,7 @@ export type Database = {
           unit_price?: number
         }
         Update: {
+          tratamiento?: string
           description?: string
           id?: string
           invoice_id?: string
@@ -22933,6 +22936,14 @@ export type Database = {
       }
       invoices: {
         Row: {
+          concepto: number
+          servicio_desde: string | null
+          servicio_hasta: string | null
+          importe_no_gravado: number
+          importe_exento: number
+          importe_tributos: number
+          tributos: Json
+          cancela_misma_moneda: boolean
           motivo_nota_debito: string | null
           nota_debito_de: string | null
           afip_authorization_requested_by: string | null
@@ -22988,6 +22999,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          concepto?: number
+          servicio_desde?: string | null
+          servicio_hasta?: string | null
+          importe_no_gravado?: number
+          importe_exento?: number
+          importe_tributos?: number
+          tributos?: Json
+          cancela_misma_moneda?: boolean
           motivo_nota_debito?: string | null
           nota_debito_de?: string | null
           afip_authorization_requested_by?: string | null
@@ -23043,6 +23062,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          concepto?: number
+          servicio_desde?: string | null
+          servicio_hasta?: string | null
+          importe_no_gravado?: number
+          importe_exento?: number
+          importe_tributos?: number
+          tributos?: Json
+          cancela_misma_moneda?: boolean
           motivo_nota_debito?: string | null
           nota_debito_de?: string | null
           afip_authorization_requested_by?: string | null
@@ -59871,6 +59898,8 @@ export type Database = {
         }
         Returns: string
       }
+      concepto_de_facturacion: { Args: { p_org: string }; Returns: number }
+      configurar_concepto_de_facturacion: { Args: { p_concepto: number; p_org: string }; Returns: number }
       emitir_remito: { Args: { p_datos: Json; p_org: string }; Returns: Json }
       marcar_remito_entregado: {
         Args: { p_recibio_dni: string | null; p_recibio_nombre: string; p_remito: string }

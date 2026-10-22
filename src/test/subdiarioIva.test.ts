@@ -65,3 +65,37 @@ describe("subdiario de IVA en Excel", () => {
     expect(hoja[hoja.length - 1]).toEqual(["Totales", "", "", "", "", "", 1800.1]);
   });
 });
+
+describe("subdiario de ventas con la factura completa (20261022000600)", () => {
+  const suma = (fila: (string | number)[]) => fila.slice(5, -1).reduce<number>((s, v) => s + (typeof v === "number" ? v : 0), 0);
+
+  it("cada fila suma su total: gravado, IVA, exento, no gravado y percepciones, en pesos", () => {
+    const { filas, revisar } = subdiarioVentas([{
+      id: "a", issue_date: "2026-09-10", tipo_comprobante: 1, punto_venta: 3, numero_afip: 7, customer_name: "ZZ SA", customer_tax_id: "30712345671",
+      subtotal: 1000, tax_pct: 21, tax_amount: 210, importe_exento: 300, importe_no_gravado: 50, importe_tributos: 35, total: 1595,
+      currency: "USD", moneda_cotizacion: 1000,
+      tributos: [{ tipo: 7, base: 1000, alicuota: 3, importe: 30 }, { tipo: 6, base: 1000, alicuota: 0.5, importe: 5 }],
+      invoice_items: [
+        { total: 1000, tax_rate: 21, tax_amount: 210 },
+        { total: 300, tax_rate: 0, tax_amount: 0, tratamiento: "exento" },
+        { total: 50, tax_rate: 0, tax_amount: 0, tratamiento: "no_gravado" },
+      ],
+    }]);
+    expect(revisar).toEqual([]);
+    const [encabezado, fila] = filas;
+    const col = (nombre: string) => fila[encabezado.indexOf(nombre)];
+    expect(col("Total")).toBe(1595000);
+    expect(col("Exento")).toBe(300000);
+    expect(col("No gravado")).toBe(50000);
+    expect(col("Percepción IIBB")).toBe(30000);
+    expect(col("Percepción IVA")).toBe(5000);
+    expect(suma(fila)).toBe(1595000);
+  });
+
+  it("una factura C va entera en «sin IVA discriminado»", () => {
+    const { filas } = subdiarioVentas([{ id: "c", issue_date: "2026-09-11", tipo_comprobante: 11, punto_venta: 3, numero_afip: 8,
+      subtotal: 500, tax_pct: 0, tax_amount: 0, total: 500, invoice_items: [{ total: 500, tax_rate: 0, tax_amount: 0 }] }]);
+    expect(filas[1][filas[0].indexOf("Sin IVA discriminado (C)")]).toBe(500);
+    expect(suma(filas[1])).toBe(500);
+  });
+});

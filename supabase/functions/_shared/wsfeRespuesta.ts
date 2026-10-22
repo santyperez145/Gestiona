@@ -131,3 +131,16 @@ export function leerSolicitudCaeWsfe(xml: string): SolicitudCaeWsfe {
     observaciones,
   };
 }
+
+/**
+ * Cotización oficial de una moneda (`FEParamGetCotizacion`): la que ARCA
+ * espera en `MonCotiz` cuando la factura no trae la suya.
+ */
+export function leerCotizacionWsfe(xml: string): number {
+  const value = (result(xml, "FEParamGetCotizacion").ResultGet as { MonCotiz?: unknown } | undefined)?.MonCotiz;
+  const n = Number(value);
+  if (typeof value !== "string" || !Number.isFinite(n) || n <= 0) {
+    throw new ArcaReadError("invalid_response", "ARCA no devolvió la cotización de la moneda. Cargá la cotización en la factura o reintentá.");
+  }
+  return n;
+}

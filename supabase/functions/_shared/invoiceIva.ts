@@ -4,15 +4,24 @@ export type InvoiceTaxLine = {
   total: number;
   tax_rate?: number | null;
   tax_amount?: number | null;
+  /** gravado (por defecto), exento o no_gravado. Lo exento no es IVA al 0 %. */
+  tratamiento?: string | null;
 };
 export type InvoiceTaxDocument = {
   tipo_comprobante?: number | null;
+  /** Neto gravado. */
   subtotal: number;
   tax_pct: number;
   tax_amount: number;
+  /** Neto gravado + IVA + no gravado + exento + tributos. */
   total: number;
+  importe_no_gravado?: number | null;
+  importe_exento?: number | null;
+  importe_tributos?: number | null;
   invoice_items?: InvoiceTaxLine[];
 };
+
+const tratamientoDe = (line: InvoiceTaxLine) => line.tratamiento ?? "gravado";
 export type InvoiceIvaGroup = { rate: number; id: number; base: number; amount: number };
 
 function cents(value: unknown): number {
@@ -26,10 +35,26 @@ function cents(value: unknown): number {
 export function invoiceIvaGroups(invoice: InvoiceTaxDocument): InvoiceIvaGroup[] {
   const net = cents(invoice.subtotal);
   const vat = cents(invoice.tax_amount);
-  if (net + vat !== cents(invoice.total)) {
-    throw new Error("El neto y el IVA no coinciden con el total del comprobante.");
+  const noGravado = cents(invoice.importe_no_gravado ?? 0);
+  const exento = cents(invoice.importe_exento ?? 0);
+  const tributos = cents(invoice.importe_tributos ?? 0);
+  if (net + vat + noGravado + exento + tributos !== cents(invoice.total)) {
+    throw new Error(noGravado + exento + tributos === 0
+      ? "El neto y el IVA no coinciden con el total del comprobante."
+      : "El total no es la suma de neto gravado, IVA, no gravado, exento y tributos.");
   }
-  const lines = invoice.invoice_items ?? [];
+  const allLines = invoice.invoice_items ?? [];
+  for (const [tratamiento, esperado] of [["exento", exento], ["no_gravado", noGravado]] as const) {
+    const enRenglones = allLines.filter(line => tratamientoDe(line) === tratamiento)
+      .reduce((sum, line) => sum + cents(line.total), 0);
+    if (allLines.length && enRenglones !== esperado) {
+      throw new Error(tratamiento === "exento"
+        ? "Los renglones exentos no coinciden con el importe exento del comprobante."
+        : "Los renglones no gravados no coinciden con el importe no gravado del comprobante.");
+    }
+  }
+  // Sólo lo gravado se desglosa por alícuota.
+  const lines = allLines.filter(line => tratamientoDe(line) === "gravado");
   const creditNote = [3, 8, 13].includes(Number(invoice.tipo_comprobante));
   const detailed = lines.some((line) => line.tax_rate != null || line.tax_amount != null);
   const groups = new Map<number, { base: number; amount: number }>();

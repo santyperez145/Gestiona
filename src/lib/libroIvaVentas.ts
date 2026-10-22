@@ -19,6 +19,7 @@
  * `problemas` con el motivo, y no entra en los archivos.
  */
 import { invoiceIvaGroups, type InvoiceTaxLine } from "../../supabase/functions/_shared/invoiceIva";
+import { monedaWsfe, type TributoDeComprobante } from "../../supabase/functions/_shared/wsfeComprobante";
 
 export interface ComprobanteVenta {
   id: string;
@@ -34,6 +35,15 @@ export interface ComprobanteVenta {
   tax_pct: number;
   total: number;
   invoice_items?: InvoiceTaxLine[] | null;
+  /** Desde 20261022000600: lo que no es neto gravado, la moneda y el concepto. */
+  importe_no_gravado?: number | null;
+  importe_exento?: number | null;
+  importe_tributos?: number | null;
+  tributos?: TributoDeComprobante[] | null;
+  currency?: string | null;
+  moneda_cotizacion?: number | null;
+  concepto?: number | null;
+  due_date?: string | null;
 }
 
 export interface AlicuotaResumen { tasa: number; neto: number; iva: number }
@@ -128,6 +138,23 @@ export function libroIvaVentas(comprobantes: ComprobanteVenta[]): LibroIvaVentas
       continue;
     }
 
+    let moneda: ReturnType<typeof monedaWsfe>;
+    try { moneda = monedaWsfe(c.currency); } catch (e) {
+      problemas.push({ id: c.id, comprobante: etiqueta(c), motivo: e instanceof Error ? e.message : "Moneda no admitida." });
+      continue;
+    }
+    const cotizacion = moneda === "PES" ? 1 : Number(c.moneda_cotizacion) || 0;
+    if (cotizacion <= 0) {
+      problemas.push({ id: c.id, comprobante: etiqueta(c), motivo: "Está en moneda extranjera y no tiene la cotización con la que se autorizó." });
+      continue;
+    }
+    // Cada percepción va en su columna del diseño de registro (RG 4597).
+    const tributo = (tipos: number[]) => (c.tributos ?? [])
+      .filter(t => tipos.includes(Number(t.tipo))).reduce((suma, t) => suma + Number(t.importe || 0), 0);
+    const noGravado = Number(c.importe_no_gravado ?? 0);
+    const exento = Number(c.importe_exento ?? 0);
+    const netoGravado = Number(c.subtotal);
+
     const doc = documentoDelComprador(c.customer_tax_id);
     const nombre = doc.tipo === 99 && !c.customer_name?.trim() ? "CONSUMIDOR FINAL" : c.customer_name;
     const soloTasaCero = grupos.length > 0 && grupos.every(g => g.rate === 0);
@@ -141,19 +168,20 @@ export function libroIvaVentas(comprobantes: ComprobanteVenta[]): LibroIvaVentas
       fecha(c.issue_date), tipoTxt, puntoVenta, numero, numero,
       ceros(doc.tipo, 2), ceros(doc.numero, 20), texto(nombre, 30),
       importe(c.total),
-      importe(0), // conceptos que no integran el neto gravado
-      importe(0), // percepción a no categorizados
-      importe(0), // operaciones exentas
-      importe(0), // percepciones de impuestos nacionales
-      importe(0), // percepciones de Ingresos Brutos
-      importe(0), // percepciones municipales
-      importe(0), // impuestos internos
-      "PES", "0001000000", String(cantidad),
+      importe(noGravado), // conceptos que no integran el neto gravado
+      importe(tributo([13])), // percepción a no categorizados
+      importe(exento), // operaciones exentas
+      importe(tributo([1, 6])), // percepciones de impuestos nacionales (IVA incluida)
+      importe(tributo([5, 7])), // percepciones de Ingresos Brutos
+      importe(tributo([3, 8])), // percepciones municipales
+      importe(tributo([4])), // impuestos internos
+      moneda, ceros(Math.round(cotizacion * 1_000_000), 10), String(cantidad),
       // «No corresponde» es un espacio: el importador de ARCA rechaza el «0»
       // que aceptaba el ex CITI («el código de Operación es inválido»).
-      soloTasaCero ? "E" : " ",
-      importe(0), // otros tributos
-      "00000000", // vencimiento de pago: sólo servicios
+      netoGravado === 0 && exento > 0 ? "E" : netoGravado === 0 && noGravado > 0 ? "N" : soloTasaCero ? "E" : " ",
+      importe(tributo([2, 9, 99])), // otros tributos
+      // Vencimiento de pago: sólo servicios (concepto 2 o 3).
+      [2, 3].includes(Number(c.concepto)) ? fecha(c.due_date || c.issue_date) : "00000000",
     ].join(""));
 
     for (const g of grupos) {
@@ -162,11 +190,12 @@ export function libroIvaVentas(comprobantes: ComprobanteVenta[]): LibroIvaVentas
 
     const signo = NOTAS_DE_CREDITO.has(tipo) ? -1 : 1;
     if (signo < 0) notasDeCredito++;
-    total += signo * Number(c.total);
+    // El resumen va en pesos: un comprobante en dólares suma a su cotización.
+    total += signo * Number(c.total) * cotizacion;
     for (const g of grupos) {
       const r = porTasa.get(g.rate) ?? { tasa: g.rate, neto: 0, iva: 0 };
-      porTasa.set(g.rate, { tasa: g.rate, neto: r.neto + signo * g.base, iva: r.iva + signo * g.amount });
-      debitoFiscal += signo * g.amount;
+      porTasa.set(g.rate, { tasa: g.rate, neto: r.neto + signo * g.base * cotizacion, iva: r.iva + signo * g.amount * cotizacion });
+      debitoFiscal += signo * g.amount * cotizacion;
     }
   }
 

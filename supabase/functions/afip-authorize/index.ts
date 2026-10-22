@@ -39,8 +39,8 @@ import {
   DEBIT_NOTE_TYPES,
   type AfipAssociatedVoucher,
 } from "../_shared/afipAssociatedVoucher.ts";
-import { invoiceIvaXml } from "../_shared/invoiceIva.ts";
-import { ArcaReadError, assertEnabledPoint, leerSolicitudCaeWsfe, puntosHabilitadosCae, leerUltimoAutorizadoWsfe, type MensajeWsfe } from "../_shared/wsfeRespuesta.ts";
+import { detalleWsfe, monedaWsfe } from "../_shared/wsfeComprobante.ts";
+import { ArcaReadError, assertEnabledPoint, leerCotizacionWsfe, leerSolicitudCaeWsfe, puntosHabilitadosCae, leerUltimoAutorizadoWsfe, type MensajeWsfe } from "../_shared/wsfeRespuesta.ts";
 import { ArcaAutorizacionError, resumirRechazoArca } from "../_shared/arcaRechazos.ts";
 
 const supabase = createClient(
@@ -588,7 +588,13 @@ Deno.serve(async (req) => {
       .select("*, invoice_items(*)").eq("id", invoiceId).eq("org_id", invoice.org_id).single();
     if (reservedError || !reservedInvoice) throw new Error("No se pudo cargar el comprobante reservado");
     invoice = reservedInvoice;
-    invoiceIvaXml({ ...invoice, tipo_comprobante: tipoCbte });
+    // Validar el comprobante entero antes de hablar con ARCA: importes, IVA,
+    // período del servicio, tributos. La cotización real se pide después; acá
+    // sólo importa que el resto cierre.
+    detalleWsfe(
+      { ...invoice, invoice_items: invoice.invoice_items ?? [] },
+      { puntoVenta, tipoCbte, numero: 1, asociado: associatedInvoice, cotizacionOficial: 1 },
+    );
 
     // ── Step 1: Get / refresh Ticket de Acceso ────────────────
     let token_ta: string;
@@ -674,6 +680,22 @@ Deno.serve(async (req) => {
       if (candidateError) throw new Error("No se pudo persistir el número fiscal antes de llamar a ARCA");
     }
     providerNumber = nextNumber;
+
+    // ── Step 3a: cotización de una factura en moneda extranjera ──
+    // Sin cotización propia se usa la oficial de ARCA, y se guarda en la
+    // factura antes de pedir el CAE: el QR fiscal y el Libro IVA la necesitan.
+    const monId = monedaWsfe(invoice.currency);
+    if (monId !== "PES" && !(Number(invoice.moneda_cotizacion) > 0)) {
+      const xmlCot = await wsfeCall(
+        wsfeUrl,
+        wsfeSoap("FEParamGetCotizacion", `<ar:MonId>${monId}</ar:MonId>`, { token: token_ta, sign: sign_ta, cuit }),
+        "FEParamGetCotizacion",
+      );
+      const cotizacion = leerCotizacionWsfe(xmlCot);
+      const { error: cotError } = await supabase.rpc("afip_fijar_cotizacion", { p_invoice_id: invoiceId, p_cotizacion: cotizacion });
+      if (cotError) throw new Error("No se pudo guardar la cotización de la factura");
+      invoice = { ...invoice, moneda_cotizacion: cotizacion };
+    }
 
     // ── Step 3: Request CAE ───────────────────────────────────
     const { cae, caeVencimiento, observaciones } = await solicitarCAE({
@@ -897,35 +919,18 @@ async function solicitarCAE(args: {
 }): Promise<{ cae: string; caeVencimiento: string; observaciones: MensajeWsfe[] }> {
   const { wsfeUrl, token, sign, cuit, puntoVenta, tipoCbte, numero, invoice, associatedInvoice } = args;
 
-  const fecha = invoice.issue_date.replace(/-/g, "");
-  const total = round2(Number(invoice.total));
-
-  const subtotal = round2(Number(invoice.subtotal));
-  const ivaImporte = round2(Number(invoice.tax_amount));
-  const ivaBlock = invoiceIvaXml({ ...invoice, tipo_comprobante: tipoCbte });
-
-  // Determine DocTipo / DocNro
-  const taxId = (invoice.customer_tax_id || "").replace(/[-\s]/g, "");
-  let docTipo = 99; // Consumidor Final
-  let docNro = 0;
-  if (taxId.length === 11) { docTipo = 80; docNro = parseInt(taxId); } // CUIT
-  else if (taxId.length === 7 || taxId.length === 8) { docTipo = 96; docNro = parseInt(taxId); } // DNI
-
-  // Class A invoices and associated debit/credit notes require CUIT (80).
-  if ([1, 2, 3].includes(tipoCbte) && docTipo !== 80) {
-    throw new Error("Factura A requiere CUIT del cliente");
-  }
-
-  // ⚠️ **RG 5.616: la condición frente al IVA del receptor es obligatoria.**
-  // Sin este campo WSFE rechaza con 10246 y no autoriza nada. 5 = consumidor
-  // final, que es lo que corresponde a una venta de tienda sin datos fiscales.
-  const condicionIva = Number(invoice.condicion_iva_receptor) || 5;
+  // El detalle completo (concepto y período de servicios, no gravado, exento,
+  // tributos, moneda) lo arma y valida `wsfeComprobante.ts`. Las facturas
+  // anteriores a la migración 20261022000600 no traen esos campos y salen como
+  // antes: productos, en pesos, todo gravado.
+  const detalle = detalleWsfe(
+    { ...invoice, invoice_items: invoice.invoice_items ?? [] },
+    { puntoVenta, tipoCbte, numero, asociado: associatedInvoice },
+  );
 
   // ⚠️ **`FeCAEReq` envuelve a los dos bloques, y faltaba.** Sin él WSFE
   // responde «Tag <FeCAEReq> no fue ingresado» y **ninguna factura se autoriza
-  // nunca**. Estuvo así desde que se escribió la función: no se notó porque no
-  // se había emitido ni una. Lo encontró la primera emisión real contra
-  // homologación.
+  // nunca**. Lo encontró la primera emisión real contra homologación.
   const body = `
     <ar:FeCAEReq>
     <ar:FeCabReq>
@@ -934,25 +939,7 @@ async function solicitarCAE(args: {
       <ar:CbteTipo>${tipoCbte}</ar:CbteTipo>
     </ar:FeCabReq>
     <ar:FeDetReq>
-      <ar:FECAEDetRequest>
-        <ar:Concepto>1</ar:Concepto>
-        <ar:DocTipo>${docTipo}</ar:DocTipo>
-        <ar:DocNro>${docNro}</ar:DocNro>
-        <ar:CbteDesde>${numero}</ar:CbteDesde>
-        <ar:CbteHasta>${numero}</ar:CbteHasta>
-        <ar:CbteFch>${fecha}</ar:CbteFch>
-        <ar:ImpTotal>${total}</ar:ImpTotal>
-        <ar:ImpTotConc>0</ar:ImpTotConc>
-        <ar:ImpNeto>${subtotal}</ar:ImpNeto>
-        <ar:ImpOpEx>0</ar:ImpOpEx>
-        <ar:ImpIVA>${ivaImporte}</ar:ImpIVA>
-        <ar:ImpTrib>0</ar:ImpTrib>
-        <ar:MonId>PES</ar:MonId>
-        <ar:MonCotiz>1</ar:MonCotiz>
-        <ar:CondicionIVAReceptorId>${condicionIva}</ar:CondicionIVAReceptorId>
-        ${associatedVoucherXml(tipoCbte, associatedInvoice)}
-        ${ivaBlock}
-      </ar:FECAEDetRequest>
+      ${detalle}
     </ar:FeDetReq>
     </ar:FeCAEReq>`;
 

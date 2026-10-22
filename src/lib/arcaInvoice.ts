@@ -77,7 +77,7 @@ function payloadValido(value: unknown): ArcaQrPayload | null {
     v.ver !== 1 || !fecha || cuit === null || String(cuit).length !== 11 ||
     ptoVta === null || ptoVta < 1 || ptoVta > 99999 ||
     tipoCmp === null || tipoCmp < 1 || nroCmp === null || nroCmp < 1 ||
-    importe === null || !/^[A-Z]{3}$/.test(moneda) || ctz === null || ctz <= 0 ||
+    importe === null || !/^[A-Z0-9]{3}$/.test(moneda) || ctz === null || ctz <= 0 ||
     !tipoCodAut || codAut === null || String(codAut).length !== 14
   ) return null;
 
@@ -127,9 +127,9 @@ export function arcaQrPayload(invoice: ArcaInvoiceSnapshot): ArcaQrPayload | nul
   const doc = String(invoice.customer_tax_id ?? "").replace(/\D/g, "");
   const tipoDoc = enteroSeguro(invoice.receptor_tipo_documento);
   const nroDoc = enteroSeguro(doc);
-  const moneda = invoice.currency === "ARS"
-    ? "PES"
-    : String(invoice.currency ?? "").trim().toUpperCase();
+  // El QR usa el código de moneda de ARCA: PES, DOL, 060 (euro), no ARS/USD.
+  const moneda = ({ ARS: "PES", USD: "DOL", EUR: "060" } as Record<string, string>)[String(invoice.currency ?? "ARS").trim().toUpperCase()]
+    ?? String(invoice.currency ?? "").trim().toUpperCase();
 
   return payloadValido({
     ver: 1,

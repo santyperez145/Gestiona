@@ -12,6 +12,10 @@ describe("factura manual con IVA por renglón", () => {
     ], { fiscalEnabled: true, classC: false, defaultRate: 21 })).toEqual({
       subtotal: 200,
       tax: 31.5,
+      exento: 0,
+      noGravado: 0,
+      tributos: [],
+      tributosTotal: 0,
       total: 231.5,
       lines: [
         { net: 100, taxRate: 21, tax: 21 },
@@ -22,6 +26,23 @@ describe("factura manual con IVA por renglón", () => {
         { rate: 21, base: 100, amount: 21 },
       ],
     });
+  });
+
+  it("lo exento y lo no gravado van aparte y las percepciones son base por alícuota", () => {
+    const r = manualInvoiceTaxSummary([
+      { quantity: 1, unit_price: 1000, tax_rate: 21 },
+      { quantity: 1, unit_price: 300, tratamiento: "exento" },
+      { quantity: 1, unit_price: 50, tratamiento: "no_gravado" },
+    ], { fiscalEnabled: true, classC: false, defaultRate: 21 }, [
+      { tipo: 7, descripcion: "Percepción IIBB", base: 1000, alicuota: 3 },
+      { tipo: 4, base: 0, alicuota: 0, importe: 12.5 },
+      { tipo: 6, base: 0, alicuota: 0 },
+    ]);
+    expect(r).toMatchObject({ subtotal: 1000, tax: 210, exento: 300, noGravado: 50, tributosTotal: 42.5, total: 1602.5 });
+    expect(r.tributos.map(t => t.importe)).toEqual([30, 12.5]);
+    expect(r.groups).toEqual([{ rate: 21, base: 1000, amount: 210 }]);
+    expect(() => manualInvoiceTaxSummary([{ quantity: 1, unit_price: 10, tratamiento: "exento" }],
+      { fiscalEnabled: true, classC: true, defaultRate: 0 })).toThrow("comprobante C");
   });
 
   it("fuerza tasa cero en C y no discrimina un borrador no fiscal", () => {

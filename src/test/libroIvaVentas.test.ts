@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { documentoDelReceptor } from "../../supabase/functions/_shared/wsfeComprobante";
 import { describe, expect, it } from "vitest";
 import { documentoDelComprador, importe, libroIvaVentas, periodoAPresentar, rangoDelPeriodo, texto, type ComprobanteVenta } from "@/lib/libroIvaVentas";
 
@@ -98,11 +99,50 @@ describe("Libro IVA Digital — ventas", () => {
   });
 
   // Si afip-authorize cambia cómo informa al comprador, el libro tiene que cambiar con él.
-  it("usa la misma regla de documento que afip-authorize", () => {
-    const edge = readFileSync("supabase/functions/afip-authorize/index.ts", "utf8");
-    expect(edge).toContain("if (taxId.length === 11) { docTipo = 80;");
-    expect(edge).toContain("else if (taxId.length === 7 || taxId.length === 8) { docTipo = 96;");
-    expect(edge).toContain("<ar:ImpOpEx>0</ar:ImpOpEx>");
-    expect(edge).toContain("<ar:MonId>PES</ar:MonId>");
+  it("usa la misma regla de documento que la emisión (wsfeComprobante)", () => {
+    for (const taxId of ["20-12345678-6", "30123456", "1234567", "", null, "123"]) {
+      const emision = documentoDelReceptor(taxId);
+      const libro = documentoDelComprador(taxId);
+      expect([libro.tipo, Number(libro.numero)]).toEqual([emision.docTipo, emision.docNro]);
+    }
+    expect(readFileSync("supabase/functions/afip-authorize/index.ts", "utf8")).toContain("detalleWsfe(");
+  });
+
+  it("exento, no gravado, percepciones, servicios y dólares van en su columna", () => {
+    const libro = libroIvaVentas([{
+      id: "x", issue_date: "2026-09-15", tipo_comprobante: 1, punto_venta: 3, numero_afip: 200,
+      customer_tax_id: "30712345671", customer_name: "ZZ SA",
+      subtotal: 1000, tax_pct: 21, tax_amount: 210, importe_exento: 300, importe_no_gravado: 50,
+      importe_tributos: 35, total: 1595, currency: "USD", moneda_cotizacion: 1050.5, concepto: 2, due_date: "2026-10-10",
+      tributos: [{ tipo: 7, base: 1000, alicuota: 3, importe: 30 }, { tipo: 6, base: 1000, alicuota: 0.5, importe: 5 }],
+      invoice_items: [
+        { total: 1000, tax_rate: 21, tax_amount: 210 },
+        { total: 300, tax_rate: 0, tax_amount: 0, tratamiento: "exento" },
+        { total: 50, tax_rate: 0, tax_amount: 0, tratamiento: "no_gravado" },
+      ],
+    }]);
+    expect(libro.problemas).toEqual([]);
+    const linea = libro.cbte.replace(/\r\n$/, "");
+    expect(linea).toHaveLength(266);
+    const campo = (desde: number, largo: number) => linea.slice(desde - 1, desde - 1 + largo);
+    expect(campo(109, 15)).toBe("000000000159500"); // total
+    expect(campo(124, 15)).toBe("000000000005000"); // no gravado
+    expect(campo(139, 15)).toBe("000000000000000"); // percepción a no categorizados
+    expect(campo(154, 15)).toBe("000000000030000"); // exento
+    expect(campo(169, 15)).toBe("000000000000500"); // percepción nacional (IVA)
+    expect(campo(184, 15)).toBe("000000000003000"); // percepción IIBB
+    expect(campo(229, 3)).toBe("DOL");
+    expect(campo(232, 10)).toBe("1050500000");
+    expect(campo(243, 1)).toBe(" ");
+    expect(campo(259, 8)).toBe("20261010");
+    expect(libro.alicuotas.trim()).toHaveLength(62);
+    expect(libro.resumen.debitoFiscal).toBe(220605);
+  });
+
+  it("en moneda extranjera sin cotización no entra, y dice por qué", () => {
+    const libro = libroIvaVentas([{ id: "y", issue_date: "2026-09-15", tipo_comprobante: 6, punto_venta: 3, numero_afip: 9,
+      subtotal: 100, tax_pct: 21, tax_amount: 21, total: 121, currency: "EUR" }]);
+    expect(libro.incluidos).toBe(0);
+    expect(libro.problemas[0].motivo).toMatch(/cotización/);
   });
 });

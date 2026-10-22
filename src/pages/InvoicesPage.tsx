@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useClipboard } from "@/hooks/useClipboard";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingFunction } from "@/lib/publicDataSource";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { formatARS, getProductsDB } from "@/lib/supabaseStore";
@@ -51,12 +52,9 @@ const fmtARS = (n: number) =>
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import {
-  INVOICE_TAX_RATES,
-  manualInvoiceTaxSummary,
-  netoDesdePrecioFinal,
-  updateDefaultInvoiceTaxRate,
-} from "@/lib/manualInvoiceTax";
+import { INVOICE_TAX_RATES, manualInvoiceTaxSummary, netoDesdePrecioFinal, updateDefaultInvoiceTaxRate, type TratamientoRenglon } from "@/lib/manualInvoiceTax";
+import DetalleFiscalFactura from "@/components/invoices/DetalleFiscalFactura";
+import { detalleFiscalInicial, detalleFiscalParaEnviar, erroresDelDetalleFiscal, type DetalleFiscal } from "@/lib/detalleFiscal";
 import ProductCombobox from "@/components/shared/ProductCombobox";
 import { productoPorCodigo } from "@/lib/presupuestos";
 
@@ -69,7 +67,7 @@ import { resultadoLote, type ResultadoLote } from "@/lib/loteFacturacion";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
-interface InvoiceItem { id?: string; description: string; quantity: number; unit_price: number; total: number; tax_rate?: number | null; tax_amount?: number | null }
+interface InvoiceItem { id?: string; description: string; quantity: number; unit_price: number; total: number; tax_rate?: number | null; tax_amount?: number | null; tratamiento?: TratamientoRenglon | null }
 interface Invoice {
   id: string; org_id: string; number: string; customer_name: string; customer_email: string | null;
   customer_address: string | null; customer_tax_id: string | null;
@@ -79,6 +77,15 @@ interface Invoice {
   sale_id: string | null;
   ecommerce_order_id?: string | null;
   invoice_items?: InvoiceItem[];
+  // 20261022000600: concepto, servicio, exento/no gravado, tributos y moneda.
+  concepto?: number | null;
+  servicio_desde?: string | null;
+  servicio_hasta?: string | null;
+  importe_no_gravado?: number | null;
+  importe_exento?: number | null;
+  importe_tributos?: number | null;
+  tributos?: { tipo: number; descripcion?: string | null; base: number; alicuota: number; importe: number }[] | null;
+  cancela_misma_moneda?: boolean | null;
   // AFIP fields
   tipo_comprobante: number | null;
   condicion_iva_receptor: number;
@@ -181,6 +188,10 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   const puntoVenta = inv.punto_venta || (!autorizado ? afipSettings?.afip_punto_venta : null);
   const numero = numeroFiscal(puntoVenta, inv.numero_afip);
   const esHomologacion = inv.afip_environment === "homologacion";
+  // Una factura en dólares o euros se imprime en su moneda.
+  const extranjera = Boolean(inv.currency) && inv.currency !== "ARS";
+  const dinero = (n: number) => (extranjera ? Number(n).toLocaleString("es-AR", { style: "currency", currency: inv.currency }) : formatARS(n));
+  const tributos = inv.tributos ?? [];
 
   // ── Header band ──────────────────────────────────────────
   doc.setFillColor(17, 24, 39);
@@ -284,14 +295,29 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
     doc.text(`${associated.title} ${associated.number} · ${associated.issueDate}`, 40, tableY + 14);
     tableY += 28;
   }
+  // Período del servicio y moneda: ARCA los pide en la representación impresa.
+  const extras = [
+    inv.concepto && inv.concepto !== 1 && inv.servicio_desde && inv.servicio_hasta
+      ? `${inv.concepto === 2 ? "Servicios" : "Productos y servicios"} del ${fechaFiscalArgentina(inv.servicio_desde)} al ${fechaFiscalArgentina(inv.servicio_hasta)}`
+      : null,
+    extranjera
+      ? `Moneda: ${inv.currency === "USD" ? "dólares estadounidenses" : "euros"}${inv.moneda_cotizacion ? ` · Cotización ${formatARS(Number(inv.moneda_cotizacion))}` : ""}${inv.cancela_misma_moneda ? " · Se cancela en la misma moneda" : ""}`
+      : null,
+  ].filter(Boolean) as string[];
+  if (extras.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    extras.forEach((linea, k) => doc.text(linea, 40, tableY + k * 13));
+    tableY += extras.length * 13 + 6;
+  }
   autoTable(doc, {
     startY: tableY,
     head: [["Descripción", "Cant.", "Precio unit.", "Total"]],
     body: items.map((it) => [
       it.description,
       String(it.quantity),
-      formatARS(it.unit_price),
-      formatARS(it.total),
+      dinero(it.unit_price),
+      dinero(it.total),
     ]),
     theme: "grid",
     headStyles: { fillColor: [17, 24, 39], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
@@ -306,25 +332,30 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
   doc.setFont("helvetica", "normal");
-  doc.text("Subtotal:", W / 2 + 8, y + 9);
-  doc.text(formatARS(discriminatesVat ? inv.subtotal : inv.total), right, y + 9, { align: "right" });
-  y += 20;
+  const exento = Number(inv.importe_exento ?? 0);
+  const noGravado = Number(inv.importe_no_gravado ?? 0);
+  const totalTributos = Number(inv.importe_tributos ?? 0);
+  const filaTotal = (etiqueta: string, importe: number) => {
+    if (y > 650) { doc.addPage(); y = 48; }
+    doc.text(etiqueta, W / 2 + 8, y + 9);
+    doc.text(dinero(importe), right, y + 9, { align: "right" });
+    y += 20;
+  };
+  filaTotal(discriminatesVat && (exento || noGravado) ? "Neto gravado:" : "Subtotal:", discriminatesVat ? inv.subtotal : inv.total - totalTributos);
   // Los comprobantes clase A discriminan IVA, incluidas sus notas de crédito.
   if (discriminatesVat) {
-    for (const group of ivaGroups) {
-      if (y > 650) { doc.addPage(); y = 48; }
-      doc.text(`IVA (${group.rate}%):`, W / 2 + 8, y + 9);
-      doc.text(formatARS(group.amount), right, y + 9, { align: "right" });
-      y += 20;
-    }
+    for (const group of ivaGroups) filaTotal(`IVA (${group.rate}%):`, group.amount);
+    if (exento) filaTotal("Exento:", exento);
+    if (noGravado) filaTotal("No gravado:", noGravado);
   }
+  for (const t of tributos) filaTotal(`${t.descripcion || "Tributo"}${t.alicuota > 0 ? ` (${t.alicuota}%)` : ""}:`, Number(t.importe));
   doc.setFillColor(124, 92, 255);
   doc.rect(W / 2, y - 2, W / 2 - 40, 20, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(255, 255, 255);
   doc.text("TOTAL:", W / 2 + 8, y + 13);
-  doc.text(formatARS(inv.total), right, y + 13, { align: "right" });
+  doc.text(dinero(inv.total), right, y + 13, { align: "right" });
   y += 28;
 
   if (y > 650) { doc.addPage(); y = 48; }
@@ -338,10 +369,11 @@ async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSet
   y += 15;
   doc.setFont("helvetica", "normal");
   doc.text("IVA contenido:", W / 2 + 8, y + 8);
-  doc.text(formatARS(inv.tax_amount), right, y + 8, { align: "right" });
+  doc.text(dinero(inv.tax_amount), right, y + 8, { align: "right" });
   y += 14;
   doc.text("Otros impuestos nacionales indirectos:", W / 2 + 8, y + 8);
-  doc.text(formatARS(0), right, y + 8, { align: "right" });
+  // Impuestos internos (tributo 4): los demás tributos no son nacionales indirectos.
+  doc.text(dinero(tributos.filter(t => Number(t.tipo) === 4).reduce((suma, t) => suma + Number(t.importe), 0)), right, y + 8, { align: "right" });
   y += 18;
 
   // ── Notes ─────────────────────────────────────────────────
@@ -430,6 +462,21 @@ export default function InvoicesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [items, setItems] = useState<InvoiceItem[]>([emptyItem()]);
+  const [detalleFiscal, setDetalleFiscal] = useState<DetalleFiscal>(() => detalleFiscalInicial());
+  // Concepto del comercio (productos, servicios o ambos): la factura arranca con
+  // ese. Sin la migración 20261022000600, se queda en productos.
+  const [conceptoDelComercio, setConceptoDelComercio] = useState<1 | 2 | 3>(1);
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    let vigente = true;
+    void supabase.rpc("concepto_de_facturacion", { p_org: activeOrg.id }).then(({ data, error }) => {
+      if (!vigente) return;
+      if (error) { if (!isMissingFunction(error)) console.error("concepto_de_facturacion", error); return; }
+      const c = Number(data);
+      if (c === 1 || c === 2 || c === 3) { setConceptoDelComercio(c); setDetalleFiscal(d => (d.tributos.length || d.concepto !== 1 ? d : { ...d, concepto: c })); }
+    });
+    return () => { vigente = false; };
+  }, [activeOrg?.id]);
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [authorizingId, setAuthorizingId] = useState<string | null>(null);
@@ -802,11 +849,14 @@ export default function InvoicesPage() {
     ? tipoDeComprobante(afipSettings.afip_tipo_emisor, form.receiver_condition)
     : null;
   const effectiveTaxPct = !afipConfigured || suggestedVoucher?.letra === "C" ? 0 : Number(form.tax_pct);
-  const manualTaxSummary = manualInvoiceTaxSummary(items, {
+  const esClaseC = suggestedVoucher?.letra === "C";
+  // En una factura C no hay exento ni no gravado: todo renglón cuenta como gravado.
+  const itemsParaCalcular = esClaseC ? items.map(it => ({ ...it, tratamiento: "gravado" as const })) : items;
+  const manualTaxSummary = manualInvoiceTaxSummary(itemsParaCalcular, {
     fiscalEnabled: afipConfigured,
-    classC: suggestedVoucher?.letra === "C",
+    classC: esClaseC,
     defaultRate: effectiveTaxPct,
-  });
+  }, afipConfigured ? detalleFiscal.tributos : []);
   const { subtotal, total } = manualTaxSummary;
 
   // ── Productos del catálogo en la factura manual (2026-10-14) ─────────────
@@ -848,6 +898,8 @@ export default function InvoicesPage() {
       toast.error("La condición fiscal elegida requiere un CUIT válido");
       return;
     }
+    const erroresFiscales = afipConfigured && sourceSaleGrossTotal === null ? erroresDelDetalleFiscal(detalleFiscal) : [];
+    if (erroresFiscales.length) { toast.error(erroresFiscales[0]); return; }
     setSaving(true);
     try {
       const validItems = items.filter((it) => it.description.trim());
@@ -863,6 +915,9 @@ export default function InvoicesPage() {
         enabled: Boolean(afipSettings?.afip_cuit),
         receiver_condition: form.receiver_condition,
         tax_pct: effectiveTaxPct,
+        // Concepto, servicio, moneda y tributos (20261022000600). La factura de
+        // una venta toma el concepto del comercio en la base.
+        ...(afipConfigured && sourceSaleGrossTotal === null ? detalleFiscalParaEnviar(detalleFiscal) : {}),
       };
       const sourceSaleId = fromSaleId.current;
       const { data, error } = sourceSaleId
@@ -880,10 +935,11 @@ export default function InvoicesPage() {
               quantity: item.quantity,
               unit_price: item.unit_price,
               tax_rate: afipConfigured
-                ? suggestedVoucher?.letra === "C"
+                ? suggestedVoucher?.letra === "C" || (item.tratamiento ?? "gravado") !== "gravado"
                   ? 0
                   : Number(item.tax_rate ?? effectiveTaxPct)
                 : null,
+              tratamiento: suggestedVoucher?.letra === "C" ? "gravado" : item.tratamiento ?? "gravado",
             })),
             p_fiscal: fiscalPayload,
             p_sale_id: null,
@@ -927,6 +983,7 @@ export default function InvoicesPage() {
     setSourceSaleLoading(false);
     setForm({ ...EMPTY_FORM });
     setItems([emptyItem()]);
+    setDetalleFiscal(detalleFiscalInicial(conceptoDelComercio));
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -1362,10 +1419,12 @@ export default function InvoicesPage() {
                   />
                   {sourceSaleGrossTotal === null && afipConfigured && suggestedVoucher?.letra !== "C" ? (
                     <Select
-                      value={String(it.tax_rate ?? effectiveTaxPct)}
+                      value={(it.tratamiento ?? "gravado") !== "gravado" ? String(it.tratamiento) : String(it.tax_rate ?? effectiveTaxPct)}
                       onValueChange={(value) => {
                         const next = [...items];
-                        next[i] = { ...it, tax_rate: Number(value) };
+                        next[i] = value === "exento" || value === "no_gravado"
+                          ? { ...it, tratamiento: value, tax_rate: 0 }
+                          : { ...it, tratamiento: "gravado", tax_rate: Number(value) };
                         setItems(recalcItems(next));
                       }}
                     >
@@ -1376,6 +1435,8 @@ export default function InvoicesPage() {
                         {INVOICE_TAX_RATES.map((rate) => (
                           <SelectItem key={rate} value={String(rate)}>{rate}%</SelectItem>
                         ))}
+                        <SelectItem value="exento">Exento</SelectItem>
+                        <SelectItem value="no_gravado">No gravado</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
@@ -1397,13 +1458,17 @@ export default function InvoicesPage() {
             </div>
           </div>
 
+          {afipConfigured && sourceSaleGrossTotal === null && (
+            <DetalleFiscalFactura valor={detalleFiscal} onChange={setDetalleFiscal} netoGravado={subtotal} claseC={esClaseC} />
+          )}
+
           {/* Totals */}
           <div className="flex justify-end">
             <div className="space-y-1 text-sm min-w-[220px]">
               {sourceSaleGrossTotal === null ? (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-muted-foreground">{manualTaxSummary.exento || manualTaxSummary.noGravado ? "Neto gravado" : "Subtotal"}</span>
                     <span className="font-mono">{formatARS(subtotal)}</span>
                   </div>
                   {manualTaxSummary.groups.map((group) => (
@@ -1414,10 +1479,19 @@ export default function InvoicesPage() {
                       </div>
                     ) : null
                   ))}
+                  {manualTaxSummary.exento > 0 && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">Exento</span><span className="font-mono">{formatARS(manualTaxSummary.exento)}</span></div>
+                  )}
+                  {manualTaxSummary.noGravado > 0 && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">No gravado</span><span className="font-mono">{formatARS(manualTaxSummary.noGravado)}</span></div>
+                  )}
+                  {manualTaxSummary.tributos.map((t, k) => (
+                    <div key={k} className="flex justify-between"><span className="text-muted-foreground">{t.descripcion || "Tributo"}{t.alicuota > 0 ? ` (${t.alicuota}%)` : ""}</span><span className="font-mono">{formatARS(t.importe)}</span></div>
+                  ))}
                 </>
               ) : null}
               <div className="flex justify-between border-t border-border pt-1 font-bold text-primary">
-                <span>{sourceSaleGrossTotal === null ? "Total" : "Total ya cobrado"}</span>
+                <span>{sourceSaleGrossTotal === null ? (afipConfigured && detalleFiscal.moneda !== "ARS" ? `Total en ${detalleFiscal.moneda === "USD" ? "dólares" : "euros"}` : "Total") : "Total ya cobrado"}</span>
                 <span className="font-mono">{formatARS(sourceSaleGrossTotal ?? total)}</span>
               </div>
               {sourceSaleGrossTotal !== null && afipConfigured ? (

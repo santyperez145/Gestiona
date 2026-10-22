@@ -2,10 +2,24 @@ import { redondearMoneda } from "@/lib/rounding";
 
 export const INVOICE_TAX_RATES = [0, 2.5, 5, 10.5, 21, 27] as const;
 
+export type TratamientoRenglon = "gravado" | "exento" | "no_gravado";
+
 export interface ManualInvoiceTaxItem {
   quantity: number;
   unit_price: number;
   tax_rate?: number | null;
+  /** Lo exento o no gravado no es IVA al 0 %: va aparte (20261022000600). */
+  tratamiento?: TratamientoRenglon | null;
+}
+
+/** Percepción u otro tributo de la factura (WSFE `Tributos`). */
+export interface TributoManual {
+  tipo: number;
+  descripcion?: string;
+  base: number;
+  alicuota: number;
+  /** Sólo cuenta si la alícuota es 0 (importe fijo). */
+  importe?: number;
 }
 
 interface ManualInvoiceTaxOptions {
@@ -21,8 +35,13 @@ export interface ManualInvoiceTaxLine {
 }
 
 export interface ManualInvoiceTaxSummary {
+  /** Neto gravado. */
   subtotal: number;
   tax: number;
+  exento: number;
+  noGravado: number;
+  tributos: Array<TributoManual & { importe: number }>;
+  tributosTotal: number;
   total: number;
   lines: ManualInvoiceTaxLine[];
   groups: Array<{ rate: number; base: number; amount: number }>;
@@ -56,6 +75,7 @@ export function updateDefaultInvoiceTaxRate<T extends { tax_rate?: number | null
 export function manualInvoiceTaxSummary(
   items: ManualInvoiceTaxItem[],
   options: ManualInvoiceTaxOptions,
+  tributosPedidos: TributoManual[] = [],
 ): ManualInvoiceTaxSummary {
   const defaultRate = Number(options.defaultRate);
   if (options.fiscalEnabled && !options.classC && !isInvoiceTaxRate(defaultRate)) {
@@ -67,6 +87,11 @@ export function manualInvoiceTaxSummary(
     const quantity = Number(item.quantity);
     const unitPrice = Number(item.unit_price);
     const net = redondearMoneda(quantity * unitPrice, "ARS");
+    const tratamiento = item.tratamiento ?? "gravado";
+    if (tratamiento !== "gravado") {
+      if (options.fiscalEnabled && options.classC) throw new Error("Un comprobante C no separa lo exento ni lo no gravado.");
+      return { net, taxRate: options.fiscalEnabled ? 0 : null, tax: 0, tratamiento };
+    }
     const taxRate = !options.fiscalEnabled
       ? null
       : options.classC
@@ -83,16 +108,32 @@ export function manualInvoiceTaxSummary(
         amount: redondearMoneda(group.amount + tax, "ARS"),
       });
     }
-    return { net, taxRate, tax };
+    return { net, taxRate, tax, tratamiento };
   });
 
-  const subtotal = redondearMoneda(lines.reduce((sum, line) => sum + line.net, 0), "ARS");
+  const suma = (t: TratamientoRenglon) => redondearMoneda(lines.filter(l => l.tratamiento === t).reduce((sum, l) => sum + l.net, 0), "ARS");
+  const subtotal = suma("gravado");
+  const exento = suma("exento");
+  const noGravado = suma("no_gravado");
   const tax = redondearMoneda(lines.reduce((sum, line) => sum + line.tax, 0), "ARS");
+  // Igual que `crear_factura_manual`: base por alícuota; con alícuota 0, importe fijo.
+  const tributos = tributosPedidos.map(t => {
+    const base = redondearMoneda(Math.max(0, Number(t.base) || 0), "ARS");
+    const alicuota = Math.round(Math.max(0, Number(t.alicuota) || 0) * 100) / 100;
+    if (alicuota > 100) throw new Error("La alícuota de un tributo no puede superar el 100 %.");
+    const importe = alicuota > 0 ? redondearMoneda(base * alicuota / 100, "ARS") : redondearMoneda(Math.max(0, Number(t.importe) || 0), "ARS");
+    return { ...t, base, alicuota, importe };
+  }).filter(t => t.importe > 0);
+  const tributosTotal = redondearMoneda(tributos.reduce((sum, t) => sum + t.importe, 0), "ARS");
   return {
     subtotal,
     tax,
-    total: redondearMoneda(subtotal + tax, "ARS"),
-    lines,
+    exento,
+    noGravado,
+    tributos,
+    tributosTotal,
+    total: redondearMoneda(subtotal + tax + exento + noGravado + tributosTotal, "ARS"),
+    lines: lines.map(({ net, taxRate, tax: impuesto }) => ({ net, taxRate, tax: impuesto })),
     groups: [...groups.entries()]
       .sort(([left], [right]) => left - right)
       .map(([rate, values]) => ({ rate, ...values })),

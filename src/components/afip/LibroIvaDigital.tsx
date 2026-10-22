@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BookOpen, Download, FileSpreadsheet, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingColumn } from "@/lib/publicDataSource";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mesAR } from "@/lib/fechaAR";
@@ -54,10 +55,14 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
     setLectura({ estado: "cargando" });
     const { desde, hasta } = rangoDelPeriodo(periodo);
     const filas: (ComprobanteVenta & { afip_environment: string | null })[] = [];
+    // Con la migración 20261022000600 cada factura trae exento, no gravado,
+    // tributos y concepto; sin ella se lee como antes (todo gravado).
+    const COMUNES = "id, number, issue_date, tipo_comprobante, punto_venta, numero_afip, customer_tax_id, customer_name, subtotal, tax_amount, tax_pct, total, afip_environment, currency, moneda_cotizacion, due_date";
+    let columnas = `${COMUNES}, concepto, importe_no_gravado, importe_exento, importe_tributos, tributos, invoice_items(total, tax_rate, tax_amount, tratamiento)`;
     for (let desdeFila = 0; ; desdeFila += PAGINA) {
       const { data, error } = await supabase
         .from("invoices")
-        .select("id, number, issue_date, tipo_comprobante, punto_venta, numero_afip, customer_tax_id, customer_name, subtotal, tax_amount, tax_pct, total, afip_environment, invoice_items(total, tax_rate, tax_amount)")
+        .select(columnas)
         .eq("org_id", orgId)
         .eq("afip_status", "authorized")
         .not("cae", "is", null)
@@ -67,6 +72,12 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
         .order("id")
         .range(desdeFila, desdeFila + PAGINA - 1);
       if (signal.cancelado) return;
+      if (error && isMissingColumn(error) && columnas.includes("tratamiento")) {
+        console.warn("[Libro IVA] la migración de la factura completa todavía no está aplicada: se lee sin sus columnas");
+        columnas = `${COMUNES}, invoice_items(total, tax_rate, tax_amount)`;
+        desdeFila -= PAGINA;
+        continue;
+      }
       if (error) {
         console.error("Libro IVA: no se pudieron leer las facturas", error);
         setLectura({ estado: "error", mensaje: "No se pudieron leer las facturas del período. Reintentá en unos minutos." });
