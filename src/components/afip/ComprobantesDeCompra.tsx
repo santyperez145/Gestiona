@@ -6,7 +6,7 @@
  * mostrar un libro vacío como si no hubiera compras.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Download, FileUp, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { consultarPadron } from "@/lib/arcaPadron";
 import { rangoDelPeriodo } from "@/lib/libroIvaVentas";
+import { entradaParaPlanilla, leerMisComprobantes, type FilaImportada } from "@/lib/misComprobantes";
 import {
   TIPOS_DE_COMPRA, discriminaIva, erroresDeComprobante, leerImporte, libroIvaCompras,
   type AlicuotaCompra, type ComprobanteCompra, type LibroIvaCompras,
@@ -165,6 +166,62 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
     void leer({ cancelado: false });
   };
 
+  // ── Importar «Mis Comprobantes – Recibidos» de ARCA ────────────────────
+  const [importacion, setImportacion] = useState<{ archivo: string; validas: FilaImportada[]; conProblemas: FilaImportada[] } | null>(null);
+  const [importando, setImportando] = useState(false);
+
+  const leerArchivoDeArca = async (archivo: File | undefined) => {
+    if (!archivo) return;
+    try {
+      // SheetJS sólo cuando hace falta: pesa y la mayoría no importa nunca.
+      const XLSX = await import("xlsx");
+      // raw: los montos del CSV llegan con coma decimal y no se reinterpretan.
+      const entrada = entradaParaPlanilla(new Uint8Array(await archivo.arrayBuffer()));
+      const libro = XLSX.read(entrada.datos, { type: entrada.tipo, raw: true, cellDates: true });
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+      const matriz = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, raw: true, defval: "" });
+      const r = leerMisComprobantes(matriz, periodo);
+      if (r.error) { toast.error(r.error); return; }
+      setImportacion({
+        archivo: archivo.name,
+        validas: r.filas.filter(f => f.comprobante),
+        conProblemas: r.filas.filter(f => !f.comprobante),
+      });
+    } catch (e) {
+      console.error("Compras: no se pudo leer el archivo de ARCA", e);
+      toast.error("No se pudo leer el archivo. Si ARCA te dio un .zip, abrilo y subí el archivo de adentro.");
+    }
+  };
+
+  const confirmarImportacion = async () => {
+    if (!orgId || !importacion) return;
+    setImportando(true);
+    let nuevos = 0;
+    let enviados = 0;
+    try {
+      const filas = importacion.validas.map(f => ({ ...f.comprobante!, org_id: orgId, periodo, alicuotas: f.comprobante!.alicuotas as unknown as Json }));
+      for (let i = 0; i < filas.length; i += 200) {
+        const tanda = filas.slice(i, i + 200);
+        const { data, error } = await supabase.from("comprobantes_de_compra")
+          .upsert(tanda, { onConflict: "org_id,cuit_emisor,tipo_comprobante,punto_venta,numero", ignoreDuplicates: true })
+          .select("id");
+        if (error) {
+          console.error("Compras: falló una tanda de la importación", error);
+          toast.error(`Se importaron ${nuevos} de ${filas.length}. La base rechazó una tanda: ${error.message}`);
+          return;
+        }
+        nuevos += (data ?? []).length;
+        enviados += tanda.length;
+      }
+      const repetidos = enviados - nuevos;
+      toast.success(`${nuevos} ${nuevos === 1 ? "comprobante importado" : "comprobantes importados"}${repetidos ? ` · ${repetidos} ya estaban cargados` : ""}`);
+      setImportacion(null);
+    } finally {
+      setImportando(false);
+      void leer({ cancelado: false });
+    }
+  };
+
   const sufijo = periodo.replace("-", "");
 
   return (
@@ -173,9 +230,17 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-medium text-sm">Compras del período</h3>
         {canEdit && lectura.estado !== "inactivo" && (
-          <Button size="sm" variant="outline" onClick={() => { setForm(vacio(periodo)); setAbierto(true); }}>
-            <Plus className="w-3.5 h-3.5 mr-1.5" />Cargar comprobante de compra
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              title="En ARCA: Mis Comprobantes › Recibidos › elegí el período › CSV o Excel">
+              <FileUp className="w-3.5 h-3.5" />Importar de ARCA
+              <input type="file" accept=".csv,.xlsx,.xls,.txt" className="sr-only"
+                onChange={ev => { void leerArchivoDeArca(ev.target.files?.[0]); ev.target.value = ""; }} />
+            </label>
+            <Button size="sm" variant="outline" onClick={() => { setForm(vacio(periodo)); setAbierto(true); }}>
+              <Plus className="w-3.5 h-3.5 mr-1.5" />Cargar comprobante de compra
+            </Button>
+          </div>
         )}
       </div>
 
@@ -235,6 +300,35 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
           </>
         )
       )}
+
+      <Dialog open={!!importacion} onOpenChange={abierto => { if (!abierto && !importando) setImportacion(null); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Importar comprobantes recibidos</DialogTitle></DialogHeader>
+          {importacion && (
+            <div className="space-y-3 text-sm">
+              <p className="text-xs text-muted-foreground">{importacion.archivo} · período {periodo.split("-").reverse().join("/")}</p>
+              <p><strong>{importacion.validas.length}</strong> {importacion.validas.length === 1 ? "comprobante listo" : "comprobantes listos"} para importar.
+                {" "}Los que ya estén cargados se saltean.</p>
+              {importacion.conProblemas.length > 0 && (
+                <div role="alert" className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-xs space-y-1">
+                  <p className="font-medium">{importacion.conProblemas.length} {importacion.conProblemas.length === 1 ? "fila no se importa" : "filas no se importan"}: cargalas a mano si corresponden.</p>
+                  <ul className="list-disc pl-5 text-muted-foreground">
+                    {importacion.conProblemas.slice(0, 15).map(f => <li key={f.fila}>Fila {f.fila}: {f.problemas.join(" ")}</li>)}
+                  </ul>
+                  {importacion.conProblemas.length > 15 && <p className="text-muted-foreground">Y {importacion.conProblemas.length - 15} más.</p>}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">Las percepciones vienen sumadas en «Otros tributos». Si alguna es de IVA, editala para que entre en tu posición.</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" disabled={importando} onClick={() => setImportacion(null)}>Cancelar</Button>
+            <Button disabled={importando || !importacion?.validas.length} onClick={() => void confirmarImportacion()}>
+              {importando && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}Importar {importacion?.validas.length ?? 0}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
