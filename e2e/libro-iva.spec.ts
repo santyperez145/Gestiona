@@ -67,7 +67,7 @@ test("Libro IVA: importar Mis Comprobantes y bajar el Excel para el contador", a
     "Fecha de Emisión;Tipo de Comprobante;Punto de Venta;Número Desde;Número Hasta;Cód. Autorización;Tipo Doc. Emisor;Nro. Doc. Emisor;Denominación Emisor;Tipo Cambio;Moneda;Imp. Neto Gravado;Imp. Neto No Gravado;Imp. Op. Exentas;Otros Tributos;IVA;Imp. Total",
     `${periodo}-05;1 - Factura A;00004;00003321;00003321;76123456789012;80;30712345671;ZZ DISTRIBUIDORA SA;1,000000;PES;4687,20;0,00;0,00;0,00;984,31;5671,51`,
   ].join("\n");
-  await libro.locator('input[type="file"][accept=".csv,.xlsx,.xls,.txt"]').setInputFiles({ name: "mis-comprobantes.csv", mimeType: "text/csv", buffer: Buffer.from(csv, "utf8") });
+  await libro.locator('input[type="file"][accept=".zip,.csv,.xlsx,.xls,.txt"]').setInputFiles({ name: "mis-comprobantes.csv", mimeType: "text/csv", buffer: Buffer.from(csv, "utf8") });
   const dialogo = page.getByRole("dialog", { name: "Importar comprobantes recibidos" });
   await expect(dialogo).toContainText("1 comprobante listo");
   await dialogo.getByRole("button", { name: "Importar 1" }).click();
