@@ -52,7 +52,7 @@ const CATALOGO: Record<number, Entrada> = {
   501: { clase: "transitorio", accion: "reintentar", titulo: "ARCA tuvo un error interno de base de datos", queHacer: "Nerqia verifica si el comprobante quedó autorizado antes de volver a intentarlo." },
   502: { clase: "transitorio", accion: "reintentar", titulo: "ARCA tenía otra autorización en curso", queHacer: "Nerqia verifica si el comprobante quedó autorizado antes de volver a intentarlo." },
   600: { clase: "conexion", accion: "revisar_conexion_arca", titulo: "ARCA no aceptó la autorización del servicio", queHacer: "Revisá la conexión con ARCA en Facturación electrónica y volvé a verificarla." },
-  601: { clase: "conexion", accion: "revisar_conexion_arca", titulo: "El CUIT no está autorizado para este servicio", queHacer: "Confirmá en ARCA la delegación de Factura electrónica (wsfe) y volvé a verificar la conexión." },
+  601: { clase: "conexion", accion: "revisar_conexion_arca", titulo: "El CUIT no está autorizado para este servicio", queHacer: "Revisá en ARCA que tu certificado esté asociado a Facturación Electrónica (wsfe) y que el CUIT de tus datos fiscales sea el del certificado; después volvé a verificar la conexión." },
 
   // Receptor.
   10013: rechazo("corregir_cliente", "La factura A necesita el CUIT del cliente", "Cargá el CUIT del cliente o emití el comprobante como factura B."),

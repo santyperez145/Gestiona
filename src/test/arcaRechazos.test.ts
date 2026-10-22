@@ -129,4 +129,11 @@ describe("afip-authorize usa la lectura estructurada", () => {
     expect(fn).not.toContain('"AFIP no devolvió CAE. Respuesta: " + xml');
     expect(fn).not.toMatch(/throw new Error\(`WSFE HTTP \$\{resp\.status\}: \$\{xml/);
   });
+
+  // 2026-10-22: con certificado propio, «confirmá la delegación» mandaba al comercio a un trámite equivocado.
+  it("el 601 explica qué revisar con certificado propio, sin pedir delegar", () => {
+    const r = resumirRechazoArca([{ code: 601, msg: "" }], []);
+    expect(r.mensaje).toMatch(/asociado a Facturación Electrónica/);
+    expect(r.mensaje).not.toMatch(/delegaci/i);
+  });
 });
