@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2, CalendarDays, ListChecks, ArrowUpDown, ChevronUp, ChevronDown, Printer } from "lucide-react";
 import { agruparDeudores, mensajeDeError, MEDIOS_DE_COBRO } from "@/lib/cuentaCorriente";
+import { avisoConRecibo, reciboDesdeCobros } from "@/lib/reciboDeCobro";
+import { useNegocioParaRecibo } from "@/hooks/useNegocioParaRecibo";
 import { borrarPlanDB, estadoDelPlan, frecuenciaDeFechas, guardarPlanDB, leerPlanesDB, previsualizarCuotas, type FrecuenciaDePlan, type PlanDePago } from "@/lib/planesDePago";
 import CobroACuentaForm, { type ObjetivoCobro } from "@/components/finance/CobroACuentaForm";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
@@ -961,6 +963,7 @@ function PaymentForm({ debt, userId, onSave, montoInicial }: { debt: any; userId
   // Una clave por apertura del formulario: un doble clic o un reintento de red
   // devuelve el mismo recibo en vez de cobrar dos veces.
   const [clave] = useState(() => crypto.randomUUID());
+  const negocio = useNegocioParaRecibo();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -971,8 +974,9 @@ function PaymentForm({ debt, userId, onSave, montoInicial }: { debt: any; userId
     try {
       const result = await addDebtPaymentDB(debt.id, payment, { orgId: debt.org_id, clave, paymentMethod });
       await logAudit(userId, "update", "debt", debt.id, { customer: debt.customer_name, payment, paymentMethod, newStatus: result.newStatus });
+      const recibo = reciboDesdeCobros([result.cobro], { negocio, cliente: debt.customer_name ?? "", medio: paymentMethod });
       toast.success(result.newRemaining <= 0.01 ? "Deuda saldada" : `Pago registrado. Resta ${formatARS(result.newRemaining)}`,
-        { description: result.cobro.en_caja ? "El cobro quedó en la caja abierta." : undefined });
+        { description: result.cobro.en_caja ? "El cobro quedó en la caja abierta." : undefined, ...avisoConRecibo(recibo, m => toast.error(m)) });
       onSave();
     } catch (err) {
       toast.error(mensajeDeError(err, "No se pudo registrar el pago"));

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { formatARS } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { plural } from "@/lib/plural";
+import { avisoConRecibo, reciboDesdeCobros } from "@/lib/reciboDeCobro";
+import { useNegocioParaRecibo } from "@/hooks/useNegocioParaRecibo";
 import { cobrarADeudor, cobrarSeleccion, excedenteDe, mensajeDeError, MEDIO_SALDO_A_FAVOR, MEDIOS_DE_COBRO, saldoAFavorDB, totalPendiente, type DeudaPendiente, type Deudor } from "@/lib/cuentaCorriente";
 
 /**
@@ -30,6 +32,7 @@ export default function CobroACuentaForm({ objetivo, orgId, userId, onDone }: { 
   // Una clave por apertura: reintentar (doble clic, corte de red, o volver a
   // tocar después de un error parcial) nunca cobra dos veces lo que ya entró.
   const [clave] = useState(() => crypto.randomUUID());
+  const negocio = useNegocioParaRecibo();
 
   useEffect(() => {
     if (!customerId) return;
@@ -74,7 +77,8 @@ export default function CobroACuentaForm({ objetivo, orgId, userId, onDone }: { 
         const titulo = total <= 0 ? `Anticipo de ${objetivo.deudor.nombre} registrado`
           : r.saldo_pendiente <= 0.01 ? `Cuenta de ${objetivo.deudor.nombre} saldada`
           : `Cobro registrado. Resta ${formatARS(r.saldo_pendiente)}`;
-        toast.success(titulo, { description: detalle || undefined });
+        const recibo = reciboDesdeCobros([r], { negocio, cliente: objetivo.deudor.nombre, medio, nota });
+        toast.success(titulo, { description: detalle || undefined, ...avisoConRecibo(recibo, m => toast.error(m)) });
         onDone();
       } catch (err) {
         toast.error(mensajeDeError(err));
@@ -90,8 +94,14 @@ export default function CobroACuentaForm({ objetivo, orgId, userId, onDone }: { 
         await logAudit(userId, "update", "debt", r.cobradas[0].cobro_id, { cobradas: r.cobradas.length, fallidas: r.fallidas.length, paymentMethod: medio });
       }
       if (r.fallidas.length === 0) {
+        // Un recibo por cliente: si la selección mezcla clientes, no se ofrece.
+        const clientes = new Set(objetivo.deudas.map(d => d.customer_name?.trim() || ""));
+        const recibo = clientes.size === 1
+          ? reciboDesdeCobros(r.cobradas, { negocio, cliente: [...clientes][0], medio, nota })
+          : null;
         toast.success(plural(r.cobradas.length, "deuda cobrada", "deudas cobradas"),
-          { description: r.cobradas.some(c => c.en_caja) ? "Los cobros quedaron en la caja abierta." : undefined });
+          { description: r.cobradas.some(c => c.en_caja) ? "Los cobros quedaron en la caja abierta." : undefined,
+            ...(recibo ? avisoConRecibo(recibo, m => toast.error(m)) : {}) });
         onDone();
       } else {
         setFallidas(r.fallidas);
