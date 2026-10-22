@@ -20,6 +20,16 @@ describe("Ingresos Brutos del período en pantalla", () => {
     expect(tabla).toHaveTextContent("CABA");
     expect(screen.getByRole("rowheader", { name: /Buenos Aires/ })).toBeInTheDocument();
     expect(tabla.querySelector("tfoot")).toHaveTextContent(/320,00/);
+    expect(screen.queryByRole("note", { name: "Avisos de Ingresos Brutos" })).toBeNull();
+  });
+
+  it("muestra lo que no cierra como aviso, no como alerta", () => {
+    const l = liquidacionIibb({
+      comprobantes: ventas, retenciones: [], percepcionesDeCompras: 0,
+      inscripciones: [{ id: "a", province: "CABA", regime: "convenio", rate_pct: 3, coeficiente: 0.5, active: true }],
+    });
+    render(<MemoryRouter><LiquidacionIibbMes liquidacion={l} /></MemoryRouter>);
+    expect(screen.getByRole("note", { name: "Avisos de Ingresos Brutos" })).toHaveTextContent("suman 0.5000");
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -27,6 +37,6 @@ describe("Ingresos Brutos del período en pantalla", () => {
     const l = liquidacionIibb({ comprobantes: ventas, inscripciones: [], retenciones: [], percepcionesDeCompras: 0 });
     render(<MemoryRouter><LiquidacionIibbMes liquidacion={l} /></MemoryRouter>);
     expect(screen.getByRole("link", { name: "Impuestos → IIBB" })).toHaveAttribute("href", "/impuestos?tab=iibb");
-    expect(screen.getByRole("alert")).toHaveTextContent("No cargaste en qué jurisdicciones");
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

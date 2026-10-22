@@ -69,8 +69,10 @@ export default function LiquidacionIibbMes({ liquidacion }: { liquidacion: Liqui
           Tus compras traen {ars(l.percepcionesDeCompras)} de percepciones de IIBB: restalas en la jurisdicción que corresponda (el comprobante de compra no dice de cuál es).
         </p>
       )}
-      {(l.avisos.length > 0 || l.problemas.length > 0) && (
-        <div role="alert" className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs space-y-1">
+      {/* Sin inscripciones, el párrafo de arriba ya dice qué hacer. No es
+          una alerta: es un aviso que queda a la vista mientras no se corrija. */}
+      {l.renglones.length > 0 && (l.avisos.length > 0 || l.problemas.length > 0) && (
+        <div role="note" aria-label="Avisos de Ingresos Brutos" className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs space-y-1">
           {l.avisos.map(a => <p key={a} className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />{a}</p>)}
           {l.problemas.length > 0 && (
             <p className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
