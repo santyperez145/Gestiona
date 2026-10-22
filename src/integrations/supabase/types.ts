@@ -59900,6 +59900,13 @@ export type Database = {
       }
       concepto_de_facturacion: { Args: { p_org: string }; Returns: number }
       datos_fce: { Args: { p_org: string }; Returns: Json }
+      datos_percepciones: { Args: { p_org: string }; Returns: Json }
+      configurar_percepciones: {
+        Args: { p_iibb_agente: boolean; p_iibb_minimo: number; p_iibb_padron: string | null; p_iibb_sin_padron: number | null; p_iva_agente: boolean; p_iva_alicuota: number | null; p_org: string }
+        Returns: Json
+      }
+      cargar_padron_iibb: { Args: { p_filas: Json; p_org: string; p_padron: string }; Returns: number }
+      percepciones_para_cliente: { Args: { p_base: number; p_cuit: string; p_fecha?: string | null; p_org: string }; Returns: Json }
       configurar_fce: { Args: { p_alias: string | null; p_cbu: string | null; p_org: string; p_transferencia: string }; Returns: Json }
       configurar_concepto_de_facturacion: { Args: { p_concepto: number; p_org: string }; Returns: number }
       emitir_remito: { Args: { p_datos: Json; p_org: string }; Returns: Json }

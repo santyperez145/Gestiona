@@ -57,6 +57,17 @@ un gate externo nunca se marca con fixtures. Push automático a `main` tras
   - **Configuración:** el CBU del comercio se carga una vez en ARCA. El ticket de WSAA de cada servicio queda por comercio (`afip_ta_por_servicio`, sólo el servidor).
   - **Listas unificadas:** las listas de clases de comprobante que estaban repetidas en ocho archivos quedaron en `_shared/comprobantesArca.ts`.
   - Migración 20261022000700 con su simulacro (`scripts/factura-credito-mipyme-matrix.sql`). **Pendiente:** aplicar, desplegar `arca-fce` y `afip-authorize`, y que el comercio asocie su certificado al servicio de FCE en ARCA (gate externo).
+- [x] Percepciones automáticas para agentes (2026-10-22). En ARCA › «Percepciones» el comercio indica:
+  - si es agente de Ingresos Brutos, y de qué padrón: ARBA o AGIP;
+  - qué alícuota aplicar a quien no está en el padrón (vacío es no percibir);
+  - la base mínima;
+  - si es agente de percepción de IVA, y con qué alícuota.
+
+  El padrón del mes se importa del .txt del organismo. Pesa cientos de MB, así que se lee por partes en el navegador y sólo se guardan los CUIT de los clientes del comercio. Los diseños de registro se tomaron de los documentos oficiales de ARBA («Régimen de recaudación por sujeto — nuevo diseño de registro de padrones») y de AGIP («Diseño de registro de padrón unificado»).
+
+  En la factura, «Percepciones del cliente» calcula la percepción con la alícuota vigente del padrón (o la de quien no está, o ninguna si está de baja) y la de IVA, y reemplaza esas dos sin tocar los demás tributos. Si el padrón no está vigente, avisa.
+
+  Migración 20261022000800 con su simulacro (`scripts/percepciones-automaticas-matrix.sql`); código en `src/lib/padronIibb.ts` y `src/components/afip/PercepcionesConfig.tsx`. **Pendiente:** validar la importación con el archivo real del mes de un comercio agente (gate externo).
 - [ ] Contraste completo con WSFEv1 4.8; abstracción `FiscalProvider` (WSFE/WSMTXCA/WSFEX).
 - [ ] Portal de contadores multi-organización y Fiscal API con idempotencia.
 - [ ] Gate externo: A/B/C/NC/ND autorizadas en ARCA con identidad delegada.

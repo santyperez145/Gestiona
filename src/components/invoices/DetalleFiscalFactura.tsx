@@ -3,7 +3,7 @@
  * período del servicio, moneda y cotización, y percepciones u otros
  * tributos. Ver `supabase/functions/_shared/wsfeComprobante.ts`.
  */
-import { Plus, Trash2 } from "lucide-react";
+import { Calculator, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,12 +18,15 @@ const CONCEPTOS = [
   { valor: "3", texto: "Productos y servicios" },
 ];
 
-export default function DetalleFiscalFactura({ valor, onChange, netoGravado, claseC }: {
+export default function DetalleFiscalFactura({ valor, onChange, netoGravado, claseC, onPercepcionesDelCliente, calculandoPercepciones = false }: {
   valor: DetalleFiscal;
   onChange: (d: DetalleFiscal) => void;
   /** Base sugerida para una percepción nueva. */
   netoGravado: number;
   claseC: boolean;
+  /** Si el comercio es agente: calcula las percepciones del cliente con el padrón. */
+  onPercepcionesDelCliente?: () => void;
+  calculandoPercepciones?: boolean;
 }) {
   const set = <K extends keyof DetalleFiscal>(k: K, v: DetalleFiscal[K]) => onChange({ ...valor, [k]: v });
   const setTributo = (i: number, cambios: Partial<TributoManual>) =>
@@ -89,10 +92,17 @@ export default function DetalleFiscalFactura({ valor, onChange, netoGravado, cla
             <p className="text-xs font-medium">Percepciones y otros tributos</p>
             <p className="text-[11px] text-muted-foreground">Sólo si sos agente de percepción o la operación lleva un impuesto aparte.</p>
           </div>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs"
-            onClick={() => set("tributos", [...valor.tributos, { tipo: 7, descripcion: "", base: netoGravado, alicuota: 0 }])}>
-            <Plus className="mr-1 h-3 w-3" />Agregar
-          </Button>
+          <div className="flex flex-wrap gap-1.5">
+            {onPercepcionesDelCliente && (
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" disabled={calculandoPercepciones} onClick={onPercepcionesDelCliente}>
+                {calculandoPercepciones ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Calculator className="mr-1 h-3 w-3" />}Percepciones del cliente
+              </Button>
+            )}
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs"
+              onClick={() => set("tributos", [...valor.tributos, { tipo: 7, descripcion: "", base: netoGravado, alicuota: 0 }])}>
+              <Plus className="mr-1 h-3 w-3" />Agregar
+            </Button>
+          </div>
         </div>
         {valor.tributos.map((t, i) => {
           const importe = t.alicuota > 0 ? Math.round(t.base * t.alicuota) / 100 : Number(t.importe) || 0;

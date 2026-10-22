@@ -477,6 +477,8 @@ export default function InvoicesPage() {
   // Concepto del comercio (productos, servicios o ambos): la factura arranca con
   // ese. Sin la migración 20261022000600, se queda en productos.
   const [conceptoDelComercio, setConceptoDelComercio] = useState<1 | 2 | 3>(1);
+  const [calculandoPercepciones, setCalculandoPercepciones] = useState(false);
+  const [esAgenteDePercepcion, setEsAgenteDePercepcion] = useState(false);
   const [datosFce, setDatosFce] = useState<{ cbu: string; alias: string; transferencia: "SCA" | "ADC" }>({ cbu: "", alias: "", transferencia: "SCA" });
   useEffect(() => {
     if (!activeOrg?.id) return;
@@ -486,6 +488,13 @@ export default function InvoicesPage() {
       if (error) { if (!isMissingFunction(error)) console.error("concepto_de_facturacion", error); return; }
       const c = Number(data);
       if (c === 1 || c === 2 || c === 3) { setConceptoDelComercio(c); setDetalleFiscal(d => (d.tributos.length || d.concepto !== 1 ? d : { ...d, concepto: c })); }
+    });
+    // ¿Es agente de percepción? Entonces la factura ofrece calcularlas.
+    void supabase.rpc("datos_percepciones", { p_org: activeOrg.id }).then(({ data, error }) => {
+      if (!vigente) return;
+      if (error) { if (!isMissingFunction(error)) console.error("datos_percepciones", error); return; }
+      const d = (data ?? {}) as { iibb_agente?: boolean; iva_agente?: boolean };
+      setEsAgenteDePercepcion(Boolean(d.iibb_agente || d.iva_agente));
     });
     // CBU, alias y transferencia del comercio para la factura de crédito MiPyME.
     void supabase.rpc("datos_fce", { p_org: activeOrg.id }).then(({ data, error }) => {
@@ -1001,6 +1010,26 @@ export default function InvoicesPage() {
     }
   };
 
+  // Percepciones del cliente según el padrón y la configuración del agente.
+  // Reemplaza las de IIBB (7) e IVA (6) y deja los demás tributos como están.
+  const calcularPercepciones = async () => {
+    if (!activeOrg) return;
+    const cuit = form.customer_tax_id.replace(/\D/g, "");
+    if (cuit.length !== 11) { toast.error("Cargá el CUIT del cliente para calcular sus percepciones."); return; }
+    const base = manualTaxSummary.subtotal + manualTaxSummary.exento + manualTaxSummary.noGravado;
+    if (base <= 0) { toast.error("Cargá los renglones antes de calcular las percepciones."); return; }
+    setCalculandoPercepciones(true);
+    const { data, error } = await supabase.rpc("percepciones_para_cliente", { p_org: activeOrg.id, p_cuit: cuit, p_base: base });
+    setCalculandoPercepciones(false);
+    if (error) { toast.error("No se pudieron calcular las percepciones. Probá de nuevo."); return; }
+    const filas = (data ?? []) as { tipo: number; descripcion?: string; base?: number; alicuota?: number; importe?: number; aviso?: string }[];
+    for (const f of filas) if (f.aviso) toast.warning(f.aviso);
+    const nuevas = filas.filter(f => !f.aviso && Number(f.importe) > 0)
+      .map(f => ({ tipo: f.tipo, descripcion: f.descripcion ?? "", base: Number(f.base), alicuota: Number(f.alicuota) }));
+    setDetalleFiscal(d => ({ ...d, tributos: [...d.tributos.filter(t => t.tipo !== 6 && t.tipo !== 7), ...nuevas] }));
+    toast.success(nuevas.length ? `${nuevas.length === 1 ? "Percepción calculada" : "Percepciones calculadas"} con el padrón.` : "A este cliente no le corresponde percepción.");
+  };
+
   const closeCreateForm = () => {
     setShowForm(false);
     fromSaleId.current = null;
@@ -1484,7 +1513,9 @@ export default function InvoicesPage() {
           </div>
 
           {afipConfigured && sourceSaleGrossTotal === null && (
-            <DetalleFiscalFactura valor={detalleFiscal} onChange={setDetalleFiscal} netoGravado={subtotal} claseC={esClaseC} />
+            <DetalleFiscalFactura valor={detalleFiscal} onChange={setDetalleFiscal} netoGravado={subtotal} claseC={esClaseC}
+              calculandoPercepciones={calculandoPercepciones}
+              onPercepcionesDelCliente={esAgenteDePercepcion ? () => void calcularPercepciones() : undefined} />
           )}
           {afipConfigured && sourceSaleGrossTotal === null && form.receiver_condition !== "consumidor_final" && (
             <FacturaDeCreditoMipyme valor={detalleFiscal} onChange={setDetalleFiscal} orgId={activeOrg?.id} cuitCliente={form.customer_tax_id} total={total} />
