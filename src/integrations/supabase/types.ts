@@ -59918,6 +59918,7 @@ export type Database = {
       datos_percepciones: { Args: { p_org: string }; Returns: Json }
       estado_contingencia: { Args: { p_org: string }; Returns: Json }
       estado_exportacion: { Args: { p_org: string }; Returns: Json }
+      facturar_ventas_juntas: { Args: { p_org: string; p_transacciones: string[] }; Returns: Json }
       configurar_exportacion: { Args: { p_org: string; p_punto_venta_exportacion: number | null }; Returns: Json }
       configurar_contingencia: { Args: { p_habilitada: boolean; p_org: string; p_punto_venta_caea: number | null }; Returns: Json }
       configurar_percepciones: {

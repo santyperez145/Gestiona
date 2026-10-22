@@ -146,7 +146,13 @@ export async function leerDocumentosDeVenta(
     })(),
     leerRemitosDeVenta(orgId, saleIds).then(r => (r.estado === "listo" ? r.datos : r.estado === "inactivo" ? [] : undefined)),
     (async (): Promise<FacturaDeVenta[] | undefined> => {
-      const filtro = [`sale_id.in.(${saleIds.join(",")})`, ...(tx ? [`sale_transaction_id.eq.${tx}`] : [])].join(",");
+      // Una factura de varias ventas (facturar_ventas_juntas) no lleva la venta
+      // en la cabecera: la venta la apunta con invoice_id.
+      const agrupadas = await retryRead(() => supabase.from("sales").select("invoice_id").eq("org_id", orgId).in("id", saleIds).not("invoice_id", "is", null));
+      if (agrupadas.error) return undefined;
+      const invoiceIds = [...new Set((agrupadas.data ?? []).map(f => String((f as Fila).invoice_id)))];
+      const filtro = [`sale_id.in.(${saleIds.join(",")})`, ...(tx ? [`sale_transaction_id.eq.${tx}`] : []),
+        ...(invoiceIds.length ? [`id.in.(${invoiceIds.join(",")})`] : [])].join(",");
       const columnas = "id, number, tipo_comprobante, punto_venta, numero_afip, issue_date, total, afip_status, cae, nota_credito_de";
       const r = await retryRead(() => supabase.from("invoices").select(columnas).eq("org_id", orgId).or(filtro).order("issue_date"));
       if (r.error) return undefined;

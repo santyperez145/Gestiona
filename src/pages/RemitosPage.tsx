@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  AlertTriangle, Ban, CheckCircle2, FileSpreadsheet, MoreHorizontal, PackageCheck, PackageOpen, Plus, Printer, Search, Settings2, Truck,
+  AlertTriangle, Ban, CheckCircle2, FileSpreadsheet, MoreHorizontal, PackageCheck, PackageOpen, Plus, Printer, Receipt, Search, Settings2, Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import WorkspaceState from "@/components/shared/WorkspaceState";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import EmitirRemitoDialog, { type VentaParaRemito } from "@/components/remitos/EmitirRemitoDialog";
+import FacturarRemitosDialog from "@/components/remitos/FacturarRemitosDialog";
 import {
   AnularRemitoDialog, DetalleDelRemito, EntregarRemitoDialog, EstadoDelRemito, LetraDelRemito, TalonarioDialog,
 } from "@/components/remitos/RemitoAcciones";
@@ -56,6 +57,7 @@ export default function RemitosPage() {
   const permisos = useModulePermissions("sales");
   const puedeEmitir = permisos.canCreate;
   const puedeAnular = permisos.canDelete || isAdmin;
+  const puedeFacturar = useModulePermissions("invoices").canEdit;
   const emisor = useEmisorDelRemito();
   const [params, setParams] = useSearchParams();
   const hoy = hoyAR();
@@ -72,6 +74,7 @@ export default function RemitosPage() {
   const [detalle, setDetalle] = useState<Remito | null>(null);
   const [entregar, setEntregar] = useState<Remito | null>(null);
   const [anular, setAnular] = useState<Remito | null>(null);
+  const [facturar, setFacturar] = useState(false);
   const talonarioAbierto = params.get("talonario") === "1";
   // Enlace directo desde la ficha de una venta: /remitos?remito=<id>.
   const remitoPedido = params.get("remito");
@@ -152,6 +155,7 @@ export default function RemitosPage() {
         actions={!inactivo && (
           <div className="flex flex-wrap gap-2">
             {isAdmin && <Button variant="outline" onClick={() => abrirTalonario(true)}><Settings2 className="mr-2 h-4 w-4" />Talonario</Button>}
+            {puedeFacturar && <Button variant="outline" onClick={() => setFacturar(true)}><Receipt className="mr-2 h-4 w-4" />Facturar juntos</Button>}
             {puedeEmitir && <Button onClick={() => setNuevo({ venta: null })}><Plus className="mr-2 h-4 w-4" />Remito sin venta</Button>}
           </div>
         )}
@@ -354,6 +358,7 @@ export default function RemitosPage() {
         </>
       )}
 
+      <FacturarRemitosDialog open={facturar} onOpenChange={setFacturar} orgId={orgId} remitos={lista} />
       <EmitirRemitoDialog open={Boolean(nuevo)} onOpenChange={o => { if (!o) { setNuevo(null); void recargar(); } }}
         orgId={orgId} venta={nuevo?.venta ?? null} puedeConfigurar={isAdmin} />
       <DetalleDelRemito remito={detalle} emisor={emisor} puedeEntregar={puedeEmitir} puedeAnular={puedeAnular}

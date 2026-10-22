@@ -91,7 +91,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 | Cheques | listos |
 
 - [~] **Trazabilidad en cada documento** (construida el 22/10: «Operación completa» en la ficha de la venta, con enlaces directos a presupuesto, remitos y facturas). La venta muestra su presupuesto, sus remitos, sus facturas y sus cobros, y cada documento enlaza a los otros. *Terminado:* desde cualquier documento se llega a toda la operación en un clic. Es el «todo enlazado» que pidió el dueño y el diferencial de la tesis (§3).
-- [ ] **Facturar remitos o ventas juntos.** Una factura por varios remitos del mismo cliente: es la factura mensual del mayorista. *Terminado:* una factura con CAE que cubre dos remitos y deja las dos ventas facturadas.
+- [~] **Facturar remitos o ventas juntos** (construido el 22/10: Remitos › «Facturar juntos»). Una factura por varios remitos del mismo cliente: es la factura mensual del mayorista. *Terminado:* una factura con CAE que cubre dos remitos y deja las dos ventas facturadas.
 - [ ] Pedido de cliente con reserva de stock. **Se valida antes de construirlo:** venta más entrega parcial ya cubre la mayoría de los casos. Sólo entra si aparece en las entrevistas (E2).
 
 **Circuito de compras**
