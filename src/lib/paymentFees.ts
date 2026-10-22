@@ -146,6 +146,10 @@ export function resolvePlatformRule(
   rules: CommissionRule[],
   query: { orgId?: string | null; planId?: string | null; channel: Channel },
 ): CommissionRule | null {
+  // Sólo la tienda online paga comisión (decisión del dueño, 2026-10-22): el
+  // local y los links de pago nunca, aunque haya una regla `pos` o `all`.
+  // Espejo de `platform_commission_amount` (migración 20261022000500).
+  if (query.channel !== 'online') return null;
   const candidates = rules.filter(r => {
     if (r.is_active === false) return false;
     if (r.applies_to !== 'all' && r.applies_to !== query.channel) return false;

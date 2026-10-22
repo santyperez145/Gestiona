@@ -67,7 +67,8 @@ describe("credenciales heredadas retiradas de settings", () => {
     expect(mpLink).toContain("application_fee: marketplaceFee");
     expect(mpLink).toContain("mercadopago-webhook?org_id=${orgId}");
     expect(mpLink).toContain("marketplaceFee > total");
-    expect(mpLink).toContain('const channel = "online"');
+    // Canal fijo del servidor; desde el ADR 008 los links no pagan comisión de Nerqia.
+    expect(mpLink).toContain('const channel = "link"');
     expect(mpLink).not.toContain("body.channel");
   });
 

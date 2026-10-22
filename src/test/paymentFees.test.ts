@@ -104,9 +104,15 @@ describe('resolvePlatformRule', () => {
     expect(resolvePlatformRule(rules, { channel: 'pos' })).toBeNull();
   });
 
-  it("'all' sirve para cualquier canal", () => {
+  it("'all' cobra en la tienda online y nunca en el local", () => {
     const withAll: CommissionRule[] = [{ plan_id: null, org_id: null, percent: 2, fixed: 0, applies_to: 'all' }];
-    expect(resolvePlatformRule(withAll, { channel: 'pos' })?.percent).toBe(2);
+    expect(resolvePlatformRule(withAll, { channel: 'online' })?.percent).toBe(2);
+    expect(resolvePlatformRule(withAll, { channel: 'pos' })).toBeNull();
+  });
+
+  it('una regla del local no cobra: la comisión es sólo de la tienda online', () => {
+    const pos: CommissionRule[] = [{ plan_id: null, org_id: null, percent: 3, fixed: 0, applies_to: 'pos' }];
+    expect(resolvePlatformRule(pos, { channel: 'pos' })).toBeNull();
   });
 
   it('la regla del canal exacto le gana a la genérica', () => {
@@ -157,11 +163,11 @@ describe('liquidarCobroEstimado', () => {
     const s = liquidarCobroEstimado({
       tarifas: SCHEDULE,
       reglas: [{
-        percent: 1, fixed: 0, applies_to: 'pos', is_active: true,
+        percent: 1, fixed: 0, applies_to: 'online', is_active: true,
         approval_status: 'approved', effective_from: '2026-01-01',
       }],
       gross: 10000,
-      channel: 'pos',
+      channel: 'online',
       provider: 'mercadopago',
       method: 'debit',
     });
@@ -169,6 +175,22 @@ describe('liquidarCobroEstimado', () => {
     expect(s.providerFeeIva).toBe(73.29);
     expect(s.platformFee).toBe(100);
     expect(s.net).toBe(9477.71);
+  });
+
+  it('en el local no hay comisión de Nerqia, sólo el arancel del procesador', () => {
+    const s = liquidarCobroEstimado({
+      tarifas: SCHEDULE,
+      reglas: [{
+        percent: 1, fixed: 0, applies_to: 'all', is_active: true,
+        approval_status: 'approved', effective_from: '2026-01-01',
+      }],
+      gross: 10000,
+      channel: 'pos',
+      provider: 'mercadopago',
+      method: 'debit',
+    });
+    expect(s.platformFee).toBe(0);
+    expect(s.net).toBe(9577.71);
   });
 });
 

@@ -233,6 +233,11 @@ export default function GestionaPayComisiones({
           Efectivo y transferencia no pasan por Nerqia Pay: no tienen arancel
           de Mercado Pago. Siguen en la tabla para comparar.
         </p>
+        <p className="text-muted-foreground">
+          La comisión de Nerqia es sólo para las ventas de tu tienda online. En el
+          local (caja y QR) y en los links de pago, Nerqia no cobra comisión: sólo
+          aplica el arancel de Mercado Pago.
+        </p>
       </div>
 
       <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-3">

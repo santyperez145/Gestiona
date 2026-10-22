@@ -33,6 +33,7 @@ export const MATRICES = {
   '20261022000200': 'scripts/certificados-staff-matrix.sql',
   '20261022000300': 'scripts/retenciones-sufridas-matrix.sql',
   '20261022000400': 'scripts/remitos-matrix.sql',
+  '20261022000500': 'scripts/comision-solo-tienda-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

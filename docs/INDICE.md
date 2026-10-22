@@ -43,6 +43,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [ADR 005 — piloto POS / Creators](ADR_005_POS_PILOT_AND_CREATORS_SEQUENCE.md): precisa el gate operacional y reemplaza la pausa secundaria de ADR 004.
 - [ADR 006 — frontera entre negocios](ADR_006_FRONTERA_ENTRE_NEGOCIOS.md): vistas invoker y anon sin privilegios por defecto; lo público se lee por id.
 - [ADR 007 — certificado propio por comercio](ADR_007_CERTIFICADO_PROPIO_POR_COMERCIO.md): cada comercio factura con su certificado de ARCA; la clave se genera en el servidor.
+- [ADR 008 — la comisión de Nerqia, sólo en la tienda online](ADR_008_COMISION_SOLO_TIENDA_ONLINE.md): el local, el QR y los links de pago no pagan comisión; la base es la única fuente.
 
 Los ADR aceptados no se reescriben para ocultar el contexto: una decisión nueva
 los reemplaza con otro ADR.

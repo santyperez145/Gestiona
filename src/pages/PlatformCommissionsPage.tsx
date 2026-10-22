@@ -430,15 +430,11 @@ export default function PlatformCommissionsPage() {
                   </div>
                   <div>
                     <Label className="text-[10px]">Canal</Label>
-                    <Select value={r.applies_to}
-                      onValueChange={v => patchRule(r.id, { applies_to: v as 'online' | 'pos' | 'all' })}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="online">Tienda online</SelectItem>
-                        <SelectItem value="pos">POS / local</SelectItem>
-                        <SelectItem value="all">Todos</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {/* Sólo la tienda online paga comisión (decisión del dueño, 2026-10-22): la
+                        base devuelve 0 para el local y los links aunque la regla diga otra cosa. */}
+                    <p className="flex h-8 items-center text-xs" title="El local (caja y QR) y los links de pago no pagan comisión de Nerqia.">
+                      Tienda online{r.applies_to !== 'online' && <span className="ml-1 text-muted-foreground">(guardada como «{r.applies_to === 'all' ? 'todos' : 'local'}»: sólo cobra en la tienda)</span>}
+                    </p>
                   </div>
                 </div>
 

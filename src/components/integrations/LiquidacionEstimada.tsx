@@ -33,7 +33,7 @@ export default function LiquidacionEstimada({
       <p className="mt-1">
         Arancel {ars(settlement.providerFee)}
         {" · "}IVA {ars(settlement.providerFeeIva)}
-        {" · "}Nerqia {settlement.platformFee > 0 ? ars(settlement.platformFee) : "sin comisión vigente"}
+        {" · "}Nerqia {settlement.platformFee > 0 ? ars(settlement.platformFee) : channel === "online" ? "sin comisión vigente" : "sin comisión (venta en el local)"}
       </p>
       <p className="mt-1 text-foreground">
         Te acreditan <strong>{ars(settlement.net)}</strong>

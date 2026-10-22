@@ -67,7 +67,10 @@ Deno.serve(async (req) => {
     const clientTotal = body.total != null ? Number(body.total) : null;
     // Un link de Checkout Pro es un cobro online aunque se haya iniciado desde
     // el mostrador. El cliente no elige el canal que determina la comisión.
-    const channel = "online";
+    // Los links cobran presupuestos y cuentas corrientes: plata de la gestión.
+    // La comisión de Nerqia es sólo de la tienda online (2026-10-22), así que
+    // con canal `link` la base devuelve 0.
+    const channel = "link";
 
     if (!orgId || !UUID_RE.test(orgId)) return json({ error: "Organización inválida" }, 400);
 
