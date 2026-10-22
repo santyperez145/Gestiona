@@ -1959,11 +1959,11 @@ function BackupExport({ userId }: { userId: string }) {
         p => setExportStep(p.table),
       );
       if (result.failed || result.truncated) {
-        toast.warning("Export descargado con observaciones", {
+        toast.warning("Exportación descargada con observaciones", {
           description: `${result.failed} con error y ${result.truncated} truncada${result.truncated === 1 ? "" : "s"}. Revisá export-manifest.json.`,
         });
       } else {
-        toast.success(`Export listo · ${result.exported} tabla${result.exported === 1 ? "" : "s"} con filas`);
+        toast.success(`Exportación lista · ${result.exported} tabla${result.exported === 1 ? "" : "s"} con filas`);
       }
     } catch (e: any) {
       toast.error("Falló el export: " + (e?.message ?? "error desconocido"));
@@ -2041,7 +2041,7 @@ function BackupExport({ userId }: { userId: string }) {
 
       {/* Export portátil — derecho de acceso y portabilidad. */}
       <div className="mt-4 pt-4 border-t border-border/60 space-y-2">
-        <p className="text-sm font-medium">Export de la organización (ZIP)</p>
+        <p className="text-sm font-medium">Exportación de la organización (ZIP)</p>
         <p className="text-xs text-muted-foreground">
           Solo el dueño puede pedirlo. Incluye CSVs de datos operativos y un manifiesto
           que declara cada tabla vacía, truncada o que no pudo leerse. Las credenciales
