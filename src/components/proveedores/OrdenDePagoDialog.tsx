@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEmisorDelRemito } from "@/hooks/useEmisorDelRemito";
+import { hoyAR } from "@/lib/fechaAR";
 import { isMissingFunction } from "@/lib/publicDataSource";
 import {
   MEDIOS, erroresDeOrden, leerMonto, medioVacio, ordenDePagoHtml, ordenParaEnviar, totales,
@@ -81,7 +82,7 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
     if (ventana) {
       ventana.document.open();
       ventana.document.write(ordenDePagoHtml({
-        numero: r.numero, fecha: new Date().toISOString().slice(0, 10), proveedor: proveedor.nombre, proveedorCuit: null, total: Number(r.total),
+        numero: r.numero, fecha: hoyAR(), proveedor: proveedor.nombre, proveedorCuit: null, total: Number(r.total),
         notas: notas.trim() || null,
         imputaciones: imputaciones.map(i => ({ descripcion: i.descripcion, importe: leerMonto(i.importe) })),
         medios: medios.map(m => ({ medio: m.medio, importe: leerMonto(m.importe),
