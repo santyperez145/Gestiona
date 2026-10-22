@@ -33,6 +33,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import FilePicker from "@/components/shared/FilePicker";
 import { vencimientoCertificado } from '@/lib/certificateExpiry';
 import RenovarCertificadoArca from '@/components/platform/RenovarCertificadoArca';
+import CertificadosDeComercios from '@/components/platform/CertificadosDeComercios';
 
 interface Estado {
   cuit: string | null;
@@ -278,6 +279,8 @@ export default function PlatformAfipPage() {
       </div>
 
       {statusError && <p role="alert" className="text-sm text-destructive">{statusError}</p>}
+      <CertificadosDeComercios />
+
       <section aria-label="Activaciones fiscales" className="rounded-lg border border-border bg-card">
         <div className="flex flex-col gap-2 border-b border-border p-4 sm:flex-row sm:items-start sm:justify-between">
           <div>

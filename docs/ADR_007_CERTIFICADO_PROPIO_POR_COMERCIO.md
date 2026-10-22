@@ -63,6 +63,10 @@ Mercado Libre:
    probar cada certificado y la pantalla avisa 30 días antes del vencimiento.
    Renovar es agregar un certificado al mismo alias: la asociación se conserva.
 
+6. Soporte ve el estado de todos los certificados en Platform › ARCA
+   («Certificados de los comercios», vista `platform_afip_certificados`, sólo
+   staff y sin secretos), ordenados por urgencia.
+
 **Nunca** se pide la clave fiscal del comercio. La delegación queda sólo para
 un comercio que ya la tenga verificada (`modo = 'delegado'`), y el certificado
 de la plataforma se conserva para el padrón de ARCA.
