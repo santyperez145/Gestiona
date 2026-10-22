@@ -43,6 +43,11 @@ export interface ComprobanteCompra {
   impuestos_internos: number;
   otros_tributos: number;
   total: number;
+  /** Cuenta corriente del proveedor (20261022001300). */
+  supplier_debt_id?: string | null;
+  aplicado_at?: string | null;
+  saldo_a_favor?: number | null;
+  vencimiento?: string | null;
 }
 
 /** Tipos de comprobante que se cargan a mano, con su nombre. */

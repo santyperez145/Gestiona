@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { consultarPadron } from "@/lib/arcaPadron";
 import { rangoDelPeriodo } from "@/lib/libroIvaVentas";
+import { isMissingColumn, isMissingFunction } from "@/lib/publicDataSource";
 import { bytesDeArchivoArca, entradaParaPlanilla, leerMisComprobantes, type FilaImportada } from "@/lib/misComprobantes";
 import {
   TIPOS_DE_COMPRA, discriminaIva, erroresDeComprobante, leerImporte, libroIvaCompras,
@@ -25,6 +26,9 @@ import {
 } from "@/lib/libroIvaCompras";
 
 const PAGINA = 1000;
+const COLUMNAS = "id, fecha, tipo_comprobante, punto_venta, numero, cuit_emisor, razon_social_emisor, alicuotas, no_gravado, exento, percepcion_iva, percepcion_nacionales, percepcion_iibb, percepcion_municipal, impuestos_internos, otros_tributos, total";
+/** Notas de crédito de compra: se aplican a la deuda en vez de generarla. */
+const ES_NOTA_DE_CREDITO = new Set([3, 8, 13, 53, 110, 112, 113, 114, 203, 208, 213]);
 const TASAS = [21, 10.5, 27, 5, 2.5, 0];
 const ars = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 const num = leerImporte;
@@ -33,6 +37,9 @@ const nombreTipo = (codigo: number) => TIPOS_DE_COMPRA.find(t => t.codigo === co
 
 /** El código de PostgREST cuando la tabla no existe todavía. */
 const tablaInexistente = (code?: string) => code === "42P01" || code === "PGRST205";
+
+/** AAAA-MM-DD más n días. */
+const sumarDias = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 function descargar(nombre: string, contenido: string) {
   const url = URL.createObjectURL(new Blob([contenido], { type: "text/plain" }));
@@ -93,28 +100,34 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
   const [guardando, setGuardando] = useState(false);
   const [buscando, setBuscando] = useState(false);
   const { ask, dialog } = useConfirmDialog();
+  // Sin la migración 20261022001300 no hay cuenta corriente: se lee y se usa como antes.
+  const [conCuentaCorriente, setConCuentaCorriente] = useState(true);
+  const [aCuenta, setACuenta] = useState<{ c: ComprobanteCompra; vencimiento: string } | null>(null);
+  const [pasando, setPasando] = useState(false);
 
   const leer = useCallback(async (signal: { cancelado: boolean }) => {
     if (!orgId || !/^\d{4}-\d{2}$/.test(periodo)) return;
     setLectura({ estado: "cargando" });
     const filas: ComprobanteCompra[] = [];
+    let columnas = `${COLUMNAS}, supplier_debt_id, aplicado_at, saldo_a_favor, vencimiento`;
     for (let desde = 0; ; desde += PAGINA) {
       const { data, error } = await supabase
         .from("comprobantes_de_compra")
-        .select("id, fecha, tipo_comprobante, punto_venta, numero, cuit_emisor, razon_social_emisor, alicuotas, no_gravado, exento, percepcion_iva, percepcion_nacionales, percepcion_iibb, percepcion_municipal, impuestos_internos, otros_tributos, total")
+        .select(columnas)
         .eq("org_id", orgId)
         .eq("periodo", periodo)
         .order("fecha")
         .order("id")
         .range(desde, desde + PAGINA - 1);
       if (signal.cancelado) return;
+      if (error && isMissingColumn(error) && columnas !== COLUMNAS) { columnas = COLUMNAS; setConCuentaCorriente(false); desde -= PAGINA; continue; }
       if (error) {
         if (tablaInexistente(error.code)) { setLectura({ estado: "inactivo" }); return; }
         console.error("Compras: no se pudieron leer los comprobantes", error);
         setLectura({ estado: "error", mensaje: "No se pudieron leer los comprobantes de compra. Reintentá en unos minutos." });
         return;
       }
-      filas.push(...((data ?? []).map(d => ({ ...d, alicuotas: (d.alicuotas ?? []) as unknown as AlicuotaCompra[] })) as ComprobanteCompra[]));
+      filas.push(...((data ?? []) as unknown as ComprobanteCompra[]).map(d => ({ ...d, alicuotas: (d.alicuotas ?? []) as unknown as AlicuotaCompra[] })));
       if ((data ?? []).length < PAGINA) break;
     }
     setLectura({ estado: "listo", comprobantes: filas });
@@ -159,6 +172,36 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
     toast.success("Comprobante cargado");
     setAbierto(false);
     setForm(vacio(periodo));
+    void leer({ cancelado: false });
+  };
+
+  // ── Cuenta corriente del proveedor (20261022001300) ───────────────────
+  const errorDeCuenta = (e: { code?: string; message: string }) =>
+    isMissingFunction(e) ? "La cuenta corriente desde el comprobante todavía no está disponible. Probá más tarde."
+      : e.code === "42501" || e.code === "22023" ? e.message : "No se pudo registrar. Probá de nuevo.";
+
+  const pasarACuenta = async () => {
+    if (!aCuenta) return;
+    setPasando(true);
+    const { data, error } = await supabase.rpc("pasar_comprobante_a_cuenta_corriente", { p_comprobante: aCuenta.c.id, p_vencimiento: aCuenta.vencimiento || null });
+    setPasando(false);
+    if (error) { toast.error(errorDeCuenta(error)); return; }
+    const r = data as { importe?: number };
+    toast.success(`Deuda de ${ars(Number(r.importe ?? aCuenta.c.total))} registrada en la cuenta corriente de ${aCuenta.c.razon_social_emisor}.`);
+    setACuenta(null);
+    void leer({ cancelado: false });
+  };
+
+  const aplicarNota = async (c: ComprobanteCompra) => {
+    if (!(await ask({ title: "¿Aplicar la nota de crédito?", description: `Cancela ${ars(Number(c.total))} de las deudas abiertas con ${c.razon_social_emisor}, de la más vieja a la más nueva. Lo que sobre queda como saldo a favor.`, confirmText: "Aplicar", variant: "default" }))) return;
+    setPasando(true);
+    const { data, error } = await supabase.rpc("pasar_comprobante_a_cuenta_corriente", { p_comprobante: c.id });
+    setPasando(false);
+    if (error) { toast.error(errorDeCuenta(error)); return; }
+    const r = data as { aplicado?: number; saldo_a_favor?: number };
+    toast.success(Number(r.saldo_a_favor) > 0
+      ? `Se aplicaron ${ars(Number(r.aplicado ?? 0))}; quedan ${ars(Number(r.saldo_a_favor))} a favor.`
+      : `Se aplicaron ${ars(Number(r.aplicado ?? 0))} a la deuda.`);
     void leer({ cancelado: false });
   };
 
@@ -230,6 +273,28 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
   return (
     <div className="space-y-3">
       {dialog}
+      <Dialog open={Boolean(aCuenta)} onOpenChange={o => { if (!o) setACuenta(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Pasar a la cuenta corriente</DialogTitle></DialogHeader>
+          {aCuenta && (
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                {nombreTipo(aCuenta.c.tipo_comprobante)} {String(aCuenta.c.punto_venta).padStart(5, "0")}-{String(aCuenta.c.numero).padStart(8, "0")} de {aCuenta.c.razon_social_emisor}: {ars(Number(aCuenta.c.total))}.
+                Si el proveedor no está cargado, se agrega con su CUIT.
+              </p>
+              <div>
+                <Label htmlFor="cc-vencimiento" className="text-xs">Vencimiento del pago</Label>
+                <Input id="cc-vencimiento" type="date" value={aCuenta.vencimiento} min={aCuenta.c.fecha}
+                  onChange={e => setACuenta(a => (a ? { ...a, vencimiento: e.target.value } : a))} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setACuenta(null)}>Cancelar</Button>
+            <Button disabled={pasando} onClick={() => void pasarACuenta()}>{pasando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Registrar la deuda</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-medium text-sm">Compras del período</h3>
         {canEdit && lectura.estado !== "inactivo" && (
@@ -269,7 +334,7 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-muted-foreground border-b border-border/40">
-                    {["Fecha", "Comprobante", "Proveedor", "Total", "IVA", ""].map(h => <th key={h} className="py-1.5 pr-3 font-medium">{h}</th>)}
+                    {["Fecha", "Comprobante", "Proveedor", "Total", "IVA", ...(conCuentaCorriente ? ["Cuenta corriente"] : []), ""].map(h => <th key={h} className="py-1.5 pr-3 font-medium">{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -280,8 +345,22 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
                       <td className="py-1.5 pr-3">{c.razon_social_emisor}</td>
                       <td className="py-1.5 pr-3">{ars(Number(c.total))}</td>
                       <td className="py-1.5 pr-3">{ars(c.alicuotas.reduce((s, a) => s + Number(a.iva), 0))}</td>
+                      {conCuentaCorriente && (
+                        <td className="py-1.5 pr-3">
+                          {c.supplier_debt_id ? (
+                            <span className="text-emerald-700 dark:text-emerald-300">Deuda registrada{c.vencimiento ? `, vence ${c.vencimiento.split("-").reverse().join("/")}` : ""}</span>
+                          ) : c.aplicado_at ? (
+                            <span className="text-emerald-700 dark:text-emerald-300">Aplicada{Number(c.saldo_a_favor) > 0 ? ` · saldo a favor ${ars(Number(c.saldo_a_favor))}` : ""}</span>
+                          ) : canEdit ? (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" disabled={pasando}
+                              onClick={() => void (ES_NOTA_DE_CREDITO.has(c.tipo_comprobante) ? aplicarNota(c) : setACuenta({ c, vencimiento: sumarDias(c.fecha, 30) }))}>
+                              {ES_NOTA_DE_CREDITO.has(c.tipo_comprobante) ? "Aplicar a la deuda" : "A cuenta corriente"}
+                            </Button>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                      )}
                       <td className="py-1.5 text-right">
-                        {canEdit && (
+                        {canEdit && !c.supplier_debt_id && !c.aplicado_at && (
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => void borrar(c)} aria-label={`Borrar comprobante ${c.punto_venta}-${c.numero}`}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>

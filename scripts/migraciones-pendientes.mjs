@@ -41,6 +41,7 @@ export const MATRICES = {
   '20261022001000': 'scripts/iibb-coeficiente-matrix.sql',
   '20261022001100': 'scripts/factura-exportacion-matrix.sql',
   '20261022001200': 'scripts/facturar-ventas-juntas-matrix.sql',
+  '20261022001300': 'scripts/factura-proveedor-cuenta-corriente-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

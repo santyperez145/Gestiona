@@ -59919,6 +59919,7 @@ export type Database = {
       estado_contingencia: { Args: { p_org: string }; Returns: Json }
       estado_exportacion: { Args: { p_org: string }; Returns: Json }
       facturar_ventas_juntas: { Args: { p_org: string; p_transacciones: string[] }; Returns: Json }
+      pasar_comprobante_a_cuenta_corriente: { Args: { p_comprobante: string; p_vencimiento?: string | null; p_orden_de_compra?: string | null }; Returns: Json }
       configurar_exportacion: { Args: { p_org: string; p_punto_venta_exportacion: number | null }; Returns: Json }
       configurar_contingencia: { Args: { p_habilitada: boolean; p_org: string; p_punto_venta_caea: number | null }; Returns: Json }
       configurar_percepciones: {
