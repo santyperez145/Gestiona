@@ -33,7 +33,7 @@ import { esLlamadaDeCron } from "../_shared/cronAuth.ts";
 import { pedirTicketWsaa } from "../_shared/wsaaLogin.ts";
 import { generarClaveYPedido, leerCertificado } from "../_shared/certificadoArca.ts";
 import {
-  ALIAS_ARCA, clasificarRechazoWsaa, esAmbienteArca, esEmisorDeHomologacion, explicarRechazoWsaa, wsaaUrl,
+  ALIAS_ARCA, avisoDeCertificado, clasificarRechazoWsaa, esAmbienteArca, esEmisorDeHomologacion, explicarRechazoWsaa, wsaaUrl,
   type AmbienteArca,
 } from "../_shared/certificadoArcaReglas.ts";
 
@@ -275,17 +275,63 @@ async function verificarTodos(admin: Admin): Promise<Resultado> {
     console.error("afip-credentials cron: no se pudieron leer los comercios", error.message);
     return { ok: false, error: "lectura" };
   }
-  let aceptados = 0; let rechazados = 0;
+  let aceptados = 0; let rechazados = 0; let avisos = 0;
   for (const { org_id } of data ?? []) {
     try {
       const r = await verificarComercio(admin, org_id);
       if (r.ok) aceptados++; else rechazados++;
+      if (await avisarAlComercio(admin, org_id)) avisos++;
     } catch (e) {
       rechazados++;
       console.error("afip-credentials cron:", org_id, e);
     }
   }
-  return { ok: true, revisados: (data ?? []).length, aceptados, rechazados };
+  return { ok: true, revisados: (data ?? []).length, aceptados, rechazados, avisos };
+}
+
+/**
+ * Aviso en la campanita de dueños y administradores si el certificado está por
+ * vencer, venció o ARCA lo rechazó. Igual que `check-alerts`: el sin leer se
+ * actualiza y uno leído en las últimas 24 h no se repite.
+ */
+async function avisarAlComercio(admin: Admin, orgId: string): Promise<boolean> {
+  const { data: fila, error } = await admin.from("afip_credentials")
+    .select("certificate_expires_at, certificado_verificado_ok, certificado_verificado_motivo")
+    .eq("org_id", orgId).maybeSingle();
+  if (error || !fila) return false;
+  const aviso = avisoDeCertificado({ vence: fila.certificate_expires_at, verificadoOk: fila.certificado_verificado_ok, motivo: fila.certificado_verificado_motivo });
+  if (!aviso) return false;
+
+  const { data: miembros, error: errMiembros } = await admin.from("memberships")
+    .select("user_id").eq("org_id", orgId).in("role", ["owner", "admin"]);
+  if (errMiembros) { console.error("afip-credentials aviso: no se leyeron los administradores", orgId, errMiembros.message); return false; }
+  const usuarios = (miembros ?? []).map((m: { user_id: string }) => m.user_id);
+  if (usuarios.length === 0) return false;
+
+  const RUTA = "/afip";
+  const hace24h = new Date(Date.now() - 86_400_000).toISOString();
+  const { data: previas, error: errPrevias } = await admin.from("notifications")
+    .select("id, user_id, read")
+    .eq("org_id", orgId).eq("entity_type", "ruta").eq("entity_id", RUTA).in("user_id", usuarios)
+    .or(`read.eq.false,created_at.gte.${hace24h}`);
+  if (errPrevias) { console.error("afip-credentials aviso: no se leyeron los avisos previos", orgId, errPrevias.message); return false; }
+
+  const nuevos: Record<string, unknown>[] = [];
+  for (const usuario of usuarios) {
+    const propias = (previas ?? []).filter((n: { user_id: string }) => n.user_id === usuario);
+    const sinLeer = propias.find((n: { read: boolean }) => !n.read);
+    if (sinLeer) {
+      const { error: errAct } = await admin.from("notifications").update({ title: aviso.title, message: aviso.message }).eq("id", sinLeer.id);
+      if (errAct) console.error("afip-credentials aviso: no se actualizó", sinLeer.id, errAct.message);
+      continue;
+    }
+    if (propias.length > 0) continue;
+    nuevos.push({ org_id: orgId, user_id: usuario, type: "sistema", title: aviso.title, message: aviso.message, entity_type: "ruta", entity_id: RUTA, read: false });
+  }
+  if (nuevos.length === 0) return true;
+  const { error: errInsert } = await admin.from("notifications").insert(nuevos);
+  if (errInsert) { console.error("afip-credentials aviso: no se crearon", orgId, errInsert.message); return false; }
+  return true;
 }
 
 async function borrar(admin: Admin, orgId: string): Promise<Resultado> {

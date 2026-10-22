@@ -37,3 +37,16 @@ describe("etapa del certificado propio", () => {
     expect(tipoDePuntoDeVenta("responsable_inscripto")).toContain("RECE");
   });
 });
+
+import { avisoDeCertificado } from "../../supabase/functions/_shared/certificadoArcaReglas";
+
+describe("aviso diario del certificado", () => {
+  const ahora = new Date("2026-10-22T12:00:00Z");
+  it("avisa vencido, rechazado y por vencer; nada si está bien", () => {
+    expect(avisoDeCertificado({ vence: "2026-10-01T00:00:00Z", verificadoOk: true, motivo: null }, ahora)?.title).toBe("Tu certificado de ARCA venció");
+    expect(avisoDeCertificado({ vence: "2028-01-01T00:00:00Z", verificadoOk: false, motivo: "Falta asociar" }, ahora)).toEqual({ title: "ARCA rechazó tu certificado", message: "Falta asociar" });
+    expect(avisoDeCertificado({ vence: "2026-10-23T13:00:00Z", verificadoOk: true, motivo: null }, ahora)?.title).toBe("Tu certificado de ARCA vence en 1 día");
+    expect(avisoDeCertificado({ vence: "2026-11-30T00:00:00Z", verificadoOk: true, motivo: null }, ahora)).toBeNull();
+    expect(avisoDeCertificado({ vence: null, verificadoOk: null, motivo: null }, ahora)).toBeNull();
+  });
+});

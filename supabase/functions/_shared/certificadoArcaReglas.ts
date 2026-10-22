@@ -78,3 +78,29 @@ export function organizacionParaSubject(razonSocial: string | null | undefined):
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/[^A-Za-z0-9 .,&-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 64) || "Comercio";
 }
+
+/**
+ * Aviso para la campanita del comercio según su certificado, o null si no hay
+ * nada que avisar. Lo usa la prueba diaria (`afip-credentials` por cron): un
+ * certificado por vencer o rechazado se avisa aunque el comercio no entre a la
+ * página de ARCA.
+ */
+export function avisoDeCertificado(
+  c: { vence: string | null | undefined; verificadoOk: boolean | null | undefined; motivo: string | null | undefined },
+  ahora = new Date(),
+): { title: string; message: string } | null {
+  const dias = diasParaVencer(c.vence, ahora);
+  if (dias !== null && dias < 0) {
+    return { title: "Tu certificado de ARCA venció", message: "No se pueden autorizar facturas hasta renovarlo. Son unos minutos desde ARCA y factura electrónica." };
+  }
+  if (c.verificadoOk === false) {
+    return { title: "ARCA rechazó tu certificado", message: c.motivo?.trim() || "Revisalo en ARCA y factura electrónica." };
+  }
+  if (dias !== null && dias <= 30) {
+    return {
+      title: `Tu certificado de ARCA vence en ${dias} ${dias === 1 ? "día" : "días"}`,
+      message: "Renovalo para no cortar la facturación: generás un pedido nuevo y lo agregás al mismo alias en ARCA.",
+    };
+  }
+  return null;
+}
