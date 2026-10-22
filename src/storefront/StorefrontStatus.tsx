@@ -5,6 +5,9 @@
  * «Tienda no encontrada». El comprador se iba. Tokens `--st-*`, no el
  * violeta del panel. Reintentar no borra el carrito: vive en localStorage.
  */
+import { useEffect, useRef } from "react";
+import { useDisponibilidadDelServicio } from "@/hooks/useDisponibilidadDelServicio";
+
 const TOKENS = {
   background: "hsl(var(--st-bg, 0 0% 100%))",
   text: "hsl(var(--st-text, 0 0% 9%))",
@@ -30,11 +33,27 @@ export default function StorefrontStatus({
   onRetry?: () => void;
 }) {
   const error = kind === "error";
+  // 2026-10-21: con la base caída decía «La red falló»: el comprador pensaba
+  // que era su conexión. Ahora se distingue, y cuando el servicio vuelve la
+  // tienda se recarga sola.
+  const { estado } = useDisponibilidadDelServicio();
+  const anterior = useRef(estado);
+  useEffect(() => {
+    const venia = anterior.current;
+    anterior.current = estado;
+    if (error && onRetry && estado === "disponible" && (venia === "caido" || venia === "sin_conexion")) onRetry();
+  }, [estado, error, onRetry]);
+  const caido = error && estado === "caido";
+  const sinConexion = error && estado === "sin_conexion";
+
   const titulo = title ?? (error
-    ? (storeName ? `No pudimos cargar ${storeName}` : "No pudimos cargar la tienda")
+    ? (caido ? `${storeName ?? "La tienda"} no está disponible en este momento`
+      : storeName ? `No pudimos cargar ${storeName}` : "No pudimos cargar la tienda")
     : "Tienda no encontrada");
   const detalle = detail ?? (error
-    ? "La red falló o el catálogo no respondió. Tu carrito sigue guardado; reintentá."
+    ? (caido ? "Estamos trabajando para restablecerla. Tu carrito sigue guardado y la página se recarga sola cuando vuelva."
+      : sinConexion ? "No hay conexión a internet. Tu carrito sigue guardado; la página se recarga sola cuando vuelva la conexión."
+      : "El catálogo no respondió. Tu carrito sigue guardado; reintentá.")
     : "No hay ninguna tienda activa en esta dirección. Puede que haya cambiado o que esté desactivada.");
 
   return (
