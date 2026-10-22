@@ -31,6 +31,7 @@
     "deploy:functions": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-functions.ps1",
     "deploy:functions:sh": "bash scripts/deploy-functions.sh",
     "db": "node scripts/db.mjs",
+    "db:pendientes": "node scripts/migraciones-pendientes.mjs",
     "test:e2e": "playwright test",
     "test:e2e:public": "playwright test --project=chromium --project=mobile",
     "test:e2e:ci": "playwright test --project=chromium --project=mobile --project=panel",
