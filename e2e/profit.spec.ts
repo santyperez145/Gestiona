@@ -254,7 +254,8 @@ test("synthetic Profit: cost details preserve unknowns, measured zero and keyboa
   const section = page.getByRole("region", { name: "Rentabilidad por producto y canal" });
   const pending = section.getByRole("button", { name: /^Ver fuentes pendientes de / }).first();
   await expect(pending).toBeVisible();
-  expect((await pending.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  // Redondeado: una transformación del contenedor deja 43,9999 en un botón h-11 (44 px).
+  expect(Math.round((await pending.boundingBox())!.height)).toBeGreaterThanOrEqual(44);
   for (const theme of ["light", "dark"] as const) {
     await setProfitTheme(page, theme);
     await pending.focus(); await pending.press("Enter");

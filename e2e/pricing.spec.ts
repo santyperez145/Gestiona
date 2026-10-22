@@ -1,5 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { exigirBackendReal } from "./backendReal";
+
+// Los planes y sus precios se leen de la base real.
+exigirBackendReal();
 
 for (const width of [360, 390, 768, 1024, 1280, 1440]) {
   test(`planes ${width}px: precios reales, comparación y ausencia de desbordes`, async ({
