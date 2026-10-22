@@ -11,6 +11,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { THEME_IDS } from "../src/storefront/theme";
 import { configurePublicStore } from "./publicStoreFixture";
+import { exigirBackendReal } from "./backendReal";
+
+exigirBackendReal();
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const tienda = (ruta = "") => `/tienda/${SLUG}${ruta}`;

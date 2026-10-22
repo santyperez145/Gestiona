@@ -1,4 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { exigirBackendReal } from "./backendReal";
+
+exigirBackendReal();
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const anchos = [375, 640, 700, 767, 768, 1280];

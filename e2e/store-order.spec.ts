@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { configurePublicStore } from "./publicStoreFixture";
+import { exigirBackendReal } from "./backendReal";
+
+exigirBackendReal();
 
 const slug = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const orderNumber = "ZZ-RECOVERY";

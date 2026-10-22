@@ -18,6 +18,9 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { configurePublicStore } from "./publicStoreFixture";
+import { exigirBackendReal } from "./backendReal";
+
+exigirBackendReal();
 test.use({ serviceWorkers: 'block' });
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";

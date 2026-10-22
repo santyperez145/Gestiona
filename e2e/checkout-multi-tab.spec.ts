@@ -10,6 +10,9 @@
  * No se escribe en producción: los RPCs devuelven null y el create falla.
  */
 import { test, expect } from "@playwright/test";
+import { exigirBackendReal } from "./backendReal";
+
+exigirBackendReal();
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const tienda = (ruta = "") => `/tienda/${SLUG}${ruta}`;

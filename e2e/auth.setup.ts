@@ -26,6 +26,9 @@ import fs from "node:fs";
 export const ARCHIVO_SESION = "e2e/.auth/usuario.json";
 
 setup("iniciar sesión", async ({ page }) => {
+  if (process.env.E2E_BACKEND_CAIDO) {
+    throw new Error(`La base de Supabase no responde: ${process.env.E2E_BACKEND_CAIDO}. No se puede iniciar sesión para los tests del panel.`);
+  }
   const email = process.env.E2E_USER;
   const password = process.env.E2E_PASSWORD;
   const requireAuth = process.env.E2E_REQUIRE_AUTH === "true";

@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { configurePublicStore } from "./publicStoreFixture";
+import { exigirBackendReal } from "./backendReal";
+
+exigirBackendReal();
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const CATALOG = `/tienda/${SLUG}/productos`;

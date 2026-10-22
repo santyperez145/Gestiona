@@ -36,6 +36,7 @@ if (missingLocalRuntime) {
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/backend.global-setup.ts",
   // Vitest se queda con `src/**`; acá no se cruzan.
   testMatch: "**/*.spec.ts",
 
