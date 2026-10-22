@@ -123,7 +123,7 @@ async function main() {
         return;
       }
     }
-    console.log('\nListo. Falta desplegar las funciones afectadas (afip-credentials, afip-platform-cert).');
+    console.log('\nListo. Falta desplegar las funciones afectadas (afip-credentials, afip-platform-cert, afip-authorize).');
   } finally {
     await client.end();
   }
