@@ -241,6 +241,11 @@ sigue abierto como certificación operacional.
 Un slice activo; un incidente desplaza el orden. P0 acompaña toda entrega.
 No abrir más productos mientras Commerce carezca de prueba operacional.
 
+📌 Orden del dueño (2026-10-22): **gestión completa y ARCA primero, tienda
+online enlazada después, el resto al final**. El objetivo con fecha, la brecha
+por frente y la secuencia viven en [PLAN_DE_LLEGADA](docs/PLAN_DE_LLEGADA.md);
+si este orden y aquel difieren, manda el plan.
+
 ### P0 — Seguridad, release y operación confiable
 
 1. Mantener Critical E2E remoto verde y la protección real de `main`. Rollback

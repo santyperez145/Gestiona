@@ -18,6 +18,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 ## Producto y estrategia
 
 - [Tesis](TESIS.md): plataforma multinegocio de seis productos, secreto, puertas de entrada, hipótesis y experimentos (Lean Startup + Zero to One); gobierna la prioridad.
+- [Plan de llegada](PLAN_DE_LLEGADA.md): objetivo al 15/12/2026 (3 comercios semanales, 1 pago), orden del dueño (gestión y ARCA → tienda online → resto), brecha por frente con criterio de terminado, secuencia, responsables, métricas y riesgos.
 - [Entrevistas E2](ENTREVISTAS_E2.md): cómo hacer y cargar las 15 entrevistas del experimento E2 sin sugerir la respuesta.
 - [Estrategia](ESTRATEGIA.md): categoría, benchmarks y secuencia.
 - [Arquitectura](ARQUITECTURA.md): autoridades, límites y seguridad.

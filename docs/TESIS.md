@@ -1,7 +1,8 @@
 # Tesis de Nerqia: de cero a uno, con método
 
 **Estado:** vigente. **Revisión:** 2026-10-10. **Owner:** Dirección (todas las posiciones).
-Gobierna la prioridad de [ESTRATEGIA](ESTRATEGIA.md), [ECONOMICS](ECONOMICS.md) y
+Gobierna la prioridad de [ESTRATEGIA](ESTRATEGIA.md), [ECONOMICS](ECONOMICS.md),
+[PLAN_DE_LLEGADA](PLAN_DE_LLEGADA.md) (el objetivo con fecha y el orden) y
 [META_FINALIZACION](META_FINALIZACION.md). Si un ítem del backlog no mueve una
 hipótesis de este documento, no entra.
 
@@ -144,7 +145,8 @@ Una valuación de USD 1.000 millones para software con pagos suele pedir del
 orden de **USD 100 millones de ingresos anuales recurrentes**. Ser la
 plataforma completa sube el ingreso por comercio: en vez de una cuota, el
 comercio paga por la suite que reemplaza seis herramientas, más una comisión
-sobre lo que cobra. Con USD 50 por mes de suscripción (USD 600 al año) hacen
+sobre lo que vende en su tienda online (en el local y en la gestión no hay
+comisión: [ADR 008](ADR_008_COMISION_SOLO_TIENDA_ONLINE.md)). Con USD 50 por mes de suscripción (USD 600 al año) hacen
 falta ~170.000 comercios pagos; con comisión de pagos, menos.
 
 Referencia de tamaño: ~509.661 pymes empleadoras en Argentina (UCEMA,
@@ -154,7 +156,8 @@ siguiente sólo con el anterior probado:
 
 1. **Suite completa en Argentina**: suscripción por productos usados.
 2. **Pagos dentro del sistema** (Nerqia Pay sobre Mercado Pago): comisión
-   sobre lo cobrado; crece con las ventas del comercio, no con el precio.
+   sobre lo cobrado en la tienda online; crece con las ventas del comercio, no
+   con el precio.
 3. **Región**: México, Colombia y Chile, con rails y facturación locales.
 
 La ley de potencia (Thiel): pocos clientes, canales y decisiones explican casi
