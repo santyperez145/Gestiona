@@ -41,7 +41,7 @@ describe("dependencias sin alertas productivas conocidas", () => {
   it.each([
     ["react-router", "7.18.0"],
     ["react-router-dom", "7.18.0"],
-    ["dompurify", "3.4.13"],
+    ["dompurify", "3.4.17"],
     ["nanoid", "3.3.18"],
     ["vite", "8.2.4"],
     ["vitest", "5.0.3"],
