@@ -42,6 +42,7 @@ export const MATRICES = {
   '20261022001100': 'scripts/factura-exportacion-matrix.sql',
   '20261022001200': 'scripts/facturar-ventas-juntas-matrix.sql',
   '20261022001300': 'scripts/factura-proveedor-cuenta-corriente-matrix.sql',
+  '20261022001400': 'scripts/orden-de-pago-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

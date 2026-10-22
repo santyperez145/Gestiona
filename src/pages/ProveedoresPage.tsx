@@ -24,6 +24,7 @@ import BusinessEmptyState from "@/components/business/BusinessEmptyState";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
 import SupplierPOModal from "@/components/shared/SupplierPOModal";
+import OrdenDePagoDialog from "@/components/proveedores/OrdenDePagoDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
@@ -107,6 +108,7 @@ export default function ProveedoresPage() {
   const [savingDebt, setSavingDebt] = useState(false);
   const [selectedDebtIds, setSelectedDebtIds] = useState<Set<string>>(new Set());
   const [bulkPayLoading, setBulkPayLoading] = useState(false);
+  const [ordenDePago, setOrdenDePago] = useState(false);
   const [activeTab, setActiveTab] = usePersistedState<'proveedores' | 'aging' | 'pagos' | 'analytics'>(
     orgViewKey("suppliers.tab", activeOrg?.id),
     "proveedores",
@@ -243,6 +245,13 @@ export default function ProveedoresPage() {
   };
 
   const pendingDebts = useMemo(() => debts.filter(d => d.status !== "paid"), [debts]);
+  // La orden de pago es de un solo proveedor registrado.
+  const deudasParaOrden = useMemo(() => pendingDebts.filter(d => selectedDebtIds.has(d.id)), [pendingDebts, selectedDebtIds]);
+  const proveedorDeLaOrden = useMemo(() => {
+    const ids = new Set(deudasParaOrden.map(d => d.supplier_id));
+    const id = deudasParaOrden[0]?.supplier_id;
+    return ids.size === 1 && id ? { id, nombre: deudasParaOrden[0].supplier_name } : null;
+  }, [deudasParaOrden]);
   const totalPending = useMemo(() => pendingDebts.reduce((s, d) => s + Number(d.remaining_ars), 0), [pendingDebts]);
   const paymentFacts = useMemo(() => {
     const last30Boundary = Date.now() - 30 * 86_400_000;
@@ -761,6 +770,10 @@ export default function ProveedoresPage() {
                   {bulkPayLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
                   Marcar como pagadas (total)
                 </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" disabled={!proveedorDeLaOrden} onClick={() => setOrdenDePago(true)}
+                  title={proveedorDeLaOrden ? "Pagar con varios medios y emitir el comprobante" : "Elegí deudas de un mismo proveedor registrado"}>
+                  Orden de pago
+                </Button>
                 <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedDebtIds(new Set())}>Limpiar</Button>
               </div>
             )}
@@ -1126,6 +1139,9 @@ export default function ProveedoresPage() {
         onClose={() => setPoOpen(false)}
         supplierId={poSupplierId}
       />
+      <OrdenDePagoDialog open={ordenDePago} onOpenChange={setOrdenDePago} orgId={activeOrg?.id ?? null}
+        proveedor={proveedorDeLaOrden} deudas={deudasParaOrden}
+        onEmitida={() => { setSelectedDebtIds(new Set()); void load(); }} />
     </div>
   );
 }

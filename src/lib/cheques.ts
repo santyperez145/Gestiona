@@ -7,7 +7,8 @@
  *   emitido:  pendiente → debitado | rebotado | cancelado.
  */
 export type TipoDeCheque = "received" | "issued";
-export type EstadoDeCheque = "pending" | "deposited" | "cleared" | "bounced" | "cancelled";
+/** «endorsed»: un cheque de terceros entregado a un proveedor en una orden de pago (20261022001400). */
+export type EstadoDeCheque = "pending" | "deposited" | "cleared" | "bounced" | "cancelled" | "endorsed";
 
 export interface AccionDeCheque {
   estado: EstadoDeCheque;
@@ -42,5 +43,5 @@ export function accionesDeCheque(tipo: TipoDeCheque, estado: EstadoDeCheque): Ac
 /** Cómo se llama cada estado según el tipo: un emitido «acreditado» es un débito. */
 export function etiquetaDeEstado(tipo: TipoDeCheque, estado: EstadoDeCheque): string {
   if (estado === "cleared") return tipo === "issued" ? "Debitado" : "Acreditado";
-  return { pending: "Pendiente", deposited: "Depositado", bounced: "Rebotado", cancelled: tipo === "issued" ? "Anulado" : "Cancelado" }[estado];
+  return { pending: "Pendiente", deposited: "Depositado", bounced: "Rebotado", cancelled: tipo === "issued" ? "Anulado" : "Cancelado", endorsed: "Entregado a proveedor" }[estado];
 }

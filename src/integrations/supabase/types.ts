@@ -1353,6 +1353,24 @@ export type Database = {
           },
         ]
       }
+      ordenes_de_pago: {
+        Row: { created_at: string; created_by: string | null; fecha: string; id: string; idempotency_key: string; notas: string | null; numero: number; org_id: string; proveedor_cuit: string | null; proveedor_nombre: string; supplier_id: string | null; total: number }
+        Insert: { created_at?: string; created_by?: string | null; fecha?: string; id?: string; idempotency_key: string; notas?: string | null; numero: number; org_id: string; proveedor_cuit?: string | null; proveedor_nombre: string; supplier_id?: string | null; total: number }
+        Update: { created_at?: string; created_by?: string | null; fecha?: string; id?: string; idempotency_key?: string; notas?: string | null; numero?: number; org_id?: string; proveedor_cuit?: string | null; proveedor_nombre?: string; supplier_id?: string | null; total?: number }
+        Relationships: []
+      }
+      orden_de_pago_medios: {
+        Row: { cheque_id: string | null; id: string; importe: number; medio: string; orden_id: string; org_id: string; referencia: string | null }
+        Insert: { cheque_id?: string | null; id?: string; importe: number; medio: string; orden_id: string; org_id: string; referencia?: string | null }
+        Update: { cheque_id?: string | null; id?: string; importe?: number; medio?: string; orden_id?: string; org_id?: string; referencia?: string | null }
+        Relationships: []
+      }
+      orden_de_pago_imputaciones: {
+        Row: { descripcion: string; id: string; importe: number; orden_id: string; org_id: string; supplier_debt_id: string | null }
+        Insert: { descripcion: string; id?: string; importe: number; orden_id: string; org_id: string; supplier_debt_id?: string | null }
+        Update: { descripcion?: string; id?: string; importe?: number; orden_id?: string; org_id?: string; supplier_debt_id?: string | null }
+        Relationships: []
+      }
       arca_parametros_fex: {
         Row: { actualizado_at: string; datos: Json; environment: string; tipo: string }
         Insert: { actualizado_at?: string; datos: Json; environment: string; tipo: string }
@@ -59919,6 +59937,7 @@ export type Database = {
       estado_contingencia: { Args: { p_org: string }; Returns: Json }
       estado_exportacion: { Args: { p_org: string }; Returns: Json }
       facturar_ventas_juntas: { Args: { p_org: string; p_transacciones: string[] }; Returns: Json }
+      emitir_orden_de_pago: { Args: { p_org: string; p_datos: Json }; Returns: Json }
       pasar_comprobante_a_cuenta_corriente: { Args: { p_comprobante: string; p_vencimiento?: string | null; p_orden_de_compra?: string | null }; Returns: Json }
       configurar_exportacion: { Args: { p_org: string; p_punto_venta_exportacion: number | null }; Returns: Json }
       configurar_contingencia: { Args: { p_habilitada: boolean; p_org: string; p_punto_venta_caea: number | null }; Returns: Json }

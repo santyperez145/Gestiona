@@ -29,7 +29,7 @@ type Cheque = {
   amount_ars: number;
   issue_date: string | null;
   due_date: string;
-  status: "pending" | "deposited" | "cleared" | "bounced" | "cancelled";
+  status: "pending" | "deposited" | "cleared" | "bounced" | "cancelled" | "endorsed";
   deposited_at: string | null;
   notes: string | null;
   customer_id?: string | null;
@@ -41,6 +41,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cleared:    { label: "Acreditado", color: "bg-emerald-500/15 text-emerald-400" },
   bounced:    { label: "Rebotado",   color: "bg-destructive/15 text-destructive" },
   cancelled:  { label: "Cancelado",  color: "bg-muted/50 text-muted-foreground" },
+  endorsed:   { label: "Entregado",  color: "bg-violet-500/15 text-violet-700 dark:text-violet-300" },
 };
 
 const EMPTY_FORM = {
