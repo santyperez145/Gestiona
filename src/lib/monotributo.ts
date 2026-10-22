@@ -23,18 +23,22 @@ export const ESCALA_MONOTRIBUTO = {
   fuente: "https://www.afip.gob.ar/monotributo/categorias.asp",
   /** Precio unitario máximo para venta de cosas muebles. */
   precioUnitarioMaximo: 716_840.77,
+  /**
+   * Tope de ingresos y cuota mensual total (impuesto integrado + jubilación +
+   * obra social), para venta de cosas muebles y para servicios. Vence el 20.
+   */
   categorias: [
-    { categoria: "A", tope: 12_009_410.45 },
-    { categoria: "B", tope: 17_595_182.74 },
-    { categoria: "C", tope: 24_670_494.31 },
-    { categoria: "D", tope: 30_628_651.43 },
-    { categoria: "E", tope: 36_028_231.33 },
-    { categoria: "F", tope: 45_151_659.41 },
-    { categoria: "G", tope: 53_995_798.87 },
-    { categoria: "H", tope: 81_924_660.37 },
-    { categoria: "I", tope: 91_699_761.90 },
-    { categoria: "J", tope: 105_012_519.20 },
-    { categoria: "K", tope: 126_610_838.75 },
+    { categoria: "A", tope: 12_009_410.45, cuotaVenta: 49_527.18, cuotaServicios: 49_527.18 },
+    { categoria: "B", tope: 17_595_182.74, cuotaVenta: 56_379.08, cuotaServicios: 56_379.08 },
+    { categoria: "C", tope: 24_670_494.31, cuotaVenta: 64_530.58, cuotaServicios: 66_020.12 },
+    { categoria: "D", tope: 30_628_651.43, cuotaVenta: 82_564.81, cuotaServicios: 84_612.93 },
+    { categoria: "E", tope: 36_028_231.33, cuotaVenta: 108_267.51, cuotaServicios: 119_811.45 },
+    { categoria: "F", tope: 45_151_659.41, cuotaVenta: 129_930.65, cuotaServicios: 150_784.21 },
+    { categoria: "G", tope: 53_995_798.87, cuotaVenta: 158_815.05, cuotaServicios: 230_312.94 },
+    { categoria: "H", tope: 81_924_660.37, cuotaVenta: 317_895.01, cuotaServicios: 522_706.68 },
+    { categoria: "I", tope: 91_699_761.90, cuotaVenta: 474_992.78, cuotaServicios: 963_747.86 },
+    { categoria: "J", tope: 105_012_519.20, cuotaVenta: 580_793.69, cuotaServicios: 1_167_299.76 },
+    { categoria: "K", tope: 126_610_838.75, cuotaVenta: 702_103.24, cuotaServicios: 1_614_446.04 },
   ],
 } as const;
 
@@ -91,4 +95,37 @@ export function situacionMonotributo(comprobantes: ComprobanteMonotributo[], hoy
     excedido: corresponde === null,
     escalaDesactualizada: hoy.slice(0, 10) >= ESCALA_MONOTRIBUTO.revisarDesde,
   };
+}
+
+/**
+ * Próxima recategorización (semestral): vence el 5 de febrero y el 5 de agosto,
+ * con lo facturado en los 12 meses que cierran el 31 de diciembre y el 30 de
+ * junio. `completo` dice si el período ya cerró (y la cifra es definitiva).
+ */
+export function proximaRecategorizacion(hoy: string): { vence: string; desde: string; hasta: string; completo: boolean } {
+  const anio = Number(hoy.slice(0, 4));
+  const dia = hoy.slice(0, 10);
+  const candidatos = [
+    { vence: `${anio}-02-05`, desde: `${anio - 1}-01-01`, hasta: `${anio - 1}-12-31` },
+    { vence: `${anio}-08-05`, desde: `${anio - 1}-07-01`, hasta: `${anio}-06-30` },
+    { vence: `${anio + 1}-02-05`, desde: `${anio}-01-01`, hasta: `${anio}-12-31` },
+  ];
+  const proxima = candidatos.find(c => c.vence >= dia)!;
+  return { ...proxima, completo: dia > proxima.hasta };
+}
+
+/** Categoría mínima por ingresos para un monto facturado. */
+export function categoriaPorIngresos(facturado: number) {
+  return ESCALA_MONOTRIBUTO.categorias.find(c => facturado <= c.tope) ?? null;
+}
+
+/** Lo facturado entre dos fechas (notas de crédito restan). */
+export function facturadoEntre(comprobantes: ComprobanteMonotributo[], desde: string, hasta: string): number {
+  let centavos = 0;
+  for (const c of comprobantes) {
+    if (c.issue_date < desde || c.issue_date > hasta) continue;
+    const signo = NOTAS_DE_CREDITO.has(Number(c.tipo_comprobante)) ? -1 : 1;
+    centavos += signo * Math.round((Number(c.total) || 0) * 100);
+  }
+  return centavos / 100;
 }

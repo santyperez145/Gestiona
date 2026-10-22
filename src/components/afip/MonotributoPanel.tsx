@@ -8,7 +8,10 @@ import { AlertTriangle, Gauge, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { hoyAR } from "@/lib/fechaAR";
-import { ESCALA_MONOTRIBUTO, situacionMonotributo, ventanaDeDoceMeses, type ComprobanteMonotributo, type SituacionMonotributo } from "@/lib/monotributo";
+import {
+  ESCALA_MONOTRIBUTO, categoriaPorIngresos, facturadoEntre, proximaRecategorizacion, situacionMonotributo, ventanaDeDoceMeses,
+  type ComprobanteMonotributo, type SituacionMonotributo,
+} from "@/lib/monotributo";
 
 const PAGINA = 1000;
 const ars = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
@@ -17,7 +20,8 @@ const fecha = (iso: string) => iso.split("-").reverse().join("/");
 type Lectura =
   | { estado: "cargando" }
   | { estado: "error"; mensaje: string }
-  | { estado: "listo"; situacion: SituacionMonotributo; caros: { name: string; sale_price_ars: number }[]; carosTotal: number };
+  | { estado: "listo"; situacion: SituacionMonotributo; caros: { name: string; sale_price_ars: number }[]; carosTotal: number;
+      recategorizacion: ReturnType<typeof proximaRecategorizacion> & { facturado: number } };
 
 export default function MonotributoPanel({ orgId }: { orgId: string | null }) {
   const [lectura, setLectura] = useState<Lectura>({ estado: "cargando" });
@@ -26,7 +30,11 @@ export default function MonotributoPanel({ orgId }: { orgId: string | null }) {
     if (!orgId) return;
     setLectura({ estado: "cargando" });
     const hoy = hoyAR();
-    const { desde, hasta } = ventanaDeDoceMeses(hoy);
+    const ventana = ventanaDeDoceMeses(hoy);
+    const recategorizacion = proximaRecategorizacion(hoy);
+    // Se lee desde lo que mire primero: los 12 meses o el período de la recategorización.
+    const desde = recategorizacion.desde < ventana.desde ? recategorizacion.desde : ventana.desde;
+    const hasta = ventana.hasta;
     const filas: (ComprobanteMonotributo & { afip_environment: string | null })[] = [];
     for (let desdeFila = 0; ; desdeFila += PAGINA) {
       const { data, error } = await supabase
@@ -63,9 +71,11 @@ export default function MonotributoPanel({ orgId }: { orgId: string | null }) {
       setLectura({ estado: "error", mensaje: "No se pudieron revisar los precios de tus productos. Reintentá en unos minutos." });
       return;
     }
+    const validas = filas.filter(f => f.afip_environment !== "homologacion");
     setLectura({
       estado: "listo",
-      situacion: situacionMonotributo(filas.filter(f => f.afip_environment !== "homologacion"), hoy),
+      situacion: situacionMonotributo(validas, hoy),
+      recategorizacion: { ...recategorizacion, facturado: facturadoEntre(validas, recategorizacion.desde, recategorizacion.hasta) },
       caros: (caros ?? []) as { name: string; sale_price_ars: number }[],
       carosTotal: count ?? (caros ?? []).length,
     });
@@ -131,6 +141,32 @@ export default function MonotributoPanel({ orgId }: { orgId: string | null }) {
                 <p className="text-lg font-semibold">{s.margen !== null ? ars(s.margen) : "—"}</p>
               </div>
             </div>
+
+            {(() => {
+              const cat = s.categoria ? ESCALA_MONOTRIBUTO.categorias.find(c => c.categoria === s.categoria) : null;
+              const r = lectura.recategorizacion;
+              const catRecat = categoriaPorIngresos(r.facturado);
+              return (
+                <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                  {cat && (
+                    <div className="rounded-lg border border-border/40 p-3">
+                      <p className="text-muted-foreground">Cuota mensual de la categoría {cat.categoria} (vence el 20)</p>
+                      <p className="mt-1"><span className="font-semibold">{ars(cat.cuotaVenta)}</span> venta de productos · {ars(cat.cuotaServicios)} servicios</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">Incluye impuesto integrado, jubilación y obra social.</p>
+                    </div>
+                  )}
+                  <div className="rounded-lg border border-border/40 p-3">
+                    <p className="text-muted-foreground">Próxima recategorización: hasta el {fecha(r.vence)}</p>
+                    <p className="mt-1">
+                      ARCA mira lo facturado del {fecha(r.desde)} al {fecha(r.hasta)}:{" "}
+                      <span className="font-semibold">{ars(r.facturado)}</span>{r.completo ? "" : " hasta hoy"}
+                      {catRecat ? ` → categoría ${catRecat.categoria}` : " → supera la K"}.
+                    </p>
+                    {!r.completo && <p className="mt-1 text-[11px] text-muted-foreground">El período todavía no cerró: la cifra puede subir.</p>}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div>
               <div className="flex justify-between text-[11px] text-muted-foreground mb-1">

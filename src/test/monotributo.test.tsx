@@ -77,3 +77,20 @@ describe("panel de monotributo", () => {
     expect(screen.getByRole("button", { name: "Reintentar" })).toBeEnabled();
   });
 });
+
+import { categoriaPorIngresos, facturadoEntre, proximaRecategorizacion } from "@/lib/monotributo";
+
+describe("recategorización y cuota", () => {
+  it("la próxima recategorización: 5 de febrero y 5 de agosto, con su período", () => {
+    expect(proximaRecategorizacion("2026-10-22")).toEqual({ vence: "2027-02-05", desde: "2026-01-01", hasta: "2026-12-31", completo: false });
+    expect(proximaRecategorizacion("2027-01-10")).toMatchObject({ vence: "2027-02-05", completo: true });
+    expect(proximaRecategorizacion("2027-03-01")).toEqual({ vence: "2027-08-05", desde: "2026-07-01", hasta: "2027-06-30", completo: false });
+    expect(proximaRecategorizacion("2027-08-05")).toMatchObject({ vence: "2027-08-05", completo: true });
+  });
+
+  it("cuota por categoría y facturado del período", () => {
+    expect(categoriaPorIngresos(25_000_000)).toMatchObject({ categoria: "D", cuotaVenta: 82_564.81, cuotaServicios: 84_612.93 });
+    expect(categoriaPorIngresos(200_000_000)).toBeNull();
+    expect(facturadoEntre([c("2026-01-01", 100), c("2026-12-31", 50), c("2027-01-01", 999), c("2026-06-01", 20, 13)], "2026-01-01", "2026-12-31")).toBe(130);
+  });
+});
