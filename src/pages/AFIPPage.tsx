@@ -12,6 +12,8 @@ import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
+import ConectarCertificadoPropio from "@/components/afip/ConectarCertificadoPropio";
+import { estadoCertificado } from "@/lib/certificadoPropio";
 import MonotributoPanel from "@/components/afip/MonotributoPanel";
 import { saludFiscal } from "@/lib/fiscalHealth";
 import KPICard from "@/components/shared/KPICard";
@@ -55,6 +57,16 @@ interface AfipConnectionStatus {
   plataforma_verificada?: boolean | null;
   tipo_emisor?: string | null;
   plataforma_ambiente: string | null;
+  /** Certificado propio (2026-10-22): datos públicos y última prueba con ARCA. */
+  certificado_vence?: string | null;
+  certificado_emisor?: string | null;
+  certificado_verificado_ok?: boolean | null;
+  certificado_verificado_at?: string | null;
+  certificado_verificado_motivo?: string | null;
+  pedido_pendiente?: boolean | null;
+  pedido_csr?: string | null;
+  pedido_ambiente?: string | null;
+  pedido_creado_at?: string | null;
 }
 
 interface FiscalInvoice {
@@ -140,7 +152,7 @@ export default function AFIPPage() {
         // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
         // una columna que no existe— y con `strictNullChecks: false` el cast a
         // la interface hace que TypeScript crea que el campo está.
-        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente, plataforma_verificada, tipo_emisor")
+        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente, plataforma_verificada, tipo_emisor, certificado_vence, certificado_emisor, certificado_verificado_ok, certificado_verificado_at, certificado_verificado_motivo, pedido_pendiente, pedido_csr, pedido_ambiente, pedido_creado_at")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
@@ -223,6 +235,21 @@ export default function AFIPPage() {
         className: "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300",
         icon: AlertTriangle,
       };
+    }
+    // Certificado propio (2026-10-22): qué le falta, en las mismas palabras que
+    // el asistente de arriba.
+    if (connection.modo === "propio") {
+      const cert = estadoCertificado(connection);
+      const aviso = {
+        sin_certificado: { title: "Falta conectar tu certificado de ARCA", detail: "Seguí el paso a paso de arriba: son unos minutos con tu clave fiscal. Nerqia nunca te la pide." },
+        pedido_pendiente: { title: "Falta subir tu certificado", detail: "Creá el certificado en ARCA con el pedido que descargaste, asocialo a Facturación Electrónica y subí el .crt." },
+        falta_asociar: { title: "Falta asociar el certificado a Facturación Electrónica", detail: cert.motivo ?? "Hacé ese paso en el Administrador de Relaciones de ARCA y probá de nuevo." },
+        rechazado: { title: "ARCA rechazó tu certificado", detail: cert.motivo ?? "Generá un pedido nuevo y volvé a crear el certificado." },
+        vencido: { title: "Tu certificado de ARCA venció", detail: "No se pueden autorizar facturas hasta renovarlo. Son unos minutos desde la tarjeta de arriba." },
+      }[cert.fase as string];
+      if (aviso) return { ...aviso, className: cert.fase === "vencido" || cert.fase === "rechazado"
+        ? "bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300"
+        : "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-300", icon: AlertTriangle };
     }
     if (!connection.configured) {
       // C14: quién tiene que hacer algo depende del modo. Decirle "cargá el
@@ -330,7 +357,9 @@ export default function AFIPPage() {
       {pasosAlta && <RecorridoAltaFiscal pasos={pasosAlta} />}
 
       <div id="conectar-arca" className="scroll-mt-20">
-      {loading ? <p role="status" className="text-sm text-muted-foreground">Consultando estado fiscal…</p> : !connectionError && <ConectarAfip
+      {loading ? <p role="status" className="text-sm text-muted-foreground">Consultando estado fiscal…</p> : !connectionError && connection?.modo === "propio" ? (
+        <ConectarCertificadoPropio orgId={orgId} estado={connection} canEdit={canEdit} onCambio={() => void load()} />
+      ) : !connectionError && <ConectarAfip
         orgId={orgId}
         motivo={connection?.motivo ?? null}
         plataformaCuit={connection?.plataforma_cuit ?? null}

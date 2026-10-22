@@ -107,6 +107,11 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
   /** La plataforma tiene su certificado cargado. Si no, el modo delegado no
    *  puede emitir, y eso NO es un problema del comercio: hay que decirlo. */
   const [plataformaLista, setPlataformaLista] = useState(false);
+  /** Certificado propio (2026-10-22): con certificado cargado, el ambiente lo
+   *  define el certificado (uno de homologación no sirve en producción). */
+  const [modo, setModo] = useState<string | null>(null);
+  const [certificadoCargado, setCertificadoCargado] = useState(false);
+  const [configurado, setConfigurado] = useState(false);
   /** El formulario del certificado propio arranca cerrado en modo delegado:
    *  mostrar un campo de clave privada a quien no necesita subirla es lo que
    *  hace que el onboarding parezca un trámite. */
@@ -118,7 +123,7 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
     // vuelven al navegador, ni siquiera después de que se hayan guardado.
     const { data, error } = await supabase
       .from("afip_connection_status")
-      .select("cuit, razon_social, domicilio, ingresos_brutos, inicio_actividades, punto_venta, environment, tipo_emisor, configured, plataforma_lista, ta_expires_at")
+      .select("cuit, razon_social, domicilio, ingresos_brutos, inicio_actividades, punto_venta, environment, tipo_emisor, configured, plataforma_lista, ta_expires_at, modo, certificado_vence")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (error) throw error;
@@ -131,6 +136,9 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
     // ⚠️ `configured` de la vista significa PUEDE EMITIR, no "subió un
     // certificado": el certificado es siempre el de la plataforma.
     setPlataformaLista(!!data.plataforma_lista);
+    setModo(data.modo ?? null);
+    setCertificadoCargado(!!data.certificado_vence);
+    setConfigurado(!!data.configured);
     setDomicilio(data.domicilio || "");
     setIngresosBrutos(data.ingresos_brutos || "");
     setInicioActividades(data.inicio_actividades || "");
@@ -197,7 +205,7 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
       await doSave();
 
       toast.success("Datos fiscales guardados");
-      if (!plataformaLista) {
+      if (modo !== "propio" && !plataformaLista) {
         toast.warning("La plataforma todavía no cargó su certificado; no es algo de tu lado.");
       }
       await refreshConnectionStatus();
@@ -213,7 +221,9 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
 
   // ⚠️ Configurado = datos fiscales + certificado DE LA PLATAFORMA. El
   //    comercio ya no sube el suyo, así que su estado no entra acá.
-  const isConfigured = !!(cuit && plataformaLista);
+  const propio = modo === "propio";
+  const isConfigured = propio ? !!(cuit && configurado) : !!(cuit && plataformaLista);
+  const ambienteFijo = propio && certificadoCargado;
   const identidadIncompleta = !!mensajeIdentidadFiscalFaltante({ razonSocial, domicilio })
     || !tipoEmisor
     || (environment === "produccion" && (!ingresosBrutos.trim() || !inicioActividades));
@@ -315,13 +325,18 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
         </div>
         <div className="md:col-span-2">
           <label htmlFor="arca-environment" className="text-xs text-muted-foreground mb-1 block">Ambiente</label>
-          <Select value={environment} onValueChange={setEnvironment}>
+          <Select value={environment} onValueChange={setEnvironment} disabled={ambienteFijo}>
             <SelectTrigger id="arca-environment" className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="homologacion">Homologación (pruebas)</SelectItem>
               <SelectItem value="produccion">Producción (facturas reales)</SelectItem>
             </SelectContent>
           </Select>
+          {ambienteFijo && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Lo define tu certificado. Para cambiarlo, generá un pedido del otro ambiente en «Conectá ARCA».
+            </p>
+          )}
           {environment === "produccion" && (
             <p className="text-[10px] text-destructive mt-1">
               Las facturas emitidas en producción son definitivas ante ARCA. Para
@@ -339,28 +354,38 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
           organizaciones en delegado y agregó una constraint que impide guardar
           un certificado en la fila del comercio. Una rama que no puede
           ejecutarse es una promesa que nadie va a poder cumplir. */}
-      <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-2">
-        <p className="text-xs font-medium">
-          Facturás con el certificado de la plataforma
-        </p>
-        {/* ⚠️ Acá decía «sólo tenés que delegar el servicio wsfe». Se
-            contradecía con la tarjeta de arriba, que para un comercio cuyo
-            CUIT es el de la plataforma dice «no tenés que hacer ningún
-            trámite». Qué falta —y si falta algo— lo decide `ConectarAfip`
-            mirando el motivo; este bloque sólo cuenta de qué certificado se
-            factura. Dos lugares contando el mismo estado terminan
-            contradiciéndose, que es justo lo que pasó. */}
-        <p className="text-[11px] text-muted-foreground">
-          No tenés que generar ninguna clave ni subir ningún archivo, y la
-          activación y su estado se gestionan en la guía de arriba.
-        </p>
-        {!plataformaLista && (
-          <p className="text-[11px] text-destructive">
-            La plataforma todavía no cargó su certificado. No es un problema de tu
-            configuración: no hay nada que puedas hacer de este lado.
+      {propio ? (
+        <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-1">
+          <p className="text-xs font-medium">Facturás con tu propio certificado de ARCA</p>
+          <p className="text-[11px] text-muted-foreground">
+            Lo conectás en «Conectá ARCA», arriba. Las facturas salen con tu CUIT y tu certificado;
+            Nerqia nunca te pide la clave fiscal.
           </p>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-2">
+          <p className="text-xs font-medium">
+            Facturás con el certificado de la plataforma
+          </p>
+          {/* ⚠️ Acá decía «sólo tenés que delegar el servicio wsfe». Se
+              contradecía con la tarjeta de arriba, que para un comercio cuyo
+              CUIT es el de la plataforma dice «no tenés que hacer ningún
+              trámite». Qué falta —y si falta algo— lo decide `ConectarAfip`
+              mirando el motivo; este bloque sólo cuenta de qué certificado se
+              factura. Dos lugares contando el mismo estado terminan
+              contradiciéndose, que es justo lo que pasó. */}
+          <p className="text-[11px] text-muted-foreground">
+            No tenés que generar ninguna clave ni subir ningún archivo, y la
+            activación y su estado se gestionan en la guía de arriba.
+          </p>
+          {!plataformaLista && (
+            <p className="text-[11px] text-destructive">
+              La plataforma todavía no cargó su certificado. No es un problema de tu
+              configuración: no hay nada que puedas hacer de este lado.
+            </p>
+          )}
+        </div>
+      )}
       {/* ⚠️ Acá vivían los dos <Textarea> del certificado y la clave privada en
           PEM. El comercio no sube ninguna clave: el certificado es de la
           plataforma y se administra en /platform/afip. Pedirle a un comerciante

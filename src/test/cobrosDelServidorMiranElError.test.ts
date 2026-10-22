@@ -84,7 +84,7 @@ describe("cobros del servidor: las escrituras miran el error", () => {
   });
 
   it("borrar credenciales (certificado de ARCA, Mercado Libre) no dice «listo» si siguen guardadas", () => {
-    expect(fs.readFileSync("supabase/functions/afip-credentials/index.ts", "utf8")).toContain("if (borrarError) return json(");
+    expect(fs.readFileSync("supabase/functions/afip-credentials/index.ts", "utf8")).toContain('if (error) return { ok: false, motivo: "No se pudo borrar el certificado; sigue guardado. Reintentá." };');
     expect(fs.readFileSync("supabase/functions/meli-oauth/index.ts", "utf8")).toContain("if (desconectarError) return json(");
   });
 

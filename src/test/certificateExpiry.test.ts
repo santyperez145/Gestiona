@@ -19,6 +19,6 @@ describe("vencimiento del certificado de la plataforma", () => {
 
   it("dice qué hacer", () => {
     expect(vencimientoCertificado(en(5), ahora).mensaje).toMatch(/CSR/);
-    expect(vencimientoCertificado(en(-1), ahora).mensaje).toMatch(/todos los comercios/);
+    expect(vencimientoCertificado(en(-1), ahora).mensaje).toMatch(/comercios delegados/);
   });
 });

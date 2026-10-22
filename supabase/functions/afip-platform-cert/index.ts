@@ -26,6 +26,8 @@ import { cifrarSecreto, descifrarSecreto } from "../_shared/secretos.ts";
 import { esLlamadaDeCron } from "../_shared/cronAuth.ts";
 import { pedirTicketWsaa } from "../_shared/wsaaLogin.ts";
 import { validateAfipCertificateMetadata } from "../_shared/afipCertificate.ts";
+import { generarClaveYPedido, leerCertificado, textoDeEmisor } from "../_shared/certificadoArca.ts";
+import { wsaaUrl } from "../_shared/certificadoArcaReglas.ts";
 // @ts-ignore node-forge no publica tipos ESM compatibles con Deno.
 import forge from "https://esm.sh/node-forge@1.3.1";
 
@@ -280,16 +282,6 @@ async function verificarSinGuardar(admin: any): Promise<Record<string, unknown>>
   }
 }
 
-const WSAA_URL = (ambiente: string) => ambiente === "produccion"
-  ? "https://wsaa.afip.gov.ar/ws/services/LoginCms"
-  : "https://wsaahomo.afip.gov.ar/ws/services/LoginCms";
-
-/** «C=AR, O=AFIP, CN=Computadores» a partir del emisor de forge. */
-// deno-lint-ignore no-explicit-any
-function textoDeEmisor(cert: any): string {
-  return cert.issuer.attributes.map((a: { shortName?: string; name?: string; value: string }) => `${a.shortName ?? a.name}=${a.value}`).join(", ");
-}
-
 /**
  * Genera el pedido de certificado (CSR) en el servidor (2026-10-15).
  *
@@ -305,29 +297,7 @@ async function generarPedido(admin: any, ambiente: unknown): Promise<Record<stri
   const { data: plat, error } = await admin.from("afip_platform_credentials").select("cuit, razon_social").maybeSingle();
   if (error || !plat?.cuit) return { ok: false, motivo: "Falta el CUIT de la plataforma" };
 
-  const par = await crypto.subtle.generateKey(
-    { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
-    true, ["sign", "verify"],
-  );
-  const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", par.privateKey));
-  let binario = "";
-  for (const byte of pkcs8) binario += String.fromCharCode(byte);
-  const b64 = (btoa(binario).match(/.{1,64}/g) ?? []).join("\n");
-  const clavePem = `-----BEGIN PRIVATE KEY-----\n${b64}\n-----END PRIVATE KEY-----\n`;
-
-  const clave = forge.pki.privateKeyFromPem(clavePem);
-  const csr = forge.pki.createCertificationRequest();
-  csr.publicKey = forge.pki.setRsaPublicKey(clave.n, clave.e);
-  const organizacion = String(plat.razon_social || "Nerqia")
-    .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 .,&-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 64) || "Nerqia";
-  csr.setSubject([
-    { name: "countryName", value: "AR" },
-    { name: "organizationName", value: organizacion },
-    { name: "commonName", value: "nerqia" },
-    { type: "2.5.4.5", value: `CUIT ${plat.cuit}` },
-  ]);
-  csr.sign(clave, forge.md.sha256.create());
-  const csrPem = forge.pki.certificationRequestToPem(csr);
+  const { clavePem, csrPem } = await generarClaveYPedido({ cuit: String(plat.cuit), razonSocial: plat.razon_social || "Nerqia" });
 
   const { error: errGuardar } = await admin.from("afip_platform_credentials").update({
     pedido_clave: await cifrarSecreto(admin, clavePem),
@@ -355,28 +325,16 @@ async function cargarCertificadoDelPedido(admin: any, certificado: unknown): Pro
   let meta: { notBefore: string; expiresAt: string; fingerprintSha256: string };
   let emisor = "";
   try {
-    const cert = forge.pki.certificateFromPem(certificado.trim());
-    const clave = forge.pki.privateKeyFromPem(clavePem);
-    const digest = forge.md.sha256.create();
-    digest.update(forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes());
-    emisor = textoDeEmisor(cert);
-    meta = validateAfipCertificateMetadata({
-      notBefore: cert.validity.notBefore,
-      notAfter: cert.validity.notAfter,
-      subjectSerialNumber: cert.subject.getField("serialNumber")?.value ?? null,
-      certificateModulus: cert.publicKey.n.toString(16),
-      certificateExponent: cert.publicKey.e.toString(16),
-      privateKeyModulus: clave.n.toString(16),
-      privateKeyExponent: clave.e.toString(16),
-      fingerprintSha256: digest.digest().toHex(),
-    }, String(plat.cuit));
+    const leido = leerCertificado(certificado, clavePem, String(plat.cuit));
+    meta = leido;
+    emisor = leido.emisor;
   } catch (e) {
     return { ok: false, motivo: e instanceof Error ? e.message : "El certificado no corresponde al pedido" };
   }
 
   let ta: { token: string; sign: string; expiresAt: string };
   try {
-    ta = await pedirTicketWsaa(WSAA_URL(plat.pedido_ambiente), certificado.trim(), clavePem, "wsfe");
+    ta = await pedirTicketWsaa(wsaaUrl(plat.pedido_ambiente), certificado.trim(), clavePem, "wsfe");
   } catch (e) {
     return { ok: false, emisor, motivo: `ARCA no aceptó el certificado; no se cambió nada. ${e instanceof Error ? e.message : ""}`.trim() };
   }

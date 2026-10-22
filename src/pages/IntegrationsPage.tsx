@@ -68,7 +68,7 @@ export default function IntegrationsPage() {
     const [mp, arca, claves, wa, correo] = await Promise.all([
       supabase.from("payment_connection_status").select("conectado, vigente, expires_at, last_error, nickname, email, live_mode")
         .eq("org_id", orgId).eq("provider", "mercadopago").maybeSingle(),
-      supabase.from("afip_connection_status").select("configured, environment, cuit, punto_venta, razon_social, last_error, modo, delegacion_verificada, motivo")
+      supabase.from("afip_connection_status").select("configured, environment, cuit, punto_venta, razon_social, last_error, modo, delegacion_verificada, motivo, certificado_vence, certificado_verificado_ok, certificado_verificado_motivo, pedido_pendiente")
         .eq("org_id", orgId).maybeSingle(),
       supabase.from("api_keys").select("revoked_at, expires_at, last_used_at").eq("org_id", orgId).is("revoked_at", null).limit(200),
       supabase.from("evolution_connection_status").select("configured, instance").eq("org_id", orgId).maybeSingle(),

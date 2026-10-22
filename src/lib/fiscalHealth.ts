@@ -5,6 +5,7 @@
  * El certificado de la plataforma no es visible para el comercio: su vigencia
  * se controla en Platform.
  */
+import { estadoCertificado, type ConexionConCertificado } from "@/lib/certificadoPropio";
 import { grupoPendienteFiscal, type ComprobantePendienteFiscal } from "@/lib/fiscalExceptions";
 
 export type EstadoControlFiscal = "ok" | "atencion" | "falla";
@@ -31,7 +32,7 @@ export type ConexionFiscal = {
   plataforma_verificada?: boolean | null;
   /** 'propio' usa su certificado: la prueba del de Nerqia no le aplica. */
   modo?: string | null;
-};
+} & ConexionConCertificado;
 
 export type ComprobanteFiscalSalud = ComprobantePendienteFiscal & { issue_date: string | null };
 
@@ -68,6 +69,23 @@ export function saludFiscal(
     detalle: faltantes.length === 0 ? "Completos." : `Falta: ${faltantes.join(", ")}.`,
   });
 
+  // Certificado propio (2026-10-22): la conexión es la del certificado del
+  // comercio, con las mismas etapas que muestra el asistente.
+  if (conexion?.modo === "propio") {
+    const cert = estadoCertificado(conexion);
+    const porFase: Record<string, { estado: ControlFiscal["estado"]; detalle: string }> = {
+      listo: { estado: "ok", detalle: `ARCA acepta tu certificado. Vence el ${new Date(conexion.certificado_vence ?? "").toLocaleDateString("es-AR")}.` },
+      por_vencer: { estado: "atencion", detalle: `Tu certificado vence en ${cert.dias} días: renovalo para no cortar la facturación.` },
+      falta_verificar: { estado: "atencion", detalle: "ARCA aceptó tu certificado; falta verificar el punto de venta." },
+      falta_asociar: { estado: "falla", detalle: "Falta asociar tu certificado a Facturación Electrónica en ARCA." },
+      rechazado: { estado: "falla", detalle: cert.motivo ?? "ARCA rechazó tu certificado." },
+      vencido: { estado: "falla", detalle: "Tu certificado venció: renovalo para volver a facturar." },
+      pedido_pendiente: { estado: "falla", detalle: "Generaste el pedido; falta crear el certificado en ARCA y subirlo." },
+      sin_certificado: { estado: "falla", detalle: "Todavía no conectaste tu certificado de ARCA." },
+      sin_cuit: { estado: "falla", detalle: "Todavía no se puede pedir CAE." },
+    };
+    controles.push({ id: "conexion", titulo: "Conexión con ARCA", ...porFase[cert.fase] });
+  } else {
   // 2026-10-15: decía «Nerqia puede pedir autorización a ARCA» con un
   // certificado de homologación que ARCA producción rechazaba. Ahora sale de la
   // última prueba real del certificado.
@@ -85,17 +103,19 @@ export function saludFiscal(
           ? "El ambiente elegido no tiene certificado disponible."
           : "Todavía no se puede pedir CAE.",
   });
+  }
 
+  const propio = conexion?.modo === "propio";
   controles.push({
     id: "delegacion",
-    titulo: "Delegación y punto de venta verificados",
+    titulo: propio ? "Punto de venta verificado con ARCA" : "Delegación y punto de venta verificados",
     estado: conexion?.delegacion_verificada ? "ok"
       : conexion?.motivo === "esperando_plataforma" ? "atencion" : "falla",
     detalle: conexion?.delegacion_verificada
       ? "ARCA confirmó el CUIT y el punto de venta."
       : conexion?.motivo === "esperando_plataforma"
         ? "La activación está en revisión de Nerqia."
-        : "Falta verificar la delegación y el punto de venta con ARCA.",
+        : propio ? "Falta verificar con ARCA tu CUIT y el punto de venta." : "Falta verificar la delegación y el punto de venta con ARCA.",
   });
 
   controles.push({

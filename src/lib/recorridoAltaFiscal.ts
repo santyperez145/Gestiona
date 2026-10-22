@@ -5,6 +5,7 @@
 // comercio no veía en qué paso estaba ni cuál seguía. Se calcula con los
 // mismos datos que `saludFiscal`: no consulta ARCA ni corrige nada.
 import type { ComprobanteFiscalSalud, ConexionFiscal } from "@/lib/fiscalHealth";
+import { estadoCertificado } from "@/lib/certificadoPropio";
 
 export type EstadoPaso = "hecho" | "actual" | "pendiente";
 
@@ -24,8 +25,13 @@ export function recorridoAltaFiscal(
   comprobantes: ComprobanteFiscalSalud[],
 ): PasoAltaFiscal[] {
   const emisor = !vacio(conexion?.cuit) && !vacio(conexion?.razon_social) && !vacio(conexion?.domicilio);
-  const delegacion = !!conexion?.delegacion_verificada;
-  const punto = delegacion && !!conexion?.punto_venta;
+  // Con certificado propio (2026-10-22) el paso es tener el certificado
+  // aceptado por ARCA; el punto de venta se verifica después.
+  const propio = conexion?.modo === "propio";
+  const delegacion = propio
+    ? ["listo", "por_vencer", "falta_verificar"].includes(estadoCertificado(conexion).fase)
+    : !!conexion?.delegacion_verificada;
+  const punto = delegacion && !!conexion?.delegacion_verificada && !!conexion?.punto_venta;
   const conCae = comprobantes.some(c => c.cae && c.afip_status === "authorized");
   const produccion = conexion?.environment === "produccion" && conCae;
 
@@ -36,7 +42,11 @@ export function recorridoAltaFiscal(
       detalle: "CUIT, razón social y domicilio. «Completar con ARCA» los trae del padrón.",
       ancla: "#datos-fiscales",
     },
-    {
+    propio ? {
+      id: "delegacion", titulo: "Tu certificado de ARCA",
+      detalle: "Generá el pedido, crealo en ARCA con tu clave fiscal, asocialo a Facturación Electrónica y subilo.",
+      ancla: "#conectar-arca",
+    } : {
       id: "delegacion", titulo: "Delegación en ARCA",
       detalle: "Autorizá a Nerqia a facturar por vos en el Administrador de Relaciones y verificalo.",
       ancla: "#conectar-arca",

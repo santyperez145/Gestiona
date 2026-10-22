@@ -1,3 +1,4 @@
+import { estadoCertificado } from "@/lib/certificadoPropio";
 import { fechaLocal } from "@/lib/fechaAR";
 /**
  * Estado de las integraciones (2026-10-14, funciones incoherentes).
@@ -53,9 +54,16 @@ export function estadoDeIntegraciones(f: FuentesDeIntegraciones, ahora = new Dat
     const nombre = "ARCA (factura electrónica)";
     if (fallo("arca")) return sinDatos("arca", nombre);
     const c = f.arca;
-    if (!c?.configured) return { id: "arca", nombre, estado: "sin_configurar", detalle: c?.motivo || "Sin configurar" };
+    if (c?.modo === "propio") {
+      const cert = estadoCertificado(c);
+      if (cert.fase === "vencido") return { id: "arca", nombre, estado: "error", detalle: "Tu certificado de ARCA venció: renovalo desde la página de ARCA" };
+      if (cert.fase === "rechazado" || cert.fase === "falta_asociar") return { id: "arca", nombre, estado: "error", detalle: cert.motivo ?? "ARCA rechazó tu certificado" };
+      if (cert.fase === "sin_certificado" || cert.fase === "pedido_pendiente" || cert.fase === "sin_cuit") return { id: "arca", nombre, estado: "sin_configurar", detalle: "Falta conectar tu certificado de ARCA" };
+      if (cert.fase === "por_vencer") return { id: "arca", nombre, estado: "atencion", detalle: `Tu certificado vence en ${cert.dias} días: renovalo` };
+    }
+    if (!c?.configured) return { id: "arca", nombre, estado: "sin_configurar", detalle: "Sin configurar" };
     if (c.last_error) return { id: "arca", nombre, estado: "error", detalle: c.last_error };
-    if (c.modo === "delegado" && c.delegacion_verificada === false) return { id: "arca", nombre, estado: "atencion", detalle: "Falta verificar la delegación en ARCA" };
+    if (c.delegacion_verificada === false) return { id: "arca", nombre, estado: "atencion", detalle: c.modo === "propio" ? "Falta verificar tu punto de venta con ARCA" : "Falta verificar la delegación en ARCA" };
     const homologacion = c.environment !== "produccion";
     const quien = [c.razon_social, c.cuit ? `CUIT ${c.cuit}` : null, c.punto_venta ? `PV ${c.punto_venta}` : null].filter(Boolean).join(" · ");
     if (homologacion) return { id: "arca", nombre, estado: "atencion", detalle: `En homologación: los comprobantes no tienen validez fiscal${quien ? ` · ${quien}` : ""}` };
