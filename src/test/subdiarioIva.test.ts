@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hojaPosicion, subdiarioCompras, subdiarioVentas } from "@/lib/subdiarioIva";
+import { hojaPosicion, hojaRetenciones, subdiarioCompras, subdiarioVentas, totalesDeRetenciones, type RetencionSufrida } from "@/lib/subdiarioIva";
 import type { ComprobanteVenta } from "@/lib/libroIvaVentas";
 import type { ComprobanteCompra } from "@/lib/libroIvaCompras";
 
@@ -49,7 +49,19 @@ describe("subdiario de IVA en Excel", () => {
   });
 
   it("posición: saldo a pagar o a favor", () => {
-    expect(hojaPosicion({ debitoFiscal: 5000, creditoFiscal: 2100, percepcionesIva: 300, saldo: 2600 })[4]).toEqual(["Saldo a pagar", 2600]);
-    expect(hojaPosicion({ debitoFiscal: 0, creditoFiscal: 100, percepcionesIva: 0, saldo: -100 })[4]).toEqual(["Saldo técnico a favor", 100]);
+    expect(hojaPosicion({ debitoFiscal: 5000, creditoFiscal: 2100, percepcionesIva: 300, retencionesIva: 600, saldo: 2000 })[4]).toEqual(["Retenciones de IVA sufridas", -600]);
+    expect(hojaPosicion({ debitoFiscal: 5000, creditoFiscal: 2100, percepcionesIva: 300, saldo: 2600 })[5]).toEqual(["Saldo a pagar", 2600]);
+    expect(hojaPosicion({ debitoFiscal: 0, creditoFiscal: 100, percepcionesIva: 0, saldo: -100 })[5]).toEqual(["Saldo técnico a favor", 100]);
+  });
+
+  it("retenciones: totales por impuesto y hoja con total", () => {
+    const r = (id: string, impuesto: RetencionSufrida["impuesto"], importe: number): RetencionSufrida => ({
+      id, fecha: "2026-09-10", impuesto, agente_cuit: "30712345671", agente_nombre: "ZZ Agente", numero_certificado: id, jurisdiccion: null, importe,
+    });
+    const lista = [r("1", "iva", 1500), r("2", "iva", 0.1), r("3", "iibb", 300)];
+    expect(totalesDeRetenciones(lista)).toEqual({ iva: 1500.1, ganancias: 0, iibb: 300, suss: 0 });
+    const hoja = hojaRetenciones(lista);
+    expect(hoja[1][1]).toBe("IVA");
+    expect(hoja[hoja.length - 1]).toEqual(["Totales", "", "", "", "", "", 1800.1]);
   });
 });

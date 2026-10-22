@@ -66,7 +66,8 @@ describe("Libro IVA Digital — compras", () => {
 
   it("posición de IVA: débito menos crédito menos percepciones", () => {
     const resumen = libroIvaCompras([base]).resumen;
-    expect(posicionIva(5000, resumen)).toEqual({ debitoFiscal: 5000, creditoFiscal: 2100, percepcionesIva: 300, saldo: 2600 });
+    expect(posicionIva(5000, resumen)).toEqual({ debitoFiscal: 5000, creditoFiscal: 2100, percepcionesIva: 300, retencionesIva: 0, saldo: 2600 });
+    expect(posicionIva(5000, resumen, 600).saldo).toBe(2000);
     expect(posicionIva(1000, resumen).saldo).toBe(-1400);
   });
 

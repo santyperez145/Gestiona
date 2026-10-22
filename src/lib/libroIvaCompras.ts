@@ -161,13 +161,15 @@ export interface PosicionIva {
   debitoFiscal: number;
   creditoFiscal: number;
   percepcionesIva: number;
+  /** Retenciones de IVA sufridas en el período (certificados de los clientes). */
+  retencionesIva: number;
   /** Positivo: a pagar. Negativo: saldo técnico a favor. */
   saldo: number;
 }
 
-export function posicionIva(debitoFiscal: number, compras: LibroIvaCompras["resumen"]): PosicionIva {
-  const saldo = centavos(debitoFiscal) - centavos(compras.creditoFiscal) - centavos(compras.percepcionesIva);
-  return { debitoFiscal, creditoFiscal: compras.creditoFiscal, percepcionesIva: compras.percepcionesIva, saldo: pesos(saldo) };
+export function posicionIva(debitoFiscal: number, compras: LibroIvaCompras["resumen"], retencionesIva = 0): PosicionIva {
+  const saldo = centavos(debitoFiscal) - centavos(compras.creditoFiscal) - centavos(compras.percepcionesIva) - centavos(retencionesIva);
+  return { debitoFiscal, creditoFiscal: compras.creditoFiscal, percepcionesIva: compras.percepcionesIva, retencionesIva, saldo: pesos(saldo) };
 }
 
 /** Lo que la base va a exigir, para avisar antes de guardar. */

@@ -92,14 +92,46 @@ export function subdiarioCompras(comprobantes: ComprobanteCompra[]): Celda[][] {
   return filas;
 }
 
-export function hojaPosicion(p: { debitoFiscal: number; creditoFiscal: number; percepcionesIva: number; saldo: number }): Celda[][] {
+export function hojaPosicion(p: { debitoFiscal: number; creditoFiscal: number; percepcionesIva: number; retencionesIva?: number; saldo: number }): Celda[][] {
   return [
     ["Concepto", "Importe"],
     ["Débito fiscal (ventas)", p.debitoFiscal],
     ["Crédito fiscal (compras)", -p.creditoFiscal],
     ["Percepciones de IVA sufridas", -p.percepcionesIva],
+    ["Retenciones de IVA sufridas", -(p.retencionesIva ?? 0)],
     [p.saldo >= 0 ? "Saldo a pagar" : "Saldo técnico a favor", Math.abs(p.saldo)],
     [],
-    ["Referencia del mes: no incluye retenciones sufridas ni saldos de períodos anteriores."],
+    ["Referencia del mes: no incluye saldos de períodos anteriores."],
   ];
+}
+
+export interface RetencionSufrida {
+  id: string;
+  fecha: string;
+  impuesto: "iva" | "ganancias" | "iibb" | "suss";
+  agente_cuit: string;
+  agente_nombre: string;
+  numero_certificado: string;
+  jurisdiccion: string | null;
+  importe: number;
+}
+
+export const NOMBRE_IMPUESTO: Record<RetencionSufrida["impuesto"], string> = {
+  iva: "IVA", ganancias: "Ganancias", iibb: "Ingresos Brutos", suss: "SUSS",
+};
+
+/** Total por impuesto, en pesos con centavos. */
+export function totalesDeRetenciones(retenciones: RetencionSufrida[]): Record<RetencionSufrida["impuesto"], number> {
+  const t = { iva: 0, ganancias: 0, iibb: 0, suss: 0 };
+  for (const r of retenciones) t[r.impuesto] = redondear(t[r.impuesto] + Number(r.importe));
+  return t;
+}
+
+export function hojaRetenciones(retenciones: RetencionSufrida[]): Celda[][] {
+  const filas: Celda[][] = [["Fecha", "Impuesto", "Agente", "CUIT", "Certificado", "Jurisdicción", "Importe"],
+    ...[...retenciones].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [
+      fechaAr(r.fecha), NOMBRE_IMPUESTO[r.impuesto], r.agente_nombre, r.agente_cuit, r.numero_certificado, r.jurisdiccion ?? "", Number(r.importe),
+    ])];
+  if (retenciones.length) filas.push(["Totales", "", "", "", "", "", redondear(retenciones.reduce((s, r) => s + Number(r.importe), 0))]);
+  return filas;
 }

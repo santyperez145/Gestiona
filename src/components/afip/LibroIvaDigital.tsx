@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { mesAR } from "@/lib/fechaAR";
 import { libroIvaVentas, periodoAPresentar, rangoDelPeriodo, type ComprobanteVenta } from "@/lib/libroIvaVentas";
 import { posicionIva, type ComprobanteCompra, type LibroIvaCompras } from "@/lib/libroIvaCompras";
-import { hojaPosicion, subdiarioCompras, subdiarioVentas } from "@/lib/subdiarioIva";
+import { hojaPosicion, hojaRetenciones, subdiarioCompras, subdiarioVentas, totalesDeRetenciones, type RetencionSufrida } from "@/lib/subdiarioIva";
+import RetencionesSufridas from "@/components/afip/RetencionesSufridas";
 import ComprobantesDeCompra from "@/components/afip/ComprobantesDeCompra";
 
 const PAGINA = 1000;
@@ -43,6 +44,8 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
     setCompras(lista);
   }, []);
   const [armandoExcel, setArmandoExcel] = useState(false);
+  const [retenciones, setRetenciones] = useState<RetencionSufrida[]>([]);
+  const retencionesIva = totalesDeRetenciones(retenciones).iva;
   const [periodo, setPeriodo] = useState(() => periodoAPresentar(mesAR()));
   const [lectura, setLectura] = useState<Lectura>({ estado: "cargando" });
 
@@ -96,7 +99,8 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ventas.filas), "Ventas");
       if (!monotributo) {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(subdiarioCompras(compras)), "Compras");
-        if (resumenCompras) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaPosicion(posicionIva(libro.resumen.debitoFiscal, resumenCompras))), "Posición");
+        if (resumenCompras) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaPosicion(posicionIva(libro.resumen.debitoFiscal, resumenCompras, retencionesIva))), "Posición");
+        if (retenciones.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaRetenciones(retenciones)), "Retenciones");
       }
       if (ventas.revisar.length) {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Fecha", "Comprobante", "Motivo"], ...ventas.revisar]), "A revisar");
@@ -231,7 +235,7 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
       {!monotributo && (
         <div className="border-t border-border/40 pt-4 space-y-4">
           {libro && lectura.estado === "listo" && resumenCompras && (() => {
-            const p = posicionIva(libro.resumen.debitoFiscal, resumenCompras);
+            const p = posicionIva(libro.resumen.debitoFiscal, resumenCompras, retencionesIva);
             return (
               <div className="rounded-lg border border-border/40 p-3 text-sm space-y-1" aria-label="Posición de IVA del período">
                 <p className="font-medium">Posición de IVA del período</p>
@@ -239,14 +243,16 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
                   <span className="text-muted-foreground">Débito fiscal (ventas)</span><span className="text-right">{ars(p.debitoFiscal)}</span>
                   <span className="text-muted-foreground">Crédito fiscal (compras)</span><span className="text-right">− {ars(p.creditoFiscal)}</span>
                   <span className="text-muted-foreground">Percepciones de IVA sufridas</span><span className="text-right">− {ars(p.percepcionesIva)}</span>
+                  <span className="text-muted-foreground">Retenciones de IVA sufridas</span><span className="text-right">− {ars(p.retencionesIva)}</span>
                   <span className="font-medium">{p.saldo >= 0 ? "Saldo a pagar" : "Saldo técnico a favor"}</span>
                   <span className="text-right font-semibold">{ars(Math.abs(p.saldo))}</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground">Referencia del mes: no incluye retenciones sufridas ni saldos de períodos anteriores. La declaración jurada la presentás vos o tu contador.</p>
+                <p className="text-[11px] text-muted-foreground">Referencia del mes: no incluye saldos de períodos anteriores. La declaración jurada la presentás vos o tu contador.</p>
               </div>
             );
           })()}
           <ComprobantesDeCompra orgId={orgId} periodo={periodo} canEdit={canEdit} onResumen={alCambiarCompras} />
+          <RetencionesSufridas orgId={orgId} periodo={periodo} canEdit={canEdit} onCambio={setRetenciones} />
         </div>
       )}
     </section>

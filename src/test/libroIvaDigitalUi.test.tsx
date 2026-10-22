@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
 
-const { respuestas, compras, llamadas } = vi.hoisted(() => ({ respuestas: [] as unknown[], compras: [] as unknown[], llamadas: [] as string[][] }));
+const { respuestas, compras, retenciones, llamadas } = vi.hoisted(() => ({ respuestas: [] as unknown[], compras: [] as unknown[], retenciones: [] as unknown[], llamadas: [] as string[][] }));
 const { hojas, escribir } = vi.hoisted(() => ({ hojas: [] as string[], escribir: vi.fn() }));
 vi.mock("xlsx", () => ({
   utils: { book_new: () => ({}), aoa_to_sheet: (filas: unknown[][]) => filas, book_append_sheet: (_wb: unknown, _hoja: unknown, nombre: string) => { hojas.push(nombre); } },
@@ -13,6 +13,7 @@ vi.mock("@/integrations/supabase/client", () => {
     const q: Record<string, unknown> = {};
     for (const m of ["select", "eq", "not", "gte", "lte", "order"]) q[m] = (...a: unknown[]) => { llamadas.push([tabla, m, ...a.map(String)]); return q; };
     q.range = async () => (tabla === "invoices" ? respuestas.shift() : compras.shift()) ?? { data: [], error: null };
+    q.limit = async () => retenciones.shift() ?? { data: [], error: null };
     return q;
   };
   return { supabase: { from: (tabla: string) => consulta(tabla) } };
@@ -23,7 +24,7 @@ const factura = (id: string, extra: Record<string, unknown> = {}) => ({
   customer_tax_id: "", customer_name: "", subtotal: 100, tax_amount: 21, tax_pct: 21, total: 121, afip_environment: "produccion", invoice_items: [], ...extra,
 });
 
-beforeEach(() => { respuestas.length = 0; compras.length = 0; llamadas.length = 0; });
+beforeEach(() => { respuestas.length = 0; compras.length = 0; retenciones.length = 0; llamadas.length = 0; });
 
 describe("Libro IVA Digital en la pantalla de ARCA", () => {
   it("resume el mes, deja afuera homologación y avisa lo que no entra", async () => {
@@ -80,5 +81,17 @@ describe("Libro IVA Digital en la pantalla de ARCA", () => {
     await waitFor(() => expect(escribir).toHaveBeenCalled());
     expect(hojas).toEqual(["Ventas", "Compras", "Posición"]);
     expect(escribir.mock.calls[0][1]).toMatch(/^subdiario-iva-\d{4}-\d{2}\.xlsx$/);
+  });
+
+  it("una retención de IVA sufrida resta en la posición", async () => {
+    respuestas.push({ data: [factura("zz1", { subtotal: 10000, tax_amount: 2100, total: 12100 })], error: null });
+    compras.push({ data: [], error: null });
+    retenciones.push({ data: [{ id: "r1", fecha: "2026-09-10", impuesto: "iva", agente_cuit: "30712345671", agente_nombre: "ZZ Agente",
+      numero_certificado: "0001-1", jurisdiccion: null, importe: 600 }], error: null });
+    render(<LibroIvaDigital orgId="zz-org" monotributo={false} canEdit />);
+    const posicion = await screen.findByLabelText("Posición de IVA del período");
+    await waitFor(() => expect(posicion).toHaveTextContent(/1\.500,00/));
+    expect(posicion).toHaveTextContent("Retenciones de IVA sufridas");
+    expect(screen.getByText("ZZ Agente")).toBeVisible();
   });
 });

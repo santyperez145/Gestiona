@@ -39317,6 +39317,54 @@ export type Database = {
           },
         ]
       }
+      retenciones_sufridas: {
+        Row: {
+          agente_cuit: string
+          agente_nombre: string
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          importe: number
+          impuesto: string
+          jurisdiccion: string | null
+          notas: string | null
+          numero_certificado: string
+          org_id: string
+          periodo: string
+        }
+        Insert: {
+          agente_cuit: string
+          agente_nombre: string
+          created_at?: string
+          created_by?: string | null
+          fecha: string
+          id?: string
+          importe: number
+          impuesto: string
+          jurisdiccion?: string | null
+          notas?: string | null
+          numero_certificado: string
+          org_id: string
+          periodo: string
+        }
+        Update: {
+          agente_cuit?: string
+          agente_nombre?: string
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          importe?: number
+          impuesto?: string
+          jurisdiccion?: string | null
+          notas?: string | null
+          numero_certificado?: string
+          org_id?: string
+          periodo?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           can_create: boolean
