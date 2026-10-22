@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
 
 const { respuestas, compras, llamadas } = vi.hoisted(() => ({ respuestas: [] as unknown[], compras: [] as unknown[], llamadas: [] as string[][] }));
+const { hojas, escribir } = vi.hoisted(() => ({ hojas: [] as string[], escribir: vi.fn() }));
+vi.mock("xlsx", () => ({
+  utils: { book_new: () => ({}), aoa_to_sheet: (filas: unknown[][]) => filas, book_append_sheet: (_wb: unknown, _hoja: unknown, nombre: string) => { hojas.push(nombre); } },
+  writeFile: escribir,
+}));
 vi.mock("@/integrations/supabase/client", () => {
   const consulta = (tabla: string) => {
     const q: Record<string, unknown> = {};
@@ -64,5 +69,16 @@ describe("Libro IVA Digital en la pantalla de ARCA", () => {
     render(<LibroIvaDigital orgId="zz-org" monotributo={false} canEdit />);
     expect(await screen.findByText("El registro de compras todavía no está activo en tu cuenta.")).toBeVisible();
     expect(screen.queryByRole("button", { name: /Cargar comprobante de compra/ })).not.toBeInTheDocument();
+  });
+
+  it("el Excel para el contador trae ventas, compras y posición", async () => {
+    hojas.length = 0;
+    respuestas.push({ data: [factura("zz1", { subtotal: 10000, tax_amount: 2100, total: 12100 })], error: null });
+    compras.push({ data: [], error: null });
+    render(<LibroIvaDigital orgId="zz-org" monotributo={false} canEdit />);
+    fireEvent.click(await screen.findByRole("button", { name: /Excel para tu contador/ }));
+    await waitFor(() => expect(escribir).toHaveBeenCalled());
+    expect(hojas).toEqual(["Ventas", "Compras", "Posición"]);
+    expect(escribir.mock.calls[0][1]).toMatch(/^subdiario-iva-\d{4}-\d{2}\.xlsx$/);
   });
 });

@@ -84,7 +84,8 @@ function desdeFormulario(f: Formulario): Omit<ComprobanteCompra, "id"> {
 }
 
 export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResumen }: {
-  orgId: string | null; periodo: string; canEdit: boolean; onResumen: (r: LibroIvaCompras["resumen"] | null) => void;
+  orgId: string | null; periodo: string; canEdit: boolean;
+  onResumen: (r: LibroIvaCompras["resumen"] | null, comprobantes: ComprobanteCompra[]) => void;
 }) {
   const [lectura, setLectura] = useState<Lectura>({ estado: "cargando" });
   const [abierto, setAbierto] = useState(false);
@@ -126,7 +127,9 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
   }, [leer]);
 
   const libro = useMemo(() => lectura.estado === "listo" ? libroIvaCompras(lectura.comprobantes) : null, [lectura]);
-  useEffect(() => { onResumen(libro?.resumen ?? null); }, [libro, onResumen]);
+  useEffect(() => {
+    onResumen(libro?.resumen ?? null, lectura.estado === "listo" ? lectura.comprobantes : []);
+  }, [libro, lectura, onResumen]);
 
   const borrador = desdeFormulario(form);
   const errores = erroresDeComprobante(borrador);

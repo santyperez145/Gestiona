@@ -7,13 +7,15 @@
  * desglosar se muestra con el motivo en vez de desaparecer del libro.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, BookOpen, Download, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, BookOpen, Download, FileSpreadsheet, Loader2, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mesAR } from "@/lib/fechaAR";
 import { libroIvaVentas, periodoAPresentar, rangoDelPeriodo, type ComprobanteVenta } from "@/lib/libroIvaVentas";
-import { posicionIva, type LibroIvaCompras } from "@/lib/libroIvaCompras";
+import { posicionIva, type ComprobanteCompra, type LibroIvaCompras } from "@/lib/libroIvaCompras";
+import { hojaPosicion, subdiarioCompras, subdiarioVentas } from "@/lib/subdiarioIva";
 import ComprobantesDeCompra from "@/components/afip/ComprobantesDeCompra";
 
 const PAGINA = 1000;
@@ -35,6 +37,12 @@ type Lectura = { estado: "cargando" } | { estado: "error"; mensaje: string } | {
 
 export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId: string | null; monotributo: boolean; canEdit: boolean }) {
   const [resumenCompras, setResumenCompras] = useState<LibroIvaCompras["resumen"] | null>(null);
+  const [compras, setCompras] = useState<ComprobanteCompra[]>([]);
+  const alCambiarCompras = useCallback((r: LibroIvaCompras["resumen"] | null, lista: ComprobanteCompra[]) => {
+    setResumenCompras(r);
+    setCompras(lista);
+  }, []);
+  const [armandoExcel, setArmandoExcel] = useState(false);
   const [periodo, setPeriodo] = useState(() => periodoAPresentar(mesAR()));
   const [lectura, setLectura] = useState<Lectura>({ estado: "cargando" });
 
@@ -76,6 +84,31 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
 
   const libro = useMemo(() => lectura.estado === "listo" ? libroIvaVentas(lectura.comprobantes) : null, [lectura]);
   const sufijo = periodo.replace("-", "");
+
+  /** Subdiario de ventas, compras y posición en un solo archivo. */
+  const descargarExcel = async () => {
+    if (lectura.estado !== "listo" || !libro) return;
+    setArmandoExcel(true);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.utils.book_new();
+      const ventas = subdiarioVentas(lectura.comprobantes);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ventas.filas), "Ventas");
+      if (!monotributo) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(subdiarioCompras(compras)), "Compras");
+        if (resumenCompras) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaPosicion(posicionIva(libro.resumen.debitoFiscal, resumenCompras))), "Posición");
+      }
+      if (ventas.revisar.length) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Fecha", "Comprobante", "Motivo"], ...ventas.revisar]), "A revisar");
+      }
+      XLSX.writeFile(wb, `subdiario-iva-${periodo}.xlsx`);
+    } catch (e) {
+      console.error("Libro IVA: no se pudo armar el Excel", e);
+      toast.error("No se pudo armar el Excel. Reintentá.");
+    } finally {
+      setArmandoExcel(false);
+    }
+  };
 
   return (
     <section className="bg-card border border-border/40 rounded-xl p-5 space-y-4" aria-labelledby="libro-iva-titulo">
@@ -187,6 +220,9 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
               <Button size="sm" variant="outline" disabled={!libro.alicuotas} onClick={() => descargar(`LIBRO_IVA_DIGITAL_VENTAS_ALICUOTAS_${sufijo}.txt`, libro.alicuotas)}>
                 <Download className="w-3.5 h-3.5 mr-1.5" />Alícuotas (.txt)
               </Button>
+              <Button size="sm" variant="outline" disabled={armandoExcel} onClick={() => void descargarExcel()}>
+                {armandoExcel ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}Excel para tu contador
+              </Button>
             </div>
           )}
         </>
@@ -210,7 +246,7 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
               </div>
             );
           })()}
-          <ComprobantesDeCompra orgId={orgId} periodo={periodo} canEdit={canEdit} onResumen={setResumenCompras} />
+          <ComprobantesDeCompra orgId={orgId} periodo={periodo} canEdit={canEdit} onResumen={alCambiarCompras} />
         </div>
       )}
     </section>
