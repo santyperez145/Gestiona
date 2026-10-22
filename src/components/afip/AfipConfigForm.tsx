@@ -1,20 +1,14 @@
 // Datos fiscales del comercio. **No** un formulario de certificados.
 //
-// ⚠️ Hasta el 2026-08-27 esta pantalla pedía pegar el certificado (.crt) y la
-// clave privada (.key) en PEM, con un instructivo de cuatro pasos que empezaba
-// en "solicitá el certificado en Clave Fiscal". Eso es exactamente lo que
-// CONTRIBUTING.md tiene prohibido desde hace meses: «AFIP se conecta por delegación,
-// no subiendo certificados. Un comercio que tiene que generar una clave con
-// openssl, armar un CSR y subirlo a WSASS abandona ahí».
-//
-// Cómo lo hace Tiendanube, que es el mecanismo que funciona: el comercio pone
-// **razón social, CUIT y punto de venta**, y la conexión la resuelve la
-// plataforma. El certificado es de la plataforma; el comercio sólo delega el
-// servicio wsfe desde el Administrador de Relaciones, que ya sabe usar.
+// Hasta el 2026-08-27 esta pantalla pedía pegar el certificado (.crt) y la
+// clave privada (.key) en PEM, con instrucciones de openssl: ahí abandonaba el
+// comercio. Desde el 2026-10-22 (ADR 007) cada comercio factura con su propio
+// certificado, pero el certificado tampoco se carga acá: lo conecta
+// `ConectarCertificadoPropio`, arriba, que genera el pedido en el servidor y
+// guía los pasos en ARCA. `ConectarAfip` queda para un comercio delegado.
 //
 // Lo que quedó acá son los datos que **sólo el comercio conoce** y que van
-// impresos en la factura. El resto lo hace `ConectarAfip` arriba, que dice a
-// qué CUIT delegar y le pregunta a ARCA si quedó hecho.
+// impresos en la factura.
 //
 // ⚠️ Hasta el 2026-08-27 esto vivía dentro de `SettingsPage` (332 líneas de
 // las 2.754), mientras `/afip` mostraba el estado y tenía un botón
@@ -98,24 +92,14 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
   };
 
   const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
-  /**
-   * ⚠️ Acá vivía el estado `modo` (`delegado` | `propio`). Se fue con
-   * `20260827000050`: todas las organizaciones facturan por delegación y una
-   * constraint impide guardar un certificado en la fila del comercio, así que
-   * `propio` no es alcanzable. Quedaba sólo escrito y nunca leído — que es
-   * exactamente cómo empezó el bug del CUIT vacío.
-   */
-  /** La plataforma tiene su certificado cargado. Si no, el modo delegado no
-   *  puede emitir, y eso NO es un problema del comercio: hay que decirlo. */
+  /** La plataforma tiene su certificado cargado. Si no, un comercio delegado
+   *  no puede emitir, y eso NO es un problema suyo: hay que decirlo. */
   const [plataformaLista, setPlataformaLista] = useState(false);
   /** Certificado propio (2026-10-22): con certificado cargado, el ambiente lo
    *  define el certificado (uno de homologación no sirve en producción). */
   const [modo, setModo] = useState<string | null>(null);
   const [certificadoCargado, setCertificadoCargado] = useState(false);
   const [configurado, setConfigurado] = useState(false);
-  /** El formulario del certificado propio arranca cerrado en modo delegado:
-   *  mostrar un campo de clave privada a quien no necesita subirla es lo que
-   *  hace que el onboarding parezca un trámite. */
 
   const refreshConnectionStatus = useCallback(async () => {
     if (!activeOrg) return;
@@ -249,11 +233,9 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
         )}
       </div>
 
-      {/* ⚠️ Acá había un instructivo de cuatro pasos que terminaba en "pegá el
-          certificado (.crt) y la clave privada (.key)". Ése es el trámite que
-          hace abandonar a un comercio, y no hace falta: el certificado lo pone
-          la plataforma. Los pasos que SÍ le tocan —a qué CUIT delegar wsfe y
-          verificar que quedó hecho— los explica `ConectarAfip`, arriba. */}
+      {/* Acá había un instructivo que terminaba en «pegá el certificado (.crt)
+          y la clave privada (.key)». Los pasos del certificado los guía ahora
+          `ConectarCertificadoPropio`, arriba, sin que el comercio toque claves. */}
       <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
         <p className="font-medium text-foreground mb-0.5">Estos datos van impresos en tu factura</p>
         <p>
@@ -349,13 +331,8 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
       </fieldset>
 
       {/* ── De qué certificado se factura: información, no una decisión ──
-          Antes ofrecía un «prefiero usar mi propio certificado». Elegir
-          certificado no es una decisión del comercio: es de la plataforma. */}
-      {/* ⚠️ Acá había una rama para `modo === "propio"`. Dejó de ser
-          alcanzable el 2026-08-27: `20260827000050` puso a todas las
-          organizaciones en delegado y agregó una constraint que impide guardar
-          un certificado en la fila del comercio. Una rama que no puede
-          ejecutarse es una promesa que nadie va a poder cumplir. */}
+          Desde 2026-10-22 (ADR 007) cada comercio usa el suyo; el modo lo
+          define la base, no un selector de esta pantalla. */}
       {propio ? (
         <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-1">
           <p className="text-xs font-medium">Facturás con tu propio certificado de ARCA</p>
