@@ -42,7 +42,8 @@ describe("conectar AFIP pide el domicilio fiscal", () => {
     const codigo = soloCodigo(page);
     expect(codigo).toContain("domicilio");
     expect(codigo).toContain("Falta el domicilio fiscal");
-    expect(codigo).toMatch(/select\([^)]*domicilio/);
+    // Desde 2026-10-22 la lista de columnas va a `conColumnasDelCertificado`.
+    expect(codigo).toMatch(/(select|conColumnasDelCertificado)\([^)]*domicilio/);
     expect(codigo).not.toMatch(/configured\s*[:=][^\n]*domicilio/);
   });
 
