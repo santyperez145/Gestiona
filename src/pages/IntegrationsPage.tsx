@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { conColumnasDelCertificado } from "@/lib/conexionFiscalLectura";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
@@ -68,8 +69,9 @@ export default function IntegrationsPage() {
     const [mp, arca, claves, wa, correo] = await Promise.all([
       supabase.from("payment_connection_status").select("conectado, vigente, expires_at, last_error, nickname, email, live_mode")
         .eq("org_id", orgId).eq("provider", "mercadopago").maybeSingle(),
-      supabase.from("afip_connection_status").select("configured, environment, cuit, punto_venta, razon_social, last_error, modo, delegacion_verificada, motivo, certificado_vence, certificado_verificado_ok, certificado_verificado_motivo, pedido_pendiente")
-        .eq("org_id", orgId).maybeSingle(),
+      conColumnasDelCertificado("configured, environment, cuit, punto_venta, razon_social, last_error, modo, delegacion_verificada, motivo",
+        "certificado_vence, certificado_verificado_ok, certificado_verificado_motivo, pedido_pendiente",
+        columnas => supabase.from("afip_connection_status").select(columnas).eq("org_id", orgId).maybeSingle()),
       supabase.from("api_keys").select("revoked_at, expires_at, last_used_at").eq("org_id", orgId).is("revoked_at", null).limit(200),
       supabase.from("evolution_connection_status").select("configured, instance").eq("org_id", orgId).maybeSingle(),
       supabase.from("merchant_smtp_connection_status").select("configured, from_email").eq("org_id", orgId).maybeSingle(),

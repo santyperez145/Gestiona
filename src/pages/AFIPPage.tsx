@@ -14,6 +14,7 @@ import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
 import ConectarCertificadoPropio from "@/components/afip/ConectarCertificadoPropio";
 import { estadoCertificado } from "@/lib/certificadoPropio";
+import { COLUMNAS_CERTIFICADO_PROPIO, conColumnasDelCertificado } from "@/lib/conexionFiscalLectura";
 import MonotributoPanel from "@/components/afip/MonotributoPanel";
 import { saludFiscal } from "@/lib/fiscalHealth";
 import KPICard from "@/components/shared/KPICard";
@@ -141,7 +142,8 @@ export default function AFIPPage() {
     setConnectionError(null);
     setInvoicesError(null);
     const [connectionResult, invoicesResult] = await Promise.all([
-      supabase
+      conColumnasDelCertificado("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente, plataforma_verificada, tipo_emisor",
+        COLUMNAS_CERTIFICADO_PROPIO, columnas => supabase
         .from("afip_connection_status")
         // ⚠️ `motivo`, `plataforma_cuit` y `plataforma_razon_social` faltaban
         // acá aunque la interface los declaraba y la pantalla los usaba. La
@@ -152,9 +154,9 @@ export default function AFIPPage() {
         // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
         // una columna que no existe— y con `strictNullChecks: false` el cast a
         // la interface hace que TypeScript crea que el campo está.
-        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo, last_error, delegacion_solicitada_at, delegacion_revisada_at, delegacion_verificada, plataforma_ambiente, plataforma_verificada, tipo_emisor, certificado_vence, certificado_emisor, certificado_verificado_ok, certificado_verificado_at, certificado_verificado_motivo, pedido_pendiente, pedido_csr, pedido_ambiente, pedido_creado_at")
+        .select(columnas)
         .eq("org_id", orgId)
-        .maybeSingle(),
+        .maybeSingle()),
       supabase
         .from("invoices")
         .select("id, number, customer_name, issue_date, status, total, cae, cae_vencimiento, afip_status, afip_error, numero_afip, tipo_comprobante")
@@ -170,7 +172,7 @@ export default function AFIPPage() {
       setConnection(null);
       setConnectionError("No pudimos leer el estado fiscal. Actualizá el estado o reintentá en unos minutos.");
     } else {
-      setConnection(connectionResult.data as AfipConnectionStatus | null);
+      setConnection(connectionResult.data as unknown as AfipConnectionStatus | null);
     }
 
     if (invoicesResult.error) {

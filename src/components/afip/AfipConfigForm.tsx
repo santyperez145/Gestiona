@@ -24,6 +24,7 @@
 //
 // Ahora vive donde el comercio la busca. Ajustes conserva un puntero.
 
+import { conColumnasDelCertificado } from "@/lib/conexionFiscalLectura";
 import { hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,11 +122,12 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
 
     // La vista sólo devuelve metadatos seguros. El certificado y su clave no
     // vuelven al navegador, ni siquiera después de que se hayan guardado.
-    const { data, error } = await supabase
-      .from("afip_connection_status")
-      .select("cuit, razon_social, domicilio, ingresos_brutos, inicio_actividades, punto_venta, environment, tipo_emisor, configured, plataforma_lista, ta_expires_at, modo, certificado_vence")
-      .eq("org_id", activeOrg.id)
-      .maybeSingle();
+    const { data: fila, error } = await conColumnasDelCertificado(
+      "cuit, razon_social, domicilio, ingresos_brutos, inicio_actividades, punto_venta, environment, tipo_emisor, configured, plataforma_lista, ta_expires_at, modo",
+      "certificado_vence",
+      columnas => supabase.from("afip_connection_status").select(columnas).eq("org_id", activeOrg.id).maybeSingle(),
+    );
+    const data = fila as unknown as Record<string, any> | null;
     if (error) throw error;
 
     if (!data) {
