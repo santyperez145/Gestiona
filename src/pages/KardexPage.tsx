@@ -21,8 +21,9 @@ import {
   ArrowDownCircle, ArrowUpCircle, BarChart3, RefreshCw, Search,
   Loader2, Download, SlidersHorizontal, Package, PlusCircle,
   MinusCircle, ClipboardList, TrendingDown, TrendingUp, History,
-  AlertTriangle, Gift, Lock, RotateCcw,
+  AlertTriangle, Gift, Lock, RotateCcw, PackageCheck,
 } from "lucide-react";
+import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
@@ -356,21 +357,17 @@ export default function KardexPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-border pb-0">
-        {(["movimientos", "resumen", "reservas", "toma_fisica"] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium capitalize border-b-2 transition-colors ${
-              tab === t
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t === "movimientos" ? "Movimientos" : t === "resumen" ? "Resumen por Producto" : t === "reservas" ? "Reservas" : "Toma Física"}
-          </button>
-        ))}
-      </div>
+      <WorkspaceViewTabs
+        ariaLabel="Vistas del kardex"
+        activeTab={tab}
+        onChange={t => setTab(t as typeof tab)}
+        tabs={[
+          { id: "movimientos", label: "Movimientos", icon: ClipboardList },
+          { id: "resumen", label: "Resumen por Producto", icon: BarChart3 },
+          { id: "reservas", label: "Reservas", icon: Lock },
+          { id: "toma_fisica", label: "Toma Física", icon: PackageCheck },
+        ]}
+      />
 
       {/* Filters (movimientos tab) */}
       {tab === "movimientos" && (

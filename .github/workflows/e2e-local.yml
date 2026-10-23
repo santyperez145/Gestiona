@@ -53,6 +53,16 @@ jobs:
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=$anon" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_KEY=$service" >> "$GITHUB_ENV"
 
+      # La descarga de la imagen se cortó una vez («connection reset by peer»):
+      # lo pasajero se reintenta en vez de voltear la corrida.
+      - name: Imagen de Playwright
+        run: |
+          for intento in 1 2 3 4 5; do
+            docker pull -q mcr.microsoft.com/playwright:v1.59.1-noble && exit 0
+            echo "Reintento $intento de la descarga de la imagen"; sleep $((intento * 10))
+          done
+          exit 1
+
       - name: Aplicar todas las migraciones
         run: node scripts/reproducir-migraciones.mjs
 

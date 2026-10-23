@@ -66,19 +66,29 @@ test("una toma física de 5.500 se cuenta sin trabas y se cierra en tandas", asy
   const desde = Date.now();
   await page.goto("/kardex");
   await cerrarAvisos(page);
-  await page.getByRole("button", { name: "Toma Física" }).click();
+  await page.getByRole("tab", { name: "Toma Física" }).click();
   await expect(page.getByText(/Retomamos tu conteo .*: 5500 producto/)).toBeVisible({ timeout: 90_000 });
   console.log(`Toma física: 5.500 renglones listos en ${((Date.now() - desde) / 1000).toFixed(1)} s`);
 
-  // Una tecla en un renglón no tiene que esperar a los otros 5.499.
-  const campo = page.getByLabel("Contado de ZZ Escala 0001");
-  const renglon = page.getByRole("row").filter({ has: campo });
-  const tecla = Date.now();
-  await campo.fill("12");
-  await expect(renglon).toContainText("+2");
-  const ms = Date.now() - tecla;
+  // Una tecla en un renglón no tiene que esperar a los otros 5.499. Se mide
+  // adentro de la página: un localizador por rol sobre 5.500 filas mide a
+  // Playwright, no a la pantalla (dio 1,5 s el 23/10).
+  const ms = await page.evaluate(async () => {
+    const campo = document.querySelector<HTMLInputElement>('input[aria-label="Contado de ZZ Escala 0001"]');
+    const fila = campo?.closest("tr");
+    if (!campo || !fila) throw new Error("No está el renglón de ZZ Escala 0001");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const desde = performance.now();
+    setter.call(campo, "12");
+    campo.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise<void>(listo => {
+      const mirar = () => (fila.textContent?.includes("+2") ? listo() : requestAnimationFrame(mirar));
+      mirar();
+    });
+    return Math.round(performance.now() - desde);
+  });
   console.log(`Toma física: un campo responde en ${ms} ms con 5.500 renglones`);
-  expect(ms).toBeLessThan(1500);
+  expect(ms).toBeLessThan(300);
 
   // Ajustan los 2.750 contados con 11 y el que pasó a 12.
   const cerrar = page.getByRole("button", { name: /Cerrar toma \(5500\)/ });
