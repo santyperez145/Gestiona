@@ -575,6 +575,36 @@ END;
 $$;
 
 -- ── 4. Al aprobar el pedido a cuenta nace la venta con su deuda ─────────
+-- La guardia del vínculo venta ↔ pedido acepta el cobro del servidor aunque
+-- lo dispare un comerciante logueado (confirmación manual, cuenta corriente).
+CREATE OR REPLACE FUNCTION public.guard_sales_ecommerce_order_link()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+BEGIN
+  IF (TG_OP = 'INSERT' AND NEW.ecommerce_order_id IS NOT NULL)
+     OR (TG_OP = 'UPDATE' AND NEW.ecommerce_order_id IS DISTINCT FROM OLD.ecommerce_order_id) THEN
+    IF auth.role() IN ('anon', 'authenticated')
+       AND COALESCE(current_setting('nerqia.cobro_servidor', true), '') <> 'on' THEN
+      RAISE EXCEPTION 'El vínculo de una venta con una orden de tienda sólo lo registra el cobro del servidor';
+    END IF;
+
+    IF NEW.ecommerce_order_id IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1
+         FROM public.ecommerce_orders o
+         WHERE o.id = NEW.ecommerce_order_id AND o.org_id = NEW.org_id
+       ) THEN
+      RAISE EXCEPTION 'La orden de tienda debe pertenecer a la misma organización que la venta';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.guard_sales_ecommerce_order_link() FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.mark_store_order_paid(
   p_order_id uuid,
   p_payment_id text DEFAULT NULL,
@@ -647,6 +677,12 @@ BEGIN
   FROM public.settings WHERE org_id = v_order.org_id;
   v_rate := COALESCE(v_rate, 1);
 
+  -- Esta función sólo la llaman funciones del servidor (no tiene EXECUTE para
+  -- usuarios): marca la transacción como cobro del servidor para la guardia
+  -- de `sales`. Sin esto, «Confirmar cobro» de una transferencia, que llama
+  -- un comerciante logueado, chocaba siempre con la guardia (visto el 23/10).
+  PERFORM set_config('nerqia.cobro_servidor', 'on', true);
+
   FOR v_item IN SELECT * FROM jsonb_array_elements(v_order.items) LOOP
     v_qty := COALESCE((v_item->>'quantity')::int, 1);
     v_variant_id := NULLIF(v_item->>'variant_id', '')::uuid;
@@ -700,6 +736,7 @@ BEGIN
     END IF;
     v_ventas := v_ventas + 1;
   END LOOP;
+  PERFORM set_config('nerqia.cobro_servidor', '', true);
 
   UPDATE public.ecommerce_orders
      SET payment_status = 'paid',
@@ -1089,7 +1126,7 @@ UPDATE public.security_function_contracts sfc
    SET definition_hash = md5(pg_get_functiondef(p.oid)), reviewed_on = DATE '2026-10-23'
   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
  WHERE n.nspname = 'public'
-   AND p.proname IN ('resolve_store_line', 'create_store_order', 'mark_store_order_paid', 'medios_de_pago_vivos')
+   AND p.proname IN ('resolve_store_line', 'create_store_order', 'mark_store_order_paid', 'medios_de_pago_vivos', 'guard_sales_ecommerce_order_link')
    AND sfc.function_name = p.proname
    AND sfc.identity_arguments = pg_get_function_identity_arguments(p.oid);
 

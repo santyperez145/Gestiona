@@ -148,6 +148,20 @@ BEGIN
   IF (SELECT payment_status FROM public.ecommerce_orders WHERE id = v_order) <> 'paid' THEN RAISE EXCEPTION 'FALLA 5g: el pedido no quedó aprobado'; END IF;
   v_ok := v_ok || '5 ';
 
+  -- 5h: «Confirmar cobro» de un pedido en efectivo, por el comerciante logueado
+  -- (antes chocaba siempre con la guardia de ventas).
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_comp, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  v_pedido := public.create_store_order(v_slug, v_items, 'ZZ Comprador', 'comprador@invalid.test', '1155555555', '{"provincia": "Buenos Aires"}'::jsonb, 'efectivo');
+  RESET ROLE;
+  SELECT id INTO v_order FROM public.ecommerce_orders WHERE org_id = v_org AND order_number = v_pedido->>'order_number';
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  r := public.confirmar_pago_manual_tienda(v_order, 'ZZ efectivo en el local');
+  RESET ROLE;
+  IF NOT EXISTS (SELECT 1 FROM public.sales WHERE ecommerce_order_id = v_order AND paid) THEN RAISE EXCEPTION 'FALLA 5h: no confirmó el cobro en efectivo: %', r; END IF;
+  IF current_setting('nerqia.cobro_servidor', true) = 'on' THEN RAISE EXCEPTION 'FALLA 5i: quedó encendida la marca de cobro del servidor'; END IF;
+
   -- 6c: modo exclusivo, un anónimo no compra
   UPDATE public.ecommerce_stores SET mayorista_modo = 'exclusivo' WHERE id = v_store;
   PERFORM set_config('request.jwt.claims', '', true);
