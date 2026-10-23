@@ -149,7 +149,9 @@ CREATE POLICY comprobantes_de_compra_borrar ON public.comprobantes_de_compra
   FOR DELETE TO authenticated
   USING (public.has_permission(org_id, 'purchases', 'delete') OR public.has_permission(org_id, 'invoices', 'delete'));
 
-REVOKE ALL ON public.comprobantes_de_compra FROM PUBLIC, anon;
+-- Producción le da todo a authenticated en cada tabla nueva (privilegios por
+-- defecto de public): se revoca todo y se otorga sólo lo que hace falta.
+REVOKE ALL ON public.comprobantes_de_compra FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.comprobantes_de_compra TO authenticated;
 GRANT ALL ON public.comprobantes_de_compra TO service_role;
 

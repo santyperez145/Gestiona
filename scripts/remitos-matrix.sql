@@ -82,7 +82,11 @@ BEGIN
   v_ok := v_ok || '6 ';
 
   -- 8. El vendedor (permisos por defecto) emite, pero no anula ni toca el talonario.
+  -- Se suma como administrador de la base: sin el JWT del otro negocio, que el
+  -- control del plan leería como quien invita.
+  PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_otro, 'vendedor') ON CONFLICT DO NOTHING;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_otro, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   r := public.emitir_remito(v_org, jsonb_build_object('items', jsonb_build_array(jsonb_build_object('descripcion', 'ZZ Caja', 'cantidad', 2))));
   BEGIN

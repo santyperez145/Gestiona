@@ -13,8 +13,8 @@ BEGIN
   SELECT id INTO v_vend FROM auth.users WHERE id <> v_user ORDER BY created_at LIMIT 1;
   INSERT INTO public.organizations (name, slug, owner_user_id) VALUES ('ZZ FCE', 'zz-fce-' || substr(md5(random()::text), 1, 8), v_user) RETURNING id INTO v_org;
   INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_user, 'owner'), (v_org, v_vend, 'vendedor') ON CONFLICT DO NOTHING;
-  INSERT INTO public.afip_credentials (org_id, cuit, punto_venta, environment, tipo_emisor, razon_social)
-  VALUES (v_org, '20123456786', 3, 'homologacion', 'responsable_inscripto', 'ZZ SRL')
+  INSERT INTO public.afip_credentials (org_id, cuit, punto_venta, environment, tipo_emisor, razon_social, domicilio)
+  VALUES (v_org, '20123456786', 3, 'homologacion', 'responsable_inscripto', 'ZZ SRL', 'Av. ZZ 123, CABA')
   ON CONFLICT (org_id) DO UPDATE SET tipo_emisor = 'responsable_inscripto';
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user, 'role', 'authenticated')::text, true);
@@ -60,7 +60,8 @@ BEGIN
 
   -- 4
   RESET ROLE;
-  UPDATE public.invoices SET cae = '71234567890125', afip_status = 'authorized', numero_afip = 1, punto_venta = 3 WHERE id = v_inv;
+  UPDATE public.invoices SET afip_status = 'processing' WHERE id = v_inv;
+  UPDATE public.invoices SET cae = '71234567890125', afip_status = 'authorized', numero_afip = 1 WHERE id = v_inv;
   SET LOCAL ROLE authenticated;
   v_nc := public.emitir_nota_credito(v_inv, 'ZZ rechazada por el comprador', NULL);
   IF (SELECT tipo_comprobante FROM public.invoices WHERE id = v_nc) <> 203 THEN RAISE EXCEPTION 'FALLA 4: la nota de la FCE no es 203'; END IF;

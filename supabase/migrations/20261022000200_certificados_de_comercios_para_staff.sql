@@ -46,7 +46,9 @@ WHERE public.is_platform_admin(auth.uid());
 COMMENT ON VIEW public.platform_afip_certificados IS
   'Estado del certificado de ARCA de cada comercio para soporte: vigencia, emisor, última prueba, pedido pendiente y conexión. Nunca PEM, clave, pedido ni ticket. @revisada: definidor a propósito, sólo staff de plataforma (is_platform_admin).';
 
-REVOKE ALL ON public.platform_afip_certificados FROM PUBLIC, anon;
+-- Producción le da todo a authenticated en cada tabla nueva (privilegios por
+-- defecto de public): se revoca todo y se otorga sólo lo que hace falta.
+REVOKE ALL ON public.platform_afip_certificados FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.platform_afip_certificados TO authenticated;
 
 COMMIT;

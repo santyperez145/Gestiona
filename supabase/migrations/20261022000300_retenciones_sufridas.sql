@@ -53,7 +53,9 @@ CREATE POLICY retenciones_sufridas_borrar ON public.retenciones_sufridas
   USING (public.has_permission(org_id, 'purchases', 'delete') OR public.has_permission(org_id, 'invoices', 'delete'));
 
 -- Sin UPDATE: un certificado mal cargado se borra y se vuelve a cargar.
-REVOKE ALL ON public.retenciones_sufridas FROM PUBLIC, anon;
+-- Producción le da todo a authenticated en cada tabla nueva (privilegios por
+-- defecto de public): se revoca todo y se otorga sólo lo que hace falta.
+REVOKE ALL ON public.retenciones_sufridas FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, DELETE ON public.retenciones_sufridas TO authenticated;
 GRANT ALL ON public.retenciones_sufridas TO service_role;
 
