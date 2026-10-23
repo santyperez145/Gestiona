@@ -18,9 +18,10 @@ BEGIN
   INSERT INTO public.organizations (name, slug, owner_user_id) VALUES ('ZZ Arqueos', 'zz-arq-' || substr(md5(random()::text), 1, 8), v_owner) RETURNING id INTO v_org;
   INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_owner, 'owner'), (v_org, v_view, 'viewer') ON CONFLICT DO NOTHING;
   PERFORM public.seed_default_permissions(v_org);
-  INSERT INTO public.afip_credentials (org_id, cuit, punto_venta, environment, tipo_emisor, razon_social, domicilio)
-  VALUES (v_org, '20123456786', 3, 'produccion', 'responsable_inscripto', 'ZZ SRL', 'Av. ZZ 123, CABA')
-  ON CONFLICT (org_id) DO UPDATE SET environment = 'produccion', punto_venta = 3, domicilio = 'Av. ZZ 123, CABA';
+  INSERT INTO public.afip_credentials (org_id, cuit, punto_venta, environment, tipo_emisor, razon_social, domicilio, ingresos_brutos, inicio_actividades)
+  VALUES (v_org, '20123456786', 3, 'produccion', 'responsable_inscripto', 'ZZ SRL', 'Av. ZZ 123, CABA', '901-123456-7', DATE '2020-01-01')
+  ON CONFLICT (org_id) DO UPDATE SET environment = 'produccion', punto_venta = 3, domicilio = 'Av. ZZ 123, CABA',
+    ingresos_brutos = '901-123456-7', inicio_actividades = DATE '2020-01-01';
 
   INSERT INTO public.cash_sessions (org_id, opened_by, opening_amount, status) VALUES (v_org, v_owner, 1000, 'open') RETURNING id INTO v_ses;
   INSERT INTO public.cash_entries (org_id, session_id, entry_type, payment_method, amount_ars, description, created_by) VALUES
