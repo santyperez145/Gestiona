@@ -164,19 +164,23 @@ describe("el service worker no precachea el panel entero", () => {
   // `cat -A`, no leyendo.
   const config = cuerpo;
 
-  it("hay un globIgnores que deja afuera las páginas", () => {
+  it("el precache se calcula del build y deja afuera las páginas", () => {
     /**
-     * ⚠️ La clave exacta, con dos puntos. La primera versión pedía
-     * `/globIgnores/` a secas y **`globIgnoresX` la satisfacía**: renombrar la
-     * opción —que la deja de tener efecto— pasaba en verde. Es el mismo
-     * problema de subcadena que ya mordió otras guardas de este repo.
+     * ⚠️ Hasta el 2026-10-23 era un `globIgnores` por nombre
+     * (`!(POSPage|index|vendor)*`). El bundler cambió los nombres de las
+     * piezas del arranque (`client-*`, `auth-*`) y quedaron afuera: después
+     * de cada despliegue la página quedaba en negro. Ahora lo decide
+     * `scripts/precache-arranque.mjs` leyendo el build: de los JS sólo entran
+     * el arranque, el POS con lo que importa y los vendors livianos.
      */
-    expect(config).toMatch(/globIgnores\s*:/);
-    expect(config).toMatch(/POSPage\|index\|vendor/);
+    expect(config).toMatch(/manifestTransforms\s*:\s*\[transformarPrecache\(/);
+    const calculo = readFileSync(join(process.cwd(), "scripts", "precache-arranque.mjs"), "utf8");
+    expect(calculo).toContain("return /^assets\\/vendor-/.test(url) && !PESADOS.test(url);");
   });
 
   it("los vendors de reportes y exportación no se precachean", () => {
-    expect(config).toMatch(/vendor-\{xlsx,charts,pdf\}/);
+    const calculo = readFileSync(join(process.cwd(), "scripts", "precache-arranque.mjs"), "utf8");
+    expect(calculo).toContain("const PESADOS = /^assets\\/vendor-(xlsx|charts|pdf)-/;");
   });
 
   it("lo que no se precachea se cachea al usarse", () => {

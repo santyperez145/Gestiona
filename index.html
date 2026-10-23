@@ -4,6 +4,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+    <!--
+      Red de seguridad del arranque (2026-10-23). Si una pieza de /assets no
+      carga (un service worker viejo sirvió un index.html de una versión que ya
+      no está publicada), la página quedaba en negro: main.tsx nunca llega a
+      correr y su recuperación tampoco. Con conexión, se borran sólo los cachés
+      de código (nunca las ventas offline del POS, que viven en IndexedDB) y se
+      recarga UNA vez; si vuelve a fallar, se muestra un aviso con un botón.
+      main.tsx limpia la marca cuando la app arranca bien.
+    -->
+    <script>
+      (function () {
+        var MARCA = "nerqia.recarga-por-version";
+        var avisado = false;
+        function aviso() {
+          if (avisado) return;
+          avisado = true;
+          var mostrar = function () {
+            var raiz = document.getElementById("root");
+            if (!raiz || raiz.childElementCount) return;
+            raiz.innerHTML = '<div role="alert" style="font-family:system-ui,sans-serif;max-width:28rem;margin:20vh auto;padding:0 16px;text-align:center;color:#18181b">' +
+              '<p style="font-size:1.1rem;font-weight:600;margin:0 0 .5rem">Hay una versión nueva de Nerqia</p>' +
+              '<p style="margin:0 0 1rem;color:#52525b">No pudimos cargar la anterior. Tocá el botón para abrir la nueva.</p>' +
+              '<button type="button" style="font:inherit;padding:.6rem 1.2rem;border-radius:.5rem;border:0;background:#173aef;color:#fff;cursor:pointer">Abrir la versión nueva</button></div>';
+            raiz.querySelector("button").addEventListener("click", function () { location.reload(); });
+          };
+          if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mostrar); else mostrar();
+        }
+        window.addEventListener("error", function (evento) {
+          var origen = evento.target;
+          if (!origen || origen === window) return;
+          var url = origen.src || origen.href || "";
+          if (!/\/assets\/[^?#]+\.(js|css)/.test(url) || navigator.onLine === false) return;
+          try {
+            if (sessionStorage.getItem(MARCA)) { aviso(); return; }
+            sessionStorage.setItem(MARCA, "1");
+          } catch (e) { aviso(); return; }
+          var tareas = [];
+          if (navigator.serviceWorker) tareas.push(navigator.serviceWorker.getRegistrations().then(function (registros) {
+            return Promise.all(registros.map(function (r) { return r.unregister(); }));
+          }));
+          if (window.caches) tareas.push(caches.keys().then(function (nombres) {
+            return Promise.all(nombres.filter(function (n) { return /workbox-precache|app-chunks/.test(n); }).map(function (n) { return caches.delete(n); }));
+          }));
+          Promise.all(tareas).catch(function () {}).then(function () { location.reload(); });
+        }, true);
+      })();
+    </script>
     <title>Nerqia | Tienda online con gestión y finanzas conectadas</title>
     <meta name="description" content="Creá tu tienda online y conectá pedidos, stock, clientes, pagos, costos, caja y margen real en una sola plataforma para comercios argentinos." />
     <meta name="author" content="Nerqia" />

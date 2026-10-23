@@ -47,3 +47,7 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// La app arrancó: la red de seguridad de index.html puede volver a recargar
+// si un despliegue futuro deja otra versión vieja en el service worker.
+try { sessionStorage.removeItem("nerqia.recarga-por-version"); } catch { /* sin almacenamiento */ }

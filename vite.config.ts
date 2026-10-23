@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
+import { transformarPrecache } from "./scripts/precache-arranque.mjs";
 import { VitePWA } from "vite-plugin-pwa";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
@@ -100,13 +101,16 @@ export default defineConfig(() => {
          * que es como funciona cualquier PWA grande. La única contrapartida:
          * una página que nunca se visitó online no está offline — y eso es
          * cierto para cualquier estrategia que no baje 8 MB por las dudas.
+         *
+         * ⚠️ Qué es «el shell» ya no se adivina por nombre: lo lee
+         * `scripts/precache-arranque.mjs` del build (lo que precarga
+         * `index.html` y lo que importa el POS). Excluir por nombre dejó afuera
+         * `client-*`, `auth-*` y `orgContext-*`, y después de cada despliegue
+         * quien volvía al sitio veía la página en negro (2026-10-23).
          */
-        globIgnores: [
-          // Las páginas del panel, salvo el POS.
-          "assets/!(POSPage|index|vendor)*-*.js",
-          // Vendors que sólo usan pantallas puntuales: reportes, exportaciones.
-          "assets/vendor-{xlsx,charts,pdf}-*.js",
-        ],
+        // Los vendors pesados (xlsx, gráficos, PDF) los filtra
+        // transformarPrecache, salvo el que importa el POS.
+        manifestTransforms: [transformarPrecache(path.resolve(__dirname, "dist"))],
       },
     }),
     // Debe ir al final del array de plugins. Solo se activa con credenciales.
