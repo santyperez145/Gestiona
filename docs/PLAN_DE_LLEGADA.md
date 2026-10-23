@@ -115,7 +115,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 
 **Calidad**
 - [ ] Barrido de pantallas **con datos**: tablas, gráficos y acciones por fila.
-- [ ] E2E del circuito completo con datos sintéticos: presupuesto, venta, remito, factura, cobro y cuenta corriente.
+- [x] E2E del circuito completo con datos sintéticos: presupuesto, venta, remito, factura, cobro y cuenta corriente (2026-10-23: `e2e/circuito-gestion.spec.ts` en `e2e-local.yml`, contra un Supabase local reconstruido y sembrado; la factura queda sin CAE porque no hay ARCA local).
 
 ### D. Tienda online, enlazada a la gestión (después de C)
 
