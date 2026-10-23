@@ -12,7 +12,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const url = (() => { try { return new URL(process.env.VITE_SUPABASE_URL ?? ""); } catch { return null; } })();
 const LOCAL = process.env.E2E_LOCAL === "true" && !!url && ["127.0.0.1", "localhost"].includes(url.hostname);
-const ARCHIVO = "e2e/.auth/escala.json";
+const ARCHIVO = "e2e/.escala.json";
 
 test.describe.configure({ mode: "serial" });
 test.skip(!LOCAL || !existsSync(ARCHIVO), "Escribe datos: corre sólo contra la base local, después de la semilla de escala.");

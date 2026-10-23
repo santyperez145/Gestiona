@@ -3,12 +3,12 @@
 // `e2e-local.yml` antes de `e2e/escala-catalogo.spec.ts`, después del resto
 // de los specs (cambia precios y stock).
 //
-// Deja en e2e/.auth/escala.json el negocio y los productos, para que el spec
+// Deja en e2e/.escala.json el negocio y los productos, para que el spec
 // precargue una toma completa en el borrador local de la pantalla (lo mismo
 // que encuentra quien retoma un conteo a medias).
 //
 // Uso: SIMULACRO_DB_URL=… node scripts/semilla-escala-local.mjs
-import { mkdirSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import pg from "pg";
 import { esLocal } from "./simulacro-local.mjs";
@@ -16,7 +16,9 @@ import { SLUG } from "./semilla-e2e-local.mjs";
 
 export const CANTIDAD = 5500;
 export const CATEGORIA = "zz-escala";
-export const ARCHIVO = "e2e/.auth/escala.json";
+// Fuera de e2e/.auth: ese lo crea como root el contenedor de Playwright de
+// los pasos anteriores y el runner no puede escribir adentro (falló así).
+export const ARCHIVO = "e2e/.escala.json";
 
 async function main() {
   const db = process.env.SIMULACRO_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
@@ -32,7 +34,6 @@ async function main() {
        SELECT $1, $2, 'ZZ Escala ' || lpad(g::text, 4, '0'), $3, 10, 1, 10, 'ZZ-ESC-' || g
          FROM generate_series(1, $4::int) g
        RETURNING id`, [org.id, org.owner_user_id, CATEGORIA, CANTIDAD]);
-    mkdirSync("e2e/.auth", { recursive: true });
     writeFileSync(ARCHIVO, JSON.stringify({ org_id: org.id, productos: rows.map(r => r.id) }));
     console.log(`${rows.length} productos de escala en ${SLUG}.`);
   } finally {
