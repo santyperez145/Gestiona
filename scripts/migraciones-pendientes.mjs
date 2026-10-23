@@ -48,6 +48,7 @@ export const MATRICES = {
   '20261023000100': 'scripts/datos-iibb-terceros-matrix.sql',
   '20261023000200': 'scripts/vistas-solo-lectura-matrix.sql',
   '20261023000300': 'scripts/reserva-local-tienda-matrix.sql',
+  '20261023000400': 'scripts/recalcular-precios-costo-usd-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

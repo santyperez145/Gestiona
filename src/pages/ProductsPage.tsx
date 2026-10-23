@@ -26,6 +26,7 @@ import { toCSV } from "@/lib/orgDataExport";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCountdown } from "@/hooks/useCountdown";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingFunction } from "@/lib/publicDataSource";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -4054,6 +4055,19 @@ function BulkPriceAdjust({ userId, orgId, settings, categorias, marcas, proveedo
     if (!markup || markup < 0) { toast.error("Ingresá un markup válido"); return; }
     setLoading(true);
     try {
+      // Una sola transacción en la base, para todo el negocio (20261023000400):
+      // el bucle de abajo quedaba a medias con más de 1.000 productos.
+      const { data, error: rpcError } = await supabase.rpc("recalcular_precios_desde_costo_usd" as never, {
+        p_org: orgId, p_tipo_cambio: xRate, p_markup_pct: markup, p_category: category === 'all' ? null : category,
+      } as never);
+      if (!rpcError) {
+        const r = data as unknown as { updated?: number };
+        toast.success(`${plural(Number(r?.updated ?? 0), "producto")} recalculados a $${xRate}/U$S`);
+        onDone();
+        return;
+      }
+      if (!isMissingFunction(rpcError)) throw new Error(rpcError.message);
+      // Sin la migración: el recálculo anterior, que alcanza para catálogos chicos.
       const allProducts = await getProductsDB(userId);
       const toUpdate = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
       let count = 0;
