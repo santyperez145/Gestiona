@@ -7,13 +7,21 @@
  *   1. Prueba la salud de Supabase (Auth y REST) con la clave publicable, la
  *      misma que viaja en la página: no hace falta ningún secreto nuevo.
  *   2. Prueba que el sitio responda.
- *   3. Si algo falla, abre un issue «Producción caída» (o le agrega un
- *      comentario si ya está abierto): GitHub le avisa por mail al dueño.
+ *   3. Si algo falla, abre un issue «Producción caída»: GitHub le avisa por
+ *      mail al dueño, y esa corrida falla. Mientras siga caído, comenta como
+ *      mucho una vez por día y no falla: el 23/10 una falla cada 6 horas más
+ *      un CI rojo en cada push le llenaron la casilla de mails repetidos.
  *      Cuando todo vuelve, lo cierra con un comentario.
  *
  * Uso: node scripts/estado-produccion.mjs  (con SUPABASE_URL, SUPABASE_KEY;
  * GITHUB_TOKEN y GITHUB_REPOSITORY para el aviso; sin ellos sólo informa).
+ *
+ * Con --para-ci lo usa el E2E crítico de ci.yml: escribe `caida=true` en
+ * GITHUB_OUTPUT sólo si Supabase no responde Y el aviso ya está abierto (la
+ * caída es conocida); nunca falla. Una caída sin aviso deja correr el E2E,
+ * que falla como corresponde.
  */
+import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const SITIO = "https://nerqia.app";
@@ -58,6 +66,21 @@ export function cuerpoDelAviso(resultados, cuando) {
   ].join("\n");
 }
 
+export const UN_DIA_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Qué hacer con el aviso. Sólo falla la corrida que lo abre: un aviso ya
+ * abierto es una caída conocida, y repetir la falla sólo repite el mail.
+ */
+export function decidirAviso({ caido, abierto, ultimaActividad, ahora }) {
+  if (caido && !abierto) return { accion: "abrir", fallar: true };
+  if (caido) {
+    const hace = ahora - new Date(ultimaActividad ?? 0).getTime();
+    return { accion: hace >= UN_DIA_MS ? "comentar" : "nada", fallar: false };
+  }
+  return { accion: abierto ? "cerrar" : "nada", fallar: false };
+}
+
 async function probar(c, clave) {
   try {
     const res = await fetch(c.url, {
@@ -80,9 +103,29 @@ async function github(ruta, opciones = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+async function avisosAbiertos() {
+  // Se reconoce por el título: no depende de que exista una etiqueta en el repositorio.
+  return (await github("/issues?state=open&per_page=100")).filter(i => !i.pull_request && i.title === TITULO_AVISO);
+}
+
+/** Para ci.yml: ¿es una caída ya conocida? Nunca falla. */
+async function paraCi(url) {
+  const salida = process.env.GITHUB_OUTPUT;
+  const escribir = (v) => { if (salida) appendFileSync(salida, `caida=${v}\n`); };
+  const auth = chequeos(url)[0];
+  const r = await probar(auth, process.env.SUPABASE_KEY);
+  if (r.ok) { console.log(`Producción responde: ${r.detalle}`); escribir("false"); return; }
+  let abiertos = [];
+  try { abiertos = await avisosAbiertos(); } catch (e) { console.log(`No se pudo leer el aviso: ${e.message}`); }
+  if (!abiertos.length) { console.log(`Producción no responde (${r.detalle}) y no hay aviso abierto: el E2E corre y va a fallar.`); escribir("false"); return; }
+  console.log(`::warning title=E2E contra producción salteado::Supabase de producción no responde (${r.detalle}) y el aviso #${abiertos[0].number} «Producción caída» está abierto. El E2E contra la base local cubre panel, circuito y tienda; este vuelve solo cuando producción responda.`);
+  escribir("true");
+}
+
 async function main() {
   const url = process.env.SUPABASE_URL;
   if (!url) { console.error("::error::Falta SUPABASE_URL"); process.exitCode = 1; return; }
+  if (process.argv.includes("--para-ci")) return paraCi(url);
   const resultados = [];
   for (const c of chequeos(url)) {
     // Un reintento: un corte de un segundo no es una caída.
@@ -92,22 +135,23 @@ async function main() {
     console.log(`${r.ok ? "OK " : "MAL"} ${r.nombre}: ${r.detalle}`);
   }
   const caido = resultados.some(r => !r.ok);
-  process.exitCode = caido ? 1 : 0;
-  if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPOSITORY) return;
+  const fallas = resultados.filter(r => !r.ok).map(r => `${r.nombre}: ${r.detalle}`).join(" · ");
+  if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPOSITORY) { process.exitCode = caido ? 1 : 0; return; }
 
-  // Se reconoce por el título: no depende de que exista una etiqueta en el repositorio.
-  const abiertos = (await github("/issues?state=open&per_page=100")).filter(i => !i.pull_request && i.title === TITULO_AVISO);
+  const abiertos = await avisosAbiertos();
   const cuando = new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC";
-  if (caido) {
-    if (abiertos.length) await github(`/issues/${abiertos[0].number}/comments`, { method: "POST", body: JSON.stringify({ body: cuerpoDelAviso(resultados, cuando) }) });
-    else await github("/issues", { method: "POST", body: JSON.stringify({ title: TITULO_AVISO, body: cuerpoDelAviso(resultados, cuando) }) });
-    console.error("::error title=Producción caída::" + resultados.filter(r => !r.ok).map(r => `${r.nombre}: ${r.detalle}`).join(" · "));
-    return;
+  const { accion, fallar } = decidirAviso({ caido, abierto: abiertos.length > 0, ultimaActividad: abiertos[0]?.updated_at, ahora: Date.now() });
+  if (accion === "abrir") await github("/issues", { method: "POST", body: JSON.stringify({ title: TITULO_AVISO, body: cuerpoDelAviso(resultados, cuando) }) });
+  if (accion === "comentar") await github(`/issues/${abiertos[0].number}/comments`, { method: "POST", body: JSON.stringify({ body: cuerpoDelAviso(resultados, cuando) }) });
+  if (accion === "cerrar") {
+    for (const i of abiertos) {
+      await github(`/issues/${i.number}/comments`, { method: "POST", body: JSON.stringify({ body: `Volvió a andar: ${cuando}.\n\n${resultados.map(r => `- ✅ ${r.nombre}: ${r.detalle}`).join("\n")}` }) });
+      await github(`/issues/${i.number}`, { method: "PATCH", body: JSON.stringify({ state: "closed" }) });
+    }
   }
-  for (const i of abiertos) {
-    await github(`/issues/${i.number}/comments`, { method: "POST", body: JSON.stringify({ body: `Volvió a andar: ${cuando}.\n\n${resultados.map(r => `- ✅ ${r.nombre}: ${r.detalle}`).join("\n")}` }) });
-    await github(`/issues/${i.number}`, { method: "PATCH", body: JSON.stringify({ state: "closed" }) });
-  }
+  if (fallar) console.error("::error title=Producción caída::" + fallas);
+  else if (caido) console.log(`::warning title=Producción sigue caída::${fallas} (aviso #${abiertos[0].number} abierto${accion === "comentar" ? ", con el resumen del día" : ""})`);
+  process.exitCode = fallar ? 1 : 0;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) await main();

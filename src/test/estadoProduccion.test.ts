@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { chequeos, cuerpoDelAviso, leerResultado, TITULO_AVISO } from "../../scripts/estado-produccion.mjs";
+import { chequeos, cuerpoDelAviso, decidirAviso, leerResultado, TITULO_AVISO, UN_DIA_MS } from "../../scripts/estado-produccion.mjs";
 
 describe("control del estado de producción", () => {
   it("prueba Auth y REST de Supabase y el sitio", () => {
@@ -23,6 +23,21 @@ describe("control del estado de producción", () => {
     expect(cuerpo).toContain("❌ **Supabase Auth**");
     expect(cuerpo).toContain("factura de Supabase");
     expect(TITULO_AVISO).toMatch(/Producción caída/);
+  });
+
+  it("falla y avisa una vez al caerse; después comenta como mucho una vez por día", () => {
+    const ahora = Date.parse("2026-10-23T12:00:00Z");
+    expect(decidirAviso({ caido: true, abierto: false, ahora })).toEqual({ accion: "abrir", fallar: true });
+    expect(decidirAviso({ caido: true, abierto: true, ultimaActividad: new Date(ahora - 6 * 3600_000).toISOString(), ahora })).toEqual({ accion: "nada", fallar: false });
+    expect(decidirAviso({ caido: true, abierto: true, ultimaActividad: new Date(ahora - UN_DIA_MS).toISOString(), ahora })).toEqual({ accion: "comentar", fallar: false });
+    expect(decidirAviso({ caido: false, abierto: true, ahora })).toEqual({ accion: "cerrar", fallar: false });
+    expect(decidirAviso({ caido: false, abierto: false, ahora })).toEqual({ accion: "nada", fallar: false });
+  });
+
+  it("el CI saltea el E2E contra producción sólo con la caída ya avisada", () => {
+    const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+    expect(ci).toContain("run: node scripts/estado-produccion.mjs --para-ci");
+    expect(ci).toContain("if: steps.produccion.outputs.caida != 'true'");
   });
 
   it("corre cada 6 horas con permiso sólo para abrir el aviso", () => {
