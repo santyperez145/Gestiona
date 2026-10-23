@@ -1,0 +1,38 @@
+name: Estado de producción
+
+# Cada 6 horas: si Supabase o el sitio no responden, abre un issue que avisa
+# por mail; cuando vuelven, lo cierra. Ver scripts/estado-produccion.mjs.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: estado-produccion
+  cancel-in-progress: false
+
+jobs:
+  controlar:
+    name: Controlar Supabase y el sitio
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Controlar y avisar
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/estado-produccion.mjs

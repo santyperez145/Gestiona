@@ -58,7 +58,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 ### A. Operación de la plataforma (habilita todo lo demás)
 
 - [ ] **Restaurar producción.** Primero el dueño paga. Después Dirección corre `npm run db:pendientes` (simulacro de las 6), aplica, despliega las 4 funciones y verifica tiendas, ARCA y CI. *Terminado:* CI en verde y una tienda real que carga.
-- [ ] **Que no vuelva a pasar.** Una tarjeta de respaldo y alertas de facturación en Supabase, Vercel y el dominio (dueño), más un control diario del estado del proyecto (Dirección). *Terminado:* un aviso llega antes del corte, no después.
+- [~] **Que no vuelva a pasar.** Una tarjeta de respaldo y alertas de facturación en Supabase, Vercel y el dominio (dueño), más un control diario del estado del proyecto (Dirección; hecho el 23/10: `estado-produccion.yml` prueba Supabase y el sitio cada 6 horas y abre un issue «Producción caída», que llega por mail, y lo cierra cuando vuelve). *Terminado:* un aviso llega antes del corte, no después.
 - [ ] **Restauración probada.** Restaurar un backup en un proyecto de prueba y medir cuánto tarda. *Terminado:* tiempo medido y escrito.
 - [ ] Protección de `main` para administradores y un segundo revisor (decisión del dueño, ROADMAP §5 P0).
 
@@ -133,7 +133,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 - [ ] **E2:** 15 entrevistas, 5 por cada puerta de entrada (tesis §4). El guion y la carga ya están listos en [ENTREVISTAS_E2](ENTREVISTAS_E2.md). *Terminado:* resultados escritos en la tesis.
 - [ ] **E1:** acompañar a Famatina 4 semanas. *Terminado:* 20 o más ventas por semana registradas.
 - [ ] **Precio:** fijar el precio de la suscripción y el porcentaje de la comisión online. Es decisión del dueño, con el análisis de Dirección y la competencia escrita.
-- [ ] **Alta asistida:** un recorrido de 30 minutos que lleva al comercio del registro a la primera venta y la primera factura.
+- [~] **Alta asistida:** un recorrido de 30 minutos que lleva al comercio del registro a la primera venta y la primera factura. Construido: la lista de activación del panel (identidad, catálogo, stock, ARCA hasta un CAE real y primera venta) y «Para empezar a facturar» en ARCA. *Terminado:* un comercio real lo recorre en 30 minutos sin ayuda.
 
 ### F. Después (no antes de los escalones de §1)
 
