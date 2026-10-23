@@ -46,6 +46,10 @@ type Supplier = {
   created_at: string;
   /** Migración 20261022001300: hasta aplicarla la columna no viene. */
   cuit?: string | null;
+  /** Migración 20261023000100 (Ingresos Brutos e IVA, para declarar en AGIP). */
+  iibb_situacion?: number | null;
+  iibb_inscripcion?: string | null;
+  condicion_iva?: string | null;
 };
 
 type PurchaseSummary = {
@@ -102,6 +106,7 @@ export default function ProveedoresPage() {
     ...prev,
     name: persona.nombre || prev.name,
     address: domicilioPadron(persona) || prev.address,
+    condicion_iva: persona.condicionIva === "consumidor_final" ? prev.condicion_iva : persona.condicionIva,
   })));
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -327,23 +332,30 @@ export default function ProveedoresPage() {
         address: form.address || null,
         notes: form.notes || null,
       };
-      const escribir = (conCuit: boolean) => {
-        const fila = conCuit ? { ...datos, cuit: cuitProveedor || null } : datos;
-        return editing
-          ? supabase.from("suppliers").update({ ...fila, active: form.active }).eq("id", editing.id)
-          : supabase.from("suppliers").insert({ ...fila, org_id: activeOrg.id, active: true });
+      const situacion = form.iibb_situacion ?? null;
+      const fiscales = {
+        iibb_situacion: situacion,
+        iibb_inscripcion: situacion === 1 ? (form.iibb_inscripcion || "").replace(/\D/g, "") || null : situacion === 2 ? cuitProveedor || null : null,
+        condicion_iva: form.condicion_iva || null,
       };
-      let { error } = await escribir(true);
-      // Sin la migración 20261022001300 no hay columna `cuit`: se guarda el resto y se avisa.
-      let sinCuit = false;
-      if (error && isMissingColumn(error)) {
-        sinCuit = true;
-        ({ error } = await escribir(false));
+      // Con todo; sin los datos de IIBB (migración 20261023000100); sin el CUIT (20261022001300).
+      const intentos = [{ ...datos, cuit: cuitProveedor || null, ...fiscales }, { ...datos, cuit: cuitProveedor || null }, datos];
+      const escribir = (fila: typeof intentos[number]) => editing
+        ? supabase.from("suppliers").update({ ...fila, active: form.active }).eq("id", editing.id)
+        : supabase.from("suppliers").insert({ ...fila, org_id: activeOrg.id, active: true });
+      let intento = 0;
+      let { error } = await escribir(intentos[0]);
+      while (error && isMissingColumn(error) && intento < intentos.length - 1) {
+        intento++;
+        ({ error } = await escribir(intentos[intento]));
       }
+      const sinCuit = intento === 2;
+      const sinFiscales = intento >= 1 && (situacion !== null || !!form.condicion_iva);
       if (error?.code === "23505") throw new Error("Ya tenés otro proveedor con ese CUIT.");
       if (error) throw error;
       toast.success(editing ? "Proveedor actualizado" : "Proveedor agregado");
       if (sinCuit && cuitProveedor) toast.warning("El CUIT no se guardó todavía: falta una actualización del sistema que ya está en camino. El resto de los datos quedó guardado.");
+      else if (sinFiscales) toast.warning("Los datos de Ingresos Brutos e IVA no se guardaron todavía: falta una actualización del sistema que ya está en camino. El resto quedó guardado.");
       setOpen(false);
       load();
     } catch (e: any) {
@@ -707,6 +719,38 @@ export default function ProveedoresPage() {
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Dirección</label>
               <Input placeholder="Calle, ciudad, provincia" value={form.address || ""} onChange={f("address")} />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="proveedor-iva" className="text-xs font-medium text-muted-foreground mb-1 block">Condición frente al IVA</label>
+                <Select value={form.condicion_iva || "sin"} onValueChange={v => setForm(prev => ({ ...prev, condicion_iva: v === "sin" ? null : v }))}>
+                  <SelectTrigger id="proveedor-iva"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sin">Sin indicar</SelectItem>
+                    <SelectItem value="responsable_inscripto">Responsable inscripto</SelectItem>
+                    <SelectItem value="monotributo">Monotributo</SelectItem>
+                    <SelectItem value="exento">Exento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label htmlFor="proveedor-iibb" className="text-xs font-medium text-muted-foreground mb-1 block">Ingresos Brutos</label>
+                <Select value={form.iibb_situacion ? String(form.iibb_situacion) : "sin"} onValueChange={v => setForm(prev => ({ ...prev, iibb_situacion: v === "sin" ? null : Number(v) }))}>
+                  <SelectTrigger id="proveedor-iibb"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sin">Sin indicar</SelectItem>
+                    <SelectItem value="1">Inscripto local</SelectItem>
+                    <SelectItem value="2">Convenio Multilateral</SelectItem>
+                    <SelectItem value="4">No inscripto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {form.iibb_situacion === 1 && (
+              <div>
+                <label htmlFor="proveedor-iibb-numero" className="text-xs font-medium text-muted-foreground mb-1 block">N.º de inscripción en Ingresos Brutos</label>
+                <Input id="proveedor-iibb-numero" inputMode="numeric" maxLength={12} placeholder="10 dígitos" value={form.iibb_inscripcion || ""} onChange={f("iibb_inscripcion")} />
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Notas</label>
               <Textarea

@@ -9747,6 +9747,8 @@ export type Database = {
       }
       customers: {
         Row: {
+          iibb_inscripcion: string | null
+          iibb_situacion: number | null
           credit_limit_ars: number | null
           fiscal_address: string | null
           legal_name: string | null
@@ -9778,6 +9780,8 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          iibb_inscripcion?: string | null
+          iibb_situacion?: number | null
           credit_limit_ars?: number | null
           fiscal_address?: string | null
           legal_name?: string | null
@@ -9809,6 +9813,8 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          iibb_inscripcion?: string | null
+          iibb_situacion?: number | null
           credit_limit_ars?: number | null
           fiscal_address?: string | null
           legal_name?: string | null
@@ -46610,6 +46616,9 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          condicion_iva: string | null
+          iibb_inscripcion: string | null
+          iibb_situacion: number | null
           active: boolean
           address: string | null
           contact: string | null
@@ -46624,6 +46633,9 @@ export type Database = {
           tags: string[] | null
         }
         Insert: {
+          condicion_iva?: string | null
+          iibb_inscripcion?: string | null
+          iibb_situacion?: number | null
           active?: boolean
           address?: string | null
           contact?: string | null
@@ -46638,6 +46650,9 @@ export type Database = {
           tags?: string[] | null
         }
         Update: {
+          condicion_iva?: string | null
+          iibb_inscripcion?: string | null
+          iibb_situacion?: number | null
           active?: boolean
           address?: string | null
           contact?: string | null
