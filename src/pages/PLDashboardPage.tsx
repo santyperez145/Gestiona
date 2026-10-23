@@ -670,6 +670,8 @@ export default function PLDashboardPage() {
                 <div className="p-4 border-b border-border/40">
                   <h3 className="text-sm font-semibold">Variación mes a mes</h3>
                 </div>
+                {/* En un teléfono la tabla se desplaza dentro de su caja, no la página. */}
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border/40 text-xs text-muted-foreground bg-muted/10">
@@ -707,6 +709,7 @@ export default function PLDashboardPage() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             </>
           ) : (

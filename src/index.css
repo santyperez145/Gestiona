@@ -557,7 +557,9 @@
     padding: 0 0.9rem;
     border: 1px solid transparent;
     border-radius: 7px;
-    color: hsl(var(--muted-foreground));
+    /* El gris secundario quedaba en 4,37:1 en Finance (barrido con datos,
+       2026-10-23): la pestaña inactiva usa el texto principal atenuado. */
+    color: hsl(var(--foreground) / 0.74);
     font-size: 0.78rem;
     font-weight: 650;
     white-space: nowrap;
@@ -664,7 +666,9 @@
     padding: 0 0.9rem;
     border: 1px solid transparent;
     border-radius: 7px;
-    color: hsl(var(--muted-foreground));
+    /* El gris secundario quedaba en 4,37:1 en Finance (barrido con datos,
+       2026-10-23): la pestaña inactiva usa el texto principal atenuado. */
+    color: hsl(var(--foreground) / 0.74);
     font-size: 0.78rem;
     font-weight: 650;
     transition: color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
