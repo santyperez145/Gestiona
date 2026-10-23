@@ -7,11 +7,12 @@
 --   4. La compra mínima mayorista se exige en el checkout.
 --   5. A cuenta corriente: entra si alcanza el crédito, el segundo pedido que
 --      lo supera se rechaza, y al aprobarlo nace la venta sin cobrar con su deuda.
---   6. Un vendedor sin permiso no aprueba pedidos ni cuentas; en modo
+--   6. Sólo un administrador aprueba cuentas; un usuario de sólo lectura no
+--      aprueba pedidos a cuenta; en modo
 --      exclusivo un anónimo no compra.
 DO $$
 DECLARE
-  v_owner uuid; v_comp uuid; v_vend uuid; v_org uuid; v_store uuid; v_a uuid; v_b uuid; v_lista uuid; v_ficha uuid; v_cli uuid;
+  v_owner uuid; v_comp uuid; v_vend uuid; v_view uuid; v_org uuid; v_store uuid; v_a uuid; v_b uuid; v_lista uuid; v_ficha uuid; v_cli uuid;
   v_slug text := 'zz-mayor-' || substr(md5(random()::text), 1, 8);
   r jsonb; v_pedido jsonb; v_order uuid; n numeric; v_ok text := '';
   v_items jsonb;
@@ -19,8 +20,10 @@ BEGIN
   SELECT id INTO v_owner FROM auth.users ORDER BY created_at LIMIT 1;
   SELECT id INTO v_comp FROM auth.users WHERE id <> v_owner ORDER BY created_at LIMIT 1;
   SELECT id INTO v_vend FROM auth.users WHERE id NOT IN (v_owner, v_comp) ORDER BY created_at LIMIT 1;
+  SELECT id INTO v_view FROM auth.users WHERE id NOT IN (v_owner, v_comp, v_vend) ORDER BY created_at LIMIT 1;
   INSERT INTO public.organizations (name, slug, owner_user_id) VALUES ('ZZ Mayorista', v_slug, v_owner) RETURNING id INTO v_org;
-  INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_owner, 'owner'), (v_org, v_vend, 'vendedor') ON CONFLICT DO NOTHING;
+  INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_owner, 'owner'), (v_org, v_vend, 'vendedor'), (v_org, v_view, 'viewer') ON CONFLICT DO NOTHING;
+  PERFORM public.seed_default_permissions(v_org);
   INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_cost, shipping_mode, pickup_enabled, mayorista_modo, mayorista_minimo_ars, mayorista_cuenta_corriente)
   VALUES (v_org, v_slug, 'ZZ Mayorista', true, ARRAY['efectivo'], 0, 'free', true, 'mixto', 10000, true) RETURNING id INTO v_store;
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, stock) VALUES (v_org, v_owner, 'ZZ Tornillo caja', 1000, 100) RETURNING id INTO v_a;
@@ -126,12 +129,12 @@ BEGIN
   RESET ROLE;
   SELECT id INTO v_order FROM public.ecommerce_orders WHERE org_id = v_org AND payment_method = 'cuenta_corriente';
 
-  -- 6b: un vendedor no aprueba el pedido
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_vend, 'role', 'authenticated')::text, true);
+  -- 6b: un usuario de sólo lectura no aprueba el pedido
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_view, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
     PERFORM public.confirmar_pedido_cuenta_corriente(v_order);
-    RAISE EXCEPTION 'FALLA 6b: un vendedor aprobó un pedido a cuenta';
+    RAISE EXCEPTION 'FALLA 6b: un usuario de sólo lectura aprobó un pedido a cuenta';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   RESET ROLE;
 

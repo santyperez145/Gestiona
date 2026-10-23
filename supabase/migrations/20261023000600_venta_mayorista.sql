@@ -910,6 +910,11 @@ BEGIN
     RAISE EXCEPTION 'No sos miembro de esta organizacion' USING ERRCODE = 'insufficient_privilege';
   END IF;
   PERFORM public.exigir_permiso(v_ficha.org_id, 'customers', 'edit', 'aprobar o rechazar una cuenta mayorista');
+  -- Aprobar es decidir precio y crédito: sólo dueño o administrador, aunque
+  -- el vendedor pueda editar clientes.
+  IF NOT public.has_org_role(v_ficha.org_id, auth.uid(), ARRAY['owner', 'admin']) THEN
+    RAISE EXCEPTION 'Sólo un administrador aprueba cuentas mayoristas' USING ERRCODE = 'insufficient_privilege';
+  END IF;
 
   IF NOT p_aprobar THEN
     PERFORM set_config('nerqia.mayorista', 'on', true);
@@ -1109,7 +1114,7 @@ WITH c(function_name, audience, rationale) AS (VALUES
   ('saldo_comprometido_cliente', 'security_helper', 'Suma deudas y pedidos a cuenta de un cliente; sólo para el control de crédito.'),
   ('confirmar_pedido_cuenta_corriente', 'authenticated_delegate', 'Exige permiso de editar la tienda; sólo pedidos a cuenta corriente pendientes de su negocio.'),
   ('solicitar_cuenta_mayorista', 'public_token', 'El comprador logueado pide su propia cuenta mayorista; no puede aprobarse solo.'),
-  ('resolver_cuenta_mayorista', 'authenticated_delegate', 'Exige permiso de editar clientes; vincula y aprueba sólo cuentas de su negocio.'),
+  ('resolver_cuenta_mayorista', 'authenticated_delegate', 'Exige ser dueño o administrador con permiso de editar clientes; sólo cuentas de su negocio.'),
   ('get_store_mayorista', 'public_storefront', 'Expone el modo mayorista de la tienda y, a la sesión del comprador, sólo su propio estado.'),
   ('get_store_precios_mayoristas', 'public_token', 'Devuelve precios de lista sólo al comprador aprobado de esa tienda, para su sesión.')
 )
