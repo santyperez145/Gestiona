@@ -22,6 +22,16 @@ async function cerrarAvisos(page: Page) {
   if (await ahoraNo.isVisible().catch(() => false)) await ahoraNo.click();
 }
 
+async function atenderCaja(page: Page) {
+  // La caja pregunta quién atiende el turno, como a un cajero real.
+  const quien = page.getByRole("dialog", { name: /Quién atiende hoy/ });
+  if (await quien.waitFor({ state: "visible", timeout: 5_000 }).then(() => true, () => false)) {
+    await quien.getByPlaceholder("Tu nombre").fill("ZZ Cajera");
+    await quien.getByRole("button", { name: "Confirmar" }).click();
+    await expect(quien).toBeHidden();
+  }
+}
+
 test("presupuesto → caja → remito → factura → cobro, con la operación completa", async ({ page }) => {
   test.setTimeout(240_000);
 
@@ -55,6 +65,7 @@ test("presupuesto → caja → remito → factura → cobro, con la operación c
   await page.getByRole("button", { name: "Ver detalle" }).first().click();
   await page.getByTestId("presupuesto-cobrar-en-caja").first().click();
   await expect(page).toHaveURL(/\/caja/);
+  await atenderCaja(page);
   await expect(page.getByText("ZZ Tornillo 8x40").first()).toBeVisible();
   await page.getByRole("button", { name: "Fiado", exact: true }).click();
   await page.getByRole("button", { name: /Confirmar venta/ }).first().click();
@@ -83,6 +94,7 @@ test("presupuesto → caja → remito → factura → cobro, con la operación c
   // 7. Cobro de la deuda en la caja, y la operación lo muestra.
   await page.goto("/caja");
   await cerrarAvisos(page);
+  await atenderCaja(page);
   await page.locator('[data-tour="pos-cliente"]').click();
   const elegir = page.getByRole("dialog", { name: "Elegir cliente" });
   await elegir.getByLabel("Buscar cliente").fill("ZZ Obra");

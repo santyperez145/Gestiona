@@ -4178,7 +4178,10 @@ export default function POSPage() {
           </div>
         )}
         {/* Top bar */}
-        <div className="pos-topbar shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-card/60 backdrop-blur">
+        {/* Por debajo de 1280 px el encabezado no entraba con el turno abierto: el
+            carrito quedaba fuera de pantalla, debajo de la ayuda. Ahora las
+            etiquetas se vuelven íconos y los atajos secundarios esperan a lg. */}
+        <div className="pos-topbar shrink-0 flex min-w-0 items-center gap-2 xl:gap-3 px-4 py-3 border-b border-border bg-card/60 backdrop-blur">
           {sellerName ? (
             <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground">
               <User className="w-3 h-3" />
@@ -4243,18 +4246,18 @@ export default function POSPage() {
           </div>
           <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0 border-orange-500/40 text-orange-400 hover:bg-orange-500/10" onClick={() => setShowReturn(true)}>
             <Undo2 className="w-4 h-4" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Devolver</span>
+            <span className="sr-only xl:not-sr-only xl:whitespace-nowrap">Devolver</span>
           </Button>
           <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0" onClick={() => scanning ? stopScan() : startScan()}>
             <QrCode className="w-4 h-4" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Escanear</span>
+            <span className="sr-only xl:not-sr-only xl:whitespace-nowrap">Escanear</span>
           </Button>
           <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0" onClick={togglePosTheme} title={posTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}>
             {posTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
           </Button>
           {voiceSupported && (
             <Button size="sm" variant="ghost"
-              className={`h-9 w-9 p-0 shrink-0 hidden sm:flex relative ${voiceActive ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/40' : ''}`}
+              className={`h-9 w-9 p-0 shrink-0 hidden lg:flex relative ${voiceActive ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/40' : ''}`}
               title={voiceActive ? `Escuchando: "${voiceTranscript}"` : "Comando de voz (ej: vende 2 unidades)"}
               onClick={toggleVoice}
             >
@@ -4262,13 +4265,13 @@ export default function POSPage() {
               {voiceActive && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden sm:flex" title="Pantalla completa (F5 / F11)"
+          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden lg:flex" title="Pantalla completa (F5 / F11)"
             onClick={toggleFullscreen}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </Button>
           {isAdmin && (
-            <Button size="sm" variant="ghost" className={`h-9 w-9 p-0 shrink-0 hidden sm:flex ${controllerConfig ? "text-primary" : ""}`}
+            <Button size="sm" variant="ghost" className={`h-9 w-9 p-0 shrink-0 hidden lg:flex ${controllerConfig ? "text-primary" : ""}`}
               title={controllerConfig ? `Controlador fiscal: ${controllerConfig.host}` : "Configurar controlador fiscal"}
               aria-label="Controlador fiscal" onClick={() => setControllerDialogOpen(true)}>
               <Printer className="w-4 h-4" />
@@ -4308,7 +4311,7 @@ export default function POSPage() {
             onClose={() => setControllerDialogOpen(false)}
             onSaved={(config) => { setControllerConfig(config); setControllerDialogOpen(false); toast.success(config ? "Controlador fiscal guardado para esta caja" : "Controlador fiscal desactivado"); }}
           />
-          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden sm:flex" title="Atajos de teclado (F1 / ?)"
+          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden lg:flex" title="Atajos de teclado (F1 / ?)"
             onClick={() => setShowShortcutHelp(v => !v)}
           >
             <HelpCircle className="w-4 h-4" />

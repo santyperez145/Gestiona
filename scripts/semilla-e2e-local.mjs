@@ -83,6 +83,8 @@ async function main() {
        RETURNING id`);
     await c.query(`INSERT INTO public.platform_admins (user_id, role) VALUES ($1, 'superadmin') ON CONFLICT DO NOTHING`, [admin.id]);
     await c.query(`SELECT public.platform_organization_capability_set($1, 'finance.documents', true, $2, 'Semilla del E2E contra la base local')`, [org.id, admin.id]);
+    // El producto Finance arranca «disponible» para cada negocio; el piloto lo deja habilitado.
+    await c.query(`UPDATE public.organization_product_access SET status = 'enabled' WHERE org_id = $1 AND product_key = 'finance'`, [org.id]);
     await c.query("COMMIT");
     // PostgREST tiene que ver el esquema completo, no el de antes de las migraciones.
     await c.query("NOTIFY pgrst, 'reload schema'");

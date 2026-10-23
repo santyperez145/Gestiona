@@ -378,8 +378,8 @@ test.describe("tienda e-commerce", () => {
       "Diseño y tema",
       "Pagos y envíos",
     ]) {
-      await tabs.getByRole("button", { name: pestaña, exact: true }).click();
-      await expect(tabs.getByRole("button", { name: pestaña, exact: true })).toBeVisible();
+      await tabs.getByRole("tab", { name: pestaña, exact: true }).click();
+      await expect(tabs.getByRole("tab", { name: pestaña, exact: true })).toHaveAttribute("aria-selected", "true");
     }
   });
 
@@ -401,7 +401,7 @@ test.describe("tienda e-commerce", () => {
 
   test("la identidad de la tienda se carga por archivo, no por URL", async ({ page }) => {
     await page.goto("/tienda-online");
-    await page.getByRole("button", { name: "Diseño y tema", exact: true }).click();
+    await page.getByRole("tab", { name: "Diseño y tema", exact: true }).click();
 
     await expect(page.getByRole("heading", { level: 3, name: "Identidad", exact: true })).toBeVisible();
     await expect(page.getByText("Elegí, arrastrá o pegá una imagen").first()).toBeVisible();
@@ -411,7 +411,7 @@ test.describe("tienda e-commerce", () => {
 
   test("los banners piden imagen por archivo", async ({ page }) => {
     await page.goto("/tienda-online");
-    await page.getByRole("button", { name: "Banners", exact: true }).click();
+    await page.getByRole("tab", { name: "Banners", exact: true }).click();
 
     // `count()` no espera la consulta. Primero se espera el estado cargado;
     // recién entonces se decide si hay un banner o el empty state.
