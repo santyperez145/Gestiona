@@ -21,7 +21,11 @@ create table if not exists public.stock_movements (
 -- of assuming CREATE TABLE IF NOT EXISTS will alter the existing table.
 alter table public.stock_movements
   add column if not exists source_type text,
-  add column if not exists source_id uuid;
+  add column if not exists source_id uuid,
+  -- Producción también las tiene (las usa 20261009000800); sin esto, una base
+  -- nueva no reproduce el esquema real.
+  add column if not exists previous_stock integer,
+  add column if not exists new_stock integer;
 
 alter table public.stock_movements enable row level security;
 
