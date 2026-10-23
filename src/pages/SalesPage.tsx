@@ -1658,7 +1658,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
                 {paged.map(s => (
                   <tr key={s.id} className={`hover:bg-muted/20 transition-colors group ${selectedIds.has(s.id) ? 'bg-primary/5' : multiItemSaleIds.has(s.id) ? 'bg-primary/[0.02]' : ''}`}>
                     <td className="px-3 py-3 w-8">
-                      <button onClick={() => toggleSelect(s.id)} className="text-muted-foreground hover:text-primary transition-colors">
+                      <button type="button" onClick={() => toggleSelect(s.id)} aria-label={`Seleccionar la venta de ${s.product_name || "este ticket"}`} aria-pressed={selectedIds.has(s.id)} className="text-muted-foreground hover:text-primary transition-colors">
                         {selectedIds.has(s.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 opacity-40 group-hover:opacity-100" />}
                       </button>
                     </td>

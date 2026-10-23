@@ -4519,7 +4519,7 @@ export default function POSPage() {
                               {formatARS(displayPrice)}
                             </p>
                             {showDisc && (
-                              <p className="text-[10px] line-through text-muted-foreground/50">{formatARS(price)}</p>
+                              <p className="text-[10px] line-through text-muted-foreground">{formatARS(price)}</p>
                             )}
                           </div>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-[5px] ${

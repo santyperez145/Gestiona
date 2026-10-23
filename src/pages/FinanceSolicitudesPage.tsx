@@ -389,12 +389,12 @@ export default function FinanceSolicitudesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Solicitudes de gasto</h1>
           <p className="text-sm text-muted-foreground">Solicitud → política → presupuesto → aprobación</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => void loadRequests()} disabled={!isOnline || loading}>
             <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
             Actualizar
@@ -407,9 +407,9 @@ export default function FinanceSolicitudesPage() {
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar solicitudes..." value={inboxQuery} onChange={(e) => setInboxQuery(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar solicitudes..." aria-label="Buscar solicitudes" value={inboxQuery} onChange={(e) => setInboxQuery(e.target.value)} className="pl-9" />
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {["todos", "pendiente", "en revisión", "aprobado", "pagado", "rechazado"].map((v) => (
             <Button key={v} variant={inboxView === v ? "default" : "outline"} size="sm" onClick={() => setInboxView(v)} className="capitalize">{v}</Button>
           ))}

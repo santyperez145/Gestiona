@@ -6860,3 +6860,29 @@
 .light .text-blue-400 { color: rgb(29 78 216); }
 .light .text-orange-400 { color: rgb(194 65 12); }
 .light .text-red-400 { color: rgb(185 28 28); }
+
+/*
+ * Contraste en el tema claro (2026-10-23). Muchos textos de estado usan tonos
+ * pensados para el tema oscuro (text-*-400) o tonos medios que, sobre blanco o
+ * sobre el fondo teñido de una etiqueta («Activo», «Pagada», «En uso»), no
+ * llegan a 4,5:1 (WCAG AA). El barrido con datos los encontró en clientes,
+ * facturas, finanzas, plan, tienda y el inicio: el bloque `.light` de arriba
+ * sólo cubría algunos 400 y con el 700, que no alcanza sobre fondo teñido. En
+ * el tema claro van al tono 800 del mismo color; el tema oscuro no cambia.
+ */
+:root:not(.dark) .text-green-300, :root:not(.dark) .text-green-400, :root:not(.dark) .text-green-500, :root:not(.dark) .text-green-600, :root:not(.dark) .text-green-700 { color: rgb(22 101 52); }
+:root:not(.dark) .text-emerald-300, :root:not(.dark) .text-emerald-400, :root:not(.dark) .text-emerald-500, :root:not(.dark) .text-emerald-600, :root:not(.dark) .text-emerald-700 { color: rgb(6 95 70); }
+:root:not(.dark) .text-teal-300, :root:not(.dark) .text-teal-400, :root:not(.dark) .text-teal-500, :root:not(.dark) .text-teal-600, :root:not(.dark) .text-teal-700 { color: rgb(17 94 89); }
+:root:not(.dark) .text-cyan-300, :root:not(.dark) .text-cyan-400, :root:not(.dark) .text-cyan-500, :root:not(.dark) .text-cyan-600, :root:not(.dark) .text-cyan-700 { color: rgb(21 94 117); }
+:root:not(.dark) .text-sky-300, :root:not(.dark) .text-sky-400, :root:not(.dark) .text-sky-500, :root:not(.dark) .text-sky-600, :root:not(.dark) .text-sky-700 { color: rgb(7 89 133); }
+:root:not(.dark) .text-lime-300, :root:not(.dark) .text-lime-400, :root:not(.dark) .text-lime-500, :root:not(.dark) .text-lime-600, :root:not(.dark) .text-lime-700 { color: rgb(63 98 18); }
+:root:not(.dark) .text-yellow-300, :root:not(.dark) .text-yellow-400, :root:not(.dark) .text-yellow-500, :root:not(.dark) .text-yellow-600, :root:not(.dark) .text-yellow-700 { color: rgb(133 77 14); }
+:root:not(.dark) .text-amber-300, :root:not(.dark) .text-amber-400, :root:not(.dark) .text-amber-500, :root:not(.dark) .text-amber-600, :root:not(.dark) .text-amber-700 { color: rgb(146 64 14); }
+:root:not(.dark) .text-orange-300, :root:not(.dark) .text-orange-400, :root:not(.dark) .text-orange-500, :root:not(.dark) .text-orange-600, :root:not(.dark) .text-orange-700 { color: rgb(154 52 18); }
+:root:not(.dark) .text-red-300, :root:not(.dark) .text-red-400, :root:not(.dark) .text-red-500 { color: rgb(153 27 27); }
+:root:not(.dark) .text-blue-300, :root:not(.dark) .text-blue-400, :root:not(.dark) .text-blue-500 { color: rgb(30 64 175); }
+:root:not(.dark) .text-violet-300, :root:not(.dark) .text-violet-400, :root:not(.dark) .text-violet-500 { color: rgb(91 33 182); }
+:root:not(.dark) .text-purple-300, :root:not(.dark) .text-purple-400, :root:not(.dark) .text-purple-500 { color: rgb(107 33 168); }
+:root:not(.dark) .text-indigo-300, :root:not(.dark) .text-indigo-400, :root:not(.dark) .text-indigo-500 { color: rgb(55 48 163); }
+:root:not(.dark) .text-pink-300, :root:not(.dark) .text-pink-400, :root:not(.dark) .text-pink-500 { color: rgb(157 23 77); }
+:root:not(.dark) .text-rose-300, :root:not(.dark) .text-rose-400, :root:not(.dark) .text-rose-500 { color: rgb(159 18 57); }

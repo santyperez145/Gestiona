@@ -404,17 +404,19 @@ export default function CashFlowPage() {
       </div>
 
       {/* ── Date range selector (shared across tabs) ─────────────── */}
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Período:</span>
         <Input
           type="date"
+          aria-label="Desde"
           className="h-7 w-36 text-xs"
           value={fromDate}
           onChange={e => setFromDate(e.target.value)}
         />
-        <span className="text-muted-foreground text-xs">a</span>
+        <span className="text-muted-foreground text-xs" aria-hidden="true">a</span>
         <Input
           type="date"
+          aria-label="Hasta"
           className="h-7 w-36 text-xs"
           value={toDate}
           onChange={e => setToDate(e.target.value)}

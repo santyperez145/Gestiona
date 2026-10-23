@@ -1782,6 +1782,9 @@ export default function InvoicesPage() {
                   <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-muted/20 transition-colors">
                     {canManage && (
                       <button
+                        type="button"
+                        aria-label={`Seleccionar la factura ${inv.number}`}
+                        aria-pressed={selectedIds.has(inv.id)}
                         className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
                         onClick={(e) => { e.stopPropagation(); setSelectedIds(prev => { const n = new Set(prev); if (n.has(inv.id)) n.delete(inv.id); else n.add(inv.id); return n; }); }}
                       >
@@ -1791,12 +1794,17 @@ export default function InvoicesPage() {
                         }
                       </button>
                     )}
-                    <button className="flex-1 flex items-center gap-3 min-w-0 text-left" onClick={() => setExpanded(isOpen ? null : inv.id)}>
+                    {/* La fila entera se puede tocar; el número es el botón (con teclado) y copiar y la venta son acciones propias: no van anidadas en un botón. */}
+                    <div className="flex-1 flex items-center gap-3 min-w-0 text-left cursor-pointer" onClick={() => setExpanded(isOpen ? null : inv.id)}>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-mono text-sm font-semibold ${tipoCbte?.creditNote ? "text-orange-400" : ""}`}>{inv.number}</span>
+                          <button type="button" aria-expanded={isOpen} aria-label={`${isOpen ? "Ocultar" : "Ver"} el detalle de la factura ${inv.number}`}
+                            className={`font-mono text-sm font-semibold hover:underline ${tipoCbte?.creditNote ? "text-orange-400" : ""}`}
+                            onClick={e => { e.stopPropagation(); setExpanded(isOpen ? null : inv.id); }}>{inv.number}</button>
                           <button
-                            className="opacity-40 hover:opacity-100 transition-opacity"
+                            type="button"
+                            aria-label={`Copiar el número de factura ${inv.number}`}
+                            className="opacity-40 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                             title="Copiar número de factura"
                             onClick={e => { e.stopPropagation(); copy(inv.number, inv.number); }}
                           >
@@ -1864,7 +1872,7 @@ export default function InvoicesPage() {
                         <p className="text-sm text-muted-foreground truncate">{inv.customer_name}</p>
                         <p className="text-xs text-muted-foreground/60">{fechaFiscalArgentina(inv.issue_date)}</p>
                       </div>
-                    </button>
+                    </div>
                     <div className="text-right shrink-0">
                       <div className="font-semibold font-mono text-sm">{formatARS(Number(inv.total))}</div>
                     </div>

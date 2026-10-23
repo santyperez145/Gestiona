@@ -3430,6 +3430,7 @@ export default function CustomersPage() {
                     <div className="workspace-customer-row__identity">
                       <input
                         type="checkbox"
+                        aria-label={`Seleccionar a ${c.name}`}
                         checked={selectedCustomerNames.has(c.name)}
                         onClick={e => e.stopPropagation()}
                         onChange={e => {

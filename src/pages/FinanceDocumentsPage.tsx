@@ -513,7 +513,7 @@ export default function FinanceDocumentsPage() {
               </label>
             )}
             <div className={newVersionFor ? 'sm:col-span-2' : ''}>
-              <input ref={fileInputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" onChange={event => selectFile(event.target.files?.[0])} />
+              <input ref={fileInputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" aria-label="Elegir el comprobante" tabIndex={-1} onChange={event => selectFile(event.target.files?.[0])} />
               <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-[82px] w-full items-center justify-between gap-4 rounded-[9px] border border-dashed border-border/80 bg-muted/15 px-4 text-left transition-colors hover:border-teal-500/50 hover:bg-teal-500/[0.04]">
                 <span className="min-w-0">
                   <span className="block truncate text-xs font-medium">{selectedFile?.name || 'Elegí un archivo original'}</span>

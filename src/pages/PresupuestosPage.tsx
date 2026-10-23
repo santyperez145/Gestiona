@@ -705,7 +705,7 @@ export default function PresupuestosPage() {
                     description="Esta acción no se puede deshacer."
                     onConfirm={() => handleDelete(q.id)}
                     trigger={
-                      <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                      <button type="button" aria-label={`Eliminar el presupuesto ${q.quote_number}`} title="Eliminar presupuesto" className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     }

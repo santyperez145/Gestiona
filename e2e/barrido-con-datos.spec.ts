@@ -38,11 +38,17 @@ for (const ruta of rutasDelMenu()) {
 
     for (const ancho of [1280, 390]) {
       await page.setViewportSize({ width: ancho, height: 900 });
-      await page.waitForTimeout(150);
+      // Los gráficos (ResponsiveContainer) se ajustan con una demora: se mide
+      // cuando el ancho del documento deja de cambiar.
+      await page.waitForFunction(() => new Promise<boolean>(ok => {
+        const a = document.documentElement.scrollWidth;
+        setTimeout(() => ok(document.documentElement.scrollWidth === a), 400);
+      }), undefined, { timeout: 5_000 }).catch(() => undefined);
       const desborde = await page.evaluate(() => {
         const w = document.documentElement.clientWidth;
         if (document.documentElement.scrollWidth <= w) return [];
-        return [...document.querySelectorAll("main *")].filter(e => e.getBoundingClientRect().right > w + 1)
+        return [...document.querySelectorAll("main *")]
+          .filter(e => getComputedStyle(e).visibility !== "hidden" && e.getBoundingClientRect().right > w + 1)
           .slice(0, 5).map(e => `${e.tagName.toLowerCase()}.${String(e.getAttribute("class") ?? "").slice(0, 70)}`);
       });
       expect.soft(desborde, `desborde a ${ancho}px`).toEqual([]);
@@ -50,7 +56,8 @@ for (const ruta of rutasDelMenu()) {
     await page.setViewportSize({ width: 1280, height: 900 });
     const graves = (await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations
       .filter(v => ["serious", "critical"].includes(v.impact ?? ""));
-    const violaciones = graves.map(v => `${v.id}: ${v.nodes.slice(0, 3).map(n => `${n.target.join(" ")} — ${n.html.slice(0, 200)}`).join(" | ")}`);
+    // El resumen de axe dice la relación de contraste y los colores medidos.
+    const violaciones = graves.map(v => `${v.id}: ${v.nodes.slice(0, 3).map(n => `${n.target.join(" ")} — ${n.html.slice(0, 160)} — ${(n.failureSummary ?? "").replace(/\s+/g, " ").slice(0, 220)}`).join(" | ")}`);
     if (consola.length) testInfo.annotations.push({ type: "consola", description: consola.slice(0, 5).join(" || ") });
     expect.soft(errores, "errores de JavaScript").toEqual([]);
     expect.soft(violaciones, "accesibilidad").toEqual([]);
