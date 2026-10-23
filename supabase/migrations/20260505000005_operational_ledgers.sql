@@ -25,7 +25,8 @@ alter table public.stock_movements
   -- Producción también las tiene (las usa 20261009000800); sin esto, una base
   -- nueva no reproduce el esquema real.
   add column if not exists previous_stock integer,
-  add column if not exists new_stock integer;
+  add column if not exists new_stock integer,
+  add column if not exists note text;
 
 alter table public.stock_movements enable row level security;
 
