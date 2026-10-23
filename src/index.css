@@ -6637,7 +6637,8 @@
   .light .workspace-view-tabs__tab {
     min-height: 3rem;
     border-radius: 8px;
-    color: hsl(240 4% 43% / 0.9);
+    /* Sin transparencia: al 90 % quedaba en 4,37:1 (barrido con datos, 2026-10-23). */
+    color: hsl(240 5% 34%);
   }
 
   .light .workspace-view-tabs__tab:hover {

@@ -47,8 +47,16 @@ for (const ruta of rutasDelMenu()) {
       const desborde = await page.evaluate(() => {
         const w = document.documentElement.clientWidth;
         if (document.documentElement.scrollWidth <= w) return [];
+        // Lo que está dentro de una caja con scroll propio no desborda la página.
+        const recortado = (e: Element) => {
+          for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) {
+            const ox = getComputedStyle(a).overflowX;
+            if (ox === "auto" || ox === "scroll" || ox === "hidden" || ox === "clip") return true;
+          }
+          return false;
+        };
         return [...document.querySelectorAll("main *")]
-          .filter(e => getComputedStyle(e).visibility !== "hidden" && e.getBoundingClientRect().right > w + 1)
+          .filter(e => getComputedStyle(e).visibility !== "hidden" && e.getBoundingClientRect().right > w + 1 && !recortado(e))
           .slice(0, 5).map(e => `${e.tagName.toLowerCase()}.${String(e.getAttribute("class") ?? "").slice(0, 70)}`);
       });
       expect.soft(desborde, `desborde a ${ancho}px`).toEqual([]);
