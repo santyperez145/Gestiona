@@ -63,11 +63,11 @@ jobs:
         run: |
           docker run --rm --network host --ipc=host \
             -v "$PWD:/w" -w /w \
-            -e CI=true -e E2E_REQUIRE_AUTH=true \
+            -e CI=true -e E2E_REQUIRE_AUTH=true -e E2E_LOCAL=true \
             -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY \
             -e E2E_USER -e E2E_PASSWORD -e E2E_STORE_SLUG \
             mcr.microsoft.com/playwright:v1.59.1-noble \
-            npx playwright test --project=setup --project=panel
+            npx playwright test --project=setup --project=panel --project=circuito
 
       - name: Evidencia de fallas
         if: failure()

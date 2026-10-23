@@ -60,14 +60,14 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: "**/panel.spec.ts",
+      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts"],
     },
     // El comprador argentino promedio entra desde el teléfono; los desbordes
     // de 375px son la clase de bug que sólo se ve ahí.
     {
       name: "mobile",
       use: { ...devices["Pixel 5"] },
-      testIgnore: "**/panel.spec.ts",
+      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts"],
     },
 
     // El panel sí. La sesión se obtiene una vez y se reusa.
@@ -75,6 +75,13 @@ export default defineConfig({
     {
       name: "panel",
       testMatch: "**/panel.spec.ts",
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], storageState: ARCHIVO_SESION },
+    },
+    // Escribe datos: sólo contra la base local del E2E (el spec se saltea si no).
+    {
+      name: "circuito",
+      testMatch: "**/circuito-gestion.spec.ts",
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], storageState: ARCHIVO_SESION },
     },
