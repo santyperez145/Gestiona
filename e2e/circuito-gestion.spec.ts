@@ -82,14 +82,16 @@ test("presupuesto → caja → remito → factura → cobro, con la operación c
   await expect(remito).toBeVisible();
   await remito.getByRole("button", { name: "Todo lo pendiente" }).click();
   await remito.getByRole("button", { name: "Emitir", exact: true }).click();
-  await expect(remito).toBeHidden({ timeout: 30_000 });
+  // Confirma el número del remito y se cierra con «Listo».
+  await expect(page.getByText(/Remito X 00001-\d{8} emitido/)).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Listo", exact: true }).click();
 
-  // 5 y 6. La operación completa tiene presupuesto, remito y factura.
+  // 5 y 6. La operación completa tiene presupuesto, remito y factura (sin CAE: no hay ARCA local).
   const operacion = page.getByTestId("documentos-de-la-venta");
-  await operacion.getByRole("button", { name: "Actualizar la operación" }).click();
   await expect(operacion.getByText("Presupuesto", { exact: true })).toBeVisible();
-  await expect(operacion.getByText(/^Remito /).first()).toBeVisible();
-  await expect(operacion.getByText(/Factura/).first()).toBeVisible();
+  await expect(operacion.getByText(/^Remito X$/).first()).toBeVisible();
+  await expect(operacion.getByText(/^Factura A$/).first()).toBeVisible();
+  await expect(operacion.getByText(/sin CAE/).first()).toBeVisible();
 
   // 7. Cobro de la deuda en la caja, y la operación lo muestra.
   await page.goto("/caja");
