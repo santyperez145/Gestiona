@@ -31,10 +31,10 @@ BEGIN
     (v_lista, v_org, v_a, 700, NULL, 10);
 
   -- 1
-  IF NOT ('cuenta_corriente' = ANY((SELECT payment_methods FROM public.ecommerce_stores WHERE id = v_store))) THEN RAISE EXCEPTION 'FALLA 1a: no agregó la cuenta corriente'; END IF;
+  IF NOT ((SELECT payment_methods FROM public.ecommerce_stores WHERE id = v_store) @> ARRAY['cuenta_corriente']) THEN RAISE EXCEPTION 'FALLA 1a: no agregó la cuenta corriente'; END IF;
   IF 'cuenta_corriente' = ANY(public.medios_de_pago_vivos(v_org, ARRAY['efectivo', 'cuenta_corriente'])) THEN RAISE EXCEPTION 'FALLA 1b: la cuenta corriente quedó en la lista pública'; END IF;
   UPDATE public.ecommerce_stores SET mayorista_cuenta_corriente = false WHERE id = v_store;
-  IF 'cuenta_corriente' = ANY((SELECT payment_methods FROM public.ecommerce_stores WHERE id = v_store)) THEN RAISE EXCEPTION 'FALLA 1c: no la sacó al apagarla'; END IF;
+  IF (SELECT payment_methods FROM public.ecommerce_stores WHERE id = v_store) @> ARRAY['cuenta_corriente'] THEN RAISE EXCEPTION 'FALLA 1c: no la sacó al apagarla'; END IF;
   UPDATE public.ecommerce_stores SET mayorista_cuenta_corriente = true WHERE id = v_store;
   v_ok := v_ok || '1 ';
 
