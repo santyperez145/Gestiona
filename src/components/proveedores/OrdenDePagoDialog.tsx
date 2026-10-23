@@ -264,7 +264,9 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
 
 function certificadoDe(retenciones: RetencionImpresa[] | undefined): string {
   const r = retenciones?.[0];
-  return r ? `Certificado IIBB ${r.jurisdiccion} N.º ${String(r.certificado).padStart(8, "0")}` : "Retención IIBB";
+  if (!r) return "Retención IIBB";
+  const n = String(r.certificado).padStart(8, "0");
+  return r.jurisdiccion === "ARBA" ? `Retención IIBB ARBA · transacción N.º ${n} (comprobante A-122R)` : `Certificado IIBB ${r.jurisdiccion} N.º ${n}`;
 }
 
 function describirCheque(c: Cheque | undefined): string {

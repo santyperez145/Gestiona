@@ -3,11 +3,13 @@
  * agente de retención de Ingresos Brutos, la orden de pago a un proveedor
  * calcula la retención con el padrón de retenciones y emite el certificado.
  * El padrón se importa filtrando, en el navegador, sólo los CUIT de los
- * proveedores. Ver la migración 20261022001600.
+ * proveedores. En ARBA las retenciones del período se declaran con el lote
+ * A-122R que se descarga acá (`lib/loteA122R.ts`). Ver la migración
+ * 20261022001600.
  */
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileUp, Loader2 } from "lucide-react";
+import { Download, FileUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,8 @@ import { fechaFiscalArgentina } from "@/lib/arcaInvoice";
 import { isMissingColumn, isMissingFunction } from "@/lib/publicDataSource";
 import { leerPadronDeArchivo, type Jurisdiccion } from "@/lib/padronIibb";
 import { plural } from "@/lib/plural";
+import { hoyAR } from "@/lib/fechaAR";
+import { nombreLoteA122R, periodoA122R, textoLoteA122R, zipLoteA122R, type Quincena } from "@/lib/loteA122R";
 
 interface Datos {
   iibb_agente: boolean; iibb_padron: Jurisdiccion | null; iibb_sin_padron: number | null; iibb_minimo: number;
@@ -27,7 +31,7 @@ interface Datos {
 
 const TANDA = 2000;
 
-export default function RetencionesConfig({ orgId, canEdit }: { orgId: string | null; canEdit: boolean }) {
+export default function RetencionesConfig({ orgId, canEdit, cuitAgente }: { orgId: string | null; canEdit: boolean; cuitAgente?: string | null }) {
   const [disponible, setDisponible] = useState(true);
   const [datos, setDatos] = useState<Datos | null>(null);
   const [form, setForm] = useState({ iibb: false, padron: "ARBA" as Jurisdiccion, sinPadron: "", minimo: "0" });
@@ -152,6 +156,83 @@ export default function RetencionesConfig({ orgId, canEdit }: { orgId: string | 
           )}
         </div>
       )}
+
+      {datos?.iibb_agente && datos.iibb_padron === "ARBA" && <LoteArba orgId={orgId} cuitAgente={cuitAgente ?? null} />}
     </section>
+  );
+}
+
+/**
+ * Declarar en ARBA: el lote A-122R del período con las retenciones que hizo
+ * la orden de pago. Al cargarlo, ARBA genera el comprobante A-122R de cada
+ * una, que es el que se le entrega al proveedor.
+ */
+function LoteArba({ orgId, cuitAgente }: { orgId: string | null; cuitAgente: string | null }) {
+  const hoy = hoyAR();
+  const [mes, setMes] = useState(hoy.slice(0, 7));
+  const [quincena, setQuincena] = useState<Quincena>(Number(hoy.slice(8, 10)) <= 15 ? 1 : 2);
+  const [armando, setArmando] = useState(false);
+
+  const descargar = async () => {
+    if (!orgId) return;
+    const [anio, m] = mes.split("-").map(Number);
+    if (!anio || !m) { toast.error("Elegí el mes."); return; }
+    setArmando(true);
+    try {
+      const periodo = periodoA122R(anio, m, quincena);
+      const nombre = nombreLoteA122R(cuitAgente ?? "", periodo.codigo);
+      const { data, error } = await supabase.from("withholding_records")
+        .select("certificado_numero, counterpart_cuit, date, rate_pct, base_amount")
+        .eq("org_id", orgId).eq("direction", "applied").eq("withholding_type", "iibb").eq("jurisdiccion", "ARBA")
+        .not("certificado_numero", "is", null).gte("date", periodo.desde).lte("date", periodo.hasta).order("date");
+      if (error) throw new Error(isMissingColumn(error) ? "Las retenciones automáticas todavía no están disponibles: falta una actualización que ya está en camino." : "No se pudieron leer las retenciones del período. Probá de nuevo.");
+      if (!data?.length) { toast.info("No hay retenciones de ARBA hechas con órdenes de pago en ese período."); return; }
+      const texto = textoLoteA122R(data.map(r => ({
+        transaccion: Number(r.certificado_numero), cuit: String(r.counterpart_cuit ?? ""), fecha: String(r.date),
+        alicuota: Number(r.rate_pct), base: Number(r.base_amount),
+      })));
+      const zip = await zipLoteA122R(nombre, texto);
+      const url = URL.createObjectURL(zip);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${nombre}.zip`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Lote ${nombre}: ${plural(data.length, "retención", "retenciones")}. Subilo en ARBA › Emisión Comprobante de Retención › Carga por lote.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo armar el lote.");
+    } finally {
+      setArmando(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-2 rounded-lg border border-border/40 p-3">
+      <h4 className="text-xs font-semibold">Declarar en ARBA (lote A-122R)</h4>
+      <p className="text-[11px] text-muted-foreground">
+        Desde diciembre de 2025 el comprobante de cada retención lo genera ARBA (A-122R) cuando la cargás. Descargá el lote del período,
+        subilo en «Emisión Comprobante de Retención» › «Carga por lote» y entregale a cada proveedor su A-122R.
+      </p>
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <Label htmlFor="a122r-mes" className="text-xs">Mes</Label>
+          <Input id="a122r-mes" type="month" className="w-40" value={mes} max={hoy.slice(0, 7)} onChange={e => setMes(e.target.value)} />
+        </div>
+        <div className="w-40">
+          <Label htmlFor="a122r-quincena" className="text-xs">Período</Label>
+          <Select value={String(quincena)} onValueChange={v => setQuincena(Number(v) as Quincena)}>
+            <SelectTrigger id="a122r-quincena"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1.ª quincena</SelectItem>
+              <SelectItem value="2">2.ª quincena</SelectItem>
+              <SelectItem value="0">Mes completo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button type="button" size="sm" variant="outline" disabled={!orgId || armando} onClick={() => void descargar()}>
+          {armando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <Download className="mr-2 h-4 w-4" aria-hidden />}Descargar lote
+        </Button>
+      </div>
+      {!cuitAgente && <p className="text-[11px] text-amber-700 dark:text-amber-300">Cargá el CUIT del comercio en Datos fiscales: el nombre del lote lo lleva.</p>}
+    </div>
   );
 }

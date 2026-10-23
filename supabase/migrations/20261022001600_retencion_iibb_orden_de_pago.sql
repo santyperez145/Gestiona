@@ -13,8 +13,12 @@
 --   3. `retencion_iibb_calculada` (interna) y `retencion_para_proveedor`
 --      (lo que se le propone al que paga).
 --   4. `emitir_orden_de_pago`: un medio «retencion» con `automatica` se
---      recalcula en la base, numera su certificado por jurisdicción y queda
---      en `withholding_records` («Retenemos»), atado a la orden.
+--      recalcula en la base, numera la retención por jurisdicción y queda en
+--      `withholding_records` («Retenemos»), atado a la orden. En ARBA ese
+--      número es el «Nro. transacción Agente» del lote A-122R: desde el
+--      1/12/2025 (RN ARBA 22/2025) el único comprobante válido es el A-122R
+--      que genera ARBA al cargar la retención. En AGIP es el certificado
+--      propio del agente.
 --   5. `configurar_retenciones`, `datos_retenciones` y
 --      `cargar_padron_iibb_retencion`.
 -- Requiere 20261022001300 (`suppliers.cuit`) y 20261022001400.
@@ -298,7 +302,9 @@ BEGIN
       -- (y bajo el mismo candado) que la orden.
       SELECT COALESCE(max(certificado_numero), 0) + 1 INTO v_cert FROM public.withholding_records
        WHERE org_id = p_org AND withholding_type = 'iibb' AND direction = 'applied' AND jurisdiccion = v_ret->>'jurisdiccion';
-      v_referencia := 'Certificado IIBB ' || (v_ret->>'jurisdiccion') || ' N.º ' || lpad(v_cert::text, 8, '0');
+      v_referencia := CASE WHEN v_ret->>'jurisdiccion' = 'ARBA'
+        THEN 'Retención IIBB ARBA · transacción N.º ' || lpad(v_cert::text, 8, '0') || ' (comprobante A-122R)'
+        ELSE 'Certificado IIBB ' || (v_ret->>'jurisdiccion') || ' N.º ' || lpad(v_cert::text, 8, '0') END;
       INSERT INTO public.withholding_records (org_id, withholding_type, counterpart_name, counterpart_cuit, amount, rate_pct, base_amount,
              direction, date, certificate_number, reference_type, reference_id, notes, jurisdiccion, certificado_numero)
       VALUES (p_org, 'iibb', v_supplier.name, v_supplier.cuit, v_importe, (v_ret->>'alicuota')::numeric, (v_ret->>'base')::numeric,

@@ -395,7 +395,7 @@ export default function AFIPPage() {
           en Ajustes → Sistema, a dos clics de acá. */}
       <div id="datos-fiscales" className="scroll-mt-20">
         <AfipConfigForm canEdit={canEdit} onSaved={load} />
-        {orgId && <div className="mt-4 space-y-4"><ConceptoDeFacturacion orgId={orgId} canEdit={canEdit} /><DatosFceComercio orgId={orgId} canEdit={canEdit} /><PercepcionesConfig orgId={orgId} canEdit={canEdit} /><RetencionesConfig orgId={orgId} canEdit={canEdit} /><ContingenciaCaea orgId={orgId} canEdit={canEdit} /><ExportacionConfig orgId={orgId} canEdit={canEdit} /><ConsultaDeCuit orgId={orgId} cuitPropio={connection?.cuit ?? null} modo={connection?.modo ?? null} /></div>}
+        {orgId && <div className="mt-4 space-y-4"><ConceptoDeFacturacion orgId={orgId} canEdit={canEdit} /><DatosFceComercio orgId={orgId} canEdit={canEdit} /><PercepcionesConfig orgId={orgId} canEdit={canEdit} /><RetencionesConfig orgId={orgId} canEdit={canEdit} cuitAgente={connection?.cuit ?? null} /><ContingenciaCaea orgId={orgId} canEdit={canEdit} /><ExportacionConfig orgId={orgId} canEdit={canEdit} /><ConsultaDeCuit orgId={orgId} cuitPropio={connection?.cuit ?? null} modo={connection?.modo ?? null} /></div>}
       </div>
 
       <div className={`rounded-xl border p-4 ${readiness.className}`}>

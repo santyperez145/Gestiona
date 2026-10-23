@@ -3,8 +3,11 @@
  * el comprobante para imprimir. La autoridad es `emitir_orden_de_pago`
  * (migración 20261022001400); esto valida antes de mandar y arma el papel.
  * La retención de Ingresos Brutos de un agente (20261022001600) la calcula la
- * base: acá sólo se muestra, se manda marcada `automatica` y se imprime su
- * certificado.
+ * base: acá sólo se muestra, se manda marcada `automatica` y se imprime. En
+ * AGIP la hoja es el certificado del agente; en ARBA, desde el 1/12/2025
+ * (RN 22/2025), el único comprobante válido es el A-122R que genera ARBA al
+ * cargar la retención, así que la hoja es el detalle con el número de
+ * transacción y lo dice.
  */
 import type { EmisorDelRemito } from "@/lib/remitos";
 
@@ -126,12 +129,14 @@ const NOMBRE_JURISDICCION: Record<string, string> = {
   AGIP: "Administración Gubernamental de Ingresos Públicos de la Ciudad (AGIP)",
 };
 
-/** El certificado de retención que se entrega al proveedor (original y duplicado). */
+/** La hoja de la retención: certificado del agente (AGIP) o detalle para el A-122R (ARBA). */
 function certificadoDeRetencion(o: OrdenImpresa, r: RetencionImpresa, emisor: EmisorDelRemito, copia: string): string {
   const numero = String(r.certificado).padStart(8, "0");
+  const arba = r.jurisdiccion === "ARBA";
   return `<section class="hoja"><p class="copia">${copia}</p>
     <header><div><h1>${esc(emisor.razonSocial || emisor.nombre)}</h1>${emisor.cuit ? `<p>CUIT ${esc(emisor.cuit)} · Agente de retención</p>` : ""}${emisor.domicilio ? `<p>${esc(emisor.domicilio)}</p>` : ""}</div>
-    <div class="dato"><h2>CERTIFICADO DE RETENCIÓN</h2><p class="numero">IIBB ${esc(r.jurisdiccion)} N.º ${numero}</p><p>Fecha ${fecha(o.fecha)}</p></div></header>
+    <div class="dato"><h2>${arba ? "DETALLE DE RETENCIÓN" : "CERTIFICADO DE RETENCIÓN"}</h2><p class="numero">IIBB ${esc(r.jurisdiccion)}${arba ? " · transacción" : ""} N.º ${numero}</p><p>Fecha ${fecha(o.fecha)}</p></div></header>
+    ${arba ? `<p class="notas"><strong>No es el comprobante de la retención.</strong> El comprobante válido es el A-122R que genera ARBA cuando el agente carga esta retención (RN ARBA 22/2025); se le entrega al proveedor.</p>` : ""}
     <p class="prov"><span>Sujeto retenido</span><strong>${esc(o.proveedor)}</strong>${o.proveedorCuit ? ` · CUIT ${esc(o.proveedorCuit)}` : ""}</p>
     <table><tbody>
       <tr><td>Impuesto</td><td>Ingresos Brutos — ${esc(NOMBRE_JURISDICCION[r.jurisdiccion] ?? r.jurisdiccion)}</td></tr>
@@ -141,7 +146,7 @@ function certificadoDeRetencion(o: OrdenImpresa, r: RetencionImpresa, emisor: Em
     </tbody></table>
     <p class="total">Importe retenido ${pesos(r.importe)}</p>
     <div class="firmas"><div>Firma del agente de retención</div><div>Recibí conforme (firma y aclaración)</div></div>
-    <footer>El importe retenido se ingresa a nombre del sujeto retenido en la declaración del agente.</footer></section>`;
+    <footer>${arba ? "Se declara con el lote A-122R del período (Nerqia › ARCA › Retenciones al pagar)." : "El importe retenido se ingresa a nombre del sujeto retenido en la declaración del agente."}</footer></section>`;
 }
 
 /** El comprobante para el proveedor: original y duplicado. */

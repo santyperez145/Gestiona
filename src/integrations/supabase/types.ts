@@ -49350,6 +49350,8 @@ export type Database = {
           date: string
           direction: string
           id: string
+          certificado_numero: number | null
+          jurisdiccion: string | null
           notes: string | null
           org_id: string
           rate_pct: number
@@ -49367,6 +49369,8 @@ export type Database = {
           date?: string
           direction?: string
           id?: string
+          certificado_numero?: number | null
+          jurisdiccion?: string | null
           notes?: string | null
           org_id: string
           rate_pct?: number
@@ -49384,6 +49388,8 @@ export type Database = {
           date?: string
           direction?: string
           id?: string
+          certificado_numero?: number | null
+          jurisdiccion?: string | null
           notes?: string | null
           org_id?: string
           rate_pct?: number

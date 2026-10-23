@@ -60,7 +60,7 @@ BEGIN
                      AND jurisdiccion = 'ARBA' AND certificado_numero = 1 AND amount = 250 AND base_amount = 10000 AND rate_pct = 2.5
                      AND counterpart_cuit = '30712345671' AND reference_id = (r->>'orden_id')::uuid)
      OR NOT EXISTS (SELECT 1 FROM public.orden_de_pago_medios WHERE orden_id = (r->>'orden_id')::uuid AND medio = 'retencion'
-                     AND referencia = 'Certificado IIBB ARBA N.º 00000001') THEN
+                     AND referencia = 'Retención IIBB ARBA · transacción N.º 00000001 (comprobante A-122R)') THEN
     RAISE EXCEPTION 'FALLA 2a: %', r;
   END IF;
   r := public.emitir_orden_de_pago(v_org, jsonb_build_object('supplier_id', v_a, 'idempotency_key', 'zz-ret-clave-2',

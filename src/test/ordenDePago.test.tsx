@@ -69,18 +69,25 @@ describe("Orden de pago: el diálogo", () => {
     abrir.mockRestore();
   });
 
-  it("la retención automática no pide certificado: lo numera la base, y se imprime con la orden", () => {
+  it("la retención automática no pide certificado: la numera la base, y se imprime con la orden", () => {
     const ret = medioDeRetencion({ aplica: true, jurisdiccion: "ARBA", base: 10000, alicuota: 2.5, importe: 250, origen: "padron" });
     const unaDeuda = [{ deudaId: "d1", descripcion: "Factura 1", saldo: 12100, importe: "12100" }];
     expect(erroresDeOrden(unaDeuda, [ret, medioVacio("transferencia", "11850")])).toEqual([]);
     expect(ordenParaEnviar({ supplierId: "s1", clave: "clave-123456", notas: "", imputaciones: unaDeuda, medios: [ret] }).medios)
       .toEqual([{ medio: "retencion", importe: 250, automatica: true, base: 10000 }]);
     const html = ordenDePagoHtml({ numero: 7, fecha: "2026-10-22", proveedor: "ZZ Distribuidora", proveedorCuit: "30712345671", total: 12100, notas: null,
-      imputaciones: [{ descripcion: "Factura 1", importe: 12100 }], medios: [{ medio: "retencion", importe: 250, referencia: "Certificado IIBB ARBA N.º 00000003" }],
-      retenciones: [{ jurisdiccion: "ARBA", certificado: 3, base: 10000, alicuota: 2.5, importe: 250 }] }, { nombre: "ZZ Comercio", cuit: "20123456786" } as never);
+      imputaciones: [{ descripcion: "Factura 1", importe: 12100 }], medios: [{ medio: "retencion", importe: 250, referencia: "Certificado IIBB AGIP N.º 00000003" }],
+      retenciones: [{ jurisdiccion: "AGIP", certificado: 3, base: 10000, alicuota: 2.5, importe: 250 }] }, { nombre: "ZZ Comercio", cuit: "20123456786" } as never);
     expect(html).toContain("CERTIFICADO DE RETENCIÓN");
-    expect(html).toContain("IIBB ARBA N.º 00000003");
+    expect(html).toContain("IIBB AGIP N.º 00000003");
     expect(html.match(/CERTIFICADO DE RETENCIÓN/g)).toHaveLength(2);
+    // En ARBA el comprobante es el A-122R: la hoja de Nerqia no se presenta como certificado.
+    const arba = ordenDePagoHtml({ numero: 8, fecha: "2026-10-22", proveedor: "ZZ", proveedorCuit: "30712345671", total: 100, notas: null,
+      imputaciones: [{ descripcion: "F", importe: 100 }], medios: [{ medio: "retencion", importe: 2, referencia: null }],
+      retenciones: [{ jurisdiccion: "ARBA", certificado: 4, base: 100, alicuota: 2, importe: 2 }] }, { nombre: "ZZ Comercio" } as never);
+    expect(arba).not.toContain("CERTIFICADO DE RETENCIÓN");
+    expect(arba).toContain("DETALLE DE RETENCIÓN");
+    expect(arba).toContain("A-122R");
     expect(avisoDeRetencion({ aplica: false, motivo: "sin_cuit" })).toMatch(/no tiene CUIT/);
     expect(avisoDeRetencion({ aplica: false, motivo: "no_agente" })).toBeNull();
   });
