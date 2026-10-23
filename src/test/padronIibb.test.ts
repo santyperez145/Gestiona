@@ -24,6 +24,12 @@ describe("padrones de Ingresos Brutos", () => {
     expect(leerLineaPadron(AGIP, "AGIP")).toEqual({ cuit: "30712345671", alicuota: 2, vigenciaDesde: "2026-11-01", vigenciaHasta: "2026-11-30", baja: false });
   });
 
+  it("para retener lee el régimen R de ARBA y la alícuota de retención de AGIP", () => {
+    expect(leerLineaPadron(ARBA_RET, "ARBA", "R")).toEqual({ cuit: "30712345671", alicuota: 1.75, vigenciaDesde: "2026-11-01", vigenciaHasta: "2026-11-30", baja: false });
+    expect(leerLineaPadron(ARBA, "ARBA", "R")).toBeNull();
+    expect(leerLineaPadron(AGIP, "AGIP", "R")?.alicuota).toBe(1.5);
+  });
+
   it("se queda sólo con los clientes del comercio", () => {
     const r = filtrarPadron([ARBA, ARBA_BAJA, "P;roto", ""], new Set(["30712345671"]), "ARBA");
     expect([...r.encontrados.keys()]).toEqual(["30712345671"]);

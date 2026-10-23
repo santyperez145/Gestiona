@@ -46,32 +46,35 @@ export function formatoDePadron(linea: string): Jurisdiccion | null {
 }
 
 /**
- * Una línea del padrón de percepción. ARBA mezcla percepción y retención en
- * archivos distintos; si llega una línea de retención (R), no sirve para
- * percibir y se ignora.
+ * Una línea del padrón, del régimen pedido: percepción (P, por defecto) o
+ * retención (R, desde 2026-10-22, para el agente que retiene al pagar). ARBA
+ * publica cada régimen en su archivo y marca la línea con la letra: una del
+ * otro régimen se ignora. AGIP trae las dos alícuotas en la misma línea.
  */
-export function leerLineaPadron(linea: string, formato: Jurisdiccion): RegistroPadron | null {
+export type Regimen = "P" | "R";
+
+export function leerLineaPadron(linea: string, formato: Jurisdiccion, regimen: Regimen = "P"): RegistroPadron | null {
   const c = linea.replace(/\r$/, "").split(";");
   if (formato === "ARBA") {
-    if (c.length < 9 || c[0] !== "P") return null;
+    if (c.length < 9 || c[0] !== regimen) return null;
     const desde = fechaIso(c[2]), hasta = fechaIso(c[3]), a = alicuota(c[8]);
     if (!desde || !hasta || a === null || !/^\d{11}$/.test(c[4])) return null;
     return { cuit: c[4], alicuota: a, vigenciaDesde: desde, vigenciaHasta: hasta, baja: c[6] === "B" };
   }
-  if (c.length < 8) return null;
-  const desde = fechaIso(c[1]), hasta = fechaIso(c[2]), a = alicuota(c[7]);
+  if (c.length < (regimen === "R" ? 9 : 8)) return null;
+  const desde = fechaIso(c[1]), hasta = fechaIso(c[2]), a = alicuota(c[regimen === "R" ? 8 : 7]);
   if (!desde || !hasta || a === null || !/^\d{11}$/.test(c[3])) return null;
   return { cuit: c[3], alicuota: a, vigenciaDesde: desde, vigenciaHasta: hasta, baja: c[5] === "B" };
 }
 
-/** Recorre líneas y se queda con las de los CUIT pedidos (los clientes). */
-export function filtrarPadron(lineas: Iterable<string>, cuits: ReadonlySet<string>, formato: Jurisdiccion) {
+/** Recorre líneas y se queda con las de los CUIT pedidos (clientes o proveedores). */
+export function filtrarPadron(lineas: Iterable<string>, cuits: ReadonlySet<string>, formato: Jurisdiccion, regimen: Regimen = "P") {
   const encontrados = new Map<string, RegistroPadron>();
   let leidas = 0, invalidas = 0;
   for (const linea of lineas) {
     if (!linea.trim()) continue;
     leidas++;
-    const r = leerLineaPadron(linea, formato);
+    const r = leerLineaPadron(linea, formato, regimen);
     if (!r) { invalidas++; continue; }
     if (cuits.has(r.cuit)) encontrados.set(r.cuit, r);
   }
@@ -86,6 +89,7 @@ export async function leerPadronDeArchivo(
   archivo: Blob,
   cuits: ReadonlySet<string>,
   alAvanzar?: (fraccion: number) => void,
+  regimen: Regimen = "P",
 ): Promise<{ formato: Jurisdiccion | null; encontrados: Map<string, RegistroPadron>; leidas: number; invalidas: number }> {
   const decoder = new TextDecoder("windows-1252");
   const BLOQUE = 4 * 1024 * 1024;
@@ -99,7 +103,7 @@ export async function leerPadronDeArchivo(
       if (!linea.trim()) continue;
       if (!formato) formato = formatoDePadron(linea);
       if (!formato) { invalidas++; continue; }
-      const r = filtrarPadron([linea], cuits, formato);
+      const r = filtrarPadron([linea], cuits, formato, regimen);
       leidas += r.leidas; invalidas += r.invalidas;
       for (const [k, v] of r.encontrados) encontrados.set(k, v);
     }

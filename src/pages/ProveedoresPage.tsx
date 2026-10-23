@@ -263,8 +263,8 @@ export default function ProveedoresPage() {
   const proveedorDeLaOrden = useMemo(() => {
     const ids = new Set(deudasParaOrden.map(d => d.supplier_id));
     const id = deudasParaOrden[0]?.supplier_id;
-    return ids.size === 1 && id ? { id, nombre: deudasParaOrden[0].supplier_name } : null;
-  }, [deudasParaOrden]);
+    return ids.size === 1 && id ? { id, nombre: deudasParaOrden[0].supplier_name, cuit: suppliers.find(s => s.id === id)?.cuit ?? null } : null;
+  }, [deudasParaOrden, suppliers]);
   const totalPending = useMemo(() => pendingDebts.reduce((s, d) => s + Number(d.remaining_ars), 0), [pendingDebts]);
   const paymentFacts = useMemo(() => {
     const last30Boundary = Date.now() - 30 * 86_400_000;

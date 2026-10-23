@@ -46613,6 +46613,7 @@ export type Database = {
           active: boolean
           address: string | null
           contact: string | null
+          cuit: string | null
           created_at: string
           email: string | null
           id: string
@@ -46626,6 +46627,7 @@ export type Database = {
           active?: boolean
           address?: string | null
           contact?: string | null
+          cuit?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -46639,6 +46641,7 @@ export type Database = {
           active?: boolean
           address?: string | null
           contact?: string | null
+          cuit?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -59938,6 +59941,13 @@ export type Database = {
       estado_exportacion: { Args: { p_org: string }; Returns: Json }
       facturar_ventas_juntas: { Args: { p_org: string; p_transacciones: string[] }; Returns: Json }
       emitir_orden_de_pago: { Args: { p_org: string; p_datos: Json }; Returns: Json }
+      retencion_para_proveedor: { Args: { p_base: number; p_fecha?: string | null; p_org: string; p_supplier: string }; Returns: Json }
+      datos_retenciones: { Args: { p_org: string }; Returns: Json }
+      configurar_retenciones: {
+        Args: { p_iibb_agente: boolean; p_iibb_minimo: number; p_iibb_padron: string | null; p_iibb_sin_padron: number | null; p_org: string }
+        Returns: Json
+      }
+      cargar_padron_iibb_retencion: { Args: { p_filas: Json; p_org: string; p_padron: string }; Returns: number }
       pasar_comprobante_a_cuenta_corriente: { Args: { p_comprobante: string; p_vencimiento?: string | null; p_orden_de_compra?: string | null }; Returns: Json }
       configurar_exportacion: { Args: { p_org: string; p_punto_venta_exportacion: number | null }; Returns: Json }
       configurar_contingencia: { Args: { p_habilitada: boolean; p_org: string; p_punto_venta_caea: number | null }; Returns: Json }

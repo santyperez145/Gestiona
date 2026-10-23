@@ -2,6 +2,9 @@
  * Orden de pago a un proveedor (2026-10-22): con qué se pagan qué deudas, y
  * el comprobante para imprimir. La autoridad es `emitir_orden_de_pago`
  * (migración 20261022001400); esto valida antes de mandar y arma el papel.
+ * La retención de Ingresos Brutos de un agente (20261022001600) la calcula la
+ * base: acá sólo se muestra, se manda marcada `automatica` y se imprime su
+ * certificado.
  */
 import type { EmisorDelRemito } from "@/lib/remitos";
 
@@ -20,6 +23,26 @@ export interface ImputacionForm { deudaId: string; descripcion: string; saldo: n
 export interface MedioForm {
   medio: MedioDePago; importe: string; referencia: string;
   chequeId: string; banco: string; numero: string; vencimiento: string;
+  /** Retención de IIBB calculada por la base: el certificado se numera al emitir. */
+  automatica?: boolean; base?: string;
+}
+
+/** Lo que devuelve `retencion_para_proveedor`. */
+export type CalculoRetencion =
+  | { aplica: true; jurisdiccion: string; base: number; alicuota: number; importe: number; origen: "padron" | "sin_padron" }
+  | { aplica: false; motivo: "no_agente" | "sin_cuit" | "bajo_minimo" | "padron_vencido" | "alicuota_cero"; jurisdiccion?: string; minimo?: number; aviso?: string };
+
+/** El medio de retención automática, listo para la orden. */
+export const medioDeRetencion = (c: Extract<CalculoRetencion, { aplica: true }>): MedioForm =>
+  ({ ...medioVacio("retencion", String(c.importe)), automatica: true, base: String(c.base) });
+
+/** Qué decirle al que paga cuando no corresponde retener (null: nada). */
+export function avisoDeRetencion(c: CalculoRetencion | null): string | null {
+  if (!c || !("motivo" in c)) return null;
+  if (c.motivo === "sin_cuit") return "Sos agente de retención de Ingresos Brutos, pero este proveedor no tiene CUIT: cargalo en su ficha para retenerle.";
+  if (c.motivo === "padron_vencido") return c.aviso ?? "El padrón de retenciones no está vigente: cargá el del mes.";
+  if (c.motivo === "bajo_minimo") return `Este pago no llega a la base mínima de retención${c.minimo ? ` (${pesos(c.minimo)})` : ""}: no se retiene.`;
+  return null;
 }
 
 export const medioVacio = (medio: MedioDePago = "transferencia", importe = ""): MedioForm =>
@@ -60,7 +83,7 @@ export function erroresDeOrden(imputaciones: ImputacionForm[], medios: MedioForm
       usados.add(m.chequeId);
     }
     if (m.medio === "cheque_propio" && (!m.numero.trim() || !m.vencimiento)) e.push("El cheque propio necesita número y fecha de pago.");
-    if (m.medio === "retencion" && !m.referencia.trim()) e.push("La retención necesita el número de certificado.");
+    if (m.medio === "retencion" && !m.automatica && !m.referencia.trim()) e.push("La retención necesita el número de certificado.");
   }
   const t = totales(imputaciones, medios);
   if (imputaciones.length && medios.length && t.diferencia !== 0) {
@@ -78,7 +101,8 @@ export function ordenParaEnviar(a: { supplierId: string; clave: string; notas: s
       medio: m.medio, importe: leerMonto(m.importe),
       ...(m.medio === "cheque_tercero" ? { cheque_id: m.chequeId } : {}),
       ...(m.medio === "cheque_propio" ? { banco: m.banco.trim() || null, numero: m.numero.trim(), vencimiento: m.vencimiento } : {}),
-      ...(m.referencia.trim() ? { referencia: m.referencia.trim() } : {}),
+      ...(m.automatica ? { automatica: true, base: leerMonto(m.base ?? "") } : {}),
+      ...(!m.automatica && m.referencia.trim() ? { referencia: m.referencia.trim() } : {}),
     })),
   };
 }
@@ -91,6 +115,33 @@ export interface OrdenImpresa {
   numero: number; fecha: string; proveedor: string; proveedorCuit: string | null; total: number; notas: string | null;
   imputaciones: { descripcion: string; importe: number }[];
   medios: { medio: MedioDePago; importe: number; referencia: string | null }[];
+  /** Certificados de las retenciones automáticas, impresos después de la orden. */
+  retenciones?: RetencionImpresa[];
+}
+
+export interface RetencionImpresa { jurisdiccion: string; certificado: number; base: number; alicuota: number; importe: number }
+
+const NOMBRE_JURISDICCION: Record<string, string> = {
+  ARBA: "Agencia de Recaudación de la Provincia de Buenos Aires (ARBA)",
+  AGIP: "Administración Gubernamental de Ingresos Públicos de la Ciudad (AGIP)",
+};
+
+/** El certificado de retención que se entrega al proveedor (original y duplicado). */
+function certificadoDeRetencion(o: OrdenImpresa, r: RetencionImpresa, emisor: EmisorDelRemito, copia: string): string {
+  const numero = String(r.certificado).padStart(8, "0");
+  return `<section class="hoja"><p class="copia">${copia}</p>
+    <header><div><h1>${esc(emisor.razonSocial || emisor.nombre)}</h1>${emisor.cuit ? `<p>CUIT ${esc(emisor.cuit)} · Agente de retención</p>` : ""}${emisor.domicilio ? `<p>${esc(emisor.domicilio)}</p>` : ""}</div>
+    <div class="dato"><h2>CERTIFICADO DE RETENCIÓN</h2><p class="numero">IIBB ${esc(r.jurisdiccion)} N.º ${numero}</p><p>Fecha ${fecha(o.fecha)}</p></div></header>
+    <p class="prov"><span>Sujeto retenido</span><strong>${esc(o.proveedor)}</strong>${o.proveedorCuit ? ` · CUIT ${esc(o.proveedorCuit)}` : ""}</p>
+    <table><tbody>
+      <tr><td>Impuesto</td><td>Ingresos Brutos — ${esc(NOMBRE_JURISDICCION[r.jurisdiccion] ?? r.jurisdiccion)}</td></tr>
+      <tr><td>Comprobante de pago</td><td>Orden de pago N.º ${String(o.numero).padStart(8, "0")}</td></tr>
+      <tr><td>Base sujeta a retención</td><td class="n">${pesos(r.base)}</td></tr>
+      <tr><td>Alícuota</td><td class="n">${r.alicuota.toLocaleString("es-AR", { maximumFractionDigits: 2 })} %</td></tr>
+    </tbody></table>
+    <p class="total">Importe retenido ${pesos(r.importe)}</p>
+    <div class="firmas"><div>Firma del agente de retención</div><div>Recibí conforme (firma y aclaración)</div></div>
+    <footer>El importe retenido se ingresa a nombre del sujeto retenido en la declaración del agente.</footer></section>`;
 }
 
 /** El comprobante para el proveedor: original y duplicado. */
@@ -119,5 +170,5 @@ export function ordenDePagoHtml(o: OrdenImpresa, emisor: EmisorDelRemito): strin
     .total{margin:4px 0 0;text-align:right;font-size:14px;font-weight:700}.notas{margin:0;color:#333}
     .firmas{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-top:40px}.firmas div{border-top:1px solid #111;padding-top:3px;text-align:center;font-size:9px}
     footer{text-align:center;font-size:10px;border-top:1px solid #111;padding-top:6px}
-  </style></head><body>${hoja("ORIGINAL")}${hoja("DUPLICADO")}</body></html>`;
+  </style></head><body>${hoja("ORIGINAL")}${hoja("DUPLICADO")}${(o.retenciones ?? []).map(r => certificadoDeRetencion(o, r, emisor, "ORIGINAL") + certificadoDeRetencion(o, r, emisor, "DUPLICADO")).join("")}</body></html>`;
 }

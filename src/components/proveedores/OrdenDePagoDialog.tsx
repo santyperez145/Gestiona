@@ -4,7 +4,7 @@
  * `emitir_orden_de_pago`.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Printer, Trash2 } from "lucide-react";
+import { Loader2, Plus, Printer, Receipt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -18,8 +18,8 @@ import { useEmisorDelRemito } from "@/hooks/useEmisorDelRemito";
 import { hoyAR } from "@/lib/fechaAR";
 import { isMissingFunction } from "@/lib/publicDataSource";
 import {
-  MEDIOS, erroresDeOrden, leerMonto, medioVacio, ordenDePagoHtml, ordenParaEnviar, totales,
-  type ImputacionForm, type MedioDePago, type MedioForm,
+  MEDIOS, avisoDeRetencion, erroresDeOrden, leerMonto, medioDeRetencion, medioVacio, ordenDePagoHtml, ordenParaEnviar, totales,
+  type CalculoRetencion, type ImputacionForm, type MedioDePago, type MedioForm, type RetencionImpresa,
 } from "@/lib/ordenDePago";
 
 const ars = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
@@ -28,7 +28,7 @@ export interface DeudaParaPagar { id: string; description: string; remaining_ars
 
 export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor, deudas, onEmitida }: {
   open: boolean; onOpenChange: (v: boolean) => void; orgId: string | null;
-  proveedor: { id: string; nombre: string } | null; deudas: DeudaParaPagar[]; onEmitida: () => void;
+  proveedor: { id: string; nombre: string; cuit?: string | null } | null; deudas: DeudaParaPagar[]; onEmitida: () => void;
 }) {
   const emisor = useEmisorDelRemito();
   const [imputaciones, setImputaciones] = useState<ImputacionForm[]>([]);
@@ -37,12 +37,23 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [clave, setClave] = useState("");
   const [emitiendo, setEmitiendo] = useState(false);
+  // Retención de Ingresos Brutos (agente): la base la calcula; acá se propone
+  // y se puede cambiar la base o no retener (por ejemplo, con certificado de exclusión).
+  const [baseRetencion, setBaseRetencion] = useState("");
+  const [calculo, setCalculo] = useState<CalculoRetencion | null>(null);
+  const [calculando, setCalculando] = useState(false);
+  const [noRetener, setNoRetener] = useState(false);
+  const [baseEditada, setBaseEditada] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     const imps = deudas.map(d => ({ deudaId: d.id, descripcion: d.description, saldo: Number(d.remaining_ars), importe: String(Number(d.remaining_ars)) }));
     setImputaciones(imps);
     setMedios([medioVacio("transferencia", String(totales(imps, []).imputado))]);
+    setBaseRetencion(String(totales(imps, []).imputado));
+    setCalculo(null);
+    setNoRetener(false);
+    setBaseEditada(false);
     setNotas("");
     setClave(crypto.randomUUID());
     if (!orgId) return;
@@ -56,7 +67,45 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
     return () => { vigente = false; };
   }, [open, orgId, deudas]);
 
+  // Mientras no la toquen, la base sigue a lo que se paga.
+  const imputadoTotal = totales(imputaciones, []).imputado;
+  useEffect(() => { if (!baseEditada) setBaseRetencion(String(imputadoTotal)); }, [baseEditada, imputadoTotal]);
+
+  // Pide el cálculo a la base con una pausa corta mientras se escribe la base.
+  const base = leerMonto(baseRetencion);
+  useEffect(() => {
+    if (!open || !orgId || !proveedor || base <= 0) { setCalculo(null); return; }
+    let vigente = true;
+    setCalculando(true);
+    const t = window.setTimeout(() => {
+      void supabase.rpc("retencion_para_proveedor", { p_org: orgId, p_supplier: proveedor.id, p_base: base }).then(({ data, error }) => {
+        if (!vigente) return;
+        setCalculando(false);
+        // Sin la migración 20261022001600 no hay retención automática: la orden sigue como antes.
+        if (error) { if (!isMissingFunction(error)) console.error("Orden de pago: no se calculó la retención", error); setCalculo(null); return; }
+        const c = data as unknown as CalculoRetencion | null;
+        setCalculo(c && typeof c === "object" && "aplica" in c ? c : null);
+      });
+    }, 300);
+    return () => { vigente = false; window.clearTimeout(t); setCalculando(false); };
+  }, [open, orgId, proveedor, base]);
+
+  // La retención propuesta entra como un medio fijo; si hay un solo medio más, se ajusta solo.
+  useEffect(() => {
+    setMedios(ms => {
+      const otros = ms.filter(m => !m.automatica);
+      const ret = calculo?.aplica && !noRetener ? medioDeRetencion(calculo) : null;
+      const previa = ms.find(m => m.automatica);
+      if (!ret && !previa) return ms;
+      if (ret && previa && previa.importe === ret.importe && previa.base === ret.base) return ms;
+      const resto = Math.round((totales(imputaciones, []).imputado - leerMonto(ret?.importe ?? "0")) * 100) / 100;
+      const ajustados = otros.length === 1 && otros[0].medio !== "cheque_tercero" ? [{ ...otros[0], importe: String(resto) }] : otros;
+      return ret ? [ret, ...ajustados] : ajustados;
+    });
+  }, [calculo, noRetener, imputaciones]);
+
   const t = totales(imputaciones, medios);
+  const avisoRetencion = avisoDeRetencion(calculo);
   const errores = useMemo(() => erroresDeOrden(imputaciones, medios, cheques), [imputaciones, medios, cheques]);
   const cambiarMedio = (i: number, parcial: Partial<MedioForm>) => setMedios(ms => ms.map((m, j) => (j === i ? { ...m, ...parcial } : m)));
 
@@ -77,16 +126,17 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
         : error.code === "23505" ? "Ese número de cheque propio ya está cargado en la cartera." : "No se pudo emitir la orden. Probá de nuevo: no se paga dos veces.");
       return;
     }
-    const r = data as { numero: number; total: number };
-    toast.success(`Orden de pago N.º ${r.numero} por ${ars(Number(r.total))} emitida.`);
+    const r = data as unknown as { numero: number; total: number; retenciones?: RetencionImpresa[] };
+    toast.success(`Orden de pago N.º ${r.numero} por ${ars(Number(r.total))} emitida${r.retenciones?.length ? ", con su certificado de retención" : ""}.`);
     if (ventana) {
       ventana.document.open();
       ventana.document.write(ordenDePagoHtml({
-        numero: r.numero, fecha: hoyAR(), proveedor: proveedor.nombre, proveedorCuit: null, total: Number(r.total),
+        numero: r.numero, fecha: hoyAR(), proveedor: proveedor.nombre, proveedorCuit: proveedor.cuit ?? null, total: Number(r.total),
+        retenciones: (r.retenciones ?? []).map(x => ({ jurisdiccion: x.jurisdiccion, certificado: Number(x.certificado), base: Number(x.base), alicuota: Number(x.alicuota), importe: Number(x.importe) })),
         notas: notas.trim() || null,
         imputaciones: imputaciones.map(i => ({ descripcion: i.descripcion, importe: leerMonto(i.importe) })),
         medios: medios.map(m => ({ medio: m.medio, importe: leerMonto(m.importe),
-          referencia: m.medio === "cheque_tercero" ? describirCheque(cheques.find(c => c.id === m.chequeId)) : m.medio === "cheque_propio" ? `${m.banco} N.º ${m.numero}, paga el ${m.vencimiento.split("-").reverse().join("/")}` : m.referencia || null })),
+          referencia: m.automatica ? certificadoDe(r.retenciones) : m.medio === "cheque_tercero" ? describirCheque(cheques.find(c => c.id === m.chequeId)) : m.medio === "cheque_propio" ? `${m.banco} N.º ${m.numero}, paga el ${m.vencimiento.split("-").reverse().join("/")}` : m.referencia || null })),
       }, emisor));
       ventana.document.close();
       ventana.focus();
@@ -115,9 +165,40 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
           ))}
         </section>
 
+        {(calculo?.aplica || noRetener || avisoRetencion) && (
+          <section aria-labelledby="op-retencion" className="space-y-2 rounded-md border border-border/50 p-3">
+            <h3 id="op-retencion" className="flex items-center gap-1.5 text-sm font-medium"><Receipt className="h-4 w-4" aria-hidden />Retención de Ingresos Brutos</h3>
+            {avisoRetencion && !calculo?.aplica && <p role="status" className="text-xs text-amber-700 dark:text-amber-300">{avisoRetencion}</p>}
+            <div className="grid grid-cols-[9rem_1fr] items-end gap-3">
+              <div>
+                <Label htmlFor="op-base-retencion" className="text-xs">Base</Label>
+                <Input id="op-base-retencion" inputMode="decimal" className="text-right" value={baseRetencion} disabled={noRetener}
+                  onChange={e => { setBaseEditada(true); setBaseRetencion(e.target.value); }} />
+              </div>
+              <p role="status" className="pb-2 text-xs text-muted-foreground">
+                {calculando ? "Calculando…" : calculo?.aplica && !noRetener
+                  ? <>{calculo.jurisdiccion} {calculo.alicuota.toLocaleString("es-AR")} % {calculo.origen === "padron" ? "(padrón del proveedor)" : "(no está en el padrón)"}: <strong className="text-foreground">{ars(calculo.importe)}</strong>. El certificado se numera al emitir.</>
+                  : noRetener ? "No se retiene en este pago." : null}
+              </p>
+            </div>
+            <p className="text-[11px] text-muted-foreground">La base es lo pagado sin IVA si el proveedor es responsable inscripto.</p>
+            {(calculo?.aplica || noRetener) && (
+              <label className="flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={noRetener} onChange={e => setNoRetener(e.target.checked)} />
+                No retener en este pago (el proveedor presentó certificado de exclusión)
+              </label>
+            )}
+          </section>
+        )}
+
         <section aria-labelledby="op-medios" className="space-y-2">
           <h3 id="op-medios" className="text-sm font-medium">Se paga con</h3>
-          {medios.map((m, i) => (
+          {medios.map((m, i) => m.automatica ? (
+            <div key="retencion-automatica" className="flex items-center justify-between gap-2 rounded-md border border-dashed border-border/60 px-3 py-2 text-sm">
+              <span>Retención IIBB {calculo?.aplica ? calculo.jurisdiccion : ""} <span className="text-xs text-muted-foreground">· certificado al emitir</span></span>
+              <strong className="tabular-nums">{ars(leerMonto(m.importe))}</strong>
+            </div>
+          ) : (
             <div key={i} className="space-y-2 rounded-md border border-border/50 p-2">
               <div className="grid grid-cols-[10rem_1fr_auto] items-end gap-2">
                 <div>
@@ -132,7 +213,7 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
                   <Input id={`op-importe-${i}`} inputMode="decimal" className="text-right" value={m.importe} disabled={m.medio === "cheque_tercero"}
                     onChange={e => cambiarMedio(i, { importe: e.target.value })} />
                 </div>
-                <Button type="button" size="icon" variant="ghost" aria-label={`Quitar el medio ${i + 1}`} disabled={medios.length === 1}
+                <Button type="button" size="icon" variant="ghost" aria-label={`Quitar el medio ${i + 1}`} disabled={medios.filter(x => !x.automatica).length === 1}
                   onClick={() => setMedios(ms => ms.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </div>
               {m.medio === "cheque_tercero" && (
@@ -179,6 +260,11 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
       </DialogContent>
     </Dialog>
   );
+}
+
+function certificadoDe(retenciones: RetencionImpresa[] | undefined): string {
+  const r = retenciones?.[0];
+  return r ? `Certificado IIBB ${r.jurisdiccion} N.º ${String(r.certificado).padStart(8, "0")}` : "Retención IIBB";
 }
 
 function describirCheque(c: Cheque | undefined): string {
