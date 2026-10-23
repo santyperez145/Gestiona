@@ -4331,6 +4331,9 @@ export default function POSPage() {
               </span>
             )}
           </Button>
+          {/* Lugar del botón flotante de ayuda (TutorialHelp, arriba a la derecha
+              en la caja): sin esto tapaba el carrito en pantallas angostas. */}
+          <span aria-hidden="true" data-testid="pos-lugar-ayuda" className="w-11 shrink-0" />
         </div>
 
         {/* Category pills */}

@@ -41,7 +41,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/vacio/supabase"
           cp supabase/config.toml "$RUNNER_TEMP/vacio/supabase/"
           cp -r supabase/templates "$RUNNER_TEMP/vacio/supabase/"
-          npx supabase start --workdir "$RUNNER_TEMP/vacio" -x studio,imgproxy,logflare,vector,mailpit,supavisor,edge-runtime
+          # Las funciones del repo, para que la app no reciba 503 al llamarlas.
+          cp -r supabase/functions "$RUNNER_TEMP/vacio/supabase/"
+          npx supabase start --workdir "$RUNNER_TEMP/vacio" -x studio,imgproxy,logflare,vector,mailpit,supavisor
           npx supabase status --workdir "$RUNNER_TEMP/vacio" -o env > "$RUNNER_TEMP/supabase.env"
           # Las claves locales son públicas y fijas, pero igual no se imprimen.
           anon=$(grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=' "$RUNNER_TEMP/supabase.env" | head -1 | cut -d= -f2- | tr -d '"')

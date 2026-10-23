@@ -71,6 +71,16 @@ async function main() {
       `INSERT INTO public.afip_credentials (org_id, cuit, punto_venta, environment, tipo_emisor, razon_social, domicilio)
        VALUES ($1, '20123456786', 3, 'homologacion', 'responsable_inscripto', 'ZZ FERRETERIA SRL', 'Av. ZZ 123, CABA')
        ON CONFLICT (org_id) DO NOTHING`, [org.id]);
+    // La tienda online del negocio (el panel de Tienda la necesita para abrir).
+    await c.query(`INSERT INTO public.ecommerce_stores (org_id, slug, name) VALUES ($1, $2, 'ZZ Ferretería E2E')`, [org.id, SLUG]);
+    // Finance se habilita por negocio y lo decide un superadmin. Es un usuario
+    // técnico aparte: el del E2E no tiene que ver Plataforma.
+    const { rows: [admin] } = await c.query(
+      `INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
+       VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'plataforma-e2e@nerqia.test', '', now(), now(), now(), '{}', '{}')
+       RETURNING id`);
+    await c.query(`INSERT INTO public.platform_admins (user_id, role) VALUES ($1, 'superadmin') ON CONFLICT DO NOTHING`, [admin.id]);
+    await c.query(`SELECT public.platform_organization_capability_set($1, 'finance.documents', true, $2, 'E2E local')`, [org.id, admin.id]);
     await c.query("COMMIT");
     // PostgREST tiene que ver el esquema completo, no el de antes de las migraciones.
     await c.query("NOTIFY pgrst, 'reload schema'");
