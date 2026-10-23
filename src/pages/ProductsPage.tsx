@@ -4145,10 +4145,11 @@ function BulkPriceAdjust({ userId, orgId, settings, categorias, marcas, proveedo
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm text-muted-foreground">Nuevo tipo de cambio</label>
+              <label htmlFor="recalc-tipo-cambio" className="text-sm text-muted-foreground">Nuevo tipo de cambio</label>
               <div className="relative">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">$</span>
                 <Input
+                  id="recalc-tipo-cambio"
                   type="number"
                   min="1"
                   value={newExchangeRate}
@@ -4159,9 +4160,10 @@ function BulkPriceAdjust({ userId, orgId, settings, categorias, marcas, proveedo
               </div>
             </div>
             <div>
-              <label className="text-sm text-muted-foreground">Markup sobre costo importado</label>
+              <label htmlFor="recalc-markup" className="text-sm text-muted-foreground">Markup sobre costo importado</label>
               <div className="relative">
                 <Input
+                  id="recalc-markup"
                   type="number"
                   min="0"
                   step="5"

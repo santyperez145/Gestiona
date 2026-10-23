@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
+const { errorAviso } = vi.hoisted(() => ({ errorAviso: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { error: errorAviso, success: vi.fn(), info: vi.fn() } }));
 
 const { respuestas, compras, retenciones, llamadas } = vi.hoisted(() => ({ respuestas: [] as unknown[], compras: [] as unknown[], retenciones: [] as unknown[], llamadas: [] as string[][] }));
 const { hojas, escribir } = vi.hoisted(() => ({ hojas: [] as string[], escribir: vi.fn() }));
@@ -78,10 +80,28 @@ describe("Libro IVA Digital en la pantalla de ARCA", () => {
     respuestas.push({ data: [factura("zz1", { subtotal: 10000, tax_amount: 2100, total: 12100 })], error: null });
     compras.push({ data: [], error: null });
     render(<MemoryRouter><LibroIvaDigital orgId="zz-org" monotributo={false} canEdit /></MemoryRouter>);
-    fireEvent.click(await screen.findByRole("button", { name: /Excel para tu contador/ }));
+    // Espera a que compras y retenciones terminen de leerse: un clic antes
+    // armaba el archivo sin la posición (falló así en la puerta, 2026-10-23).
+    const boton = await screen.findByRole("button", { name: /Excel para tu contador/ });
+    await waitFor(() => expect(boton).toBeEnabled());
+    fireEvent.click(boton);
     await waitFor(() => expect(escribir).toHaveBeenCalled());
     expect(hojas).toEqual(["Ventas", "Compras", "Posición"]);
     expect(escribir.mock.calls[0][1]).toMatch(/^subdiario-iva-\d{4}-\d{2}\.xlsx$/);
+  });
+
+  it("si las compras no se pudieron leer, no arma un Excel incompleto", async () => {
+    hojas.length = 0;
+    escribir.mockClear();
+    respuestas.push({ data: [factura("zz1", { subtotal: 10000, tax_amount: 2100, total: 12100 })], error: null });
+    compras.push({ data: null, error: { message: "zz" } });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<MemoryRouter><LibroIvaDigital orgId="zz-org" monotributo={false} canEdit /></MemoryRouter>);
+    const boton = await screen.findByRole("button", { name: /Excel para tu contador/ });
+    await waitFor(() => expect(boton).toBeEnabled());
+    fireEvent.click(boton);
+    await waitFor(() => expect(errorAviso).toHaveBeenCalledWith(expect.stringMatching(/no sale incompleto/)));
+    expect(escribir).not.toHaveBeenCalled();
   });
 
   it("una retención de IVA sufrida resta en la posición", async () => {

@@ -83,6 +83,13 @@ jobs:
               e2e/tienda.spec.ts e2e/tienda-accessibility.spec.ts e2e/store-order.spec.ts e2e/store-read-recovery.spec.ts \
               e2e/checkout-multi-tab.spec.ts e2e/header.spec.ts e2e/pricing.spec.ts
 
+      # Al final, porque cambia precios y stock del negocio de prueba.
+      - name: E2E a escala (5.500 productos, como Famatina)
+        if: always()
+        run: |
+          node scripts/semilla-escala-local.mjs
+          docker run --rm --network host --ipc=host             -v "$PWD:/w" -w /w             -e CI=true -e E2E_REQUIRE_AUTH=true -e E2E_LOCAL=true             -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY             -e E2E_USER -e E2E_PASSWORD -e E2E_STORE_SLUG             mcr.microsoft.com/playwright:v1.59.1-noble             npx playwright test --project=setup --project=escala
+
       - name: Evidencia de fallas
         if: failure()
         uses: actions/upload-artifact@v4

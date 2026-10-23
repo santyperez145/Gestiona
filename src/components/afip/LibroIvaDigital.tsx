@@ -42,12 +42,23 @@ type Lectura = { estado: "cargando" } | { estado: "error"; mensaje: string } | {
 export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId: string | null; monotributo: boolean; canEdit: boolean }) {
   const [resumenCompras, setResumenCompras] = useState<LibroIvaCompras["resumen"] | null>(null);
   const [compras, setCompras] = useState<ComprobanteCompra[]>([]);
-  const alCambiarCompras = useCallback((r: LibroIvaCompras["resumen"] | null, lista: ComprobanteCompra[]) => {
+  // El Excel espera a que compras y retenciones terminen de leerse: antes,
+  // un clic temprano armaba el archivo con la hoja de compras vacía y sin la
+  // posición de IVA, sin avisar.
+  const [comprasEstado, setComprasEstado] = useState<string>("cargando");
+  const alCambiarCompras = useCallback((r: LibroIvaCompras["resumen"] | null, lista: ComprobanteCompra[], estado: string) => {
     setResumenCompras(r);
     setCompras(lista);
+    setComprasEstado(estado);
   }, []);
   const [armandoExcel, setArmandoExcel] = useState(false);
   const [retenciones, setRetenciones] = useState<RetencionSufrida[]>([]);
+  const [retencionesEstado, setRetencionesEstado] = useState<string>("cargando");
+  const alCambiarRetenciones = useCallback((lista: RetencionSufrida[], estado: string) => {
+    setRetenciones(lista);
+    setRetencionesEstado(estado);
+  }, []);
+  const faltaLeer = !monotributo && (comprasEstado === "cargando" || retencionesEstado === "cargando");
   const retencionesIva = totalesDeRetenciones(retenciones).iva;
   const [periodo, setPeriodo] = useState(() => periodoAPresentar(mesAR()));
   const [inscripciones, setInscripciones] = useState<InscripcionIibb[] | null>(null);
@@ -125,7 +136,11 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
 
   /** Subdiario de ventas, compras y posición en un solo archivo. */
   const descargarExcel = async () => {
-    if (lectura.estado !== "listo" || !libro) return;
+    if (lectura.estado !== "listo" || !libro || faltaLeer) return;
+    if (!monotributo && (comprasEstado === "error" || retencionesEstado === "error")) {
+      toast.error("No se pudieron leer las compras o las retenciones del período. Reintentá antes de armar el Excel, así no sale incompleto.");
+      return;
+    }
     setArmandoExcel(true);
     try {
       const XLSX = await import("xlsx");
@@ -260,8 +275,8 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
               <Button size="sm" variant="outline" disabled={!libro.alicuotas} onClick={() => descargar(`LIBRO_IVA_DIGITAL_VENTAS_ALICUOTAS_${sufijo}.txt`, libro.alicuotas)}>
                 <Download className="w-3.5 h-3.5 mr-1.5" />Alícuotas (.txt)
               </Button>
-              <Button size="sm" variant="outline" disabled={armandoExcel} onClick={() => void descargarExcel()}>
-                {armandoExcel ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}Excel para tu contador
+              <Button size="sm" variant="outline" disabled={armandoExcel || faltaLeer} onClick={() => void descargarExcel()}>
+                {armandoExcel || faltaLeer ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}Excel para tu contador
               </Button>
             </div>
           )}
@@ -289,7 +304,7 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
           })()}
           {libro && lectura.estado === "listo" && <LiquidacionIibbMes liquidacion={iibb} />}
           <ComprobantesDeCompra orgId={orgId} periodo={periodo} canEdit={canEdit} onResumen={alCambiarCompras} />
-          <RetencionesSufridas orgId={orgId} periodo={periodo} canEdit={canEdit} onCambio={setRetenciones} />
+          <RetencionesSufridas orgId={orgId} periodo={periodo} canEdit={canEdit} onCambio={alCambiarRetenciones} />
         </div>
       )}
     </section>

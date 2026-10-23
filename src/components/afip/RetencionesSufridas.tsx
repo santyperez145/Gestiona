@@ -27,7 +27,7 @@ type Lectura = { estado: "cargando" } | { estado: "inactivo" } | { estado: "erro
 interface Formulario { impuesto: RetencionSufrida["impuesto"]; fecha: string; cuit: string; nombre: string; certificado: string; jurisdiccion: string; importe: string }
 
 export default function RetencionesSufridas({ orgId, periodo, canEdit, onCambio }: {
-  orgId: string | null; periodo: string; canEdit: boolean; onCambio: (retenciones: RetencionSufrida[]) => void;
+  orgId: string | null; periodo: string; canEdit: boolean; onCambio: (retenciones: RetencionSufrida[], estado: Lectura["estado"]) => void;
 }) {
   const [lectura, setLectura] = useState<Lectura>({ estado: "cargando" });
   const [abierto, setAbierto] = useState(false);
@@ -58,7 +58,7 @@ export default function RetencionesSufridas({ orgId, periodo, canEdit, onCambio 
     return () => { signal.cancelado = true; };
   }, [leer]);
 
-  useEffect(() => { onCambio(lectura.estado === "listo" ? lectura.retenciones : []); }, [lectura, onCambio]);
+  useEffect(() => { onCambio(lectura.estado === "listo" ? lectura.retenciones : [], lectura.estado); }, [lectura, onCambio]);
 
   const cuit = form.cuit.replace(/\D/g, "");
   const importe = leerImporte(form.importe);

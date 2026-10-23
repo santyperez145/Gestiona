@@ -4,7 +4,7 @@
  *
  * Physical-count / stock-adjustment workflow with barcode scanning.
  */
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { memo, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { csvCell } from "@/lib/csv";
@@ -74,6 +74,73 @@ interface CountRow {
 }
 
 type SortKey = "name" | "diff" | "system";
+
+// ─── Renglón ──────────────────────────────────────────────────────────────────
+
+// Memorizado: con un catálogo de 5.500 productos, cada tecla redibujaba los
+// 5.500 renglones con su campo. Así se redibuja sólo el que cambió.
+const FilaConteo = memo(function FilaConteo({
+  row, idx, categoria, isHighlighted, rowRefs, inputRefs, onCount, onEnter,
+}: {
+  row: CountRow;
+  idx: number;
+  categoria: string;
+  isHighlighted: boolean;
+  rowRefs: React.MutableRefObject<Record<string, HTMLTableRowElement | null>>;
+  inputRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
+  onCount: (id: string, value: string) => void;
+  onEnter: (idx: number) => void;
+}) {
+  const counted = row.counted !== "" ? Number(row.counted) : null;
+  const diff = counted !== null ? counted - row.product.stock : null;
+  const diffColor = diff === null
+    ? ""
+    : diff > 0
+      ? "text-green-400"
+      : diff < 0
+        ? "text-red-400"
+        : "text-muted-foreground";
+  const rowBg = diff !== null && diff !== 0 ? (diff > 0 ? "bg-green-950/10" : "bg-red-950/10") : "";
+
+  return (
+    <tr
+      ref={el => { rowRefs.current[row.product.id] = el; }}
+      className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${rowBg} ${isHighlighted ? "ring-2 ring-inset ring-primary/60 bg-primary/10" : ""}`}
+    >
+      <td className="px-4 py-2.5">
+        <div className="font-medium">{row.product.name}</div>
+        {!row.product.barcode && !row.product.sku && (
+          <span className="text-[9px] text-muted-foreground/50 font-mono">sin código</span>
+        )}
+      </td>
+      <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell">
+        {categoria}
+      </td>
+      <td className="px-3 py-2.5 text-right font-mono">{row.product.stock}</td>
+      <td className="px-3 py-2.5 text-right">
+        <Input
+          ref={el => { inputRefs.current[row.product.id] = el; }}
+          type="number"
+          min={0}
+          value={row.counted}
+          onChange={e => onCount(row.product.id, e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") onEnter(idx); }}
+          placeholder="—"
+          aria-label={`Contado de ${row.product.name}`}
+          className="w-20 h-7 text-right text-sm font-mono ml-auto"
+        />
+      </td>
+      <td className={`px-3 py-2.5 text-right font-mono font-semibold ${diffColor}`}>
+        {diff === null ? "—" : diff === 0 ? <span className="text-muted-foreground">±0</span> : (diff > 0 ? `+${diff}` : diff)}
+      </td>
+      <td className={`px-4 py-2.5 text-right hidden lg:table-cell ${diffColor}`}>
+        {diff === null || diff === 0
+          ? "—"
+          : `${diff > 0 ? "+" : ""}${(diff * (row.product.cost_usd || 0)).toFixed(2)} USD`}
+      </td>
+    </tr>
+  );
+});
 
 // ─── Tab ──────────────────────────────────────────────────────────────────────
 
@@ -182,10 +249,21 @@ export default function StockCountTab() {
   useEffect(() => { load(); }, [activeOrg]);
 
   // Persistir el progreso local: cada cambio de campo guarda el borrador.
+  // Con medio segundo de espera: serializar 5.500 renglones en cada tecla
+  // trababa el campo. Al desmontar se graba lo pendiente.
+  const pendiente = useRef<{ orgId: string; rows: CountRow[] } | null>(null);
   useEffect(() => {
     if (loading || !activeOrg) return;
-    saveStockCountDraft(activeOrg.id, rows);
+    pendiente.current = { orgId: activeOrg.id, rows };
+    const t = setTimeout(() => {
+      if (pendiente.current) saveStockCountDraft(pendiente.current.orgId, pendiente.current.rows);
+      pendiente.current = null;
+    }, 500);
+    return () => clearTimeout(t);
   }, [rows, loading, activeOrg]);
+  useEffect(() => () => {
+    if (pendiente.current) saveStockCountDraft(pendiente.current.orgId, pendiente.current.rows);
+  }, []);
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
@@ -230,9 +308,9 @@ export default function StockCountTab() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  const setCount = (id: string, value: string) => {
+  const setCount = useCallback((id: string, value: string) => {
     setRows(prev => prev.map(r => r.product.id === id ? { ...r, counted: value } : r));
-  };
+  }, []);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -291,6 +369,7 @@ export default function StockCountTab() {
       const closePayload = closed as { productos_ajustados?: unknown; sin_contar?: unknown } | null;
       const adjusted = typeof closePayload?.productos_ajustados === "number" ? closePayload.productos_ajustados : changed.length;
       const uncounted = typeof closePayload?.sin_contar === "number" ? closePayload.sin_contar : rows.length - countedRows.length;
+      pendiente.current = null;
       clearStockCountDraft(activeOrg!.id);
       setDraftNotice(null);
       await load();
@@ -328,12 +407,12 @@ export default function StockCountTab() {
   };
 
   // Focus next input on Enter
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
-    if (e.key === "Enter") {
-      const nextId = filtered[idx + 1]?.product.id;
-      if (nextId) inputRefs.current[nextId]?.focus();
-    }
-  };
+  const filteredRef = useRef(filtered);
+  filteredRef.current = filtered;
+  const focusNext = useCallback((idx: number) => {
+    const nextId = filteredRef.current[idx + 1]?.product.id;
+    if (nextId) inputRefs.current[nextId]?.focus();
+  }, []);
 
   const SortIcon = ({ k }: { k: SortKey }) =>
     sortKey === k ? (sortDir === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />) : null;
@@ -441,6 +520,7 @@ export default function StockCountTab() {
             size="sm"
             className="h-7 text-xs"
             onClick={() => {
+              pendiente.current = null;
               clearStockCountDraft(activeOrg?.id);
               setRows(prev => prev.map(r => ({ ...r, counted: "" })));
               setScanCount(0);
@@ -494,59 +574,19 @@ export default function StockCountTab() {
                   </td>
                 </tr>
               )}
-              {filtered.map((row, idx) => {
-                const counted = row.counted !== "" ? Number(row.counted) : null;
-                const diff = counted !== null ? counted - row.product.stock : null;
-                const diffColor = diff === null
-                  ? ""
-                  : diff > 0
-                    ? "text-green-400"
-                    : diff < 0
-                      ? "text-red-400"
-                      : "text-muted-foreground";
-                const rowBg = diff !== null && diff !== 0 ? (diff > 0 ? "bg-green-950/10" : "bg-red-950/10") : "";
-
-                const isHighlighted = highlightedId === row.product.id;
-
-                return (
-                  <tr
-                    key={row.product.id}
-                    ref={el => { rowRefs.current[row.product.id] = el; }}
-                    className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${rowBg} ${isHighlighted ? "ring-2 ring-inset ring-primary/60 bg-primary/10" : ""}`}
-                  >
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium">{row.product.name}</div>
-                      {!row.product.barcode && !row.product.sku && (
-                        <span className="text-[9px] text-muted-foreground/50 font-mono">sin código</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell">
-                      {nombreCategoria(row.product.category)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-mono">{row.product.stock}</td>
-                    <td className="px-3 py-2.5 text-right">
-                      <Input
-                        ref={el => { inputRefs.current[row.product.id] = el; }}
-                        type="number"
-                        min={0}
-                        value={row.counted}
-                        onChange={e => setCount(row.product.id, e.target.value)}
-                        onKeyDown={e => handleKeyDown(e, idx)}
-                        placeholder="—"
-                        className="w-20 h-7 text-right text-sm font-mono ml-auto"
-                      />
-                    </td>
-                    <td className={`px-3 py-2.5 text-right font-mono font-semibold ${diffColor}`}>
-                      {diff === null ? "—" : diff === 0 ? <span className="text-muted-foreground">±0</span> : (diff > 0 ? `+${diff}` : diff)}
-                    </td>
-                    <td className={`px-4 py-2.5 text-right hidden lg:table-cell ${diffColor}`}>
-                      {diff === null || diff === 0
-                        ? "—"
-                        : `${diff > 0 ? "+" : ""}${(diff * (row.product.cost_usd || 0)).toFixed(2)} USD`}
-                    </td>
-                  </tr>
-                );
-              })}
+              {filtered.map((row, idx) => (
+                <FilaConteo
+                  key={row.product.id}
+                  row={row}
+                  idx={idx}
+                  categoria={nombreCategoria(row.product.category)}
+                  isHighlighted={highlightedId === row.product.id}
+                  rowRefs={rowRefs}
+                  inputRefs={inputRefs}
+                  onCount={setCount}
+                  onEnter={focusNext}
+                />
+              ))}
             </tbody>
           </table>
         </div>
