@@ -67,7 +67,7 @@ jobs:
             -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY \
             -e E2E_USER -e E2E_PASSWORD -e E2E_STORE_SLUG \
             mcr.microsoft.com/playwright:v1.59.1-noble \
-            npx playwright test --project=setup --project=panel --project=circuito
+            npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos
 
       - name: Evidencia de fallas
         if: failure()

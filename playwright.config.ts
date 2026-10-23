@@ -60,14 +60,14 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts"],
+      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts", "**/barrido-con-datos.spec.ts"],
     },
     // El comprador argentino promedio entra desde el teléfono; los desbordes
     // de 375px son la clase de bug que sólo se ve ahí.
     {
       name: "mobile",
       use: { ...devices["Pixel 5"] },
-      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts"],
+      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts", "**/barrido-con-datos.spec.ts"],
     },
 
     // El panel sí. La sesión se obtiene una vez y se reusa.
@@ -83,6 +83,13 @@ export default defineConfig({
       name: "circuito",
       testMatch: "**/circuito-gestion.spec.ts",
       dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], storageState: ARCHIVO_SESION },
+    },
+    // Después del circuito, para que las pantallas tengan filas de verdad.
+    {
+      name: "barrido-datos",
+      testMatch: "**/barrido-con-datos.spec.ts",
+      dependencies: ["circuito"],
       use: { ...devices["Desktop Chrome"], storageState: ARCHIVO_SESION },
     },
   ],
