@@ -1,0 +1,53 @@
+name: Simulacro de migraciones
+
+# Aplica todas las migraciones desde cero en un Supabase local y corre cada
+# matriz de simulacro (scripts/simulacro-local.mjs). Nada toca producción.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/*-matrix.sql"
+      - "scripts/simulacro-local.mjs"
+      - "scripts/migraciones-pendientes.mjs"
+      - ".github/workflows/simulacro-migraciones.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simulacro-migraciones
+  cancel-in-progress: true
+
+jobs:
+  simulacro:
+    name: Migraciones y matrices en una base local
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Supabase local (sólo Postgres) con todas las migraciones
+        run: >-
+          npx supabase start
+          -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Correr las matrices
+        env:
+          SIMULACRO_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: node scripts/simulacro-local.mjs
+
+      - name: Detener Supabase
+        if: always()
+        run: npx supabase stop --no-backup
