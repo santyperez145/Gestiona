@@ -14,7 +14,7 @@ BEGIN
   INSERT INTO public.organizations (name, slug, owner_user_id) VALUES ('ZZ Reserva local', v_slug, v_user) RETURNING id INTO v_org;
   INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_user, 'owner') ON CONFLICT DO NOTHING;
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, stock) VALUES (v_org, v_user, 'ZZ Taladro', 50000, 5) RETURNING id INTO v_prod;
-  INSERT INTO public.product_variants (org_id, product_id, variant_name, stock, active) VALUES (v_org, v_prod, 'ZZ Rojo', 1, true) RETURNING id INTO v_var;
+  INSERT INTO public.product_variants (org_id, user_id, product_id, variant_name, stock, active) VALUES (v_org, v_user, v_prod, 'ZZ Rojo', 1, true) RETURNING id INTO v_var;
   INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, reserva_local) VALUES (v_org, v_slug, 'ZZ Tienda', true, 2) RETURNING id INTO v_store;
 
   -- 1
