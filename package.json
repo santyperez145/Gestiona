@@ -32,6 +32,7 @@
     "deploy:functions:sh": "bash scripts/deploy-functions.sh",
     "db": "node scripts/db.mjs",
     "db:pendientes": "node scripts/migraciones-pendientes.mjs",
+    "restaurar": "node scripts/restaurar-produccion.mjs",
     "test:e2e": "playwright test",
     "test:e2e:public": "playwright test --project=chromium --project=mobile",
     "test:e2e:ci": "playwright test --project=chromium --project=mobile --project=panel",
