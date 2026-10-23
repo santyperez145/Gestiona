@@ -33,7 +33,9 @@ async function main() {
       `INSERT INTO public.products (org_id, user_id, name, category, cost_usd, sale_price_ars, stock, sku)
        SELECT $1, $2, 'ZZ Escala ' || lpad(g::text, 4, '0'), $3, 10, 1, 10, 'ZZ-ESC-' || g
          FROM generate_series(1, $4::int) g
-       RETURNING id`, [org.id, org.owner_user_id, CATEGORIA, CANTIDAD]);
+       RETURNING id, name`, [org.id, org.owner_user_id, CATEGORIA, CANTIDAD]);
+    // Por nombre: el spec cuenta «ZZ Escala 0001» como el primero, y RETURNING no promete orden.
+    rows.sort((x, y) => x.name.localeCompare(y.name));
     writeFileSync(ARCHIVO, JSON.stringify({ org_id: org.id, productos: rows.map(r => r.id) }));
     console.log(`${rows.length} productos de escala en ${SLUG}.`);
   } finally {
