@@ -6,7 +6,7 @@
  * mostrar un libro vacío como si no hubiera compras.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, FileUp, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Download, FileUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -16,7 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { consultarPadron } from "@/lib/arcaPadron";
+import { usePadronAutomatico } from "@/hooks/usePadronAutomatico";
+import EstadoDelPadron from "@/components/afip/EstadoDelPadron";
 import { rangoDelPeriodo } from "@/lib/libroIvaVentas";
 import { isMissingColumn, isMissingFunction } from "@/lib/publicDataSource";
 import { bytesDeArchivoArca, entradaParaPlanilla, leerMisComprobantes, type FilaImportada } from "@/lib/misComprobantes";
@@ -98,7 +99,6 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
   const [abierto, setAbierto] = useState(false);
   const [form, setForm] = useState<Formulario>(() => vacio(periodo));
   const [guardando, setGuardando] = useState(false);
-  const [buscando, setBuscando] = useState(false);
   const { ask, dialog } = useConfirmDialog();
   // Sin la migración 20261022001300 no hay cuenta corriente: se lee y se usa como antes.
   const [conCuentaCorriente, setConCuentaCorriente] = useState(true);
@@ -149,14 +149,8 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
   const conIva = discriminaIva(form.tipo);
   const cambiar = (parcial: Partial<Formulario>) => setForm(f => ({ ...f, ...parcial }));
 
-  const buscarCuit = async () => {
-    if (!orgId) return;
-    setBuscando(true);
-    const r = await consultarPadron(orgId, borrador.cuit_emisor);
-    setBuscando(false);
-    if ("error" in r) { toast.error(r.error); return; }
-    cambiar({ razonSocial: r.persona.nombre });
-  };
+  // Al escribir el CUIT del proveedor, ARCA trae su razón social.
+  const padron = usePadronAutomatico(orgId, form.cuit, persona => cambiar({ razonSocial: persona.nombre }));
 
   const guardar = async () => {
     if (!orgId || errores.length) return;
@@ -431,12 +425,8 @@ export default function ComprobantesDeCompra({ orgId, periodo, canEdit, onResume
               </div>
               <div>
                 <Label htmlFor="cc-cuit">CUIT del proveedor</Label>
-                <div className="flex gap-1">
-                  <Input id="cc-cuit" inputMode="numeric" value={form.cuit} onChange={e => cambiar({ cuit: e.target.value })} />
-                  <Button type="button" size="icon" variant="outline" onClick={() => void buscarCuit()} disabled={buscando || !/^\d{11}$/.test(borrador.cuit_emisor)} aria-label="Buscar razón social en ARCA">
-                    {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  </Button>
-                </div>
+                <Input id="cc-cuit" inputMode="numeric" value={form.cuit} onChange={e => cambiar({ cuit: e.target.value })} />
+                <EstadoDelPadron estado={padron.estado} onReintentar={padron.reintentar} />
               </div>
               <div><Label htmlFor="cc-rs">Razón social</Label><Input id="cc-rs" value={form.razonSocial} onChange={e => cambiar({ razonSocial: e.target.value })} /></div>
             </div>

@@ -4,7 +4,7 @@
  * posición del mes. Ver la migración 20261022000300.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { consultarPadron } from "@/lib/arcaPadron";
+import { usePadronAutomatico } from "@/hooks/usePadronAutomatico";
+import EstadoDelPadron from "@/components/afip/EstadoDelPadron";
 import { leerImporte } from "@/lib/libroIvaCompras";
 import { rangoDelPeriodo } from "@/lib/libroIvaVentas";
 import { isMissingRelation } from "@/lib/publicDataSource";
@@ -31,7 +32,6 @@ export default function RetencionesSufridas({ orgId, periodo, canEdit, onCambio 
   const [lectura, setLectura] = useState<Lectura>({ estado: "cargando" });
   const [abierto, setAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [buscando, setBuscando] = useState(false);
   const vacio = (): Formulario => ({ impuesto: "iva", fecha: rangoDelPeriodo(periodo).desde, cuit: "", nombre: "", certificado: "", jurisdiccion: "", importe: "" });
   const [form, setForm] = useState<Formulario>(vacio);
   const { ask, dialog } = useConfirmDialog();
@@ -70,14 +70,8 @@ export default function RetencionesSufridas({ orgId, periodo, canEdit, onCambio 
     form.fecha.slice(0, 7) > periodo && "La fecha es posterior al período.",
   ].filter(Boolean) as string[];
 
-  const buscarCuit = async () => {
-    if (!orgId) return;
-    setBuscando(true);
-    const r = await consultarPadron(orgId, cuit);
-    setBuscando(false);
-    if ("error" in r) { toast.error(r.error); return; }
-    setForm(f => ({ ...f, nombre: r.persona.nombre }));
-  };
+  // Al escribir el CUIT del agente, ARCA trae su nombre.
+  const padron = usePadronAutomatico(orgId, form.cuit, persona => setForm(f => ({ ...f, nombre: persona.nombre })));
 
   const guardar = async () => {
     if (!orgId || errores.length) return;
@@ -170,12 +164,8 @@ export default function RetencionesSufridas({ orgId, periodo, canEdit, onCambio 
             <div><Label htmlFor="rs-fecha">Fecha</Label><Input id="rs-fecha" type="date" value={form.fecha} max={rangoDelPeriodo(periodo).hasta} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} /></div>
             <div className="col-span-2">
               <Label htmlFor="rs-cuit">CUIT del agente</Label>
-              <div className="flex gap-1">
-                <Input id="rs-cuit" inputMode="numeric" value={form.cuit} onChange={e => setForm(f => ({ ...f, cuit: e.target.value }))} />
-                <Button type="button" size="icon" variant="outline" onClick={() => void buscarCuit()} disabled={buscando || !/^\d{11}$/.test(cuit)} aria-label="Buscar el agente en ARCA">
-                  {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                </Button>
-              </div>
+              <Input id="rs-cuit" inputMode="numeric" value={form.cuit} onChange={e => setForm(f => ({ ...f, cuit: e.target.value }))} />
+              <EstadoDelPadron estado={padron.estado} onReintentar={padron.reintentar} />
             </div>
             <div className="col-span-2"><Label htmlFor="rs-nombre">Agente</Label><Input id="rs-nombre" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} /></div>
             <div><Label htmlFor="rs-cert">N.º de certificado</Label><Input id="rs-cert" value={form.certificado} onChange={e => setForm(f => ({ ...f, certificado: e.target.value }))} /></div>

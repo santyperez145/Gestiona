@@ -41,10 +41,14 @@ describe('padrón del emisor', () => {
     expect(tipoEmisorDesdePadron({ condicionIva: 'consumidor_final' })).toBeNull();
   });
 
-  it('el formulario ofrece completar con ARCA y no guarda solo', () => {
+  it('el formulario completa con ARCA al escribir el CUIT y no guarda solo', () => {
     const form = readFileSync(resolve(process.cwd(), 'src/components/afip/AfipConfigForm.tsx'), 'utf8');
-    expect(form).toContain('Completar con ARCA');
-    const accion = form.slice(form.indexOf('const completarConArca = async'), form.indexOf('};', form.indexOf('const completarConArca = async')));
+    expect(form).toContain('usePadronAutomatico(activeOrg?.id, cuit, aplicarPadron)');
+    // El CUIT ya guardado no se consulta solo al abrir la pantalla.
+    expect(form).toContain('padronConocido(data.cuit');
+    const inicio = form.indexOf('const aplicarPadron = (p: PersonaPadron) =>');
+    expect(inicio).toBeGreaterThan(0);
+    const accion = form.slice(inicio, form.indexOf('};', inicio));
     expect(accion).not.toMatch(/supabase\.from|\.update\(|\.upsert\(/);
   });
 });

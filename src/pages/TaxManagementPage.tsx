@@ -22,6 +22,8 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePadronAutomatico } from "@/hooks/usePadronAutomatico";
+import EstadoDelPadron from "@/components/afip/EstadoDelPadron";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 interface TaxRate {
@@ -173,6 +175,9 @@ export default function TaxManagementPage() {
   // Withholding dialog
   const [withOpen, setWithOpen] = useState(false);
   const [withForm, setWithForm] = useState({ ...EMPTY_WITHHOLDING });
+  // Al escribir el CUIT de la contraparte, ARCA trae su nombre.
+  const padronContraparte = usePadronAutomatico(orgId, withForm.counterpart_cuit, persona =>
+    setWithForm(f => ({ ...f, counterpart_name: persona.nombre || f.counterpart_name })));
   const [savingWith, setSavingWith] = useState(false);
 
   // Rate dialog
@@ -527,7 +532,8 @@ export default function TaxManagementPage() {
                     </div>
                     <div className="space-y-1 pb-12">
                       <Label>CUIT contraparte</Label>
-                      <Input value={withForm.counterpart_cuit} onChange={e => setWithForm(f => ({ ...f, counterpart_cuit: e.target.value }))} placeholder="20-12345678-3" />
+                      <Input inputMode="numeric" value={withForm.counterpart_cuit} onChange={e => setWithForm(f => ({ ...f, counterpart_cuit: e.target.value }))} placeholder="20-12345678-3" />
+                      <EstadoDelPadron estado={padronContraparte.estado} onReintentar={padronContraparte.reintentar} />
                     </div>
                     <div className="space-y-1 pb-12">
                       <Label>Fecha</Label>

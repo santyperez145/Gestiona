@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePadronAutomatico } from '@/hooks/usePadronAutomatico';
+import EstadoDelPadron from '@/components/afip/EstadoDelPadron';
 import { Link, useSearchParams } from 'react-router-dom';
 import FinancePageHeader from '@/components/finance/FinancePageHeader';
 import FinanceKPICard from '@/components/finance/FinanceKPICard';
@@ -640,6 +642,7 @@ export default function FinanceDocumentsPage() {
       />
 
       <ExtractionReviewDialog
+        orgId={activeOrg?.id}
         extraction={reviewTarget}
         payload={reviewPayload}
         note={reviewNote}
@@ -758,7 +761,14 @@ function ExtractionBadge({ status }: { status: FinanceDocumentExtraction['status
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
-function ExtractionReviewDialog({ extraction, payload, note, saving, onPayloadChange, onNoteChange, onClose, onSubmit }: { extraction: FinanceDocumentExtraction | null; payload: FinanceDocumentExtractionPayload | null; note: string; saving: boolean; onPayloadChange: (payload: FinanceDocumentExtractionPayload) => void; onNoteChange: (note: string) => void; onClose: () => void; onSubmit: () => void }) {
+function ExtractionReviewDialog({ orgId, extraction, payload, note, saving, onPayloadChange, onNoteChange, onClose, onSubmit }: { orgId: string | undefined; extraction: FinanceDocumentExtraction | null; payload: FinanceDocumentExtractionPayload | null; note: string; saving: boolean; onPayloadChange: (payload: FinanceDocumentExtractionPayload) => void; onNoteChange: (note: string) => void; onClose: () => void; onSubmit: () => void }) {
+  // El CUIT leído del documento (o corregido a mano) trae la razón social de ARCA:
+  // lo que lee el modelo puede venir mal escrito, el padrón no.
+  const actual = useRef(payload);
+  actual.current = payload;
+  const padron = usePadronAutomatico(orgId, payload?.supplier_tax_id || '', persona => {
+    if (actual.current && persona.nombre) onPayloadChange({ ...actual.current, supplier_name: persona.nombre });
+  });
   if (!payload) return null;
   const setHeader = <K extends keyof Omit<FinanceDocumentExtractionPayload, 'items'>>(key: K, value: FinanceDocumentExtractionPayload[K]) => {
     onPayloadChange({ ...payload, [key]: value });
@@ -791,7 +801,10 @@ function ExtractionReviewDialog({ extraction, payload, note, saving, onPayloadCh
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <ReviewField label="Proveedor"><Input value={payload.supplier_name || ''} onChange={event => setHeader('supplier_name', event.target.value || null)} /></ReviewField>
-          <ReviewField label="CUIT"><Input value={payload.supplier_tax_id || ''} onChange={event => setHeader('supplier_tax_id', event.target.value || null)} /></ReviewField>
+          <div className="space-y-1">
+            <ReviewField label="CUIT"><Input inputMode="numeric" value={payload.supplier_tax_id || ''} onChange={event => setHeader('supplier_tax_id', event.target.value || null)} /></ReviewField>
+            <EstadoDelPadron estado={padron.estado} onReintentar={padron.reintentar} />
+          </div>
           <ReviewField label="Número"><Input value={payload.document_number || ''} onChange={event => setHeader('document_number', event.target.value || null)} /></ReviewField>
           <ReviewField label="Fecha"><Input type="date" value={payload.issue_date || ''} onChange={event => setHeader('issue_date', event.target.value || null)} /></ReviewField>
           <ReviewField label="Moneda">

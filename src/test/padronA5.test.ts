@@ -53,4 +53,25 @@ describe("padrón de ARCA (A5)", () => {
     expect(edge).toContain("TOPE_DIARIO");
     expect(edge).toContain("pedirTicketWsaa(wsaaUrl, cert, key, PADRON_SERVICIO)");
   });
+
+  it("un impuesto dado de baja no cuenta para la condición frente al IVA", () => {
+    const exIva = sobre(`<datosGenerales><razonSocial>EX RI SRL</razonSocial><tipoPersona>JURIDICA</tipoPersona><estadoClave>ACTIVO</estadoClave></datosGenerales>
+<datosRegimenGeneral><impuesto><idImpuesto>30</idImpuesto><estadoImpuesto>BD</estadoImpuesto></impuesto><impuesto><idImpuesto>32</idImpuesto><estadoImpuesto>AC</estadoImpuesto></impuesto></datosRegimenGeneral>`);
+    expect(leerPersonaA5(exIva, "30699999993").condicionIva).toBe("exento");
+  });
+
+  it("si la plataforma no puede, consulta con el certificado propio del comercio y dice qué asociar", () => {
+    const edge = readFileSync("supabase/functions/arca-padron/index.ts", "utf8");
+    const plataforma = edge.indexOf('from("afip_platform_credentials")');
+    const comercio = edge.indexOf('from("afip_credentials")');
+    expect(plataforma).toBeGreaterThan(0);
+    expect(comercio).toBeGreaterThan(plataforma);
+    expect(edge).toContain('propio?.modo === "propio"');
+    expect(edge).toContain("ticketPorServicio(supabase, { orgId, servicio: PADRON_SERVICIO");
+    expect(edge).toContain('code: "sin_credencial"');
+    expect(edge).toContain('code: "servicio_no_asociado"');
+    expect(edge).toContain("ws_sr_constancia_inscripcion");
+    // Un CUIT inexistente es la respuesta: no se gasta otra credencial en él.
+    expect(edge).toMatch(/e\.code === "no_encontrado"\)\s*\{\s*await registrar\(false\);\s*return responder/);
+  });
 });

@@ -30,7 +30,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileCheck, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { mensajeIdentidadFiscalFaltante } from "@/lib/fiscalIdentity";
-import { consultarPadron, domicilioPadron } from "@/lib/arcaPadron";
+import { domicilioPadron, type PersonaPadron } from "@/lib/arcaPadron";
+import { usePadronAutomatico } from "@/hooks/usePadronAutomatico";
+import EstadoDelPadron from "@/components/afip/EstadoDelPadron";
+import { validarCuit } from "@/lib/fiscalIdentity";
 import { tipoEmisorDesdePadron } from "@/lib/emisorPadron";
 
 interface Props {
@@ -60,25 +63,15 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
    * apretaría "Guardar" sin mirar y el campo quedaría mal igual.
    */
   const [tipoEmisor, setTipoEmisor] = useState("");
-  const [consultandoPadron, setConsultandoPadron] = useState(false);
   const [avisoPadron, setAvisoPadron] = useState<string | null>(null);
 
   /**
-   * Padrón del emisor: con el CUIT, ARCA devuelve razón social, domicilio y
-   * condición frente al IVA. Completa sin pisar lo que ARCA no informa, y
-   * no guarda: el comercio revisa y guarda como siempre.
+   * Padrón del emisor: al escribir el CUIT, ARCA devuelve razón social,
+   * domicilio y condición frente al IVA (sin botón desde 2026-10-22).
+   * Completa sin pisar lo que ARCA no informa, y no guarda: el comercio
+   * revisa y guarda como siempre. El CUIT ya guardado no se consulta solo.
    */
-  const completarConArca = async () => {
-    if (!activeOrg?.id) return;
-    setConsultandoPadron(true);
-    setAvisoPadron(null);
-    const r = await consultarPadron(activeOrg.id, cuit);
-    setConsultandoPadron(false);
-    if (r.ok === false) {
-      setAvisoPadron(r.error);
-      return;
-    }
-    const p = r.persona;
+  const aplicarPadron = (p: PersonaPadron) => {
     if (p.nombre) setRazonSocial(p.nombre);
     const domicilioArca = domicilioPadron(p);
     if (domicilioArca) setDomicilio(domicilioArca);
@@ -90,6 +83,9 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
     ].filter(Boolean);
     setAvisoPadron(avisos.length ? avisos.join(" ") : "Datos traídos de ARCA. Revisalos y guardá.");
   };
+
+  const padron = usePadronAutomatico(activeOrg?.id, cuit, aplicarPadron);
+  const padronConocido = padron.conocido;
 
   const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
   /** La plataforma tiene su certificado cargado. Si no, un comercio delegado
@@ -129,13 +125,14 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
     setIngresosBrutos(data.ingresos_brutos || "");
     setInicioActividades(data.inicio_actividades || "");
 
+    padronConocido(data.cuit || "");
     setCuit(data.cuit || "");
     setRazonSocial(data.razon_social || "");
     setPuntoVenta(String(data.punto_venta || 1));
     setEnvironment(data.environment || "homologacion");
     setTipoEmisor(data.tipo_emisor || "");
     setTaStatus(data.ta_expires_at && new Date(data.ta_expires_at) > new Date() ? "valid" : "none");
-  }, [activeOrg]);
+  }, [activeOrg, padronConocido]);
 
   useEffect(() => {
     if (!activeOrg) {
@@ -250,14 +247,12 @@ export default function AfipConfigForm({ canEdit, onSaved }: Props) {
       <fieldset disabled={!canEdit || saving} className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label htmlFor="arca-cuit" className="text-xs text-muted-foreground mb-1 block">CUIT del emisor</label>
-          <div className="flex gap-2">
-            <Input id="arca-cuit" value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
-            <Button type="button" variant="outline" className="shrink-0" disabled={consultandoPadron || cuit.replace(/\D/g, "").length !== 11}
-              onClick={() => void completarConArca()} title="Trae razón social, domicilio y condición frente al IVA del padrón de ARCA">
-              {consultandoPadron ? <Loader2 className="h-4 w-4 animate-spin" /> : "Completar con ARCA"}
-            </Button>
+          <Input id="arca-cuit" value={cuit} onChange={e => { setAvisoPadron(null); setCuit(e.target.value); }} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
+          <div className="mt-1 space-y-0.5">
+            <EstadoDelPadron estado={padron.estado} onReintentar={padron.reintentar}
+              cuitCompleto={validarCuit(cuit)} onConsultar={padron.reintentar} />
+            {avisoPadron && padron.estado.estado === "listo" && <p className="text-[11px] text-muted-foreground">{avisoPadron}</p>}
           </div>
-          {avisoPadron && <p className="mt-1 text-[11px] text-muted-foreground">{avisoPadron}</p>}
         </div>
         <div>
           <label htmlFor="arca-name" className="text-xs text-muted-foreground mb-1 block">Razón social</label>

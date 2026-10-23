@@ -10,13 +10,13 @@ export type { PersonaPadron };
 
 export type ResultadoPadron =
   | { ok: true; persona: PersonaPadron; desdeCache: boolean }
-  | { ok: false; error: string; code?: string };
+  | { ok: false; error: string; code?: string; pasos?: string };
 
 export async function consultarPadron(orgId: string, cuit: string): Promise<ResultadoPadron> {
   const { data, error } = await supabase.functions.invoke("arca-padron", { body: { org_id: orgId, cuit } });
   if (error) return { ok: false, error: "No pudimos consultar ARCA. Revisá la conexión o cargá los datos a mano." };
-  const r = data as { ok?: boolean; persona?: PersonaPadron; desde_cache?: boolean; error?: string; code?: string } | null;
-  if (!r?.ok || !r.persona) return { ok: false, error: r?.error ?? "ARCA no devolvió datos.", code: r?.code };
+  const r = data as { ok?: boolean; persona?: PersonaPadron; desde_cache?: boolean; error?: string; code?: string; pasos?: string } | null;
+  if (!r?.ok || !r.persona) return { ok: false, error: r?.error ?? "ARCA no devolvió datos.", code: r?.code, pasos: r?.pasos };
   return { ok: true, persona: r.persona, desdeCache: !!r.desde_cache };
 }
 

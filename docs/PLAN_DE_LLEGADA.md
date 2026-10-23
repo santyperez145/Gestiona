@@ -74,6 +74,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 - [~] **Ingresos Brutos del mes** (construido el 22/10: liquidación por jurisdicción en el Libro IVA, coeficiente CM05 por inscripción, retenciones restadas, hoja en el Excel del contador): base imponible por jurisdicción (local y Convenio Multilateral) y las percepciones y retenciones sufridas, todo listo para el contador. *Terminado:* el resumen de IIBB de un mes real coincide con lo que liquida el contador.
 - [~] **Conciliación con «Mis Comprobantes Emitidos»** (construida el 22/10): el archivo de ARCA (.zip, .csv o Excel) contra lo autorizado en Nerqia; marca CAE otorgados que no se guardaron, comprobantes hechos por fuera, y diferencias de CAE, importe o fecha. *Terminado:* un mes real de un comercio conciliado sin falsos positivos.
 - [~] **Factura de exportación E (WSFEX)** (construida el 22/10): factura, notas, autorización automática sin duplicados, Libro IVA con código «X». *Terminado:* una factura E autorizada en homologación con el certificado asociado a exportación.
+- [~] **Padrón automático** (22/10): al escribir un CUIT en cualquier pantalla, ARCA completa razón social, condición y domicilio; usa el certificado de la plataforma o el del comercio. *Terminado:* una consulta real respondida con un certificado asociado a «Consulta de Constancia de Inscripción».
 - [ ] Controlador fiscal: certificación en Modo Entrenamiento con el equipo real (gate externo, ya listado en la meta).
 
 ### C. Gestión completa (el sistema de gestión del comercio)
@@ -155,6 +156,7 @@ E1 y E2 corren en paralelo desde la fase 1: no esperan al software.
 |---|---|
 | Pagar Supabase y poner una tarjeta de respaldo y alertas de facturación | **Dueño (hoy)** |
 | Crear el certificado de Exentry en ARCA con su clave fiscal, guiado por el asistente | **Dueño (≈15 min, cuando vuelva la base)** |
+| Asociar ese certificado a «Consulta de Constancia de Inscripción» (padrón automático) y probarlo en ARCA → Consulta de CUIT | **Dueño (≈2 min)** |
 | Entrevistas, acompañar a Famatina y conseguir los 10 comercios | **Dueño**, con guion y material de Dirección |
 | Precio de la suscripción y porcentaje de la comisión online | **Dueño decide**, Dirección propone |
 | Todo lo demás: producto, ingeniería, seguridad, ARCA, datos, documentación, calidad y operación | Dirección |

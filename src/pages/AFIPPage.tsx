@@ -1,7 +1,7 @@
 import RecorridoAltaFiscal from "@/components/afip/RecorridoAltaFiscal";
 import { recorridoAltaFiscal } from "@/lib/recorridoAltaFiscal";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -14,6 +14,7 @@ import DatosFceComercio from "@/components/afip/DatosFceComercio";
 import PercepcionesConfig from "@/components/afip/PercepcionesConfig";
 import ContingenciaCaea from "@/components/afip/ContingenciaCaea";
 import ExportacionConfig from "@/components/afip/ExportacionConfig";
+import ConsultaDeCuit from "@/components/afip/ConsultaDeCuit";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
@@ -129,6 +130,13 @@ export default function AFIPPage() {
   const [connection, setConnection] = useState<AfipConnectionStatus | null>(null);
   const [invoices, setInvoices] = useState<FiscalInvoice[]>([]);
   const [loading, setLoading] = useState(true);
+  // Los enlaces desde otras pantallas (`/afip#consulta-cuit`) llegan antes que
+  // las secciones: se baja a la pedida cuando terminó de cargar.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (loading || !hash) return;
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: "start" });
+  }, [loading, hash]);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
   const context = useRef({ orgId, active: true, request: 0 }).current;
@@ -386,7 +394,7 @@ export default function AFIPPage() {
           en Ajustes → Sistema, a dos clics de acá. */}
       <div id="datos-fiscales" className="scroll-mt-20">
         <AfipConfigForm canEdit={canEdit} onSaved={load} />
-        {orgId && <div className="mt-4 space-y-4"><ConceptoDeFacturacion orgId={orgId} canEdit={canEdit} /><DatosFceComercio orgId={orgId} canEdit={canEdit} /><PercepcionesConfig orgId={orgId} canEdit={canEdit} /><ContingenciaCaea orgId={orgId} canEdit={canEdit} /><ExportacionConfig orgId={orgId} canEdit={canEdit} /></div>}
+        {orgId && <div className="mt-4 space-y-4"><ConceptoDeFacturacion orgId={orgId} canEdit={canEdit} /><DatosFceComercio orgId={orgId} canEdit={canEdit} /><PercepcionesConfig orgId={orgId} canEdit={canEdit} /><ContingenciaCaea orgId={orgId} canEdit={canEdit} /><ExportacionConfig orgId={orgId} canEdit={canEdit} /><ConsultaDeCuit orgId={orgId} cuitPropio={connection?.cuit ?? null} modo={connection?.modo ?? null} /></div>}
       </div>
 
       <div className={`rounded-xl border p-4 ${readiness.className}`}>

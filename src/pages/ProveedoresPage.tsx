@@ -26,6 +26,11 @@ import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
 import SupplierPOModal from "@/components/shared/SupplierPOModal";
 import OrdenDePagoDialog from "@/components/proveedores/OrdenDePagoDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePadronAutomatico } from "@/hooks/usePadronAutomatico";
+import EstadoDelPadron from "@/components/afip/EstadoDelPadron";
+import { domicilioPadron } from "@/lib/arcaPadron";
+import { formatearCuit, validarCuit } from "@/lib/fiscalIdentity";
+import { isMissingColumn } from "@/lib/publicDataSource";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 import { plural } from "@/lib/plural";
@@ -39,6 +44,8 @@ type Supplier = {
   notes: string;
   active: boolean;
   created_at: string;
+  /** Migración 20261022001300: hasta aplicarla la columna no viene. */
+  cuit?: string | null;
 };
 
 type PurchaseSummary = {
@@ -49,7 +56,7 @@ type PurchaseSummary = {
   date: string;
 };
 
-const EMPTY: Partial<Supplier> = { name: "", contact: "", phone: "", email: "", address: "", notes: "", active: true };
+const EMPTY: Partial<Supplier> = { name: "", contact: "", phone: "", email: "", address: "", notes: "", active: true, cuit: "" };
 
 type SupplierDebt = {
   id: string;
@@ -90,6 +97,12 @@ export default function ProveedoresPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [form, setForm] = useState<Partial<Supplier>>(EMPTY);
+  // Al escribir el CUIT del proveedor, ARCA completa razón social y domicilio.
+  const padron = usePadronAutomatico(activeOrg?.id, form.cuit || "", persona => setForm(prev => ({
+    ...prev,
+    name: persona.nombre || prev.name,
+    address: domicilioPadron(persona) || prev.address,
+  })));
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [supplierSort, setSupplierSort] = useState<{ col: "name" | "pending" | "created_at"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
@@ -285,8 +298,9 @@ export default function ProveedoresPage() {
     setLoadingPurchases(false);
   };
 
-  const openCreate = () => { setEditing(null); setForm(EMPTY); setOpen(true); };
-  const openEdit = (s: Supplier) => { setEditing(s); setForm({ ...s }); setOpen(true); };
+  const openCreate = () => { padron.conocido(""); setEditing(null); setForm(EMPTY); setOpen(true); };
+  // El CUIT ya guardado no se vuelve a consultar solo: no pisa lo cargado a mano.
+  const openEdit = (s: Supplier) => { padron.conocido(s.cuit || ""); setEditing(s); setForm({ ...s, cuit: s.cuit ? formatearCuit(s.cuit) : "" }); setOpen(true); };
 
   const saveNote = async (id: string, note: string) => {
     const { error } = await supabase.from("suppliers").update({ notes: note }).eq("id", id);
@@ -296,31 +310,40 @@ export default function ProveedoresPage() {
     toast.success("Nota guardada");
   };
 
+  const cuitProveedor = (form.cuit || "").replace(/\D/g, "");
+  const errorCuitProveedor = !cuitProveedor ? null
+    : cuitProveedor.length < 11 ? `Faltan ${11 - cuitProveedor.length} dígitos.`
+    : !validarCuit(cuitProveedor) ? "El CUIT no es válido: revisá los 11 dígitos." : null;
+
   const handleSave = async () => {
-    if (!form.name?.trim() || !activeOrg) return;
+    if (!form.name?.trim() || !activeOrg || errorCuitProveedor) return;
     setSaving(true);
     try {
-      if (editing) {
-        const { error } = await supabase
-          .from("suppliers")
-          .update({ name: form.name, contact: form.contact, phone: form.phone, email: form.email, address: form.address, notes: form.notes, active: form.active })
-          .eq("id", editing.id);
-        if (error) throw error;
-        toast.success("Proveedor actualizado");
-      } else {
-        const { error } = await supabase.from("suppliers").insert({
-          org_id: activeOrg.id,
-          name: form.name,
-          contact: form.contact || null,
-          phone: form.phone || null,
-          email: form.email || null,
-          address: form.address || null,
-          notes: form.notes || null,
-          active: true,
-        });
-        if (error) throw error;
-        toast.success("Proveedor agregado");
+      const datos = {
+        name: form.name,
+        contact: form.contact || null,
+        phone: form.phone || null,
+        email: form.email || null,
+        address: form.address || null,
+        notes: form.notes || null,
+      };
+      const escribir = (conCuit: boolean) => {
+        const fila = conCuit ? { ...datos, cuit: cuitProveedor || null } : datos;
+        return editing
+          ? supabase.from("suppliers").update({ ...fila, active: form.active }).eq("id", editing.id)
+          : supabase.from("suppliers").insert({ ...fila, org_id: activeOrg.id, active: true });
+      };
+      let { error } = await escribir(true);
+      // Sin la migración 20261022001300 no hay columna `cuit`: se guarda el resto y se avisa.
+      let sinCuit = false;
+      if (error && isMissingColumn(error)) {
+        sinCuit = true;
+        ({ error } = await escribir(false));
       }
+      if (error?.code === "23505") throw new Error("Ya tenés otro proveedor con ese CUIT.");
+      if (error) throw error;
+      toast.success(editing ? "Proveedor actualizado" : "Proveedor agregado");
+      if (sinCuit && cuitProveedor) toast.warning("El CUIT no se guardó todavía: falta una actualización del sistema que ya está en camino. El resto de los datos quedó guardado.");
       setOpen(false);
       load();
     } catch (e: any) {
@@ -348,7 +371,8 @@ export default function ProveedoresPage() {
     const base = suppliers.filter(s =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       (s.contact || "").toLowerCase().includes(search.toLowerCase()) ||
-      (s.email || "").toLowerCase().includes(search.toLowerCase())
+      (s.email || "").toLowerCase().includes(search.toLowerCase()) ||
+      (!!s.cuit && search.replace(/\D/g, "").length >= 3 && s.cuit.includes(search.replace(/\D/g, "")))
     );
     return [...base].sort((a, b) => {
       const { col, dir } = supplierSort;
@@ -531,6 +555,7 @@ export default function ProveedoresPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                    {s.cuit && <span className="text-xs text-muted-foreground font-mono">CUIT {formatearCuit(s.cuit)}</span>}
                     {s.contact && <span className="text-xs text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" />{s.contact}</span>}
                     {s.phone && (
                       <a href={`https://wa.me/${s.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
@@ -652,6 +677,15 @@ export default function ProveedoresPage() {
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div>
+              <label htmlFor="proveedor-cuit" className="text-xs font-medium text-muted-foreground mb-1 block">CUIT</label>
+              <Input id="proveedor-cuit" inputMode="numeric" placeholder="30-12345678-9" value={form.cuit || ""} onChange={f("cuit")}
+                aria-invalid={!!errorCuitProveedor} aria-describedby={errorCuitProveedor ? "proveedor-cuit-error" : undefined} className="font-mono" />
+              {errorCuitProveedor
+                ? <p id="proveedor-cuit-error" className={`mt-1 text-[11px] ${cuitProveedor.length < 11 ? "text-muted-foreground" : "text-destructive"}`}>{errorCuitProveedor}</p>
+                : <div className="mt-1"><EstadoDelPadron estado={padron.estado} onReintentar={padron.reintentar}
+                    cuitCompleto={validarCuit(cuitProveedor)} onConsultar={padron.reintentar} /></div>}
+            </div>
+            <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Nombre *</label>
               <Input placeholder="Nombre del proveedor" value={form.name || ""} onChange={f("name")} />
             </div>
@@ -684,7 +718,7 @@ export default function ProveedoresPage() {
             </div>
             <Button
               className="w-full text-primary-foreground"
-              disabled={!form.name?.trim() || saving}
+              disabled={!form.name?.trim() || !!errorCuitProveedor || saving}
               onClick={handleSave}
             >
               {saving ? "Guardando…" : editing ? "Guardar cambios" : "Agregar proveedor"}

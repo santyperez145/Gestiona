@@ -4,10 +4,16 @@
  * POST { org_id, cuit } con la sesión del usuario. Devuelve nombre, condición
  * frente al IVA y domicilio fiscal para completar un cliente o el alta fiscal.
  *
- * Usa el certificado de la plataforma y su CUIT como representada: los datos
- * del padrón son públicos y así ningún comercio tiene que delegar otro
- * servicio. Requisito único del dueño de la plataforma: asociar el certificado
- * al servicio `ws_sr_constancia_inscripcion` en ARCA.
+ * Credencial, en orden (2026-10-22):
+ *   1. el certificado de la plataforma, con su CUIT como representada (los
+ *      datos del padrón son públicos: ningún comercio tiene que asociar nada);
+ *   2. si la plataforma no tiene certificado o no tiene el servicio, el
+ *      certificado propio del comercio (ADR 007), con su CUIT.
+ * Antes había sólo la primera, y desde que cada comercio usa su certificado
+ * la consulta quedaba «no disponible» sin decir por qué. Ahora, si ninguna
+ * sirve, la respuesta dice exactamente qué asociar en ARCA.
+ * El servicio es `ws_sr_constancia_inscripcion` (A5, getPersona_v2); el
+ * contrato se verificó contra el WSDL oficial.
  *
  * Cache de 30 días por CUIT (arca_padron_cache) y tope de consultas nuevas
  * por organización y día (arca_padron_consultas).
@@ -15,6 +21,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { descifrarSecreto } from "../_shared/secretos.ts";
 import { pedirTicketWsaa } from "../_shared/wsaaLogin.ts";
+import { ticketPorServicio } from "../_shared/ticketServicio.ts";
 import {
   PADRON_SERVICIO, PADRON_URL, PadronError, cuitValido, leerPersonaA5, soapGetPersona, type PersonaPadron,
 } from "../_shared/padronA5.ts";
@@ -101,37 +108,62 @@ Deno.serve(async (req) => {
     return responder({ ok: false, code: "tope_diario", error: `Llegaste a ${TOPE_DIARIO} consultas al padrón en 24 h. Cargá los datos a mano o probá mañana.` });
   }
 
+  // Las credenciales que pueden consultar, en orden.
+  type Fuente = { origen: "plataforma" | "comercio"; environment: "produccion" | "homologacion"; cuit: string; ticket: () => Promise<{ token: string; sign: string }> };
+  const fuentes: Fuente[] = [];
   const { data: plat } = await supabase.from("afip_platform_credentials").select("cuit, certificate, private_key, environment").maybeSingle();
-  if (!plat?.certificate || !plat?.private_key || !plat?.cuit) {
-    return responder({ ok: false, code: "no_disponible", error: "La consulta al padrón todavía no está disponible. Cargá los datos a mano." });
+  if (plat?.certificate && plat?.private_key && plat?.cuit) {
+    const environment = plat.environment === "produccion" ? "produccion" : "homologacion";
+    fuentes.push({ origen: "plataforma", environment, cuit: String(plat.cuit).replace(/\D/g, ""), ticket: async () => {
+      const cert = await descifrarSecreto(supabase, plat.certificate);
+      const key = await descifrarSecreto(supabase, plat.private_key);
+      return await ticketPadron(cert, key, environment);
+    } });
   }
-  const environment = plat.environment === "produccion" ? "produccion" : "homologacion";
+  const { data: propio } = await supabase.from("afip_credentials").select("cuit, certificate, private_key, environment, modo").eq("org_id", orgId).maybeSingle();
+  if (propio?.modo === "propio" && propio.certificate && propio.private_key && propio.cuit) {
+    const environment = propio.environment === "produccion" ? "produccion" : "homologacion";
+    fuentes.push({ origen: "comercio", environment, cuit: String(propio.cuit).replace(/\D/g, ""), ticket: async () => {
+      const cert = await descifrarSecreto(supabase, propio.certificate);
+      const key = await descifrarSecreto(supabase, propio.private_key);
+      return await ticketPorServicio(supabase, { orgId, servicio: PADRON_SERVICIO, environment, certificate: cert, privateKey: key });
+    } });
+  }
+  const PASOS = "En ARCA, entrá a «Administrador de Relaciones de Clave Fiscal» → «Nueva relación» → «ARCA» → «WebServices» → «Consulta de Constancia de Inscripción» (ws_sr_constancia_inscripcion) y asociá el mismo certificado con el que facturás. Después probalo en Nerqia → ARCA → Consulta de CUIT.";
+  if (!fuentes.length) {
+    return responder({ ok: false, code: "sin_credencial", error: "Para completar los datos con el CUIT hace falta tu certificado de ARCA con la consulta habilitada. " + PASOS, pasos: PASOS });
+  }
 
-  try {
-    const cert = await descifrarSecreto(supabase, plat.certificate);
-    const key = await descifrarSecreto(supabase, plat.private_key);
-    const ta = await ticketPadron(cert, key, environment);
-    const resp = await fetch(PADRON_URL[environment], {
-      method: "POST",
-      headers: { "Content-Type": "text/xml; charset=utf-8", SOAPAction: "" },
-      body: soapGetPersona(ta.token, ta.sign, String(plat.cuit).replace(/\D/g, ""), cuit),
-      signal: AbortSignal.timeout(20_000),
-    });
-    const xml = await resp.text();
-    const persona = leerPersonaA5(xml, cuit);
-    const { error: cacheErr } = await supabase.from("arca_padron_cache").upsert({ cuit, datos: persona, consultado_at: new Date().toISOString() });
-    if (cacheErr) console.error("[padron] no se guardó el cache", cacheErr);
-    await registrar(false);
-    return responder({ ok: true, persona, consultado_at: new Date().toISOString(), desde_cache: false });
-  } catch (e) {
-    await registrar(false);
-    if (e instanceof PadronError) return responder({ ok: false, code: e.code, error: e.message });
-    const mensaje = e instanceof Error ? e.message : String(e);
-    console.error("[padron] fallo", mensaje.slice(0, 300));
-    // El certificado de la plataforma no tiene el servicio asociado en ARCA.
-    if (/notAuthorized|no autorizado|not authorized|computador.*no.*autorizado/i.test(mensaje)) {
-      return responder({ ok: false, code: "servicio_no_habilitado", error: "La consulta al padrón no está habilitada todavía. Cargá los datos a mano; ya avisamos al equipo." });
+  let ultimo: { code: string; error: string } | null = null;
+  for (const f of fuentes) {
+    try {
+      const ta = await f.ticket();
+      const resp = await fetch(PADRON_URL[f.environment], {
+        method: "POST",
+        headers: { "Content-Type": "text/xml; charset=utf-8", SOAPAction: "" },
+        body: soapGetPersona(ta.token, ta.sign, f.cuit, cuit),
+        signal: AbortSignal.timeout(20_000),
+      });
+      const xml = await resp.text();
+      const persona = leerPersonaA5(xml, cuit);
+      const { error: cacheErr } = await supabase.from("arca_padron_cache").upsert({ cuit, datos: persona, consultado_at: new Date().toISOString() });
+      if (cacheErr) console.error("[padron] no se guardó el cache", cacheErr);
+      await registrar(false);
+      return responder({ ok: true, persona, consultado_at: new Date().toISOString(), desde_cache: false, origen: f.origen });
+    } catch (e) {
+      // Un CUIT inexistente es la respuesta, no una falla: no se prueba otra credencial.
+      if (e instanceof PadronError && e.code === "no_encontrado") {
+        await registrar(false);
+        return responder({ ok: false, code: e.code, error: e.message });
+      }
+      const mensaje = e instanceof Error ? e.message : String(e);
+      console.error(`[padron] ${f.origen} falló`, mensaje.slice(0, 300));
+      ultimo = /notAuthorized|no autorizado|not authorized|no tiene autorizado|computador.*no.*autorizado/i.test(mensaje)
+        ? { code: "servicio_no_asociado", error: "Tu certificado todavía no tiene habilitada la consulta de CUIT en ARCA. " + PASOS }
+        : e instanceof PadronError ? { code: e.code, error: e.message }
+        : { code: "error_arca", error: "ARCA no respondió la consulta. Probá de nuevo en unos minutos o cargá los datos a mano." };
     }
-    return responder({ ok: false, code: "error_arca", error: "ARCA no respondió la consulta. Probá de nuevo en unos minutos o cargá los datos a mano." });
   }
+  await registrar(false);
+  return responder({ ok: false, ...ultimo!, pasos: ultimo!.code === "servicio_no_asociado" ? PASOS : undefined });
 });

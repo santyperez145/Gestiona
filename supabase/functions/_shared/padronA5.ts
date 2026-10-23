@@ -84,7 +84,10 @@ export function leerPersonaA5(xml: string, cuit: string): PersonaPadron {
 
   const regimen = todos(xml, "datosRegimenGeneral")[0] ?? "";
   const monotributo = todos(xml, "datosMonotributo")[0] ?? "";
+  // Un impuesto dado de baja no define la condición actual (el WSDL trae
+  // `estadoImpuesto`; si no viene, se lo toma como activo).
   const impuestos = [...todos(regimen, "impuesto"), ...todos(monotributo, "impuesto")]
+    .filter(i => { const estado = uno(i, "estadoImpuesto"); return !estado || estado.toUpperCase() === "AC" || estado.toUpperCase() === "ACTIVO"; })
     .map(i => Number(uno(i, "idImpuesto")))
     .filter(Number.isFinite);
   const categoria = uno(todos(monotributo, "categoriaMonotributo")[0] ?? "", "descripcionCategoria");

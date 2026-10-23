@@ -37,6 +37,9 @@ import { loadAssociatedFiscalInvoice, printFiscalInvoiceTicket } from "@/lib/sal
 import { invoiceIvaGroups, invoiceDisplayLines } from "../../supabase/functions/_shared/invoiceIva";
 import { explicacionesDesdeMensaje } from "../../supabase/functions/_shared/arcaRechazos";
 import PosCustomerPicker from "@/components/pos/PosCustomerPicker";
+import { usePadronAutomatico } from "@/hooks/usePadronAutomatico";
+import EstadoDelPadron from "@/components/afip/EstadoDelPadron";
+import { domicilioPadron } from "@/lib/arcaPadron";
 import { GRUPOS_PENDIENTE_FISCAL, grupoPendienteFiscal, resumenPendientesFiscales, type GrupoPendienteFiscal } from "@/lib/fiscalExceptions";
 import { useModulePermissions } from "@/lib/usePermissions";
 import {
@@ -485,6 +488,15 @@ export default function InvoicesPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  // Al escribir el CUIT del receptor, ARCA completa nombre, domicilio y condición.
+  const padronReceptor = usePadronAutomatico(activeOrg?.id, form.customer_tax_id, persona => {
+    setForm(f => ({
+      ...f,
+      customer_name: persona.nombre || f.customer_name,
+      customer_address: domicilioPadron(persona) || f.customer_address,
+      receiver_condition: esCondicionIva(persona.condicionIva) ? persona.condicionIva : f.receiver_condition,
+    }));
+  });
   const [items, setItems] = useState<InvoiceItem[]>([emptyItem()]);
   const [detalleFiscal, setDetalleFiscal] = useState<DetalleFiscal>(() => detalleFiscalInicial());
   // Concepto del comercio (productos, servicios o ambos): la factura arranca con
@@ -1372,6 +1384,7 @@ export default function InvoicesPage() {
             onClose={() => setCustomerPickerOpen(false)}
             onSelect={(c) => {
               // La ficha completa los datos del receptor; siguen editables antes de emitir.
+              padronReceptor.conocido(c.tax_id || "");
               setForm(f => ({
                 ...f,
                 customer_name: c.legal_name || c.name,
@@ -1392,6 +1405,8 @@ export default function InvoicesPage() {
             <div>
               <Label className="text-xs">CUIT / DNI</Label>
               <Input value={form.customer_tax_id} onChange={(e) => setForm({ ...form, customer_tax_id: e.target.value })} placeholder="20-12345678-9" />
+              <EstadoDelPadron estado={padronReceptor.estado} onReintentar={padronReceptor.reintentar}
+                cuitCompleto={validarCuit(form.customer_tax_id.replace(/\D/g, ""))} onConsultar={padronReceptor.reintentar} />
             </div>
             <div>
               <Label className="text-xs">Email</Label>
