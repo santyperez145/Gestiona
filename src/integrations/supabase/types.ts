@@ -13074,6 +13074,7 @@ export type Database = {
       }
       ecommerce_stores: {
         Row: {
+          reserva_local: number
           analytics_disclosure_accepted_at: string | null
           analytics_disclosure_accepted_by: string | null
           banner_url: string | null
@@ -13127,6 +13128,7 @@ export type Database = {
           tiktok_pixel_id: string | null
         }
         Insert: {
+          reserva_local?: number
           analytics_disclosure_accepted_at?: string | null
           analytics_disclosure_accepted_by?: string | null
           banner_url?: string | null
@@ -13180,6 +13182,7 @@ export type Database = {
           tiktok_pixel_id?: string | null
         }
         Update: {
+          reserva_local?: number
           analytics_disclosure_accepted_at?: string | null
           analytics_disclosure_accepted_by?: string | null
           banner_url?: string | null

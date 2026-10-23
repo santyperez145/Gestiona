@@ -64,6 +64,8 @@ export type StoreFormDraft = {
   default_item_weight_kg: string;
   fulfillment_location_id: string;
   fulfillment_sla_hours: number;
+  /** Unidades de cada producto que la tienda deja para el local (20261023000300). */
+  reserva_local: string;
   storefront_layout: StorefrontLayout;
   whatsapp: string;
   instagram: string;
@@ -200,6 +202,7 @@ export function storeDraftInicial(
     default_item_weight_kg: "0.5",
     fulfillment_location_id: fulfillmentGlobal,
     fulfillment_sla_hours: 24,
+    reserva_local: "0",
     storefront_layout: {
       ...DEFAULT_STOREFRONT_LAYOUT,
       sections: [...DEFAULT_STOREFRONT_LAYOUT.sections],
@@ -240,6 +243,7 @@ type FilaTienda = {
   default_item_weight_kg?: number | null;
   fulfillment_location_id?: string | null;
   fulfillment_sla_hours?: number | null;
+  reserva_local?: number | null;
   storefront_layout?: unknown;
   social_links?: unknown;
 };
@@ -290,6 +294,7 @@ export function storeFormDesdeFila(
     fulfillment_sla_hours: data.fulfillment_sla_hours != null && data.fulfillment_sla_hours > 0
       ? data.fulfillment_sla_hours
       : base.fulfillment_sla_hours,
+    reserva_local: data.reserva_local != null ? String(Number(data.reserva_local)) : base.reserva_local,
     storefront_layout: parseStorefrontLayout(data.storefront_layout),
     whatsapp: displayWhatsApp(parseStoreSocial(data.social_links).whatsapp),
     instagram: displayInstagram(parseStoreSocial(data.social_links).instagram),

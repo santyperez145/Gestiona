@@ -1,6 +1,7 @@
 import BusquedasSinResultado from "@/components/ecommerce/BusquedasSinResultado";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingColumn } from "@/lib/publicDataSource";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -192,6 +193,12 @@ type StoreTab = typeof STORE_TAB_IDS[number];
 
 function isStoreTab(value: string | null): value is StoreTab {
   return value !== null && (STORE_TAB_IDS as readonly string[]).includes(value);
+}
+
+/** «2», «2,5» o vacío → número de unidades reservadas (0 si no es válido). */
+function reservaLocalAlGuardar(texto: string): number {
+  const n = Number(String(texto ?? "").replace(",", "."));
+  return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n * 1000) / 1000, 100000) : 0;
 }
 
 export default function EcommerceStorePage() {
@@ -775,11 +782,22 @@ export default function EcommerceStorePage() {
       fulfillment_location_id: storeForm.fulfillment_location_id === GLOBAL_FULFILLMENT_LOCATION
         ? null
         : storeForm.fulfillment_location_id,
+      reserva_local: reservaLocalAlGuardar(storeForm.reserva_local),
     };
-    const saveQuery = isCreatingStore
-      ? supabase.from("ecommerce_stores").insert(row)
-      : supabase.from("ecommerce_stores").update(row).eq("id", store.id);
-    const { data: saved, error } = await saveQuery.select("*").single();
+    const guardar = (fila: typeof row | Omit<typeof row, "reserva_local">) => (isCreatingStore
+      ? supabase.from("ecommerce_stores").insert(fila as typeof row)
+      : supabase.from("ecommerce_stores").update(fila as typeof row).eq("id", store.id)).select("*").single();
+    let { data: saved, error } = await guardar(row);
+    // Sin la migración 20261023000300 no hay reserva: se guarda el resto y se avisa.
+    let sinReserva = false;
+    if (error && isMissingColumn(error)) {
+      sinReserva = true;
+      const { reserva_local: _omitida, ...resto } = row;
+      ({ data: saved, error } = await guardar(resto));
+    }
+    if (sinReserva && !error && Number(row.reserva_local) > 0) {
+      toast.warning("La reserva para el local todavía no se guardó: falta una actualización del sistema que ya está en camino. El resto quedó guardado.");
+    }
     if (error) {
       setLoading(false);
       console.error("No se pudo guardar la tienda", error);
@@ -2097,6 +2115,19 @@ export default function EcommerceStorePage() {
                 ))}
               </SelectContent>
             </Select>
+
+            <div className="max-w-xl space-y-1.5 border-t border-border/40 pt-3">
+              <label htmlFor="tienda-reserva-local" className="text-xs font-medium">Reserva para el local</label>
+              <div className="flex items-center gap-2">
+                <Input id="tienda-reserva-local" inputMode="decimal" className="h-9 w-28" value={storeForm.reserva_local}
+                  aria-describedby="tienda-reserva-local-ayuda"
+                  onChange={e => setStoreForm(p => ({ ...p, reserva_local: e.target.value.replace(/[^0-9.,]/g, "") }))} />
+                <span className="text-xs text-muted-foreground">unidades de cada producto</span>
+              </div>
+              <p id="tienda-reserva-local-ayuda" className="text-[11px] text-muted-foreground">
+                La tienda online no ofrece esas últimas unidades: quedan para vender en el mostrador. Con 0 ofrece todo el disponible.
+              </p>
+            </div>
 
             {fulfillmentLocations.length === 0 ? (
               <p className="text-[11px] text-amber-600 dark:text-amber-400">
