@@ -1,6 +1,6 @@
 name: E2E contra una base local
 
-# El E2E crítico (ci.yml) corre contra producción. Este corre el panel contra
+# El E2E crítico (ci.yml) corre contra producción. Este corre panel, tienda y circuito contra
 # un Supabase local reconstruido desde cero y sembrado: prueba el código
 # aunque producción esté caída, y permite circuitos que escriben datos.
 on:
@@ -67,7 +67,7 @@ jobs:
             -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY \
             -e E2E_USER -e E2E_PASSWORD -e E2E_STORE_SLUG \
             mcr.microsoft.com/playwright:v1.59.1-noble \
-            npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos
+            npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos --project=chromium --project=mobile
 
       - name: Evidencia de fallas
         if: failure()

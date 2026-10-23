@@ -73,8 +73,35 @@ async function main() {
        ON CONFLICT (org_id) DO NOTHING`, [org.id]);
     // La sucursal principal: la caja y su turno la necesitan.
     await c.query(`INSERT INTO public.locations (org_id, name, is_main, active) VALUES ($1, 'ZZ Casa central', true, true)`, [org.id]);
-    // La tienda online del negocio (el panel de Tienda la necesita para abrir).
-    await c.query(`INSERT INTO public.ecommerce_stores (org_id, slug, name) VALUES ($1, $2, 'ZZ Ferretería E2E')`, [org.id, SLUG]);
+    // La tienda online del negocio, activa, con envío fijo y transferencia: la
+    // vitrina pública la recorren los specs de la tienda.
+    await c.query(
+      `INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_mode, shipping_cost)
+       VALUES ($1, $2, 'ZZ Ferretería E2E', true, ARRAY['transferencia'], 'flat', 3500)`, [org.id, SLUG]);
+    await c.query(
+      `INSERT INTO public.settings (org_id, user_id, business_name, bank_cbu, bank_alias, bank_holder)
+       VALUES ($1, $2, 'ZZ Ferretería E2E', '0000003100000000000012', 'ZZ.FERRETERIA.E2E', 'ZZ FERRETERIA SRL')
+       ON CONFLICT (org_id) DO UPDATE SET bank_cbu = EXCLUDED.bank_cbu, bank_alias = EXCLUDED.bank_alias, bank_holder = EXCLUDED.bank_holder`,
+      [org.id, usuario.id]);
+    // Catálogo de vitrina: más de 40 publicados (paginación de 20), precios en
+    // todo el rango de los filtros, dos sin stock y tres con variantes (una
+    // agotada y una «última unidad»).
+    const categorias = ["Herramientas", "Electricidad", "Pinturas", "Jardín"];
+    const precios = [1500, 12000, 55000, 72000, 88000, 105000];
+    for (let i = 1; i <= 44; i++) {
+      const { rows: [p] } = await c.query(
+        `INSERT INTO public.products (org_id, user_id, name, brand, category, description, sale_price_ars, cost_ars, stock, featured)
+         VALUES ($1, $2, $3, 'ZZ Marca', $4, 'Producto de prueba del E2E local.', $5, $6, $7, $8) RETURNING id`,
+        [org.id, usuario.id, `ZZ Vitrina ${String(i).padStart(2, "0")}`, categorias[i % categorias.length],
+          precios[i % precios.length], Math.round(precios[i % precios.length] / 2), i % 20 === 0 ? 0 : 10 + i, i <= 4]);
+      if (i % 15 === 0) {
+        for (const [nombre, stock] of [["Rojo", 5], ["Azul", 0], ["Verde", 1]]) {
+          await c.query(
+            `INSERT INTO public.product_variants (org_id, user_id, product_id, variant_name, variant_type, stock, active)
+             VALUES ($1, $2, $3, $4, 'color', $5, true)`, [org.id, usuario.id, p.id, nombre, stock]);
+        }
+      }
+    }
     // Finance se habilita por negocio y lo decide un superadmin. Es un usuario
     // técnico aparte: el del E2E no tiene que ver Plataforma.
     const { rows: [admin] } = await c.query(
