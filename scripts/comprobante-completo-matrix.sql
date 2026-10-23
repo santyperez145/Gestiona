@@ -129,8 +129,13 @@ BEGIN
   v_ok := v_ok || '6 ';
 
   -- 7
-  IF public.configurar_concepto_de_facturacion(v_org, 2::smallint) <> 2 OR public.concepto_de_facturacion(v_org) <> 2 THEN
+  -- En dos sentencias: concepto_de_facturacion es STABLE y, en la misma
+  -- expresión, no vería lo que acaba de guardar configurar_….
+  IF public.configurar_concepto_de_facturacion(v_org, 2::smallint) <> 2 THEN
     RAISE EXCEPTION 'FALLA 7a: no se guardó el concepto';
+  END IF;
+  IF public.concepto_de_facturacion(v_org) <> 2 THEN
+    RAISE EXCEPTION 'FALLA 7a: no se lee el concepto guardado';
   END IF;
   r := public.crear_factura_manual(v_org, jsonb_build_object('name', 'ZZ Abono'),
     jsonb_build_array(jsonb_build_object('description', 'ZZ Abono mensual', 'quantity', 1, 'unit_price', 100, 'tax_rate', 21)),
