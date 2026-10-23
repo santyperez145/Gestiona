@@ -110,5 +110,6 @@ test("presupuesto → caja → remito → factura → cobro, con la operación c
   await page.goto("/ventas");
   await page.getByRole("button", { name: /Ver detalle de ZZ Tornillo 8x40/ }).first().click();
   const final = page.getByTestId("documentos-de-la-venta");
-  await expect(final.getByText("Cobro", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+  // La fila del cobro (no el título del paso, que está siempre): un link con el monto cobrado.
+  await expect(final.getByRole("link", { name: /Cobro\s+\$\s?1\.200,00/ })).toBeVisible({ timeout: 20_000 });
 });
