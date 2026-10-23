@@ -1,0 +1,80 @@
+name: E2E contra una base local
+
+# El E2E crítico (ci.yml) corre contra producción. Este corre el panel contra
+# un Supabase local reconstruido desde cero y sembrado: prueba el código
+# aunque producción esté caída, y permite circuitos que escriben datos.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-local
+  cancel-in-progress: true
+
+jobs:
+  e2e-local:
+    name: Panel contra Supabase local
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SIMULACRO_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      SUPABASE_LOCAL_URL: http://127.0.0.1:54321
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Supabase local vacío
+        run: |
+          mkdir -p "$RUNNER_TEMP/vacio/supabase"
+          cp supabase/config.toml "$RUNNER_TEMP/vacio/supabase/"
+          cp -r supabase/templates "$RUNNER_TEMP/vacio/supabase/"
+          npx supabase start --workdir "$RUNNER_TEMP/vacio" -x studio,imgproxy,logflare,vector,mailpit,supavisor,edge-runtime
+          npx supabase status --workdir "$RUNNER_TEMP/vacio" -o env > "$RUNNER_TEMP/supabase.env"
+          # Las claves locales son públicas y fijas, pero igual no se imprimen.
+          anon=$(grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=' "$RUNNER_TEMP/supabase.env" | head -1 | cut -d= -f2- | tr -d '"')
+          service=$(grep -E '^(SERVICE_ROLE_KEY|SECRET_KEY)=' "$RUNNER_TEMP/supabase.env" | head -1 | cut -d= -f2- | tr -d '"')
+          echo "::add-mask::$service"
+          echo "VITE_SUPABASE_URL=$SUPABASE_LOCAL_URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=$anon" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_KEY=$service" >> "$GITHUB_ENV"
+
+      - name: Aplicar todas las migraciones
+        run: node scripts/reproducir-migraciones.mjs
+
+      - name: Sembrar usuario, negocio y catálogo
+        run: node scripts/semilla-e2e-local.mjs
+
+      - name: E2E del panel (navegador de la imagen de Playwright, red del host)
+        run: |
+          docker run --rm --network host --ipc=host \
+            -v "$PWD:/w" -w /w \
+            -e CI=true -e E2E_REQUIRE_AUTH=true \
+            -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY \
+            -e E2E_USER -e E2E_PASSWORD -e E2E_STORE_SLUG \
+            mcr.microsoft.com/playwright:v1.59.1-noble \
+            npx playwright test --project=setup --project=panel
+
+      - name: Evidencia de fallas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-local-${{ github.run_attempt }}
+          path: test-results/**
+          if-no-files-found: ignore
+
+      - name: Detener Supabase
+        if: always()
+        run: npx supabase stop --no-backup --workdir "$RUNNER_TEMP/vacio"

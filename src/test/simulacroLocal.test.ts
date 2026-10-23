@@ -33,3 +33,19 @@ describe("simulacro de matrices en una base local", () => {
     expect(wf).toContain('"supabase/migrations/**"');
   });
 });
+
+describe("semilla del E2E local", () => {
+  const fuente = readFileSync("scripts/semilla-e2e-local.mjs", "utf8");
+  it("se niega a sembrar fuera de una base local y no imprime la contraseña", () => {
+    expect(fuente).toContain("if (!esLocal(db) || !esLocal(api))");
+    expect(fuente).toContain("::add-mask::${password}");
+    expect(fuente).not.toMatch(/console\.log\([^)]*\$\{password\}[^)]*Semilla/);
+  });
+
+  it("el workflow corre el panel contra la base local, no contra producción", () => {
+    const wf = readFileSync(".github/workflows/e2e-local.yml", "utf8");
+    expect(wf).toContain("VITE_SUPABASE_URL=$SUPABASE_LOCAL_URL");
+    expect(wf).toContain("SUPABASE_LOCAL_URL: http://127.0.0.1:54321");
+    expect(wf).not.toContain("secrets.");
+  });
+});
