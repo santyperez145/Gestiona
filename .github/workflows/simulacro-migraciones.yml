@@ -43,6 +43,12 @@ jobs:
           npx supabase start
           -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 
+      - name: Error de Postgres si una migración no aplicó
+        if: failure()
+        run: |
+          db=$(docker ps -a --format '{{.Names}}' | grep '^supabase_db_' | head -1)
+          docker logs "$db" 2>&1 | grep -E 'ERROR|DETAIL|HINT|STATEMENT' | tail -40
+
       - name: Correr las matrices
         env:
           SIMULACRO_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
