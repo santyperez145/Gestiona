@@ -1,7 +1,12 @@
 name: Simulacro de migraciones
 
 # Aplica todas las migraciones desde cero en un Supabase local y corre cada
-# matriz de simulacro (scripts/simulacro-local.mjs). Nada toca producción.
+# matriz de simulacro. Nada toca producción.
+#   1. `supabase start` en una carpeta con la configuración y SIN migraciones:
+#      queda un Postgres de Supabase vacío (roles, auth, extensiones).
+#   2. scripts/reproducir-migraciones.mjs aplica las migraciones una por una
+#      y, si una falla, muestra el error completo de Postgres.
+#   3. scripts/simulacro-local.mjs corre las matrices.
 on:
   workflow_dispatch:
   push:
@@ -10,6 +15,7 @@ on:
       - "supabase/migrations/**"
       - "scripts/*-matrix.sql"
       - "scripts/simulacro-local.mjs"
+      - "scripts/reproducir-migraciones.mjs"
       - "scripts/migraciones-pendientes.mjs"
       - ".github/workflows/simulacro-migraciones.yml"
 
@@ -25,6 +31,8 @@ jobs:
     name: Migraciones y matrices en una base local
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      SIMULACRO_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -38,22 +46,20 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Supabase local (sólo Postgres) con todas las migraciones
-        run: >-
-          npx supabase start
-          -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
-
-      - name: Error de Postgres si una migración no aplicó
-        if: failure()
+      - name: Supabase local vacío (sólo Postgres)
         run: |
-          db=$(docker ps -a --format '{{.Names}}' | grep '^supabase_db_' | head -1)
-          docker logs "$db" 2>&1 | grep -E 'ERROR|DETAIL|HINT|STATEMENT' | tail -40
+          mkdir -p "$RUNNER_TEMP/vacio/supabase"
+          cp supabase/config.toml "$RUNNER_TEMP/vacio/supabase/"
+          cp -r supabase/templates "$RUNNER_TEMP/vacio/supabase/"
+          npx supabase start --workdir "$RUNNER_TEMP/vacio" \
+            -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Aplicar todas las migraciones desde cero
+        run: node scripts/reproducir-migraciones.mjs
 
       - name: Correr las matrices
-        env:
-          SIMULACRO_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: node scripts/simulacro-local.mjs
 
       - name: Detener Supabase
         if: always()
-        run: npx supabase stop --no-backup
+        run: npx supabase stop --no-backup --workdir "$RUNNER_TEMP/vacio"

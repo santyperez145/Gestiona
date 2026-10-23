@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { cuerpoDeMatriz, esLocal, leerFinal } from "../../scripts/simulacro-local.mjs";
+import { contexto } from "../../scripts/reproducir-migraciones.mjs";
 
 describe("simulacro de matrices en una base local", () => {
   it("se niega a correr contra una base que no es local", () => {
@@ -16,13 +17,18 @@ describe("simulacro de matrices en una base local", () => {
     expect(leerFinal(null)).toMatchObject({ ok: false, detalle: expect.stringMatching(/sin RAISE/) });
   });
 
+  it("ubica el error de Postgres en la migración", () => {
+    expect(contexto("SELECT 1;\nSELECT nada;", 18, 5)).toEqual({ linea: 2, texto: "LECT nada;" });
+  });
+
   it("deja la transacción en manos del script", () => {
     expect(cuerpoDeMatriz("DO $$ BEGIN RAISE EXCEPTION 'OK'; END $$;\nROLLBACK;\n")).not.toMatch(/ROLLBACK/);
   });
 
   it("CI aplica todas las migraciones desde cero antes de las matrices", () => {
     const wf = readFileSync(".github/workflows/simulacro-migraciones.yml", "utf8");
-    expect(wf).toContain("npx supabase start");
+    expect(wf).toContain("npx supabase start --workdir");
+    expect(wf).toContain("node scripts/reproducir-migraciones.mjs");
     expect(wf).toContain("node scripts/simulacro-local.mjs");
     expect(wf).toContain('"supabase/migrations/**"');
   });
