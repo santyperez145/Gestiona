@@ -18,8 +18,11 @@ BEGIN
   INSERT INTO public.organizations (name, slug, owner_user_id) VALUES ('ZZ ajeno', 'zz-rem2-' || substr(md5(random()::text), 1, 8), v_otro) RETURNING id INTO v_org2;
   INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_user, 'owner'), (v_org2, v_otro, 'owner') ON CONFLICT DO NOTHING;
   INSERT INTO public.products (org_id, user_id, name, stock) VALUES (v_org, v_user, 'ZZ Tornillo', 100) RETURNING id INTO v_prod;
-  INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, date, sale_transaction_id, customer_name)
-  VALUES (v_org, v_user, v_prod, 'ZZ Tornillo', 10, 100, 1000, now(), v_tx, 'ZZ Cliente') RETURNING id INTO v_sale;
+  -- `trg_assign_sale_transaction` toma la transacción del contexto, no de la columna.
+  PERFORM set_config('gestiona.sale_transaction_id', v_tx::text, true);
+  INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, date, customer_name)
+  VALUES (v_org, v_user, v_prod, 'ZZ Tornillo', 10, 100, 1000, now(), 'ZZ Cliente') RETURNING id INTO v_sale;
+  PERFORM set_config('gestiona.sale_transaction_id', '', true);
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;

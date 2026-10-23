@@ -21,7 +21,7 @@ BEGIN
   -- 1
   INSERT INTO public.ecommerce_orders (org_id, store_id, order_number, customer_name, customer_email, items, subtotal, total, payment_method,
     buyer_tax_condition, buyer_doc_type, buyer_doc_number, buyer_business_name)
-  VALUES (v_org, v_store, 'ZZU-1-' || v_sfx, 'Juan de ZZ', 'compras@invalid.test', '[]', 100, 100, 'mercadopago',
+  VALUES (v_org, v_store, 'ZZU-1-' || v_sfx, 'Juan de ZZ', 'compras@invalid.test', '[]', 100, 100, 'efectivo',
     'responsable_inscripto', 80, '30-71234567-1', 'ZZ Ferretería SA') RETURNING id INTO o;
   v_id := public.upsert_customer_from_order(o);
   SELECT * INTO c FROM public.customers WHERE id = v_local;
@@ -33,7 +33,7 @@ BEGIN
   -- 2
   INSERT INTO public.ecommerce_orders (org_id, store_id, order_number, customer_name, customer_email, items, subtotal, total, payment_method,
     buyer_tax_condition, buyer_doc_type, buyer_doc_number, buyer_business_name)
-  VALUES (v_org, v_store, 'ZZU-2-' || v_sfx, 'ZZ Nueva', 'nueva@invalid.test', '[]', 100, 100, 'mercadopago',
+  VALUES (v_org, v_store, 'ZZU-2-' || v_sfx, 'ZZ Nueva', 'nueva@invalid.test', '[]', 100, 100, 'efectivo',
     'monotributo', 80, '27222222228', 'ZZ Nueva SRL') RETURNING id INTO o;
   v_id := public.upsert_customer_from_order(o);
   SELECT * INTO c FROM public.customers WHERE id = v_id;
@@ -45,14 +45,14 @@ BEGIN
   -- 3
   INSERT INTO public.ecommerce_orders (org_id, store_id, order_number, customer_name, customer_email, items, subtotal, total, payment_method,
     buyer_tax_condition, buyer_doc_type, buyer_doc_number)
-  VALUES (v_org, v_store, 'ZZU-3-' || v_sfx, 'ZZ Sin datos', 'sin@invalid.test', '[]', 100, 100, 'mercadopago',
+  VALUES (v_org, v_store, 'ZZU-3-' || v_sfx, 'ZZ Sin datos', 'sin@invalid.test', '[]', 100, 100, 'efectivo',
     'exento', 80, '30699999993') RETURNING id INTO o;
   v_id := public.upsert_customer_from_order(o);
   SELECT * INTO c FROM public.customers WHERE id = v_sin;
   IF v_id <> v_sin OR c.tax_id <> '30699999993' OR c.vat_condition <> 'exento' THEN RAISE EXCEPTION 'FALLA 3a: %', to_jsonb(c); END IF;
   INSERT INTO public.ecommerce_orders (org_id, store_id, order_number, customer_name, customer_email, items, subtotal, total, payment_method,
     buyer_tax_condition, buyer_doc_type, buyer_doc_number)
-  VALUES (v_org, v_store, 'ZZU-4-' || v_sfx, 'ZZ Conocido', 'conocido@invalid.test', '[]', 100, 100, 'mercadopago',
+  VALUES (v_org, v_store, 'ZZU-4-' || v_sfx, 'ZZ Conocido', 'conocido@invalid.test', '[]', 100, 100, 'efectivo',
     'responsable_inscripto', 80, '30712345671') RETURNING id INTO o;
   -- Con el CUIT de otro cliente, gana el documento: es el cliente del local.
   v_id := public.upsert_customer_from_order(o);

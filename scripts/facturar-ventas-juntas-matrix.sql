@@ -24,12 +24,24 @@ BEGIN
   INSERT INTO public.sale_transactions (org_id, occurred_at, source) VALUES (v_org, now(), 'manual') RETURNING id INTO tx3;
   INSERT INTO public.sale_transactions (org_id, occurred_at, source) VALUES (v_org, now(), 'manual') RETURNING id INTO tx4;
   INSERT INTO public.sale_transactions (org_id, occurred_at, source) VALUES (v_org, now(), 'manual') RETURNING id INTO tx5;
-  INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, date, sale_transaction_id, customer_name, customer_id) VALUES
-    (v_org, v_user, v_prod, 'ZZ Tornillo', 10, 100, 1000, now(), tx1, 'ZZ Ferretería', v_cli),
-    (v_org, v_user, v_prod, 'ZZ Tornillo', 5, 100, 500, now(), tx2, 'ZZ Ferretería', v_cli),
-    (v_org, v_user, v_prod, 'ZZ Tornillo', 1, 100, 100, now(), tx3, 'ZZ Ferretería', v_cli),
-    (v_org, v_user, v_prod, 'ZZ Tornillo', 1, 100, 100, now(), tx4, 'ZZ Otra', v_cli2),
-    (v_org, v_user, v_prod, 'ZZ Tornillo', 1, 100, 100, now(), tx5, 'Mostrador', NULL);
+  -- `trg_assign_sale_transaction` toma la transacción del contexto, no de la
+  -- columna: cada venta va con la suya fijada antes.
+  PERFORM set_config('gestiona.sale_transaction_id', tx1::text, true);
+  INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, date, customer_name, customer_id)
+  VALUES (v_org, v_user, v_prod, 'ZZ Tornillo', 10, 100, 1000, now(), 'ZZ Ferretería', v_cli);
+  PERFORM set_config('gestiona.sale_transaction_id', tx2::text, true);
+  INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, date, customer_name, customer_id)
+  VALUES (v_org, v_user, v_prod, 'ZZ Tornillo', 5, 100, 500, now(), 'ZZ Ferretería', v_cli);
+  PERFORM set_config('gestiona.sale_transaction_id', tx3::text, true);
+  INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, date, customer_name, customer_id)
+  VALUES (v_org, v_user, v_prod, 'ZZ Tornillo', 1, 100, 100, now(), 'ZZ Ferretería', v_cli);
+  PERFORM set_config('gestiona.sale_transaction_id', tx4::text, true);
+  INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, date, customer_name, customer_id)
+  VALUES (v_org, v_user, v_prod, 'ZZ Tornillo', 1, 100, 100, now(), 'ZZ Otra', v_cli2);
+  PERFORM set_config('gestiona.sale_transaction_id', tx5::text, true);
+  INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, date, customer_name, customer_id)
+  VALUES (v_org, v_user, v_prod, 'ZZ Tornillo', 1, 100, 100, now(), 'Mostrador', NULL);
+  PERFORM set_config('gestiona.sale_transaction_id', '', true);
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;

@@ -32,6 +32,14 @@ async function main() {
   const archivos = readdirSync(DIR).filter(f => /^\d{14}_.+\.sql$/.test(f)).sort();
   const db = new pg.Client({ connectionString: url });
   await db.connect();
+  // El proyecto productivo es anterior al cambio de Supabase que dejó de dar
+  // permisos por defecto a anon y authenticated en `public`: sus tablas los
+  // heredan de ahí (20261013000900 se los saca a anon). Una base nueva no los
+  // trae, así que se dejan como en producción antes de la primera migración.
+  await db.query(`
+    ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;`);
   // Igual que el CLI: la historia queda en supabase_migrations.schema_migrations.
   await db.query("CREATE SCHEMA IF NOT EXISTS supabase_migrations; CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations (version text PRIMARY KEY, statements text[], name text)");
   try {

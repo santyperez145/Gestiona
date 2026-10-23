@@ -6,7 +6,7 @@ DO $$
 DECLARE
   v_actor uuid; v_org uuid := gen_random_uuid(); v_rule uuid; v_saved jsonb; n numeric; v_tx uuid; v_ok text := '';
 BEGIN
-  SELECT user_id INTO v_actor FROM public.platform_admins WHERE role = 'superadmin' ORDER BY created_at LIMIT 1;
+  SELECT user_id INTO v_actor FROM public.platform_admins WHERE role = 'superadmin' ORDER BY granted_at LIMIT 1;
   IF v_actor IS NULL THEN RAISE EXCEPTION 'FALLA 0: no hay superadmin de plataforma para aprobar la regla de prueba'; END IF;
   INSERT INTO public.organizations (id, name, slug, owner_user_id)
   VALUES (v_org, 'ZZ comisión por canal', 'zz-com-' || substr(v_org::text, 1, 8), v_actor);

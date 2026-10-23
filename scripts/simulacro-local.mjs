@@ -50,6 +50,11 @@ async function main() {
         VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $1, '', now(), now() + ($2 || ' seconds')::interval, now(), '{}', '{}')`,
         [`simulacro${i}@nerqia.test`, String(i)]);
     }
+    // Producción tiene un superadmin de la plataforma; algunas matrices lo usan.
+    // Es el último usuario: el primero queda como dueño común de los negocios.
+    await db.query(`INSERT INTO public.platform_admins (user_id, role)
+      SELECT id, 'superadmin' FROM auth.users ORDER BY created_at DESC LIMIT 1
+      ON CONFLICT DO NOTHING`).catch(e => console.log(`(sin superadmin de prueba: ${e.message})`));
     const resultados = [];
     for (const v of versiones) {
       const sql = cuerpoDeMatriz(readFileSync(resolve(MATRICES[v]), "utf8"));
