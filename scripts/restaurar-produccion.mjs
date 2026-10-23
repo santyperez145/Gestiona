@@ -12,7 +12,9 @@
  *   4. Auditoría de permisos contra producción: sin vistas definer
  *      escribibles, sin TRUNCATE para anon/authenticated y ninguna RPC que
  *      mueva stock o plata sin exigir permiso.
- *   5. Publica las funciones con `deploy-functions.sh` (respeta qué van sin JWT).
+ *   5. Publica las funciones con `deploy-functions.sh` (respeta qué van sin JWT)
+ *      y compara los secretos que exigen (`requireEnv`) con los cargados en
+ *      el proyecto: sólo nombres, nunca valores.
  *   6. Corre el control de estado (cierra el aviso «Producción caída») y
  *      vuelve a correr el último CI, que ya no saltea el E2E contra producción.
  *
@@ -25,7 +27,8 @@
  * escribe ni las imprime.
  */
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 import pg from "pg";
 import { CONSULTAS } from "./auditoria-local.mjs";
@@ -50,6 +53,38 @@ export function estadoDelProyecto(salidaJson, ref = PROYECTO) {
   } catch {
     return "ILEGIBLE";
   }
+}
+
+/** Las variables que pone Supabase solo en toda función. */
+const DE_SUPABASE = /^SUPABASE_/;
+
+/** Secreto → funciones que no arrancan sin él (los `requireEnv` del código). */
+export function secretosExigidos(dir = "supabase/functions") {
+  const exigidos = new Map();
+  const recorrer = (carpeta, funcion) => {
+    for (const nombre of readdirSync(carpeta)) {
+      const ruta = path.join(carpeta, nombre);
+      if (statSync(ruta).isDirectory()) { recorrer(ruta, funcion); continue; }
+      if (!/\.(ts|js)$/.test(nombre)) continue;
+      for (const m of readFileSync(ruta, "utf8").matchAll(/requireEnv\(\s*["']([A-Z0-9_]+)["']/g)) {
+        if (DE_SUPABASE.test(m[1])) continue;
+        if (!exigidos.has(m[1])) exigidos.set(m[1], new Set());
+        exigidos.get(m[1]).add(funcion);
+      }
+    }
+  };
+  for (const funcion of readdirSync(dir)) {
+    if (funcion.startsWith("_") || !statSync(path.join(dir, funcion)).isDirectory()) continue;
+    recorrer(path.join(dir, funcion), funcion);
+  }
+  return exigidos;
+}
+
+/** Los que faltan entre los cargados (`supabase secrets list --output json`). */
+export function secretosFaltantes(exigidos, salidaJson) {
+  let cargados;
+  try { cargados = new Set(JSON.parse(salidaJson).map(s => s.name)); } catch { return null; }
+  return [...exigidos].filter(([nombre]) => !cargados.has(nombre)).map(([nombre, funciones]) => ({ nombre, funciones: [...funciones].sort() }));
 }
 
 /** Además de las tres de la auditoría local, la guardia de permisos de producción. */
@@ -142,6 +177,11 @@ async function main() {
 
   paso(4);
   if (!correr("bash", ["scripts/deploy-functions.sh"]).ok) return frenar("Alguna función no se publicó: el detalle está arriba. Las migraciones ya están aplicadas.");
+  const secretos = correr(npx, ["supabase", "secrets", "list", "--project-ref", PROYECTO, "--output", "json"], { capturar: true });
+  const faltan = secretos.ok ? secretosFaltantes(secretosExigidos(), secretos.salida) : null;
+  if (faltan === null) console.log("  ⚠ No se pudo leer la lista de secretos: revisarla a mano en el dashboard.");
+  else if (faltan.length === 0) console.log("  ✓ Están cargados todos los secretos que exigen las funciones");
+  else for (const f of faltan) console.log(`  ⚠ Falta el secreto ${f.nombre}: sin él no arrancan ${f.funciones.join(", ")}`);
 
   paso(5);
   // En GitHub, con sus credenciales: cierra el aviso «Producción caída».
