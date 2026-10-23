@@ -53,9 +53,11 @@ BEGIN
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
   r := public.solicitar_cuenta_mayorista(v_slug, 'ZZ Ferretería del Centro SA', '30-71234567-1', '1155555555', 'Somos ferretería');
   IF r->>'estado' <> 'pendiente' THEN RAISE EXCEPTION 'FALLA 2d: %', r; END IF;
-  -- Pendiente: todavía minorista.
-  r := public.resolve_store_line(v_org, v_a, NULL, 1);
   RESET ROLE;
+  -- Pendiente: todavía minorista. resolve_store_line es interna (la llama el
+  -- checkout con privilegios): se prueba con la sesión del comprador puesta.
+  PERFORM set_config('nerqia.store_id', v_store::text, true);
+  r := public.resolve_store_line(v_org, v_a, NULL, 1);
   IF (r->'line'->>'unit_price')::numeric <> 1000 THEN RAISE EXCEPTION 'FALLA 2e: pendiente ya pagaba mayorista: %', r; END IF;
   v_ok := v_ok || '2 ';
 
@@ -78,12 +80,11 @@ BEGIN
     RAISE EXCEPTION 'FALLA 3a: cliente mal creado: %', r;
   END IF;
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_comp, 'role', 'authenticated')::text, true);
-  SET LOCAL ROLE authenticated;
-  PERFORM set_config('nerqia.store_id', v_store::text, true);
   IF (public.resolve_store_line(v_org, v_a, NULL, 1)->'line'->>'unit_price')::numeric <> 900 THEN RAISE EXCEPTION 'FALLA 3b: tramo 1'; END IF;
   IF (public.resolve_store_line(v_org, v_a, NULL, 10)->'line'->>'unit_price')::numeric <> 700 THEN RAISE EXCEPTION 'FALLA 3c: tramo 10'; END IF;
   IF (public.resolve_store_line(v_org, v_b, NULL, 1)->'line'->>'unit_price')::numeric <> 400 THEN RAISE EXCEPTION 'FALLA 3d: descuento de la lista'; END IF;
   IF NOT (public.resolve_store_line(v_org, v_b, NULL, 1)->'line'->>'mayorista')::boolean THEN RAISE EXCEPTION 'FALLA 3e: no marca la línea mayorista'; END IF;
+  SET LOCAL ROLE authenticated;
   r := public.get_store_precios_mayoristas(v_slug, ARRAY[v_a, v_b]);
   IF jsonb_array_length(r) <> 2 OR NOT (r @> jsonb_build_array(jsonb_build_object('product_id', v_a, 'tramos', jsonb_build_array(jsonb_build_object('desde', 1, 'precio', 900), jsonb_build_object('desde', 10, 'precio', 700))))) THEN
     RAISE EXCEPTION 'FALLA 3f: precios mayoristas: %', r;
@@ -94,8 +95,8 @@ BEGIN
   END IF;
   RESET ROLE;
   PERFORM set_config('request.jwt.claims', '', true);
-  SET LOCAL ROLE anon;
   IF (public.resolve_store_line(v_org, v_a, NULL, 10)->'line'->>'unit_price')::numeric <> 1000 THEN RAISE EXCEPTION 'FALLA 3h: un anónimo pagó mayorista'; END IF;
+  SET LOCAL ROLE anon;
   IF jsonb_array_length(public.get_store_precios_mayoristas(v_slug, ARRAY[v_a])) <> 0 THEN RAISE EXCEPTION 'FALLA 3i: un anónimo vio precios mayoristas'; END IF;
   RESET ROLE;
   v_ok := v_ok || '3 ';
