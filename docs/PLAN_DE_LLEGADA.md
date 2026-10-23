@@ -123,7 +123,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 - [~] **Del pedido online al remito y al envío** (22/10: «Remito» en el envío del pedido, con la venta que creó el pago; la etiqueta y el seguimiento ya estaban). Remito desde el pedido, etiqueta y seguimiento, con el mismo circuito que una venta del local. *Terminado:* un pedido online despachado con remito y seguimiento.
 - [~] **Precio y stock por canal** (el precio por tienda ya existe en el surtido; falta reservar stock para el local, que toca las cinco funciones de la vitrina y se hace con la base activa para probarlo). Precio online distinto si el comercio quiere, y stock reservado para la tienda. *Terminado:* las dos reglas configuradas y respetadas en el checkout.
 - [~] **Cliente único** (22/10: el comprador se busca por CUIT o DNI y después por email, y su identidad fiscal del checkout completa la ficha sin pisarla). El comprador online es el mismo cliente del local, con CUIT para la factura A y cuenta corriente si corresponde.
-- [ ] **Migración desde Tiendanube o desde una planilla** (experimento E3). *Terminado:* catálogo publicado en menos de 30 minutos.
+- [~] **Migración desde Tiendanube o desde una planilla** (experimento E3; el importador ya reconoce las exportaciones de Tiendanube, Shopify y Empretienda, con sus variantes, y las planillas propias). *Terminado:* catálogo publicado en menos de 30 minutos.
 - [~] Mercado Libre: verificar con datos reales la sincronización de stock, precios y pedidos.
 - [x] La comisión de Nerqia es sólo sobre ventas online (ADR 008).
 
