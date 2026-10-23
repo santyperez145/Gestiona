@@ -15,6 +15,7 @@ on:
       - "supabase/migrations/**"
       - "scripts/*-matrix.sql"
       - "scripts/simulacro-local.mjs"
+      - "scripts/auditoria-local.mjs"
       - "scripts/reproducir-migraciones.mjs"
       - "scripts/migraciones-pendientes.mjs"
       - ".github/workflows/simulacro-migraciones.yml"
@@ -59,6 +60,10 @@ jobs:
 
       - name: Correr las matrices
         run: node scripts/simulacro-local.mjs
+
+      - name: Auditoría de permisos (informe)
+        if: always()
+        run: node scripts/auditoria-local.mjs --informe
 
       - name: Detener Supabase
         if: always()
