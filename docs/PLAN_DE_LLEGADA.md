@@ -114,7 +114,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 - [ ] Verificar con el catálogo real de Famatina (5.500 productos). *Terminado:* un ajuste masivo de precios y una toma física, de punta a punta, sin ayuda.
 
 **Calidad**
-- [ ] Barrido de pantallas **con datos**: tablas, gráficos y acciones por fila.
+- [x] Barrido de pantallas **con datos**: tablas, gráficos y acciones por fila (2026-10-23: `e2e/barrido-con-datos.spec.ts` recorre cada pantalla del menú después del circuito, con la sesión real: título, sin errores de JavaScript, sin desborde a 1280 y 390 px, sin fallas graves de accesibilidad; 91 tests en verde).
 - [x] E2E del circuito completo con datos sintéticos: presupuesto, venta, remito, factura, cobro y cuenta corriente (2026-10-23: `e2e/circuito-gestion.spec.ts` en `e2e-local.yml`, contra un Supabase local reconstruido y sembrado; la factura queda sin CAE porque no hay ARCA local).
 
 ### D. Tienda online, enlazada a la gestión (después de C)
