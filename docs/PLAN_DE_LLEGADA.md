@@ -57,7 +57,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 
 ### A. Operación de la plataforma (habilita todo lo demás)
 
-- [ ] **Restaurar producción.** Primero el dueño paga. Después Dirección corre `npm run db:pendientes` (simulacro de las 20 pendientes contra producción), aplica, despliega las funciones y verifica tiendas, ARCA y CI. *Terminado:* CI en verde y una tienda real que carga. Desde el 23/10 las 20 ya pasan en CI contra una base reconstruida desde cero (`simulacro-migraciones.yml`, 2026-10-23: 812 migraciones y 19 de 19 matrices en OK); la primera a aplicar por seguridad es 20261023000200 (vistas de sólo lectura).
+- [ ] **Restaurar producción.** Primero el dueño paga. Después Dirección corre `npm run db:pendientes` (simulacro de las pendientes contra producción), aplica, despliega las funciones y verifica tiendas, ARCA y CI. *Terminado:* CI en verde y una tienda real que carga. Desde el 23/10 las pendientes ya pasan en CI contra una base reconstruida desde cero (`simulacro-migraciones.yml`, 2026-10-23: 815 migraciones y 22 de 22 matrices en OK); la primera a aplicar por seguridad es 20261023000200 (vistas de sólo lectura).
 - [~] **Que no vuelva a pasar.** Una tarjeta de respaldo y alertas de facturación en Supabase, Vercel y el dominio (dueño), más un control diario del estado del proyecto (Dirección; hecho el 23/10: `estado-produccion.yml` prueba Supabase y el sitio cada 6 horas y abre un issue «Producción caída», que llega por mail, y lo cierra cuando vuelve). *Terminado:* un aviso llega antes del corte, no después.
 - [ ] **Restauración probada.** Restaurar un backup en un proyecto de prueba y medir cuánto tarda. *Terminado:* tiempo medido y escrito.
 - [ ] Protección de `main` para administradores y un segundo revisor (decisión del dueño, ROADMAP §5 P0).
@@ -111,7 +111,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 - [x] Antigüedad de deudas con proveedores (ya existía en Proveedores) y vencimientos en la agenda (22/10: el Calendario muestra los pagos a proveedores y los cheques a depositar o debitar).
 
 **Stock, caja y precios:** multidepósito, kardex, toma física, lotes, valuación, turnos de caja con arqueo, listas de precios y actualización masiva ya existen.
-- [ ] Verificar con el catálogo real de Famatina (5.500 productos). *Terminado:* un ajuste masivo de precios y una toma física, de punta a punta, sin ayuda.
+- [~] Verificar con el catálogo real de Famatina (5.500 productos). *Terminado:* un ajuste masivo de precios y una toma física, de punta a punta, sin ayuda. Preparado el 23/10: el recálculo desde el costo en dólares (20261023000400) y la toma física en tandas de 1.000 (20261023000500) dejaron de hacer una llamada por producto desde el navegador; las dos matrices los prueban con 5.500 productos (`simulacro-migraciones.yml`, 2026-10-23). Falta hacerlo con el catálogo real.
 
 **Calidad**
 - [x] Barrido de pantallas **con datos**: tablas, gráficos y acciones por fila (2026-10-23: `e2e/barrido-con-datos.spec.ts` recorre cada pantalla del menú después del circuito, con la sesión real: título, sin errores de JavaScript, sin desborde a 1280 y 390 px, sin fallas graves de accesibilidad; 91 tests en verde).

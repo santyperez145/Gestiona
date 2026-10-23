@@ -10,6 +10,7 @@ import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { csvCell } from "@/lib/csv";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
+import { isMissingFunction } from "@/lib/publicDataSource";
 import { clearStockCountDraft, loadStockCountDraft, saveStockCountDraft } from "@/lib/stockCountDraft";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -263,13 +264,25 @@ export default function StockCountTab() {
       countId = typeof openedPayload?.conteo_id === "string" ? openedPayload.conteo_id : null;
       if (!countId) throw new Error("La base no devolvió el identificador del conteo");
 
-      for (const row of countedRows) {
-        const { error } = await supabase.rpc("registrar_conteo", {
-          p_count_id: countId,
-          p_product_id: row.product.id,
-          p_cantidad: Number(row.counted),
-        });
-        if (error) throw error;
+      // En tandas de 1.000 (20261023000500): de a uno eran 5.500 llamadas con
+      // el catálogo de Famatina, y un corte a la mitad cancelaba la toma.
+      let porTandas = true;
+      for (let i = 0; porTandas && i < countedRows.length; i += 1000) {
+        const tanda = countedRows.slice(i, i + 1000).map(r => ({ product_id: r.product.id, cantidad: Number(r.counted) }));
+        const { error } = await supabase.rpc("registrar_conteo_lote" as never, { p_count_id: countId, p_items: tanda } as never);
+        if (error && i === 0 && isMissingFunction(error)) porTandas = false;
+        else if (error) throw error;
+      }
+      // Sin la migración: de a un producto, como antes.
+      if (!porTandas) {
+        for (const row of countedRows) {
+          const { error } = await supabase.rpc("registrar_conteo", {
+            p_count_id: countId,
+            p_product_id: row.product.id,
+            p_cantidad: Number(row.counted),
+          });
+          if (error) throw error;
+        }
       }
 
       const { data: closed, error: closeError } = await supabase.rpc("cerrar_conteo", { p_count_id: countId });

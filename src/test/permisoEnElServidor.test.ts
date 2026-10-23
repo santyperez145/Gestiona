@@ -42,6 +42,7 @@ const CONTENIDO = new Map(
 const EXIGEN_PERMISO: Record<string, string> = {
   abrir_conteo: "inventory",
   registrar_conteo: "inventory",
+  registrar_conteo_lote: "inventory",
   cerrar_conteo: "inventory",
   cancelar_conteo: "inventory",
   transfer_stock_between_locations: "inventory",
