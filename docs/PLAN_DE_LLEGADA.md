@@ -57,7 +57,7 @@ Cada ítem tiene su criterio de terminado. `[ ]` es pendiente, `[~]` es construi
 
 ### A. Operación de la plataforma (habilita todo lo demás)
 
-- [ ] **Restaurar producción.** Primero el dueño paga. Después Dirección corre `npm run db:pendientes` (simulacro de las 6), aplica, despliega las 4 funciones y verifica tiendas, ARCA y CI. *Terminado:* CI en verde y una tienda real que carga.
+- [ ] **Restaurar producción.** Primero el dueño paga. Después Dirección corre `npm run db:pendientes` (simulacro de las 20 pendientes contra producción), aplica, despliega las funciones y verifica tiendas, ARCA y CI. *Terminado:* CI en verde y una tienda real que carga. Desde el 23/10 las 20 ya pasan en CI contra una base reconstruida desde cero (`simulacro-migraciones.yml`, 2026-10-23: 812 migraciones y 19 de 19 matrices en OK); la primera a aplicar por seguridad es 20261023000200 (vistas de sólo lectura).
 - [~] **Que no vuelva a pasar.** Una tarjeta de respaldo y alertas de facturación en Supabase, Vercel y el dominio (dueño), más un control diario del estado del proyecto (Dirección; hecho el 23/10: `estado-produccion.yml` prueba Supabase y el sitio cada 6 horas y abre un issue «Producción caída», que llega por mail, y lo cierra cuando vuelve). *Terminado:* un aviso llega antes del corte, no después.
 - [ ] **Restauración probada.** Restaurar un backup en un proyecto de prueba y medir cuánto tarda. *Terminado:* tiempo medido y escrito.
 - [ ] Protección de `main` para administradores y un segundo revisor (decisión del dueño, ROADMAP §5 P0).
