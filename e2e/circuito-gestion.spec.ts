@@ -91,7 +91,7 @@ test("presupuesto → caja → remito → factura → cobro, con la operación c
   await expect(operacion.getByText("Presupuesto", { exact: true })).toBeVisible();
   await expect(operacion.getByText(/^Remito X$/).first()).toBeVisible();
   await expect(operacion.getByText(/^Factura A$/).first()).toBeVisible();
-  await expect(operacion.getByText(/sin CAE/).first()).toBeVisible();
+  await expect(operacion.getByText(/sin CAE/).filter({ visible: true }).first()).toBeVisible();
 
   // 7. Cobro de la deuda en la caja, y la operación lo muestra.
   await page.goto("/caja");
