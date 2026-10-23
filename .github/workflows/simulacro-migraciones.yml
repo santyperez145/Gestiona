@@ -61,9 +61,9 @@ jobs:
       - name: Correr las matrices
         run: node scripts/simulacro-local.mjs
 
-      - name: Auditoría de permisos (informe)
+      - name: Auditoría de permisos
         if: always()
-        run: node scripts/auditoria-local.mjs --informe
+        run: node scripts/auditoria-local.mjs
 
       - name: Detener Supabase
         if: always()
