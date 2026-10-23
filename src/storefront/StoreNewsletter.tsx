@@ -19,7 +19,8 @@ const MENSAJES: Record<Exclude<Estado, "idle" | "enviando">, string> = {
   error: "No pudimos guardar tu email. Revisalo e intentá de nuevo.",
 };
 
-export default function StoreNewsletter({ slug, base }: { slug?: string | null; base: string }) {
+/** `privacidad`: la tienda publicó su política (2026-10-23: el enlace llevaba a una página inexistente). */
+export default function StoreNewsletter({ slug, base, privacidad = false }: { slug?: string | null; base: string; privacidad?: boolean }) {
   const [email, setEmail] = useState("");
   const [estado, setEstado] = useState<Estado>("idle");
 
@@ -95,8 +96,8 @@ export default function StoreNewsletter({ slug, base }: { slug?: string | null; 
         <p className="text-xs mt-1.5" style={{ color: "#dc2626" }}>{MENSAJES.error}</p>
       )}
       <p className="text-[11px] mt-2" style={{ color: "hsl(var(--st-muted))" }}>
-        Al suscribirte aceptás recibir novedades. Podés darte de baja cuando quieras —{" "}
-        <a href={`${base}/pagina/politica-de-privacidad`} className="underline">política de privacidad</a>.
+        Al suscribirte aceptás recibir novedades. Podés darte de baja cuando quieras
+        {privacidad ? <> —{" "}<a href={`${base}/pagina/politica-de-privacidad`} className="underline">política de privacidad</a>.</> : "."}
       </p>
     </div>
   );

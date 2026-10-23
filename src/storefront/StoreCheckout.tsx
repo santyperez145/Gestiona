@@ -53,8 +53,10 @@ export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
   const {
     store, products, catalogoParcial, cart, subtotal, promo2x, shippingCost, fmt,
-    clearCart, rememberCartEmail, cartToken, visitToken, basePath: base,
+    clearCart, rememberCartEmail, cartToken, visitToken, basePath: base, pages,
   } = useStore();
+  // Sólo se enlaza la política de privacidad si la tienda la publicó.
+  const tienePrivacidad = (pages ?? []).some(pg => pg.slug === "politica-de-privacidad");
   const navigate = useNavigate();
 
   const { customer, signUp } = useStoreAuth();
@@ -926,10 +928,10 @@ export default function StoreCheckout() {
               className="mt-0.5"
             />
             <span>
-              Quiero recibir novedades y promociones por email o WhatsApp. Es opcional y puedo darme de baja cuando quiera.{' '}
-              <Link to={`${base}/pagina/politica-de-privacidad`} className="underline">
+              Quiero recibir novedades y promociones por email o WhatsApp. Es opcional y puedo darme de baja cuando quiera.
+              {tienePrivacidad && <>{' '}<Link to={`${base}/pagina/politica-de-privacidad`} className="underline">
                 Ver política de privacidad
-              </Link>
+              </Link></>}
             </span>
           </label>
 

@@ -59,7 +59,7 @@ jobs:
       - name: Sembrar usuario, negocio y catálogo
         run: node scripts/semilla-e2e-local.mjs
 
-      - name: E2E del panel (navegador de la imagen de Playwright, red del host)
+      - name: E2E del panel, el circuito y el barrido con datos
         run: |
           docker run --rm --network host --ipc=host \
             -v "$PWD:/w" -w /w \
@@ -67,7 +67,21 @@ jobs:
             -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY \
             -e E2E_USER -e E2E_PASSWORD -e E2E_STORE_SLUG \
             mcr.microsoft.com/playwright:v1.59.1-noble \
-            npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos --project=chromium --project=mobile
+            npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos
+
+      # Sólo los specs de la tienda que leen la base real (exigirBackendReal):
+      # los sintéticos interceptan *.supabase.co y corren en ci.yml.
+      - name: E2E de la tienda pública (escritorio y teléfono)
+        if: always()
+        run: |
+          docker run --rm --network host --ipc=host \
+            -v "$PWD:/w" -w /w \
+            -e CI=true -e E2E_LOCAL=true \
+            -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY -e E2E_STORE_SLUG \
+            mcr.microsoft.com/playwright:v1.59.1-noble \
+            npx playwright test --project=chromium --project=mobile \
+              e2e/tienda.spec.ts e2e/tienda-accessibility.spec.ts e2e/store-order.spec.ts e2e/store-read-recovery.spec.ts \
+              e2e/checkout-multi-tab.spec.ts e2e/header.spec.ts e2e/pricing.spec.ts
 
       - name: Evidencia de fallas
         if: failure()

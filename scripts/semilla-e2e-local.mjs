@@ -75,20 +75,30 @@ async function main() {
     await c.query(`INSERT INTO public.locations (org_id, name, is_main, active) VALUES ($1, 'ZZ Casa central', true, true)`, [org.id]);
     // La tienda online del negocio, activa, con envío fijo y transferencia: la
     // vitrina pública la recorren los specs de la tienda.
+    // Envío por zonas (lo que usa una tienda real: el cotizador por provincia
+    // de la ficha) y retiro en el local, que no pide domicilio.
     await c.query(
-      `INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_mode, shipping_cost)
-       VALUES ($1, $2, 'ZZ Ferretería E2E', true, ARRAY['transferencia'], 'flat', 3500)`, [org.id, SLUG]);
+      `INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_mode, shipping_cost, pickup_enabled, pickup_address)
+       VALUES ($1, $2, 'ZZ Ferretería E2E', true, ARRAY['transferencia'], 'zones', 3500, true, 'Av. ZZ 123, CABA')`, [org.id, SLUG]);
+    const provincias = ["AR-C", "AR-B", "AR-K", "AR-H", "AR-U", "AR-X", "AR-W", "AR-E", "AR-P", "AR-Y", "AR-L", "AR-F",
+      "AR-M", "AR-N", "AR-Q", "AR-R", "AR-A", "AR-J", "AR-D", "AR-Z", "AR-S", "AR-G", "AR-V", "AR-T"];
+    const { rows: [zona] } = await c.query(
+      `INSERT INTO public.shipping_zones (org_id, name, provinces) VALUES ($1, 'ZZ Todo el país', $2) RETURNING id`, [org.id, provincias]);
+    await c.query(
+      `INSERT INTO public.shipping_rates (org_id, zone_id, carrier, service, price, delivery_days_min, delivery_days_max)
+       VALUES ($1, $2, 'propio', 'domicilio', 3500, 2, 5)`, [org.id, zona.id]);
     await c.query(
       `INSERT INTO public.settings (org_id, user_id, business_name, bank_cbu, bank_alias, bank_holder)
        VALUES ($1, $2, 'ZZ Ferretería E2E', '0000003100000000000012', 'ZZ.FERRETERIA.E2E', 'ZZ FERRETERIA SRL')
        ON CONFLICT (org_id) DO UPDATE SET bank_cbu = EXCLUDED.bank_cbu, bank_alias = EXCLUDED.bank_alias, bank_holder = EXCLUDED.bank_holder`,
       [org.id, usuario.id]);
-    // Catálogo de vitrina: más de 40 publicados (paginación de 20), precios en
+    // Catálogo de vitrina: 60 publicados (paginación de 20 y más que la primera
+    // tanda de 48, así hace falta el catálogo completo), precios en
     // todo el rango de los filtros, dos sin stock y tres con variantes (una
     // agotada y una «última unidad»).
     const categorias = ["Herramientas", "Electricidad", "Pinturas", "Jardín"];
     const precios = [1500, 12000, 55000, 72000, 88000, 105000];
-    for (let i = 1; i <= 44; i++) {
+    for (let i = 1; i <= 56; i++) {
       const { rows: [p] } = await c.query(
         `INSERT INTO public.products (org_id, user_id, name, brand, category, description, sale_price_ars, cost_ars, stock, featured)
          VALUES ($1, $2, $3, 'ZZ Marca', $4, 'Producto de prueba del E2E local.', $5, $6, $7, $8) RETURNING id`,
@@ -129,7 +139,7 @@ async function main() {
     appendFileSync(salida, `E2E_USER=${EMAIL}\nE2E_PASSWORD=${password}\nE2E_STORE_SLUG=${SLUG}\n`);
     console.log(`::add-mask::${password}`);
   }
-  console.log(`Semilla lista: ${EMAIL}, negocio ${SLUG}, ${PRODUCTOS.length} productos.`);
+  console.log(`Semilla lista: ${EMAIL}, negocio ${SLUG}, ${PRODUCTOS.length + 56} productos.`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) await main();
