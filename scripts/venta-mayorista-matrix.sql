@@ -21,8 +21,8 @@ BEGIN
   SELECT id INTO v_vend FROM auth.users WHERE id NOT IN (v_owner, v_comp) ORDER BY created_at LIMIT 1;
   INSERT INTO public.organizations (name, slug, owner_user_id) VALUES ('ZZ Mayorista', v_slug, v_owner) RETURNING id INTO v_org;
   INSERT INTO public.memberships (org_id, user_id, role) VALUES (v_org, v_owner, 'owner'), (v_org, v_vend, 'vendedor') ON CONFLICT DO NOTHING;
-  INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_cost, mayorista_modo, mayorista_minimo_ars, mayorista_cuenta_corriente)
-  VALUES (v_org, v_slug, 'ZZ Mayorista', true, ARRAY['efectivo'], 0, 'mixto', 10000, true) RETURNING id INTO v_store;
+  INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_cost, shipping_mode, pickup_enabled, mayorista_modo, mayorista_minimo_ars, mayorista_cuenta_corriente)
+  VALUES (v_org, v_slug, 'ZZ Mayorista', true, ARRAY['efectivo'], 0, 'free', true, 'mixto', 10000, true) RETURNING id INTO v_store;
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, stock) VALUES (v_org, v_owner, 'ZZ Tornillo caja', 1000, 100) RETURNING id INTO v_a;
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, stock) VALUES (v_org, v_owner, 'ZZ Tarugo caja', 500, 100) RETURNING id INTO v_b;
   INSERT INTO public.price_lists (org_id, name, discount_type, discount_value, is_active) VALUES (v_org, 'ZZ Mayorista 20', 'percentage', 20, true) RETURNING id INTO v_lista;
@@ -106,7 +106,7 @@ BEGIN
   SET LOCAL ROLE authenticated;
   BEGIN
     PERFORM public.create_store_order(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_a, 'quantity', 5)),
-      'ZZ Comprador', 'comprador@invalid.test', '1155555555', '{}'::jsonb, 'efectivo');
+      'ZZ Comprador', 'comprador@invalid.test', '1155555555', '{"provincia": "Buenos Aires"}'::jsonb, 'efectivo');
     RAISE EXCEPTION 'FALLA 4: aceptó un pedido mayorista debajo del mínimo';
   EXCEPTION WHEN invalid_parameter_value THEN
     IF SQLERRM NOT LIKE 'La compra mínima mayorista es de $ 10.000%' THEN RAISE EXCEPTION 'FALLA 4b: mensaje %', SQLERRM; END IF;
@@ -115,10 +115,10 @@ BEGIN
 
   -- 5: 10 × 700 + 10 × 400 = 11.000, dentro de 15.000
   v_items := jsonb_build_array(jsonb_build_object('product_id', v_a, 'quantity', 10), jsonb_build_object('product_id', v_b, 'quantity', 10));
-  v_pedido := public.create_store_order(v_slug, v_items, 'ZZ Comprador', 'comprador@invalid.test', '1155555555', '{}'::jsonb, 'cuenta_corriente');
+  v_pedido := public.create_store_order(v_slug, v_items, 'ZZ Comprador', 'comprador@invalid.test', '1155555555', '{"provincia": "Buenos Aires"}'::jsonb, 'cuenta_corriente');
   IF (v_pedido->>'subtotal')::numeric <> 11000 THEN RAISE EXCEPTION 'FALLA 5a: subtotal %', v_pedido; END IF;
   BEGIN
-    PERFORM public.create_store_order(v_slug, v_items, 'ZZ Comprador', 'comprador@invalid.test', '1155555555', '{}'::jsonb, 'cuenta_corriente');
+    PERFORM public.create_store_order(v_slug, v_items, 'ZZ Comprador', 'comprador@invalid.test', '1155555555', '{"provincia": "Buenos Aires"}'::jsonb, 'cuenta_corriente');
     RAISE EXCEPTION 'FALLA 5b: el segundo pedido superó el crédito';
   EXCEPTION WHEN invalid_parameter_value THEN
     IF SQLERRM NOT LIKE 'El pedido supera tu crédito disponible: te quedan $ 4.000 de $ 15.000%' THEN RAISE EXCEPTION 'FALLA 5c: mensaje %', SQLERRM; END IF;
@@ -154,7 +154,7 @@ BEGIN
   SET LOCAL ROLE anon;
   BEGIN
     PERFORM public.create_store_order(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_a, 'quantity', 20)),
-      'ZZ Anónimo', 'anon@invalid.test', NULL, '{}'::jsonb, 'efectivo');
+      'ZZ Anónimo', 'anon@invalid.test', NULL, '{"provincia": "Buenos Aires"}'::jsonb, 'efectivo');
     RAISE EXCEPTION 'FALLA 6c: un anónimo compró en una tienda exclusiva';
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
   RESET ROLE;
