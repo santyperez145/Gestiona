@@ -48,9 +48,16 @@ async function main() {
   await c.connect();
   try {
     await c.query("BEGIN");
-    const { rows: [org] } = await c.query(
-      `INSERT INTO public.organizations (name, slug, owner_user_id, onboarding_completed, onboarding_goal)
-       VALUES ('ZZ Ferretería E2E', $1, $2, true, 'pos') RETURNING id`, [SLUG, usuario.id]);
+    // Al registrarse, un trigger ya le crea su negocio (como a un usuario real):
+    // se completa ése, que es el que abre la app.
+    const { rows: propios } = await c.query(`SELECT id FROM public.organizations WHERE owner_user_id = $1 ORDER BY created_at LIMIT 1`, [usuario.id]);
+    const { rows: [org] } = propios.length
+      ? await c.query(
+          `UPDATE public.organizations SET name = 'ZZ Ferretería E2E', slug = $1, onboarding_completed = true, onboarding_goal = 'pos'
+            WHERE id = $2 RETURNING id`, [SLUG, propios[0].id])
+      : await c.query(
+          `INSERT INTO public.organizations (name, slug, owner_user_id, onboarding_completed, onboarding_goal)
+           VALUES ('ZZ Ferretería E2E', $1, $2, true, 'pos') RETURNING id`, [SLUG, usuario.id]);
     await c.query(`INSERT INTO public.memberships (org_id, user_id, role) VALUES ($1, $2, 'owner') ON CONFLICT DO NOTHING`, [org.id, usuario.id]);
     for (const p of PRODUCTOS) {
       await c.query(
