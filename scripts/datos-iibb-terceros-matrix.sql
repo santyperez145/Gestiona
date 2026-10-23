@@ -14,7 +14,7 @@ BEGIN
   -- 1
   INSERT INTO public.suppliers (org_id, name, cuit, iibb_situacion, iibb_inscripcion, condicion_iva)
   VALUES (v_org, 'ZZ Proveedor', '30712345671', 2, '30712345671', 'responsable_inscripto') RETURNING id INTO v_prov;
-  INSERT INTO public.customers (org_id, name, iibb_situacion, iibb_inscripcion) VALUES (v_org, 'ZZ Cliente', 1, '1234567890') RETURNING id INTO v_cli;
+  INSERT INTO public.customers (org_id, user_id, name, iibb_situacion, iibb_inscripcion) VALUES (v_org, v_user, 'ZZ Cliente', 1, '1234567890') RETURNING id INTO v_cli;
   v_ok := v_ok || '1 ';
 
   -- 2

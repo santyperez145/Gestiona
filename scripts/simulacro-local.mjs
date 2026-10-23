@@ -6,7 +6,7 @@
  * tocaron un Postgres real. Este script corre sobre la base que levanta
  * `supabase start` en CI (`.github/workflows/simulacro-migraciones.yml`),
  * que aplica TODAS las migraciones desde cero:
- *   1. Si `auth.users` tiene menos de dos usuarios, crea dos de prueba (las
+ *   1. Si `auth.users` tiene menos de cuatro usuarios, crea los de prueba (las
  *      matrices los usan como dueño y vendedor).
  *   2. Corre cada matriz en su transacción. Una matriz termina en
  *      RAISE EXCEPTION 'OK …' cuando todo dio bien; cualquier otro final es
@@ -45,7 +45,7 @@ async function main() {
   await db.connect();
   try {
     const { rows } = await db.query("SELECT count(*)::int AS n FROM auth.users");
-    for (let i = rows[0].n; i < 2; i++) {
+    for (let i = rows[0].n; i < 4; i++) {
       await db.query(`INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
         VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $1, '', now(), now() + ($2 || ' seconds')::interval, now(), '{}', '{}')`,
         [`simulacro${i}@nerqia.test`, String(i)]);
@@ -60,7 +60,12 @@ async function main() {
       const r = { version: v, matriz: MATRICES[v], ...leerFinal(error) };
       resultados.push(r);
       console.log(`${r.ok ? "OK   " : "FALLA"} ${v} ${r.matriz}: ${r.detalle}`);
-      if (!r.ok) console.log(`::error title=Matriz ${v}::${r.detalle.replace(/\n/g, " ")}`);
+      if (!r.ok) {
+        if (error?.where) console.log(`        DÓNDE: ${error.where.replace(/\n/g, " | ")}`);
+        if (error?.detail) console.log(`        DETALLE: ${error.detail}`);
+        if (error?.position) console.log(`        SQL: ${sql.slice(Math.max(0, error.position - 200), Number(error.position) + 120).replace(/\s+/g, " ")}`);
+        console.log(`::error title=Matriz ${v}::${r.detalle.replace(/\n/g, " ")}`);
+      }
     }
     const fallas = resultados.filter(r => !r.ok);
     console.log(`\n${resultados.length - fallas.length} de ${resultados.length} matrices en OK.`);
