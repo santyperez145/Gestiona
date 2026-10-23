@@ -19,7 +19,7 @@ BEGIN
   SELECT v_org, CASE WHEN g % 2 = 0 THEN v_user ELSE v_otro END, 'ZZ Prod ' || g,
          CASE WHEN g <= 100 THEN 'ZZ Bazar' ELSE 'ZZ Herramientas' END, 10, 1, 1
     FROM generate_series(1, 5500) g;
-  INSERT INTO public.products (org_id, user_id, name, category, cost_usd, sale_price_ars, stock) VALUES (v_org, v_user, 'ZZ Sin costo', 'ZZ Bazar', NULL, 777, 1);
+  INSERT INTO public.products (org_id, user_id, name, category, cost_usd, sale_price_ars, stock) VALUES (v_org, v_user, 'ZZ Sin costo', 'ZZ Bazar', 0, 777, 1);
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
