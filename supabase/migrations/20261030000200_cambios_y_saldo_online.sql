@@ -288,16 +288,20 @@ DECLARE
   v_store record;
   v_cliente uuid;
 BEGIN
-  SELECT s.id, s.org_id INTO v_store FROM public.ecommerce_stores s
+  SELECT s.id, s.org_id, COALESCE(s.plazo_cambio_dias, 30) AS plazo INTO v_store FROM public.ecommerce_stores s
    WHERE lower(s.slug) = lower(btrim(p_slug)) AND s.is_active LIMIT 1;
-  IF v_store.id IS NULL OR auth.uid() IS NULL THEN
-    RETURN jsonb_build_object('saldo', 0);
+  IF v_store.id IS NULL THEN
+    RETURN jsonb_build_object('saldo', 0, 'plazo_cambio_dias', 0);
+  END IF;
+  -- La política de cambios es pública (la pantalla de devoluciones no pide cuenta).
+  IF auth.uid() IS NULL THEN
+    RETURN jsonb_build_object('saldo', 0, 'plazo_cambio_dias', v_store.plazo);
   END IF;
   v_cliente := public.cliente_del_comprador(v_store.id);
   IF v_cliente IS NULL THEN
-    RETURN jsonb_build_object('saldo', 0);
+    RETURN jsonb_build_object('saldo', 0, 'plazo_cambio_dias', v_store.plazo);
   END IF;
-  RETURN jsonb_build_object('saldo', COALESCE((
+  RETURN jsonb_build_object('plazo_cambio_dias', v_store.plazo, 'saldo', COALESCE((
     SELECT sum(m.monto_ars) FROM public.saldo_a_favor_movimientos m
      WHERE m.org_id = v_store.org_id AND m.customer_id = v_cliente), 0));
 END;

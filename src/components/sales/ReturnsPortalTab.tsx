@@ -31,6 +31,8 @@ interface ReturnRequest {
   reason_text: string | null; created_at: string; resolved_at: string | null; received_at: string | null;
   tipo: string; return_shipping_payer: string; return_shipping_amount: number | null;
   return_shipping_method: string | null;
+  /** Pedido de cambio desde la tienda (20261030000200): qué quiere a cambio. */
+  cambio_por?: string | null;
   return_reasons: { name: string } | null;
   customers: { name: string } | null;
 }
@@ -144,6 +146,13 @@ export default function ReturnsPortalTab() {
 
   async function approveReturn() {
     if (!showApproveDialog) return;
+    const monto = approveForm.refund_amount ? parseFloat(approveForm.refund_amount) : 0;
+    // El crédito en tienda se acredita al saldo a favor al resolverla: sin
+    // monto no habría nada que acreditar.
+    if (approveForm.resolution === "store_credit" && !(monto > 0)) {
+      toast.error("Indicá el monto que queda como saldo a favor");
+      return;
+    }
     const { error } = await supabase.from("return_requests").update({
       status: "approved", resolution: approveForm.resolution,
       approved_by: user?.id ?? null,
@@ -306,7 +315,12 @@ export default function ReturnsPortalTab() {
                         <tr key={r.id} className="hover:bg-muted/20">
                           <td className="px-4 py-3 font-mono text-xs text-primary">{r.rma_number}</td>
                           <td className="px-4 py-3 font-medium text-foreground">{r.customer_name}<br/><span className="text-xs text-muted-foreground">{r.customer_email}</span></td>
-                          <td className="px-4 py-3 text-muted-foreground">{r.product_name}</td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {r.product_name}
+                            {r.tipo === "cambio" && (
+                              <span className="block text-xs text-foreground">Cambio por: {r.cambio_por || "—"}</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-muted-foreground">{r.quantity}</td>
                           <td className="px-4 py-3 text-xs text-muted-foreground">{(r.return_reasons as ReturnRequest["return_reasons"])?.name ?? r.reason_text ?? "—"}</td>
                           <td className="px-4 py-3 text-xs">{r.resolution ? RESOLUTION_LABELS[r.resolution] : "—"}</td>
@@ -321,7 +335,7 @@ export default function ReturnsPortalTab() {
                             <div className="flex gap-1">
                               {r.status === "pending" && (
                                 <>
-                                  <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 text-xs" onClick={() => { setShowApproveDialog(r); setApproveForm({ resolution: "refund", resolution_notes: "", refund_amount: "", refund_method: "original_payment", return_shipping_amount: r.return_shipping_amount?.toString() ?? "", return_shipping_method: r.return_shipping_method ?? "prepaid_label" }); }}>Aprobar</Button>
+                                  <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 text-xs" onClick={() => { setShowApproveDialog(r); setApproveForm({ resolution: r.tipo === "cambio" ? "exchange" : "refund", resolution_notes: "", refund_amount: "", refund_method: "original_payment", return_shipping_amount: r.return_shipping_amount?.toString() ?? "", return_shipping_method: r.return_shipping_method ?? "prepaid_label" }); }}>Aprobar</Button>
                                   <Button size="sm" variant="outline" className="text-red-400 border-red-400/30 hover:bg-red-400/10 text-xs" onClick={() => { setShowRejectDialog(r); setRejectReason(""); }}>Rechazar</Button>
                                 </>
                               )}
@@ -483,6 +497,16 @@ export default function ReturnsPortalTab() {
                   </Select>
                 </div>
               </div>
+            )}
+            {approveForm.resolution === "store_credit" && (
+              <div className="space-y-1">
+                <Label>Saldo a favor ($)</Label>
+                <Input type="number" min="0" value={approveForm.refund_amount} onChange={e => setApproveForm(p => ({ ...p, refund_amount: e.target.value }))} />
+                <p className="text-xs text-muted-foreground">Al marcarla resuelta, el monto se suma al saldo a favor del cliente: lo usa en el local o en la tienda online.</p>
+              </div>
+            )}
+            {showApproveDialog?.tipo === "cambio" && showApproveDialog.cambio_por && (
+              <p className="text-sm rounded-md border p-3">Pide a cambio: <strong>{showApproveDialog.cambio_por}</strong></p>
             )}
             {showApproveDialog?.tipo === "arrepentimiento" && (
               <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-3">

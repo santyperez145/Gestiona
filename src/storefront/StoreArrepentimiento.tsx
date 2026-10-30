@@ -27,25 +27,43 @@
  * ejercer un derecho es ponerle un trámite adelante, y además muchas compras
  * se hacen sin cuenta. El RPC devuelve **el mismo error** exista o no la
  * orden, así que esta pantalla tampoco sirve para averiguar quién compró qué.
+ *
+ * ── Cambio (2026-10-30) ──────────────────────────────────────────────────
+ *
+ * Además de los dos derechos, el **cambio** por otro talle, color o producto:
+ * no es una obligación legal sino la política de cada tienda, con su propio
+ * plazo (`plazo_cambio_dias`; 0 = no hace cambios online). Desde Mi cuenta se
+ * llega con la orden y el email ya cargados, por estado de navegación.
  */
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
+import { useSaldoTienda } from "./useSaldoTienda";
 import { supabase } from "@/integrations/supabase/client";
 import { mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, RotateCcw, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Loader2, RotateCcw, ShieldCheck, CheckCircle2, Repeat } from "lucide-react";
 
-type Tipo = "arrepentimiento" | "falla";
+type Tipo = "arrepentimiento" | "falla" | "cambio";
+
+/** Lo que manda Mi cuenta al abrir esta pantalla desde un pedido. */
+export interface EstadoDevolucion { orden?: string; email?: string; tipo?: Tipo }
 
 export default function StoreArrepentimiento() {
   const { slug } = useParams<{ slug: string }>();
-  const [tipo, setTipo] = useState<Tipo>("arrepentimiento");
-  const [orden, setOrden] = useState("");
-  const [email, setEmail] = useState("");
+  const desdePedido = (useLocation().state ?? null) as EstadoDevolucion | null;
+  const { info: politica } = useSaldoTienda(slug);
+  // Sin dato todavía se ofrece el cambio: si la tienda no lo hace, la base lo
+  // rechaza con un mensaje claro.
+  const haceCambios = politica == null || politica.plazoCambioDias > 0;
+  const [tipo, setTipo] = useState<Tipo>(desdePedido?.tipo ?? "arrepentimiento");
+  const [orden, setOrden] = useState(desdePedido?.orden ?? "");
+  const [email, setEmail] = useState(desdePedido?.email ?? "");
   const [motivo, setMotivo] = useState("");
+  const [cambioPor, setCambioPor] = useState("");
+  const tipoEfectivo: Tipo = tipo === "cambio" && !haceCambios ? "arrepentimiento" : tipo;
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
   const [listo, setListo] = useState<{ rma: string } | null>(null);
@@ -58,8 +76,9 @@ export default function StoreArrepentimiento() {
       p_slug: slug,
       p_order_number: orden.trim(),
       p_email: email.trim(),
-      p_tipo: tipo,
+      p_tipo: tipoEfectivo,
       p_motivo: motivo.trim() || null,
+      ...(tipoEfectivo === "cambio" ? { p_cambio_por: cambioPor.trim() } : {}),
     } as never);
     setEnviando(false);
 
@@ -82,9 +101,9 @@ export default function StoreArrepentimiento() {
         <h1 className="text-2xl font-semibold mb-2">Pedido registrado</h1>
         <p className="text-sm mb-6" style={{ color: "hsl(var(--st-muted))" }}>
           Tu número de seguimiento es <strong>{listo.rma}</strong>. Te vamos a
-          escribir al email que dejaste para coordinar la devolución.
+          escribir al email que dejaste para coordinar {tipoEfectivo === "cambio" ? "el cambio" : "la devolución"}.
         </p>
-        {tipo === "arrepentimiento" && (
+        {tipoEfectivo === "arrepentimiento" && (
           <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
             El costo de enviarlo de vuelta corre por nuestra cuenta, como
             corresponde por el artículo 34 de la Ley 24.240.
@@ -96,7 +115,7 @@ export default function StoreArrepentimiento() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-semibold mb-1">Botón de arrepentimiento</h1>
+      <h1 className="text-2xl font-semibold mb-1">Botón de arrepentimiento, cambios y devoluciones</h1>
       <p className="text-sm mb-8" style={{ color: "hsl(var(--st-muted))" }}>
         Ley 24.240 artículo 34 y Resolución 424/2020.
       </p>
@@ -104,19 +123,22 @@ export default function StoreArrepentimiento() {
       <form onSubmit={enviar} className="space-y-6">
         {/* Las dos opciones se explican enteras: la diferencia de plazo es lo
             que decide cuál corresponde, y es exactamente lo que nadie sabe. */}
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={`grid gap-3 ${haceCambios ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
           {([
             { v: "arrepentimiento" as const, icon: RotateCcw, t: "Me arrepentí",
               d: "Dentro de los 10 días corridos de recibirlo. No hace falta explicar por qué, y el envío de vuelta lo pagamos nosotros." },
             { v: "falla" as const, icon: ShieldCheck, t: "Llegó con una falla",
               d: "Garantía legal de 6 meses en productos nuevos. Contanos qué pasó." },
+            ...(haceCambios ? [{ v: "cambio" as const, icon: Repeat, t: "Quiero cambiarlo",
+              d: politica ? `Por otro talle, color o producto, dentro de los ${politica.plazoCambioDias} días de la compra.` : "Por otro talle, color o producto." }] : []),
           ]).map(o => (
             <button
               key={o.v} type="button" onClick={() => setTipo(o.v)}
+              aria-pressed={tipoEfectivo === o.v}
               className="text-left border rounded-lg p-4 transition-colors"
               style={{
-                borderColor: tipo === o.v ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
-                background: tipo === o.v ? "hsl(var(--st-accent) / 0.06)" : undefined,
+                borderColor: tipoEfectivo === o.v ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
+                background: tipoEfectivo === o.v ? "hsl(var(--st-accent) / 0.06)" : undefined,
               }}
             >
               <o.icon className="w-5 h-5 mb-2" style={{ color: "hsl(var(--st-link))" }} />
@@ -145,17 +167,30 @@ export default function StoreArrepentimiento() {
           />
         </div>
 
+        {tipoEfectivo === "cambio" && (
+          <div className="space-y-2">
+            <Label htmlFor="cambio-por">Qué querés a cambio</Label>
+            <Input
+              id="cambio-por" required value={cambioPor} maxLength={500}
+              onChange={e => setCambioPor(e.target.value)}
+              placeholder="Por ejemplo: el mismo modelo en talle M"
+            />
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="motivo">
-            {tipo === "falla" ? "Qué le pasa al producto" : "Comentario (opcional)"}
+            {tipoEfectivo === "falla" ? "Qué le pasa al producto" : "Comentario (opcional)"}
           </Label>
           <Textarea
             id="motivo" rows={3} value={motivo}
-            required={tipo === "falla"}
+            required={tipoEfectivo === "falla"}
             onChange={e => setMotivo(e.target.value)}
-            placeholder={tipo === "falla"
+            placeholder={tipoEfectivo === "falla"
               ? "Contanos qué falla tiene"
-              : "No es obligatorio: podés arrepentirte sin dar explicaciones."}
+              : tipoEfectivo === "cambio"
+                ? "Si querés, contanos por qué lo cambiás."
+                : "No es obligatorio: podés arrepentirte sin dar explicaciones."}
           />
         </div>
 
@@ -182,6 +217,13 @@ export default function StoreArrepentimiento() {
           <strong>Garantía:</strong> los productos nuevos tienen 6 meses de
           garantía legal por defectos de fabricación.
         </p>
+        {haceCambios && politica && (
+          <p>
+            <strong>Cambios:</strong> podés pedir un cambio dentro de los{" "}
+            {politica.plazoCambioDias} días de la compra. Si lo que querés
+            cuesta menos, la diferencia te queda como saldo a favor.
+          </p>
+        )}
         <p>
           Si no llegamos a un acuerdo, podés reclamar en la{" "}
           <a

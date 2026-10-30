@@ -1,5 +1,7 @@
 import { fechaLocal } from "@/lib/fechaAR";
 import CuentaMayorista from "./CuentaMayorista";
+import { useSaldoTienda } from "./useSaldoTienda";
+import type { EstadoDevolucion } from "./StoreArrepentimiento";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useWishlist } from "./wishlist";
@@ -10,7 +12,7 @@ import { useStoreAuth } from "./storeAuth";
 import { retryPublicRead } from "@/lib/publicDataSource";
 import { storeOrderPaymentLabel } from "@/lib/storeOrderPayment";
 import { productIdsFromStoreOrders, suggestionsFromOrderSeeds } from "@/lib/relatedProducts";
-import { Loader2, LogOut, Package, MailCheck, Heart } from "lucide-react";
+import { Loader2, LogOut, Package, MailCheck, Heart, RotateCcw, Wallet } from "lucide-react";
 import { checkPassword, MIN_PASSWORD_LENGTH, passwordValidationMessage } from "@/lib/passwordSecurity";
 
 interface Pedido {
@@ -57,6 +59,7 @@ export default function StoreAccount() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargandoPedidos, setCargandoPedidos] = useState(false);
   const [errorPedidos, setErrorPedidos] = useState(false);
+  const { info: saldo } = useSaldoTienda(customer ? store?.slug : undefined, customer?.id ?? null);
 
   const sugeridos = useMemo(() => {
     const seeds = productIdsFromStoreOrders(pedidos);
@@ -315,6 +318,22 @@ export default function StoreAccount() {
 
       {store?.slug && <CuentaMayorista slug={store.slug} />}
 
+      {saldo && saldo.saldo > 0 && (
+        <section
+          className="mb-8 border p-4 flex items-start gap-3"
+          style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+          aria-label="Saldo a favor"
+        >
+          <Wallet className="w-5 h-5 mt-0.5 shrink-0" style={{ color: "hsl(var(--st-link))" }} />
+          <div className="text-sm">
+            <p className="font-semibold">Tenés {fmt(saldo.saldo)} de saldo a favor</p>
+            <p className="text-xs mt-0.5" style={{ color: "hsl(var(--st-muted))" }}>
+              Lo usás al pagar si cubre el total de la compra, o en el local.
+            </p>
+          </div>
+        </section>
+      )}
+
       <h2 className="font-semibold mb-3">Mis pedidos</h2>
 
       {cargandoPedidos ? (
@@ -393,6 +412,20 @@ export default function StoreAccount() {
                     <span>· Seguimiento: {p.tracking_number}</span>
                   )}
                 </div>
+
+                {/* Pedido pagado: se puede pedir cambio o devolución sin volver
+                    a tipear el número ni el email (van por estado de navegación,
+                    no en la URL). */}
+                {p.payment_status === "paid" && (
+                  <Link
+                    to={`${base}/arrepentimiento`}
+                    state={{ orden: p.order_number, email: customer.email, tipo: "cambio" } satisfies EstadoDevolucion}
+                    className="inline-flex items-center gap-1 mt-3 text-xs font-medium underline"
+                    style={{ color: "hsl(var(--st-link))" }}
+                  >
+                    <RotateCcw className="w-3 h-3" /> Cambiar o devolver
+                  </Link>
+                )}
               </div>
             );
           })}

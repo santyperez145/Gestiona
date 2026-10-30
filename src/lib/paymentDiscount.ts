@@ -101,6 +101,8 @@ export const NOMBRE_MEDIO: Record<string, string> = {
   mercadopago: "Nerqia Pay",
   transferencia: "transferencia",
   efectivo: "efectivo",
+  saldo_a_favor: "tu saldo a favor",
+  cuenta_corriente: "cuenta corriente",
 };
 
 export function nombreMedio(metodo: string): string {

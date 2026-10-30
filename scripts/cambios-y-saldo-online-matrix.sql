@@ -72,6 +72,7 @@ BEGIN
   -- 4
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_comp, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
+  IF (public.mi_saldo_en_tienda(v_slug)->>'plazo_cambio_dias')::int <> 30 THEN RAISE EXCEPTION 'FALLA 4a0: plazo'; END IF;
   IF (public.mi_saldo_en_tienda(v_slug)->>'saldo')::numeric <> 500 THEN RAISE EXCEPTION 'FALLA 4a: saldo %', public.mi_saldo_en_tienda(v_slug); END IF;
   r := public.create_store_order(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_a, 'quantity', 1)), 'ZZ Compradora', v_email, NULL, v_envio, 'saldo_a_favor');
   IF NOT (r->>'pagado_con_saldo')::boolean OR (r->>'total')::numeric <> 400 THEN RAISE EXCEPTION 'FALLA 4b: %', r; END IF;

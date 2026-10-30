@@ -29,6 +29,9 @@ export function avisoCheckoutMedioPago(opts: {
   if (m === "cuenta_corriente") {
     return "El comercio aprueba el pedido y lo carga a tu cuenta corriente, dentro de tu crédito.";
   }
+  if (m === "saldo_a_favor") {
+    return "Se descuenta de tu saldo a favor al confirmar: el pedido queda pagado en el acto.";
+  }
   if (m === "efectivo") {
     return opts.esRetiro
       ? "Pagás en efectivo al retirar el pedido."
@@ -45,6 +48,7 @@ export function etiquetaMedioCheckout(metodo: string, esRetiro: boolean): string
   if (m === "transferencia") return "Transferencia bancaria";
   if (m === "efectivo") return esRetiro ? "Efectivo al retirar" : "Efectivo al recibir";
   if (m === "cuenta_corriente") return "A cuenta corriente";
+  if (m === "saldo_a_favor") return "Con mi saldo a favor";
   return metodo;
 }
 

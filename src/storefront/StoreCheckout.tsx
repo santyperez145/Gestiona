@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
+import { useSaldoTienda } from "./useSaldoTienda";
 import { Loader2, ShoppingBag, Lock, Tag, Truck, ShieldCheck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
@@ -64,7 +65,15 @@ export default function StoreCheckout() {
   // pública de medios; se le ofrece sólo al comprador aprobado y habilitado.
   const mayoristaAprobado = mayorista?.comprador?.estado === "aprobado";
   const conCuentaCorriente = mayoristaAprobado && !!mayorista?.comprador?.cuenta_corriente;
-  const metodos = [...mediosDePagoOfrecibles(store?.payment_methods), ...(conCuentaCorriente ? ["cuenta_corriente"] : [])];
+  // Saldo a favor (20261030000200): tampoco es público; se ofrece al comprador
+  // logueado que tiene saldo, y la base exige que cubra el total.
+  const { info: saldoInfo } = useSaldoTienda(customer ? store?.slug : undefined, customer?.id ?? null);
+  const saldoDisponible = customer ? saldoInfo?.saldo ?? 0 : 0;
+  const metodos = [
+    ...mediosDePagoOfrecibles(store?.payment_methods),
+    ...(conCuentaCorriente ? ["cuenta_corriente"] : []),
+    ...(saldoDisponible > 0 ? ["saldo_a_favor"] : []),
+  ];
   const [form, setForm] = useState({
     nombre: "", email: "", telefono: "",
     calle: "", ciudad: "", provincia: "", cp: "", notas: "",
@@ -629,13 +638,16 @@ export default function StoreCheckout() {
   const soloMayoristas = mayorista?.modo === "exclusivo" && !mayoristaAprobado;
   const creditoDisponible = mayorista?.comprador?.credito_disponible ?? null;
   const superaCredito = form.metodo === "cuenta_corriente" && creditoDisponible != null && totalFinal > creditoDisponible;
+  const saldoNoAlcanza = form.metodo === "saldo_a_favor" && totalFinal > saldoDisponible;
   const bloqueoMayorista = soloMayoristas
     ? "Esta tienda vende sólo a clientes mayoristas aprobados. Ingresá con tu cuenta o pedí el alta en Mi cuenta."
     : faltaParaMinimo > 0
       ? `La compra mínima mayorista es de ${fmt(minimoMayorista)}: te faltan ${fmt(faltaParaMinimo)}.`
       : superaCredito
         ? `El pedido supera tu crédito disponible (${fmt(creditoDisponible ?? 0)}). Elegí otro medio o sacá algo del carrito.`
-        : null;
+        : saldoNoAlcanza
+          ? `Tu saldo a favor (${fmt(saldoDisponible)}) no alcanza para el total. Elegí otro medio: el saldo lo podés usar en el local.`
+          : null;
   const accionDeshabilitada = enviando || cotizando || !!entrega.bloqueo || metodos.length === 0 || !!bloqueoMayorista;
   const actionStyle = {
     background: accionDeshabilitada ? "hsl(var(--st-surface))" : "hsl(var(--st-accent))",
@@ -924,6 +936,9 @@ export default function StoreCheckout() {
             {avisoPago ? (
               <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>{avisoPago}</p>
             ) : null}
+            {form.metodo === "saldo_a_favor" && (
+              <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>Saldo disponible: {fmt(saldoDisponible)}.</p>
+            )}
             {form.metodo === "cuenta_corriente" && creditoDisponible != null && (
               <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>Crédito disponible: {fmt(creditoDisponible)}.</p>
             )}
