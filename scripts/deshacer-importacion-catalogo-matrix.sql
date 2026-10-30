@@ -6,7 +6,7 @@
 --      sólo donde sigue igual. Una sola vez y sólo owner/admin.
 DO $$
 DECLARE
-  v_owner uuid; v_view uuid; v_org uuid; v_p1 uuid; v_p2 uuid; v_q uuid; v_r uuid; v_batch uuid;
+  v_owner uuid; v_view uuid; v_org uuid; v_p1 uuid; v_p2 uuid; v_q uuid; v_r uuid; v_batch uuid; v_sesion uuid := gen_random_uuid();
   v_slug text := 'zz-deshacer-' || substr(md5(random()::text), 1, 8);
   r jsonb; v_ok text := '';
 BEGIN
@@ -48,19 +48,24 @@ BEGIN
   UPDATE public.products SET sale_price_ars = 999 WHERE id = v_p2;
   PERFORM public.record_stock_movement(v_org, v_p2, NULL, 'ZZ Dos', NULL, 'sale', -1, 'sale', NULL, NULL, NULL, 'ZZ', v_owner, NULL);
   PERFORM public.record_stock_movement(v_org, v_r, NULL, 'ZZ Vendido', NULL, 'sale', -1, 'sale', NULL, NULL, NULL, 'ZZ', v_owner, NULL);
+  -- El panel importa por sesiones: el lote queda como el único tramo.
+  INSERT INTO public.catalog_import_sessions (id, org_id, created_by, filename, source_format, source_system, total, source_rows, options, status, prepared, applied)
+  VALUES (v_sesion, v_org, v_owner, 'zz-tiendanube.csv', 'csv', 'tiendanube', 4, 4, '{}'::jsonb, 'completed', 4, 4);
+  INSERT INTO public.catalog_import_chunks (session_id, org_id, position, batch_id, payload_hash, row_count)
+  VALUES (v_sesion, v_org, 0, v_batch, 'zz', 4);
   v_ok := v_ok || '2 ';
 
   -- 3
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_view, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
-    PERFORM public.deshacer_importacion_catalogo(v_batch);
+    PERFORM public.deshacer_importacion_sesion(v_sesion);
     RAISE EXCEPTION 'FALLA 3a: un lector deshizo la importación';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   RESET ROLE;
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
-  r := public.deshacer_importacion_catalogo(v_batch);
+  r := public.deshacer_importacion_sesion(v_sesion);
   RESET ROLE;
   IF (SELECT sale_price_ars FROM public.products WHERE id = v_p1) <> 100
      OR (SELECT description FROM public.products WHERE id = v_p1) <> 'original'
@@ -82,10 +87,15 @@ BEGIN
   END IF;
   SET LOCAL ROLE authenticated;
   BEGIN
-    PERFORM public.deshacer_importacion_catalogo(v_batch);
+    PERFORM public.deshacer_importacion_sesion(v_sesion);
     RAISE EXCEPTION 'FALLA 3g: se deshizo dos veces';
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  BEGIN
+    PERFORM public.deshacer_importacion_catalogo(v_batch);
+    RAISE EXCEPTION 'FALLA 3h: el lote se deshizo dos veces';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
   RESET ROLE;
+  IF (SELECT deshecha_at FROM public.catalog_import_sessions WHERE id = v_sesion) IS NULL THEN RAISE EXCEPTION 'FALLA 3i: la sesión no quedó deshecha'; END IF;
   v_ok := v_ok || '3';
 
   RAISE EXCEPTION 'OK %', v_ok;

@@ -11,7 +11,9 @@ import { createProductImportReader } from "@/lib/productImportReader";
 import {
   anterioresSinTerminar, applyCatalogImportChunk, approveCatalogImport, cancelCatalogImport, catalogImportChunks, catalogImportErrorMessage,
   getCatalogImportSession, stageCatalogImportChunk, startCatalogImport, type CatalogImportSession,
+  deshacerImportacion, textoDeDeshacer,
 } from "@/lib/catalogImportSession";
+import { isMissingFunction } from "@/lib/publicDataSource";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,7 @@ import { AlertCircle, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Downlo
 const PAGE_SIZE = 50;
 type Step = "upload" | "preview" | "staged" | "done";
 type StagedRow = { id: string; session_position: number; action: string; normalized: Json; validation_errors: string[]; validation_warnings: string[]; status: string };
-type HistoryRow = { id: string; filename: string; status: string; total: number; prepared: number; applied: number };
+type HistoryRow = { id: string; filename: string; status: string; total: number; prepared: number; applied: number; deshecha_at?: string | null };
 const statusLabels: Record<string, string> = { preparing: "Validación pendiente", ready: "Por aprobar", applying: "Aplicación pendiente", completed: "Finalizada", cancelled: "Cancelada" };
 const ars = (value: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 2 }).format(value || 0);
 const object = (value: Json): Record<string, Json | undefined> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Json | undefined> : {};
@@ -59,6 +61,7 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
   const [stage, setStage] = useState<CatalogImportSession | null>(null);
   const [stagedRows, setStagedRows] = useState<StagedRow[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [confirmarDeshacer, setConfirmarDeshacer] = useState<string | null>(null);
   const [confirmarDescarte, setConfirmarDescarte] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rowLoading, setRowLoading] = useState(false);
@@ -120,10 +123,32 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
     const message = catalogImportErrorMessage(cause, fallback);
     setError(message); toast.error(message);
   }
+  async function deshacer(id: string) {
+    const expectedOrg = orgId;
+    if (!expectedOrg) return;
+    setBusy(true);
+    try {
+      const r = await deshacerImportacion(id);
+      const { hecho, aviso } = textoDeDeshacer(r);
+      toast.success(hecho, aviso ? { description: aviso, duration: 12000 } : undefined);
+      onImported();
+      if (validContext(expectedOrg)) await loadHistory(expectedOrg);
+    } catch (cause) {
+      if (isMissingFunction(cause as { code?: string; message?: string })) {
+        reportError(cause, "Deshacer importaciones estará disponible cuando se actualice la base de datos.");
+      } else {
+        reportError(cause, "No pudimos deshacer la importación. Reintentá.");
+      }
+    } finally {
+      setConfirmarDeshacer(null);
+      setBusy(false);
+    }
+  }
   async function loadHistory(expectedOrg: string) {
-    const { data, error } = await supabase.from("catalog_import_sessions").select("id, filename, status, total, prepared, applied").eq("org_id", expectedOrg).neq("status", "cancelled").order("created_at", { ascending: false }).limit(20);
+    const { data, error } = await supabase.from("catalog_import_sessions").select("*").eq("org_id", expectedOrg).neq("status", "cancelled").order("created_at", { ascending: false }).limit(20);
     if (error) throw error;
-    if (validContext(expectedOrg)) setHistory(data || []);
+    // Con * hasta que types.ts se regenere: `deshecha_at` es de 20261030000300.
+    if (validContext(expectedOrg)) setHistory((data || []) as unknown as HistoryRow[]);
   }
   async function loadContext(expectedOrg: string) {
     setContextError(""); setContextLoading(true);
@@ -354,7 +379,7 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
         {stage?.status === "preparing" && <Alert variant="info"><FileCheck2 className="h-4 w-4" /><div><AlertTitle>Validación pendiente: {stage.filename}</AlertTitle><AlertDescription className="text-foreground opacity-100">Seleccioná el mismo archivo para continuar. Las opciones originales se conservan; todavía no se cambió el catálogo.</AlertDescription></div></Alert>}
         <FilePicker accept=".xlsx,.xls,.csv" title={stage ? "Seleccionar archivo original" : "Seleccionar exportación de productos"} description="Excel o CSV · hasta 50.000 productos y 50 MB" icon={FileSpreadsheet} busy={busy} busyLabel="Leyendo catálogo" onFile={parseFile} />
         <div className="flex flex-wrap justify-between gap-2"><Button variant="outline" size="sm" disabled={busy} onClick={() => void downloadTemplate().catch(cause => reportError(cause, "No pudimos generar la plantilla."))}><Download className="mr-2 h-4 w-4" />Plantilla</Button>{stage && <Button variant="outline" size="sm" disabled={busy} onClick={() => void discard()}>Cancelar importación pendiente</Button>}</div>
-        {!stage && history.length > 0 && <section className="space-y-2"><h4 className="text-sm font-semibold">Importaciones recientes</h4>{anterioresSinTerminar(history).length > 0 && <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 p-3 text-xs"><span>{anterioresSinTerminar(history).length === 1 ? "Hay una importación sin terminar anterior a la última." : `Hay ${anterioresSinTerminar(history).length} importaciones sin terminar anteriores a la última.`} Lo que ya cargaron se queda.</span>{confirmarDescarte ? <span className="flex gap-2"><Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmarDescarte(false)}>No</Button><Button size="sm" variant="destructive" disabled={busy} onClick={() => void descartarAnteriores()}>Sí, descartarlas</Button></span> : <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirmarDescarte(true)}>Descartar las anteriores</Button>}</div>}{history.map(item => <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border py-3"><div className="min-w-0"><p className="break-words text-sm font-medium">{item.filename}</p><p className="text-xs text-muted-foreground">{statusLabels[item.status]} · {item.applied} / {item.total.toLocaleString("es-AR")}</p></div><Button variant="outline" size="sm" disabled={busy} onClick={() => void resume(item.id)}>{item.status === "completed" ? "Ver resultado" : "Retomar"}</Button></div>)}</section>}
+        {!stage && history.length > 0 && <section className="space-y-2"><h4 className="text-sm font-semibold">Importaciones recientes</h4>{anterioresSinTerminar(history).length > 0 && <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 p-3 text-xs"><span>{anterioresSinTerminar(history).length === 1 ? "Hay una importación sin terminar anterior a la última." : `Hay ${anterioresSinTerminar(history).length} importaciones sin terminar anteriores a la última.`} Lo que ya cargaron se queda.</span>{confirmarDescarte ? <span className="flex gap-2"><Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmarDescarte(false)}>No</Button><Button size="sm" variant="destructive" disabled={busy} onClick={() => void descartarAnteriores()}>Sí, descartarlas</Button></span> : <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirmarDescarte(true)}>Descartar las anteriores</Button>}</div>}{history.map(item => <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border py-3"><div className="min-w-0"><p className="break-words text-sm font-medium">{item.filename}</p><p className="text-xs text-muted-foreground">{item.deshecha_at ? "Deshecha" : statusLabels[item.status]} · {item.applied} / {item.total.toLocaleString("es-AR")}</p></div><span className="flex shrink-0 gap-2">{item.status === "completed" && !item.deshecha_at && (confirmarDeshacer === item.id ? <><Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmarDeshacer(null)}>No</Button><Button size="sm" variant="destructive" disabled={busy} onClick={() => void deshacer(item.id)}>Sí, deshacer</Button></> : <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmarDeshacer(item.id)} title="Vuelve los productos a como estaban antes de esta importación">Deshacer</Button>)}{!item.deshecha_at && <Button variant="outline" size="sm" disabled={busy} onClick={() => void resume(item.id)}>{item.status === "completed" ? "Ver resultado" : "Retomar"}</Button>}</span></div>)}</section>}
       </section>}
       {step === "preview" && workbook && <section className="space-y-4">
         <p className="text-xs text-muted-foreground">{workbook.parsed.sourceRows.toLocaleString("es-AR")} filas de origen agrupadas</p>

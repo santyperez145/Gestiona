@@ -30,6 +30,10 @@ ALTER TABLE public.product_import_batches
   ADD COLUMN IF NOT EXISTS deshecho_por uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS deshecho_resumen jsonb;
 
+ALTER TABLE public.catalog_import_sessions
+  ADD COLUMN IF NOT EXISTS deshecha_at timestamptz,
+  ADD COLUMN IF NOT EXISTS deshecha_resumen jsonb;
+
 -- ── 1. La foto del producto antes de importarlo ─────────────────────────
 CREATE OR REPLACE FUNCTION public.trg_import_foto_producto()
 RETURNS trigger
@@ -256,7 +260,63 @@ $fn$;
 REVOKE ALL ON FUNCTION public.deshacer_importacion_catalogo(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.deshacer_importacion_catalogo(uuid) TO authenticated;
 
+-- ── 3. El panel importa por sesiones (un lote por tramo): se deshace entera ──
+CREATE OR REPLACE FUNCTION public.deshacer_importacion_sesion(p_session_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $fn$
+DECLARE
+  v_sesion public.catalog_import_sessions%ROWTYPE;
+  v_batch uuid;
+  v_parcial jsonb;
+  v_clave text;
+  v_total jsonb := jsonb_build_object(
+    'restaurados', 0, 'con_cambios_posteriores', 0, 'desactivados', 0, 'conservados_con_movimientos', 0,
+    'stock_revertido', 0, 'stock_cambiado_despues', 0, 'redirects_eliminados', 0);
+  v_lotes integer := 0;
+BEGIN
+  SELECT * INTO v_sesion FROM public.catalog_import_sessions WHERE id = p_session_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Importación inexistente' USING ERRCODE = '22023'; END IF;
+  IF auth.uid() IS NULL OR NOT public.has_org_role(v_sesion.org_id, auth.uid(), ARRAY['owner', 'admin']) THEN
+    RAISE EXCEPTION 'Sólo owner o admin puede deshacer una importación de catálogo' USING ERRCODE = '42501';
+  END IF;
+  IF v_sesion.deshecha_at IS NOT NULL THEN
+    RAISE EXCEPTION 'Esta importación ya se deshizo' USING ERRCODE = '22023';
+  END IF;
+  IF v_sesion.status <> 'completed' THEN
+    RAISE EXCEPTION 'Sólo se deshace una importación terminada' USING ERRCODE = '22023';
+  END IF;
+
+  FOR v_batch IN
+    SELECT c.batch_id FROM public.catalog_import_chunks c
+      JOIN public.product_import_batches b ON b.id = c.batch_id
+     WHERE c.session_id = p_session_id AND b.deshecho_at IS NULL
+       AND b.status IN ('completed', 'completed_with_errors')
+     ORDER BY c.position DESC
+  LOOP
+    v_parcial := public.deshacer_importacion_catalogo(v_batch);
+    FOR v_clave IN SELECT jsonb_object_keys(v_total) LOOP
+      v_total := jsonb_set(v_total, ARRAY[v_clave],
+        to_jsonb(COALESCE((v_total->>v_clave)::int, 0) + COALESCE((v_parcial->>v_clave)::int, 0)));
+    END LOOP;
+    v_lotes := v_lotes + 1;
+  END LOOP;
+  IF v_lotes = 0 THEN
+    RAISE EXCEPTION 'No hay nada aplicado para deshacer en esta importación' USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public.catalog_import_sessions SET deshecha_at = now(), deshecha_resumen = v_total, updated_at = now()
+   WHERE id = p_session_id;
+  RETURN jsonb_build_object('ok', true) || v_total;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.deshacer_importacion_sesion(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.deshacer_importacion_sesion(uuid) TO authenticated;
+
 WITH c(function_name, audience, rationale) AS (VALUES
+  ('deshacer_importacion_sesion', 'authenticated_delegate', 'Deshace todos los lotes de una sesión de importación en una transacción; misma regla que por lote.'),
   ('deshacer_importacion_catalogo', 'authenticated_delegate', 'Deshace una importación de catálogo: owner/admin, una vez, 30 días; no pisa cambios posteriores.'),
   ('trg_import_foto_producto', 'security_helper', 'Trigger: guarda cómo estaba el producto al preparar la fila que lo actualiza.')
 )
