@@ -33,6 +33,7 @@ import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
 import StoreOrderReturnsSection from "@/components/ecommerce/StoreOrderReturnsSection";
 import { useHasPermission } from "@/lib/usePermissions";
 import { useSaldoAplicado } from "./useSaldoAplicado";
+import DevolverSaldoDelPedido from "./DevolverSaldoDelPedido";
 
 interface Props {
   open: boolean;
@@ -64,7 +65,7 @@ export default function StoreOrderInspector({
   const canEdit = canEditSales || canEditEcommerce;
   // Saldo a favor aplicado por el comprador (20261030001400): el comercio
   // cobra sólo lo que resta.
-  const saldoAplicado = useSaldoAplicado(order?.id, order?.payment_status);
+  const saldoAplicado = useSaldoAplicado(order?.id, `${order?.payment_status}|${order?.fulfillment_status}`);
   const aCobrar = order ? Math.max(0, Math.round((Number(order.total) - saldoAplicado) * 100) / 100) : 0;
 
   return (
@@ -210,12 +211,17 @@ export default function StoreOrderInspector({
                           <dd className="font-mono">−{formatARS(saldoAplicado)}</dd>
                         </div>
                         <div className="flex justify-between gap-3 font-semibold">
-                          <dt>{detail.order.payment_status === "paid" ? "Cobrado por el medio" : "A cobrar"}</dt>
+                          <dt>{["pending", "failed"].includes(detail.order.payment_status) ? "A cobrar" : "Cobrado por el medio"}</dt>
                           <dd className="font-mono">{formatARS(aCobrar)}</dd>
                         </div>
                       </>
                     )}
                   </dl>
+                  {saldoAplicado > 0 && detail.order.payment_status === "charged_back" && (
+                    <div className="mt-3">
+                      <DevolverSaldoDelPedido orderId={detail.order.id} saldoAplicado={saldoAplicado} />
+                    </div>
+                  )}
                 </section>
 
                 <section aria-labelledby="pedido-items">

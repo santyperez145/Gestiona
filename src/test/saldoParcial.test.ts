@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { combinaConSaldo, repartoDelSaldo, textoUsarSaldo } from "@/lib/saldoParcial";
+import { combinaConSaldo, DIAS_RESERVA_SALDO, repartoDelSaldo, textoEstadoDelSaldo, textoUsarSaldo } from "@/lib/saldoParcial";
 
 const fmt = (n: number) => `$ ${n.toLocaleString("es-AR")}`;
 
@@ -33,9 +33,39 @@ describe("saldo a favor parcial en los pedidos online", () => {
     expect(sql).toContain("jsonb_build_object('cuenta', '1.2.01', 'debe', v_saldo,");
   });
 
+  it("un pedido impago reserva el saldo y lo devuelve sólo cuando corresponde", () => {
+    const sql = readFileSync("supabase/migrations/20261030001500_saldo_reservado_en_pedidos.sql", "utf8");
+    expect(sql).toContain("BEFORE UPDATE OF payment_status, fulfillment_status ON public.ecommerce_orders");
+    // Cancelado sin pagar: vuelve y el pedido deja de tenerlo aplicado.
+    expect(sql).toContain("AND NEW.payment_status IN ('pending', 'failed')");
+    expect(sql).toContain("NEW.saldo_aplicado_ars := 0;");
+    // El plazo de la base es el que lee el comprador.
+    expect(sql).toContain(`AND m.created_at < now() - interval '${DIAS_RESERVA_SALDO} days'`);
+    // Un contracargo lo decide el comercio.
+    expect(sql).toContain("IF v_order.payment_status IS DISTINCT FROM 'charged_back' THEN");
+    expect(sql).toContain("Este pedido ya usó tu saldo a favor y te lo devolvimos.");
+  });
+
+  it("le dice al comprador qué pasa con su saldo", () => {
+    expect(textoEstadoDelSaldo("pending")).toBe("Si el pedido no se paga en 7 días, el saldo vuelve a tu cuenta.");
+    expect(textoEstadoDelSaldo("failed")).toBe("Si el pedido no se paga en 7 días, el saldo vuelve a tu cuenta.");
+    expect(textoEstadoDelSaldo("refunded")).toBe("Como el pedido se reintegró, ese saldo volvió a tu cuenta.");
+    expect(textoEstadoDelSaldo("paid")).toBeNull();
+    expect(textoEstadoDelSaldo("charged_back")).toBeNull();
+  });
+
+  it("el email pide transferir sólo lo que resta, aunque la columna no haya llegado", () => {
+    const email = readFileSync("supabase/functions/store-order-email/index.ts", "utf8");
+    expect(email).toContain("Transferí exactamente ${money(aPagar)}.");
+    expect(email).toContain('if (code === "42703" || code === "PGRST204") return 0;');
+    expect(email).toContain("order, itemsRows: rows, saldoAplicado,");
+  });
+
   it("el checkout, la página del pedido y el panel lo muestran", () => {
     expect(readFileSync("src/storefront/StoreCheckout.tsx", "utf8")).toContain('supabase.rpc("aplicar_saldo_a_pedido" as never');
     expect(readFileSync("src/storefront/StoreOrder.tsx", "utf8")).toContain('<CopyField label="Importe" value={fmt(aPagar)} />');
-    expect(readFileSync("src/components/ecommerce/StoreOrderInspector.tsx", "utf8")).toContain("Marcar como cobrado (${formatARS(aCobrar)})");
+    const ficha = readFileSync("src/components/ecommerce/StoreOrderInspector.tsx", "utf8");
+    expect(ficha).toContain("Marcar como cobrado (${formatARS(aCobrar)})");
+    expect(ficha).toContain('detail.order.payment_status === "charged_back" && (');
   });
 });

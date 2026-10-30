@@ -12,6 +12,22 @@ export function repartoDelSaldo(saldo: number, total: number): { aplicado: numbe
   return { aplicado, resta: r2(r2(total) - aplicado) };
 }
 
+/**
+ * Días que el saldo queda reservado para un pedido impago (20261030001500):
+ * un pago rechazado se reintenta sin perderlo; pasado el plazo, vuelve solo.
+ */
+export const DIAS_RESERVA_SALDO = 7;
+
+/** Lo que el comprador lee sobre su saldo según cómo quedó el pedido. */
+export function textoEstadoDelSaldo(estadoDePago: string | null | undefined): string | null {
+  const estado = String(estadoDePago ?? "").toLowerCase().trim();
+  if (estado === "pending" || estado === "failed") {
+    return `Si el pedido no se paga en ${DIAS_RESERVA_SALDO} días, el saldo vuelve a tu cuenta.`;
+  }
+  if (estado === "refunded") return "Como el pedido se reintegró, ese saldo volvió a tu cuenta.";
+  return null;
+}
+
 /** Medios con los que el saldo se combina hoy (Mercado Pago, en un paso siguiente). */
 export function combinaConSaldo(metodo: string | null | undefined): boolean {
   const m = String(metodo ?? "").toLowerCase().trim();

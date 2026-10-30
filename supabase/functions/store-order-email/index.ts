@@ -58,6 +58,26 @@ function etiquetaDireccionEntrega(esRetiro: boolean): string {
   return esRetiro ? "Retiro en" : "Envío a";
 }
 
+/**
+ * Parte del total pagada con saldo a favor (20261030001400). Se lee aparte
+ * para que el aviso siga saliendo si la columna todavía no llegó a la base:
+ * sin la columna no pudo haber saldo aplicado. Otro error se propaga.
+ */
+async function saldoAplicadoDe(admin: any, orderId: string): Promise<number> {
+  const { data, error } = await admin
+    .from("ecommerce_orders")
+    .select("saldo_aplicado_ars")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error) {
+    const code = String((error as { code?: string }).code ?? "");
+    if (code === "42703" || code === "PGRST204") return 0;
+    throw error;
+  }
+  const valor = Number(data?.saldo_aplicado_ars ?? 0);
+  return Number.isFinite(valor) && valor > 0 ? valor : 0;
+}
+
 function itemsHtml(items: Item[], accent: string) {
   return items.map(i => `
     <tr>
@@ -74,6 +94,8 @@ function layout(opts: {
   accent: string; storeName: string; title: string; intro: string;
   order: any; itemsRows: string; footer: string; ctaUrl?: string; ctaLabel?: string;
   extraHtml?: string;
+  /** Parte del total pagada con saldo a favor: el total no cambia. */
+  saldoAplicado?: number;
   pickupAddress?: string | null;
   pickupInstructions?: string | null;
 }) {
@@ -86,6 +108,11 @@ function layout(opts: {
   const horario = retiro ? String(opts.pickupInstructions ?? "").trim() : "";
   const costoLabel = etiquetaCostoEntrega(retiro);
   const dirLabel = etiquetaDireccionEntrega(retiro);
+  const saldo = Number(opts.saldoAplicado) || 0;
+  const porElMedio = Math.max(0, Math.round((Number(opts.order.total) - saldo) * 100) / 100);
+  const filasSaldo = saldo > 0 ? `
+      <tr><td style="color:#888">Pagado con saldo a favor</td><td style="text-align:right">−${money(saldo)}</td></tr>${porElMedio > 0 ? `
+      <tr><td style="font-weight:700">${opts.order.payment_status === "paid" ? "Pagado por el medio elegido" : "A pagar"}</td><td style="text-align:right;font-weight:700">${money(porElMedio)}</td></tr>` : ""}` : "";
   return `
 <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
   <div style="text-align:center;margin-bottom:24px">
@@ -101,7 +128,7 @@ function layout(opts: {
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:12px">
       <tr><td style="color:#888">Subtotal</td><td style="text-align:right">${money(opts.order.subtotal)}</td></tr>
       <tr><td style="color:#888">${esc(costoLabel)}</td><td style="text-align:right">${Number(opts.order.shipping_cost) === 0 ? "Gratis" : money(opts.order.shipping_cost)}</td></tr>
-      <tr><td style="font-weight:700;padding-top:6px">Total</td><td style="text-align:right;font-weight:700;padding-top:6px">${money(opts.order.total)}</td></tr>
+      <tr><td style="font-weight:700;padding-top:6px">Total</td><td style="text-align:right;font-weight:700;padding-top:6px">${money(opts.order.total)}</td></tr>${filasSaldo}
     </table>
     ${lugar ? `<p style="margin:14px 0 0;font-size:13px;color:#555"><strong>${esc(dirLabel)}:</strong> ${esc(lugar)}${horario ? `<br>${esc(horario)}` : ""}</p>` : ""}
   </div>
@@ -162,6 +189,9 @@ Deno.serve(async (req) => {
       return json({ ok: true, emailRequested: true, emailDelivered: false });
     }
 
+    const saldoAplicado = await saldoAplicadoDe(admin, order.id);
+    const aPagar = Math.max(0, Math.round((Number(order.total) - saldoAplicado) * 100) / 100);
+
     const resendFrom = (await remitenteDe("pedidos")).from;
     const accent = store.primary_color || "#111111";
     const base = String(Deno.env.get("PUBLIC_BASE_URL") || "").replace(/\/+$/, "");
@@ -179,7 +209,7 @@ Deno.serve(async (req) => {
     const bloqueTransferencia = transferenciaPendiente ? `
   <div style="border:1px solid #eee;border-radius:10px;padding:16px;margin-bottom:20px;background:#fafafa">
     <p style="margin:0 0 8px;font-weight:600;font-size:14px">Datos para transferir</p>
-    <p style="margin:0 0 10px;font-size:13px;color:#555">Transferí exactamente ${money(order.total)}.</p>
+    <p style="margin:0 0 10px;font-size:13px;color:#555">Transferí exactamente ${money(aPagar)}.</p>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       ${bankHolder ? `<tr><td style="color:#888;padding:4px 0">Titular</td><td style="text-align:right;padding:4px 0">${esc(bankHolder)}</td></tr>` : ""}
       ${bankName ? `<tr><td style="color:#888;padding:4px 0">Banco</td><td style="text-align:right;padding:4px 0">${esc(bankName)}</td></tr>` : ""}
@@ -202,7 +232,7 @@ Deno.serve(async (req) => {
       });
       if (claim.claimed) {
         const introPendiente = transferenciaPendiente
-          ? "Recibimos tu pedido. Transferí el total con los datos de abajo; cuando acredite te avisamos."
+          ? `Recibimos tu pedido. Transferí ${saldoAplicado > 0 ? "lo que resta" : "el total"} con los datos de abajo; cuando acredite te avisamos.`
           : "Recibimos tu pedido. Te escribimos para coordinar el pago y la entrega.";
         const result = await sendEmail(smtpCfg, resendKey, resendFrom, {
           to: order.customer_email,
@@ -213,7 +243,7 @@ Deno.serve(async (req) => {
             intro: pagado
               ? introPedidoPagado(esPedidoRetiro(order))
               : introPendiente,
-            order, itemsRows: rows,
+            order, itemsRows: rows, saldoAplicado,
             extraHtml: bloqueTransferencia || undefined,
             pickupAddress: store.pickup_address,
             pickupInstructions: store.pickup_instructions,
@@ -276,8 +306,8 @@ Deno.serve(async (req) => {
           html: layout({
             accent, storeName: store.name,
             title: "Entró un pedido nuevo",
-            intro: `<strong>${contacto}</strong><br>Medio de pago: ${esc(order.payment_method)} · Estado: ${esc(order.payment_status)}`,
-            order, itemsRows: rows,
+            intro: `<strong>${contacto}</strong><br>Medio de pago: ${esc(order.payment_method)}${saldoAplicado > 0 ? ` (más ${money(saldoAplicado)} de saldo a favor)` : ""} · Estado: ${esc(order.payment_status)}`,
+            order, itemsRows: rows, saldoAplicado,
             pickupAddress: store.pickup_address,
             pickupInstructions: store.pickup_instructions,
             ctaUrl: base ? `${base}/tienda-online` : undefined,

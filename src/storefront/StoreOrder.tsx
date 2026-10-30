@@ -8,7 +8,7 @@ import { getStoreOrderSecure, type StoreOrderAccessRow } from "@/lib/publicDataS
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { useSaldoTienda } from "./useSaldoTienda";
-import { combinaConSaldo, repartoDelSaldo } from "@/lib/saldoParcial";
+import { combinaConSaldo, repartoDelSaldo, textoEstadoDelSaldo } from "@/lib/saldoParcial";
 import { mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 import {
   markStoreConversionSent,
@@ -402,6 +402,8 @@ function StoreOrderContent() {
   // El total no cambia (se factura completo): lo que resta es lo que se paga.
   const saldoAplicado = Number(order.saldo_aplicado ?? 0);
   const aPagar = repartoDelSaldo(saldoAplicado, Number(order.total)).resta;
+  // Un rechazo se reintenta con el saldo todavía reservado (20261030001500).
+  const porPagar = pedidoPendiente || fallido;
   const saldoComprador = saldoInfo?.saldo ?? 0;
   const puedeAplicarSaldo = pedidoPendiente && combinaConSaldo(order.payment_method)
     && saldoAplicado === 0 && Boolean(customer) && saldoComprador > 0;
@@ -513,7 +515,8 @@ function StoreOrderContent() {
           {saldoAplicado > 0 ? (
             <p className="text-sm">
               Pagaste <strong>{fmt(saldoAplicado)}</strong> con tu saldo a favor.
-              {pedidoPendiente && aPagar > 0 && <> Resta pagar <strong>{fmt(aPagar)}</strong>{order.payment_method === "efectivo" ? " en efectivo." : "."}</>}
+              {porPagar && aPagar > 0 && <> Resta pagar <strong>{fmt(aPagar)}</strong>{order.payment_method === "efectivo" ? " en efectivo." : "."}</>}
+              {textoEstadoDelSaldo(order.payment_status) && <> {textoEstadoDelSaldo(order.payment_status)}</>}
             </p>
           ) : puedeAplicarSaldo ? (
             <>
@@ -641,7 +644,7 @@ function StoreOrderContent() {
               <span>−{fmt(saldoAplicado)}</span>
             </div>
           )}
-          {saldoAplicado > 0 && pedidoPendiente && aPagar > 0 && (
+          {saldoAplicado > 0 && porPagar && aPagar > 0 && (
             <div className="flex justify-between font-semibold">
               <span>A pagar</span><span>{fmt(aPagar)}</span>
             </div>
