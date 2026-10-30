@@ -7,7 +7,7 @@
  * desglosar se muestra con el motivo en vez de desaparecer del libro.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, BookOpen, Download, FileSpreadsheet, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, BookOpen, Download, FileSpreadsheet, Loader2, Package, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingColumn, isMissingRelation } from "@/lib/publicDataSource";
@@ -16,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { diaAR, mesAR } from "@/lib/fechaAR";
 import { libroIvaVentas, periodoAPresentar, rangoDelPeriodo, type ComprobanteVenta } from "@/lib/libroIvaVentas";
-import { posicionIva, type ComprobanteCompra, type LibroIvaCompras } from "@/lib/libroIvaCompras";
+import { libroIvaCompras, posicionIva, type ComprobanteCompra, type LibroIvaCompras } from "@/lib/libroIvaCompras";
+import { leameDelMes, nombresDelPaquete } from "@/lib/paqueteContador";
 import { hojaPosicion, hojaRetenciones, subdiarioCompras, subdiarioVentas, totalesDeRetenciones, type RetencionSufrida } from "@/lib/subdiarioIva";
 import RetencionesSufridas from "@/components/afip/RetencionesSufridas";
 import ComprobantesDeCompra from "@/components/afip/ComprobantesDeCompra";
@@ -255,8 +256,11 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
   }) : null, [lectura, inscripciones, retenciones, compras]);
   const sufijo = periodo.replace("-", "");
 
-  /** Subdiario de ventas, compras y posición en un solo archivo. */
-  const descargarExcel = async () => {
+  /**
+   * Subdiario de ventas, compras y posición en un solo archivo; o el paquete
+   * del mes (.zip) con ese Excel, los dos Libros IVA y el resumen.
+   */
+  const descargarExcel = async (destino: "excel" | "paquete" = "excel") => {
     if (lectura.estado !== "listo" || !libro || faltaLeer || cierres.estado !== "listo") return;
     if (!monotributo && (comprasEstado === "error" || retencionesEstado === "error")) {
       toast.error("No se pudieron leer las compras o las retenciones del período. Reintentá antes de armar el Excel, así no sale incompleto.");
@@ -288,10 +292,48 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
       if (ventas.revisar.length) {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Fecha", "Comprobante", "Motivo"], ...ventas.revisar]), "A revisar");
       }
-      XLSX.writeFile(wb, `subdiario-iva-${periodo}.xlsx`);
+      if (destino === "excel") {
+        XLSX.writeFile(wb, `subdiario-iva-${periodo}.xlsx`);
+        return;
+      }
+      const nombres = nombresDelPaquete(periodo);
+      const libroCompras = monotributo ? null : libroIvaCompras(compras);
+      const posicion = !monotributo && resumenCompras ? posicionIva(libro.resumen.debitoFiscal, resumenCompras, retencionesIva) : null;
+      const pendientes = [
+        ...libro.problemas.map(pr => `${pr.comprobante}: ${pr.motivo}`),
+        ...libroZ.avisos,
+        ...(cierres.borradores ? [`Hay ${cierres.borradores} cierre(s) Z en borrador: confirmalos contra el ticket para que entren al libro.`] : []),
+        ...(iibb?.avisos ?? []),
+        ...(iibb?.problemas ?? []).map(pr => `${pr.comprobante}: ${pr.motivo}`),
+      ];
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      zip.file(nombres.ventasCbte, libro.cbte);
+      zip.file(nombres.ventasAlicuotas, libro.alicuotas);
+      if (libroCompras) {
+        zip.file(nombres.comprasCbte, libroCompras.cbte);
+        zip.file(nombres.comprasAlicuotas, libroCompras.alicuotas);
+      }
+      zip.file(nombres.excel, XLSX.write(wb, { type: "array", bookType: "xlsx" }));
+      zip.file(nombres.leame, leameDelMes({
+        periodo, monotributo,
+        ventas: { ...libro.resumen, incluidos: libro.incluidos },
+        compras: libroCompras ? { incluidos: libroCompras.incluidos, creditoFiscal: libroCompras.resumen.creditoFiscal, percepcionesIva: libroCompras.resumen.percepcionesIva } : null,
+        posicion,
+        iibb: iibb?.renglones ?? null,
+        cierresZ: cierres.confirmados.length,
+        homologacion: lectura.homologacion,
+        pendientes,
+      }));
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = nombres.zip; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(pendientes.length ? `Paquete listo. Hay ${pendientes.length} punto(s) para revisar: están en LEAME.txt.` : "Paquete del mes listo");
     } catch (e) {
       console.error("Libro IVA: no se pudo armar el Excel", e);
-      toast.error("No se pudo armar el Excel. Reintentá.");
+      toast.error(destino === "paquete" ? "No se pudo armar el paquete del mes. Reintentá." : "No se pudo armar el Excel. Reintentá.");
     } finally {
       setArmandoExcel(false);
     }
@@ -431,6 +473,9 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
               </Button>
               <Button size="sm" variant="outline" disabled={armandoExcel || faltaLeer} onClick={() => void descargarExcel()}>
                 {armandoExcel || faltaLeer ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}Excel para tu contador
+              </Button>
+              <Button size="sm" variant="outline" disabled={armandoExcel || faltaLeer || cierres.estado !== "listo"} onClick={() => void descargarExcel("paquete")}>
+                {armandoExcel ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Package className="w-3.5 h-3.5 mr-1.5" />}Paquete del mes (.zip)
               </Button>
             </div>
           )}

@@ -10,6 +10,11 @@ const { hojas, escribir } = vi.hoisted(() => ({ hojas: [] as string[], escribir:
 vi.mock("xlsx", () => ({
   utils: { book_new: () => ({}), aoa_to_sheet: (filas: unknown[][]) => filas, book_append_sheet: (_wb: unknown, _hoja: unknown, nombre: string) => { hojas.push(nombre); } },
   writeFile: escribir,
+  write: () => new Uint8Array([1]),
+}));
+const { archivosZip } = vi.hoisted(() => ({ archivosZip: new Map<string, unknown>() }));
+vi.mock("jszip", () => ({
+  default: class { file(nombre: string, contenido: unknown) { archivosZip.set(nombre, contenido); } generateAsync() { return Promise.resolve(new Blob(["zz"])); } },
 }));
 vi.mock("@/integrations/supabase/client", () => {
   const consulta = (tabla: string) => {
@@ -130,5 +135,31 @@ describe("Libro IVA Digital en la pantalla de ARCA", () => {
     expect(screen.getByText(/Hay 1 cierre Z en borrador/)).toBeVisible();
     expect(screen.getByText("2")).toBeVisible();
     expect(llamadas).toContainEqual(["cierres_z", "neq", "origen", "electronico"]);
+  });
+
+  it("el paquete del mes trae los dos libros, el Excel y el resumen para el contador", async () => {
+    archivosZip.clear();
+    URL.createObjectURL = vi.fn(() => "blob:zz");
+    URL.revokeObjectURL = vi.fn();
+    respuestas.push({ data: [factura("zz1", { subtotal: 10000, tax_amount: 2100, total: 12100 })], error: null });
+    compras.push({ data: [], error: null });
+    render(<MemoryRouter><LibroIvaDigital orgId="zz-org" monotributo={false} canEdit /></MemoryRouter>);
+    const boton = await screen.findByRole("button", { name: /Paquete del mes/ });
+    await waitFor(() => expect(boton).toBeEnabled());
+    fireEvent.click(boton);
+    await waitFor(() => expect(archivosZip.has("LEAME.txt")).toBe(true));
+    expect([...archivosZip.keys()].sort()).toEqual([
+      "LEAME.txt",
+      expect.stringMatching(/^LIBRO_IVA_DIGITAL_COMPRAS_ALICUOTAS_\d{6}\.txt$/),
+      expect.stringMatching(/^LIBRO_IVA_DIGITAL_COMPRAS_CBTE_\d{6}\.txt$/),
+      expect.stringMatching(/^LIBRO_IVA_DIGITAL_VENTAS_ALICUOTAS_\d{6}\.txt$/),
+      expect.stringMatching(/^LIBRO_IVA_DIGITAL_VENTAS_CBTE_\d{6}\.txt$/),
+      expect.stringMatching(/^subdiario-iva-\d{4}-\d{2}\.xlsx$/),
+    ]);
+    const leame = String(archivosZip.get("LEAME.txt"));
+    expect(leame).toContain("Débito fiscal: $ 2.100,00");
+    expect(leame).toContain("Saldo a pagar: $ 2.100,00");
+    // Sin jurisdicciones de IIBB cargadas, el resumen lo pide antes de presentar.
+    expect(leame).toContain("No cargaste en qué jurisdicciones estás inscripto");
   });
 });
