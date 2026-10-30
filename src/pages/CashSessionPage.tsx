@@ -20,7 +20,8 @@ import {
   ArrowDownCircle, ArrowUpCircle, List, Printer, FileSpreadsheet,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
-import CashDenominationCountDialog from "@/components/shared/CashDenominationCountDialog";
+import ArqueoDeCaja from "@/components/pos/ArqueoDeCaja";
+import CierreDelDia from "@/components/pos/CierreDelDia";
 import MovimientoDeCaja from "@/components/pos/MovimientoDeCaja";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { summarizePosCashSession } from "@/lib/posCashSession";
@@ -212,9 +213,6 @@ export default function CashSessionPage() {
   const [openingNotes, setOpeningNotes] = useState("");
 
   // Close form
-  const [closingAmount, setClosingAmount] = useState("");
-  const [denomCountOpen, setDenomCountOpen] = useState(false);
-  const [closingNotes, setClosingNotes] = useState("");
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -334,7 +332,6 @@ export default function CashSessionPage() {
 
   const totals = summarizePosCashSession(openSession?.opening_amount || 0, cashEntries);
   const expectedCash = totals.expectedCash;
-  const closingDiff = closingAmount !== "" ? Number(closingAmount) - expectedCash : null;
 
   const openCaja = async () => {
     if (!activeOrg || !user || !selectedLocationId) {
@@ -356,33 +353,6 @@ export default function CashSessionPage() {
       await load();
     } catch (e: any) {
       console.error("[Caja] No se pudo abrir la sesión:", e);
-      toast.error(e.message);
-    }
-    finally { setSubmitting(false); }
-  };
-
-  const closeCaja = async () => {
-    if (!activeOrg || !user || !openSession) return;
-    if (!closingAmount.trim()) { toast.error("Ingresá el monto de cierre"); return; }
-    // Igual que el servidor (20261011002100): con diferencia de $1 o más, el
-    // cierre necesita el motivo.
-    if (Math.abs(closingDiff ?? 0) >= 1 && !closingNotes.trim()) {
-      toast.error("La caja no cuadra: escribí el motivo de la diferencia para cerrarla");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.rpc("pos_cash_session_close" as never, {
-        p_session_id: openSession.id,
-        p_closing_amount: Number(closingAmount),
-        p_notes: closingNotes || null,
-      } as never);
-      if (error) throw error;
-      toast.success("Caja cerrada correctamente");
-      setClosingAmount(""); setClosingNotes("");
-      await load();
-    } catch (e: any) {
-      console.error("[Caja] No se pudo cerrar la sesión:", e);
       toast.error(e.message);
     }
     finally { setSubmitting(false); }
@@ -563,73 +533,8 @@ export default function CashSessionPage() {
           {/* Ingresos y retiros del turno, con motivo */}
           <MovimientoDeCaja sessionId={openSession.id} onRegistrado={load} />
 
-          {/* Close form */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-5 space-y-4">
-            <h2 className="font-semibold flex items-center gap-2"><Lock className="w-4 h-4 text-red-400" />Cerrar caja</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <Label className="text-xs">Efectivo contado al cierre ($)</Label>
-                  <button
-                    type="button"
-                    onClick={() => setDenomCountOpen(true)}
-                    className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
-                  >
-                    <Banknote className="w-3 h-3" />Contar billetes
-                  </button>
-                </div>
-                <Input
-                  type="number" min="0" step="100"
-                  value={closingAmount}
-                  onChange={(e) => setClosingAmount(e.target.value)}
-                  placeholder={formatARS(expectedCash)}
-                  className="bg-muted font-mono"
-                />
-                {closingDiff !== null && (
-                  <div className={`mt-1.5 flex items-center gap-1.5 text-xs font-semibold ${
-                    Math.abs(closingDiff) < 1 ? "text-green-400" :
-                    closingDiff > 0 ? "text-yellow-400" : "text-red-400"
-                  }`}>
-                    {closingDiff >= 0
-                      ? <TrendingUp className="w-3.5 h-3.5" />
-                      : <TrendingDown className="w-3.5 h-3.5" />
-                    }
-                    {Math.abs(closingDiff) < 1
-                      ? "Cuadra perfectamente"
-                      : closingDiff > 0
-                      ? `Sobrante: ${formatARS(closingDiff)}`
-                      : `Faltante: ${formatARS(Math.abs(closingDiff))}`
-                    }
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label className="text-xs" htmlFor="caja-motivo-cierre">
-                  {Math.abs(closingDiff ?? 0) >= 1 ? "Motivo de la diferencia (obligatorio)" : "Observaciones del cierre"}
-                </Label>
-                <Input
-                  id="caja-motivo-cierre"
-                  value={closingNotes}
-                  onChange={(e) => setClosingNotes(e.target.value)}
-                  placeholder="Ej: diferencia por vuelto, sin novedades..."
-                  className="bg-muted"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={closeCaja}
-                disabled={submitting || !closingAmount.trim()}
-                variant="destructive"
-                className="gap-2"
-              >
-                <Lock className="w-4 h-4" />{submitting ? "Cerrando..." : "Cerrar caja"}
-              </Button>
-              <Button variant="outline" onClick={load} className="gap-2">
-                <RotateCcw className="w-4 h-4" />Actualizar
-              </Button>
-            </div>
-          </div>
+          {/* Arqueo parcial o de cierre (20261023000700): queda registrado. */}
+          <ArqueoDeCaja sessionId={openSession.id} expectedCash={expectedCash} movimientos={cashEntries} onDone={load} />
         </div>
       )}
 
@@ -803,17 +708,8 @@ export default function CashSessionPage() {
           </div>
         )}
       </div>
-      {/* Denomination Count Dialog */}
-      <CashDenominationCountDialog
-        open={denomCountOpen}
-        onClose={() => setDenomCountOpen(false)}
-        expectedBalance={expectedCash}
-        onConfirm={(total) => {
-          setClosingAmount(String(total));
-          setDenomCountOpen(false);
-        }}
-        title="Contar efectivo al cierre"
-      />
+      {/* Informes X y Z del día (20261023000700). */}
+      {activeOrg && <CierreDelDia orgId={activeOrg.id} />}
     </div>
   );
 }

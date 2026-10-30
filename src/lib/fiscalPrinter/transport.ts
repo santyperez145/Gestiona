@@ -15,6 +15,9 @@ export type ConfigControlador = {
   protocolo: "https" | "http";
   /** Emitir automáticamente cada venta en el controlador. */
   emitirAlCobrar: boolean;
+  /** Punto de venta y número de registro del equipo (impresos en cada tique): van en el cierre Z y en el Libro IVA. */
+  puntoVenta?: number | null;
+  registro?: string | null;
 };
 
 const clave = (orgId: string) => `nerqia.fiscalController.${orgId}`;
@@ -24,7 +27,12 @@ export function leerConfigControlador(orgId: string | null | undefined): ConfigC
   try {
     const raw = JSON.parse(localStorage.getItem(clave(orgId)) || "null");
     if (!raw || raw.modelo !== "epson_tm_t900fa" || !hostValido(raw.host)) return null;
-    return { modelo: raw.modelo, host: raw.host, protocolo: raw.protocolo === "http" ? "http" : "https", emitirAlCobrar: raw.emitirAlCobrar === true };
+    const puntoVenta = Number(raw.puntoVenta);
+    return {
+      modelo: raw.modelo, host: raw.host, protocolo: raw.protocolo === "http" ? "http" : "https", emitirAlCobrar: raw.emitirAlCobrar === true,
+      puntoVenta: Number.isInteger(puntoVenta) && puntoVenta >= 1 && puntoVenta <= 99998 ? puntoVenta : null,
+      registro: typeof raw.registro === "string" && raw.registro.trim() ? raw.registro.trim().slice(0, 30) : null,
+    };
   } catch {
     return null;
   }

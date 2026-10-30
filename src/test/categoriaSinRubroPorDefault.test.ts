@@ -249,6 +249,7 @@ const CONOCIDOS: Record<string, string> = {
   "src/lib/catalogIndustry.ts": "P0.1: decide si el workspace muestra chrome de perfumería o vapers; no es una lista de categorías a elegir",
   "src/lib/catalogIndustry.test.ts": "P0.1: prueba el helper; cita las categorías de perfume a propósito",
   "src/lib/productImport.ts": "heurística de import; su fallback ya es la categoría del archivo",
+  "src/lib/cierreZ.ts": "ORIGEN_ELECTRONICO: el origen del cierre diario electrónico (cierres_z.origen), no un rubro",
 
   // Lo que queda al 2026-08-26 **no son listas de categorías**: son features
   // atadas a un rubro, que es un problema distinto y de otro slice. La forma

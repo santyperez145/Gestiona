@@ -6,7 +6,8 @@ const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 const migration = read("supabase/migrations/20260829000044_pos_turno_autoritativo.sql");
 const pos = read("src/pages/POSPage.tsx");
-const sessionPage = read("src/pages/CashSessionPage.tsx");
+// El cierre vive en el arqueo desde 20261023000700.
+const sessionPage = read("src/pages/CashSessionPage.tsx") + read("src/components/pos/ArqueoDeCaja.tsx");
 
 describe("turno autoritativo del POS", () => {
   it("serializa la apertura por organización y ubicación", () => {

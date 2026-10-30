@@ -1,12 +1,27 @@
 import { spawnSync } from "node:child_process";
 
-const ALLOWED_DEV_ADVISORY = "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm";
-// Revisada 2026-10-14: `braces` sigue sin versión corregida (la última es 3.0.3,
-// de 2024-05). El advisory es un DoS por patrones anidados; acá `braces` sólo
-// recibe los globs fijos de tailwind.config.ts y del watcher de Vite al
-// compilar, nunca entrada de usuarios, y no viaja al bundle. Se vuelve a
-// revisar en 30 días o antes si sale el parche.
-const REVIEW_BEFORE = "2026-11-13";
+// Avisos de herramientas de desarrollo sin parche publicado, cada uno con su
+// motivo y su fecha de revisión: vencida la fecha, la puerta vuelve a fallar.
+// Nunca entra uno de runtime (ésos frenan siempre, más abajo).
+const EXCEPCIONES = [
+  {
+    // Revisada 2026-10-14: `braces` sigue sin versión corregida (la última es
+    // 3.0.3, de 2024-05). DoS por patrones anidados; acá sólo recibe los globs
+    // fijos de tailwind.config.ts y del watcher de Vite al compilar, nunca
+    // entrada de usuarios, y no viaja al bundle.
+    url: "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    revisarAntesDe: "2026-11-13",
+  },
+  {
+    // Revisada 2026-10-30: `deepmerge` no tiene versión corregida (la última es
+    // 4.3.1, de 2023-03, y el aviso la incluye). Prototype poisoning al
+    // combinar objetos de afuera; acá lo usa @rollup/plugin-node-resolve dentro
+    // de workbox-build, al compilar el service worker con nuestra propia
+    // configuración. No recibe entrada de usuarios ni viaja al bundle.
+    url: "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+    revisarAntesDe: "2026-11-29",
+  },
+];
 
 function runAudit(extraArgs = []) {
   const npmCli = process.env.npm_execpath;
@@ -51,7 +66,7 @@ function isOnlyAllowedAdvisory(name, vulnerabilities, visiting = new Set()) {
       if (typeof source === "string") {
         return isOnlyAllowedAdvisory(source, vulnerabilities, nextVisiting);
       }
-      return source?.url === ALLOWED_DEV_ADVISORY;
+      return EXCEPCIONES.some((excepcion) => source?.url === excepcion.url);
     });
 }
 
@@ -71,19 +86,19 @@ if (names.length === 0) {
 }
 
 const today = new Date().toISOString().slice(0, 10);
-const exceptionExpired = today >= REVIEW_BEFORE;
+const vencidas = EXCEPCIONES.filter((excepcion) => today >= excepcion.revisarAntesDe);
 const unexpected = names.filter((name) => !isOnlyAllowedAdvisory(name, vulnerabilities));
 
-if (exceptionExpired || unexpected.length > 0) {
+if (vencidas.length > 0 || unexpected.length > 0) {
   console.error(JSON.stringify(completeReport, null, 2));
-  if (exceptionExpired) {
-    throw new Error(`La excepcion temporal de ${ALLOWED_DEV_ADVISORY} vencio el ${REVIEW_BEFORE}.`);
+  if (vencidas.length > 0) {
+    throw new Error(`Vencio la revision de: ${vencidas.map((e) => `${e.url} (${e.revisarAntesDe})`).join(", ")}.`);
   }
   throw new Error(`La auditoria encontro vulnerabilidades fuera de la excepcion: ${unexpected.join(", ")}.`);
 }
 
 console.warn(
   `Dependencias runtime: 0 vulnerabilidades. Herramientas de desarrollo: ${names.length} `
-  + `entradas transitivas derivadas exclusivamente de ${ALLOWED_DEV_ADVISORY}; `
-  + `sin parche publicado y con revision obligatoria antes de ${REVIEW_BEFORE}.`,
+  + `entradas transitivas derivadas sólo de avisos sin parche publicado, con revision obligatoria: `
+  + EXCEPCIONES.map((e) => `${e.url} antes de ${e.revisarAntesDe}`).join("; ") + ".",
 );

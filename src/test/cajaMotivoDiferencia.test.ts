@@ -10,9 +10,11 @@ describe("cerrar caja con diferencia exige motivo", () => {
   });
 
   it("la pantalla usa el mismo umbral y lo pide antes de enviar", () => {
-    const page = readFileSync(resolve(process.cwd(), "src/pages/CashSessionPage.tsx"), "utf8");
-    expect(page).toContain("if (Math.abs(closingDiff ?? 0) >= 1 && !closingNotes.trim()) {");
+    // Desde 20261023000700 el cierre es un arqueo (src/components/pos/ArqueoDeCaja.tsx).
+    const page = readFileSync(resolve(process.cwd(), "src/components/pos/ArqueoDeCaja.tsx"), "utf8");
+    expect(page).toContain("const hayDiferencia = Math.abs(difEfectivo ?? 0) >= 1 || difMedios.some(d => Math.abs(d.dif) >= 1);");
+    expect(page).toContain('toast.error("El arqueo tiene diferencias: escribí el motivo");');
     expect(page).toContain('"Motivo de la diferencia (obligatorio)"');
-    expect(page).not.toContain("Math.abs(closingDiff) < 100");
+    expect(page).not.toContain("< 100");
   });
 });

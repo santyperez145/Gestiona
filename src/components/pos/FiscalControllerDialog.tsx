@@ -21,6 +21,8 @@ export default function FiscalControllerDialog({ open, orgId, onClose, onSaved }
   const [host, setHost] = useState("192.168.1.1");
   const [protocolo, setProtocolo] = useState<"https" | "http">("https");
   const [emitirAlCobrar, setEmitirAlCobrar] = useState(true);
+  const [puntoVenta, setPuntoVenta] = useState("");
+  const [registro, setRegistro] = useState("");
   const [probando, setProbando] = useState(false);
   const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null);
 
@@ -30,10 +32,17 @@ export default function FiscalControllerDialog({ open, orgId, onClose, onSaved }
     setHost(actual?.host ?? "192.168.1.1");
     setProtocolo(actual?.protocolo ?? "https");
     setEmitirAlCobrar(actual?.emitirAlCobrar ?? true);
+    setPuntoVenta(actual?.puntoVenta ? String(actual.puntoVenta) : "");
+    setRegistro(actual?.registro ?? "");
     setResultado(null);
   }, [open, orgId]);
 
-  const config: ConfigControlador = { modelo: "epson_tm_t900fa", host: host.trim(), protocolo, emitirAlCobrar };
+  const pv = Number(puntoVenta);
+  const config: ConfigControlador = {
+    modelo: "epson_tm_t900fa", host: host.trim(), protocolo, emitirAlCobrar,
+    puntoVenta: Number.isInteger(pv) && pv >= 1 && pv <= 99998 ? pv : null,
+    registro: registro.trim() || null,
+  };
   const valido = hostValido(config.host);
 
   const probar = async () => {
@@ -71,6 +80,17 @@ export default function FiscalControllerDialog({ open, orgId, onClose, onSaved }
                 <SelectItem value="http">HTTP (80)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        </div>
+        {/* Para el cierre Z y el Libro IVA (20261023000700): están impresos en cada tique. */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="fiscal-pv" className="text-xs">Punto de venta del controlador</Label>
+            <Input id="fiscal-pv" inputMode="numeric" value={puntoVenta} onChange={e => setPuntoVenta(e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="Ej: 2" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="fiscal-registro" className="text-xs">Número de registro del equipo</Label>
+            <Input id="fiscal-registro" value={registro} onChange={e => setRegistro(e.target.value.slice(0, 30))} placeholder="Ej: EPSTMT900FA0000123" />
           </div>
         </div>
         <label className="flex items-start gap-2 text-sm">

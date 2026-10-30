@@ -5,7 +5,7 @@ import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
 const { errorAviso } = vi.hoisted(() => ({ errorAviso: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: errorAviso, success: vi.fn(), info: vi.fn() } }));
 
-const { respuestas, compras, retenciones, llamadas } = vi.hoisted(() => ({ respuestas: [] as unknown[], compras: [] as unknown[], retenciones: [] as unknown[], llamadas: [] as string[][] }));
+const { respuestas, compras, retenciones, llamadas, cierresZ } = vi.hoisted(() => ({ respuestas: [] as unknown[], compras: [] as unknown[], retenciones: [] as unknown[], llamadas: [] as string[][], cierresZ: [] as unknown[] }));
 const { hojas, escribir } = vi.hoisted(() => ({ hojas: [] as string[], escribir: vi.fn() }));
 vi.mock("xlsx", () => ({
   utils: { book_new: () => ({}), aoa_to_sheet: (filas: unknown[][]) => filas, book_append_sheet: (_wb: unknown, _hoja: unknown, nombre: string) => { hojas.push(nombre); } },
@@ -14,7 +14,9 @@ vi.mock("xlsx", () => ({
 vi.mock("@/integrations/supabase/client", () => {
   const consulta = (tabla: string) => {
     const q: Record<string, unknown> = {};
-    for (const m of ["select", "eq", "not", "gte", "lte", "order"]) q[m] = (...a: unknown[]) => { llamadas.push([tabla, m, ...a.map(String)]); return q; };
+    for (const m of ["select", "eq", "neq", "not", "gte", "lte", "order"]) q[m] = (...a: unknown[]) => { llamadas.push([tabla, m, ...a.map(String)]); return q; };
+    // Las consultas que se esperan sin .range() (cierres Z, inscripciones de IIBB).
+    q.then = (resolver: (v: unknown) => unknown) => resolver(tabla === "cierres_z" ? (cierresZ.shift() ?? { data: [], error: null }) : { data: [], error: null });
     q.range = async () => (tabla === "invoices" ? respuestas.shift() : compras.shift()) ?? { data: [], error: null };
     q.limit = async () => retenciones.shift() ?? { data: [], error: null };
     return q;
@@ -27,7 +29,7 @@ const factura = (id: string, extra: Record<string, unknown> = {}) => ({
   customer_tax_id: "", customer_name: "", subtotal: 100, tax_amount: 21, tax_pct: 21, total: 121, afip_environment: "produccion", invoice_items: [], ...extra,
 });
 
-beforeEach(() => { respuestas.length = 0; compras.length = 0; retenciones.length = 0; llamadas.length = 0; });
+beforeEach(() => { respuestas.length = 0; compras.length = 0; retenciones.length = 0; llamadas.length = 0; cierresZ.length = 0; });
 
 describe("Libro IVA Digital en la pantalla de ARCA", () => {
   it("resume el mes, deja afuera homologación y avisa lo que no entra", async () => {
@@ -114,5 +116,19 @@ describe("Libro IVA Digital en la pantalla de ARCA", () => {
     await waitFor(() => expect(posicion).toHaveTextContent(/1\.500,00/));
     expect(posicion).toHaveTextContent("Retenciones de IVA sufridas");
     expect(screen.getByText("ZZ Agente")).toBeVisible();
+  });
+
+  it("los cierres Z confirmados del controlador entran como venta global diaria", async () => {
+    respuestas.push({ data: [factura("zz1", { subtotal: 10000, tax_amount: 2100, total: 12100 })], error: null });
+    cierresZ.push({ data: [
+      { id: "z1", origen: "controlador", punto_venta: 2, numero: 41, fecha: "2026-09-10", estado: "confirmado", comprobantes: [
+        { tipo: 82, desde: 101, hasta: 110, cantidad: 10, total: 1210, alicuotas: [{ tasa: 21, neto: 1000, iva: 210 }] }] },
+      { id: "z2", origen: "manual", punto_venta: 2, numero: 42, fecha: "2026-09-11", estado: "borrador", comprobantes: [] },
+    ], error: null });
+    render(<MemoryRouter><LibroIvaDigital orgId="zz-org" monotributo={false} canEdit /></MemoryRouter>);
+    expect(await screen.findByText(/Incluye 1 cierre Z del controlador fiscal/)).toBeVisible();
+    expect(screen.getByText(/Hay 1 cierre Z en borrador/)).toBeVisible();
+    expect(screen.getByText("2")).toBeVisible();
+    expect(llamadas).toContainEqual(["cierres_z", "neq", "origen", "electronico"]);
   });
 });

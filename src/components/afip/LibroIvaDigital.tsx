@@ -10,7 +10,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BookOpen, Download, FileSpreadsheet, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { isMissingColumn } from "@/lib/publicDataSource";
+import { isMissingColumn, isMissingRelation } from "@/lib/publicDataSource";
+import { libroIvaDesdeZ, NOMBRE_TIPO_Z, ORIGEN_ELECTRONICO, type CierreZ } from "@/lib/cierreZ";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mesAR } from "@/lib/fechaAR";
@@ -127,7 +128,57 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
     return () => { signal.cancelado = true; };
   }, [leer]);
 
-  const libro = useMemo(() => lectura.estado === "listo" ? libroIvaVentas(lectura.comprobantes) : null, [lectura]);
+  // Cierres Z del controlador (20261023000700): los tiques entran al libro
+  // como venta global diaria. Sin la migración no hay Z que sumar; un error de
+  // lectura no se calla: el libro quedaría incompleto.
+  const [cierres, setCierres] = useState<{ estado: "cargando" | "listo" | "error"; confirmados: CierreZ[]; borradores: number }>({ estado: "cargando", confirmados: [], borradores: 0 });
+  const leerCierres = useCallback(async (signal: { cancelado: boolean }) => {
+    if (!orgId || !/^\d{4}-\d{2}$/.test(periodo)) return;
+    setCierres(c => ({ ...c, estado: "cargando" }));
+    const { desde, hasta } = rangoDelPeriodo(periodo);
+    const { data, error } = await supabase.from("cierres_z" as never)
+      .select("id, origen, punto_venta, numero, fecha, estado, equipo, comprobantes, total, iva")
+      .eq("org_id", orgId).neq("origen", ORIGEN_ELECTRONICO).gte("fecha", desde).lte("fecha", hasta)
+      .order("fecha").order("numero");
+    if (signal.cancelado) return;
+    if (error) {
+      if (isMissingRelation(error)) { setCierres({ estado: "listo", confirmados: [], borradores: 0 }); return; }
+      console.error("Libro IVA: no se pudieron leer los cierres Z", error);
+      setCierres({ estado: "error", confirmados: [], borradores: 0 });
+      return;
+    }
+    const filas = (data ?? []) as unknown as CierreZ[];
+    setCierres({ estado: "listo", confirmados: filas.filter(z => z.estado === "confirmado"), borradores: filas.filter(z => z.estado !== "confirmado").length });
+  }, [orgId, periodo]);
+  useEffect(() => {
+    const signal = { cancelado: false };
+    void leerCierres(signal);
+    return () => { signal.cancelado = true; };
+  }, [leerCierres]);
+
+  const libroZ = useMemo(() => libroIvaDesdeZ(cierres.confirmados), [cierres.confirmados]);
+  const libro = useMemo(() => {
+    if (lectura.estado !== "listo") return null;
+    const base = libroIvaVentas(lectura.comprobantes);
+    if (libroZ.cbte.length === 0) return base;
+    const porTasa = new Map(base.resumen.porAlicuota.map(a => [a.tasa, { ...a }]));
+    for (const a of libroZ.resumen.porAlicuota) {
+      const r = porTasa.get(a.tasa) ?? { tasa: a.tasa, neto: 0, iva: 0 };
+      porTasa.set(a.tasa, { tasa: a.tasa, neto: Math.round((r.neto + a.neto) * 100) / 100, iva: Math.round((r.iva + a.iva) * 100) / 100 });
+    }
+    return {
+      ...base,
+      cbte: base.cbte + libroZ.cbte.join(""),
+      alicuotas: base.alicuotas + libroZ.alicuotas.join(""),
+      incluidos: base.incluidos + libroZ.cbte.length,
+      resumen: {
+        ...base.resumen,
+        total: Math.round((base.resumen.total + libroZ.resumen.total) * 100) / 100,
+        debitoFiscal: Math.round((base.resumen.debitoFiscal + libroZ.resumen.debitoFiscal) * 100) / 100,
+        porAlicuota: [...porTasa.values()].sort((a, b) => a.tasa - b.tasa),
+      },
+    };
+  }, [lectura, libroZ]);
   const iibb = useMemo(() => lectura.estado === "listo" && inscripciones ? liquidacionIibb({
     comprobantes: lectura.comprobantes, inscripciones, retenciones,
     percepcionesDeCompras: compras.reduce((s, c) => s + Number(c.percepcion_iibb || 0), 0),
@@ -136,7 +187,7 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
 
   /** Subdiario de ventas, compras y posición en un solo archivo. */
   const descargarExcel = async () => {
-    if (lectura.estado !== "listo" || !libro || faltaLeer) return;
+    if (lectura.estado !== "listo" || !libro || faltaLeer || cierres.estado !== "listo") return;
     if (!monotributo && (comprasEstado === "error" || retencionesEstado === "error")) {
       toast.error("No se pudieron leer las compras o las retenciones del período. Reintentá antes de armar el Excel, así no sale incompleto.");
       return;
@@ -151,6 +202,17 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(subdiarioCompras(compras)), "Compras");
         if (resumenCompras) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaPosicion(posicionIva(libro.resumen.debitoFiscal, resumenCompras, retencionesIva))), "Posición");
         if (retenciones.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaRetenciones(retenciones)), "Retenciones");
+        if (cierres.confirmados.length) {
+          const filas: (string | number)[][] = [["Fecha", "Punto de venta", "Z", "Comprobante", "Desde", "Hasta", "Cantidad", "Total", "Neto 21%", "IVA 21%", "Neto 10,5%", "IVA 10,5%", "Otras alícuotas (neto + IVA)", "Exento", "No gravado", "Internos y otros"]];
+          for (const z of cierres.confirmados) for (const c of z.comprobantes) {
+            const al = (t: number) => c.alicuotas.find(a => Number(a.tasa) === t);
+            const otras = c.alicuotas.filter(a => ![21, 10.5].includes(Number(a.tasa))).reduce((s, a) => s + Number(a.neto) + Number(a.iva), 0);
+            filas.push([z.fecha, z.punto_venta, z.numero, NOMBRE_TIPO_Z[c.tipo] ?? String(c.tipo), c.desde, c.hasta, c.cantidad, Number(c.total),
+              Number(al(21)?.neto ?? 0), Number(al(21)?.iva ?? 0), Number(al(10.5)?.neto ?? 0), Number(al(10.5)?.iva ?? 0), otras,
+              Number(c.exento ?? 0), Number(c.no_gravado ?? 0), Number(c.internos ?? 0) + Number(c.otros_tributos ?? 0)]);
+          }
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(filas), "Cierres Z");
+        }
         if (iibb?.renglones.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaIibb(iibb)), "Ingresos Brutos");
       }
       if (ventas.revisar.length) {
@@ -261,6 +323,28 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
             </div>
           )}
 
+          {cierres.estado === "error" && (
+            <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+              No se pudieron leer los cierres Z del período: el libro quedaría sin los tiques del controlador.
+              <Button size="sm" variant="outline" onClick={() => void leerCierres({ cancelado: false })}>Reintentar</Button>
+            </div>
+          )}
+          {cierres.confirmados.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              Incluye {cierres.confirmados.length === 1 ? "1 cierre Z" : `${cierres.confirmados.length} cierres Z`} del controlador fiscal como venta global diaria.
+            </p>
+          )}
+          {cierres.borradores > 0 && (
+            <p role="status" className="text-[11px] text-amber-700 dark:text-amber-400">
+              {cierres.borradores === 1 ? "Hay 1 cierre Z en borrador" : `Hay ${cierres.borradores} cierres Z en borrador`}: confirmalos contra el ticket para que entren al libro.
+            </p>
+          )}
+          {libroZ.avisos.length > 0 && (
+            <ul className="list-disc pl-4 text-[11px] text-amber-700 dark:text-amber-400">
+              {libroZ.avisos.slice(0, 5).map(a => <li key={a}>{a}</li>)}
+            </ul>
+          )}
+
           {lectura.homologacion > 0 && (
             <p className="text-[11px] text-muted-foreground">
               Se dejaron afuera {lectura.homologacion} comprobantes de homologación: son de prueba y no tienen validez fiscal.
@@ -269,10 +353,10 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
 
           {libro.incluidos > 0 && (
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => descargar(`LIBRO_IVA_DIGITAL_VENTAS_CBTE_${sufijo}.txt`, libro.cbte)}>
+              <Button size="sm" disabled={cierres.estado !== "listo"} onClick={() => descargar(`LIBRO_IVA_DIGITAL_VENTAS_CBTE_${sufijo}.txt`, libro.cbte)}>
                 <Download className="w-3.5 h-3.5 mr-1.5" />Comprobantes (.txt)
               </Button>
-              <Button size="sm" variant="outline" disabled={!libro.alicuotas} onClick={() => descargar(`LIBRO_IVA_DIGITAL_VENTAS_ALICUOTAS_${sufijo}.txt`, libro.alicuotas)}>
+              <Button size="sm" variant="outline" disabled={!libro.alicuotas || cierres.estado !== "listo"} onClick={() => descargar(`LIBRO_IVA_DIGITAL_VENTAS_ALICUOTAS_${sufijo}.txt`, libro.alicuotas)}>
                 <Download className="w-3.5 h-3.5 mr-1.5" />Alícuotas (.txt)
               </Button>
               <Button size="sm" variant="outline" disabled={armandoExcel || faltaLeer} onClick={() => void descargarExcel()}>

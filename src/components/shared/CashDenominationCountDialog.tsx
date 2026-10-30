@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatARS } from "@/lib/supabaseStore";
 import { Banknote, Coins, Check, X, RefreshCw } from "lucide-react";
+import { BILLETES, MONEDAS } from "@/lib/arqueo";
 
 interface Denomination {
   value: number;
@@ -30,20 +31,15 @@ interface Denomination {
   type: "bill" | "coin";
 }
 
+// Billetes y monedas vigentes del peso (src/lib/arqueo.ts, la misma lista que
+// valida la base). Hasta el 2026-10-23 figuraban un billete de $5.000 y una
+// moneda de $25 que no existen, y faltaba el de $20.000.
 const DENOMINATIONS: Denomination[] = [
-  { value: 10000, label: "$10.000", type: "bill" },
-  { value: 5000,  label: "$5.000",  type: "bill" },
-  { value: 2000,  label: "$2.000",  type: "bill" },
-  { value: 1000,  label: "$1.000",  type: "bill" },
-  { value: 500,   label: "$500",    type: "bill" },
-  { value: 200,   label: "$200",    type: "bill" },
-  { value: 100,   label: "$100",    type: "bill" },
-  { value: 50,    label: "$50",     type: "coin" },
-  { value: 25,    label: "$25",     type: "coin" },
-  { value: 10,    label: "$10",     type: "coin" },
-  { value: 5,     label: "$5",      type: "coin" },
-  { value: 1,     label: "$1",      type: "coin" },
+  ...BILLETES.map(value => ({ value, label: `$${value.toLocaleString("es-AR")}`, type: "bill" as const })),
+  ...MONEDAS.map(value => ({ value, label: `$${value}`, type: "coin" as const })),
 ];
+
+const idDe = (d: Denomination) => `${d.type}:${d.value}`;
 
 interface Props {
   open: boolean;
@@ -60,17 +56,18 @@ export default function CashDenominationCountDialog({
   onConfirm,
   title = "Conteo de efectivo",
 }: Props) {
-  const [counts, setCounts] = useState<Record<number, string>>({});
+  // Por billete o moneda: los $10 existen de las dos formas.
+  const [counts, setCounts] = useState<Record<string, string>>({});
 
   const reset = () => setCounts({});
 
-  const setCount = (value: number, qty: string) => {
-    setCounts(prev => ({ ...prev, [value]: qty }));
+  const setCount = (id: string, qty: string) => {
+    setCounts(prev => ({ ...prev, [id]: qty }));
   };
 
   const total = useMemo(() => {
     return DENOMINATIONS.reduce((sum, d) => {
-      const qty = parseInt(counts[d.value] || "0") || 0;
+      const qty = parseInt(counts[idDe(d)] || "0") || 0;
       return sum + qty * d.value;
     }, 0);
   }, [counts]);
@@ -83,15 +80,15 @@ export default function CashDenominationCountDialog({
   const handleConfirm = () => {
     const breakdown: Record<number, number> = {};
     DENOMINATIONS.forEach(d => {
-      const qty = parseInt(counts[d.value] || "0") || 0;
-      if (qty > 0) breakdown[d.value] = qty;
+      const qty = parseInt(counts[idDe(d)] || "0") || 0;
+      if (qty > 0) breakdown[d.value] = (breakdown[d.value] ?? 0) + qty;
     });
     onConfirm(total, breakdown);
     onClose();
   };
 
   const DenomRow = ({ d }: { d: Denomination }) => {
-    const qty = parseInt(counts[d.value] || "0") || 0;
+    const qty = parseInt(counts[idDe(d)] || "0") || 0;
     const subtotal = qty * d.value;
     return (
       <div className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0">
@@ -103,8 +100,9 @@ export default function CashDenominationCountDialog({
           type="number"
           min="0"
           step="1"
-          value={counts[d.value] ?? ""}
-          onChange={e => setCount(d.value, e.target.value)}
+          value={counts[idDe(d)] ?? ""}
+          onChange={e => setCount(idDe(d), e.target.value)}
+          aria-label={`Cantidad de ${d.type === "bill" ? "billetes" : "monedas"} de ${d.label}`}
           className="w-20 h-8 text-center text-sm bg-muted border-border"
           placeholder="0"
         />
@@ -133,7 +131,7 @@ export default function CashDenominationCountDialog({
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Billetes</span>
             </div>
             <div className="rounded-lg border border-border/40 bg-muted/10 px-3 divide-y divide-border/20">
-              {bills.map(d => <DenomRow key={d.value} d={d} />)}
+              {bills.map(d => <DenomRow key={idDe(d)} d={d} />)}
             </div>
           </div>
 
@@ -144,7 +142,7 @@ export default function CashDenominationCountDialog({
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Monedas</span>
             </div>
             <div className="rounded-lg border border-border/40 bg-muted/10 px-3 divide-y divide-border/20">
-              {coins.map(d => <DenomRow key={d.value} d={d} />)}
+              {coins.map(d => <DenomRow key={idDe(d)} d={d} />)}
             </div>
           </div>
 
