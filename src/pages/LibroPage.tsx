@@ -43,6 +43,7 @@ import {
 import { formatARS } from "@/lib/supabaseStore";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import FinanceExportPanel from "@/components/finance/FinanceExportPanel";
+import VentasOnlineDuplicadas from "@/components/finance/VentasOnlineDuplicadas";
 
 type Preset = "mes" | "mes_anterior" | "30dias" | "anio";
 
@@ -175,6 +176,7 @@ export default function LibroPage() {
           {/* ── El aviso va ARRIBA del margen, no debajo ─────────────────
               Si se lee el número primero y la advertencia después, el número
               ya se creyó. */}
+          {orgId && <VentasOnlineDuplicadas orgId={orgId} onCorregido={() => void cargar()} />}
           {!confianza.confiable && (
             <Card className="p-4 border-amber-500/40 bg-amber-500/5 flex items-start gap-3">
               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
