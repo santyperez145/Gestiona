@@ -22,6 +22,8 @@ BEGIN
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, tax_rate) VALUES (v_org, v_owner, 'ZZ Pintura', 1210, 21) RETURNING id INTO v_p21;
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, tax_rate) VALUES (v_org, v_owner, 'ZZ Yerba', 1105, 10.5) RETURNING id INTO v_p105;
 
+  -- Cada venta es su propio ticket (como en el mostrador).
+  PERFORM set_config('gestiona.sale_transaction_id', '', true);
   INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, paid, payment_method)
   VALUES (v_org, v_owner, v_p21, 'ZZ Pintura', 1, 1210, 1210, true, 'efectivo') RETURNING id INTO v_sale;
   SELECT e.id INTO v_entry FROM public.ledger_entries e WHERE e.referencia_tipo = 'venta' AND e.referencia_id = v_sale;
@@ -33,6 +35,8 @@ BEGIN
       (SELECT jsonb_agg(jsonb_build_object('cuenta', a.codigo, 'debe', l.debe, 'haber', l.haber))
          FROM public.ledger_lines l JOIN public.ledger_accounts a ON a.id = l.account_id WHERE l.entry_id = v_entry);
   END IF;
+  -- Cada venta es su propio ticket (como en el mostrador).
+  PERFORM set_config('gestiona.sale_transaction_id', '', true);
   INSERT INTO public.sales (org_id, user_id, product_id, product_name, quantity, unit_price_ars, total_ars, paid, payment_method)
   VALUES (v_org, v_owner, v_p105, 'ZZ Yerba', 1, 1105, 1105, true, 'debito') RETURNING id INTO v_sale;
   SELECT e.id INTO v_entry FROM public.ledger_entries e WHERE e.referencia_tipo = 'venta' AND e.referencia_id = v_sale;
@@ -48,6 +52,8 @@ BEGIN
   INSERT INTO public.settings (org_id, user_id, afip_tipo_emisor, tax_iva_percent) VALUES (v_org2, v_owner, 'exento', 21)
   ON CONFLICT (org_id) DO UPDATE SET afip_tipo_emisor = EXCLUDED.afip_tipo_emisor, tax_iva_percent = EXCLUDED.tax_iva_percent;
   PERFORM public.ledger_plan_default(v_org2);
+  -- Cada venta es su propio ticket (como en el mostrador).
+  PERFORM set_config('gestiona.sale_transaction_id', '', true);
   INSERT INTO public.sales (org_id, user_id, product_name, quantity, unit_price_ars, total_ars, paid, payment_method)
   VALUES (v_org2, v_owner, 'ZZ Curso', 1, 5000, 5000, true, 'transferencia') RETURNING id INTO v_sale;
   SELECT e.id INTO v_entry FROM public.ledger_entries e WHERE e.referencia_tipo = 'venta' AND e.referencia_id = v_sale;
@@ -63,10 +69,14 @@ BEGIN
   INSERT INTO public.settings (org_id, user_id, afip_tipo_emisor, tax_iva_percent) VALUES (v_org3, v_owner, 'zz_desconocido', 21)
   ON CONFLICT (org_id) DO UPDATE SET afip_tipo_emisor = EXCLUDED.afip_tipo_emisor, tax_iva_percent = EXCLUDED.tax_iva_percent;
   PERFORM public.ledger_plan_default(v_org3);
+  -- Cada venta es su propio ticket (como en el mostrador).
+  PERFORM set_config('gestiona.sale_transaction_id', '', true);
   INSERT INTO public.sales (org_id, user_id, product_name, quantity, unit_price_ars, total_ars, paid, payment_method)
   VALUES (v_org3, v_owner, 'ZZ Martillo', 1, 1210, 1210, true, 'efectivo') RETURNING id INTO v_sale;
   -- Sin alícuota en la venta: el negocio todavía no tenía IVA configurado.
   UPDATE public.settings SET tax_iva_percent = NULL WHERE org_id = v_org3;
+  -- Cada venta es su propio ticket (como en el mostrador).
+  PERFORM set_config('gestiona.sale_transaction_id', '', true);
   INSERT INTO public.sales (org_id, user_id, product_name, quantity, unit_price_ars, total_ars, paid, payment_method)
   VALUES (v_org3, v_owner, 'ZZ Clavos', 1, 100, 100, true, 'efectivo') RETURNING id INTO v_sale2;
   IF EXISTS (SELECT 1 FROM public.ledger_entries e WHERE e.referencia_tipo = 'venta' AND e.referencia_id IN (v_sale, v_sale2)) THEN
