@@ -13,6 +13,7 @@ SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 - [Roadmap](../ROADMAP.md): estado y orden de ejecución.
 - [Roadmap de diseño](../DESIGNROADMAP.md): dirección visual.
 - [Meta de finalización](META_FINALIZACION.md): backlog del plan 2026-10-09 por experiencia.
+- [Meta de finalización — historia](META_FINALIZACION_HISTORIA.md): detalle archivado de ítems terminados de la meta.
 - [Guía del proyecto](GUIA.md): mapa para incorporarse.
 
 ## Producto y estrategia
