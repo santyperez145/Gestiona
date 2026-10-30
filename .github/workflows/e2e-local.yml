@@ -88,10 +88,11 @@ jobs:
             -v "$PWD:/w" -w /w \
             -e CI=true -e E2E_LOCAL=true \
             -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY -e E2E_STORE_SLUG \
+            -e E2E_BUYER_EMAIL -e E2E_BUYER_PASSWORD \
             mcr.microsoft.com/playwright:v1.59.1-noble \
             npx playwright test --project=chromium --project=mobile \
               e2e/tienda.spec.ts e2e/tienda-accessibility.spec.ts e2e/store-order.spec.ts e2e/store-read-recovery.spec.ts \
-              e2e/checkout-multi-tab.spec.ts e2e/header.spec.ts e2e/pricing.spec.ts
+              e2e/checkout-multi-tab.spec.ts e2e/header.spec.ts e2e/pricing.spec.ts e2e/tienda-comprador.spec.ts
 
       # Al final, porque cambia precios y stock del negocio de prueba.
       - name: E2E a escala (5.500 productos, como Famatina)

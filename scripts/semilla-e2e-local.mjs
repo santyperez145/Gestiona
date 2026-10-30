@@ -19,6 +19,10 @@ import { esLocal } from "./simulacro-local.mjs";
 
 export const EMAIL = "e2e@nerqia.test";
 export const SLUG = "zz-e2e";
+/** Comprador de la tienda con cuenta (2026-10-30): saldo a favor, cotización y cambio. */
+export const EMAIL_COMPRADOR = "comprador-e2e@nerqia.test";
+export const SALDO_COMPRADOR = 50000;
+export const PRODUCTO_COMPRADOR = { name: "ZZ Cotizable mayorista", price: 10000, cost: 6000, stock: 1000 };
 
 /** Catálogo de prueba: nombres, precios y stock fijos para que los specs los busquen. */
 export const PRODUCTOS = [
@@ -43,6 +47,18 @@ async function main() {
   });
   const usuario = await res.json();
   if (!res.ok || !usuario.id) { console.error(`::error::No se creó el usuario de prueba: HTTP ${res.status} ${JSON.stringify(usuario).slice(0, 200)}`); process.exitCode = 1; return; }
+
+  // El comprador se registra como comprador (account_type), igual que en la
+  // tienda: así el trigger de alta no le crea un negocio.
+  const passwordComprador = randomBytes(18).toString("base64url") + "Aa1";
+  const resComprador = await fetch(`${api}/auth/v1/admin/users`, {
+    method: "POST",
+    headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: EMAIL_COMPRADOR, password: passwordComprador, email_confirm: true,
+      user_metadata: { full_name: "ZZ Comprador E2E", account_type: "store_customer", store_slug: SLUG } }),
+  });
+  const comprador = await resComprador.json();
+  if (!resComprador.ok || !comprador.id) { console.error(`::error::No se creó el comprador de prueba: HTTP ${resComprador.status} ${JSON.stringify(comprador).slice(0, 200)}`); process.exitCode = 1; return; }
 
   const c = new pg.Client({ connectionString: db });
   await c.connect();
@@ -77,9 +93,25 @@ async function main() {
     // vitrina pública la recorren los specs de la tienda.
     // Envío por zonas (lo que usa una tienda real: el cotizador por provincia
     // de la ficha) y retiro en el local, que no pide domicilio.
-    await c.query(
+    const { rows: [tienda] } = await c.query(
       `INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_mode, shipping_cost, pickup_enabled, pickup_address)
-       VALUES ($1, $2, 'ZZ Ferretería E2E', true, ARRAY['transferencia'], 'zones', 3500, true, 'Av. ZZ 123, CABA')`, [org.id, SLUG]);
+       VALUES ($1, $2, 'ZZ Ferretería E2E', true, ARRAY['transferencia'], 'zones', 3500, true, 'Av. ZZ 123, CABA') RETURNING id`, [org.id, SLUG]);
+    // Venta minorista y mayorista: la tienda recibe pedidos de cotización.
+    await c.query(`UPDATE public.ecommerce_stores SET mayorista_modo = 'mixto' WHERE id = $1`, [tienda.id]);
+    // El comprador con cuenta: su ficha de cliente (la tienda lo reconoce por
+    // el email) con saldo a favor, y un producto sólo para su recorrido, así
+    // no le cambia el stock a lo que miran los otros specs.
+    await c.query(
+      `INSERT INTO public.products (org_id, user_id, name, brand, category, description, sale_price_ars, cost_ars, stock)
+       VALUES ($1, $2, $3, 'ZZ Marca', 'Herramientas', 'Producto del recorrido del comprador con cuenta.', $4, $5, $6)`,
+      [org.id, usuario.id, PRODUCTO_COMPRADOR.name, PRODUCTO_COMPRADOR.price, PRODUCTO_COMPRADOR.cost, PRODUCTO_COMPRADOR.stock]);
+    const { rows: [clienteComprador] } = await c.query(
+      `INSERT INTO public.customers (org_id, user_id, name, email) VALUES ($1, $2, 'ZZ Comprador E2E', $3) RETURNING id`,
+      [org.id, usuario.id, EMAIL_COMPRADOR]);
+    await c.query(
+      `INSERT INTO public.saldo_a_favor_movimientos (org_id, customer_id, customer_name, monto_ars, motivo, creado_por)
+       VALUES ($1, $2, 'ZZ Comprador E2E', $3, 'Semilla del E2E: crédito por una devolución', $4)`,
+      [org.id, clienteComprador.id, SALDO_COMPRADOR, usuario.id]);
     const provincias = ["AR-C", "AR-B", "AR-K", "AR-H", "AR-U", "AR-X", "AR-W", "AR-E", "AR-P", "AR-Y", "AR-L", "AR-F",
       "AR-M", "AR-N", "AR-Q", "AR-R", "AR-A", "AR-J", "AR-D", "AR-Z", "AR-S", "AR-G", "AR-V", "AR-T"];
     const { rows: [zona] } = await c.query(
@@ -136,8 +168,10 @@ async function main() {
 
   const salida = process.env.GITHUB_ENV;
   if (salida) {
-    appendFileSync(salida, `E2E_USER=${EMAIL}\nE2E_PASSWORD=${password}\nE2E_STORE_SLUG=${SLUG}\n`);
+    appendFileSync(salida, `E2E_USER=${EMAIL}\nE2E_PASSWORD=${password}\nE2E_STORE_SLUG=${SLUG}\n`
+      + `E2E_BUYER_EMAIL=${EMAIL_COMPRADOR}\nE2E_BUYER_PASSWORD=${passwordComprador}\n`);
     console.log(`::add-mask::${password}`);
+    console.log(`::add-mask::${passwordComprador}`);
   }
   console.log(`Semilla lista: ${EMAIL}, negocio ${SLUG}, ${PRODUCTOS.length + 56} productos.`);
 }
