@@ -4,6 +4,16 @@
  * agrupadas por motivo.
  */
 
+/** Las alícuotas de IVA de ARCA, la más común primero. */
+export const ALICUOTAS_ARCA = [21, 10.5, 27, 5, 2.5, 0] as const;
+
+/** Cuántas operaciones no se asentaron por no tener alícuota guardada. */
+export function sinAlicuotaEn(r: ResultadoPendientes | null): number {
+  return Object.entries(r?.motivos ?? {})
+    .filter(([motivo]) => /alicuota/i.test(motivo))
+    .reduce((s, [, n]) => s + Number(n || 0), 0);
+}
+
 export interface ResultadoPendientes {
   asentadas?: number;
   fallidas?: number;
