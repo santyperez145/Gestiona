@@ -1,4 +1,5 @@
-﻿import { registrarError, conRegistro } from "@/lib/registroDeErrores";
+﻿import { CAMPOS_CLIENTE, detectarMapeo, detectarOrigen, filasParaImportar } from "@/lib/customerImportMapping";
+import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { hoyAR, mesAR, fechaLocal } from "@/lib/fechaAR";
 import { claveDeCompra, diaDeCompra, frecuenciaEnDias } from "@/lib/comprasDeCliente";
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -2182,37 +2183,15 @@ export default function CustomersPage() {
     await loadData();
   };
 
-  const CSV_FIELD_OPTIONS = [
-    { value: '', label: '— Ignorar —' },
-    { value: 'name', label: 'Nombre' },
-    { value: 'email', label: 'Email' },
-    { value: 'phone', label: 'Teléfono' },
-    { value: 'address', label: 'Dirección' },
-    { value: 'birthday', label: 'Cumpleaños (YYYY-MM-DD)' },
-    { value: 'notes', label: 'Notas' },
-  ];
-
-  const autoDetectMapping = (headers: string[]): Record<string, string> => {
-    const mapping: Record<string, string> = {};
-    headers.forEach((h, i) => {
-      const lower = h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-      const idx = String(i);
-      if (/nombre|name/.test(lower)) mapping[idx] = 'name';
-      else if (/email|correo|mail/.test(lower)) mapping[idx] = 'email';
-      else if (/tel[ef]|phone|celular|movil/.test(lower)) mapping[idx] = 'phone';
-      else if (/direcc|address|domicilio/.test(lower)) mapping[idx] = 'address';
-      else if (/cumplea|birth|nacimiento/.test(lower)) mapping[idx] = 'birthday';
-      else if (/nota|note/.test(lower)) mapping[idx] = 'notes';
-      else mapping[idx] = '';
-    });
-    return mapping;
-  };
+  const CSV_FIELD_OPTIONS = CAMPOS_CLIENTE;
 
   const handleCsvImport = async (file: File) => {
     if (!file || !user) return;
     try {
       const archivo = await leerArchivoDeClientes(file);
-      const mapping = autoDetectMapping(archivo.encabezados);
+      const mapping = detectarMapeo(archivo.encabezados);
+      const origen = detectarOrigen(archivo.encabezados);
+      if (origen === "tiendanube") toast.info("Detectamos un export de clientes de Tiendanube: la dirección completa y el DNI/CUIT se conservan");
       // Se conservan todas las filas: el servidor valida, matchea y aplica en
       // una transacción.
       setCsvPreview({ headers: archivo.encabezados, rows: archivo.filas, mapping, formato: archivo.formato, hoja: archivo.hoja });
@@ -2231,24 +2210,8 @@ export default function CustomersPage() {
       // Normalización y mapeo en el navegador; la autoridad es el servidor:
       // staging auditado → aprobación → aplicación atómica e idempotente. El
       // matching por email/teléfono y el respeto al opt-out viven en la base.
-      const payload = rows.flatMap(row => {
-        const get = (field: string) => {
-          const col = Object.entries(mapping).find(([, v]) => v === field)?.[0];
-          return col !== undefined ? (row[Number(col)] || '').trim() : '';
-        };
-        const name = get('name');
-        const email = get('email');
-        const phone = get('phone');
-        if (!name && !email && !phone) return [];
-        return [{
-          name: name || undefined,
-          email: email || undefined,
-          phone: phone || undefined,
-          address: get('address') || undefined,
-          birthday: get('birthday') || undefined,
-          notes: get('notes') || undefined,
-        }];
-      });
+      const origen = detectarOrigen(headers);
+      const payload = filasParaImportar(headers, rows, mapping, origen);
       if (payload.length === 0) {
         toast.error("No hay filas con nombre, email o teléfono para importar");
         return;
@@ -2259,7 +2222,7 @@ export default function CustomersPage() {
         p_filename: `${hoja ? hoja + " · " : ""}${headers.length} columnas · ${payload.length} filas`,
         p_source_format: formato,
         p_rows: payload as never,
-        p_source_system: "generic",
+        p_source_system: origen,
       });
       if (stageError) throw stageError;
       const batchId = (staged as { batch_id?: string } | null)?.batch_id;
