@@ -21,6 +21,7 @@ import ConsultaDeCuit from "@/components/afip/ConsultaDeCuit";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import FiscalHealthPanel from "@/components/afip/FiscalHealthPanel";
 import LibroIvaDigital from "@/components/afip/LibroIvaDigital";
+import TuContador from "@/components/afip/TuContador";
 import ConciliacionArca from "@/components/afip/ConciliacionArca";
 import ConectarCertificadoPropio from "@/components/afip/ConectarCertificadoPropio";
 import { estadoCertificado } from "@/lib/certificadoPropio";
@@ -422,6 +423,7 @@ export default function AFIPPage() {
       {!connectionError && connection?.tipo_emisor === "monotributo" && <MonotributoPanel orgId={orgId} />}
 
       {!connectionError && <LibroIvaDigital orgId={orgId} monotributo={connection?.tipo_emisor === "monotributo"} canEdit={canEdit} />}
+      {!connectionError && orgId && <TuContador orgId={orgId} />}
       {!connectionError && <ConciliacionArca orgId={orgId} />}
 
       <section className="bg-card border border-border/40 rounded-xl overflow-hidden">

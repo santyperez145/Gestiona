@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { destinoDespuesDelLogin } from "@/lib/estudio";
 import AvisoServicioNoDisponible from "@/components/shared/AvisoServicioNoDisponible";
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
@@ -58,7 +59,7 @@ export default function AuthPage() {
   // the session unless we move away explicitly. This also covers opening the
   // login URL again in a tab that already has an active session.
   useEffect(() => {
-    if (user) navigate('/', { replace: true });
+    if (user) navigate(destinoDespuesDelLogin(), { replace: true });
   }, [user, navigate]);
 
   useEffect(() => {
@@ -84,14 +85,14 @@ export default function AuthPage() {
         } else {
           if (!otpCode.trim()) { toast.error('Ingresá el código del email'); setLoading(false); return; }
           await verifyEmailOtp(email, otpCode);
-          navigate('/', { replace: true });
+          navigate(destinoDespuesDelLogin(), { replace: true });
           toast.success('¡Bienvenido de vuelta!');
         }
       } else if (mode === 'login') {
         await signIn(email, password);
         // Move immediately to ProtectedRoutes so MfaGate can request the code
         // in the same login flow instead of leaving the form visible.
-        navigate('/', { replace: true });
+        navigate(destinoDespuesDelLogin(), { replace: true });
         toast.success('¡Bienvenido de vuelta!');
       } else {
         if (!name.trim()) { toast.error('Ingresá tu nombre'); setLoading(false); return; }

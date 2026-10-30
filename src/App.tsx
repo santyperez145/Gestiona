@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
+import { invitacionPendiente } from "@/lib/estudio";
 import * as Sentry from "@sentry/react";
 import { registrarError } from "@/lib/registroDeErrores";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -288,6 +289,8 @@ function ProtectedRoutes() {
   // Root path shows landing page for unauthenticated visitors
   if (!user && pathname === '/') return <LandingPage />;
   if (!user) return <AuthPage />;
+  // Venía de una invitación de contador: su lugar es el portal, no el alta de un negocio.
+  if (invitacionPendiente()) return <Navigate to="/estudio" replace />;
   if (loadError || (!activeOrg && platformLoadError)) return <AccessLoadError onRetry={refresh} />;
   if (isViewer) {
     // El staff de plataforma ya no hereda rol de admin en el tenant. Si no tiene
