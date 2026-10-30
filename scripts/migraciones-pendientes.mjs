@@ -60,6 +60,7 @@ export const MATRICES = {
   '20261030000600': 'scripts/seo-de-producto-matrix.sql',
   '20261030000700': 'scripts/cotizacion-desde-tienda-matrix.sql',
   '20261030000800': 'scripts/saldo-a-favor-no-es-caja-matrix.sql',
+  '20261030000900': 'scripts/libro-de-ventas-correcto-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';
