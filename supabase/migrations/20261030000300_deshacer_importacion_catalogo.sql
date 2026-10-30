@@ -256,12 +256,14 @@ $fn$;
 REVOKE ALL ON FUNCTION public.deshacer_importacion_catalogo(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.deshacer_importacion_catalogo(uuid) TO authenticated;
 
+WITH c(function_name, audience, rationale) AS (VALUES
+  ('deshacer_importacion_catalogo', 'authenticated_delegate', 'Deshace una importación de catálogo: owner/admin, una vez, 30 días; no pisa cambios posteriores.'),
+  ('trg_import_foto_producto', 'security_helper', 'Trigger: guarda cómo estaba el producto al preparar la fila que lo actualiza.')
+)
 INSERT INTO public.security_function_contracts(function_name, identity_arguments, audience, rationale, definition_hash, reviewed_on)
-SELECT p.proname, pg_get_function_identity_arguments(p.oid), 'authenticated',
-       'Deshace una importación de catálogo: owner/admin, una vez, 30 días; no pisa cambios posteriores.',
-       md5(pg_get_functiondef(p.oid)), DATE '2026-10-30'
-  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
- WHERE n.nspname = 'public' AND p.proname = 'deshacer_importacion_catalogo'
+SELECT p.proname, pg_get_function_identity_arguments(p.oid), c.audience, c.rationale, md5(pg_get_functiondef(p.oid)), DATE '2026-10-30'
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN c ON c.function_name = p.proname
+ WHERE n.nspname = 'public'
 ON CONFLICT (function_name, identity_arguments) DO UPDATE
   SET audience = EXCLUDED.audience, rationale = EXCLUDED.rationale,
       definition_hash = EXCLUDED.definition_hash, reviewed_on = EXCLUDED.reviewed_on;
