@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS, formatUSD } from "@/lib/supabaseStore";
 import { plural } from "@/lib/plural";
+import { aplicarAjusteRegistrado } from "@/lib/ajustesDePrecio";
+import UltimosAjustesDePrecio from "./UltimosAjustesDePrecio";
 import {
   type AjusteEnBloque,
   type QueAjustar,
@@ -39,6 +41,7 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
   const [redondeo, setRedondeo] = useState("10");
   const [vista, setVista] = useState<ResultadoAjuste | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [versionAjustes, setVersionAjustes] = useState(0);
 
   const pedido: AjusteEnBloque = useMemo(() => ({
     porcentaje: Number(porcentaje.replace(",", ".")),
@@ -56,7 +59,7 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
   const correr = async (aplicar: boolean) => {
     if (error) { toast.error(error); return; }
     setOcupado(true);
-    const { data, error: rpcError } = await supabase.rpc("ajustar_precios_en_bloque" as never, {
+    const deSiempre = () => supabase.rpc("ajustar_precios_en_bloque" as never, {
       p_org: orgId,
       p_porcentaje: pedido.porcentaje,
       p_que: pedido.que,
@@ -66,6 +69,10 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
       p_redondeo: pedido.redondeo,
       p_aplicar: aplicar,
     } as never);
+    // Aplicado, queda registrado para poder deshacerlo (20261030000500).
+    const { data, error: rpcError } = aplicar
+      ? await aplicarAjusteRegistrado(orgId, "porcentaje", { ...pedido }, deSiempre)
+      : await deSiempre();
     setOcupado(false);
     if (rpcError) {
       console.error("[ajuste en bloque]", rpcError);
@@ -77,6 +84,8 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
     toast.success(`${plural(r.afectados, "producto")} actualizados (${pedido.porcentaje > 0 ? "+" : ""}${pedido.porcentaje}%)`);
     const aviso = avisoBajoCosto(r);
     if (aviso) toast.warning(aviso);
+    setVista(null);
+    setVersionAjustes(v => v + 1);
     onDone();
   };
 
@@ -181,6 +190,8 @@ export default function AjustePreciosEnBloque({ orgId, categorias, marcas, prove
           {ocupado ? "Aplicando…" : vista && vista.afectados > 0 ? `Aplicar a ${plural(vista.afectados, "producto")}` : "Aplicar"}
         </Button>
       </div>
+
+      <UltimosAjustesDePrecio orgId={orgId} version={versionAjustes} onDone={onDone} />
     </div>
   );
 }

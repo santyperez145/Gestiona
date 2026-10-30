@@ -24,6 +24,7 @@ import {
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 import { plural } from "@/lib/plural";
+import { aplicarAjusteRegistrado } from "@/lib/ajustesDePrecio";
 interface ExchangeRate {
   id: string;
   date: string;
@@ -168,15 +169,20 @@ export default function CurrencyHistoryTab() {
     const pctChange = ((after - before) / before) * 100;
     // Una sola transacción en la base: todo el catálogo (sin tope de 1.000),
     // con permiso validado y registro exacto. Todo o nada.
-    const { data, error } = await supabase.rpc("actualizar_precios_por_cotizacion" as never, {
+    const categoria = bulkForm.apply_to === "category" && bulkForm.category ? bulkForm.category : null;
+    // Queda registrado para poder deshacerlo desde Productos › Ajuste masivo.
+    const { data, error } = await aplicarAjusteRegistrado(orgId, "cotizacion", {
+      nombre: bulkForm.name.trim(), rate_before: before, rate_after: after,
+      margin_type: bulkForm.margin_type, margin_value: Number(bulkForm.margin_value) || 0, categoria,
+    }, () => supabase.rpc("actualizar_precios_por_cotizacion" as never, {
       p_org: orgId,
       p_nombre: bulkForm.name.trim(),
       p_rate_before: before,
       p_rate_after: after,
       p_margin_type: bulkForm.margin_type,
       p_margin_value: Number(bulkForm.margin_value) || 0,
-      p_category: bulkForm.apply_to === "category" && bulkForm.category ? bulkForm.category : null,
-    } as never) as { data: { updated?: number } | null; error: { message: string } | null };
+      p_category: categoria,
+    } as never)) as { data: { updated?: number } | null; error: { message: string } | null };
     if (error) {
       console.error("[currency] actualizar_precios_por_cotizacion", error);
       toast.error(error.message.replace(/^.*?:\s*/, "") || "No se pudo actualizar los precios");

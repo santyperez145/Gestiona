@@ -27,6 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCountdown } from "@/hooks/useCountdown";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingFunction } from "@/lib/publicDataSource";
+import { aplicarAjusteRegistrado } from "@/lib/ajustesDePrecio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -4057,9 +4058,11 @@ function BulkPriceAdjust({ userId, orgId, settings, categorias, marcas, proveedo
     try {
       // Una sola transacción en la base, para todo el negocio (20261023000400):
       // el bucle de abajo quedaba a medias con más de 1.000 productos.
-      const { data, error: rpcError } = await supabase.rpc("recalcular_precios_desde_costo_usd" as never, {
+      const { data, error: rpcError } = await aplicarAjusteRegistrado(orgId, "costo_usd", {
+        tipo_cambio: xRate, markup_pct: markup, categoria: category === 'all' ? null : category,
+      }, () => supabase.rpc("recalcular_precios_desde_costo_usd" as never, {
         p_org: orgId, p_tipo_cambio: xRate, p_markup_pct: markup, p_category: category === 'all' ? null : category,
-      } as never);
+      } as never));
       if (!rpcError) {
         const r = data as unknown as { updated?: number };
         toast.success(`${plural(Number(r?.updated ?? 0), "producto")} recalculados a $${xRate}/U$S`);
