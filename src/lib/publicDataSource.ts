@@ -885,6 +885,8 @@ export interface StoreOrderAccessRow {
   bank_alias?: string | null;
   carrier?: string | null;
   shipping_service?: string | null;
+  /** Parte del total pagada con saldo a favor (20261030001400); ausente en la RPC vieja. */
+  saldo_aplicado?: number | null;
 }
 
 /**

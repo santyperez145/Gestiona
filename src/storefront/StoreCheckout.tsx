@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { useSaldoTienda } from "./useSaldoTienda";
+import { combinaConSaldo, textoUsarSaldo } from "@/lib/saldoParcial";
 import { Loader2, ShoppingBag, Lock, Tag, Truck, ShieldCheck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
@@ -79,6 +80,11 @@ export default function StoreCheckout() {
     calle: "", ciudad: "", provincia: "", cp: "", notas: "",
     metodo: metodos[0],
   });
+  // Saldo parcial (20261030001400): con transferencia o efectivo, el saldo paga
+  // una parte y el resto se paga por ese medio. Se aplica al crear el pedido.
+  const [usarSaldo, setUsarSaldo] = useState(true);
+  const conSaldoParcial = saldoDisponible > 0 && combinaConSaldo(form.metodo);
+  const usaSaldoParcial = conSaldoParcial && usarSaldo;
 
   // Al primer render la tienda todavía puede no haber cargado. Se conserva
   // una elección válida del comprador y, si dejó de serlo, se pasa al primer
@@ -573,6 +579,20 @@ export default function StoreCheckout() {
         }
       }
 
+      // Saldo a favor parcial (20261030001400): se aplica al pedido recién
+      // creado. Si no se puede, el pedido sigue por el total y la página del
+      // pedido lo avisa y ofrece aplicarlo desde ahí.
+      let saldoError: string | null = null;
+      if (usaSaldoParcial) {
+        const { error: saldoErr } = await supabase.rpc("aplicar_saldo_a_pedido" as never, {
+          p_slug: store!.slug, p_order_number: orderNumber,
+        } as never);
+        if (saldoErr) {
+          console.error("No se pudo aplicar el saldo a favor al pedido", saldoErr);
+          saldoError = `Tu pedido quedó registrado por el total: no pudimos aplicar tu saldo a favor (${mensajeSeguroParaCliente(saldoErr, "reintentá desde acá")}).`;
+        }
+      }
+
       // Avisos por email, best-effort: si falla el envío la compra ya está hecha
       // y no tiene sentido frenar al comprador por eso.
       supabase.functions.invoke("store-order-email", {
@@ -611,7 +631,7 @@ export default function StoreCheckout() {
       }
 
       // La compra se cerró: la próxima es una compra nueva, con clave nueva.
-      finishOrder(orderNumber, accessToken, paymentSetupError);
+      finishOrder(orderNumber, accessToken, paymentSetupError ?? saldoError);
     } catch (checkoutError) {
       console.error("No se pudo completar el paso del checkout", checkoutError);
       if (confirmedOrder) {
@@ -938,6 +958,12 @@ export default function StoreCheckout() {
             ) : null}
             {form.metodo === "saldo_a_favor" && (
               <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>Saldo disponible: {fmt(saldoDisponible)}.</p>
+            )}
+            {conSaldoParcial && (
+              <label className="flex items-start gap-2 text-sm mt-2 cursor-pointer">
+                <input type="checkbox" className="mt-0.5" checked={usarSaldo} onChange={e => setUsarSaldo(e.target.checked)} />
+                <span>{textoUsarSaldo(saldoDisponible, totalFinal, form.metodo, fmt)}</span>
+              </label>
             )}
             {form.metodo === "cuenta_corriente" && creditoDisponible != null && (
               <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>Crédito disponible: {fmt(creditoDisponible)}.</p>

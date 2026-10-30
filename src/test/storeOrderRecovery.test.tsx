@@ -10,6 +10,8 @@ vi.mock("@/storefront/storeContext", () => ({ useStore: () => ({
   store: { slug: "demo", currency: "ARS" }, fmt: (value: number) => `$${value}`, basePath: "/tienda/demo",
 }) }));
 vi.mock("@/storefront/trackingConsent", () => ({ useStoreTrackingRuntimeReady: () => false }));
+// Sin sesión de comprador: el saldo a favor (20261030001400) no entra en juego.
+vi.mock("@/storefront/storeAuth", () => ({ useStoreAuth: () => ({ customer: null }) }));
 vi.mock("@/storefront/OrderTracking", () => ({ default: () => null }));
 vi.mock("@/storefront/StorePaymentBrick", () => ({ default: () => <div>Formulario de tarjeta</div> }));
 

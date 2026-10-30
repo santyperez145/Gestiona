@@ -6,6 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { getStoreOrderSecure, type StoreOrderAccessRow } from "@/lib/publicDataSource";
 import { useStore } from "./storeContext";
+import { useStoreAuth } from "./storeAuth";
+import { useSaldoTienda } from "./useSaldoTienda";
+import { combinaConSaldo, repartoDelSaldo } from "@/lib/saldoParcial";
+import { mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 import {
   markStoreConversionSent,
   storeConversionEventId,
@@ -70,6 +74,11 @@ function StoreOrderContent() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const location = useLocation();
   const { store, fmt, basePath: base } = useStore();
+  // Saldo a favor parcial (20261030001400): el comprador logueado puede
+  // aplicarlo a un pedido pendiente de transferencia o efectivo.
+  const { customer } = useStoreAuth();
+  const { info: saldoInfo, recargar: recargarSaldo } = useSaldoTienda(customer ? store?.slug : undefined, customer?.id ?? null);
+  const [aplicandoSaldo, setAplicandoSaldo] = useState(false);
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -390,6 +399,29 @@ function StoreOrderContent() {
   const transferenciaPendiente = pedidoPendiente
     && order.payment_method === "transferencia"
     && Boolean(order.bank_cbu || order.bank_alias);
+  // El total no cambia (se factura completo): lo que resta es lo que se paga.
+  const saldoAplicado = Number(order.saldo_aplicado ?? 0);
+  const aPagar = repartoDelSaldo(saldoAplicado, Number(order.total)).resta;
+  const saldoComprador = saldoInfo?.saldo ?? 0;
+  const puedeAplicarSaldo = pedidoPendiente && combinaConSaldo(order.payment_method)
+    && saldoAplicado === 0 && Boolean(customer) && saldoComprador > 0;
+  const aplicarSaldo = async () => {
+    if (!store?.slug) return;
+    setAplicandoSaldo(true);
+    const { error } = await supabase.rpc("aplicar_saldo_a_pedido" as never, {
+      p_slug: store.slug, p_order_number: order.order_number,
+    } as never);
+    if (!mountedRef.current) return;
+    setAplicandoSaldo(false);
+    if (error) {
+      console.error("[pedido] no se pudo aplicar el saldo a favor", error);
+      setPagoError(mensajeSeguroParaCliente(error, "No pudimos aplicar tu saldo. Reintentá en unos minutos."));
+      return;
+    }
+    setPagoError(null);
+    recargarSaldo();
+    await cargar();
+  };
   const waTexto = encodeURIComponent(textoWhatsAppPedido({
     orderNumber: order.order_number,
     totalFmt: fmt(Number(order.total)),
@@ -438,7 +470,7 @@ function StoreOrderContent() {
             : pagoRevertido
               ? <>{introPagoRevertido(esRetiro)} Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar los próximos pasos.</>
               : transferenciaPendiente
-                ? <>Transferí el total a la cuenta de abajo. Cuando acredite, te avisamos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
+                ? <>{saldoAplicado > 0 ? `Transferí ${fmt(aPagar)} a la cuenta de abajo (el resto lo pagaste con tu saldo a favor).` : "Transferí el total a la cuenta de abajo."} Cuando acredite, te avisamos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
                 : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
         </p>
         {accesoError && (
@@ -468,7 +500,41 @@ function StoreOrderContent() {
           {order.bank_name && <CopyField label="Banco" value={order.bank_name} />}
           {order.bank_cbu && <CopyField label="CBU" value={order.bank_cbu} />}
           {order.bank_alias && <CopyField label="Alias" value={order.bank_alias} />}
-          <CopyField label="Importe" value={fmt(Number(order.total))} />
+          <CopyField label="Importe" value={fmt(aPagar)} />
+        </div>
+      )}
+
+      {(saldoAplicado > 0 || puedeAplicarSaldo || (!esMedioGestionaPay(order.payment_method) && pagoError)) && (
+        <div
+          className="mt-6 border p-4 space-y-2"
+          style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+          aria-label="Saldo a favor"
+        >
+          {saldoAplicado > 0 ? (
+            <p className="text-sm">
+              Pagaste <strong>{fmt(saldoAplicado)}</strong> con tu saldo a favor.
+              {pedidoPendiente && aPagar > 0 && <> Resta pagar <strong>{fmt(aPagar)}</strong>{order.payment_method === "efectivo" ? " en efectivo." : "."}</>}
+            </p>
+          ) : puedeAplicarSaldo ? (
+            <>
+              <p className="text-sm">
+                Tenés {fmt(saldoComprador)} de saldo a favor. {(() => {
+                  const r = repartoDelSaldo(saldoComprador, Number(order.total));
+                  return r.resta > 0 ? `Si lo usás, pagás ${fmt(r.resta)}.` : "Alcanza para todo el pedido.";
+                })()}
+              </p>
+              <button
+                type="button" disabled={aplicandoSaldo} onClick={() => void aplicarSaldo()}
+                className="inline-flex min-h-11 items-center gap-1.5 px-4 text-sm font-semibold disabled:opacity-60"
+                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+              >
+                {aplicandoSaldo && <Loader2 className="w-4 h-4 animate-spin" />}Usar mi saldo a favor
+              </button>
+            </>
+          ) : null}
+          {!esMedioGestionaPay(order.payment_method) && pagoError && (
+            <p className="text-xs text-red-600" role="alert">{pagoError}</p>
+          )}
         </div>
       )}
 
@@ -569,6 +635,17 @@ function StoreOrderContent() {
           <div className="flex justify-between font-semibold text-base pt-1">
             <span>Total</span><span>{fmt(Number(order.total))}</span>
           </div>
+          {saldoAplicado > 0 && (
+            <div className="flex justify-between">
+              <span style={{ color: "hsl(var(--st-muted))" }}>Pagado con saldo a favor</span>
+              <span>−{fmt(saldoAplicado)}</span>
+            </div>
+          )}
+          {saldoAplicado > 0 && pedidoPendiente && aPagar > 0 && (
+            <div className="flex justify-between font-semibold">
+              <span>A pagar</span><span>{fmt(aPagar)}</span>
+            </div>
+          )}
         </div>
 
         {(esRetiro ? lugarRetiro : dirTexto) && (

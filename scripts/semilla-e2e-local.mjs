@@ -23,6 +23,8 @@ export const SLUG = "zz-e2e";
 export const EMAIL_COMPRADOR = "comprador-e2e@nerqia.test";
 export const SALDO_COMPRADOR = 50000;
 export const PRODUCTO_COMPRADOR = { name: "ZZ Cotizable mayorista", price: 10000, cost: 6000, stock: 1000 };
+/** Más caro que el saldo que le queda: paga una parte con saldo y el resto por transferencia. */
+export const PRODUCTO_COMPRADOR_CARO = { name: "ZZ Pedido grande", price: 60000, cost: 30000, stock: 100 };
 
 /** Catálogo de prueba: nombres, precios y stock fijos para que los specs los busquen. */
 export const PRODUCTOS = [
@@ -105,6 +107,10 @@ async function main() {
       `INSERT INTO public.products (org_id, user_id, name, brand, category, description, sale_price_ars, cost_ars, stock)
        VALUES ($1, $2, $3, 'ZZ Marca', 'Herramientas', 'Producto del recorrido del comprador con cuenta.', $4, $5, $6)`,
       [org.id, usuario.id, PRODUCTO_COMPRADOR.name, PRODUCTO_COMPRADOR.price, PRODUCTO_COMPRADOR.cost, PRODUCTO_COMPRADOR.stock]);
+    await c.query(
+      `INSERT INTO public.products (org_id, user_id, name, brand, category, description, sale_price_ars, cost_ars, stock)
+       VALUES ($1, $2, $3, 'ZZ Marca', 'Herramientas', 'Producto del recorrido del comprador con cuenta (saldo parcial).', $4, $5, $6)`,
+      [org.id, usuario.id, PRODUCTO_COMPRADOR_CARO.name, PRODUCTO_COMPRADOR_CARO.price, PRODUCTO_COMPRADOR_CARO.cost, PRODUCTO_COMPRADOR_CARO.stock]);
     const { rows: [clienteComprador] } = await c.query(
       `INSERT INTO public.customers (org_id, user_id, name, email) VALUES ($1, $2, 'ZZ Comprador E2E', $3) RETURNING id`,
       [org.id, usuario.id, EMAIL_COMPRADOR]);

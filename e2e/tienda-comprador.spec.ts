@@ -16,13 +16,14 @@ const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const EMAIL = process.env.E2E_BUYER_EMAIL ?? "";
 const PASSWORD = process.env.E2E_BUYER_PASSWORD ?? "";
 const PRODUCTO = "ZZ Cotizable mayorista";
+const PRODUCTO_CARO = "ZZ Pedido grande";
 const tienda = (path = "") => `/tienda/${SLUG}${path}`;
 
 test("el comprador ve su saldo, pide cotización, paga con saldo y pide un cambio", async ({ page }, testInfo) => {
   test.skip(!EMAIL || !PASSWORD, "Sin comprador de prueba (sólo en el E2E contra la base local).");
   // Un solo navegador: el recorrido consume saldo y pedidos de cotización.
   test.skip(testInfo.project.name !== "chromium", "El recorrido corre una vez, en escritorio.");
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
 
   // 1. Entra con su cuenta y ve su saldo.
   await page.goto(tienda("/cuenta"));
@@ -75,4 +76,23 @@ test("el comprador ve su saldo, pide cotización, paga con saldo y pide un cambi
   await page.getByLabel("Qué querés a cambio").fill("El mismo, en otra medida");
   await page.getByRole("button", { name: "Enviar el pedido" }).click();
   await expect(page.getByRole("heading", { name: "Pedido registrado" })).toBeVisible({ timeout: 20_000 });
+
+  // 7. Saldo parcial (20261030001400): un pedido más caro que lo que le queda
+  //    de saldo; usa el saldo y transfiere el resto.
+  await page.goto(tienda(`/productos?q=${encodeURIComponent("Pedido grande")}`));
+  const caro = page.locator(`a[href*="/tienda/${SLUG}/producto/"]`).filter({ hasText: PRODUCTO_CARO }).first();
+  await expect(caro).toBeVisible({ timeout: 30_000 });
+  await caro.click();
+  await page.getByTestId("product-add-to-cart").click();
+  await page.goto(tienda("/checkout"));
+  await page.getByLabel("Nombre y apellido *").fill("ZZ Comprador E2E");
+  await page.getByLabel("Email *", { exact: true }).fill(EMAIL);
+  await page.getByLabel("Transferencia bancaria").check();
+  await expect(page.getByLabel(/Usar mi saldo a favor/)).toBeChecked({ timeout: 20_000 });
+  const finalizarParcial = page.getByRole("button", { name: /Finalizar compra/ }).filter({ visible: true });
+  await expect(finalizarParcial).toBeEnabled({ timeout: 20_000 });
+  await finalizarParcial.click();
+  await expect(page.getByRole("heading", { name: "¡Gracias por tu compra!" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Pagaste .+ con tu saldo a favor/).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("A pagar", { exact: true })).toBeVisible();
 });

@@ -32,6 +32,7 @@ import { Banknote, Eye, Loader2, Store, Truck } from "lucide-react";
 import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
 import StoreOrderReturnsSection from "@/components/ecommerce/StoreOrderReturnsSection";
 import { useHasPermission } from "@/lib/usePermissions";
+import { useSaldoAplicado } from "./useSaldoAplicado";
 
 interface Props {
   open: boolean;
@@ -61,6 +62,10 @@ export default function StoreOrderInspector({
   const canEditSales = useHasPermission("sales", "edit");
   const canEditEcommerce = useHasPermission("ecommerce", "edit");
   const canEdit = canEditSales || canEditEcommerce;
+  // Saldo a favor aplicado por el comprador (20261030001400): el comercio
+  // cobra sólo lo que resta.
+  const saldoAplicado = useSaldoAplicado(order?.id, order?.payment_status);
+  const aCobrar = order ? Math.max(0, Math.round((Number(order.total) - saldoAplicado) * 100) / 100) : 0;
 
   return (
     <Sheet open={open} onOpenChange={next => { if (!next) onClose(); }}>
@@ -198,6 +203,18 @@ export default function StoreOrderInspector({
                       <dt>Total</dt>
                       <dd className="font-mono">{formatARS(Number(detail.order.total))}</dd>
                     </div>
+                    {saldoAplicado > 0 && (
+                      <>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-muted-foreground">Pagado con saldo a favor</dt>
+                          <dd className="font-mono">−{formatARS(saldoAplicado)}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3 font-semibold">
+                          <dt>{detail.order.payment_status === "paid" ? "Cobrado por el medio" : "A cobrar"}</dt>
+                          <dd className="font-mono">{formatARS(aCobrar)}</dd>
+                        </div>
+                      </>
+                    )}
                   </dl>
                 </section>
 
@@ -254,7 +271,9 @@ export default function StoreOrderInspector({
                   {confirmingPaid
                     ? <Loader2 className="h-4 w-4 animate-spin" />
                     : <Banknote className="h-4 w-4" />}
-                  {esPedidoACuentaCorriente(detail.order.payment_method) ? "Aprobar a cuenta corriente" : "Marcar como cobrado"}
+                  {esPedidoACuentaCorriente(detail.order.payment_method)
+                    ? "Aprobar a cuenta corriente"
+                    : saldoAplicado > 0 ? `Marcar como cobrado (${formatARS(aCobrar)})` : "Marcar como cobrado"}
                 </Button>
               )}
               {canShip && (
