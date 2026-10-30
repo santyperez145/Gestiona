@@ -53,6 +53,7 @@ export const MATRICES = {
   '20261023000600': 'scripts/venta-mayorista-matrix.sql',
   '20261023000700': 'scripts/arqueos-y-cierres-z-matrix.sql',
   '20261030000100': 'scripts/portal-contador-matrix.sql',
+  '20261030000200': 'scripts/cambios-y-saldo-online-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';
