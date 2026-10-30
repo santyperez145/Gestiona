@@ -92,6 +92,11 @@ BEGIN
   IF jsonb_array_length(r) <> 2 OR NOT (r @> jsonb_build_array(jsonb_build_object('product_id', v_a, 'tramos', jsonb_build_array(jsonb_build_object('desde', 1, 'precio', 900), jsonb_build_object('desde', 10, 'precio', 700))))) THEN
     RAISE EXCEPTION 'FALLA 3f: precios mayoristas: %', r;
   END IF;
+  -- El carrito cotizado por la base, con la cantidad de cada renglón.
+  r := public.cotizar_carrito_mayorista(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_a, 'quantity', 12), jsonb_build_object('product_id', v_b, 'quantity', 1)));
+  IF NOT (r @> jsonb_build_array(jsonb_build_object('product_id', v_a::text, 'unit_price', 700, 'mayorista', true), jsonb_build_object('product_id', v_b::text, 'unit_price', 400))) THEN
+    RAISE EXCEPTION 'FALLA 3j: cotización del carrito %', r;
+  END IF;
   r := public.get_store_mayorista(v_slug);
   IF r->'comprador'->>'estado' <> 'aprobado' OR (r->'comprador'->>'credito_disponible')::numeric <> 15000 OR NOT (r->'comprador'->>'cuenta_corriente')::boolean THEN
     RAISE EXCEPTION 'FALLA 3g: estado del comprador: %', r;
@@ -101,6 +106,7 @@ BEGIN
   IF (public.resolve_store_line(v_org, v_a, NULL, 10)->'line'->>'unit_price')::numeric <> 1000 THEN RAISE EXCEPTION 'FALLA 3h: un anónimo pagó mayorista'; END IF;
   SET LOCAL ROLE anon;
   IF jsonb_array_length(public.get_store_precios_mayoristas(v_slug, ARRAY[v_a])) <> 0 THEN RAISE EXCEPTION 'FALLA 3i: un anónimo vio precios mayoristas'; END IF;
+  IF jsonb_array_length(public.cotizar_carrito_mayorista(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_a, 'quantity', 12)))) <> 0 THEN RAISE EXCEPTION 'FALLA 3k: un anónimo cotizó como mayorista'; END IF;
   RESET ROLE;
   v_ok := v_ok || '3 ';
 

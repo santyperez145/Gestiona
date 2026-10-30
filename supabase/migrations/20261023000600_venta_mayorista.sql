@@ -1107,6 +1107,49 @@ $fn$;
 REVOKE ALL ON FUNCTION public.get_store_precios_mayoristas(text, uuid[]) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_store_precios_mayoristas(text, uuid[]) TO anon, authenticated;
 
+-- El carrito del comprador aprobado, cotizado por la misma resolve_store_line
+-- que usa el checkout (con la cantidad de cada renglón): la tienda muestra lo
+-- que se va a cobrar. A cualquier otro le devuelve una lista vacía.
+CREATE OR REPLACE FUNCTION public.cotizar_carrito_mayorista(p_slug text, p_items jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $fn$
+DECLARE
+  v_store record;
+  v_item jsonb;
+  v_linea jsonb;
+  v_qty integer;
+  v_resp jsonb := '[]'::jsonb;
+BEGIN
+  SELECT s.id, s.org_id INTO v_store FROM public.ecommerce_stores s
+   WHERE lower(s.slug) = lower(btrim(p_slug)) AND s.is_active LIMIT 1;
+  IF v_store.id IS NULL OR public.cliente_mayorista_de_tienda(v_store.id) IS NULL THEN
+    RETURN v_resp;
+  END IF;
+  IF jsonb_typeof(COALESCE(p_items, '[]'::jsonb)) <> 'array' OR jsonb_array_length(COALESCE(p_items, '[]'::jsonb)) > 100 THEN
+    RAISE EXCEPTION 'El carrito debe ser una lista de hasta 100 renglones' USING ERRCODE = '22023';
+  END IF;
+  PERFORM set_config('nerqia.store_id', v_store.id::text, true);
+  FOR v_item IN SELECT * FROM jsonb_array_elements(COALESCE(p_items, '[]'::jsonb)) LOOP
+    v_qty := GREATEST(1, LEAST(999, COALESCE((v_item->>'quantity')::integer, 1)));
+    v_linea := public.resolve_store_line(
+      v_store.org_id, (v_item->>'product_id')::uuid, NULLIF(v_item->>'variant_id', '')::uuid, v_qty
+    );
+    v_resp := v_resp || jsonb_build_array(jsonb_build_object(
+      'product_id', v_item->>'product_id', 'variant_id', NULLIF(v_item->>'variant_id', ''), 'quantity', v_qty,
+      'ok', COALESCE((v_linea->>'ok')::boolean, false),
+      'unit_price', v_linea->'line'->'unit_price',
+      'mayorista', COALESCE((v_linea->'line'->>'mayorista')::boolean, false)
+    ));
+  END LOOP;
+  RETURN v_resp;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.cotizar_carrito_mayorista(text, jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cotizar_carrito_mayorista(text, jsonb) TO anon, authenticated;
+
 -- ── 7. Contratos de seguridad ────────────────────────────────────────────
 WITH c(function_name, audience, rationale) AS (VALUES
   ('precio_lista_cliente', 'security_helper', 'Calcula el precio de lista de un cliente; sólo la llaman funciones del checkout.'),
@@ -1116,7 +1159,8 @@ WITH c(function_name, audience, rationale) AS (VALUES
   ('solicitar_cuenta_mayorista', 'public_token', 'El comprador logueado pide su propia cuenta mayorista; no puede aprobarse solo.'),
   ('resolver_cuenta_mayorista', 'authenticated_delegate', 'Exige ser dueño o administrador con permiso de editar clientes; sólo cuentas de su negocio.'),
   ('get_store_mayorista', 'public_storefront', 'Expone el modo mayorista de la tienda y, a la sesión del comprador, sólo su propio estado.'),
-  ('get_store_precios_mayoristas', 'public_token', 'Devuelve precios de lista sólo al comprador aprobado de esa tienda, para su sesión.')
+  ('get_store_precios_mayoristas', 'public_token', 'Devuelve precios de lista sólo al comprador aprobado de esa tienda, para su sesión.'),
+  ('cotizar_carrito_mayorista', 'public_token', 'Cotiza el carrito sólo para el comprador aprobado, con la misma resolve_store_line del checkout.')
 )
 INSERT INTO public.security_function_contracts(function_name, identity_arguments, audience, rationale, definition_hash, reviewed_on)
 SELECT p.proname, pg_get_function_identity_arguments(p.oid), c.audience, c.rationale, md5(pg_get_functiondef(p.oid)), DATE '2026-10-23'
