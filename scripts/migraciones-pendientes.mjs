@@ -57,6 +57,7 @@ export const MATRICES = {
   '20261030000300': 'scripts/deshacer-importacion-catalogo-matrix.sql',
   '20261030000400': 'scripts/redirects-categorias-matrix.sql',
   '20261030000500': 'scripts/ajustes-de-precio-deshacer-matrix.sql',
+  '20261030000600': 'scripts/seo-de-producto-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';
