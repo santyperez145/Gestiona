@@ -27,6 +27,13 @@ describe("libro de ventas correcto para el contador", () => {
     expect(libro).toContain("AND NOT (s.ecommerce_order_id IS NOT NULL AND EXISTS (");
   });
 
+  it("un gasto sale de donde se pagó, no siempre de la caja", () => {
+    const gasto = readFileSync("supabase/migrations/20261030001200_gasto_sale_de_donde_se_pago.sql", "utf8");
+    expect(gasto).toContain("ELSE public.cuenta_de_pago(v_e.payment_method) END;");
+    expect(gasto).toMatch(/WHEN 'transferencia'\s+THEN '1\.1\.02'/);
+    expect(gasto).toMatch(/WHEN 'mercadopago'\s+THEN '1\.1\.04'/);
+  });
+
   it("la corrección de lo ya asentado la decide el dueño y respeta la fecha original", () => {
     expect(duplicadas).toContain("public.has_org_role(p_org, auth.uid(), ARRAY['owner'])");
     expect(duplicadas).toContain("VALUES (p_org, v_numero, v_e.fecha,");

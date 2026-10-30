@@ -63,6 +63,7 @@ export const MATRICES = {
   '20261030000900': 'scripts/libro-de-ventas-correcto-matrix.sql',
   '20261030001000': 'scripts/ventas-online-duplicadas-matrix.sql',
   '20261030001100': 'scripts/iva-en-el-asiento-de-venta-matrix.sql',
+  '20261030001200': 'scripts/gasto-sale-de-donde-se-pago-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';
