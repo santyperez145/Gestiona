@@ -15,7 +15,12 @@
  *   5. Publica las funciones con `deploy-functions.sh` (respeta qué van sin JWT)
  *      y compara los secretos que exigen (`requireEnv`) con los cargados en
  *      el proyecto: sólo nombres, nunca valores.
- *   6. Corre el control de estado (cierra el aviso «Producción caída») y
+ *   6. Regenera `src/integrations/supabase/types.ts` desde producción (2026-10-30):
+ *      con la base al día, el cliente deja de necesitar rodeos (`as never`,
+ *      `select("*")`) para las tablas y columnas nuevas, y el control
+ *      columnasQueExisten vuelve a comparar contra lo real. Queda el archivo
+ *      para revisar el diff y subirlo con la puerta.
+ *   7. Corre el control de estado (cierra el aviso «Producción caída») y
  *      vuelve a correr el último CI, que ya no saltea el E2E contra producción.
  *
  * Uso:
@@ -27,7 +32,7 @@
  * escribe ni las imprime.
  */
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import pg from "pg";
@@ -42,8 +47,21 @@ export const PASOS = [
   "Aplicar las migraciones pendientes",
   "Auditoría de permisos en producción",
   "Publicar las funciones",
+  "Regenerar los tipos del cliente",
   "Control de estado y CI",
 ];
+
+export const ARCHIVO_TIPOS = "src/integrations/supabase/types.ts";
+
+/**
+ * ¿Es la salida de `supabase gen types` un archivo de tipos completo? Un error
+ * del CLI o una salida cortada no pisan el archivo bueno.
+ */
+export function tiposValidos(salida) {
+  const texto = String(salida ?? "");
+  return texto.includes("export type Database") && texto.includes("public: {") && texto.includes("Tables: {")
+    && texto.length > 10_000;
+}
 
 /** Estado del proyecto según `supabase projects list --output json`. */
 export function estadoDelProyecto(salidaJson, ref = PROYECTO) {
@@ -184,6 +202,18 @@ async function main() {
   else for (const f of faltan) console.log(`  ⚠ Falta el secreto ${f.nombre}: sin él no arrancan ${f.funciones.join(", ")}`);
 
   paso(5);
+  // Sin --schema: el CLI genera public y graphql_public, la forma del archivo actual.
+  const tipos = correr(npx, ["supabase", "gen", "types", "typescript", "--project-id", PROYECTO], { capturar: true });
+  if (tipos.ok && tiposValidos(tipos.salida)) {
+    // LF siempre: el archivo lo leen pruebas que comparan el fuente.
+    writeFileSync(ARCHIVO_TIPOS, tipos.salida.replace(/\r\n/g, "\n"));
+    console.log(`  ✓ ${ARCHIVO_TIPOS} regenerado: revisá el diff y subilo con la puerta (npm run verify).`);
+  } else {
+    console.log(`  ⚠ No se pudieron generar los tipos: el archivo quedó como estaba. Correr a mano:`);
+    console.log(`    npx supabase gen types typescript --project-id ${PROYECTO} > ${ARCHIVO_TIPOS}`);
+  }
+
+  paso(6);
   // En GitHub, con sus credenciales: cierra el aviso «Producción caída».
   correr("gh", ["workflow", "run", "estado-produccion.yml"]);
   console.log("  Control de estado lanzado: cierra el aviso si todo responde.");

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CONSULTAS_PRODUCCION, estadoDelProyecto, PASOS, PROYECTO, secretosExigidos, secretosFaltantes } from "../../scripts/restaurar-produccion.mjs";
+import { CONSULTAS_PRODUCCION, estadoDelProyecto, PASOS, PROYECTO, secretosExigidos, secretosFaltantes, tiposValidos } from "../../scripts/restaurar-produccion.mjs";
 
 describe("restaurar producción en un solo comando", () => {
   const fuente = readFileSync("scripts/restaurar-produccion.mjs", "utf8");
@@ -16,7 +16,7 @@ describe("restaurar producción en un solo comando", () => {
   it("simula antes de aplicar, audita antes de publicar y sólo escribe con --ejecutar", () => {
     expect(PASOS).toEqual([
       "Proyecto activo y Auth respondiendo", "Simulacro de las migraciones pendientes", "Aplicar las migraciones pendientes",
-      "Auditoría de permisos en producción", "Publicar las funciones", "Control de estado y CI",
+      "Auditoría de permisos en producción", "Publicar las funciones", "Regenerar los tipos del cliente", "Control de estado y CI",
     ]);
     const simulacro = fuente.indexOf('correr("node", ["scripts/migraciones-pendientes.mjs"])');
     const sinEjecutar = fuente.indexOf("if (!ejecutar)");
@@ -35,6 +35,14 @@ describe("restaurar producción en un solo comando", () => {
     expect(fuente).not.toMatch(/console\.\w+\([^)]*SUPABASE_DB_URL\b(?!\s+en el entorno)/);
     expect(CONSULTAS_PRODUCCION.truncate).toContain("TRUNCATE");
     expect(CONSULTAS_PRODUCCION.vistasEscribibles).toContain("security_invoker");
+  });
+
+  it("regenera los tipos después de publicar y nunca pisa el archivo con una salida rota", () => {
+    expect(fuente.indexOf('"supabase", "gen", "types"')).toBeGreaterThan(fuente.indexOf('"scripts/deploy-functions.sh"'));
+    // El archivo actual es una salida válida; un error o una salida cortada no.
+    expect(tiposValidos(readFileSync("src/integrations/supabase/types.ts", "utf8"))).toBe(true);
+    expect(tiposValidos("Error: Unauthorized")).toBe(false);
+    expect(tiposValidos("export type Database = { public: { Tables: {")).toBe(false);
   });
 
   it("compara los secretos que exigen las funciones con los cargados, sólo por nombre", () => {
