@@ -15,6 +15,10 @@ BEGIN
      OR public.cuenta_de_cobro('saldo_a_favor', true) <> '1.2.01' THEN
     RAISE EXCEPTION 'FALLA 1a: el saldo a favor no va a Deudores por ventas';
   END IF;
+  IF public.cuenta_de_cobro('gestiona_pay') IS DISTINCT FROM '1.1.03' OR public.cuenta_de_cobro('gestiona_pay', true) <> '1.1.03'
+     OR public.cuenta_de_cobro('mercadopago', true) <> '1.1.03' THEN
+    RAISE EXCEPTION 'FALLA 1c: Nerqia Pay no va a Mercado Pago a liquidar';
+  END IF;
   IF public.cuenta_de_cobro('efectivo') <> '1.1.01' OR public.cuenta_de_cobro('mercado_pago') <> '1.1.03'
      OR public.cuenta_de_cobro('fiado') <> '1.2.01' OR public.cuenta_de_cobro('algo raro') IS NOT NULL
      OR public.cuenta_de_cobro('transferencia', true) <> '1.1.02' OR public.cuenta_de_cobro('algo raro', true) <> '1.1.01'

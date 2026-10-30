@@ -13,6 +13,11 @@
 -- ventas» (1.2.01), como el fiado y la cuenta corriente: se cancela contra el
 -- crédito del cliente, nunca contra Caja ni Mercado Pago.
 --
+-- De paso, `gestiona_pay` (Nerqia Pay, el medio principal de la tienda): la de
+-- 1 argumento no lo conocía y cada pedido pagado quedaba marcado como «método
+-- sin cuenta» (caía en 1.1.03 por el respaldo, que es la cuenta correcta, pero
+-- ensuciaba el control de métodos raros); la de 2 lo habría mandado a Caja.
+--
 -- Mismas firmas y mismo comportamiento para todo lo demás (las dos conviven a
 -- propósito: ver src/test/unaFuncionUnaFirma.test.ts). Reversible: las
 -- definiciones de 20260821000040 y 20260826000260.
@@ -32,6 +37,9 @@ AS $fn$
     -- está disponible y la comisión aparece recién en la liquidación.
     WHEN 'mercado_pago'     THEN '1.1.03'
     WHEN 'mercadopago'      THEN '1.1.03'
+    -- Nerqia Pay (el medio de la tienda online) cobra por Mercado Pago. Sin
+    -- esta línea cada pedido quedaba marcado como «método sin cuenta».
+    WHEN 'gestiona_pay'     THEN '1.1.03'
     WHEN 'credito'          THEN '1.1.03'
     WHEN 'debito'           THEN '1.1.03'
     WHEN 'tarjeta'          THEN '1.1.03'
@@ -60,6 +68,8 @@ AS $fn$
     WHEN p_metodo = 'transferencia' THEN '1.1.02'
     WHEN p_metodo = 'credito'       THEN '1.1.02'
     WHEN p_metodo = 'mercado_pago'  THEN '1.1.03'
+    -- Los otros nombres de Mercado Pago no son Caja.
+    WHEN p_metodo IN ('mercadopago', 'gestiona_pay') THEN '1.1.03'
     WHEN p_metodo = 'fiado'         THEN '1.2.01'
     -- Pagar con saldo a favor no entra a Caja: aplica el crédito del cliente.
     WHEN p_metodo = 'saldo_a_favor' THEN '1.2.01'
