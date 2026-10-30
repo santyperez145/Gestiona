@@ -23,7 +23,7 @@ BEGIN
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars) VALUES (v_org, v_owner, 'ZZ Oculto', 500) RETURNING id INTO v_b;
   INSERT INTO public.store_product_publications (store_id, product_id, org_id, visibility) VALUES (v_store, v_b, v_org, 'hidden');
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars) VALUES (v_org, v_owner, 'ZZ Pintura', 1200) RETURNING id INTO v_c;
-  INSERT INTO public.product_variants (product_id, user_id, variant_name, price_override) VALUES (v_c, v_owner, 'Blanco 20 L', 1500) RETURNING id INTO v_var;
+  INSERT INTO public.product_variants (org_id, user_id, product_id, variant_name, price_override) VALUES (v_org, v_owner, v_c, 'Blanco 20 L', 1500) RETURNING id INTO v_var;
 
   -- 1
   PERFORM set_config('request.jwt.claims', '', true);
@@ -33,6 +33,15 @@ BEGIN
     RAISE EXCEPTION 'FALLA 1: un anónimo pidió cotización';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   RESET ROLE;
+  -- Una tienda sin venta mayorista no recibe pedidos de cotización.
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_comp, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  BEGIN
+    PERFORM public.solicitar_cotizacion_tienda(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_a, 'quantity', 1)));
+    RAISE EXCEPTION 'FALLA 1b: una tienda sin venta mayorista recibió un pedido';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  RESET ROLE;
+  UPDATE public.ecommerce_stores SET mayorista_modo = 'mixto' WHERE id = v_store;
   v_ok := v_ok || '1 ';
 
   -- 2
@@ -88,6 +97,8 @@ BEGIN
   r := public.mis_cotizaciones_tienda(v_slug);
   RESET ROLE;
   IF jsonb_array_length(r) <> 5 OR NOT (r @> jsonb_build_array(jsonb_build_object('estado', 'pendiente'))) THEN RAISE EXCEPTION 'FALLA 5a: %', r; END IF;
+  -- Sin respuesta del comercio no se ve el importe (precio oculto en «sólo mayoristas»).
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e->>'total' IS NOT NULL) THEN RAISE EXCEPTION 'FALLA 5a2: mostró el total sin respuesta: %', r; END IF;
   -- El comercio responde y genera el link de pago.
   UPDATE public.quotes SET status = 'sent' WHERE id = v_quote;
   INSERT INTO public.payment_links (id, org_id, quote_id, quote_number, customer_name, items, total_ars, status, external_ref)
@@ -95,7 +106,7 @@ BEGIN
   SET LOCAL ROLE authenticated;
   r := public.mis_cotizaciones_tienda(v_slug);
   RESET ROLE;
-  IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e->>'estado' = 'respondida' AND e->>'pago_id' IS NOT NULL) THEN
+  IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e->>'estado' = 'respondida' AND e->>'pago_id' IS NOT NULL AND (e->>'total')::numeric = 12000) THEN
     RAISE EXCEPTION 'FALLA 5b: no ve la respuesta con su link: %', r;
   END IF;
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);

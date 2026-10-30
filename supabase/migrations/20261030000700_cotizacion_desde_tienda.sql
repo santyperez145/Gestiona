@@ -4,7 +4,8 @@
 -- el carrito: arma la lista y pide precio. Hasta hoy lo hacía por WhatsApp y
 -- el comercio tipeaba el presupuesto a mano. Tiendanube no lo tiene nativo.
 --
---   1. `solicitar_cotizacion_tienda`: el comprador logueado manda su carrito
+--   1. `solicitar_cotizacion_tienda`: en una tienda con venta mayorista
+--      (mixta o sólo mayoristas), el comprador logueado manda su carrito
 --      (productos publicados, cantidades libres de stock: es un pedido de
 --      precio) y nace un presupuesto en el panel con su número, sus ítems a
 --      su precio de hoy (su lista mayorista si la tiene) y el aviso al dueño.
@@ -64,10 +65,16 @@ BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Ingresá con tu cuenta para pedir una cotización' USING ERRCODE = '42501';
   END IF;
-  SELECT s.id, s.org_id, s.name INTO v_store FROM public.ecommerce_stores s
+  SELECT s.id, s.org_id, s.name, COALESCE(s.mayorista_modo, 'off') AS mayorista_modo INTO v_store
+    FROM public.ecommerce_stores s
    WHERE lower(s.slug) = lower(btrim(p_slug)) AND s.is_active LIMIT 1;
   IF v_store.id IS NULL THEN
     RAISE EXCEPTION 'La tienda no está disponible' USING ERRCODE = '22023';
+  END IF;
+  -- Lo decide la base, no el botón: sólo las tiendas con venta mayorista
+  -- reciben pedidos de cotización.
+  IF v_store.mayorista_modo = 'off' THEN
+    RAISE EXCEPTION 'Esta tienda no recibe pedidos de cotización' USING ERRCODE = '22023';
   END IF;
   IF jsonb_typeof(p_items) IS DISTINCT FROM 'array' OR jsonb_array_length(p_items) = 0 THEN
     RAISE EXCEPTION 'Agregá al menos un producto' USING ERRCODE = '22023';
@@ -194,7 +201,10 @@ AS $fn$
           WHEN q.valid_until IS NOT NULL AND q.valid_until < (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date THEN 'vencida'
           WHEN q.status IN ('sent', 'accepted') THEN 'respondida'
           ELSE 'pendiente' END,
-        'total', q.total,
+        -- El importe recién cuando el comercio respondió: el borrador nace con
+        -- el precio de la tienda, que en una tienda «sólo mayoristas» no se le
+        -- muestra a quien no está aprobado.
+        'total', CASE WHEN q.status IN ('sent', 'accepted') OR q.converted_at IS NOT NULL THEN q.total END,
         'items', jsonb_array_length(q.items),
         'valid_until', q.valid_until,
         'created_at', q.created_at,

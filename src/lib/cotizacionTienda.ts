@@ -9,7 +9,8 @@ export type EstadoCotizacion = "pendiente" | "respondida" | "pagada" | "rechazad
 export interface CotizacionDelComprador {
   quote_number: string;
   estado: EstadoCotizacion;
-  total: number;
+  /** Vacío hasta que el comercio responde: el borrador no muestra precios. */
+  total: number | null;
   items: number;
   valid_until: string | null;
   created_at: string;

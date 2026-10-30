@@ -11,9 +11,14 @@ describe("pedir cotización desde la tienda", () => {
     expect(sql).toContain("AND q.status = 'draft' AND q.created_at > now() - interval '1 day') >= 5 THEN");
   });
 
-  it("el comprador sólo ve lo suyo y el link de pago cuando el comercio respondió", () => {
+  it("el comprador sólo ve lo suyo, y el importe y el link cuando el comercio respondió", () => {
     expect(sql).toContain("AND q.origen = 'tienda' AND q.solicitado_por = auth.uid() AND auth.uid() IS NOT NULL");
     expect(sql).toContain("WHERE l.quote_id = q.id AND l.status = 'pending' AND q.status IN ('sent', 'accepted')");
+    expect(sql).toContain("'total', CASE WHEN q.status IN ('sent', 'accepted') OR q.converted_at IS NOT NULL THEN q.total END,");
+  });
+
+  it("sólo las tiendas con venta mayorista reciben pedidos", () => {
+    expect(sql).toContain("IF v_store.mayorista_modo = 'off' THEN");
   });
 
   it("cada estado se lee para el comprador", () => {
