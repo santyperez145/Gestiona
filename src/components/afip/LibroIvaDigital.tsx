@@ -11,18 +11,18 @@ import { AlertTriangle, BookOpen, Download, FileSpreadsheet, Loader2, Package, R
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingColumn, isMissingRelation } from "@/lib/publicDataSource";
-import { libroIvaDesdeZ, libroIvaTiquesA, NOMBRE_TIPO_Z, ORIGEN_ELECTRONICO, type CierreZ, type TiqueA } from "@/lib/cierreZ";
+import { ORIGEN_ELECTRONICO, type CierreZ, type TiqueA } from "@/lib/cierreZ";
+import { calcularMes, descargarBlob, libroDelControlador, libroExcelDelMes, paqueteDelMes, ventasDelMes, type DatosDelMes } from "@/lib/mesFiscal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { diaAR, mesAR } from "@/lib/fechaAR";
-import { libroIvaVentas, periodoAPresentar, rangoDelPeriodo, type ComprobanteVenta } from "@/lib/libroIvaVentas";
-import { libroIvaCompras, posicionIva, type ComprobanteCompra, type LibroIvaCompras } from "@/lib/libroIvaCompras";
-import { leameDelMes, nombresDelPaquete } from "@/lib/paqueteContador";
-import { hojaPosicion, hojaRetenciones, subdiarioCompras, subdiarioVentas, totalesDeRetenciones, type RetencionSufrida } from "@/lib/subdiarioIva";
+import { periodoAPresentar, rangoDelPeriodo, type ComprobanteVenta } from "@/lib/libroIvaVentas";
+import { posicionIva, type ComprobanteCompra, type LibroIvaCompras } from "@/lib/libroIvaCompras";
+import { totalesDeRetenciones, type RetencionSufrida } from "@/lib/subdiarioIva";
 import RetencionesSufridas from "@/components/afip/RetencionesSufridas";
 import ComprobantesDeCompra from "@/components/afip/ComprobantesDeCompra";
 import LiquidacionIibbMes from "@/components/afip/LiquidacionIibbMes";
-import { hojaIibb, liquidacionIibb, type InscripcionIibb } from "@/lib/liquidacionIibb";
+import { liquidacionIibb, type InscripcionIibb } from "@/lib/liquidacionIibb";
 
 const PAGINA = 1000;
 const ars = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
@@ -208,48 +208,9 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
     return () => { signal.cancelado = true; };
   }, [leerCierres]);
 
-  // Lo del controlador: el resumen de cada Z y los Tique-Factura A uno por uno.
-  const libroZ = useMemo(() => {
-    const resumen = libroIvaDesdeZ(cierres.confirmados);
-    const tiques = libroIvaTiquesA(cierres.tiquesA, cierres.confirmados, diaAR);
-    const porTasa = new Map<number, { tasa: number; neto: number; iva: number }>();
-    for (const a of [...resumen.resumen.porAlicuota, ...tiques.resumen.porAlicuota]) {
-      const r = porTasa.get(a.tasa) ?? { tasa: a.tasa, neto: 0, iva: 0 };
-      porTasa.set(a.tasa, { tasa: a.tasa, neto: r.neto + a.neto, iva: r.iva + a.iva });
-    }
-    return {
-      cbte: [...resumen.cbte, ...tiques.cbte],
-      alicuotas: [...resumen.alicuotas, ...tiques.alicuotas],
-      avisos: [...resumen.avisos, ...tiques.avisos],
-      resumen: {
-        total: resumen.resumen.total + tiques.resumen.total,
-        debitoFiscal: resumen.resumen.debitoFiscal + tiques.resumen.debitoFiscal,
-        porAlicuota: [...porTasa.values()],
-      },
-    };
-  }, [cierres.confirmados, cierres.tiquesA]);
-  const libro = useMemo(() => {
-    if (lectura.estado !== "listo") return null;
-    const base = libroIvaVentas(lectura.comprobantes);
-    if (libroZ.cbte.length === 0) return base;
-    const porTasa = new Map(base.resumen.porAlicuota.map(a => [a.tasa, { ...a }]));
-    for (const a of libroZ.resumen.porAlicuota) {
-      const r = porTasa.get(a.tasa) ?? { tasa: a.tasa, neto: 0, iva: 0 };
-      porTasa.set(a.tasa, { tasa: a.tasa, neto: Math.round((r.neto + a.neto) * 100) / 100, iva: Math.round((r.iva + a.iva) * 100) / 100 });
-    }
-    return {
-      ...base,
-      cbte: base.cbte + libroZ.cbte.join(""),
-      alicuotas: base.alicuotas + libroZ.alicuotas.join(""),
-      incluidos: base.incluidos + libroZ.cbte.length,
-      resumen: {
-        ...base.resumen,
-        total: Math.round((base.resumen.total + libroZ.resumen.total) * 100) / 100,
-        debitoFiscal: Math.round((base.resumen.debitoFiscal + libroZ.resumen.debitoFiscal) * 100) / 100,
-        porAlicuota: [...porTasa.values()].sort((a, b) => a.tasa - b.tasa),
-      },
-    };
-  }, [lectura, libroZ]);
+  // El mismo cálculo que el portal del contador (src/lib/mesFiscal.ts).
+  const libroZ = useMemo(() => libroDelControlador(cierres.confirmados, cierres.tiquesA, diaAR), [cierres.confirmados, cierres.tiquesA]);
+  const libro = useMemo(() => lectura.estado === "listo" ? ventasDelMes(lectura.comprobantes, libroZ) : null, [lectura, libroZ]);
   const iibb = useMemo(() => lectura.estado === "listo" && inscripciones ? liquidacionIibb({
     comprobantes: lectura.comprobantes, inscripciones, retenciones,
     percepcionesDeCompras: compras.reduce((s, c) => s + Number(c.percepcion_iibb || 0), 0),
@@ -269,68 +230,20 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
     setArmandoExcel(true);
     try {
       const XLSX = await import("xlsx");
-      const wb = XLSX.utils.book_new();
-      const ventas = subdiarioVentas(lectura.comprobantes);
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ventas.filas), "Ventas");
-      if (!monotributo) {
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(subdiarioCompras(compras)), "Compras");
-        if (resumenCompras) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaPosicion(posicionIva(libro.resumen.debitoFiscal, resumenCompras, retencionesIva))), "Posición");
-        if (retenciones.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaRetenciones(retenciones)), "Retenciones");
-        if (cierres.confirmados.length) {
-          const filas: (string | number)[][] = [["Fecha", "Punto de venta", "Z", "Comprobante", "Desde", "Hasta", "Cantidad", "Total", "Neto 21%", "IVA 21%", "Neto 10,5%", "IVA 10,5%", "Otras alícuotas (neto + IVA)", "Exento", "No gravado", "Internos y otros"]];
-          for (const z of cierres.confirmados) for (const c of z.comprobantes) {
-            const al = (t: number) => c.alicuotas.find(a => Number(a.tasa) === t);
-            const otras = c.alicuotas.filter(a => ![21, 10.5].includes(Number(a.tasa))).reduce((s, a) => s + Number(a.neto) + Number(a.iva), 0);
-            filas.push([z.fecha, z.punto_venta, z.numero, NOMBRE_TIPO_Z[c.tipo] ?? String(c.tipo), c.desde, c.hasta, c.cantidad, Number(c.total),
-              Number(al(21)?.neto ?? 0), Number(al(21)?.iva ?? 0), Number(al(10.5)?.neto ?? 0), Number(al(10.5)?.iva ?? 0), otras,
-              Number(c.exento ?? 0), Number(c.no_gravado ?? 0), Number(c.internos ?? 0) + Number(c.otros_tributos ?? 0)]);
-          }
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(filas), "Cierres Z");
-        }
-        if (iibb?.renglones.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hojaIibb(iibb)), "Ingresos Brutos");
-      }
-      if (ventas.revisar.length) {
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Fecha", "Comprobante", "Motivo"], ...ventas.revisar]), "A revisar");
-      }
+      const datos: DatosDelMes = {
+        periodo, monotributo, comprobantes: lectura.comprobantes, homologacion: lectura.homologacion,
+        compras, comprasActivas: comprasEstado === "listo" && resumenCompras !== null, retenciones,
+        inscripciones, cierres: cierres.confirmados, borradoresZ: cierres.borradores, tiquesA: cierres.tiquesA, diaDe: diaAR,
+      };
+      const mes = calcularMes(datos);
       if (destino === "excel") {
-        XLSX.writeFile(wb, `subdiario-iva-${periodo}.xlsx`);
+        XLSX.writeFile(libroExcelDelMes(XLSX, datos, mes), `subdiario-iva-${periodo}.xlsx`);
         return;
       }
-      const nombres = nombresDelPaquete(periodo);
-      const libroCompras = monotributo ? null : libroIvaCompras(compras);
-      const posicion = !monotributo && resumenCompras ? posicionIva(libro.resumen.debitoFiscal, resumenCompras, retencionesIva) : null;
-      const pendientes = [
-        ...libro.problemas.map(pr => `${pr.comprobante}: ${pr.motivo}`),
-        ...libroZ.avisos,
-        ...(cierres.borradores ? [`Hay ${cierres.borradores} cierre(s) Z en borrador: confirmalos contra el ticket para que entren al libro.`] : []),
-        ...(iibb?.avisos ?? []),
-        ...(iibb?.problemas ?? []).map(pr => `${pr.comprobante}: ${pr.motivo}`),
-      ];
       const { default: JSZip } = await import("jszip");
-      const zip = new JSZip();
-      zip.file(nombres.ventasCbte, libro.cbte);
-      zip.file(nombres.ventasAlicuotas, libro.alicuotas);
-      if (libroCompras) {
-        zip.file(nombres.comprasCbte, libroCompras.cbte);
-        zip.file(nombres.comprasAlicuotas, libroCompras.alicuotas);
-      }
-      zip.file(nombres.excel, XLSX.write(wb, { type: "array", bookType: "xlsx" }));
-      zip.file(nombres.leame, leameDelMes({
-        periodo, monotributo,
-        ventas: { ...libro.resumen, incluidos: libro.incluidos },
-        compras: libroCompras ? { incluidos: libroCompras.incluidos, creditoFiscal: libroCompras.resumen.creditoFiscal, percepcionesIva: libroCompras.resumen.percepcionesIva } : null,
-        posicion,
-        iibb: iibb?.renglones ?? null,
-        cierresZ: cierres.confirmados.length,
-        homologacion: lectura.homologacion,
-        pendientes,
-      }));
-      const blob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = nombres.zip; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(pendientes.length ? `Paquete listo. Hay ${pendientes.length} punto(s) para revisar: están en LEAME.txt.` : "Paquete del mes listo");
+      const paquete = await paqueteDelMes(XLSX, JSZip, datos, mes);
+      descargarBlob(paquete.nombre, paquete.blob);
+      toast.success(paquete.pendientes.length ? `Paquete listo. Hay ${paquete.pendientes.length} punto(s) para revisar: están en LEAME.txt.` : "Paquete del mes listo");
     } catch (e) {
       console.error("Libro IVA: no se pudo armar el Excel", e);
       toast.error(destino === "paquete" ? "No se pudo armar el paquete del mes. Reintentá." : "No se pudo armar el Excel. Reintentá.");
