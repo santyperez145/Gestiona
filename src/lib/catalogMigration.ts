@@ -47,9 +47,12 @@ export type CatalogMigrationParseResult = {
   warnings: string[];
   /** Rutas de categoría de la tienda vieja → categoría nueva (sólo Tiendanube). */
   categoryRedirects?: CategoryRedirect[];
+  /** Título y descripción para buscadores por producto (Tiendanube y Shopify). */
+  seo?: SeoImportado[];
 };
 
 export type CategoryRedirect = { source_path: string; category: string };
+export type SeoImportado = { external_key: string; titulo?: string; descripcion?: string };
 
 type RawRow = Record<string, unknown>;
 type IndexedRow = Record<string, unknown>;
@@ -415,6 +418,28 @@ export function redirectsDeCategoriasTiendanube(rows: IndexedRow[]): CategoryRed
   return [...vistos].slice(0, 500).map(([source_path, category]) => ({ source_path, category }));
 }
 
+/**
+ * El SEO de cada producto de la tienda vieja. Se agrupa con la misma clave que
+ * su identidad de origen (el identificador de URL), que es como la base lo
+ * ubica después (`registrar_seo_importado`).
+ */
+export function seoDelArchivo(source: CatalogMigrationSource, rows: IndexedRow[]): SeoImportado[] {
+  if (source !== "tiendanube" && source !== "shopify") return [];
+  const groups = source === "shopify"
+    ? groupBy(rows, ["URL handle", "Handle"], ["Title"])
+    : groupBy(rows, ["Identificador de URL", "Identificador URL", "Handle"], ["Nombre"]);
+  const limpio = (texto: string, max: number) => texto.replace(/\s+/g, " ").trim().slice(0, max);
+  const resultado: SeoImportado[] = [];
+  for (const [handle, group] of groups) {
+    if (handle.startsWith("fila-")) continue;
+    const titulo = limpio(firstText(group, ["Título para SEO", "Titulo para SEO", "SEO title"]), 120);
+    const descripcion = limpio(firstText(group, ["Descripción para SEO", "Descripcion para SEO", "SEO description"]), 400);
+    if (!titulo && !descripcion) continue;
+    resultado.push({ external_key: handle, ...(titulo ? { titulo } : {}), ...(descripcion ? { descripcion } : {}) });
+  }
+  return resultado;
+}
+
 export function detectCatalogMigrationSource(rows: RawRow[], filename = ""): CatalogMigrationSource {
   const headers = new Set(rows.slice(0, 100).flatMap(row => Object.keys(row).map(normalizeImportHeader)));
   if ((headers.has("url handle") || headers.has("handle")) && headers.has("title")) return "shopify";
@@ -446,5 +471,6 @@ export function parseCatalogMigrationRows(rows: RawRow[], filename = ""): Catalo
     warnings.push("Hay productos sin identificador URL; podrán crearse, pero no conservarán identidad ni redirect de origen.");
   }
   const categoryRedirects = source === "tiendanube" ? redirectsDeCategoriasTiendanube(indexed) : [];
-  return { source, products, sourceRows: rows.length, variantCount, imageCount, redirectCount, warnings, categoryRedirects };
+  const seo = seoDelArchivo(source, indexed);
+  return { source, products, sourceRows: rows.length, variantCount, imageCount, redirectCount, warnings, categoryRedirects, seo };
 }

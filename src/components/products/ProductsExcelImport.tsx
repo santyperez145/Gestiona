@@ -142,6 +142,30 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
     }
   }
 
+  // El título y la descripción para buscadores de la tienda vieja se guardan
+  // aparte (product_seo), en tandas de 1.000. Tampoco frena la importación.
+  async function registrarSeoImportado(sessionId: string) {
+    const lista = workbook?.parsed.seo ?? [];
+    if (lista.length === 0) return;
+    let guardados = 0;
+    try {
+      for (let i = 0; i < lista.length; i += 1000) {
+        const { data, error } = await supabase.rpc("registrar_seo_importado" as never, { p_session_id: sessionId, p_items: lista.slice(i, i + 1000) } as never);
+        if (error) throw error;
+        guardados += Number((data as { guardados?: unknown } | null)?.guardados ?? 0);
+      }
+      if (guardados > 0) toast.success(guardados === 1 ? "Se conservó el SEO de 1 producto" : `Se conservó el SEO de ${guardados} productos`);
+    } catch (cause) {
+      console.error("[catalog-import] SEO de productos", cause);
+      if (!isMissingFunction(cause as { code?: string; message?: string })) {
+        registrarError(`Importación de catálogo: no se registró el SEO de los productos (${mensajeDeError(cause) ?? "error"})`);
+        toast.warning(guardados > 0
+          ? `El catálogo se importó y se conservó el SEO de ${guardados} productos, pero no el del resto. Reintentá la importación para completarlo.`
+          : "El catálogo se importó, pero no pudimos conservar el SEO de los productos.");
+      }
+    }
+  }
+
   async function deshacer(id: string) {
     const expectedOrg = orgId;
     if (!expectedOrg) return;
@@ -316,7 +340,7 @@ export default function ProductsExcelImport({ onClose, onImported, sesionInicial
         if (validContext(expectedOrg)) setStage(next);
       }
       if (!next.reconciled) throw new Error("La importación no terminó de reconciliarse. Reanudá los lotes pendientes.");
-      if (validContext(expectedOrg)) { setStep("done"); onImported(); toast.success("Catálogo importado y reconciliado"); await registrarRedirectsDeCategorias(next.id); await loadHistory(expectedOrg); }
+      if (validContext(expectedOrg)) { setStep("done"); onImported(); toast.success("Catálogo importado y reconciliado"); await registrarRedirectsDeCategorias(next.id); await registrarSeoImportado(next.id); await loadHistory(expectedOrg); }
     } catch (cause) { if (validContext(expectedOrg)) { onImported(); reportError(cause, "Este lote no pudo aplicarse. Los anteriores se conservan; reintentá para continuar sin duplicarlos."); } }
     finally { if (validContext(expectedOrg)) setBusy(false); }
   }

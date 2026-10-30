@@ -340,6 +340,13 @@ export default async function handler(req: Request): Promise<Response> {
       }
       const p = productResult.data[0];
       if (p) {
+        // Título y descripción para buscadores propios del producto (cargados
+        // a mano o traídos de Tiendanube/Shopify, 20261030000600). Si no hay o
+        // no responde, el armado de siempre.
+        const seo = /^[0-9a-f-]{36}$/i.test(ruta.productId)
+          ? await rpc<{ titulo?: string | null; descripcion?: string | null } | null>(
+            "get_store_product_seo", { p_slug: ruta.slug, p_product_id: ruta.productId })
+          : null;
         const price = precioDeCatalogo(p);
         const precio = price
           ? new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(price)
@@ -350,8 +357,8 @@ export default async function handler(req: Request): Promise<Response> {
           { href: productUrl, label: String(p.name) },
         ];
         return html(page({
-          title: `${p.name}${p.brand ? ` — ${p.brand}` : ""} | ${storeName}`,
-          description: [precio, p.description].filter(Boolean).join(" · ").slice(0, 200)
+          title: seo?.titulo || `${p.name}${p.brand ? ` — ${p.brand}` : ""} | ${storeName}`,
+          description: seo?.descripcion || [precio, p.description].filter(Boolean).join(" · ").slice(0, 200)
             || `Comprá ${p.name} en ${storeName}.`,
           url: productUrl,
           homeUrl,

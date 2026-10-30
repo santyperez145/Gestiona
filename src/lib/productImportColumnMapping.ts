@@ -38,6 +38,9 @@ const shopifyFields: Field[] = [
   field("published", "Publicado en tienda", ["Published on online store", "Published"], "Published"),
   field("weight", "Peso (gramos)", ["Weight value (grams)", "Variant Grams"], "Variant Grams"),
   field("inventory_tracker", "Seguimiento de inventario", ["Inventory tracker"], "Inventory tracker"),
+  // Se conservan en la ficha para buscadores (product_seo), no en el producto.
+  field("seo_title", "Título para buscadores (SEO)", ["SEO title", "SEO Title"], "SEO Title"),
+  field("seo_description", "Descripción para buscadores (SEO)", ["SEO description", "SEO Description"], "SEO Description"),
   ...options("shopify"),
 ];
 const tiendanubeFields: Field[] = [
@@ -59,6 +62,9 @@ const tiendanubeFields: Field[] = [
   field("height", "Alto (cm)", ["Alto"], "Alto"),
   field("width", "Ancho (cm)", ["Ancho"], "Ancho"),
   field("length", "Profundidad / largo (cm)", ["Profundidad", "Largo"], "Profundidad"),
+  // Se conservan en la ficha para buscadores (product_seo), no en el producto.
+  field("seo_title", "Título para buscadores (SEO)", ["Título para SEO", "Titulo para SEO"], "Título para SEO"),
+  field("seo_description", "Descripción para buscadores (SEO)", ["Descripción para SEO", "Descripcion para SEO"], "Descripción para SEO"),
   ...options("tiendanube"),
 ];
 const hasValue = (value: unknown) => value !== undefined && value !== null && String(value).trim() !== "";

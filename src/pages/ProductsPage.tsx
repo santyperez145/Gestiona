@@ -103,6 +103,7 @@ import {
 import { plural } from "@/lib/plural";
 import { daysSinceKnownDate } from "@/lib/dateFacts";
 import ProductPresentationsEditor from "@/components/products/ProductPresentationsEditor";
+import ProductSeoSection from "@/components/products/ProductSeoSection";
 import { camposDelRubro } from "@/lib/rubroCampos";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
@@ -3448,6 +3449,9 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       </div>
       {product?.id && orgId && (
         <ProductPresentationsEditor orgId={orgId} productId={product.id} unidad={unidadMedida} canEdit precioSuelto={salePrice} />
+      )}
+      {product?.id && (
+        <ProductSeoSection productId={product.id} nombre={name} descripcionProducto={description} />
       )}
       {/* Logística — peso y dimensiones para cotizar envíos */}
       <div>
