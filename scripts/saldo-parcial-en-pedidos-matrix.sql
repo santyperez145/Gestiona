@@ -21,6 +21,10 @@ BEGIN
   PERFORM public.ledger_plan_default(v_org);
   INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_cost, shipping_mode, pickup_enabled)
   VALUES (v_org, v_slug, 'ZZ Parcial', true, ARRAY['efectivo', 'transferencia'], 0, 'free', true) RETURNING id INTO v_store;
+  -- Cobrar por transferencia exige CBU o alias (trg_ecommerce_order_exige_pay).
+  INSERT INTO public.settings (org_id, user_id, bank_cbu, bank_alias, bank_holder)
+  VALUES (v_org, v_owner, '0000003100000000000012', 'ZZ.PARCIAL', 'ZZ SRL')
+  ON CONFLICT (org_id) DO UPDATE SET bank_cbu = EXCLUDED.bank_cbu, bank_alias = EXCLUDED.bank_alias, bank_holder = EXCLUDED.bank_holder;
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, stock) VALUES (v_org, v_owner, 'ZZ Campera', 1000, 20) RETURNING id INTO v_a;
   INSERT INTO public.customers (org_id, user_id, name, email) VALUES (v_org, v_owner, 'ZZ Compradora', v_email) RETURNING id INTO v_cli;
   INSERT INTO public.saldo_a_favor_movimientos (org_id, customer_id, customer_name, monto_ars, motivo, creado_por)
