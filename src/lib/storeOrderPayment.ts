@@ -45,8 +45,15 @@ export function canConfirmManualStorePayment(input: {
   payment_method?: string | null;
 }) {
   const status = input.payment_status ?? "";
+  // A cuenta corriente (20261023000600): el comercio aprueba el pedido
+  // pendiente y ahí nace la deuda del cliente.
+  if (esPedidoACuentaCorriente(input.payment_method)) return status === "pending";
   if (!(status === "pending" || status === "failed" || status === "partial")) return false;
   return esMedioPagoManualTienda(input.payment_method);
+}
+
+export function esPedidoACuentaCorriente(method: string | null | undefined) {
+  return String(method ?? "").toLowerCase().trim() === "cuenta_corriente";
 }
 
 /** CTA de cola (pendiente sin pago): no obliga a abrir el detalle. */
@@ -54,7 +61,8 @@ export function storeOrderManualPayActionLabel(input: {
   payment_status?: StoreOrderPaymentStatus | null;
   payment_method?: string | null;
 }) {
-  return canConfirmManualStorePayment(input) ? "Marcar cobrado" : "";
+  if (!canConfirmManualStorePayment(input)) return "";
+  return esPedidoACuentaCorriente(input.payment_method) ? "Aprobar a cuenta" : "Marcar cobrado";
 }
 
 /**

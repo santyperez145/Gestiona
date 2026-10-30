@@ -23,6 +23,7 @@ import {
 import {
   canConfirmManualStorePayment,
   canFulfillStoreOrder,
+  esPedidoACuentaCorriente,
   storeOrderPaymentLabel,
   storeOrderPaymentTone,
 } from "@/lib/storeOrderPayment";
@@ -253,7 +254,7 @@ export default function StoreOrderInspector({
                   {confirmingPaid
                     ? <Loader2 className="h-4 w-4 animate-spin" />
                     : <Banknote className="h-4 w-4" />}
-                  Marcar como cobrado
+                  {esPedidoACuentaCorriente(detail.order.payment_method) ? "Aprobar a cuenta corriente" : "Marcar como cobrado"}
                 </Button>
               )}
               {canShip && (

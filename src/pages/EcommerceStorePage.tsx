@@ -1,4 +1,5 @@
 import BusquedasSinResultado from "@/components/ecommerce/BusquedasSinResultado";
+import VentaMayoristaPanel from "@/components/ecommerce/VentaMayoristaPanel";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingColumn } from "@/lib/publicDataSource";
@@ -2143,6 +2144,8 @@ export default function EcommerceStorePage() {
               </p>
             )}
           </div>
+
+          {store?.id && orgId && <VentaMayoristaPanel storeId={store.id} orgId={orgId} />}
 
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
             <h3 className="font-semibold flex items-center gap-2"><Settings className="w-4 h-4 text-primary" />Configuración General</h3>

@@ -14,6 +14,7 @@ import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommer
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useHasPermission } from "@/lib/usePermissions";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { esPedidoACuentaCorriente } from "@/lib/storeOrderPayment";
 import type { StoreOrderQueuePage } from "@/lib/storeOrderQueuePage";
 import {
   findStoreOrderForInspect,
@@ -82,7 +83,28 @@ export default function StoreOrdersWorkspace({
     }, { replace: true });
   }, [setSearchParams]);
 
+  // Pedido mayorista a cuenta corriente: al aprobarlo nace la venta sin cobrar
+  // con la deuda del cliente, dentro de su límite de crédito.
+  const aprobarACuentaCorriente = async (order: { id: string; order_number: string }) => {
+    if (!(await ask({
+      title: "¿Aprobar a cuenta corriente?",
+      description: `El pedido ${order.order_number} pasa a la cuenta corriente del cliente: se registra la venta sin cobrar y su deuda, y se puede despachar.`,
+      confirmText: "Aprobar a cuenta",
+    }))) return;
+    setConfirmingPaid(true);
+    const { error } = await supabase.rpc("confirmar_pedido_cuenta_corriente" as never, { p_order_id: order.id } as never);
+    setConfirmingPaid(false);
+    if (error) {
+      console.error("confirmar_pedido_cuenta_corriente:", error);
+      toast.error(error.message || "No se pudo aprobar el pedido a cuenta corriente.");
+      return;
+    }
+    toast.success(`Pedido ${order.order_number} aprobado a cuenta corriente`);
+    await onReload();
+  };
+
   const confirmarPagoManual = async (order: { id: string; order_number: string; payment_method?: string | null }) => {
+    if (esPedidoACuentaCorriente(order.payment_method)) { await aprobarACuentaCorriente(order); return; }
     const medio = order.payment_method === "efectivo" ? "efectivo" : "transferencia";
     if (!(await ask({
       title: "¿Marcar como cobrado?",
