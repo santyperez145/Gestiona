@@ -1,5 +1,6 @@
 import { fechaLocal } from "@/lib/fechaAR";
 import CuentaMayorista from "./CuentaMayorista";
+import MisCotizaciones from "./MisCotizaciones";
 import { useSaldoTienda } from "./useSaldoTienda";
 import type { EstadoDevolucion } from "./StoreArrepentimiento";
 import { useEffect, useMemo, useState } from "react";
@@ -333,6 +334,8 @@ export default function StoreAccount() {
           </div>
         </section>
       )}
+
+      {store?.slug && <MisCotizaciones slug={store.slug} sesion={customer.id} />}
 
       <h2 className="font-semibold mb-3">Mis pedidos</h2>
 

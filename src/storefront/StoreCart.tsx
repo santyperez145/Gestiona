@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useStore } from "./storeContext";
+import PedirCotizacion from "./PedirCotizacion";
 import { sugerenciasParaElCarrito, TEXTO_MOTIVO } from "@/lib/crossSell";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import {
@@ -331,6 +332,7 @@ export default function StoreCart() {
             >
               Finalizar compra
             </Link>
+            <PedirCotizacion />
           </aside>
 
           <div

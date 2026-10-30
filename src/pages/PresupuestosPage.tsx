@@ -50,6 +50,8 @@ type Quote = {
   customer_id?: string | null;
   /** La venta de la caja que lo cobró (20261014000900). Vendido = congelado. */
   converted_at?: string | null;
+  /** «tienda»: lo pidió un comprador desde la tienda online (20261030000700). */
+  origen?: string | null;
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -643,6 +645,12 @@ export default function PresupuestosPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground font-mono">{q.quote_number}</span>
                     <StatusBadge status={q.status} />
+                    {q.origen === "tienda" && (
+                      <span className="text-[10px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5"
+                        title="Lo pidió un comprador desde la tienda online: revisá precios y mandale el link de pago">
+                        Pedido desde la tienda
+                      </span>
+                    )}
                     {isExpiringSoon && (
                       <span className="text-[10px] font-semibold text-yellow-400 bg-yellow-500/10 rounded-full px-2 py-0.5">
                         Vence en {daysUntilExpiry === 0 ? "hoy" : `${daysUntilExpiry}d`}

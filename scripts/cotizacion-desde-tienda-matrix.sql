@@ -23,7 +23,7 @@ BEGIN
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars) VALUES (v_org, v_owner, 'ZZ Oculto', 500) RETURNING id INTO v_b;
   INSERT INTO public.store_product_publications (store_id, product_id, org_id, visibility) VALUES (v_store, v_b, v_org, 'hidden');
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars) VALUES (v_org, v_owner, 'ZZ Pintura', 1200) RETURNING id INTO v_c;
-  INSERT INTO public.product_variants (product_id, variant_name, price_override) VALUES (v_c, 'Blanco 20 L', 1500) RETURNING id INTO v_var;
+  INSERT INTO public.product_variants (product_id, user_id, variant_name, price_override) VALUES (v_c, v_owner, 'Blanco 20 L', 1500) RETURNING id INTO v_var;
 
   -- 1
   PERFORM set_config('request.jwt.claims', '', true);
