@@ -55,6 +55,7 @@ export const MATRICES = {
   '20261030000100': 'scripts/portal-contador-matrix.sql',
   '20261030000200': 'scripts/cambios-y-saldo-online-matrix.sql',
   '20261030000300': 'scripts/deshacer-importacion-catalogo-matrix.sql',
+  '20261030000400': 'scripts/redirects-categorias-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

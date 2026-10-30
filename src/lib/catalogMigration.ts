@@ -45,7 +45,11 @@ export type CatalogMigrationParseResult = {
   imageCount: number;
   redirectCount: number;
   warnings: string[];
+  /** Rutas de categoría de la tienda vieja → categoría nueva (sólo Tiendanube). */
+  categoryRedirects?: CategoryRedirect[];
 };
+
+export type CategoryRedirect = { source_path: string; category: string };
 
 type RawRow = Record<string, unknown>;
 type IndexedRow = Record<string, unknown>;
@@ -379,6 +383,38 @@ function parseTiendanube(rows: IndexedRow[]): CatalogMigrationProduct[] {
   return products;
 }
 
+function slugCategoria(texto: string): string {
+  return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+}
+
+/**
+ * Tiendanube publica cada categoría en `/<categoría>` y las subcategorías en
+ * `/<padre>/<hija>`. Se redirige la categoría principal de cada producto (la
+ * que queda como su categoría en Nerqia) al catálogo filtrado; con
+ * subcategoría, también la ruta corta de la hija. La base valida y no pisa
+ * redirects existentes (`registrar_redirects_categorias`).
+ */
+export function redirectsDeCategoriasTiendanube(rows: IndexedRow[]): CategoryRedirect[] {
+  const vistos = new Map<string, string>();
+  for (const row of rows) {
+    const nombre = textValue(row, ["Nombre", "Título"]);
+    const crudo = textValue(row, ["Categorías", "Categorias", "Categoría"]);
+    if (!nombre || !crudo) continue;
+    const principal = crudo.split(",")[0].trim();
+    const niveles = principal.split(">").map(n => slugCategoria(n)).filter(Boolean);
+    if (niveles.length === 0) continue;
+    // La categoría conserva el texto del archivo («hombre > remeras»): viaja
+    // codificada para la URL del catálogo filtrado.
+    const categoria = encodeURIComponent(categoryValue(nombre, principal));
+    if (!categoria || categoria.length > 240) continue;
+    const rutas = [`/${niveles.join("/")}`];
+    if (niveles.length > 1) rutas.push(`/${niveles[niveles.length - 1]}`);
+    for (const ruta of rutas) if (niveles.length <= 4 && !vistos.has(ruta)) vistos.set(ruta, categoria);
+  }
+  return [...vistos].slice(0, 500).map(([source_path, category]) => ({ source_path, category }));
+}
+
 export function detectCatalogMigrationSource(rows: RawRow[], filename = ""): CatalogMigrationSource {
   const headers = new Set(rows.slice(0, 100).flatMap(row => Object.keys(row).map(normalizeImportHeader)));
   if ((headers.has("url handle") || headers.has("handle")) && headers.has("title")) return "shopify";
@@ -409,5 +445,6 @@ export function parseCatalogMigrationRows(rows: RawRow[], filename = ""): Catalo
   if (products.some(product => !product.external_key) && (source === "shopify" || source === "tiendanube")) {
     warnings.push("Hay productos sin identificador URL; podrán crearse, pero no conservarán identidad ni redirect de origen.");
   }
-  return { source, products, sourceRows: rows.length, variantCount, imageCount, redirectCount, warnings };
+  const categoryRedirects = source === "tiendanube" ? redirectsDeCategoriasTiendanube(indexed) : [];
+  return { source, products, sourceRows: rows.length, variantCount, imageCount, redirectCount, warnings, categoryRedirects };
 }
