@@ -35,6 +35,20 @@ END $$;
 COMMENT ON COLUMN public.ecommerce_stores.plazo_cambio_dias IS
   'Días desde el pedido para pedir un cambio desde la tienda. 0: la tienda no acepta cambios online.';
 
+-- Deriva: en producción el cliente del RMA es `customer_id` (core_retail_tables),
+-- pero una base reconstruida desde cero conserva el `client_id` de
+-- returns_portal (su CREATE TABLE IF NOT EXISTS gana). Se alinea con producción.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'return_requests' AND column_name = 'client_id')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'return_requests' AND column_name = 'customer_id') THEN
+    ALTER TABLE public.return_requests RENAME COLUMN client_id TO customer_id;
+  END IF;
+END $$;
+ALTER TABLE public.return_requests ADD COLUMN IF NOT EXISTS customer_id uuid REFERENCES public.customers(id) ON DELETE SET NULL;
+
 ALTER TABLE public.return_requests ADD COLUMN IF NOT EXISTS cambio_por text;
 ALTER TABLE public.return_requests DROP CONSTRAINT IF EXISTS return_requests_tipo_chk;
 ALTER TABLE public.return_requests ADD CONSTRAINT return_requests_tipo_chk
