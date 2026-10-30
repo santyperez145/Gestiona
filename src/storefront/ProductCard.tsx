@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import PrecioMayorista, { PrecioReservado, usePrecioReservado } from "./PrecioMayorista";
 import { useStore, type StoreProduct } from "./storeContext";
 import { Stars } from "./ProductReviews";
 import { useWishlist } from "./wishlist";
@@ -17,6 +18,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
   const { has, toggle } = useWishlist();
   const deseado = has(p.id);
   const precioProducto = priceOf(p);
+  const precioReservado = usePrecioReservado();
   const resumenVariantes = resumenVariantesParaCard(variantes, precioProducto);
   const price = resumenVariantes.precio;
   const list = Number(p.sale_price_ars);
@@ -103,14 +105,19 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         )}
 
         <div className="mt-2.5 flex items-baseline gap-2" aria-live="polite">
-          <span className="storefront-product-card__price text-base text-[1.08rem] font-bold tracking-tight">
-            {resumenVariantes.desde && <span className="mr-1 text-[11px] font-medium opacity-70">Desde</span>}
-            {fmt(price)}
-          </span>
-          {off > 0 && (
-            <span className="text-xs line-through" style={{ color: "hsl(var(--st-muted))" }}>{fmt(list)}</span>
+          {precioReservado ? <PrecioReservado /> : (
+            <>
+              <span className="storefront-product-card__price text-base text-[1.08rem] font-bold tracking-tight">
+                {resumenVariantes.desde && <span className="mr-1 text-[11px] font-medium opacity-70">Desde</span>}
+                {fmt(price)}
+              </span>
+              {off > 0 && (
+                <span className="text-xs line-through" style={{ color: "hsl(var(--st-muted))" }}>{fmt(list)}</span>
+              )}
+            </>
           )}
         </div>
+        <PrecioMayorista productId={p.id} />
 
         {!sinStock ? (
           <div className="mt-3.5 space-y-2">

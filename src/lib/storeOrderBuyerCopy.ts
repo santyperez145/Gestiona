@@ -26,6 +26,9 @@ export function avisoCheckoutMedioPago(opts: {
       ? "Al confirmar vas a ver los datos para transferir. Cuando acredite, te avisamos para retirar."
       : "Al confirmar vas a ver los datos para transferir. Cuando acredite, preparamos el envío.";
   }
+  if (m === "cuenta_corriente") {
+    return "El comercio aprueba el pedido y lo carga a tu cuenta corriente, dentro de tu crédito.";
+  }
   if (m === "efectivo") {
     return opts.esRetiro
       ? "Pagás en efectivo al retirar el pedido."
@@ -41,6 +44,7 @@ export function etiquetaMedioCheckout(metodo: string, esRetiro: boolean): string
   if (esMedioGestionaPay(m)) return "Nerqia Pay";
   if (m === "transferencia") return "Transferencia bancaria";
   if (m === "efectivo") return esRetiro ? "Efectivo al retirar" : "Efectivo al recibir";
+  if (m === "cuenta_corriente") return "A cuenta corriente";
   return metodo;
 }
 

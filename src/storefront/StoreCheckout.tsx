@@ -53,14 +53,18 @@ export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
   const {
     store, products, catalogoParcial, cart, subtotal, promo2x, shippingCost, fmt,
-    clearCart, rememberCartEmail, cartToken, visitToken, basePath: base, pages,
+    clearCart, rememberCartEmail, cartToken, visitToken, basePath: base, pages, mayorista,
   } = useStore();
   // Sólo se enlaza la política de privacidad si la tienda la publicó.
   const tienePrivacidad = (pages ?? []).some(pg => pg.slug === "politica-de-privacidad");
   const navigate = useNavigate();
 
   const { customer, signUp } = useStoreAuth();
-  const metodos = mediosDePagoOfrecibles(store?.payment_methods);
+  // Venta mayorista (20261023000600): la cuenta corriente no está en la lista
+  // pública de medios; se le ofrece sólo al comprador aprobado y habilitado.
+  const mayoristaAprobado = mayorista?.comprador?.estado === "aprobado";
+  const conCuentaCorriente = mayoristaAprobado && !!mayorista?.comprador?.cuenta_corriente;
+  const metodos = [...mediosDePagoOfrecibles(store?.payment_methods), ...(conCuentaCorriente ? ["cuenta_corriente"] : [])];
   const [form, setForm] = useState({
     nombre: "", email: "", telefono: "",
     calle: "", ciudad: "", provincia: "", cp: "", notas: "",
@@ -619,7 +623,20 @@ export default function StoreCheckout() {
   const totalComprador = envioPendiente
     ? `${fmt(Math.max(0, baseMercaderia - descuentoPago))} + envío`
     : fmt(totalFinal);
-  const accionDeshabilitada = enviando || cotizando || !!entrega.bloqueo || metodos.length === 0;
+  // Lo mismo que exige la base al crear el pedido, avisado antes de intentarlo.
+  const minimoMayorista = mayoristaAprobado ? Number(mayorista?.minimo ?? 0) : 0;
+  const faltaParaMinimo = minimoMayorista > 0 ? Math.max(0, minimoMayorista - subtotal) : 0;
+  const soloMayoristas = mayorista?.modo === "exclusivo" && !mayoristaAprobado;
+  const creditoDisponible = mayorista?.comprador?.credito_disponible ?? null;
+  const superaCredito = form.metodo === "cuenta_corriente" && creditoDisponible != null && totalFinal > creditoDisponible;
+  const bloqueoMayorista = soloMayoristas
+    ? "Esta tienda vende sólo a clientes mayoristas aprobados. Ingresá con tu cuenta o pedí el alta en Mi cuenta."
+    : faltaParaMinimo > 0
+      ? `La compra mínima mayorista es de ${fmt(minimoMayorista)}: te faltan ${fmt(faltaParaMinimo)}.`
+      : superaCredito
+        ? `El pedido supera tu crédito disponible (${fmt(creditoDisponible ?? 0)}). Elegí otro medio o sacá algo del carrito.`
+        : null;
+  const accionDeshabilitada = enviando || cotizando || !!entrega.bloqueo || metodos.length === 0 || !!bloqueoMayorista;
   const actionStyle = {
     background: accionDeshabilitada ? "hsl(var(--st-surface))" : "hsl(var(--st-accent))",
     color: accionDeshabilitada ? "hsl(var(--st-text))" : "hsl(var(--st-accent-fg))",
@@ -907,6 +924,12 @@ export default function StoreCheckout() {
             {avisoPago ? (
               <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>{avisoPago}</p>
             ) : null}
+            {form.metodo === "cuenta_corriente" && creditoDisponible != null && (
+              <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>Crédito disponible: {fmt(creditoDisponible)}.</p>
+            )}
+            {bloqueoMayorista && (
+              <p role="alert" className="text-sm mt-3 px-3 py-2.5 border" style={{ ...inputStyle, borderColor: "hsl(var(--st-accent))" }}>{bloqueoMayorista}</p>
+            )}
               </>
             )}
           </section>

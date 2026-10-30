@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import PrecioMayorista, { PrecioReservado, usePrecioReservado } from "./PrecioMayorista";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import {
@@ -38,6 +39,7 @@ export default function StoreProduct() {
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   const { productId } = useParams<{ productId: string }>();
   const { store, products, catalogoParcial, perfumes, variantsByProduct, priceOf, fmt, addToCart, basePath: base } = useStore();
+  const precioReservado = usePrecioReservado();
 
   // El mejor descuento por medio de pago que ofrece la tienda, o null.
   const descuentoPago = mejorDescuento(store?.payment_methods ?? null, store?.payment_discounts ?? null);
@@ -299,7 +301,8 @@ export default function StoreProduct() {
             {p.content_ml ? <span>· {p.content_ml} ml</span> : null}
           </div>
 
-          <div className="mt-5 flex items-baseline gap-3 flex-wrap">
+          {precioReservado && <div className="mt-5"><PrecioReservado grande /></div>}
+          <div className={precioReservado ? "hidden" : "mt-5 flex items-baseline gap-3 flex-wrap"}>
             <span className="storefront-pdp__price text-3xl sm:text-[2.15rem] font-bold tracking-tight">{fmt(price)}</span>
             {off > 0 && (
               <>

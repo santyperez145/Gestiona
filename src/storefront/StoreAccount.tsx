@@ -1,4 +1,5 @@
 import { fechaLocal } from "@/lib/fechaAR";
+import CuentaMayorista from "./CuentaMayorista";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useWishlist } from "./wishlist";
@@ -311,6 +312,8 @@ export default function StoreAccount() {
           <LogOut className="w-3.5 h-3.5" /> Cerrar sesión
         </button>
       </div>
+
+      {store?.slug && <CuentaMayorista slug={store.slug} />}
 
       <h2 className="font-semibold mb-3">Mis pedidos</h2>
 

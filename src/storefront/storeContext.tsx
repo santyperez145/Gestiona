@@ -38,6 +38,7 @@ import {
 import { storeVisitAttribution, storeVisitToken } from "@/lib/storeVisitAttribution";
 import { useStoreAuth } from "./storeAuth";
 import { retryAbortableRead } from "@/lib/transientRead";
+import { isMissingFunction } from "@/lib/publicDataSource";
 
 export const STORE_READ_RETRY_DELAYS_MS = [300, 1_000, 2_500];
 export const STORE_AUTO_RELOAD_DELAYS_MS = [5_000, 15_000];
@@ -160,9 +161,30 @@ export interface CartLine {
 
 export type CartSyncStatus = "loading" | "syncing" | "synced" | "local" | "error";
 
+/** Venta mayorista de la tienda y estado del comprador (`get_store_mayorista`). */
+export interface InfoMayorista {
+  modo: "off" | "mixto" | "exclusivo";
+  minimo?: number;
+  comprador?: {
+    estado: "ninguno" | "pendiente" | "aprobado" | "rechazado";
+    motivo: string | null;
+    razon_social: string | null;
+    lista: string | null;
+    cuenta_corriente: boolean;
+    /** null: sin límite. */
+    credito_disponible: number | null;
+  } | null;
+}
+export interface TramoMayorista { desde: number; precio: number }
+
 interface Ctx {
   /** Vacío en slug.nerqia.app; /tienda/:slug en el host compartido. */
   basePath: string;
+  /** Venta mayorista: el modo de la tienda y el estado del comprador. */
+  mayorista: InfoMayorista | null;
+  /** Precio del comprador aprobado por producto, con sus tramos por cantidad. */
+  tramosMayoristas: Record<string, TramoMayorista[]>;
+  recargarMayorista: () => void;
   loading: boolean;
   /** Se muestra la primera página; el catálogo entero todavía está llegando. */
   catalogoParcial: boolean;
@@ -278,6 +300,8 @@ export function StoreProvider({
   const [reloadTick, setReloadTick] = useState(0);
   const autoReintentosRef = useRef(0);
   const [cart, setCart] = useState<CartLine[]>([]);
+  // El carrito tal como se guarda; el que ve el comprador sale del memo de abajo.
+  const cartGuardado = cart;
   const [cartRevealTick, setCartRevealTick] = useState(0);
   const [cartToken, setCartToken] = useState("");
   const [visitToken, setVisitToken] = useState("");
@@ -583,6 +607,70 @@ export function StoreProvider({
     [],
   );
 
+  // ── Venta mayorista (20261023000600) ─────────────────────────────────
+  // El comprador aprobado paga su lista: la base cotiza cada renglón del
+  // carrito con la misma resolve_store_line del checkout, y el carrito que
+  // ve usa ese precio. El catálogo público sigue siendo minorista.
+  const [mayorista, setMayorista] = useState<InfoMayorista | null>(null);
+  const [tramosMayoristas, setTramosMayoristas] = useState<Record<string, TramoMayorista[]>>({});
+  const [cotizados, setCotizados] = useState<Record<string, number>>({});
+  const [mayoristaTick, setMayoristaTick] = useState(0);
+  const recargarMayorista = useCallback(() => setMayoristaTick(t => t + 1), []);
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange(() => setMayoristaTick(t => t + 1));
+    return () => data.subscription.unsubscribe();
+  }, []);
+  useEffect(() => {
+    if (!slug || previewMode) return;
+    let vigente = true;
+    void (async () => {
+      const { data, error } = await supabase.rpc("get_store_mayorista" as never, { p_slug: slug } as never);
+      if (!vigente) return;
+      if (error) {
+        if (!isMissingFunction(error)) console.error("[tienda] venta mayorista", error);
+        setMayorista(null);
+        return;
+      }
+      setMayorista((data as unknown as InfoMayorista) ?? null);
+    })();
+    return () => { vigente = false; };
+  }, [slug, previewMode, mayoristaTick]);
+  const mayoristaAprobado = mayorista?.comprador?.estado === "aprobado";
+  useEffect(() => {
+    if (!mayoristaAprobado || !slug || products.length === 0) { setTramosMayoristas({}); return; }
+    let vigente = true;
+    void (async () => {
+      const { data, error } = await supabase.rpc("get_store_precios_mayoristas" as never,
+        { p_slug: slug, p_product_ids: products.slice(0, 300).map(pr => pr.id) } as never);
+      if (!vigente) return;
+      if (error) { console.error("[tienda] precios mayoristas", error); return; }
+      const porProducto: Record<string, TramoMayorista[]> = {};
+      for (const fila of (data ?? []) as unknown as { product_id: string; tramos: TramoMayorista[] }[]) porProducto[fila.product_id] = fila.tramos;
+      setTramosMayoristas(porProducto);
+    })();
+    return () => { vigente = false; };
+  }, [mayoristaAprobado, slug, products]);
+  useEffect(() => {
+    if (!mayoristaAprobado || !slug || cart.length === 0) { setCotizados({}); return; }
+    let vigente = true;
+    const espera = window.setTimeout(() => {
+      void (async () => {
+        const { data, error } = await supabase.rpc("cotizar_carrito_mayorista" as never, {
+          p_slug: slug,
+          p_items: cart.map(l => ({ product_id: l.productId, variant_id: l.variantId ?? null, quantity: l.qty })),
+        } as never);
+        if (!vigente) return;
+        if (error) { console.error("[tienda] cotización mayorista", error); return; }
+        const precios: Record<string, number> = {};
+        for (const r of (data ?? []) as unknown as { product_id: string; variant_id: string | null; ok: boolean; unit_price: number }[]) {
+          if (r.ok && Number(r.unit_price) > 0) precios[r.variant_id ? `${r.product_id}::${r.variant_id}` : r.product_id] = Number(r.unit_price);
+        }
+        setCotizados(precios);
+      })();
+    }, 300);
+    return () => { vigente = false; window.clearTimeout(espera); };
+  }, [mayoristaAprobado, slug, cart]);
+
   // El precio que ve el comprador: el menor entre la oferta manual y la mejor
   // promocion. Vive en `precioDeCatalogo` para que el JSON-LD del borde
   // declare el mismo número que cobra `resolve_store_line`.
@@ -753,6 +841,13 @@ export function StoreProvider({
     }).format(n), [store?.currency]);
 
   const value = useMemo<Ctx>(() => {
+    // Con el precio que cotizó la base para el comprador mayorista.
+    const cart = mayoristaAprobado
+      ? cartGuardado.map(l => {
+        const precio = cotizados[l.variantId ? `${l.productId}::${l.variantId}` : l.productId];
+        return precio != null ? { ...l, price: precio } : l;
+      })
+      : cartGuardado;
     const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
 
     // El servidor recalcula esto en `create_store_order`; acá se muestra para
@@ -785,7 +880,7 @@ export function StoreProvider({
     const shippingLabel = cartShippingCellText(ship, fmt);
 
     return {
-      basePath,
+      basePath, mayorista, tramosMayoristas, recargarMayorista,
       loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
       addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf,
       cartSyncStatus, cartSyncNotice, cartToken, visitToken,
@@ -803,7 +898,7 @@ export function StoreProvider({
         : null,
       priceOf, fmt,
     };
-  }, [basePath, loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, setCartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
+  }, [basePath, mayorista, tramosMayoristas, recargarMayorista, mayoristaAprobado, cotizados, loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cartGuardado, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, setCartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
