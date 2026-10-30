@@ -73,12 +73,15 @@ BEGIN
   PERFORM set_config('gestiona.sale_transaction_id', '', true);
   INSERT INTO public.sales (org_id, user_id, product_name, quantity, unit_price_ars, total_ars, paid, payment_method)
   VALUES (v_org3, v_owner, 'ZZ Martillo', 1, 1210, 1210, true, 'efectivo') RETURNING id INTO v_sale;
-  -- Sin alícuota en la venta: el negocio todavía no tenía IVA configurado.
-  UPDATE public.settings SET tax_iva_percent = NULL WHERE org_id = v_org3;
+  -- Una venta vieja, de antes de que cada venta guardara su alícuota
+  -- (20261001000100): se reproduce sin el disparador que hoy la completa.
+  ALTER TABLE public.sales DISABLE TRIGGER trg_snapshot_sale_tax_rate;
   -- Cada venta es su propio ticket (como en el mostrador).
   PERFORM set_config('gestiona.sale_transaction_id', '', true);
   INSERT INTO public.sales (org_id, user_id, product_name, quantity, unit_price_ars, total_ars, paid, payment_method)
   VALUES (v_org3, v_owner, 'ZZ Clavos', 1, 100, 100, true, 'efectivo') RETURNING id INTO v_sale2;
+  ALTER TABLE public.sales ENABLE TRIGGER trg_snapshot_sale_tax_rate;
+  IF (SELECT fiscal_tax_rate FROM public.sales WHERE id = v_sale2) IS NOT NULL THEN RAISE EXCEPTION 'FALLA 3pre: la venta vieja tiene alícuota'; END IF;
   IF EXISTS (SELECT 1 FROM public.ledger_entries e WHERE e.referencia_tipo = 'venta' AND e.referencia_id IN (v_sale, v_sale2)) THEN
     RAISE EXCEPTION 'FALLA 3a: se asentó con un emisor desconocido';
   END IF;
