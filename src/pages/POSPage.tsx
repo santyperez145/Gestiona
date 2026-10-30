@@ -85,7 +85,7 @@ import { posPaymentDiscountPercent, posPriceForPayment } from "@/lib/posPaymentD
 import { PosQrCheckoutDialog } from "@/components/pos/PosQrCheckoutDialog";
 import CobroACuentaForm from "@/components/finance/CobroACuentaForm";
 import { COLUMNAS_CLIENTE_POS, type PosCustomer as ClienteDeCaja } from "@/components/pos/PosCustomerPicker";
-import { planDePresupuesto, type ItemDePresupuesto } from "@/lib/presupuestoACaja";
+import { comparacionConHoy, planDePresupuesto, precioDeHoy, type ItemDePresupuesto } from "@/lib/presupuestoACaja";
 import { devolverDesdeLaCaja } from "@/lib/devolucionRapida";
 import { deudorDelCliente, mensajeDeError, saldoAFavorDB, type Deudor } from "@/lib/cuentaCorriente";
 import {
@@ -2060,9 +2060,34 @@ export default function POSPage() {
         const v = linea.variante as { id: string; variant_name?: string; stock?: number; price_override?: number | null } | null;
         addToCart(linea.producto, v ? { id: v.id, name: v.variant_name ?? "", stock: Number(v.stock ?? 0), price: v.price_override || undefined } : undefined, linea.cantidad);
       }
-      // Precios congelados: los del presupuesto (con su descuento por renglón).
-      // La base igual valida el tope de descuento del cajero.
-      const precios = new Map(plan.lineas.map(l => [l.variante ? `${l.producto.id}__${l.variante.id}` : l.producto.id, l.precio]));
+      // Vencido y hoy más caro: con inflación, cobrarlo a precios viejos es
+      // perder plata sin enterarse. La caja muestra la diferencia y pregunta.
+      const vencido = !!presupuesto.valid_until && presupuesto.valid_until < hoyAR();
+      const fechaVencimiento = presupuesto.valid_until ? new Date(presupuesto.valid_until + "T12:00:00").toLocaleDateString("es-AR") : "";
+      const precioHoy = (l: (typeof plan.lineas)[number]) => precioDeHoy(
+        l.producto as { sale_price_ars?: number | null; discount_price_ars?: number | null },
+        l.variante as { price_override?: number | null } | null,
+        l.descuentoPct,
+      );
+      let aPreciosDeHoy = false;
+      if (vencido) {
+        const comparacion = comparacionConHoy(plan.lineas, precioHoy);
+        if (comparacion.hoy > comparacion.presupuestado) {
+          aPreciosDeHoy = await ask({
+            title: `El presupuesto ${presupuesto.quote_number} venció el ${fechaVencimiento}`,
+            description: `A precios de hoy son ${formatARS(comparacion.hoy)}: ${formatARS(comparacion.hoy - comparacion.presupuestado)} más que lo presupuestado (${formatARS(comparacion.presupuestado)}), en ${plural(comparacion.subieron, "producto que subió", "productos que subieron")}.`,
+            confirmText: "Cobrar a precios de hoy",
+            cancelText: "Respetar el presupuesto",
+          });
+        }
+      }
+      // Precios del presupuesto (con su descuento por renglón) o, si se eligió,
+      // los de hoy con el mismo descuento. La base igual valida el tope de
+      // descuento del cajero.
+      const precios = new Map(plan.lineas.map(l => [
+        l.variante ? `${l.producto.id}__${l.variante.id}` : l.producto.id,
+        aPreciosDeHoy ? (l.descuentoPct > 0 ? precioHoy(l) : 0) : l.precio,
+      ]));
       setCart(prev => prev.map(it => {
         const precio = precios.get(it.productId);
         return precio && precio > 0 ? { ...it, customPrice: precio } : it;
@@ -2084,9 +2109,10 @@ export default function POSPage() {
       }
       setPresupuestoCaja({ id: presupuesto.id, numero: presupuesto.quote_number });
 
-      const vencido = presupuesto.valid_until && presupuesto.valid_until < hoyAR();
       toast.success(`Presupuesto ${presupuesto.quote_number} en la caja`, {
-        description: vencido ? `Venció el ${new Date(presupuesto.valid_until + "T12:00:00").toLocaleDateString("es-AR")}: los precios son los del presupuesto.` : undefined,
+        description: vencido
+          ? `Venció el ${fechaVencimiento}: ${aPreciosDeHoy ? "se cobra a precios de hoy" : "los precios son los del presupuesto"}.`
+          : undefined,
       });
       if (plan.faltantes.length > 0) {
         toast.warning(`${plural(plan.faltantes.length, "ítem no se cargó", "ítems no se cargaron")}`, {

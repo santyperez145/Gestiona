@@ -21,8 +21,12 @@ export interface ProductoDeCaja {
 }
 
 export interface PlanDePresupuesto<P extends ProductoDeCaja, V extends { id: string } = { id: string }> {
-  /** Un renglón por producto y variante (si el presupuesto lo repite, se suman las cantidades). */
-  lineas: Array<{ producto: P; variante: V | null; cantidad: number; precio: number }>;
+  /**
+   * Un renglón por producto y variante (si el presupuesto lo repite, se suman
+   * las cantidades). `precio` es el del presupuesto ya descontado;
+   * `descuentoPct`, el descuento del renglón, para aplicarlo igual a precios de hoy.
+   */
+  lineas: Array<{ producto: P; variante: V | null; cantidad: number; precio: number; descuentoPct: number }>;
   /** Lo que no se cargó y por qué, para decírselo al cajero. */
   faltantes: Array<{ descripcion: string; motivo: string }>;
 }
@@ -42,7 +46,7 @@ export function planDePresupuesto<P extends ProductoDeCaja, V extends { id: stri
     porNombre.set(k, porNombre.has(k) ? null : p);
   }
 
-  const lineas = new Map<string, { producto: P; variante: V | null; cantidad: number; precio: number }>();
+  const lineas = new Map<string, { producto: P; variante: V | null; cantidad: number; precio: number; descuentoPct: number }>();
   const faltantes: PlanDePresupuesto<P, V>["faltantes"] = [];
   for (const item of items ?? []) {
     const descripcion = (item.description ?? "").trim() || "Ítem sin descripción";
@@ -71,7 +75,42 @@ export function planDePresupuesto<P extends ProductoDeCaja, V extends { id: stri
     const clave = variante ? `${producto.id}__${variante.id}` : producto.id;
     const previa = lineas.get(clave);
     if (previa) previa.cantidad += cantidad;
-    else lineas.set(clave, { producto, variante, cantidad, precio });
+    else lineas.set(clave, { producto, variante, cantidad, precio, descuentoPct: pct });
   }
   return { lineas: [...lineas.values()], faltantes };
+}
+
+/** Lo que vale hoy un renglón: el precio vigente con el mismo descuento que tenía en el presupuesto. */
+export function precioDeHoy(
+  producto: { sale_price_ars?: number | null; discount_price_ars?: number | null },
+  variante: { price_override?: number | null } | null,
+  descuentoPct: number,
+): number {
+  const override = Number(variante?.price_override) || 0;
+  const oferta = Number(producto.discount_price_ars) || 0;
+  const lista = override > 0 ? override : oferta > 0 ? oferta : Number(producto.sale_price_ars) || 0;
+  const pct = Math.min(100, Math.max(0, Number(descuentoPct) || 0));
+  return Math.round(Math.max(0, lista) * (1 - pct / 100) * 100) / 100;
+}
+
+/**
+ * Con inflación, un presupuesto vencido cobrado a sus precios es plata que se
+ * pierde. Esto compara el total presupuestado con el de hoy para que la caja
+ * pregunte en vez de cobrar el precio viejo sin avisar.
+ */
+export function comparacionConHoy<L extends { cantidad: number; precio: number }>(
+  lineas: L[],
+  hoy: (linea: L) => number,
+): { presupuestado: number; hoy: number; subieron: number } {
+  let presupuestado = 0;
+  let total = 0;
+  let subieron = 0;
+  for (const linea of lineas) {
+    const actual = hoy(linea);
+    presupuestado += linea.precio * linea.cantidad;
+    total += actual * linea.cantidad;
+    if (actual > linea.precio) subieron += 1;
+  }
+  const r = (n: number) => Math.round(n * 100) / 100;
+  return { presupuestado: r(presupuestado), hoy: r(total), subieron };
 }
