@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { controlesZ, informeDiarioElectronico, libroIvaDesdeZ, totalesZ, type CierreZ } from "@/lib/cierreZ";
+import { controlesZ, informeDiarioElectronico, libroIvaDesdeZ, libroIvaTiquesA, totalesZ, type CierreZ } from "@/lib/cierreZ";
 import { interpretarLecturaJornada, loteLecturaJornada, numeroDeZ } from "@/lib/fiscalPrinter/jornadaEpson";
 
 const z = (extra: Partial<CierreZ> = {}): CierreZ => ({
@@ -34,7 +34,8 @@ describe("cierre Z en el Libro IVA Digital", () => {
     const conA = z({ comprobantes: [{ tipo: 81, desde: 3, hasta: 4, cantidad: 2, total: 2420, alicuotas: [{ tasa: 21, neto: 2000, iva: 420 }] }] });
     const libro = libroIvaDesdeZ([z({ estado: "borrador" }), z({ origen: "electronico" }), conA]);
     expect(libro.cbte).toHaveLength(0);
-    expect(libro.avisos[0]).toMatch(/Tique-Factura A del 3 al 4 va uno por uno/);
+    // Los A salen de los tiques registrados (libroIvaTiquesA), no del resumen.
+    expect(libro.avisos).toEqual([]);
   });
 
   it("los controles avisan lo que no cierra antes de guardar", () => {
@@ -98,5 +99,41 @@ describe("jornada del controlador Epson", () => {
     expect(loteLecturaJornada([82]).every(c => c["ignore error"])).toBe(true);
     expect(numeroDeZ([ok(["00041"])])).toBe(41);
     expect(numeroDeZ([{ "return code": "0101" }])).toBeNull();
+  });
+});
+
+describe("Tique-Factura A del controlador, uno por uno", () => {
+  const zConA = z({ comprobantes: [{ tipo: 81, desde: 3, hasta: 5, cantidad: 3, total: 3630, alicuotas: [{ tasa: 21, neto: 3000, iva: 630 }] }] });
+  const dia = (iso: string) => iso.slice(0, 10);
+
+  it("cada tique A es un renglón con su CUIT, el punto de venta del Z y el IVA de sus renglones", () => {
+    const libro = libroIvaTiquesA([
+      { numero: "00000003", emitido: "2026-10-23T14:00:00Z", total: 1210, lineas: [{ total: 1210, tasa: 21 }], cuit: "30-71234567-1", nombre: "ZZ Obra Norte SA" },
+      { numero: 4, emitido: "2026-10-23T15:00:00Z", total: 1315, lineas: [{ total: 1210, tasa: 21 }, { total: 105, tasa: 10.5 }], cuit: "30712345671", nombre: "ZZ Obra Norte SA" },
+    ], [zConA], dia);
+    expect(libro.cbte).toHaveLength(2);
+    const [primero] = libro.cbte;
+    expect(primero).toHaveLength(266 + 2);
+    expect(primero.slice(8, 11)).toBe("081");
+    expect(primero.slice(11, 16)).toBe("00002");
+    expect(primero.slice(16, 36)).toBe("00000000000000000003");
+    expect(primero.slice(56, 58)).toBe("80");
+    expect(primero.slice(58, 78)).toBe("00000000030712345671");
+    expect(libro.alicuotas).toHaveLength(3);
+    expect(libro.resumen.porAlicuota).toEqual([{ tasa: 10.5, neto: 95.02, iva: 9.98 }, { tasa: 21, neto: 2000, iva: 420 }]);
+    // El Z informa 3 y la caja registró 2.
+    expect(libro.avisos).toEqual([expect.stringMatching(/Z 41: informa 3 Tique-Factura A y la caja registró 2/)]);
+  });
+
+  it("sin Z que lo incluya o sin CUIT no entra, y se avisa", () => {
+    const libro = libroIvaTiquesA([
+      { numero: 99, emitido: "2026-10-23T14:00:00Z", total: 121, lineas: [{ total: 121, tasa: 21 }], cuit: "30712345671" },
+      { numero: 3, emitido: "2026-10-23T14:00:00Z", total: 121, lineas: [{ total: 121, tasa: 21 }], cuit: null },
+    ], [zConA], dia);
+    expect(libro.cbte).toHaveLength(0);
+    expect(libro.avisos).toEqual(expect.arrayContaining([
+      expect.stringMatching(/Tique-Factura A 99: ningún cierre Z confirmado lo incluye/),
+      expect.stringMatching(/Tique-Factura A 3: el cliente no tiene CUIT/),
+    ]));
   });
 });

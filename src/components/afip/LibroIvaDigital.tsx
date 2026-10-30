@@ -11,10 +11,10 @@ import { AlertTriangle, BookOpen, Download, FileSpreadsheet, Loader2, RefreshCw 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingColumn, isMissingRelation } from "@/lib/publicDataSource";
-import { libroIvaDesdeZ, NOMBRE_TIPO_Z, ORIGEN_ELECTRONICO, type CierreZ } from "@/lib/cierreZ";
+import { libroIvaDesdeZ, libroIvaTiquesA, NOMBRE_TIPO_Z, ORIGEN_ELECTRONICO, type CierreZ, type TiqueA } from "@/lib/cierreZ";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mesAR } from "@/lib/fechaAR";
+import { diaAR, mesAR } from "@/lib/fechaAR";
 import { libroIvaVentas, periodoAPresentar, rangoDelPeriodo, type ComprobanteVenta } from "@/lib/libroIvaVentas";
 import { posicionIva, type ComprobanteCompra, type LibroIvaCompras } from "@/lib/libroIvaCompras";
 import { hojaPosicion, hojaRetenciones, subdiarioCompras, subdiarioVentas, totalesDeRetenciones, type RetencionSufrida } from "@/lib/subdiarioIva";
@@ -131,10 +131,16 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
   // Cierres Z del controlador (20261023000700): los tiques entran al libro
   // como venta global diaria. Sin la migración no hay Z que sumar; un error de
   // lectura no se calla: el libro quedaría incompleto.
-  const [cierres, setCierres] = useState<{ estado: "cargando" | "listo" | "error"; confirmados: CierreZ[]; borradores: number }>({ estado: "cargando", confirmados: [], borradores: 0 });
+  // Los Tique-Factura A van uno por uno: salen de los tiques que registró la
+  // caja (fiscal_controller_documents) con los renglones de su venta.
+  const [cierres, setCierres] = useState<{ estado: "cargando" | "listo" | "error"; confirmados: CierreZ[]; borradores: number; tiquesA: TiqueA[] }>({ estado: "cargando", confirmados: [], borradores: 0, tiquesA: [] });
   const leerCierres = useCallback(async (signal: { cancelado: boolean }) => {
     if (!orgId || !/^\d{4}-\d{2}$/.test(periodo)) return;
     setCierres(c => ({ ...c, estado: "cargando" }));
+    const fallar = (que: string, error: unknown) => {
+      console.error(`Libro IVA: no se pudieron leer ${que}`, error);
+      if (!signal.cancelado) setCierres({ estado: "error", confirmados: [], borradores: 0, tiquesA: [] });
+    };
     const { desde, hasta } = rangoDelPeriodo(periodo);
     const { data, error } = await supabase.from("cierres_z" as never)
       .select("id, origen, punto_venta, numero, fecha, estado, equipo, comprobantes, total, iva")
@@ -142,13 +148,58 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
       .order("fecha").order("numero");
     if (signal.cancelado) return;
     if (error) {
-      if (isMissingRelation(error)) { setCierres({ estado: "listo", confirmados: [], borradores: 0 }); return; }
-      console.error("Libro IVA: no se pudieron leer los cierres Z", error);
-      setCierres({ estado: "error", confirmados: [], borradores: 0 });
+      if (isMissingRelation(error)) { setCierres({ estado: "listo", confirmados: [], borradores: 0, tiquesA: [] }); return; }
+      fallar("los cierres Z", error);
       return;
     }
     const filas = (data ?? []) as unknown as CierreZ[];
-    setCierres({ estado: "listo", confirmados: filas.filter(z => z.estado === "confirmado"), borradores: filas.filter(z => z.estado !== "confirmado").length });
+    const confirmados = filas.filter(z => z.estado === "confirmado");
+    const borradores = filas.filter(z => z.estado !== "confirmado").length;
+
+    // Tique-Factura A del período (día argentino), sólo si hay Z que los traigan.
+    let tiquesA: TiqueA[] = [];
+    if (confirmados.some(z => z.comprobantes.some(c => c.tipo === 81))) {
+      const [anio, mes] = periodo.split("-").map(Number);
+      const siguiente = mes === 12 ? `${anio + 1}-01-01` : `${anio}-${String(mes + 1).padStart(2, "0")}-01`;
+      const docs = await supabase.from("fiscal_controller_documents" as never)
+        .select("sale_transaction_id, numero, total, emitted_at")
+        .eq("org_id", orgId).eq("estado", "emitido").eq("tipo", "A")
+        .gte("emitted_at", `${desde}T00:00:00-03:00`).lt("emitted_at", `${siguiente}T00:00:00-03:00`)
+        .order("emitted_at").range(0, 4999);
+      if (signal.cancelado) return;
+      if (docs.error) { fallar("los Tique-Factura A", docs.error); return; }
+      const lista = (docs.data ?? []) as { sale_transaction_id: string; numero: string; total: number; emitted_at: string }[];
+      if (lista.length) {
+        const [lineas, ajustes] = await Promise.all([
+          supabase.from("sales").select("sale_transaction_id, total_ars, fiscal_tax_rate, customer_id, products(tax_rate)")
+            .eq("org_id", orgId).in("sale_transaction_id", lista.map(d => d.sale_transaction_id)).range(0, 9999),
+          supabase.from("settings").select("tax_iva_percent").eq("org_id", orgId).maybeSingle(),
+        ]);
+        if (signal.cancelado) return;
+        if (lineas.error) { fallar("las ventas de los Tique-Factura A", lineas.error); return; }
+        type Linea = { sale_transaction_id: string; total_ars: number; fiscal_tax_rate: number | null; customer_id: string | null; products: { tax_rate: number | null } | null };
+        const ventas = (lineas.data ?? []) as unknown as Linea[];
+        const idsClientes = [...new Set(ventas.map(v => v.customer_id).filter((id): id is string => !!id))];
+        const clientes = idsClientes.length
+          ? await supabase.from("customers").select("id, name, legal_name, tax_id").in("id", idsClientes)
+          : { data: [], error: null };
+        if (signal.cancelado) return;
+        if (clientes.error) { fallar("los clientes de los Tique-Factura A", clientes.error); return; }
+        const porId = new Map(((clientes.data ?? []) as { id: string; name: string | null; legal_name: string | null; tax_id: string | null }[]).map(c => [c.id, c]));
+        // La misma alícuota con que se imprimió (src/lib/fiscalPrinter/service.ts).
+        const tasaGeneral = Number((ajustes.data as { tax_iva_percent?: number } | null)?.tax_iva_percent ?? 21);
+        tiquesA = lista.map(d => {
+          const propias = ventas.filter(v => v.sale_transaction_id === d.sale_transaction_id);
+          const cliente = porId.get(propias.find(v => v.customer_id)?.customer_id ?? "");
+          return {
+            numero: d.numero, emitido: d.emitted_at, total: Number(d.total),
+            lineas: propias.map(v => ({ total: Number(v.total_ars), tasa: Number(v.fiscal_tax_rate ?? v.products?.tax_rate ?? tasaGeneral) })),
+            cuit: cliente?.tax_id ?? null, nombre: cliente?.legal_name || cliente?.name || null,
+          };
+        });
+      }
+    }
+    setCierres({ estado: "listo", confirmados, borradores, tiquesA });
   }, [orgId, periodo]);
   useEffect(() => {
     const signal = { cancelado: false };
@@ -156,7 +207,26 @@ export default function LibroIvaDigital({ orgId, monotributo, canEdit }: { orgId
     return () => { signal.cancelado = true; };
   }, [leerCierres]);
 
-  const libroZ = useMemo(() => libroIvaDesdeZ(cierres.confirmados), [cierres.confirmados]);
+  // Lo del controlador: el resumen de cada Z y los Tique-Factura A uno por uno.
+  const libroZ = useMemo(() => {
+    const resumen = libroIvaDesdeZ(cierres.confirmados);
+    const tiques = libroIvaTiquesA(cierres.tiquesA, cierres.confirmados, diaAR);
+    const porTasa = new Map<number, { tasa: number; neto: number; iva: number }>();
+    for (const a of [...resumen.resumen.porAlicuota, ...tiques.resumen.porAlicuota]) {
+      const r = porTasa.get(a.tasa) ?? { tasa: a.tasa, neto: 0, iva: 0 };
+      porTasa.set(a.tasa, { tasa: a.tasa, neto: r.neto + a.neto, iva: r.iva + a.iva });
+    }
+    return {
+      cbte: [...resumen.cbte, ...tiques.cbte],
+      alicuotas: [...resumen.alicuotas, ...tiques.alicuotas],
+      avisos: [...resumen.avisos, ...tiques.avisos],
+      resumen: {
+        total: resumen.resumen.total + tiques.resumen.total,
+        debitoFiscal: resumen.resumen.debitoFiscal + tiques.resumen.debitoFiscal,
+        porAlicuota: [...porTasa.values()],
+      },
+    };
+  }, [cierres.confirmados, cierres.tiquesA]);
   const libro = useMemo(() => {
     if (lectura.estado !== "listo") return null;
     const base = libroIvaVentas(lectura.comprobantes);

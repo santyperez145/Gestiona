@@ -142,7 +142,11 @@ export function libroIvaDesdeZ(cierres: CierreZ[]): LibroIvaZ {
   for (const z of ordenados) {
     for (const c of [...z.comprobantes].sort((a, b) => a.tipo - b.tipo)) {
       if (TIPOS_INDIVIDUALES.has(c.tipo)) {
-        avisos.push(`Z ${z.numero} (${z.fecha}): ${NOMBRE_TIPO_Z[c.tipo] ?? c.tipo} del ${c.desde} al ${c.hasta} va uno por uno, no en el resumen del Z.`);
+        // Los Tique-Factura A salen uno por uno de los tiques registrados por
+        // la caja (libroIvaTiquesA); las notas A y los M, no: se avisan.
+        if (c.tipo !== 81) {
+          avisos.push(`Z ${z.numero} (${z.fecha}): ${NOMBRE_TIPO_Z[c.tipo] ?? c.tipo} del ${c.desde} al ${c.hasta} va uno por uno: cargalo en el libro a mano.`);
+        }
         continue;
       }
       const sinIva = TIPOS_C.has(c.tipo);
@@ -265,5 +269,101 @@ export function comprobanteDesdeRenglon(r: RenglonZ): ComprobanteZ {
     tipo: Number(r.tipo), desde, hasta,
     cantidad: r.cantidad.trim() === "" ? Math.max(hasta - desde + 1, 0) : Math.floor(num(r.cantidad)),
     total: num(r.total), exento: num(r.exento), no_gravado: num(r.noGravado), internos: num(r.internos), alicuotas,
+  };
+}
+
+/** Un Tique-Factura A emitido por el controlador, con lo que la caja vendió en él. */
+export interface TiqueA {
+  numero: string | number;
+  /** Fecha y hora de emisión (ISO). */
+  emitido: string;
+  total: number;
+  /** Renglones de la venta: importe final con IVA y su alícuota. */
+  lineas: { total: number; tasa: number }[];
+  cuit?: string | null;
+  nombre?: string | null;
+}
+
+/**
+ * Los Tique-Factura A van al Libro IVA uno por uno («registración de
+ * comprobantes que poseen discriminado el impuesto al valor agregado»). El
+ * número y el total los registró la caja al emitirlos; el IVA sale de los
+ * renglones de la venta con la misma alícuota que se imprimió; el punto de
+ * venta, del Z confirmado cuyo rango de tipo 81 los incluye.
+ */
+export function libroIvaTiquesA(tiques: TiqueA[], cierres: CierreZ[], diaDe: (iso: string) => string): LibroIvaZ {
+  const cbte: string[] = [];
+  const alicuotas: string[] = [];
+  const avisos: string[] = [];
+  const porTasa = new Map<number, AlicuotaResumen>();
+  let total = 0;
+  let debitoFiscal = 0;
+
+  const confirmados = cierres.filter(z => z.origen !== ORIGEN_ELECTRONICO && (z.estado ?? "confirmado") === "confirmado");
+  const zDelTique = (numero: number) =>
+    confirmados.find(z => z.comprobantes.some(c => c.tipo === 81 && numero >= c.desde && numero <= c.hasta));
+  const registradosPorZ = new Map<CierreZ, number>();
+
+  for (const t of [...tiques].sort((a, b) => Number(a.numero) - Number(b.numero))) {
+    const numero = Number(String(t.numero).replace(/\D/g, ""));
+    const z = numero ? zDelTique(numero) : undefined;
+    if (!z) {
+      avisos.push(`Tique-Factura A ${t.numero}: ningún cierre Z confirmado lo incluye; confirmá el Z de ese día para que entre al libro.`);
+      continue;
+    }
+    registradosPorZ.set(z, (registradosPorZ.get(z) ?? 0) + 1);
+    const cuit = String(t.cuit ?? "").replace(/\D/g, "");
+    if (cuit.length !== 11) {
+      avisos.push(`Tique-Factura A ${numero}: el cliente no tiene CUIT cargado; completalo en su ficha.`);
+      continue;
+    }
+    const grupos = new Map<number, { neto: number; iva: number }>();
+    for (const l of t.lineas) {
+      const tasa = Number(l.tasa);
+      const neto = redondear(Number(l.total) / (1 + tasa / 100));
+      const g = grupos.get(tasa) ?? { neto: 0, iva: 0 };
+      grupos.set(tasa, { neto: redondear(g.neto + neto), iva: redondear(g.iva + Number(l.total) - neto) });
+    }
+    const lista = [...grupos.entries()].sort((a, b) => a[0] - b[0]);
+    if (lista.some(([tasa]) => !CODIGO_ALICUOTA[tasa])) {
+      avisos.push(`Tique-Factura A ${numero}: tiene una alícuota que no existe en ARCA.`);
+      continue;
+    }
+    const soloTasaCero = lista.length > 0 && lista.every(([tasa]) => tasa === 0);
+    const puntoVenta = ceros(z.punto_venta, 5);
+    const nro = ceros(numero, 20);
+    cbte.push([
+      diaDe(t.emitido).replace(/-/g, ""), "081", puntoVenta, nro, nro,
+      "80", ceros(cuit, 20), texto(t.nombre || "SIN NOMBRE", 30),
+      importe(t.total), importe(0), importe(0), importe(0), importe(0), importe(0), importe(0), importe(0),
+      "PES", ceros(1_000_000, 10), String(lista.length), soloTasaCero ? "E" : " ", importe(0), "00000000",
+    ].join(""));
+    for (const [tasa, g] of lista) {
+      alicuotas.push(["081", puntoVenta, nro, importe(g.neto), CODIGO_ALICUOTA[tasa], importe(g.iva)].join(""));
+      const r = porTasa.get(tasa) ?? { tasa, neto: 0, iva: 0 };
+      porTasa.set(tasa, { tasa, neto: r.neto + g.neto, iva: r.iva + g.iva });
+      debitoFiscal += g.iva;
+    }
+    total += Number(t.total);
+  }
+
+  // El Z dice cuántos A se emitieron: si la caja registró otra cantidad, falta alguno.
+  for (const z of confirmados) {
+    const a = z.comprobantes.find(c => c.tipo === 81);
+    if (a && a.cantidad !== (registradosPorZ.get(z) ?? 0)) {
+      avisos.push(`Z ${z.numero}: informa ${a.cantidad} Tique-Factura A y la caja registró ${registradosPorZ.get(z) ?? 0}; revisá los que faltan antes de presentar.`);
+    }
+  }
+
+  return {
+    cbte: cbte.map(l => l + FIN_DE_LINEA),
+    alicuotas: alicuotas.map(l => l + FIN_DE_LINEA),
+    avisos,
+    resumen: {
+      total: redondear(total),
+      debitoFiscal: redondear(debitoFiscal),
+      porAlicuota: [...porTasa.values()].sort((a, b) => a.tasa - b.tasa)
+        .map(a => ({ tasa: a.tasa, neto: redondear(a.neto), iva: redondear(a.iva) })),
+    },
   };
 }
