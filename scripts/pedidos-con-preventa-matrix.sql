@@ -6,7 +6,7 @@
 DO $$
 DECLARE
   v_owner uuid; v_comp uuid; v_email text; v_org uuid; v_store uuid; v_p uuid; v_q uuid;
-  v_o1 uuid; v_o2 uuid; r jsonb; v_ok text := '';
+  v_o1 uuid; v_o2 uuid; v_n1 text; v_n2 text; r jsonb; v_ok text := '';
   v_slug text := 'zz-cola-prev-' || substr(md5(random()::text), 1, 8);
   v_envio jsonb := '{"provincia": "Buenos Aires"}'::jsonb;
 BEGIN
@@ -28,11 +28,15 @@ BEGIN
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_comp, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
+  -- La compradora no lee pedidos (RLS): se guardan los números y los ids se
+  -- buscan sin sesión.
   r := public.create_store_order(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_p, 'quantity', 1)), 'ZZ Compradora', v_email, NULL, v_envio, 'transferencia');
-  SELECT id INTO v_o1 FROM public.ecommerce_orders WHERE store_id = v_store AND order_number = r->>'order_number';
+  v_n1 := r->>'order_number';
   r := public.create_store_order(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_q, 'quantity', 1)), 'ZZ Compradora', v_email, NULL, v_envio, 'transferencia');
+  v_n2 := r->>'order_number';
   RESET ROLE;
-  SELECT id INTO v_o2 FROM public.ecommerce_orders WHERE store_id = v_store AND order_number = r->>'order_number';
+  SELECT id INTO v_o1 FROM public.ecommerce_orders WHERE store_id = v_store AND order_number = v_n1;
+  SELECT id INTO v_o2 FROM public.ecommerce_orders WHERE store_id = v_store AND order_number = v_n2;
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   PERFORM public.confirmar_pago_manual_tienda(v_o1, 'ZZ');
