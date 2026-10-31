@@ -113,3 +113,32 @@ test("presupuesto → caja → remito → factura → cobro, con la operación c
   // La fila del cobro (no el título del paso, que está siempre): un link con el monto cobrado.
   await expect(final.getByRole("link", { name: /Cobro\s+\$\s?1\.200,00/ })).toBeVisible({ timeout: 20_000 });
 });
+
+// Lo nuevo del 30/10, contra la base real (antes sólo tenía pruebas unitarias):
+// la preventa del producto (20261030001900; la semilla deja «ZZ Zócalo en
+// preventa» con cupo 5 y próximo ingreso en 20 días) y la velocidad de la
+// tienda, que el comercio lee de `store_vitales` bajo RLS.
+test("la preventa del producto y la velocidad de la tienda, contra la base real", async ({ page }) => {
+  test.setTimeout(120_000);
+
+  await page.goto("/productos");
+  await cerrarAvisos(page);
+  await page.getByPlaceholder("Buscar...").fill("Zócalo");
+  await page.getByRole("button", { name: "Editar ZZ Zócalo en preventa" }).click();
+  const editor = page.getByRole("dialog", { name: "Editar producto" });
+  await expect(editor.getByTestId("product-preventa-section")).toBeVisible({ timeout: 30_000 });
+  await expect(editor.getByText(/En preventa: se venden hasta 5 unidades sin stock, que llegan aprox\. el \d{2}\/\d{2}\./)).toBeVisible();
+  await expect(editor.getByLabel("Unidades en preventa")).toHaveValue("5");
+  await editor.getByRole("button", { name: "Cerrar" }).click();
+  const descartar = page.getByRole("alertdialog", { name: "¿Descartar los cambios del producto?" });
+  await descartar.waitFor({ state: "visible", timeout: 500 }).catch(() => undefined);
+  if (await descartar.isVisible()) await descartar.getByRole("button", { name: "Descartar cambios" }).click();
+  await expect(editor).toBeHidden();
+
+  // Los navegadores automatizados no se miden: sin visitas reales todavía.
+  await page.goto("/tienda-online");
+  await cerrarAvisos(page);
+  const velocidad = page.getByTestId("velocidad-de-tu-tienda");
+  await expect(velocidad).toBeVisible({ timeout: 30_000 });
+  await expect(velocidad.getByText(/Todavía no hay visitas medidas/)).toBeVisible();
+});
