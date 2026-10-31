@@ -25,8 +25,13 @@ export const SALDO_COMPRADOR = 50000;
 export const PRODUCTO_COMPRADOR = { name: "ZZ Cotizable mayorista", price: 10000, cost: 6000, stock: 1000 };
 /** Más caro que el saldo que le queda: paga una parte con saldo y el resto por transferencia. */
 export const PRODUCTO_COMPRADOR_CARO = { name: "ZZ Pedido grande", price: 60000, cost: 30000, stock: 100 };
-/** Sin stock y en preventa (20261030001900): se vende hasta el cupo y llega en 20 días. */
-export const PRODUCTO_PREVENTA = { name: "ZZ Consola en preventa", price: 25000, cost: 15000, stock: 0, cupo: 5 };
+/**
+ * Sin stock y en preventa (20261030001900): se vende hasta el cupo y llega en
+ * 20 días. El nombre se ordena después de las «ZZ Vitrina»: la preventa cuenta
+ * como «a la venta» y, si se ordenara antes, correría a la segunda página la
+ * única con variantes de la primera (tienda.spec.ts se salteaba 4 pruebas).
+ */
+export const PRODUCTO_PREVENTA = { name: "ZZ Zócalo en preventa", price: 25000, cost: 15000, stock: 0, cupo: 5 };
 
 /** Catálogo de prueba: nombres, precios y stock fijos para que los specs los busquen. */
 export const PRODUCTOS = [

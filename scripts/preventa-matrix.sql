@@ -102,12 +102,13 @@ BEGIN
   UPDATE public.products SET expected_restock_at = v_llega WHERE id = v_p;
   v_ok := v_ok || '4 ';
 
-  -- 5: una preventa con variantes no se lista.
+  -- 5: una preventa con variantes no se lista. Sin sesión: crear productos
+  --    pasa por el control del plan, que exige ser del negocio.
+  PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO public.products (org_id, user_id, name, sale_price_ars, stock, preventa_cupo, expected_restock_at)
   VALUES (v_org, v_owner, 'ZZ Remera', 300, 0, 10, v_llega) RETURNING id INTO v_v;
   INSERT INTO public.product_variants (org_id, user_id, product_id, variant_name, stock, active)
   VALUES (v_org, v_owner, v_v, 'ZZ talle M', 0, true);
-  PERFORM set_config('request.jwt.claims', '', true);
   SET LOCAL ROLE anon;
   IF (SELECT count(*) FROM public.get_store_preventas(v_slug)) <> 1
      OR (SELECT llega FROM public.get_store_preventas(v_slug) WHERE product_id = v_p) <> v_llega

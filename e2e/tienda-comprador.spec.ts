@@ -17,7 +17,7 @@ const EMAIL = process.env.E2E_BUYER_EMAIL ?? "";
 const PASSWORD = process.env.E2E_BUYER_PASSWORD ?? "";
 const PRODUCTO = "ZZ Cotizable mayorista";
 const PRODUCTO_CARO = "ZZ Pedido grande";
-const PRODUCTO_PREVENTA = "ZZ Consola en preventa";
+const PRODUCTO_PREVENTA = "ZZ Zócalo en preventa";
 const tienda = (path = "") => `/tienda/${SLUG}${path}`;
 
 test("el comprador ve su saldo, pide cotización, paga con saldo y pide un cambio", async ({ page }, testInfo) => {
