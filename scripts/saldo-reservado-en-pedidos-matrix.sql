@@ -151,7 +151,7 @@ BEGIN
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
   RESET ROLE;
   SELECT COALESCE(sum(monto_ars), 0) INTO v_saldo FROM public.saldo_a_favor_movimientos WHERE customer_id = v_cli;
-  IF v_saldo <> 500 OR NOT EXISTS (SELECT 1 FROM public.audit_logs WHERE org_id = v_org AND action = 'store_credit_returned' AND entity_id = v_o4) THEN
+  IF v_saldo <> 500 OR NOT EXISTS (SELECT 1 FROM public.audit_logs WHERE org_id = v_org AND action = 'store_credit_returned' AND entity_id = v_o4::text) THEN
     RAISE EXCEPTION 'FALLA 4f: saldo % o falta la auditoría', v_saldo;
   END IF;
   v_ok := v_ok || '4 ';

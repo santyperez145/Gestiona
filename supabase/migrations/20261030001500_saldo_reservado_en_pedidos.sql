@@ -129,7 +129,7 @@ BEGIN
     format('Devolución del saldo del pedido %s: contracargo', v_order.order_number));
   IF v_devuelto > 0 THEN
     INSERT INTO public.audit_logs (user_id, org_id, action, entity_type, entity_id, details)
-    VALUES (auth.uid(), v_order.org_id, 'store_credit_returned', 'ecommerce_order', v_order.id,
+    VALUES (auth.uid(), v_order.org_id, 'store_credit_returned', 'ecommerce_order', v_order.id::text,
             jsonb_build_object('monto', v_devuelto, 'motivo', 'contracargo', 'pedido', v_order.order_number));
   END IF;
   RETURN jsonb_build_object('ok', true, 'devuelto', v_devuelto);
