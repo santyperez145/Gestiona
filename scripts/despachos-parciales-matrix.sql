@@ -27,7 +27,7 @@ BEGIN
   PERFORM public.seed_default_permissions(v_org);
   PERFORM public.ledger_plan_default(v_org);
   INSERT INTO public.ecommerce_stores (org_id, slug, name, is_active, payment_methods, shipping_cost, shipping_mode, pickup_enabled)
-  VALUES (v_org, v_slug, 'ZZ Partes', true, ARRAY['transferencia'], 0, 'free', true) RETURNING id INTO v_store;
+  VALUES (v_org, v_slug, 'ZZ Partes', true, ARRAY['transferencia'], 0, 'free', false) RETURNING id INTO v_store;
   INSERT INTO public.settings (org_id, user_id, bank_cbu, bank_alias, bank_holder)
   VALUES (v_org, v_owner, '0000003100000000000012', 'ZZ.PARTES', 'ZZ SRL')
   ON CONFLICT (org_id) DO UPDATE SET bank_cbu = EXCLUDED.bank_cbu, bank_alias = EXCLUDED.bank_alias, bank_holder = EXCLUDED.bank_holder;
@@ -39,14 +39,14 @@ BEGIN
   SET LOCAL ROLE authenticated;
   r := public.create_store_order(v_slug, jsonb_build_array(
          jsonb_build_object('product_id', v_cable, 'quantity', 3), jsonb_build_object('product_id', v_consola, 'quantity', 2)),
-       'ZZ Compradora', v_email, NULL, v_envio, 'transferencia');
+       'ZZ Compradora', v_email, NULL, v_envio, 'transferencia', NULL, NULL, 'gratis');
   v_n1 := r->>'order_number';
   r := public.create_store_order(v_slug, jsonb_build_array(
          jsonb_build_object('product_id', v_cable, 'quantity', 1), jsonb_build_object('product_id', v_consola, 'quantity', 1)),
-       'ZZ Compradora', v_email, NULL, v_envio, 'transferencia');
+       'ZZ Compradora', v_email, NULL, v_envio, 'transferencia', NULL, NULL, 'gratis');
   v_n2 := r->>'order_number';
   r := public.create_store_order(v_slug, jsonb_build_array(jsonb_build_object('product_id', v_cable, 'quantity', 2)),
-       'ZZ Compradora', v_email, NULL, v_envio, 'transferencia');
+       'ZZ Compradora', v_email, NULL, v_envio, 'transferencia', NULL, NULL, 'gratis');
   v_n3 := r->>'order_number';
   RESET ROLE;
   SELECT id INTO v_o1 FROM public.ecommerce_orders WHERE store_id = v_store AND order_number = v_n1;

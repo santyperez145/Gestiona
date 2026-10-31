@@ -44,8 +44,18 @@ describe('identidad canónica de Nerqia', () => {
     expect(brand).toContain("BRAND_MARK_SRC = '/brand/nerqia-mark.png'");
     expect(component).toContain('`${BRAND_NAME} ${product}`');
     expect(component).toContain('aria-label={decorative ? undefined : label}');
-    expect(component).toContain('width="389"');
-    expect(component).toContain('height="389"');
+    // 2026-10-31: la interfaz usa el símbolo de 64 y 128 px (se muestra a 40
+    // como mucho); el original de 389 px queda para favicon y redes.
+    expect(component).toContain('width="128"');
+    expect(component).toContain('height="128"');
+    expect(component).toContain('srcSet={`${BRAND_MARK_SMALL_SRC} 64w, ${BRAND_MARK_MEDIUM_SRC} 128w`}');
+    for (const [archivo, lado] of [['public/brand/nerqia-mark-64.webp', 64], ['public/brand/nerqia-mark-128.webp', 128]] as const) {
+      const webp = readFileSync(resolve(process.cwd(), archivo));
+      // VP8X/VP8/VP8L guardan el tamaño en distintos lugares: alcanza con que sea WebP y no esté vacío.
+      expect(webp.subarray(0, 4).toString('ascii')).toBe('RIFF');
+      expect(webp.subarray(8, 12).toString('ascii')).toBe('WEBP');
+      expect(webp.length).toBeGreaterThan(lado * 10);
+    }
   });
 
   it('reemplaza marcas improvisadas en shells y accesos críticos', () => {

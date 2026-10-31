@@ -188,7 +188,9 @@ function StorefrontPreview() {
                 <span className="landing-storefront__cta">Comprar ahora <ArrowRight /></span>
               </div>
               <img
-                src="/landing/storefront-aurea.webp"
+                src="/landing/storefront-aurea-800.webp"
+                srcSet="/landing/storefront-aurea-480.webp 480w, /landing/storefront-aurea-800.webp 800w, /landing/storefront-aurea-1200.webp 1200w, /landing/storefront-aurea.webp 1600w"
+                sizes="(max-width: 900px) 92vw, 640px"
                 alt="Colección ilustrativa de objetos de diseño para una tienda online"
                 width="1600"
                 height="1067"

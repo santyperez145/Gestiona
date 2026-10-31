@@ -47,7 +47,8 @@ jobs:
           cp -r supabase/templates "$RUNNER_TEMP/vacio/supabase/"
           # Las funciones del repo, para que la app no reciba 503 al llamarlas.
           cp -r supabase/functions "$RUNNER_TEMP/vacio/supabase/"
-          npx supabase start --workdir "$RUNNER_TEMP/vacio" -x studio,imgproxy,logflare,vector,mailpit,supavisor
+          # Mailpit queda: el E2E del alta lee el mail de confirmación.
+          npx supabase start --workdir "$RUNNER_TEMP/vacio" -x studio,imgproxy,logflare,vector,supavisor
           npx supabase status --workdir "$RUNNER_TEMP/vacio" -o env > "$RUNNER_TEMP/supabase.env"
           # Las claves locales son públicas y fijas, pero igual no se imprimen.
           anon=$(grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=' "$RUNNER_TEMP/supabase.env" | head -1 | cut -d= -f2- | tr -d '"')
@@ -81,7 +82,7 @@ jobs:
             -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY \
             -e E2E_USER -e E2E_PASSWORD -e E2E_STORE_SLUG \
             mcr.microsoft.com/playwright:v1.59.1-noble \
-            npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos
+            npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos --project=alta
 
       # Sólo los specs de la tienda que leen la base real (exigirBackendReal):
       # los sintéticos interceptan *.supabase.co y corren en ci.yml.

@@ -547,7 +547,9 @@ export default function DeliveryTrackingPage() {
                     <td className="px-3 py-2 text-[color:var(--fg)]">
                       <div className="flex items-center gap-1.5">
                         <code className="text-xs font-mono bg-[color:var(--m1)] px-1.5 py-0.5 rounded">{d.tracking_code}</code>
-                        <button onClick={() => navigator.clipboard.writeText(d.tracking_code).then(() => toast.success("Código copiado"))}
+                        <button type="button" aria-label={`Copiar el código ${d.tracking_code}`} title="Copiar código"
+                          onClick={() => navigator.clipboard.writeText(d.tracking_code)
+                            .then(() => toast.success("Código copiado"), () => toast.error("No se pudo copiar: seleccioná el código y copialo a mano."))}
                           className="text-[color:var(--muted)] hover:text-[color:var(--foreground)]">
                           <Copy className="w-3 h-3" />
                         </button>

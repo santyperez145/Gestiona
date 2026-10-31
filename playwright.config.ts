@@ -60,14 +60,14 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts", "**/barrido-con-datos.spec.ts", "**/escala-catalogo.spec.ts"],
+      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts", "**/barrido-con-datos.spec.ts", "**/escala-catalogo.spec.ts", "**/alta-de-comercio.spec.ts"],
     },
     // El comprador argentino promedio entra desde el teléfono; los desbordes
     // de 375px son la clase de bug que sólo se ve ahí.
     {
       name: "mobile",
       use: { ...devices["Pixel 5"] },
-      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts", "**/barrido-con-datos.spec.ts", "**/escala-catalogo.spec.ts"],
+      testIgnore: ["**/panel.spec.ts", "**/circuito-gestion.spec.ts", "**/barrido-con-datos.spec.ts", "**/escala-catalogo.spec.ts", "**/alta-de-comercio.spec.ts"],
     },
 
     // El panel sí. La sesión se obtiene una vez y se reusa.
@@ -91,6 +91,13 @@ export default defineConfig({
       testMatch: "**/barrido-con-datos.spec.ts",
       dependencies: ["circuito"],
       use: { ...devices["Desktop Chrome"], storageState: ARCHIVO_SESION },
+    },
+    // El alta de un comercio nuevo, sin sesión previa: registro, mail de
+    // confirmación (Mailpit local) y login. Sólo contra la base local.
+    {
+      name: "alta",
+      testMatch: "**/alta-de-comercio.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
     },
     // Escala de Famatina (5.500 productos): un paso aparte del workflow, con
     // la semilla `scripts/semilla-escala-local.mjs` corrida antes.

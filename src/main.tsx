@@ -1,5 +1,20 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+// Fuentes servidas desde nuestro dominio (2026-10-31). El @import de Google
+// Fonts dentro de index.css encadenaba dos bloqueos del primer render (~0,8 s
+// en la landing, medido con Lighthouse) y dos dominios de terceros. Sólo el
+// subconjunto latino (incluye á, é, ñ, ¿, ¡) y los pesos que usa el diseño.
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/inter/latin-700.css";
+import "@fontsource/plus-jakarta-sans/latin-500.css";
+import "@fontsource/plus-jakarta-sans/latin-600.css";
+import "@fontsource/plus-jakarta-sans/latin-700.css";
+import "@fontsource/plus-jakarta-sans/latin-800.css";
+import "@fontsource/jetbrains-mono/latin-400.css";
+import "@fontsource/jetbrains-mono/latin-500.css";
+import "@fontsource/jetbrains-mono/latin-600.css";
 import "./index.css";
 import { initSentry } from "./lib/sentry";
 import { validateEnv } from "./lib/env";

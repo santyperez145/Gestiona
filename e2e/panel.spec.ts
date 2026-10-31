@@ -396,6 +396,10 @@ test.describe("tienda e-commerce", () => {
     if (!(await pagas.count())) {
       test.skip(true, "no hay órdenes pagas para despachar");
     }
+    // Se baja hasta la fila moviendo sólo la ventana: con pocos pedidos la
+    // tabla queda debajo del pliegue, y lo que se prueba es que la columna de
+    // acciones no quede afuera de costado (el scroll de la tabla no se toca).
+    await pagas.first().evaluate(el => window.scrollBy(0, el.getBoundingClientRect().top - 200));
     await expect(pagas.first()).toBeInViewport();
   });
 

@@ -10,6 +10,7 @@ import { ArrowLeft, ArrowRight, Check, CircleDollarSign, Mail, PackageCheck, Shi
 import BrandLogo from '@/components/shared/BrandLogo';
 import { authErrorForCustomer, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { googleHabilitado } from '@/lib/proveedoresDeAcceso';
 import {
   authRedirectTo,
   isNativeRuntime,
@@ -45,6 +46,13 @@ export default function AuthPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  // El botón de Google sólo aparece si el proveedor está habilitado en Auth.
+  const [conGoogle, setConGoogle] = useState(false);
+  useEffect(() => {
+    let vigente = true;
+    void googleHabilitado().then(si => { if (vigente) setConGoogle(si); });
+    return () => { vigente = false; };
+  }, []);
   const [role, setRole] = useState<AccountRole>(() =>
     searchParams.get('role') === 'creator' ? 'creator' : 'business');
   usePageTitle(mode === 'register'
@@ -263,11 +271,15 @@ export default function AuthPage() {
             </form>
           ) : (
             <>
-              <Button type="button" variant="outline" className="auth-google" onClick={handleGoogleLogin} disabled={loading}>
-                <span className="auth-google__g">G</span> Continuar con Google
-              </Button>
-              <p className="auth-provider-hint">También podés entrar de forma segura con tu email, contraseña o un código de un solo uso.</p>
-              <div className="auth-divider"><span>o con email</span></div>
+              {conGoogle && (
+                <>
+                  <Button type="button" variant="outline" className="auth-google" onClick={handleGoogleLogin} disabled={loading}>
+                    <span className="auth-google__g">G</span> Continuar con Google
+                  </Button>
+                  <p className="auth-provider-hint">También podés entrar de forma segura con tu email, contraseña o un código de un solo uso.</p>
+                  <div className="auth-divider"><span>o con email</span></div>
+                </>
+              )}
               <div className="auth-tabs" role="tablist" aria-label="Acceso">
                 <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'is-active' : ''} onClick={() => changeMode('login')}>Iniciar sesión</button>
                 <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'is-active' : ''} onClick={() => changeMode('register')}>Crear cuenta</button>
