@@ -29,9 +29,27 @@
 -- · `anular_compra` también deshace los gastos y se niega si alguno ya tiene
 --   pagos. Pasa a SECURITY DEFINER (con la misma guarda de rol) para poder
 --   borrar los gastos, que el navegador no puede tocar.
+-- · deriva: en una base armada desde cero `purchase_order_receipts` queda con
+--   la forma de 20260523000025 (20260802000002 la declara con IF NOT EXISTS y
+--   no la reemplaza) y le faltan las columnas que producción tiene y que usan
+--   `anular_compra`, su guardia y `receive_purchase_order`. Se agregan si
+--   faltan; en producción no cambia nada.
 -- Idempotente. Reversible: DROP de las tres funciones nuevas, de la tabla y de
 -- las dos columnas, y `anular_compra` de 20261014001600.
 BEGIN;
+
+ALTER TABLE public.purchase_order_receipts
+  ADD COLUMN IF NOT EXISTS order_item_id uuid REFERENCES public.purchase_order_items(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS purchase_id uuid REFERENCES public.purchases(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS quantity numeric,
+  ADD COLUMN IF NOT EXISTS received_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+DO $deriva$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'purchase_order_receipts' AND column_name = 'receipt_number') THEN
+    ALTER TABLE public.purchase_order_receipts ALTER COLUMN receipt_number DROP NOT NULL;
+  END IF;
+END $deriva$;
 
 CREATE TABLE IF NOT EXISTS public.compra_gastos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

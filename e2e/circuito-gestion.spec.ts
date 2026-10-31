@@ -142,3 +142,28 @@ test("la preventa del producto y la velocidad de la tienda, contra la base real"
   await expect(velocidad).toBeVisible({ timeout: 30_000 });
   await expect(velocidad.getByText(/Todavía no hay visitas medidas/)).toBeVisible();
 });
+
+test("los gastos de una compra importada forman el costo puesto, contra la base real", async ({ page }) => {
+  test.setTimeout(120_000);
+
+  // Semilla: 10 lámparas a USD 20 y 30 pantallas a USD 10, cotización 1.000
+  // ($500.000). Un flete de $40.000 por valor: $16.000 a las lámparas y
+  // $24.000 a las pantallas.
+  await page.goto("/compras");
+  await cerrarAvisos(page);
+  await page.getByTestId("fila-compra").filter({ hasText: "ZZ Fábrica de Shenzhen" }).first().click();
+  const detalle = page.getByRole("dialog", { name: /Compra ZZ-IMPO-0001/ });
+  const gastos = detalle.getByTestId("gastos-de-la-compra");
+  await expect(gastos.getByText(/Sin gastos cargados/)).toBeVisible({ timeout: 30_000 });
+
+  await gastos.getByRole("button", { name: "Agregar gasto" }).click();
+  await gastos.getByLabel("Monto sin IVA").fill("40000");
+  await gastos.getByTestId("formulario-gasto").getByRole("button", { name: "Agregar gasto" }).click();
+
+  await expect(gastos.getByText("Flete", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(gastos.getByTestId("total-gastos-de-la-compra")).toContainText("un 8% sobre lo comprado");
+  const puestos = detalle.getByTestId("costo-puesto");
+  await expect(puestos).toHaveCount(2);
+  await expect(detalle.getByRole("row", { name: /ZZ Lámpara importada/ }).getByTestId("costo-puesto")).toContainText("21.600");
+  await expect(detalle.getByRole("row", { name: /ZZ Pantalla importada/ }).getByTestId("costo-puesto")).toContainText("10.800");
+});

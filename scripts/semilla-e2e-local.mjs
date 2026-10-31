@@ -33,6 +33,20 @@ export const PRODUCTO_COMPRADOR_CARO = { name: "ZZ Pedido grande", price: 60000,
  */
 export const PRODUCTO_PREVENTA = { name: "ZZ Zócalo en preventa", price: 25000, cost: 15000, stock: 0, cupo: 5 };
 
+/**
+ * Compra importada en dólares (cotización 1.000): $200.000 de lámparas y
+ * $300.000 de pantallas. El circuito de gestión le carga el flete y mira el
+ * costo puesto.
+ */
+export const COMPRA_IMPORTADA = {
+  comprobante: "ZZ-IMPO-0001",
+  cotizacion: 1000,
+  productos: [
+    { name: "ZZ Lámpara importada", price: 45000, cantidad: 10, usd: 20 },
+    { name: "ZZ Pantalla importada", price: 22000, cantidad: 30, usd: 10 },
+  ],
+};
+
 /** Catálogo de prueba: nombres, precios y stock fijos para que los specs los busquen. */
 export const PRODUCTOS = [
   { name: "ZZ Tornillo 8x40", price: 120, cost: 60, stock: 500, sku: "ZZ-TOR-840" },
@@ -161,6 +175,22 @@ async function main() {
         }
       }
     }
+    // Una compra importada para cargarle gastos (20261031000100): dos
+    // productos fuera de la tienda (inactivos), así no cambian la vitrina. Se
+    // registra con la función de verdad, como el dueño.
+    const importados = [];
+    for (const p of COMPRA_IMPORTADA.productos) {
+      const { rows: [prod] } = await c.query(
+        `INSERT INTO public.products (org_id, user_id, name, brand, category, sale_price_ars, stock, is_active)
+         VALUES ($1, $2, $3, 'ZZ Marca', 'Electricidad', $4, 0, false) RETURNING id`, [org.id, usuario.id, p.name, p.price]);
+      importados.push({ producto_id: prod.id, cantidad: p.cantidad, costo_unitario: p.usd });
+    }
+    await c.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: usuario.id, role: "authenticated" })]);
+    await c.query(`SELECT public.registrar_compra($1, $2::jsonb)`, [org.id, JSON.stringify({
+      comprobante: COMPRA_IMPORTADA.comprobante, proveedor: "ZZ Fábrica de Shenzhen", moneda: "USD",
+      cotizacion: COMPRA_IMPORTADA.cotizacion, medio: "transferencia", items: importados,
+    })]);
+    await c.query(`SELECT set_config('request.jwt.claims', '', true)`);
     // Finance se habilita por negocio y lo decide un superadmin. Es un usuario
     // técnico aparte: el del E2E no tiene que ver Plataforma.
     const { rows: [admin] } = await c.query(
