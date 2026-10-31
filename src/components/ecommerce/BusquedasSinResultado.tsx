@@ -18,6 +18,7 @@ import { avisosPorTermino, resumenDeBusquedas, topBusquedas, type AvisoDeBusqued
 import ProductCombobox, { type ProductoOpcion } from "@/components/shared/ProductCombobox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { diaAR } from "@/lib/fechaAR";
 
 export default function BusquedasSinResultado({ orgId }: { orgId: string | null | undefined }) {
   const { user } = useAuth();
@@ -34,7 +35,7 @@ export default function BusquedasSinResultado({ orgId }: { orgId: string | null 
   useEffect(() => {
     if (!orgId) return;
     let activo = true;
-    const desde = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+    const desde = diaAR(Date.now() - 30 * 86_400_000);
     void Promise.all([
       supabase.from("store_busquedas_sin_resultado" as never).select("termino, veces").eq("org_id", orgId).gte("dia", desde).limit(2000),
       supabase.from("store_search_synonyms" as never).select("termino, product_id").eq("org_id", orgId).limit(2000),

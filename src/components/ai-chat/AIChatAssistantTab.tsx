@@ -1,6 +1,6 @@
 import { registrarError, conRegistro } from "@/lib/registroDeErrores";
 import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR, fechaLocal } from "@/lib/fechaAR";
+import { diaAR, hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe } from "@/lib/exchangeRate";
@@ -727,7 +727,7 @@ function RestockSuggestionCard({ userId, onDone }: { userId: string; onDone: () 
     (async () => {
       setLoading(true);
       try {
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        const thirtyDaysAgo = diaAR(Date.now() - 30 * 86400000);
         const [products, { data: recentSales }] = await Promise.all([
           getProductsDB(userId),
           supabase.from("sales").select("product_id, quantity").eq("org_id", activeOrg.id).gte("date", thirtyDaysAgo),
@@ -934,8 +934,8 @@ function QueryProductAnalysisCard({ userId, initialName, onDone }: { userId: str
       if (!found.length) { setResult(null); setSearched(true); setLoading(false); return; }
       const prod = found[0];
 
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-      const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
+      const thirtyDaysAgo = diaAR(Date.now() - 30 * 86400000);
+      const sixtyDaysAgo = diaAR(Date.now() - 60 * 86400000);
 
       const { data: sales30 } = await conRegistro(supabase
         .from("sales")
@@ -1042,7 +1042,7 @@ function CustomerAnalysisCard({ userId, initialName, onDone }: { userId: string;
     if (!name.trim() || !activeOrg) return;
     setLoading(true);
     try {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+      const thirtyDaysAgo = diaAR(Date.now() - 30 * 86400000);
 
       const [
         { data: customer },

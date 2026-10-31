@@ -1,4 +1,4 @@
-import { hoyAR } from "@/lib/fechaAR";
+import { diaAR, hoyAR } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo } from "react";
 import { accionesDeCheque, etiquetaDeEstado, type EstadoDeCheque } from "@/lib/cheques";
 import { useOrg } from "@/lib/orgContext";
@@ -52,7 +52,7 @@ const EMPTY_FORM = {
   check_number: "",
   amount_ars: "",
   issue_date: "",
-  due_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+  due_date: diaAR(Date.now() + 30 * 86400000),
   notes: "",
 };
 

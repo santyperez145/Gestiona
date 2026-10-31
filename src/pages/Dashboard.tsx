@@ -1311,7 +1311,7 @@ export default function Dashboard() {
       .map(([source, data]) => ({ source, ...data }));
 
     // ===== Aging inventory (stock > 0, no sale in last 30 days) =====
-    const thirtyDaysAgoStr = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const thirtyDaysAgoStr = diaAR(Date.now() - 30 * 86400000);
     const soldLast30 = new Set(
       allSales.filter((s: any) => String(s.date).slice(0, 10) >= thirtyDaysAgoStr).map((s: any) => s.product_id)
     );

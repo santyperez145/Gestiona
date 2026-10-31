@@ -24,6 +24,7 @@ import { emailFailure } from "../_shared/emailErrors.ts";
 import { mensajeDeError } from "../_shared/errorMessage.ts";
 import { esLlamadaDeCron } from "../_shared/cronAuth.ts";
 import { applyMarketingTemplate, withMarketingUnsubscribe } from "../_shared/marketingEmail.ts";
+import { diaARMas } from "../_shared/fechaAR.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -171,7 +172,7 @@ Deno.serve(async (req) => {
       .from("sales")
       .select("customer_name, date")
       .eq("org_id", orgId)
-      .gte("date", new Date(Date.now() - 95 * 86400000).toISOString().slice(0, 10));
+      .gte("date", diaARMas(-95));
     if (salesError) throw salesError;
 
     const lastPurchase: Record<string, number> = {};

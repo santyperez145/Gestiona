@@ -27,6 +27,18 @@ describe("hoy es el día de Argentina", () => {
     }
     expect(usos).toBe("");
   }, 30_000);
+  it("tampoco «hace N días» ni «dentro de N días» en UTC", () => {
+    let usos = "";
+    try {
+      usos = execSync(
+        `git grep -n -E "new Date\\(Date\\.now\\(\\)[^)]*\\)\\.toISOString\\(\\)\\.(slice\\(0, ?(10|7)\\)|split)" -- src supabase/functions ":!src/test"`,
+        { encoding: "utf8" },
+      ).trim();
+    } catch (e) {
+      if ((e as { status?: number }).status !== 1) throw e;
+    }
+    expect(usos).toBe("");
+  }, 30_000);
 });
 
 describe("una compra es un ticket, no un renglón", () => {

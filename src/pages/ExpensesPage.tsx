@@ -1,6 +1,6 @@
 ﻿import { registrarError } from "@/lib/registroDeErrores";
 import { fmtPct } from "@/lib/porcentaje";
-import { hoyAR, fechaLocal } from "@/lib/fechaAR";
+import { diaAR, hoyAR, fechaLocal } from "@/lib/fechaAR";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -1051,7 +1051,7 @@ export default function ExpensesPage() {
         {/* Upcoming recurring expenses */}
         {(() => {
           const today = hoyAR();
-          const next30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+          const next30 = diaAR(Date.now() + 30 * 86400000);
           const upcoming = expenses
             .filter(e => e.recurring && e.recurring_next_date && e.recurring_next_date >= today && e.recurring_next_date <= next30)
             .sort((a, b) => (a.recurring_next_date || '').localeCompare(b.recurring_next_date || ''));
