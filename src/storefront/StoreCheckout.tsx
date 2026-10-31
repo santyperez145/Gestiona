@@ -583,10 +583,12 @@ export default function StoreCheckout() {
       // creado. Si no se puede, el pedido sigue por el total y la página del
       // pedido lo avisa y ofrece aplicarlo desde ahí.
       let saldoError: string | null = null;
+      let saldoCubrioTodo = false;
       if (usaSaldoParcial) {
-        const { error: saldoErr } = await supabase.rpc("aplicar_saldo_a_pedido" as never, {
+        const { data: saldoData, error: saldoErr } = await supabase.rpc("aplicar_saldo_a_pedido" as never, {
           p_slug: store!.slug, p_order_number: orderNumber,
         } as never);
+        saldoCubrioTodo = !saldoErr && (saldoData as { pagado?: unknown } | null)?.pagado === true;
         if (saldoErr) {
           console.error("No se pudo aplicar el saldo a favor al pedido", saldoErr);
           saldoError = `Tu pedido quedó registrado por el total: no pudimos aplicar tu saldo a favor (${mensajeSeguroParaCliente(saldoErr, "reintentá desde acá")}).`;
@@ -611,8 +613,10 @@ export default function StoreCheckout() {
       // confirma el pago y de ahí vuelve a la página del pedido. Si falla la
       // generación del link no se pierde nada: la orden ya está creada y se puede
       // pagar después desde esa misma página.
+      // Si el saldo cubrió todo no hay nada que cobrar; si no se pudo aplicar,
+      // el comprador lo ve en su pedido antes de pagar el total.
       let paymentSetupError: string | null = null;
-      if (esMedioGestionaPay(form.metodo)) {
+      if (esMedioGestionaPay(form.metodo) && !saldoCubrioTodo && !saldoError) {
         setProcessingStage("opening_payment");
         const { data: pay, error: payErr } = await supabase.functions.invoke("store-pay", {
           body: { slug: store!.slug, orderNumber, accessToken, returnUrl: window.location.origin },
@@ -666,7 +670,7 @@ export default function StoreCheckout() {
       : superaCredito
         ? `El pedido supera tu crédito disponible (${fmt(creditoDisponible ?? 0)}). Elegí otro medio o sacá algo del carrito.`
         : saldoNoAlcanza
-          ? `Tu saldo a favor (${fmt(saldoDisponible)}) no alcanza para el total. Elegí otro medio: el saldo lo podés usar en el local.`
+          ? `Tu saldo a favor (${fmt(saldoDisponible)}) no alcanza para el total. Elegí otro medio: vas a poder usar el saldo para pagar una parte.`
           : null;
   const accionDeshabilitada = enviando || cotizando || !!entrega.bloqueo || metodos.length === 0 || !!bloqueoMayorista;
   const actionStyle = {

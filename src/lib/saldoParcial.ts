@@ -1,6 +1,7 @@
 /**
- * Saldo a favor parcial en un pedido online (2026-10-30, migración
- * 20261030001400): cuánto paga el saldo y cuánto queda por el otro medio, y
+ * Saldo a favor parcial en un pedido online (2026-10-30, migraciones
+ * 20261030001400 y 20261030001700): cuánto paga el saldo y cuánto queda por
+ * el otro medio (transferencia, efectivo o Nerqia Pay), y
  * cómo se le dice al comprador. El total del pedido no cambia (se factura
  * completo); la base decide lo que se aplica, esto es el espejo.
  */
@@ -28,15 +29,21 @@ export function textoEstadoDelSaldo(estadoDePago: string | null | undefined): st
   return null;
 }
 
-/** Medios con los que el saldo se combina hoy (Mercado Pago, en un paso siguiente). */
+/** Medios con los que el saldo se combina: el resto se paga por ellos. */
 export function combinaConSaldo(metodo: string | null | undefined): boolean {
   const m = String(metodo ?? "").toLowerCase().trim();
-  return m === "transferencia" || m === "efectivo";
+  return m === "transferencia" || m === "efectivo" || m === "gestiona_pay" || m === "mercadopago";
+}
+
+function porElMedio(metodo: string): string {
+  const m = String(metodo).toLowerCase().trim();
+  if (m === "transferencia") return "por transferencia";
+  if (m === "efectivo") return "en efectivo";
+  return "con Nerqia Pay";
 }
 
 export function textoUsarSaldo(saldo: number, total: number, metodo: string, fmt: (n: number) => string): string {
   const { aplicado, resta } = repartoDelSaldo(saldo, total);
   if (resta <= 0) return `Usar mi saldo a favor (${fmt(aplicado)}): cubre todo el pedido`;
-  const como = String(metodo).toLowerCase() === "transferencia" ? "por transferencia" : "en efectivo";
-  return `Usar mi saldo a favor (${fmt(aplicado)}) y pagar ${fmt(resta)} ${como}`;
+  return `Usar mi saldo a favor (${fmt(aplicado)}) y pagar ${fmt(resta)} ${porElMedio(metodo)}`;
 }

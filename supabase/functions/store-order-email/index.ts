@@ -14,6 +14,7 @@ import { requireEnv } from "../_shared/env.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { emailFailure } from "../_shared/emailErrors.ts";
+import { montoACobrar, saldoAplicadoDe } from "../_shared/saldoDelPedido.ts";
 import {
   claimStoreOrderEmail,
   finishStoreOrderEmail,
@@ -56,26 +57,6 @@ function etiquetaCostoEntrega(esRetiro: boolean): string {
 
 function etiquetaDireccionEntrega(esRetiro: boolean): string {
   return esRetiro ? "Retiro en" : "Envío a";
-}
-
-/**
- * Parte del total pagada con saldo a favor (20261030001400). Se lee aparte
- * para que el aviso siga saliendo si la columna todavía no llegó a la base:
- * sin la columna no pudo haber saldo aplicado. Otro error se propaga.
- */
-async function saldoAplicadoDe(admin: any, orderId: string): Promise<number> {
-  const { data, error } = await admin
-    .from("ecommerce_orders")
-    .select("saldo_aplicado_ars")
-    .eq("id", orderId)
-    .maybeSingle();
-  if (error) {
-    const code = String((error as { code?: string }).code ?? "");
-    if (code === "42703" || code === "PGRST204") return 0;
-    throw error;
-  }
-  const valor = Number(data?.saldo_aplicado_ars ?? 0);
-  return Number.isFinite(valor) && valor > 0 ? valor : 0;
 }
 
 function itemsHtml(items: Item[], accent: string) {
@@ -190,7 +171,7 @@ Deno.serve(async (req) => {
     }
 
     const saldoAplicado = await saldoAplicadoDe(admin, order.id);
-    const aPagar = Math.max(0, Math.round((Number(order.total) - saldoAplicado) * 100) / 100);
+    const aPagar = montoACobrar(Number(order.total), saldoAplicado);
 
     const resendFrom = (await remitenteDe("pedidos")).from;
     const accent = store.primary_color || "#111111";

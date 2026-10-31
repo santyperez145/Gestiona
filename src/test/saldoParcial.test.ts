@@ -11,16 +11,19 @@ describe("saldo a favor parcial en los pedidos online", () => {
     expect(repartoDelSaldo(-10, 1000)).toEqual({ aplicado: 0, resta: 1000 });
   });
 
-  it("se combina con transferencia o efectivo (Mercado Pago, en un paso siguiente)", () => {
+  it("se combina con transferencia, efectivo o Nerqia Pay", () => {
     expect(combinaConSaldo("transferencia")).toBe(true);
     expect(combinaConSaldo(" Efectivo ")).toBe(true);
-    expect(combinaConSaldo("gestiona_pay")).toBe(false);
+    expect(combinaConSaldo("gestiona_pay")).toBe(true);
+    expect(combinaConSaldo("mercadopago")).toBe(true);
     expect(combinaConSaldo("saldo_a_favor")).toBe(false);
+    expect(combinaConSaldo("cuenta_corriente")).toBe(false);
   });
 
   it("le dice al comprador cuánto paga y cómo", () => {
     expect(textoUsarSaldo(40000, 60000, "transferencia", fmt)).toBe("Usar mi saldo a favor ($ 40.000) y pagar $ 20.000 por transferencia");
     expect(textoUsarSaldo(40000, 60000, "efectivo", fmt)).toBe("Usar mi saldo a favor ($ 40.000) y pagar $ 20.000 en efectivo");
+    expect(textoUsarSaldo(40000, 60000, "gestiona_pay", fmt)).toBe("Usar mi saldo a favor ($ 40.000) y pagar $ 20.000 con Nerqia Pay");
     expect(textoUsarSaldo(80000, 60000, "transferencia", fmt)).toBe("Usar mi saldo a favor ($ 60.000): cubre todo el pedido");
   });
 
@@ -57,8 +60,9 @@ describe("saldo a favor parcial en los pedidos online", () => {
   it("el email pide transferir sólo lo que resta, aunque la columna no haya llegado", () => {
     const email = readFileSync("supabase/functions/store-order-email/index.ts", "utf8");
     expect(email).toContain("Transferí exactamente ${money(aPagar)}.");
-    expect(email).toContain('if (code === "42703" || code === "PGRST204") return 0;');
     expect(email).toContain("order, itemsRows: rows, saldoAplicado,");
+    expect(readFileSync("supabase/functions/_shared/saldoDelPedido.ts", "utf8"))
+      .toContain('if (code === "42703" || code === "PGRST204") return 0;');
   });
 
   it("el checkout, la página del pedido y el panel lo muestran", () => {

@@ -10,6 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { getMpCredentials } from "../_shared/mpToken.ts";
 import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
+import { acreditarPagoDePedido, montoACobrar, saldoAplicadoDe } from "../_shared/saldoDelPedido.ts";
 import {
   preparePaymentAttempt,
   providerAttemptState,
@@ -33,6 +34,12 @@ type StoreOrderContext = {
     id: string;
     order_number: string;
     total: number;
+    /**
+     * Lo que se cobra por Mercado Pago: el total menos el saldo a favor que el
+     * comprador aplicó (20261030001700). Sin saldo, igual al total.
+     */
+    cobrar: number;
+    saldoAplicado: number;
     items: unknown;
     customer_name: string;
     customer_email: string;
@@ -122,7 +129,15 @@ async function getStoreOrder(
     return { response: json({ error: "El total del pedido no es válido" }, 422) };
   }
 
-  return { context: { store, order: { ...order, total } } };
+  // Saldo a favor aplicado: Mercado Pago cobra sólo el resto. Si el saldo
+  // cubrió todo, el pedido ya quedó pagado al aplicarlo.
+  const saldoAplicado = await saldoAplicadoDe(admin, order.id);
+  const cobrar = montoACobrar(total, saldoAplicado);
+  if (cobrar <= 0) {
+    return { response: json({ error: "Este pedido ya está pago" }, 409) };
+  }
+
+  return { context: { store, order: { ...order, total, cobrar, saldoAplicado } } };
 }
 
 async function marketplaceCommission(admin: any, orgId: string, total: number, source: string) {
@@ -178,9 +193,9 @@ async function createRedirectPreference(
     }, 422);
   }
 
-  const marketplaceFee = await marketplaceCommission(admin, store.org_id, order.total, "preference");
-  if (marketplaceFee > order.total) {
-    console.error("store-pay: comisión de plataforma supera el total", { orgId: store.org_id, total: order.total, marketplaceFee });
+  const marketplaceFee = await marketplaceCommission(admin, store.org_id, order.cobrar, "preference");
+  if (marketplaceFee > order.cobrar) {
+    console.error("store-pay: comisión de plataforma supera el total", { orgId: store.org_id, cobrar: order.cobrar, marketplaceFee });
     return json({ error: "La comisión calculada no es válida" }, 500);
   }
   const base = safeReturnBase(returnUrl) ?? safeReturnBase(Deno.env.get("PUBLIC_BASE_URL"));
@@ -194,18 +209,23 @@ async function createRedirectPreference(
   // ítems reales del carrito con impuestos por línea.
   const orderPayload: Record<string, unknown> = {
     type: "online",
-    total_amount: String(order.total),
+    total_amount: String(order.cobrar),
     external_reference: `ecom:${order.id}`,
     transactions: {
       payments: [
         {
-          amount: String(order.total),
+          amount: String(order.cobrar),
           payment_method: { id: "mercadopago", type: "credit_card" },
         },
       ],
     },
     payer: { email: order.customer_email || "comprador@nerqia.app" },
-    items: preferenceItems(order.items, order.order_number, order.total).map((item) => ({
+    // Con saldo a favor, una sola línea por lo que resta: los ítems del
+    // carrito suman el total, no lo que cobra Mercado Pago.
+    items: (order.saldoAplicado > 0
+      ? [{ title: `Pedido ${order.order_number} (resto después del saldo a favor)`, quantity: 1, unit_price: order.cobrar }]
+      : preferenceItems(order.items, order.order_number, order.total)
+    ).map((item) => ({
       title: item.title,
       quantity: item.quantity,
       unit_price: item.unit_price,
@@ -279,7 +299,7 @@ async function checkoutBrickConfig(admin: any, context: StoreOrderContext) {
 
   // La clave pública y el importe ya eran necesarios para tokenizar una tarjeta
   // en el navegador. No se devuelve email, productos ni ningún secreto.
-  return json({ publicKey, amount: order.total });
+  return json({ publicKey, amount: order.cobrar });
 }
 
 function brickPaymentInput(body: Record<string, unknown>) {
@@ -342,12 +362,13 @@ async function processBrickPayment(
   // Y no hace falta armar nada a mano: el Brick ofrece los planes que
   // MercadoPago tenga habilitados, no los que el comercio quiso.
   //
-  // El monto se toma de `order.total`, que calculó la base — no del formulario.
+  // El monto se toma de `order.cobrar`, que sale de la base (el total menos el
+  // saldo a favor aplicado) — no del formulario.
   // Es la misma regla que el precio: el importe autoritativo nunca viene del
   // cliente.
   const permiso = await admin.rpc("cuotas_permitidas", {
     p_org: store.org_id,
-    p_monto: order.total,
+    p_monto: order.cobrar,
     p_cuotas: input.installments,
     p_provider: "mercadopago",
   });
@@ -378,7 +399,7 @@ async function processBrickPayment(
   }
   const providerIdempotencyKey = attempt.clientKey ?? input.attemptKey;
 
-  const applicationFee = await marketplaceCommission(admin, store.org_id, order.total, "brick");
+  const applicationFee = await marketplaceCommission(admin, store.org_id, order.cobrar, "brick");
   const externalReference = `ecom:${order.id}`;
   const paymentRes = await fetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
@@ -391,7 +412,7 @@ async function processBrickPayment(
     body: JSON.stringify({
       // Nunca usar formData.transaction_amount: el monto autoritativo es la
       // orden creada por el RPC, que ya validó stock, cupón, envío e IVA.
-      transaction_amount: order.total,
+      transaction_amount: order.cobrar,
       token: input.token,
       installments: input.installments,
       payment_method_id: input.paymentMethodId,
@@ -424,7 +445,7 @@ async function processBrickPayment(
   // respuesta del proveedor antes de tocar stock o ventas.
   const providerAmount = Number(payment?.transaction_amount);
   if (payment?.external_reference !== externalReference ||
-      !Number.isFinite(providerAmount) || Math.abs(providerAmount - order.total) > 0.01 ||
+      !Number.isFinite(providerAmount) || Math.abs(providerAmount - order.cobrar) > 0.01 ||
       String(payment?.currency_id ?? "ARS") !== "ARS") {
     console.error("MP Brick payment mismatch:", { orderId: order.id, paymentId });
     await recordPaymentAttempt(admin, {
@@ -443,13 +464,12 @@ async function processBrickPayment(
 
   const status = text(payment.status, 80) ?? "pending";
   if (status === "approved") {
-    const { error: paidError } = await admin.rpc("mark_store_order_paid", {
-      p_order_id: order.id,
-      p_payment_id: paymentId,
-      p_method: "mercado_pago",
-    });
-    if (paidError) console.error("mark_store_order_paid (brick):", paidError);
-    else await notifyPaidStoreOrder(admin, context);
+    // La base acredita según el importe cobrado y el saldo aplicado.
+    const acreditacion = await acreditarPagoDePedido(admin, { orderId: order.id, paymentId, monto: providerAmount });
+    if (acreditacion.error) console.error("acreditar_pago_de_pedido (brick):", acreditacion.error);
+    else if (!acreditacion.acreditado) {
+      console.error("store-pay: Mercado Pago cobró otro importe; el pedido no se acreditó", { orderId: order.id, paymentId });
+    } else await notifyPaidStoreOrder(admin, context);
   } else if (status === "rejected" || status === "cancelled") {
     const { error: fallidoError } = await admin
       .from("ecommerce_orders")

@@ -10,6 +10,7 @@ import {
 } from "../_shared/mercadoPagoOrders.ts";
 import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
 import { providerAttemptState, recordPaymentAttempt } from "../_shared/paymentOrchestrator.ts";
+import { acreditarPagoDePedido } from "../_shared/saldoDelPedido.ts";
 import { tokenDeLaPlataforma } from "../_shared/mpPlataforma.ts";
 import { sincronizarLotePayouts } from "../_shared/mpPayoutsSync.ts";
 
@@ -658,16 +659,22 @@ Deno.serve(async (req) => {
     if (externalRef.startsWith("ecom:")) {
       const orderId = externalRef.slice(5);
       if (isApproved) {
-        const { error: paidErr } = await admin.rpc("mark_store_order_paid", {
-          p_order_id: orderId,
-          p_payment_id: String(paymentId),
-          p_method: "mercado_pago",
+        // La base acredita según el importe que cobró Mercado Pago y el saldo
+        // a favor aplicado al pedido (20261030001700).
+        const acreditacion = await acreditarPagoDePedido(admin, {
+          orderId,
+          paymentId: String(paymentId),
+          monto: paidAmount,
         });
-        if (paidErr) console.error("mark_store_order_paid:", paidErr.message);
+        const paidErr = acreditacion.error;
+        if (paidErr) console.error("acreditar_pago_de_pedido:", paidErr.message);
+        else if (!acreditacion.acreditado) {
+          console.error(`MP ecom order ${orderId}: cobró ${paidAmount} y el pedido espera otro importe; no se acreditó`);
+        }
 
         // Confirmación por email, best-effort: el cobro ya se registró y un
         // fallo de envío no debe hacer que MP reintente el webhook.
-        if (!paidErr) {
+        if (!paidErr && acreditacion.acreditado) {
           try {
             const { data: ord } = await admin
               .from("ecommerce_orders")

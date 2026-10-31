@@ -18,13 +18,15 @@ describe("Checkout Brick de tienda", () => {
   const brick = read("src/storefront/StorePaymentBrick.tsx");
   const orderScreen = read("src/storefront/StoreOrder.tsx");
 
-  it("relee la orden y cobra su total autoritativo, no el total del formulario", () => {
+  it("relee la orden y cobra su importe autoritativo, no el total del formulario", () => {
     expect(storePay).toContain('action === "brick-payment"');
     expect(storePay).toContain("getStoreOrder(admin, body.slug, body.orderNumber, body.accessToken)");
-    expect(storePay).toMatch(/transaction_amount:\s*order\.total/);
+    // Lo que se cobra sale de la base: el total menos el saldo a favor aplicado.
+    expect(storePay).toContain("const cobrar = montoACobrar(total, saldoAplicado);");
+    expect(storePay).toMatch(/transaction_amount:\s*order\.cobrar/);
     expect(storePay).not.toMatch(/transaction_amount:\s*(?:form|body|input)\./);
     expect(storePay).toContain("payment?.external_reference !== externalReference");
-    expect(storePay).toContain("Math.abs(providerAmount - order.total) > 0.01");
+    expect(storePay).toContain("Math.abs(providerAmount - order.cobrar) > 0.01");
   });
 
   it("hace el cobro directo idempotente y conserva la comisión de plataforma", () => {

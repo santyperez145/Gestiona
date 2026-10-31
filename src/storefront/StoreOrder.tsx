@@ -592,7 +592,7 @@ function StoreOrderContent() {
                   style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
                 >
                   {preparandoTarjeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                  Pagar con tarjeta {fmt(Number(order.total))}
+                  Pagar con tarjeta {fmt(aPagar)}
                 </button>
               )}
               <button
