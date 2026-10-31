@@ -138,7 +138,7 @@ BEGIN
     condition, resolution, refund_amount, refund_method, status, reason_text, approved_by, approved_at
   ) VALUES (
     v_org, 'ZZRMA-' || v_suf, v_o1, 'arrepentimiento', 'ZZ Compradora', v_email, v_a, 'ZZ Zapatilla', 1,
-    'unopened', 'refund', 400, 'original_payment', 'approved', 'ZZ parcial', v_owner, now()
+    'new', 'refund', 400, 'original_payment', 'approved', 'ZZ parcial', v_owner, now()
   ) RETURNING id INTO v_rma;
   BEGIN
     PERFORM public.pago_reintegro_preparar(v_rma, v_owner);
