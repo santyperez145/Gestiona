@@ -39,4 +39,12 @@ describe("preventa: vender lo que todavía no llegó", () => {
     expect(readFileSync("scripts/migraciones-pendientes.mjs", "utf8"))
       .toContain("'20261030002000': 'scripts/pedidos-con-preventa-matrix.sql'");
   });
+
+  it("la métrica de plataforma de stock negativo usa el mismo criterio que stock_negativo", () => {
+    const vista = readFileSync("supabase/migrations/20261030002100_metrica_stock_negativo_con_preventa.sql", "utf8");
+    expect(vista).toContain("CREATE OR REPLACE VIEW public.platform_org_stock_accuracy AS");
+    expect(vista).toContain("p.stock < 0 AND NOT (p.preventa_cupo > 0 AND p.expected_restock_at >= public.hoy_ar() AND -p.stock <= p.preventa_cupo)");
+    expect(readFileSync("scripts/migraciones-pendientes.mjs", "utf8"))
+      .toContain("'20261030002100': 'scripts/metrica-stock-negativo-matrix.sql'");
+  });
 });
