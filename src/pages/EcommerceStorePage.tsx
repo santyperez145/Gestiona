@@ -1,4 +1,5 @@
 import BusquedasSinResultado from "@/components/ecommerce/BusquedasSinResultado";
+import VelocidadDeTuTienda from "@/components/ecommerce/VelocidadDeTuTienda";
 import VentaMayoristaPanel from "@/components/ecommerce/VentaMayoristaPanel";
 import PoliticaDeCambiosPanel from "@/components/ecommerce/PoliticaDeCambiosPanel";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
@@ -1228,6 +1229,7 @@ export default function EcommerceStorePage() {
       {tab === "overview" && (
         <div className="space-y-6">
           <BusquedasSinResultado orgId={orgId} />
+          <VelocidadDeTuTienda orgId={orgId} />
           <StoreDomainsPanel
             orgId={orgId ?? ""}
             store={store}
