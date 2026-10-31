@@ -70,6 +70,7 @@ export const STORE_ORDER_VIEW_IDS = [
   "todas",
   "retirar",
   "despachar",
+  "preventa",
   "atrasados",
   "pago",
   "sin_pago",
@@ -84,6 +85,7 @@ export const STORE_ORDER_VIEWS: { id: StoreOrderView; label: string }[] = [
   { id: "todas", label: "Todas" },
   { id: "retirar", label: "Para retirar" },
   { id: "despachar", label: "Para despachar" },
+  { id: "preventa", label: "Con preventa" },
   { id: "atrasados", label: "Atrasados" },
   { id: "pago", label: "Pendientes de pago" },
   { id: "sin_pago", label: "Sin pago hace más de 7 días" },
@@ -106,6 +108,29 @@ export interface StoreOrderQueueRow {
   fulfillment_status: string;
   tracking_number: string | null;
   created_at: string;
+  /** Líneas del pedido; las de preventa dicen cuántas unidades y cuándo llegan. */
+  items?: unknown;
+}
+
+/**
+ * Las unidades de preventa de un pedido y la primera fecha de llegada
+ * (20261030001900), o null si no tiene: para encontrarlo cuando entra la
+ * mercadería.
+ */
+export function preventaDelPedido(order: Pick<StoreOrderQueueRow, "items">): { unidades: number; llega: string } | null {
+  if (!Array.isArray(order.items)) return null;
+  let unidades = 0;
+  let llega = "";
+  for (const item of order.items) {
+    const preventa = item && typeof item === "object" ? (item as { preventa?: unknown }).preventa : null;
+    if (!preventa || typeof preventa !== "object") continue;
+    const cantidad = Number((preventa as { cantidad?: unknown }).cantidad) || 0;
+    const fecha = String((preventa as { llega?: unknown }).llega ?? "");
+    if (cantidad <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) continue;
+    unidades += cantidad;
+    if (!llega || fecha < llega) llega = fecha;
+  }
+  return unidades > 0 ? { unidades, llega } : null;
 }
 
 const FULFILLMENT_PENDING = new Set(["pending", "unfulfilled", "processing"]);
@@ -420,6 +445,11 @@ export function orderMatchesStoreView(
       return isStoreOrderAwaitingPickup(order);
     case "despachar":
       return isStoreOrderAwaitingShipment(order);
+    case "preventa":
+      // Lo que se debe entregar cuando llegue la mercadería: pagado y sin entregar.
+      return preventaDelPedido(order) !== null
+        && order.payment_status === "paid"
+        && !["shipped", "delivered", "cancelled"].includes(order.fulfillment_status);
     case "atrasados":
       return isStoreOrderStale(order, now, slaHours);
     case "pago":
@@ -478,6 +508,7 @@ export function countStoreOrderViews(
     todas: orders.length,
     retirar: 0,
     despachar: 0,
+    preventa: 0,
     atrasados: 0,
     pago: 0,
     sin_pago: 0,
@@ -488,6 +519,7 @@ export function countStoreOrderViews(
   for (const order of orders) {
     if (isStoreOrderAwaitingPickup(order)) counts.retirar += 1;
     if (isStoreOrderAwaitingShipment(order)) counts.despachar += 1;
+    if (orderMatchesStoreView(order, "preventa", now, slaHours)) counts.preventa += 1;
     if (isStoreOrderStale(order, now, slaHours)) counts.atrasados += 1;
     if (isStoreOrderUnpaidExpired(order, now)) counts.sin_pago += 1;
     else if (canRetryStorePayment(order.payment_status)) counts.pago += 1;

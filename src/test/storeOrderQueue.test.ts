@@ -23,6 +23,8 @@ import {
   STORE_ORDER_SLA_OPTIONS,
   STORE_ORDER_STALE_HOURS,
   isStoreOrderUnpaidExpired,
+  orderMatchesStoreView,
+  preventaDelPedido,
   type StoreOrderQueueRow,
 } from "@/lib/storeOrderQueue";
 
@@ -41,6 +43,7 @@ function order(partial: Partial<StoreOrderQueueRow> = {}): StoreOrderQueueRow {
     fulfillment_status: partial.fulfillment_status ?? "pending",
     tracking_number: partial.tracking_number ?? null,
     created_at: partial.created_at ?? "2026-09-01T12:00:00Z",
+    ...(partial.items !== undefined ? { items: partial.items } : {}),
   };
 }
 
@@ -119,6 +122,7 @@ describe("cola de pedidos de la tienda", () => {
       todas: 3,
       retirar: 0,
       despachar: 1,
+      preventa: 0,
       atrasados: 0,
       pago: 1,
       sin_pago: 0,
@@ -127,6 +131,30 @@ describe("cola de pedidos de la tienda", () => {
       canceladas: 0,
     });
     expect(countStoreOrdersNeedingAttention(rows)).toBe(2);
+  });
+
+  // Preventa (20261030002000): lo que se debe entregar cuando llegue la mercadería.
+  it("encuentra los pedidos con preventa sin entregar y su primera llegada", () => {
+    const conPreventa = (extra: Record<string, unknown>) => order({
+      payment_status: "paid", fulfillment_status: "pending", created_at: "2099-01-01T10:00:00Z",
+      items: [
+        { name: "ZZ Consola", quantity: 4, preventa: { cantidad: 2, llega: "2026-11-20" } },
+        { name: "ZZ Joystick", quantity: 3, preventa: { cantidad: 1, llega: "2026-11-05" } },
+        { name: "ZZ Cable", quantity: 1 },
+      ],
+      ...extra,
+    });
+    expect(preventaDelPedido(conPreventa({}))).toEqual({ unidades: 3, llega: "2026-11-05" });
+    expect(preventaDelPedido(order({ items: [{ name: "ZZ", preventa: { cantidad: "x", llega: "mañana" } }] }))).toBeNull();
+    expect(preventaDelPedido(order({}))).toBeNull();
+    const rows = [
+      conPreventa({ id: "a" }),
+      conPreventa({ id: "b", fulfillment_status: "delivered" }),
+      conPreventa({ id: "c", payment_status: "refunded" }),
+      order({ id: "d", payment_status: "paid", fulfillment_status: "pending", created_at: "2099-01-01T10:00:00Z" }),
+    ];
+    expect(rows.filter(row => orderMatchesStoreView(row, "preventa")).map(row => row.id)).toEqual(["a"]);
+    expect(countStoreOrderViews(rows).preventa).toBe(1);
   });
 
   // 2026-10-15: 5 pedidos de julio y septiembre sumaban a «Pendientes de pago».

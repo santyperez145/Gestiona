@@ -29,6 +29,7 @@ import {
   storeOrderFulfillmentTone,
   storeOrderFulfillmentActionLabel,
   esPedidoRetiro,
+  preventaDelPedido,
   storeOrdersCsvFilename,
   type StoreOrderMedio,
   type StoreOrderBulkResponse,
@@ -48,6 +49,7 @@ import { storeOrdersEmptyShareCopy } from "@/lib/storeFirstPublish";
 import { toast } from "sonner";
 import type { StoreOrderQueuePage } from "@/lib/storeOrderQueuePage";
 import { Banknote, Download, Eye, Loader2, PackageCheck, RefreshCw, Search, Store, Truck, X } from "lucide-react";
+import { fechaDeLlegada } from "@/lib/preventa";
 
 interface Props {
   queuePage: StoreOrderQueuePage | undefined;
@@ -259,7 +261,8 @@ export default function StoreOrdersPanel({
       </div>
 
       <div className="commerce-orders-views flex flex-wrap gap-1.5" role="group" aria-label="Vistas de la cola">
-        {STORE_ORDER_VIEWS.map(v => {
+        {STORE_ORDER_VIEWS.filter(v => v.id !== "preventa" || view === "preventa" || (counts?.preventa ?? 0) > 0).map(v => {
+          // «Con preventa» aparece sólo cuando hay pedidos con preventa.
           const slaHours = queuePage?.sla_hours;
           const tooltip = v.id === "atrasados" && slaHours
             ? `Pedidos pagados sin despachar hace más de ${slaHours} horas (SLA configurado para la tienda)`
@@ -510,6 +513,7 @@ function OrderRow({
         <Badge className={`text-xs ${storeOrderFulfillmentTone(o.fulfillment_status)}`}>
           {storeOrderFulfillmentLabel(o.fulfillment_status, o)}
         </Badge>
+        <MarcaPreventa order={o} />
         {o.tracking_number && (
           <p className="mt-1 font-mono text-[10px] text-muted-foreground">{o.tracking_number}</p>
         )}
@@ -599,6 +603,7 @@ function OrderCard({
         <Badge className={`text-xs ${storeOrderFulfillmentTone(o.fulfillment_status)}`}>
           {storeOrderFulfillmentLabel(o.fulfillment_status, o)}
         </Badge>
+        <MarcaPreventa order={o} />
         <span className="text-xs text-muted-foreground">{fechaPedido(o.created_at)}</span>
       </div>
       {o.tracking_number && (
@@ -640,5 +645,16 @@ function OrderCard({
         )}
       </div>
     </div>
+  );
+}
+
+/** Unidades de preventa del pedido y cuándo llegan (20261030001900). */
+function MarcaPreventa({ order }: { order: StoreOrderQueueRow }) {
+  const preventa = preventaDelPedido(order);
+  if (!preventa) return null;
+  return (
+    <Badge className="ml-1 text-xs bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300">
+      Preventa · llega {fechaDeLlegada(preventa.llega)}
+    </Badge>
   );
 }

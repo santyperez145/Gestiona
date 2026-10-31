@@ -29,4 +29,14 @@ describe("preventa: vender lo que todavía no llegó", () => {
     expect(readFileSync("scripts/migraciones-pendientes.mjs", "utf8"))
       .toContain("'20261030001900': 'scripts/preventa-matrix.sql'");
   });
+
+  it("la cola de pedidos tiene su vista de preventa: pagados y sin entregar", () => {
+    const cola = readFileSync("supabase/migrations/20261030002000_pedidos_con_preventa.sql", "utf8");
+    expect(cola).toContain("|| CASE WHEN con_preventa THEN ARRAY['preventa'] ELSE '{}'::text[] END");
+    expect(cola).toMatch(/o\.payment_status = 'paid'\s+AND o\.fulfillment_status NOT IN \('shipped', 'delivered', 'cancelled'\)/);
+    expect(cola).toContain("FROM unnest(ARRAY['todas', 'retirar', 'despachar', 'preventa',");
+    expect(readFileSync("src/lib/storeOrderQueuePage.ts", "utf8")).toContain("preventa: count.default(0)");
+    expect(readFileSync("scripts/migraciones-pendientes.mjs", "utf8"))
+      .toContain("'20261030002000': 'scripts/pedidos-con-preventa-matrix.sql'");
+  });
 });

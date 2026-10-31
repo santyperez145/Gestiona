@@ -22,7 +22,9 @@ const pageSchema = z.object({
   total: count, store_total: count, attention: count,
   page: z.number().int().positive(), page_size: z.literal(STORE_ORDER_PAGE_SIZE),
   sla_hours: z.number().int().positive().optional(),
-  counts: z.object({ todas: count, retirar: count, despachar: count, atrasados: count,
+  // `preventa` (20261030002000) y `sin_pago` llegan en 0 si la base todavía
+  // no tiene la versión que los cuenta.
+  counts: z.object({ todas: count, retirar: count, despachar: count, preventa: count.default(0), atrasados: count,
     pago: count, sin_pago: count.default(0), enviadas: count, entregadas: count, canceladas: count }),
 });
 
