@@ -41,8 +41,17 @@ for (const ruta of rutasDelMenu()) {
         new PerformanceObserver(l => { for (const e of l.getEntries()) w.__perf.lcp = e.startTime; })
           .observe({ type: "largest-contentful-paint", buffered: true });
         new PerformanceObserver(l => {
-          for (const e of l.getEntries() as Array<PerformanceEntry & { hadRecentInput?: boolean; value?: number }>) {
-            if (!e.hadRecentInput) w.__perf.cls += e.value ?? 0;
+          type Fuente = { node?: Node | null };
+          for (const e of l.getEntries() as Array<PerformanceEntry & { hadRecentInput?: boolean; value?: number; sources?: Fuente[] }>) {
+            if (e.hadRecentInput) continue;
+            w.__perf.cls += e.value ?? 0;
+            // Qué se movió en el salto más grande, para saber qué corregir.
+            const nodo = e.sources?.find(s => s.node instanceof Element)?.node as Element | undefined;
+            const pp = w.__perf as unknown as { salto?: number; culpable?: string };
+            if (nodo && (e.value ?? 0) > (pp.salto ?? 0)) {
+              pp.salto = e.value ?? 0;
+              pp.culpable = `${nodo.tagName.toLowerCase()}.${String(nodo.getAttribute("class") ?? "").slice(0, 60)} «${(nodo.textContent ?? "").trim().slice(0, 40)}»`;
+            }
           }
         }).observe({ type: "layout-shift", buffered: true });
         new PerformanceObserver(l => {
@@ -70,6 +79,13 @@ for (const ruta of rutasDelMenu()) {
         archivosJs: js.length,
         consultas: base.length,
         consultaMasLenta: Math.round(Math.max(0, ...base.map(r => r.duration))),
+        culpableCls: (p as unknown as { culpable?: string } | undefined)?.culpable ?? null,
+        // Las consultas más repetidas (tabla o función, sin filtros).
+        repetidas: Object.entries(base.reduce<Record<string, number>>((acc, r) => {
+          const clave = new URL(r.name).pathname.replace(/^\/(rest|functions|auth)\/v1\//, "");
+          acc[clave] = (acc[clave] ?? 0) + 1;
+          return acc;
+        }, {})).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, n]) => `${k}×${n}`).join(" "),
       };
     });
     const fila = { ruta: ruta.path, titulo, listo, ...medida };

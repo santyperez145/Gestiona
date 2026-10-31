@@ -10,6 +10,7 @@
  * el débito una vez y MP cobra solo cada período, avisando por webhook. Acá no
  * pasa ninguna tarjeta — se manda al comercio al link de MercadoPago.
  */
+import { Skeleton } from "@/components/ui/skeleton";
 import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useState } from "react";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
@@ -243,6 +244,13 @@ export default function MiPlanPage() {
         description="Tu comercio, los extras del plan y tu suscripción."
         badge={{ label: badge.texto }}
       />
+      {loading && (
+        <section className="border-y border-border py-4" aria-hidden="true">
+          <Skeleton className="h-4 w-64" />
+          <Skeleton className="mt-3 h-4 w-96 max-w-full" />
+          <Skeleton className="mt-3 h-4 w-48" />
+        </section>
+      )}
       {!loading && <section className="border-y border-border py-4">
         <h2 className="text-sm font-semibold">{planVigente ? 'Capacidades vigentes de tu comercio' : 'Comercio gratuito activo'}</h2>
         <p className="mt-2 text-sm text-muted-foreground">Productos: {productLimit ?? 'sin límite de plan'} · Ventas/mes: {salesLimit ?? 'sin límite de plan'} · Usuarios: {userLimit ?? 'sin límite de plan'}.</p>
@@ -410,10 +418,6 @@ export default function MiPlanPage() {
         )}
       </div>
 
-      {activeOrg && !loading && (
-        <LoQueReemplazaNerqia orgId={activeOrg.id} canEdit={canSubscribe} plan={planDeComparacion} />
-      )}
-
       {/* Planes */}
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -503,6 +507,12 @@ export default function MiPlanPage() {
           </div>
         )}
       </div>
+
+      {/* Debajo de los planes: carga aparte y, arriba, al llegar empujaba la
+          página (CLS 0,31 medido en el barrido, 2026-10-31). */}
+      {activeOrg && !loading && (
+        <LoQueReemplazaNerqia orgId={activeOrg.id} canEdit={canSubscribe} plan={planDeComparacion} />
+      )}
 
       {/* Facturas */}
       {facturas.length > 0 && (
