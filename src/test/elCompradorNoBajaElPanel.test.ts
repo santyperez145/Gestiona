@@ -81,7 +81,8 @@ describe("el comprador no baja el panel", () => {
     expect(assetUrls.some(url => /(?:App|Platform|Finance)Layout/.test(url))).toBe(false);
     expect(assetUrls.some(url => /transientRead/.test(url)), "la recuperación compartida no debe sumar otra descarga inicial").toBe(false);
     expect(assetUrls.length, "la landing volvió a precargar demasiados chunks").toBeLessThanOrEqual(12);
-    expect(gzipBytes, "el payload inicial público superó 325 kB gzip").toBeLessThanOrEqual(325_000);
+    // 2026-10-31: 299 → 261 kB al diferir Sentry; el techo baja para no perderlo.
+    expect(gzipBytes, "el payload inicial público superó 290 kB gzip").toBeLessThanOrEqual(290_000);
   });
 
   it("Vite 8 usa grupos de Rolldown sin captura recursiva", () => {

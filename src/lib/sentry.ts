@@ -1,41 +1,9 @@
 import * as Sentry from "@sentry/react";
-import { getOptionalEnv } from "./env";
+import { redactTelemetryText, sanitizeTelemetryUrl, sanitizeTelemetryValue } from "./telemetriaSegura";
 
-const EMAIL = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
-const BEARER = /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi;
-const TOKEN_VALUE = /([?&](?:access_token|refresh_token|token|code|apikey|api_key|key)=)[^&#]*/gi;
-
-export function redactTelemetryText(value: string): string {
-  return value
-    .replace(EMAIL, "[EMAIL_REDACTED]")
-    .replace(BEARER, "Bearer [REDACTED]")
-    .replace(TOKEN_VALUE, "$1[REDACTED]");
-}
-
-export function sanitizeTelemetryUrl(value: string): string {
-  try {
-    const parsed = new URL(value, window.location.origin);
-    return `${parsed.origin}${parsed.pathname}`;
-  } catch {
-    return redactTelemetryText(value.split(/[?#]/, 1)[0]);
-  }
-}
-
-function sanitizeTelemetryValue(value: unknown, key = ""): unknown {
-  if (value == null) return value;
-  if (typeof value === "string") {
-    if (/url|from|to/i.test(key)) return sanitizeTelemetryUrl(value);
-    return redactTelemetryText(value);
-  }
-  if (Array.isArray(value)) return value.map((entry) => sanitizeTelemetryValue(entry));
-  if (typeof value !== "object") return value;
-
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>)
-      .filter(([field]) => !/cookie|authorization|password|passwd|secret|token|api.?key|request.?body/i.test(field))
-      .map(([field, entry]) => [field, sanitizeTelemetryValue(entry, field)]),
-  );
-}
+// Las funciones de limpieza viven en telemetriaSegura.ts (livianas, sin Sentry):
+// este módulo se carga en diferido (2026-10-31) y no puede estar en el arranque.
+export { redactTelemetryText, sanitizeTelemetryUrl };
 
 function minimizeEvent<T extends Sentry.Event>(event: T): T {
   event.user = undefined;
@@ -59,13 +27,13 @@ function minimizeEvent<T extends Sentry.Event>(event: T): T {
 }
 
 export function initSentry() {
-  const dsn = getOptionalEnv("VITE_SENTRY_DSN");
+  const dsn = (import.meta.env.VITE_SENTRY_DSN as string | undefined);
   if (!dsn) return; // skip in local dev without DSN configured
 
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
-    release: getOptionalEnv("VITE_APP_VERSION"),
+    release: (import.meta.env.VITE_APP_VERSION as string | undefined),
     sendDefaultPii: false,
     // Diagnóstico proporcional sin convertir la operación del comercio en telemetría.
     tracesSampleRate: import.meta.env.PROD ? 0.05 : 1.0,
@@ -86,6 +54,12 @@ export function initSentry() {
     beforeSend: minimizeEvent,
     beforeSendTransaction: minimizeEvent,
   });
+}
+
+/** Lo que atrapa el ErrorBoundary de la app, si Sentry ya se inició. */
+export function capturarExcepcion(error: unknown, componentStack?: string) {
+  if (!Sentry.getClient()) return;
+  Sentry.captureException(error, componentStack ? { contexts: { react: { componentStack } } } : undefined);
 }
 
 // Re-export Sentry utilities for use across the app

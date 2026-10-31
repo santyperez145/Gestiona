@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { googleHabilitado, olvidarProveedoresDeAcceso } from "@/lib/proveedoresDeAcceso";
+import { googleGuardado, googleHabilitado, olvidarProveedoresDeAcceso } from "@/lib/proveedoresDeAcceso";
 
 const respuesta = (cuerpo: unknown, ok = true) => Promise.resolve({ ok, json: async () => cuerpo } as Response);
 
@@ -27,6 +27,16 @@ describe("el botón de Google sólo aparece si Auth lo tiene habilitado", () => 
     expect(await googleHabilitado((() => respuesta({ external: { google: true } })) as unknown as typeof fetch)).toBe(true);
   });
 
+  it("recuerda la respuesta de Auth para arrancar sin corrimiento; un corte de red no la pisa", async () => {
+    expect(googleGuardado()).toBe(false);
+    await googleHabilitado((() => respuesta({ external: { google: true } })) as unknown as typeof fetch);
+    expect(googleGuardado()).toBe(true);
+    olvidarProveedoresDeAcceso();
+    await googleHabilitado((() => respuesta({ external: { google: true } })) as unknown as typeof fetch);
+    await googleHabilitado((() => Promise.reject(new Error("sin red"))) as unknown as typeof fetch);
+    expect(googleGuardado()).toBe(true);
+  });
+
   it("sin la URL de Supabase no pregunta", async () => {
     vi.stubEnv("VITE_SUPABASE_URL", "");
     const fetcher = vi.fn();
@@ -37,6 +47,8 @@ describe("el botón de Google sólo aparece si Auth lo tiene habilitado", () => 
   it("la pantalla de acceso lo usa", () => {
     const pagina = readFileSync("src/pages/AuthPage.tsx", "utf8");
     expect(pagina).toContain("googleHabilitado()");
-    expect(pagina).toContain("{conGoogle && (");
+    expect(pagina).toContain("useState(googleGuardado)");
+    expect(pagina).toContain("<div className=\"auth-provider-slot\">");
+    expect(pagina).toContain("{conGoogle ? (");
   });
 });

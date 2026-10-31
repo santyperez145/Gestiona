@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { invitacionPendiente } from "@/lib/estudio";
-import * as Sentry from "@sentry/react";
+import ErrorBoundaryApp from "@/components/shared/ErrorBoundaryApp";
 import { registrarError } from "@/lib/registroDeErrores";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -483,7 +483,7 @@ function VersionNueva({ intentarSola }: { intentarSola: boolean }) {
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="gestiona-theme">
-  <Sentry.ErrorBoundary onError={error => { if (!isStaleBuildError(error)) registrarError(error); }} fallback={({ error }) => {
+  <ErrorBoundaryApp onError={error => { if (!isStaleBuildError(error)) registrarError(error); }} fallback={({ error }) => {
     if (hasPendingAppUpdate() || isStaleBuildError(error)) {
       return <VersionNueva intentarSola={isStaleBuildError(error)} />;
     }
@@ -516,7 +516,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-  </Sentry.ErrorBoundary>
+  </ErrorBoundaryApp>
   </ThemeProvider>
 );
 

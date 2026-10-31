@@ -16,15 +16,21 @@ import "@fontsource/jetbrains-mono/latin-400.css";
 import "@fontsource/jetbrains-mono/latin-500.css";
 import "@fontsource/jetbrains-mono/latin-600.css";
 import "./index.css";
-import { initSentry } from "./lib/sentry";
-import { validateEnv } from "./lib/env";
+import { getOptionalEnv, validateEnv } from "./lib/env";
 import { announceUpdateAvailable, navegoHaceInstantes, recargarPorVersionNueva, setupServiceWorkerUpdates } from "./lib/swUpdate";
 import { isStaleBuildError } from "./lib/staleBuildRecovery";
 import { isNativeRuntime } from "./lib/nativeRuntime";
 import { registrarError } from "./lib/registroDeErrores";
 
 validateEnv();
-initSentry();
+// Sentry pesa ≈60 % del archivo de arranque (medido 2026-10-31): se carga
+// cuando el navegador queda libre, y sólo si hay DSN. Lo que falle antes queda
+// igual en el registro propio (los oyentes de abajo y el ErrorBoundary).
+if (getOptionalEnv("VITE_SENTRY_DSN")) {
+  const iniciarSentry = () => { void import("./lib/sentry").then(m => m.initSentry()).catch(() => undefined); };
+  if ("requestIdleCallback" in window) window.requestIdleCallback(iniciarSentry, { timeout: 4000 });
+  else setTimeout(iniciarSentry, 2000);
+}
 if (!isNativeRuntime()) setupServiceWorkerUpdates();
 // Primer contacto (ref, utm, sitio de origen) para saber cómo llega cada
 // comercio nuevo: TESIS §6 y E4. La URL y el sitio de origen se leen ya; el

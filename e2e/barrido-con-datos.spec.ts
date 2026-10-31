@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
@@ -32,9 +32,51 @@ for (const ruta of rutasDelMenu()) {
     const consola: string[] = [];
     page.on("pageerror", e => errores.push(e.message));
     page.on("console", m => { if (m.type() === "error") consola.push(m.text().slice(0, 300)); });
+    // Rendimiento (2026-10-31): LCP, corrimientos y tareas largas desde el
+    // primer byte, en una visita en frío (contexto nuevo, sin caché).
+    await page.addInitScript(() => {
+      const w = window as unknown as { __perf: { lcp: number; cls: number; largas: number; bloqueo: number } };
+      w.__perf = { lcp: 0, cls: 0, largas: 0, bloqueo: 0 };
+      try {
+        new PerformanceObserver(l => { for (const e of l.getEntries()) w.__perf.lcp = e.startTime; })
+          .observe({ type: "largest-contentful-paint", buffered: true });
+        new PerformanceObserver(l => {
+          for (const e of l.getEntries() as Array<PerformanceEntry & { hadRecentInput?: boolean; value?: number }>) {
+            if (!e.hadRecentInput) w.__perf.cls += e.value ?? 0;
+          }
+        }).observe({ type: "layout-shift", buffered: true });
+        new PerformanceObserver(l => {
+          for (const e of l.getEntries()) { w.__perf.largas += 1; w.__perf.bloqueo += Math.max(0, e.duration - 50); }
+        }).observe({ type: "longtask", buffered: true });
+      } catch { /* navegador sin estas métricas: quedan en cero */ }
+    });
+    const inicio = Date.now();
     await page.goto(ruta.path);
     await expect(page.locator("h1").first(), `la pantalla no tiene título; consola: ${consola.slice(-4).join(" || ")}`).toBeVisible({ timeout: 20_000 });
+    const titulo = Date.now() - inicio;
     await page.waitForLoadState("networkidle").catch(() => undefined);
+    const listo = Date.now() - inicio;
+    const medida = await page.evaluate(() => {
+      const p = (window as unknown as { __perf?: { lcp: number; cls: number; largas: number; bloqueo: number } }).__perf;
+      const recursos = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+      const js = recursos.filter(r => r.initiatorType === "script" || r.name.endsWith(".js"));
+      const base = recursos.filter(r => /\/(rest|rpc|functions|auth)\/v1\//.test(r.name));
+      return {
+        lcp: Math.round(p?.lcp ?? 0),
+        cls: Math.round((p?.cls ?? 0) * 1000) / 1000,
+        tareasLargas: p?.largas ?? 0,
+        bloqueo: Math.round(p?.bloqueo ?? 0),
+        jsKb: Math.round(js.reduce((s, r) => s + (r.encodedBodySize || 0), 0) / 1024),
+        archivosJs: js.length,
+        consultas: base.length,
+        consultaMasLenta: Math.round(Math.max(0, ...base.map(r => r.duration))),
+      };
+    });
+    const fila = { ruta: ruta.path, titulo, listo, ...medida };
+    console.log(`[rendimiento] ${JSON.stringify(fila)}`);
+    mkdirSync("test-results", { recursive: true });
+    appendFileSync("test-results/rendimiento.jsonl", `${JSON.stringify(fila)}\n`);
+    testInfo.annotations.push({ type: "rendimiento", description: JSON.stringify(fila) });
 
     for (const ancho of [1280, 390]) {
       await page.setViewportSize({ width: ancho, height: 900 });

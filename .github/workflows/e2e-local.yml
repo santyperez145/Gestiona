@@ -84,6 +84,11 @@ jobs:
             mcr.microsoft.com/playwright:v1.59.1-noble \
             npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos --project=alta
 
+      # Antes del próximo Playwright, que limpia test-results.
+      - name: Rendimiento por pantalla
+        if: always()
+        run: node scripts/resumen-rendimiento.mjs
+
       # Sólo los specs de la tienda que leen la base real (exigirBackendReal):
       # los sintéticos interceptan *.supabase.co y corren en ci.yml.
       - name: E2E de la tienda pública (escritorio y teléfono)

@@ -6925,3 +6925,20 @@
 .landing-faq__item { border-bottom: 1px solid hsl(var(--landing-line, 30 10% 88%)); }
 .landing-faq__question { display: flex; align-items: center; min-height: 48px; padding: 0.75rem 0; cursor: pointer; font-weight: 600; }
 .landing-faq__answer { margin: 0; padding: 0 0 1rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+
+/*
+ * Acceso: contraste y tamaño (2026-10-31, Lighthouse del login). Las pestañas,
+ * la sugerencia, la nota legal y el pie usaban el gris con transparencia y
+ * letra de 9,6 px: contraste ≈3:1. El gris base ya da 5,8:1; sin transparencia
+ * y con al menos 12 px.
+ */
+.auth-tabs button { color: hsl(var(--auth-muted)); font-size: 0.8rem; }
+.auth-tabs button.is-active { color: hsl(var(--auth-ink)); }
+.auth-role-option span { color: hsl(var(--auth-muted)); font-size: 0.72rem; }
+.auth-provider-hint, .auth-channel-note { font-size: 0.75rem; }
+.auth-legal { color: hsl(var(--auth-muted)); font-size: 0.75rem; }
+.auth-panel__footer { color: hsl(var(--auth-muted)); font-size: 0.75rem; }
+.auth-divider span { color: hsl(var(--auth-muted)); font-size: 0.72rem; }
+/* Alto fijo del bloque de Google: con botón o sin él, el formulario no se mueve. */
+.auth-provider-slot { display: flex; min-height: 8.25rem; flex-direction: column; justify-content: center; }
+.auth-provider-slot > .auth-divider { margin-bottom: 0.5rem; }

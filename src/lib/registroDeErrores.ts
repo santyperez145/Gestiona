@@ -7,7 +7,7 @@
  * navegadores automatizados. Best-effort: si falla, no pasa nada.
  */
 import { getOptionalEnv } from "@/lib/env";
-import { redactTelemetryText } from "@/lib/sentry";
+import { redactTelemetryText } from "@/lib/telemetriaSegura";
 import { esNavegadorAutomatizado } from "@/lib/vitalesTienda";
 
 export const MAX_ERRORES_POR_VISITA = 10;

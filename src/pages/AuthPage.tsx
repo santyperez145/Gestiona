@@ -10,7 +10,7 @@ import { ArrowLeft, ArrowRight, Check, CircleDollarSign, Mail, PackageCheck, Shi
 import BrandLogo from '@/components/shared/BrandLogo';
 import { authErrorForCustomer, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { googleHabilitado } from '@/lib/proveedoresDeAcceso';
+import { googleGuardado, googleHabilitado } from '@/lib/proveedoresDeAcceso';
 import {
   authRedirectTo,
   isNativeRuntime,
@@ -47,7 +47,7 @@ export default function AuthPage() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   // El botón de Google sólo aparece si el proveedor está habilitado en Auth.
-  const [conGoogle, setConGoogle] = useState(false);
+  const [conGoogle, setConGoogle] = useState(googleGuardado);
   useEffect(() => {
     let vigente = true;
     void googleHabilitado().then(si => { if (vigente) setConGoogle(si); });
@@ -271,15 +271,21 @@ export default function AuthPage() {
             </form>
           ) : (
             <>
-              {conGoogle && (
-                <>
-                  <Button type="button" variant="outline" className="auth-google" onClick={handleGoogleLogin} disabled={loading}>
-                    <span className="auth-google__g">G</span> Continuar con Google
-                  </Button>
-                  <p className="auth-provider-hint">También podés entrar de forma segura con tu email, contraseña o un código de un solo uso.</p>
-                  <div className="auth-divider"><span>o con email</span></div>
-                </>
-              )}
+              {/* El lugar está reservado siempre (auth-provider-slot): el panel va
+                  centrado y, si el botón aparecía después, corría el formulario entero. */}
+              <div className="auth-provider-slot">
+                {conGoogle ? (
+                  <>
+                    <Button type="button" variant="outline" className="auth-google" onClick={handleGoogleLogin} disabled={loading}>
+                      <span className="auth-google__g">G</span> Continuar con Google
+                    </Button>
+                    <p className="auth-provider-hint">También podés entrar de forma segura con tu email, contraseña o un código de un solo uso.</p>
+                    <div className="auth-divider"><span>o con email</span></div>
+                  </>
+                ) : (
+                  <p className="auth-provider-hint">Entrá de forma segura con tu email y contraseña, o con un código de un solo uso.</p>
+                )}
+              </div>
               <div className="auth-tabs" role="tablist" aria-label="Acceso">
                 <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'is-active' : ''} onClick={() => changeMode('login')}>Iniciar sesión</button>
                 <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'is-active' : ''} onClick={() => changeMode('register')}>Crear cuenta</button>
