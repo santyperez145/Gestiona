@@ -73,6 +73,7 @@ export const MATRICES = {
   '20261030001900': 'scripts/preventa-matrix.sql',
   '20261030002000': 'scripts/pedidos-con-preventa-matrix.sql',
   '20261030002100': 'scripts/metrica-stock-negativo-matrix.sql',
+  '20261031000100': 'scripts/gastos-de-compra-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

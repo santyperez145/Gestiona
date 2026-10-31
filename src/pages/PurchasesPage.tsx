@@ -22,6 +22,8 @@ import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import EditorDeCompra from "@/components/compras/EditorDeCompra";
 import LectorDeFactura from "@/components/compras/LectorDeFactura";
+import GastosDeLaCompra from "@/components/compras/GastosDeLaCompra";
+import { costoPuesto } from "@/lib/gastosDeCompra";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { mensajeDeError } from "@/lib/cuentaCorriente";
@@ -48,6 +50,8 @@ import {
  */
 
 const POR_PAGINA = 20;
+
+const conGastos = (c: Compra) => c.renglones.some(r => Number(r.gastos_ars) > 0);
 type Estado = "todas" | "a_pagar" | "vencidas" | "pagadas" | "por_orden";
 
 const TONO_DE_PAGO: Record<Compra["estadoDePago"], "success" | "warning" | "destructive" | "secondary"> = {
@@ -59,7 +63,7 @@ const restanteDe = (c: Compra) => (c.deuda ? Math.max(0, Number(c.deuda.remainin
 export default function PurchasesPage() {
   usePageTitle("Compras");
   const { user } = useAuth();
-  const { activeOrg } = useOrg();
+  const { activeOrg, activeRole } = useOrg();
   const navigate = useNavigate();
   const { canCreate, canDelete } = useModulePermissions("purchases");
 
@@ -70,6 +74,10 @@ export default function PurchasesPage() {
   const [factura, setFactura] = useState<FacturaLeida | null>(null);
   const [lectorAbierto, setLectorAbierto] = useState(false);
   const [detalle, setDetalle] = useState<Compra | null>(null);
+  // Agregar o quitar un gasto recarga las compras: el detalle abierto sigue a la suya.
+  useEffect(() => { setDetalle(d => (d ? compras.find(c => c.id === d.id) ?? d : d)); }, [compras]);
+  // La base deja cargar gastos sólo al dueño y a los administradores, como registrar_compra.
+  const puedeCargarGastos = activeRole === "owner" || activeRole === "admin";
   const [anulando, setAnulando] = useState<string | null>(null);
 
   const [vista, setVista] = useState<"compras" | "proveedores">("compras");
@@ -412,6 +420,7 @@ export default function PurchasesPage() {
                       <th className="px-3 py-2 text-left font-medium">Producto</th>
                       <th className="px-3 py-2 text-right font-medium">Cantidad</th>
                       <th className="px-3 py-2 text-right font-medium">Costo unit.</th>
+                      {conGastos(detalle) && <th className="px-3 py-2 text-right font-medium">Costo puesto</th>}
                       <th className="px-3 py-2 text-right font-medium">Total</th>
                     </tr>
                   </thead>
@@ -421,18 +430,23 @@ export default function PurchasesPage() {
                         <td className="px-3 py-2">{r.product_name}</td>
                         <td className="px-3 py-2 text-right">{Number(r.quantity).toLocaleString("es-AR")}</td>
                         <td className="px-3 py-2 text-right">{formatARS(Number(r.quantity) > 0 ? Number(r.total_ars) / Number(r.quantity) : 0)}</td>
+                        {conGastos(detalle) && <td className="px-3 py-2 text-right" data-testid="costo-puesto">{formatARS(costoPuesto(r))}</td>}
                         <td className="px-3 py-2 text-right font-medium">{formatARS(Number(r.total_ars))}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-border bg-muted/20 font-semibold">
-                      <td className="px-3 py-2" colSpan={3}>Total{detalle.totalUsd > 0 && Number(detalle.renglones[0]?.exchange_rate) > 1 ? ` (${formatUSD(detalle.totalUsd)})` : ""}</td>
+                      <td className="px-3 py-2" colSpan={conGastos(detalle) ? 4 : 3}>Total{detalle.totalUsd > 0 && Number(detalle.renglones[0]?.exchange_rate) > 1 ? ` (${formatUSD(detalle.totalUsd)})` : ""}</td>
                       <td className="px-3 py-2 text-right">{formatARS(detalle.totalArs)}</td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
+              {activeOrg && (
+                <GastosDeLaCompra orgId={activeOrg.id} compraId={detalle.id} totalCompraArs={detalle.totalArs}
+                  puedeEditar={puedeCargarGastos} onCambio={() => void cargar()} />
+              )}
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Badge variant={TONO_DE_PAGO[detalle.estadoDePago]}>{ETIQUETA_DE_PAGO[detalle.estadoDePago]}</Badge>
                 {detalle.deuda && restanteDe(detalle) > 0 && (
@@ -450,7 +464,7 @@ export default function PurchasesPage() {
                       {anulando === detalle.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Anular compra
                     </Button>}
                     title="¿Anular esta compra?"
-                    description={`Se revierte el stock de ${plural(detalle.renglones.length, "producto")}${detalle.deuda ? ", se quita la cuenta a pagar" : " y se quita el egreso"}. Los costos de los productos no vuelven atrás. Queda registrado en la auditoría.`}
+                    description={`Se revierte el stock de ${plural(detalle.renglones.length, "producto")}${detalle.deuda ? ", se quita la cuenta a pagar" : " y se quita el egreso"}${conGastos(detalle) ? ", con los gastos de la compra" : ""}. Los costos de los productos no vuelven atrás. Queda registrado en la auditoría.`}
                     confirmText="Anular compra"
                     onConfirm={() => anular(detalle)}
                   />

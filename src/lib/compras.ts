@@ -235,6 +235,8 @@ export interface FilaDeCompra {
   supplier_id?: string | null;
   batch_name?: string | null;
   is_scheduled?: boolean | null;
+  /** Parte de los gastos de la compra (flete, aduana…): ver gastosDeCompra.ts. */
+  gastos_ars?: number | null;
 }
 
 export interface DeudaDeCompra {
