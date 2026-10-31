@@ -12,7 +12,9 @@ export type StoreOrderEmailEvent =
   | "order_created"
   | "payment_confirmed"
   | "shipped"
-  | "delivered";
+  | "delivered"
+  /** Cada parte de un despacho en partes (20261031000200). */
+  | `parte_${number}`;
 
 export interface StoreOrderEmailClaim {
   claimed: boolean;

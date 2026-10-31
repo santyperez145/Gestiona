@@ -34,6 +34,8 @@ import { canFulfillStoreOrder, isStorePaymentReversed } from "@/lib/storeOrderPa
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
 import { Truck, Printer, Loader2, Check, PackageCheck, Home, Store, FileText } from "lucide-react";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import DespacharEnPartes from "@/components/ecommerce/DespacharEnPartes";
+import type { ParteDelPedido } from "@/lib/despachoEnPartes";
 
 export interface OrderForShipment {
   id: string;
@@ -57,6 +59,10 @@ interface Entrega {
   external_tracking: string | null;
   status: string;
   weight_kg: number | null;
+  /** Despacho en partes (20261031000200): null = el pedido entero. */
+  items?: ParteDelPedido["items"] | null;
+  parte?: number | null;
+  tracking_code?: string | null;
 }
 
 export default function OrderShipmentDialog({
@@ -76,6 +82,10 @@ export default function OrderShipmentDialog({
   const [remito, setRemito] = useState<VentaParaRemito | null>(null);
   const [buscandoVenta, setBuscandoVenta] = useState(false);
   const [entrega, setEntrega] = useState<Entrega | null>(null);
+  const [partes, setPartes] = useState<ParteDelPedido[]>([]);
+  // La última parte deja el pedido en camino; `order` es la copia de cuando se abrió.
+  const [salioCompleto, setSalioCompleto] = useState(false);
+  useEffect(() => { setSalioCompleto(false); }, [order?.id]);
   const [cargando, setCargando] = useState(false);
   const [preparando, setPreparando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -98,13 +108,20 @@ export default function OrderShipmentDialog({
   const cargar = useCallback(async () => {
     if (!order) return;
     setCargando(true);
-    const { data } = await conRegistro(supabase
+    // Con partes hay varias entregas por pedido. `*` trae `items` y `parte`
+    // cuando la migración 20261031000200 está aplicada, y funciona igual sin ella.
+    const r = await conRegistro(supabase
       .from("deliveries")
-      .select("id, carrier, external_tracking, status, weight_kg")
+      .select("*")
       .eq("ecommerce_order_id", order.id)
-      .maybeSingle());
+      .order("created_at"));
     setCargando(false);
-    const e = (data ?? null) as Entrega | null;
+    const entregas = (r.data ?? []) as unknown as Entrega[];
+    const e = entregas.find(x => !Array.isArray(x.items)) ?? null;
+    setPartes(entregas.filter(x => Array.isArray(x.items)).map(x => ({
+      id: x.id, parte: Number(x.parte) || 1, carrier: x.carrier, external_tracking: x.external_tracking,
+      status: x.status, tracking_code: x.tracking_code ?? null, items: x.items ?? [],
+    })).sort((a, b) => a.parte - b.parte));
     setEntrega(e);
     if (e) {
       setCarrier(e.carrier || "propio");
@@ -151,7 +168,7 @@ export default function OrderShipmentDialog({
   /** El estado queda primero en la base; un problema de correo jamás deshace
       un despacho verdadero. La Function registra cada resultado y no vuelve a
       mandar el mismo evento si se reintenta este botón. */
-  const avisarEstado = async (event: "shipped" | "delivered") => {
+  const avisarEstado = async (event: "shipped" | "delivered" | `parte_${number}`) => {
     if (!order || !canEditEcommerce) return;
     const { data, error } = await supabase.functions.invoke("store-order-status-email", {
       body: { orderId: order.id, event },
@@ -240,8 +257,12 @@ export default function OrderShipmentDialog({
   const retiro = esPedidoRetiro(order);
   const sinPagar = !canFulfillStoreOrder(order.payment_status);
   const pagoRevertido = isStorePaymentReversed(order.payment_status);
-  const yaPreparada = !!entrega;
-  const enCamino = entrega?.status === "in_transit" || entrega?.status === "out_for_delivery";
+  // Con partes, el pedido entero no se prepara ni se marca en camino: sale con la última parte.
+  const conPartes = partes.length > 0;
+  const yaPreparada = !!entrega && !conPartes;
+  const enCamino = conPartes
+    ? order.fulfillment_status === "shipped" || salioCompleto
+    : entrega?.status === "in_transit" || entrega?.status === "out_for_delivery";
   const entregada = entrega?.status === "delivered" || order.fulfillment_status === "delivered";
   const yaDespachada = !!entrega?.external_tracking || enCamino || entregada;
 
@@ -352,6 +373,12 @@ export default function OrderShipmentDialog({
               </div>
             )}
 
+            {!(yaPreparada && yaDespachada) && order.fulfillment_status !== "delivered" && (
+              <DespacharEnPartes orderId={order.id} renglones={order.items} carrierInicial={carrier} partes={partes}
+                puedeDespachar={canEditEcommerce && order.fulfillment_status !== "shipped" && !salioCompleto}
+                onDespachada={r => { if (r.completo) setSalioCompleto(true); void cargar(); onDone(); }} avisar={e => avisarEstado(e as `parte_${number}`)} />
+            )}
+
             {yaDespachada && (
               <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/20 gap-1">
                 {entregada ? <Home className="w-3 h-3" /> : <PackageCheck className="w-3 h-3" />}
@@ -372,7 +399,7 @@ export default function OrderShipmentDialog({
               Marcar como retirado
             </Button>
           )}
-          {canEditEcommerce && !retiro && !sinPagar && !yaPreparada && (
+          {canEditEcommerce && !retiro && !sinPagar && !yaPreparada && !conPartes && (
             <Button className="gap-1.5 text-xs" disabled={preparando} onClick={preparar}>
               {preparando ? <Loader2 className="w-3 h-3 animate-spin" /> : <Truck className="w-3 h-3" />}
               Preparar envío

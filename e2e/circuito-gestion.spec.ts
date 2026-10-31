@@ -167,3 +167,31 @@ test("los gastos de una compra importada forman el costo puesto, contra la base 
   await expect(detalle.getByRole("row", { name: /ZZ Lámpara importada/ }).getByTestId("costo-puesto")).toContainText("21.600");
   await expect(detalle.getByRole("row", { name: /ZZ Pantalla importada/ }).getByTestId("costo-puesto")).toContainText("10.800");
 });
+
+test("un pedido online sale en dos partes con su seguimiento, contra la base real", async ({ page }) => {
+  test.setTimeout(120_000);
+
+  // Semilla: pedido pagado de «ZZ Cliente en partes» con 1 martillo y 2 cables.
+  await page.goto("/pedidos-online");
+  await cerrarAvisos(page);
+  const fila = page.getByRole("row").filter({ hasText: "ZZ Cliente en partes" });
+  await fila.getByRole("button", { name: "Preparar" }).click({ timeout: 30_000 });
+  const envio = page.getByRole("dialog", { name: /Envío de/ });
+  const partes = envio.getByTestId("despacho-en-partes");
+
+  // Primera parte: el martillo, con seguimiento. El cable queda para después.
+  await partes.getByRole("button", { name: "Despachar una parte" }).click({ timeout: 30_000 });
+  await expect(partes.getByLabel("Cantidad de ZZ Martillo carpintero")).toHaveValue("1");
+  await partes.getByLabel("Cantidad de ZZ Cable 2,5 mm").fill("0");
+  await partes.getByLabel("Seguimiento de la parte").fill("ZZ-PARTE-1");
+  await partes.getByRole("button", { name: "Despachar esta parte" }).click();
+  await expect(partes.getByText(/Parte 1 · En camino/)).toBeVisible({ timeout: 30_000 });
+  await expect(partes.getByText("Falta despachar: 2 × ZZ Cable 2,5 mm.")).toBeVisible();
+
+  // Segunda parte: lo que falta. Con eso el pedido queda en camino.
+  await partes.getByRole("button", { name: "Despachar una parte" }).click();
+  await expect(partes.getByLabel("Cantidad de ZZ Cable 2,5 mm")).toHaveValue("2");
+  await partes.getByRole("button", { name: "Despachar esta parte" }).click();
+  await expect(partes.getByText(/Parte 2 · En camino/)).toBeVisible({ timeout: 30_000 });
+  await expect(envio.getByRole("button", { name: "Marcar entregado" })).toBeVisible();
+});

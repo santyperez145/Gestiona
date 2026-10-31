@@ -41,6 +41,19 @@ interface Tracking {
   delivered_at?: string | null;
   tracking_url?: string | null;
   ordered_at?: string | null;
+  /** Despacho en partes (20261031000200): cada parte con sus productos. */
+  envios?: EnvioParcial[] | null;
+}
+
+interface EnvioParcial {
+  parte: number;
+  carrier?: string | null;
+  tracking?: string | null;
+  estado?: string | null;
+  salio?: string | null;
+  entregado?: string | null;
+  tracking_url?: string | null;
+  productos?: Array<{ nombre?: string | null; cantidad?: number | string | null }>;
 }
 
 const fecha = (iso?: string | null) =>
@@ -197,7 +210,36 @@ export default function OrderTracking({
         })}
       </ol>
 
-      {!esRetiro && t.tracking_number && (
+      {!esRetiro && (t.envios?.length ?? 0) > 0 && (
+        <div className="mt-4 pt-3 border-t text-sm space-y-3" style={{ borderColor: "hsl(var(--st-border))" }} data-testid="envios-del-pedido">
+          <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+            Tu pedido sale en partes.{t.fulfillment_status === "processing" ? " Te avisamos cuando salga lo que falta." : ""}
+          </p>
+          {t.envios!.map(envio => (
+            <div key={envio.parte}>
+              <p className="font-medium">
+                Parte {envio.parte}{envio.estado === "delivered" ? " · entregada" : envio.salio ? ` · salió el ${fecha(envio.salio)}` : ""}
+              </p>
+              <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+                {(envio.productos ?? []).map(p => `${p.cantidad} × ${p.nombre}`).join(", ")}
+              </p>
+              {envio.tracking && (
+                <p className="text-xs mt-0.5">
+                  {carrierLabel(envio.carrier)} · <span className="font-mono">{envio.tracking}</span>
+                  {envio.tracking_url && (
+                    <a href={envio.tracking_url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 ml-2 hover:underline" style={{ color: "hsl(var(--st-link))" }}>
+                      Seguirlo <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!esRetiro && !(t.envios?.length) && t.tracking_number && (
         <div className="mt-4 pt-3 border-t text-sm" style={{ borderColor: "hsl(var(--st-border))" }}>
           <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
             {carrierLabel(t.carrier)}

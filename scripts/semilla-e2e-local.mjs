@@ -47,6 +47,16 @@ export const COMPRA_IMPORTADA = {
   ],
 };
 
+/**
+ * Pedido pagado de un invitado (sin cuenta, así no aparece en «Mis pedidos»
+ * del comprador del E2E) para despacharlo en partes (20261031000200).
+ */
+export const PEDIDO_EN_PARTES = {
+  cliente: "ZZ Cliente en partes",
+  email: "partes-e2e@nerqia.test",
+  productos: [["ZZ Martillo carpintero", 1], ["ZZ Cable 2,5 mm", 2]],
+};
+
 /** Catálogo de prueba: nombres, precios y stock fijos para que los specs los busquen. */
 export const PRODUCTOS = [
   { name: "ZZ Tornillo 8x40", price: 120, cost: 60, stock: 500, sku: "ZZ-TOR-840" },
@@ -190,6 +200,29 @@ async function main() {
       comprobante: COMPRA_IMPORTADA.comprobante, proveedor: "ZZ Fábrica de Shenzhen", moneda: "USD",
       cotizacion: COMPRA_IMPORTADA.cotizacion, medio: "transferencia", items: importados,
     })]);
+    await c.query(`SELECT set_config('request.jwt.claims', '', true)`);
+    // El pedido para despachar en partes: lo compra un invitado por el mismo
+    // camino que el checkout (cotización por provincia y opción de envío) y el
+    // dueño acredita la transferencia.
+    const lineasEnPartes = [];
+    for (const [nombre, cantidad] of PEDIDO_EN_PARTES.productos) {
+      const { rows: [p] } = await c.query(`SELECT id FROM public.products WHERE org_id = $1 AND name = $2`, [org.id, nombre]);
+      lineasEnPartes.push({ product_id: p.id, quantity: cantidad });
+    }
+    const { rows: opcionesDeEnvio } = await c.query(
+      `SELECT option_id FROM public.quote_store_shipping($1, 'AR-B', '1900', $2::jsonb)`, [SLUG, JSON.stringify(lineasEnPartes)]);
+    const opcionDeEnvio = opcionesDeEnvio.map(o => o.option_id).find(id => id !== "retiro");
+    await c.query(`SELECT set_config('request.jwt.claims', '{"role":"anon"}', true)`);
+    await c.query("SET LOCAL ROLE anon");
+    const { rows: [creado] } = await c.query(
+      `SELECT public.create_store_order($1, $2::jsonb, $3, $4, NULL, $5::jsonb, 'transferencia', NULL, NULL, $6) AS r`,
+      [SLUG, JSON.stringify(lineasEnPartes), PEDIDO_EN_PARTES.cliente, PEDIDO_EN_PARTES.email,
+        JSON.stringify({ provincia: "AR-B", ciudad: "La Plata", calle: "Calle ZZ 123", cp: "1900" }), opcionDeEnvio]);
+    await c.query("RESET ROLE");
+    const { rows: [pedidoEnPartes] } = await c.query(
+      `SELECT id FROM public.ecommerce_orders WHERE org_id = $1 AND order_number = $2`, [org.id, creado.r.order_number]);
+    await c.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: usuario.id, role: "authenticated" })]);
+    await c.query(`SELECT public.confirmar_pago_manual_tienda($1, 'Semilla del E2E')`, [pedidoEnPartes.id]);
     await c.query(`SELECT set_config('request.jwt.claims', '', true)`);
     // Finance se habilita por negocio y lo decide un superadmin. Es un usuario
     // técnico aparte: el del E2E no tiene que ver Plataforma.

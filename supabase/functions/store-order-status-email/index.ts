@@ -35,7 +35,13 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const esc = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, char =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!));
 
-type StatusEvent = Extract<StoreOrderEmailEvent, "payment_confirmed" | "shipped" | "delivered">;
+type StatusEvent = Extract<StoreOrderEmailEvent, "payment_confirmed" | "shipped" | "delivered" | `parte_${number}`>;
+
+/** «parte_2» → 2: despacho en partes (20261031000200). */
+function numeroDeParte(event: StatusEvent): number | null {
+  const m = /^parte_(\d{1,3})$/.exec(event);
+  return m ? Number(m[1]) : null;
+}
 
 /** Espejo de `esPedidoRetiro` / `copyEstadoPedido` en storeOrderBuyerCopy.ts. */
 function esPedidoRetiro(order: { carrier?: unknown; shipping_service?: unknown }) {
@@ -66,6 +72,13 @@ function copyEstadoPedido(event: StatusEvent, esRetiro: boolean) {
       intro: "Ya podés pasar a buscarlo. Si necesitás ayuda, escribinos.",
     };
   }
+  if (numeroDeParte(event) !== null) {
+    return {
+      subject: "Salió una parte de tu pedido",
+      title: "Ya salió una parte de tu pedido",
+      intro: "Te mandamos lo que ya estaba listo. El resto sale apenas lo tengamos y te avisamos de nuevo.",
+    };
+  }
   if (event === "shipped") {
     return {
       subject: "Tu pedido está en camino",
@@ -89,10 +102,16 @@ function emailHtml(opts: {
   carrier?: string | null;
   tracking?: string | null;
   orderUrl?: string;
+  /** Lo que salió en esta parte. */
+  productos?: Array<{ nombre?: unknown; cantidad?: unknown }>;
 }) {
   const copy = copyEstadoPedido(opts.event, opts.esRetiro);
   const tracking = opts.tracking
     ? `<p style="margin:14px 0 0;font-size:14px;color:#555"><strong>Seguimiento:</strong> ${esc(opts.tracking)}${opts.carrier ? ` · ${esc(opts.carrier)}` : ""}</p>`
+    : "";
+  const productos = opts.productos?.length
+    ? `<ul style="margin:12px 0 0;padding-left:18px;font-size:14px;color:#555">${opts.productos
+      .map(p => `<li>${esc(p.cantidad)} × ${esc(p.nombre)}</li>`).join("")}</ul>`
     : "";
   const cta = opts.orderUrl ? `<p style="text-align:center;margin:24px 0"><a href="${esc(opts.orderUrl)}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:${esc(opts.accent)};color:#fff;font-weight:600;text-decoration:none;font-size:14px">Ver mi pedido</a></p>` : "";
 
@@ -102,6 +121,7 @@ function emailHtml(opts: {
   <p style="color:#555;line-height:1.5;margin:0">${esc(copy.intro)}</p>
   <div style="border:1px solid #eee;border-radius:10px;padding:16px;margin-top:20px">
     <p style="margin:0;font-weight:600">Pedido ${esc(opts.orderNumber)}</p>
+    ${productos}
     ${tracking}
   </div>
   ${cta}
@@ -113,6 +133,7 @@ function parseEvent(raw: unknown): StatusEvent | null {
   if (raw === "payment_confirmed" || raw === "shipped" || raw === "delivered") {
     return raw;
   }
+  if (typeof raw === "string" && /^parte_\d{1,3}$/.test(raw)) return raw as StatusEvent;
   return null;
 }
 
@@ -138,9 +159,15 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (orderError || !order) return json({ error: "Orden no encontrada" }, 404);
 
+    const parte = numeroDeParte(event);
     if (event === "payment_confirmed") {
       if (order.payment_status !== "paid") {
         return json({ error: "La orden todavía no figura como pagada" }, 409);
+      }
+    } else if (parte !== null) {
+      // La parte tiene que existir; el pedido sigue en preparación o ya salió entero.
+      if (!["processing", "shipped", "delivered"].includes(order.fulfillment_status)) {
+        return json({ error: "La orden no está en el estado que se quiere avisar" }, 409);
       }
     } else if (order.fulfillment_status !== event) {
       return json({ error: "La orden no está en el estado que se quiere avisar" }, 409);
@@ -163,9 +190,13 @@ Deno.serve(async (req) => {
       admin.from("ecommerce_stores").select("name, slug, primary_color").eq("id", order.store_id).maybeSingle(),
       event === "payment_confirmed"
         ? Promise.resolve({ data: null })
-        : admin.from("deliveries").select("carrier, external_tracking").eq("ecommerce_order_id", order.id).order("created_at").limit(1).maybeSingle(),
+        : parte !== null
+          ? admin.from("deliveries").select("carrier, external_tracking, items").eq("ecommerce_order_id", order.id).eq("parte", parte).maybeSingle()
+          // Con partes, el pedido sale con la última; sin partes hay una sola entrega.
+          : admin.from("deliveries").select("carrier, external_tracking").eq("ecommerce_order_id", order.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     if (!store) return json({ error: "Tienda no encontrada" }, 404);
+    if (parte !== null && !delivery) return json({ error: "Esa parte del pedido no existe" }, 404);
 
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
     const smtp = await smtpDeOrganizacion(order.org_id);
@@ -194,7 +225,10 @@ Deno.serve(async (req) => {
         event,
         esRetiro: retiro,
         carrier: delivery?.carrier,
-        tracking: delivery?.external_tracking || order.tracking_number,
+        tracking: delivery?.external_tracking || (parte !== null ? null : order.tracking_number),
+        productos: parte !== null && Array.isArray((delivery as unknown as { items?: unknown } | null)?.items)
+          ? (delivery as unknown as { items: Array<{ nombre?: unknown; cantidad?: unknown }> }).items
+          : undefined,
         orderUrl: baseUrl
           ? `${baseUrl}/tienda/${store.slug}/orden/${order.order_number}#access=${encodeURIComponent(order.public_access_token)}`
           : undefined,
