@@ -34,6 +34,10 @@ jobs:
     timeout-minutes: 40
     env:
       SIMULACRO_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # Las imágenes de Supabase desde ghcr.io: el registro por defecto
+      # (public.ecr.aws) corta con «Data limit exceeded» y el CLI recién
+      # después recae en ghcr.io (visto en cada simulacro del 2026-10-31).
+      SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
     steps:
       - name: Checkout
         uses: actions/checkout@v7
