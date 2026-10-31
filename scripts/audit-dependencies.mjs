@@ -21,6 +21,24 @@ const EXCEPCIONES = [
     url: "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
     revisarAntesDe: "2026-11-29",
   },
+  {
+    // Revisada 2026-10-30: `minimatch` se corrige recién en 11.0.1 y quienes
+    // lo usan acá fijan 3.x (eslint, typescript-eslint), 5.x, 8.x y 10.x (glob
+    // dentro de workbox-build y del plugin de Sentry): no hay versión
+    // compatible. DoS con patrones que amplifican; acá sólo recibe los globs
+    // fijos del lint y de la compilación, nunca entrada de usuarios, y no
+    // viaja al bundle (la auditoría de runtime da 0).
+    url: "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+    revisarAntesDe: "2026-11-29",
+  },
+  {
+    // Revisada 2026-10-30: `glob` se corrige en 14.0.2 y workbox-build y el
+    // plugin de Sentry fijan 9.x y 11.x. El aviso es que cancelar con
+    // AbortSignal no frena el recorrido; acá se recorren carpetas del repo al
+    // compilar, sin cancelaciones ni rutas de afuera, y no viaja al bundle.
+    url: "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4",
+    revisarAntesDe: "2026-11-29",
+  },
 ];
 
 function runAudit(extraArgs = []) {
@@ -55,7 +73,10 @@ function vulnerabilityCount(report) {
 
 function isOnlyAllowedAdvisory(name, vulnerabilities, visiting = new Set()) {
   const vulnerability = vulnerabilities[name];
-  if (!vulnerability || visiting.has(name)) return false;
+  if (!vulnerability) return false;
+  // Un ciclo (eslint → @eslint-community/eslint-utils → eslint) no trae un
+  // aviso propio: deciden los avisos reales del resto del camino.
+  if (visiting.has(name)) return true;
 
   const nextVisiting = new Set(visiting);
   nextVisiting.add(name);

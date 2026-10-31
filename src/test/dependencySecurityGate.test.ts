@@ -61,6 +61,10 @@ describe("dependencias sin alertas productivas conocidas", () => {
     // Cada excepción tiene su fecha de revisión: vencida, la puerta falla.
     expect(dependencyAudit).toMatch(/url: "https:\/\/github\.com\/advisories\/GHSA-vfj7-8cjw-p6xm",\s+revisarAntesDe: "2026-11-13",/);
     expect(dependencyAudit).toMatch(/url: "https:\/\/github\.com\/advisories\/GHSA-gcqx-w48m-w2h4",\s+revisarAntesDe: "2026-11-29",/);
+    expect(dependencyAudit).toMatch(/url: "https:\/\/github\.com\/advisories\/GHSA-g3hv-75wg-m249",\s+revisarAntesDe: "2026-11-29",/);
+    expect(dependencyAudit).toMatch(/url: "https:\/\/github\.com\/advisories\/GHSA-3g3m-2fjr-6pw4",\s+revisarAntesDe: "2026-11-29",/);
+    // Un ciclo de dependencias (eslint ↔ eslint-utils) no es un aviso propio.
+    expect(dependencyAudit).toContain("if (visiting.has(name)) return true;");
     expect(dependencyAudit).toContain("if (vencidas.length > 0 || unexpected.length > 0) {");
     expect(pkg.dependencies["tailwindcss-animate"]).toBeUndefined();
     expect(pkg.devDependencies["tailwindcss-animate"]).toBe("^1.0.7");
