@@ -17,13 +17,14 @@ const EMAIL = process.env.E2E_BUYER_EMAIL ?? "";
 const PASSWORD = process.env.E2E_BUYER_PASSWORD ?? "";
 const PRODUCTO = "ZZ Cotizable mayorista";
 const PRODUCTO_CARO = "ZZ Pedido grande";
+const PRODUCTO_PREVENTA = "ZZ Consola en preventa";
 const tienda = (path = "") => `/tienda/${SLUG}${path}`;
 
 test("el comprador ve su saldo, pide cotización, paga con saldo y pide un cambio", async ({ page }, testInfo) => {
   test.skip(!EMAIL || !PASSWORD, "Sin comprador de prueba (sólo en el E2E contra la base local).");
   // Un solo navegador: el recorrido consume saldo y pedidos de cotización.
   test.skip(testInfo.project.name !== "chromium", "El recorrido corre una vez, en escritorio.");
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
 
   // 1. Entra con su cuenta y ve su saldo.
   await page.goto(tienda("/cuenta"));
@@ -95,4 +96,21 @@ test("el comprador ve su saldo, pide cotización, paga con saldo y pide un cambi
   await expect(page.getByRole("heading", { name: "¡Gracias por tu compra!" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Pagaste .+ con tu saldo a favor/).first()).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText("A pagar", { exact: true })).toBeVisible();
+
+  // 8. Preventa (20261030001900): sin stock, se compra en preventa y el
+  //    pedido dice qué llega después. El saldo ya se usó entero.
+  await page.goto(tienda(`/productos?q=${encodeURIComponent("preventa")}`));
+  const tarjeta = page.locator("article").filter({ hasText: PRODUCTO_PREVENTA }).first();
+  await expect(tarjeta.getByText("Preventa", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await tarjeta.getByRole("button", { name: "Comprar en preventa" }).click();
+  await page.goto(tienda("/checkout"));
+  await expect(page.getByTestId("checkout-preventa")).toBeVisible({ timeout: 20_000 });
+  await page.getByLabel("Nombre y apellido *").fill("ZZ Comprador E2E");
+  await page.getByLabel("Email *", { exact: true }).fill(EMAIL);
+  await page.getByLabel("Transferencia bancaria").check();
+  const finalizarPreventa = page.getByRole("button", { name: /Finalizar compra/ }).filter({ visible: true });
+  await expect(finalizarPreventa).toBeEnabled({ timeout: 20_000 });
+  await finalizarPreventa.click();
+  await expect(page.getByRole("heading", { name: "¡Gracias por tu compra!" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/1 unidad es de preventa/)).toBeVisible({ timeout: 20_000 });
 });

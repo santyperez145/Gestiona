@@ -234,7 +234,7 @@ BEGIN
         'ok', false,
         'error', format(
           'Sin stock disponible de %s: quedan %s y se piden %s',
-          v_product.name, GREATEST(v_disp + v_cupo, 0), p_qty
+          v_product.name, trim_scale(GREATEST(v_disp + v_cupo, 0)), p_qty
         ),
         'available_quantity', GREATEST(v_disp + v_cupo, 0)
       );
@@ -282,7 +282,7 @@ BEGIN
       'ok', false,
       'error', format(
         'Sin stock disponible de %s %s: quedan %s y se piden %s',
-        v_product.name, v_variant.variant_name, GREATEST(v_disp, 0), p_qty
+        v_product.name, v_variant.variant_name, trim_scale(GREATEST(v_disp, 0)), p_qty
       ),
       'available_quantity', GREATEST(v_disp, 0)
     );
@@ -349,7 +349,7 @@ BEGIN
     IF v_disp + public.cupo_de_preventa(v_pid, v_vid) < v_qty THEN
       SELECT name INTO v_nombre FROM public.products WHERE id = v_pid;
       RAISE EXCEPTION 'Sin stock disponible de % en el depósito de despacho: quedan % y se piden %',
-        COALESCE(v_nombre, 'el producto'), GREATEST(v_disp, 0), v_qty
+        COALESCE(v_nombre, 'el producto'), trim_scale(GREATEST(v_disp, 0)), trim_scale(v_qty)
         USING ERRCODE = 'invalid_parameter_value';
     END IF;
 

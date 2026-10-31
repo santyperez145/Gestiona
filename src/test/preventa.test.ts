@@ -10,6 +10,9 @@ describe("preventa: vender lo que todavía no llegó", () => {
     // Con stock se vende primero lo que hay; el resto es preventa.
     expect(sql).toContain("v_preventa := GREATEST(p_qty - GREATEST(v_disp, 0), 0);");
     expect(sql).toContain("THEN jsonb_build_object('preventa', jsonb_build_object(");
+    // «quedan 3», no «quedan 3.000»: el cupo y el stock admiten decimales.
+    expect(sql).toContain("v_product.name, trim_scale(GREATEST(v_disp + v_cupo, 0)), p_qty");
+    expect(sql).toContain("trim_scale(GREATEST(v_disp, 0)), trim_scale(v_qty)");
   });
 
   it("vence sola pasado el día de llegada y no aplica a productos con variantes", () => {
