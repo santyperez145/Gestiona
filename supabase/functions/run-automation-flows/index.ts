@@ -13,6 +13,7 @@ import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { deliverOutboundEvent } from "../_shared/outboundWebhook.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
+import { diaARMas, hoyAR } from "../_shared/fechaAR.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
   const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
   if (noEsCron) return noEsCron;
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
 
     const { data: flows } = await supabase
       .from("automation_flows")
@@ -485,7 +486,7 @@ async function actionCreateTask(
   const description = subjects.slice(0, 20).map((s) => `• ${s.label}${s.detail ? ` (${s.detail})` : ""}`).join("\n");
   const priority = config?.task_priority ?? "medium";
   const dueDate = config?.task_due_days
-    ? new Date(Date.now() + Number(config.task_due_days) * 86400000).toISOString().slice(0, 10)
+    ? diaARMas(Number(config.task_due_days))
     : null;
 
   const { error } = await supabase.from("tasks").insert({
@@ -567,9 +568,7 @@ async function actionWebhook(
 // Helpers
 // ─────────────────────────────────────────────────────────────
 function daysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return diaARMas(-n);
 }
 
 function interpolate(template: string, subject: Subject): string {

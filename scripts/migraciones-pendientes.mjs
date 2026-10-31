@@ -69,6 +69,7 @@ export const MATRICES = {
   '20261030001500': 'scripts/saldo-reservado-en-pedidos-matrix.sql',
   '20261030001600': 'scripts/factura-con-fecha-argentina-matrix.sql',
   '20261030001700': 'scripts/saldo-con-mercado-pago-matrix.sql',
+  '20261030001800': 'scripts/base-en-hora-argentina-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

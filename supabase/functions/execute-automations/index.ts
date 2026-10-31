@@ -25,6 +25,7 @@ import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { deliverOutboundEvent } from "../_shared/outboundWebhook.ts";
 
 import { esLlamadaDeCron, exigirCronOUsuario } from "../_shared/cronAuth.ts";
+import { diaAR, diaARMas } from "../_shared/fechaAR.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -193,7 +194,7 @@ Deno.serve(async (req) => {
 
         } else if (flow.trigger_type === "debt_overdue") {
           const graceDays = Number(tc.days_overdue ?? tc.grace_days) || 0;
-          const cutoff = new Date(now.getTime() - graceDays * 86400000).toISOString().slice(0, 10);
+          const cutoff = diaARMas(-graceDays, now);
           const { data: debts, error: debtsError } = await supabase
             .from("debts")
             .select("id, customer_name, remaining_ars, due_date")
@@ -261,7 +262,7 @@ Deno.serve(async (req) => {
 
         } else if (flow.trigger_type === "big_sale") {
           const threshold = Number(tc.min_amount ?? tc.threshold) || 10000;
-          const today = now.toISOString().slice(0, 10);
+          const today = diaAR(now);
           const { data: sales, error: salesError } = await supabase
             .from("sales")
             .select("id, customer_name, total_ars")
@@ -366,7 +367,7 @@ Deno.serve(async (req) => {
               assigned_to: adminIds[0],
               title: `${taskTitle}: ${entity.name}${entity.extra ? ` (${entity.extra})` : ""}`,
               priority: taskPriority,
-              due_date: new Date(now.getTime() + taskDueDays * 86400000).toISOString().slice(0, 10),
+              due_date: diaARMas(taskDueDays, now),
               category: "Automatización",
             }));
             const { data: existingTasks, error: existingTasksError } = await supabase

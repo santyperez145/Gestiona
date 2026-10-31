@@ -7,6 +7,7 @@ import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
+import { hoyAR } from "../_shared/fechaAR.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -37,7 +38,7 @@ Deno.serve(async (req) => {
   const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
   if (noEsCron) return noEsCron;
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyAR();
 
     // Get all unpaid debts with overdue due_date
     const { data: debts } = await supabase

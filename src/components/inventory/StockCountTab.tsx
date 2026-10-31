@@ -22,6 +22,7 @@ import {
   PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap,
 } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { hoyAR } from "@/lib/fechaAR";
 
 // ─── Barcode scanner hook ─────────────────────────────────────────────────────
 
@@ -402,7 +403,7 @@ export default function StockCountTab() {
     });
     const blob = new Blob([[header, ...rowsData].join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `toma-fisica-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `toma-fisica-${hoyAR()}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 

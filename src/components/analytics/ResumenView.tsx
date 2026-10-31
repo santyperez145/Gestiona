@@ -656,7 +656,7 @@ export default function ResumenView() {
                 <Input type="date" value={trendFrom} max={trendTo} onChange={e => setTrendFrom(e.target.value)}
                   className="h-8 w-36 px-2 text-xs" aria-label="Inicio del rango de tendencia" />
                 <span className="text-muted-foreground">→</span>
-                <Input type="date" value={trendTo} min={trendFrom} max={new Date().toISOString().slice(0,10)} onChange={e => setTrendTo(e.target.value)}
+                <Input type="date" value={trendTo} min={trendFrom} max={hoyAR()} onChange={e => setTrendTo(e.target.value)}
                   className="h-8 w-36 px-2 text-xs" aria-label="Fin del rango de tendencia" />
               </div>
             </div>

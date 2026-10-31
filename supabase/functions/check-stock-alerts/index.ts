@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
+import { hoyAR } from "../_shared/fechaAR.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -84,7 +85,7 @@ Deno.serve(async (req) => {
 
       if (!members?.length) continue;
 
-      const today = new Date().toISOString().slice(0, 10);
+      const today = hoyAR();
 
       for (const member of members) {
         // Check if we already sent a stock alert today

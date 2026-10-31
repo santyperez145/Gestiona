@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { mensajeDeError } from "../_shared/errorMessage.ts";
 import { exigirCron } from "../_shared/cronAuth.ts";
+import { diaARMas, hoyAR } from "../_shared/fechaAR.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -21,8 +22,8 @@ Deno.serve(async (req) => {
   const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
   if (noEsCron) return noEsCron;
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = hoyAR();
+    const yesterday = diaARMas(-1);
 
     // Get all orgs with their settings
     const { data: allSettings } = await supabase

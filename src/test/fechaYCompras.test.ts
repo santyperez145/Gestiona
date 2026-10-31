@@ -13,11 +13,12 @@ describe("hoy es el día de Argentina", () => {
     expect(diaAR("2026-10-15")).toBe("2026-10-15");
     expect(diaAR(null)).toBe("");
   });
-  it("ninguna pantalla vuelve a calcular hoy en UTC", () => {
+  it("ninguna pantalla ni función del servidor vuelve a calcular hoy en UTC", () => {
     let usos = "";
     try {
+      // Con o sin espacio después de la coma: «slice(0,10)» se escapaba.
       usos = execSync(
-        `git grep -n -E "new Date\\(\\)\\.toISOString\\(\\)\\.(slice\\(0, (10|7)\\)|split)" -- src ":!src/test" ":!src/lib/fechaAR.ts"`,
+        `git grep -n -E "new Date\\(\\)\\.toISOString\\(\\)\\.(slice\\(0, ?(10|7)\\)|split)" -- src supabase/functions ":!src/test" ":!src/lib/fechaAR.ts" ":!supabase/functions/_shared/fechaAR.ts"`,
         { encoding: "utf8" },
       ).trim();
     } catch (e) {

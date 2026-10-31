@@ -15,6 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { mensajeDeError } from "../_shared/errorMessage.ts";
 import { exigirCron } from "../_shared/cronAuth.ts";
+import { hoyAR } from "../_shared/fechaAR.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -120,7 +121,7 @@ serve(async (req) => {
         // persona tenga sin leer el anterior del mismo tipo. ⚠️ Antes era
         // sólo «hoy»: Exentry Imports acumuló 44 «cliente(s) en riesgo» sin
         // leer en 30 días (medido 2026-10-11).
-        const todayStr = today.toISOString().slice(0, 10);
+        const todayStr = hoyAR();
         const { data: existing, error: errExisting } = await supabase
           .from("notifications")
           .select("user_id, type")
