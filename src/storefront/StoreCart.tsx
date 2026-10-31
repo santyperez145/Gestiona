@@ -19,6 +19,7 @@ import { etiquetaProvinciaCheckout, textoCoberturaDomicilio } from "@/lib/storeS
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 import { urlMediaSegura } from "@/lib/secureMedia";
 import { ArrowLeft, CheckCircle2, CloudOff, Loader2, Minus, Plus, ShoppingBag, Trash2, Truck } from "lucide-react";
+import { textoPreventa, unidadesEnPreventa } from "@/lib/preventa";
 
 export default function StoreCart() {
   const {
@@ -199,6 +200,11 @@ export default function StoreCart() {
                 <div className="min-w-0 flex-1">
                   <p className="text-[0.95rem] font-semibold leading-tight line-clamp-2">{l.name}</p>
                   <p className="mt-1 text-base font-bold tracking-tight">{fmt(l.price * l.qty)}</p>
+                  {l.preventa && unidadesEnPreventa(l.qty, l.preventa.enStock) > 0 && (
+                    <p className="mt-1 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+                      {textoPreventa(unidadesEnPreventa(l.qty, l.preventa.enStock), l.preventa.llega)}
+                    </p>
+                  )}
                   <div className="mt-2 flex items-center gap-2">
                     <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
                       <button type="button" className="grid min-h-11 min-w-11 place-items-center px-2 py-1" onClick={() => setQty(lineKeyOf(l), l.qty - 1)} aria-label="Restar">

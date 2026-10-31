@@ -39,6 +39,7 @@ import { storeVisitAttribution, storeVisitToken } from "@/lib/storeVisitAttribut
 import { useStoreAuth } from "./storeAuth";
 import { retryAbortableRead } from "@/lib/transientRead";
 import { isMissingFunction } from "@/lib/publicDataSource";
+import { enPreventa, topeDeCompra, type Preventa, type PreventaDeLinea } from "@/lib/preventa";
 
 export const STORE_READ_RETRY_DELAYS_MS = [300, 1_000, 2_500];
 export const STORE_AUTO_RELOAD_DELAYS_MS = [5_000, 15_000];
@@ -130,6 +131,8 @@ export interface StoreProduct {
   featured: boolean | null;
   total_sold: number | null;
   created_at: string;
+  /** Preventa vigente (20261030001900): se vende sin stock hasta un cupo. */
+  preventa?: Preventa | null;
 }
 
 export interface PerfumeDetail {
@@ -156,7 +159,10 @@ export interface CartLine {
   price: number;
   qty: number;
   image: string | null;
+  /** Lo máximo que se puede comprar (con preventa, el stock más el cupo). */
   stock: number;
+  /** Parte en preventa: cuándo llega y cuánto había en stock al agregar. */
+  preventa?: PreventaDeLinea | null;
 }
 
 export type CartSyncStatus = "loading" | "syncing" | "synced" | "local" | "error";
@@ -385,7 +391,7 @@ export function StoreProvider({
         .then(r => { completoListo = r; return r; });
       completo.catch(() => {});
 
-      const [inicio, dRes, vRes, rRes, gRes, bRes, cRes, qRes] = await Promise.all([
+      const [inicio, dRes, vRes, rRes, gRes, bRes, cRes, qRes, pvRes] = await Promise.all([
         inicioTemprano,
         retryAbortableRead(signal => supabase.rpc("get_store_perfume_details", { p_slug: slug }).abortSignal(signal), readOptions),
         fetchStoreVariants(slug, readOptions),
@@ -394,15 +400,28 @@ export function StoreProvider({
         retryAbortableRead(signal => supabase.rpc("get_store_banners", { p_slug: slug }).abortSignal(signal), readOptions),
         retryAbortableRead(signal => supabase.rpc("get_store_categories", { p_slug: slug }).abortSignal(signal), readOptions),
         retryAbortableRead(signal => supabase.rpc("get_store_quantity_discounts", { p_slug: slug }).abortSignal(signal), readOptions),
+        retryAbortableRead(signal => supabase.rpc("get_store_preventas" as never, { p_slug: slug } as never).abortSignal(signal), readOptions),
       ]);
       if (cancelled) return;
 
+      // Preventa (20261030001900): lo que se vende sin stock hasta un cupo.
+      // Sin la función en la base llega vacío y la tienda sigue como antes.
+      if (pvRes?.error && !isMissingFunction(pvRes.error)) {
+        console.error("[tienda] no se pudieron leer las preventas", pvRes.error);
+      }
+      const preventas: Record<string, Preventa> = {};
+      ((pvRes?.data ?? []) as Array<{ product_id: string; llega: string; vendible: number }>).forEach(x => {
+        const preventa = { llega: String(x.llega), vendible: Number(x.vendible) || 0 };
+        if (enPreventa(preventa)) preventas[x.product_id] = preventa;
+      });
+      const aLaVenta = (x: StoreProduct) => Number(x.stock) > 0 || enPreventa(x.preventa);
+
       // Los agotados se muestran, pero últimos: la tienda tiene que verse
-      // llena de lo que sí se puede comprar.
-      const aplicarLista = (lista: StoreProduct[]) => setProducts([
-        ...lista.filter(x => Number(x.stock) > 0),
-        ...lista.filter(x => Number(x.stock) <= 0),
-      ]);
+      // llena de lo que sí se puede comprar (lo que está en preventa, también).
+      const aplicarLista = (lista: StoreProduct[]) => {
+        const conPreventa = lista.map(x => (preventas[x.id] ? { ...x, preventa: preventas[x.id] } : x));
+        setProducts([...conPreventa.filter(aLaVenta), ...conPreventa.filter(x => !aLaVenta(x))]);
+      };
       const listo = completoListo as Awaited<ReturnType<typeof fetchStoreProducts>> | null;
       let parcial = false;
       if (listo) {
@@ -681,7 +700,7 @@ export function StoreProvider({
     // distintos con su precio y su stock.
     const key = variant ? `${p.id}::${variant.id}` : p.id;
     const existing = cart.find(l => lineKeyOf(l) === key);
-    const stock = variant ? variant.stock : p.stock;
+    const stock = variant ? variant.stock : topeDeCompra(p.stock, p.preventa);
     const precio = precioDeVariante(priceOf(p), variant);
     // Nunca se deja superar el stock: si no, el checkout falla al final,
     // que es el peor momento para enterarse.
@@ -694,6 +713,10 @@ export function StoreProvider({
       price: precio, qty: nextQty,
       image: variant?.image_url ?? p.image_url,
       stock,
+      // Sólo si hay preventa: una línea común queda igual que siempre.
+      ...(!variant && enPreventa(p.preventa)
+        ? { preventa: { llega: p.preventa.llega, enStock: Math.max(0, Number(p.stock) || 0) } }
+        : {}),
     };
     persist(existing
       ? cart.map(l => (lineKeyOf(l) === key ? line : l))

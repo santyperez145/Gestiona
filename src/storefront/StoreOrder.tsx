@@ -28,6 +28,7 @@ import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken 
 import { useStoreTrackingRuntimeReady } from "./trackingConsent";
 import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy, RefreshCw } from "lucide-react";
 import { checkoutAttemptStorage, clearStoreCheckoutAttemptForOrder } from "@/lib/storeCheckoutAttempt";
+import { textoPreventa } from "@/lib/preventa";
 
 type Order = StoreOrderAccessRow;
 type CargaPedido =
@@ -618,10 +619,17 @@ function StoreOrderContent() {
 
         <div className="space-y-2">
           {(order.items ?? []).map((it, i) => (
-            <div key={i} className="flex gap-2 text-sm">
-              <span className="tabular-nums shrink-0" style={{ color: "hsl(var(--st-muted))" }}>{it.quantity}×</span>
-              <span className="flex-1 leading-tight">{it.name}</span>
-              <span className="shrink-0">{fmt(Number(it.total))}</span>
+            <div key={i} className="text-sm">
+              <div className="flex gap-2">
+                <span className="tabular-nums shrink-0" style={{ color: "hsl(var(--st-muted))" }}>{it.quantity}×</span>
+                <span className="flex-1 leading-tight">{it.name}</span>
+                <span className="shrink-0">{fmt(Number(it.total))}</span>
+              </div>
+              {it.preventa && Number(it.preventa.cantidad) > 0 && (
+                <p className="mt-0.5 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+                  {textoPreventa(Number(it.preventa.cantidad), String(it.preventa.llega))}
+                </p>
+              )}
             </div>
           ))}
         </div>

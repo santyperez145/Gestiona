@@ -33,6 +33,7 @@ import {
   readStoreCheckoutAttempt,
   storeCheckoutPayloadFingerprint,
 } from "@/lib/storeCheckoutAttempt";
+import { textoPreventa, unidadesEnPreventa } from "@/lib/preventa";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -1058,6 +1059,17 @@ export default function StoreCheckout() {
               </div>
             ))}
           </div>
+          {/* Preventa (20261030001900): antes de pagar, qué llega después. */}
+          {cart.some(l => l.preventa && unidadesEnPreventa(l.qty, l.preventa.enStock) > 0) && (
+            <div className="space-y-1 border p-2.5 text-xs" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }} data-testid="checkout-preventa">
+              <p className="font-semibold">Tu pedido incluye preventa</p>
+              {cart.filter(l => l.preventa && unidadesEnPreventa(l.qty, l.preventa.enStock) > 0).map(l => (
+                <p key={"preventa-" + l.productId} style={{ color: "hsl(var(--st-muted))" }}>
+                  {l.name}: {textoPreventa(unidadesEnPreventa(l.qty, l.preventa!.enStock), l.preventa!.llega)}
+                </p>
+              ))}
+            </div>
+          )}
 
           {/* Cupón de descuento */}
           <div className="pt-2 border-t" style={{ borderColor: "hsl(var(--st-border))" }}>

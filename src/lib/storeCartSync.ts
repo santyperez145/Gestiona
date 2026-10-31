@@ -1,3 +1,5 @@
+import { enPreventa, topeDeCompra, type Preventa, type PreventaDeLinea } from "@/lib/preventa";
+
 export interface StoreCartReference {
   product_id: string;
   variant_id: string | null;
@@ -10,6 +12,8 @@ export interface StoreCartCatalogProduct {
   brand: string | null;
   stock: number;
   image_url: string | null;
+  /** Preventa vigente (20261030001900): se vende sin stock hasta un cupo. */
+  preventa?: Preventa | null;
 }
 
 export interface StoreCartCatalogVariant {
@@ -29,6 +33,7 @@ export interface RebuiltStoreCartLine {
   qty: number;
   image: string | null;
   stock: number;
+  preventa?: PreventaDeLinea | null;
 }
 
 const referenceKey = (item: Pick<StoreCartReference, "product_id" | "variant_id">) =>
@@ -114,7 +119,7 @@ export function rebuildStoreCart<TProduct extends StoreCartCatalogProduct>(
       continue;
     }
 
-    const stock = Number(variant?.stock ?? product.stock) || 0;
+    const stock = variant ? Number(variant.stock) || 0 : topeDeCompra(product.stock, product.preventa);
     if (stock < 1) {
       unavailableCount += 1;
       continue;
@@ -133,6 +138,10 @@ export function rebuildStoreCart<TProduct extends StoreCartCatalogProduct>(
       qty: quantity,
       image: variant?.image_url ?? product.image_url,
       stock,
+      // Sólo si hay preventa: una línea común queda igual que siempre.
+      ...(!variant && enPreventa(product.preventa)
+        ? { preventa: { llega: product.preventa.llega, enStock: Math.max(0, Number(product.stock) || 0) } }
+        : {}),
     });
   }
 

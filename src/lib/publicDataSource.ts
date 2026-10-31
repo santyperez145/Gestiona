@@ -868,7 +868,11 @@ export interface StoreOrderAccessRow {
   order_number: string;
   customer_name: string;
   customer_email: string;
-  items: Array<{ name: string; quantity: number; unit_price: number; total: number; product_id?: string }>;
+  items: Array<{
+    name: string; quantity: number; unit_price: number; total: number; product_id?: string;
+    /** Unidades de preventa de la línea y cuándo llegan (20261030001900). */
+    preventa?: { cantidad: number; llega: string } | null;
+  }>;
   subtotal: number;
   shipping_cost: number;
   total: number;

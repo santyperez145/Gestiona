@@ -17,6 +17,8 @@ export interface StoreOrderItem {
   quantity: number;
   unit_price: number;
   total: number;
+  /** Unidades de preventa de la línea y cuándo llegan (20261030001900). */
+  preventa?: { cantidad: number; llega: string } | null;
 }
 
 export interface StoreOrderInspectRow extends StoreOrderQueueRow {
@@ -81,11 +83,16 @@ export function parseStoreOrderItems(raw: unknown): StoreOrderItem[] {
     const quantity = finiteNumber(row.quantity);
     const unit_price = finiteNumber(row.unit_price ?? row.unit_price_ars);
     const total = finiteNumber(row.total ?? row.total_ars);
+    const preventa = (row.preventa && typeof row.preventa === "object") ? row.preventa as Record<string, unknown> : null;
+    const cantidadPreventa = preventa ? finiteNumber(preventa.cantidad) : 0;
     return {
       name,
       quantity,
       unit_price,
       total: total || unit_price * quantity,
+      ...(cantidadPreventa > 0 && typeof preventa?.llega === "string"
+        ? { preventa: { cantidad: cantidadPreventa, llega: preventa.llega } }
+        : {}),
     };
   });
 }

@@ -36,7 +36,20 @@ const money = (n: unknown) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })
     .format(Number(n) || 0);
 
-interface Item { name?: string; quantity?: number; unit_price?: number; total?: number }
+interface Item {
+  name?: string; quantity?: number; unit_price?: number; total?: number;
+  /** Unidades de preventa de la línea y cuándo llegan (20261030001900). */
+  preventa?: { cantidad?: number; llega?: string } | null;
+}
+
+/** «Preventa: 2 unidades llegan aprox. el 20/11», o nada. */
+function notaDePreventa(item: Item): string {
+  const cantidad = Number(item.preventa?.cantidad) || 0;
+  const llega = String(item.preventa?.llega ?? "");
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(llega);
+  if (cantidad <= 0 || !m) return "";
+  return `<br><span style="color:#b45309;font-size:12px">Preventa: ${cantidad} ${cantidad === 1 ? "unidad llega" : "unidades llegan"} aprox. el ${m[3]}/${m[2]} y se despacha${cantidad === 1 ? "" : "n"} cuando llegue la mercadería.</span>`;
+}
 
 /** Espejo de `esPedidoRetiro` / `storeOrderBuyerCopy.ts`. Deno no importa `@/`. */
 function esPedidoRetiro(order: { carrier?: unknown; shipping_service?: unknown }) {
@@ -63,7 +76,7 @@ function itemsHtml(items: Item[], accent: string) {
   return items.map(i => `
     <tr>
       <td style="padding:8px 0;border-bottom:1px solid #eee">
-        <span style="color:#888">${Number(i.quantity) || 1}×</span> ${esc(i.name)}
+        <span style="color:#888">${Number(i.quantity) || 1}×</span> ${esc(i.name)}${notaDePreventa(i)}
       </td>
       <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">
         ${money(i.total)}

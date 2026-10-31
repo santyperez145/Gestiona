@@ -34,6 +34,7 @@ import StoreOrderReturnsSection from "@/components/ecommerce/StoreOrderReturnsSe
 import { useHasPermission } from "@/lib/usePermissions";
 import { useSaldoAplicado } from "./useSaldoAplicado";
 import DevolverSaldoDelPedido from "./DevolverSaldoDelPedido";
+import { fechaDeLlegada } from "@/lib/preventa";
 
 interface Props {
   open: boolean;
@@ -240,6 +241,11 @@ export default function StoreOrderInspector({
                               <p className="mt-0.5 text-xs text-muted-foreground">
                                 {item.quantity} × {formatARS(item.unit_price)}
                               </p>
+                              {item.preventa && (
+                                <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                                  Preventa: {item.preventa.cantidad} {item.preventa.cantidad === 1 ? "unidad llega" : "unidades llegan"} aprox. el {fechaDeLlegada(item.preventa.llega)}. Despachalas cuando entre la mercadería.
+                                </p>
+                              )}
                             </div>
                             <p className="shrink-0 font-mono text-sm font-semibold">{formatARS(item.total)}</p>
                           </div>

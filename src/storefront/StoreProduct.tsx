@@ -34,6 +34,7 @@ import {
   textoCtaVariante,
   textoDisponibilidadProducto,
 } from "@/lib/storeProductVariant";
+import { enPreventa, textoPreventa, topeDeCompra, unidadesEnPreventa } from "@/lib/preventa";
 
 export default function StoreProduct() {
   const trackingRuntimeReady = useStoreTrackingRuntimeReady();
@@ -186,14 +187,20 @@ export default function StoreProduct() {
 
   const price = precioDeVariante(priceOf(p), variante);
   const stockEfectivo = variante ? variante.stock : p.stock;
+  // Preventa (20261030001900): sin variantes, se compra hasta el cupo.
+  const preventa = variantes.length === 0 && enPreventa(p.preventa) ? p.preventa : null;
+  const topeEfectivo = variante ? variante.stock : topeDeCompra(p.stock, preventa);
   const agotadoParaCompra = variante
     ? variante.stock <= 0
-    : variantes.length === 0 && p.stock <= 0;
-  const textoDisponibilidad = textoDisponibilidadProducto({
-    variants: variantes,
-    selected: variante,
-    productStock: p.stock,
-  });
+    : variantes.length === 0 && topeEfectivo <= 0;
+  const enPreventaAhora = preventa ? unidadesEnPreventa(qty, p.stock) : 0;
+  const textoDisponibilidad = preventa && Number(p.stock) <= 0
+    ? textoPreventa(0, preventa.llega)
+    : textoDisponibilidadProducto({
+      variants: variantes,
+      selected: variante,
+      productStock: p.stock,
+    });
   const list = Number(p.sale_price_ars);
   // Sobre qué precio se descuenta el medio de pago. Cuando la oferta acumula
   // la vista devuelve el precio de oferta, y entonces el descuento se suma
@@ -485,8 +492,8 @@ export default function StoreProduct() {
                 <span className="px-3 tabular-nums font-medium">{qty}</span>
                 <button
                   className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
-                  onClick={() => setQty(q => Math.min(stockEfectivo, q + 1))}
-                  disabled={qty >= stockEfectivo}
+                  onClick={() => setQty(q => Math.min(topeEfectivo, q + 1))}
+                  disabled={qty >= topeEfectivo}
                   aria-label="Sumar"
                 >
                   <Plus className="w-4 h-4" />
@@ -524,6 +531,11 @@ export default function StoreProduct() {
             >
               <Zap className="w-4 h-4 fill-current" /> Comprar ahora
             </button>
+            {preventa && enPreventaAhora > 0 && (
+              <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }} aria-live="polite" data-testid="product-preventa">
+                {textoPreventa(enPreventaAhora, preventa.llega)}
+              </p>
+            )}
           </div>
           )}
 
@@ -621,7 +633,7 @@ export default function StoreProduct() {
         </section>
       )}
 
-      {(faltaElegir || stockEfectivo > 0) && !atcVisible && (
+      {(faltaElegir || topeEfectivo > 0) && !atcVisible && (
         <>
           <div className="h-20 md:hidden" aria-hidden="true" />
           <div

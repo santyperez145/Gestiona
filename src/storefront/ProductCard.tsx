@@ -10,6 +10,7 @@ import {
   resumenVariantesParaCard,
   textoCtaVariante,
 } from "@/lib/storeProductVariant";
+import { enPreventa, fechaDeLlegada } from "@/lib/preventa";
 
 export default function ProductCard({ p }: { p: StoreProduct }) {
   const { priceOf, fmt, addToCart, reviewsByProduct, variantsByProduct, basePath: base } = useStore();
@@ -25,7 +26,10 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
   const off = price < list ? Math.round((1 - price / list) * 100) : 0;
   const tieneVariantes = variantes.length > 0;
   const stockVisible = tieneVariantes ? resumenVariantes.stockDisponible : Number(p.stock);
-  const sinStock = stockVisible <= 0;
+  // Preventa (20261030001900): sin stock, igual se compra hasta el cupo.
+  const preventa = !tieneVariantes && enPreventa(p.preventa) ? p.preventa : null;
+  const soloPreventa = Boolean(preventa) && stockVisible <= 0;
+  const sinStock = stockVisible <= 0 && !preventa;
   const tipoVariante = variantes[0]?.variant_type;
   const productUrl = `${base}/producto/${p.id}`;
   const imagen = urlMediaSegura(p.image_url);
@@ -80,6 +84,10 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
           <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white" style={{ borderRadius: "calc(var(--st-radius) * 0.45)" }}>
             Sin stock
           </span>
+        ) : soloPreventa ? (
+          <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white" style={{ borderRadius: "calc(var(--st-radius) * 0.45)" }}>
+            Preventa
+          </span>
         ) : stockVisible <= 3 ? (
           <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white" style={{ borderRadius: "calc(var(--st-radius) * 0.45)" }}>
             {stockVisible === 1 ? "Última" : `Últimas ${stockVisible}`}
@@ -118,6 +126,11 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
           )}
         </div>
         <PrecioMayorista productId={p.id} />
+        {soloPreventa && preventa && (
+          <p className="mt-1 text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>
+            Preventa: llega aprox. el {fechaDeLlegada(preventa.llega)}
+          </p>
+        )}
 
         {!sinStock ? (
           <div className="mt-3.5 space-y-2">
@@ -142,7 +155,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
                 className="storefront-product-card__add w-full min-h-11 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
                 style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
               >
-                Agregar al carrito
+                {soloPreventa ? "Comprar en preventa" : "Agregar al carrito"}
               </button>
             )}
           </div>
