@@ -13,6 +13,12 @@ DECLARE
   v_a uuid; v_b1 uuid; v_b2 uuid; v_h uuid; v_hoy date := (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date;
   v_comp jsonb;
 BEGIN
+  -- El día de negocio es el argentino. Sin esto, entre las 21 y las 24 h las
+  -- facturas de la matriz salían con CURRENT_DATE en UTC (el día siguiente) y
+  -- el cierre de hoy no las encontraba (simulacro del 30/10 a las 23:23).
+  -- Desde 20261030001600 las facturas toman el día argentino en cualquier
+  -- huso; acá la matriz corre sólo con las migraciones hasta la suya.
+  PERFORM set_config('timezone', 'America/Argentina/Buenos_Aires', true);
   SELECT id INTO v_owner FROM auth.users ORDER BY created_at LIMIT 1;
   SELECT id INTO v_view FROM auth.users WHERE id <> v_owner ORDER BY created_at LIMIT 1;
   INSERT INTO public.organizations (name, slug, owner_user_id) VALUES ('ZZ Arqueos', 'zz-arq-' || substr(md5(random()::text), 1, 8), v_owner) RETURNING id INTO v_org;
