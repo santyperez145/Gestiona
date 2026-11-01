@@ -128,7 +128,8 @@
           var oscuro = tema === "dark" || (tema === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.classList.add(oscuro ? "dark" : "light");
           var host = location.hostname;
-          var deNerqia = /(^|\.)nerqia\.app$/.test(host) || host === "localhost" || host === "127.0.0.1" || /\.vercel\.app$/.test(host);
+          // Sólo el panel: un subdominio (comercio.nerqia.app) es la tienda del comercio.
+          var deNerqia = host === "nerqia.app" || host === "www.nerqia.app" || host === "localhost" || host === "127.0.0.1" || /\.vercel\.app$/.test(host);
           var publica = /^\/(tienda|pagar|catalogo|influencer|invitacion|invitacion-creador|aceptar-contrato)\//.test(location.pathname)
             || /^\/(precios|terminos|privacidad|estado|login)\/?$/.test(location.pathname);
           var conSesion = false;

@@ -342,6 +342,12 @@ function ProtectedRoutes() {
   );
 }
 
+/** Tiendas (por ruta, subdominio o dominio propio) y páginas públicas: sin marca Nerqia al cargar. */
+function esSuperficiePublica(): boolean {
+  const { hostname, pathname } = window.location;
+  return esRutaPublica(pathname) || Boolean(storeSlugFromHostname(hostname)) || isPotentialCustomStoreHostname(hostname);
+}
+
 function ApplicationRoutes() {
   const hostname = window.location.hostname;
   const hostedSlug = storeSlugFromHostname(hostname);
@@ -518,8 +524,11 @@ const App = () => (
           <BrowserRouter>
             <PlatformSeoHead />
             <ActualizarAlNavegar />
-            {/* Antes del panel no hay marco: el mismo cargador de arranque. */}
-            <Suspense fallback={<AppLoader />}>
+            {/* Antes del panel no hay marco: el mismo cargador de arranque. En
+                una tienda o página pública, uno neutro: la marca Nerqia nunca
+                aparece en la tienda de un comercio (la medición de la tienda lo
+                encontró el 2026-11-01). */}
+            <Suspense fallback={esSuperficiePublica() ? <PageLoader /> : <AppLoader />}>
               <OrganizationScope />
             </Suspense>
           </BrowserRouter>

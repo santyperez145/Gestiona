@@ -32,6 +32,14 @@ test("rendimiento de la tienda en una visita en frío", async ({ browser }, test
     const contexto = await browser.newContext(testInfo.project.use);
     const page = await contexto.newPage();
     await instalarMedicion(page);
+    // La tienda es del comercio: la marca Nerqia no puede aparecer ni un instante
+    // mientras carga (pasó el 2026-11-01 con el cargador de arranque).
+    await page.addInitScript(() => {
+      const w = window as unknown as { __marcaNerqia?: boolean };
+      new MutationObserver(() => {
+        if (!w.__marcaNerqia && document.body?.textContent?.includes("Cargando Nerqia")) w.__marcaNerqia = true;
+      }).observe(document, { childList: true, subtree: true, characterData: true });
+    });
     const ruta = pagina.ruta();
     expect(ruta, `sin ruta para ${pagina.nombre}`).not.toBe("");
     const inicio = Date.now();
@@ -42,6 +50,8 @@ test("rendimiento de la tienda en una visita en frío", async ({ browser }, test
       ficha = new URL(await page.locator(`a[href*="/tienda/${SLUG}/producto/"]`).first().evaluate(a => (a as HTMLAnchorElement).href)).pathname;
     }
     await registrarMedicion(page, { ruta: `${dispositivo} · ${pagina.nombre}`, inicio, titulo, archivo: "rendimiento-tienda.jsonl" });
+    expect(await page.evaluate(() => Boolean((window as unknown as { __marcaNerqia?: boolean }).__marcaNerqia)),
+      `la tienda mostró «Cargando Nerqia» en ${pagina.nombre}`).toBe(false);
     await contexto.close();
   }
 });

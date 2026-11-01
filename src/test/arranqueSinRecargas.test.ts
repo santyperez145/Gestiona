@@ -39,6 +39,9 @@ describe("una sola pantalla de carga al entrar", () => {
     expect(arrancar({ host: "nerqia.app", ruta: "/", sesion: false }).visible).toBe(false);
     expect(arrancar({ host: "nerqia.app", ruta: "/tienda/zz-e2e/", sesion: true }).visible).toBe(false);
     expect(arrancar({ host: "www.ferreteriazz.com.ar", ruta: "/productos", sesion: true }).visible).toBe(false);
+    // La tienda en subdominio es del comercio, aunque el comprador tenga sesión.
+    expect(arrancar({ host: "famatina.nerqia.app", ruta: "/", sesion: true }).visible).toBe(false);
+    expect(arrancar({ host: "www.nerqia.app", ruta: "/ventas", sesion: true }).visible).toBe(true);
     expect(arrancar({ host: "nerqia.app", ruta: "/precios", sesion: true }).visible).toBe(false);
   });
 
@@ -49,7 +52,9 @@ describe("una sola pantalla de carga al entrar", () => {
 
   it("entrar no es cambiar de organización, y el cargador es uno solo", () => {
     expect(app).toContain('const ambitoDe = (orgId: string | undefined) => (!orgId || orgId === primeraOrg.current ? "inicial" : orgId);');
-    expect(app).toContain("<Suspense fallback={<AppLoader />}>\n              <OrganizationScope />");
+    // En tiendas y páginas públicas el cargador no lleva la marca Nerqia.
+    expect(app).toContain("<Suspense fallback={esSuperficiePublica() ? <PageLoader /> : <AppLoader />}>");
+    expect(app).toContain("return esRutaPublica(pathname) || Boolean(storeSlugFromHostname(hostname)) || isPotentialCustomStoreHostname(hostname);");
     expect(app).not.toMatch(/<AppLoader label="Verificando acceso/);
     expect(readFileSync("src/components/auth/MfaGate.tsx", "utf8")).toContain('if (state === "checking") return <AppLoader />;');
   });
