@@ -162,10 +162,12 @@ export default defineConfig(() => {
                 esPaquete(id, "clsx", "tailwind-merge", "class-variance-authority") ||
                 // Shared, dependency-free recovery must not add a boot request.
                 id.replaceAll("\\", "/").endsWith("/src/lib/transientRead.ts") ||
-                // El cargador único del arranque (2026-11-01) y lo que usa: lo
-                // comparten el arranque y la verificación en dos pasos, y
-                // sueltos sumaban dos descargas iniciales.
-                ["/src/lib/utils.ts", "/src/lib/brand.ts", "/src/components/shared/BrandLogo.tsx", "/src/components/shared/AppLoader.tsx"]
+                // Lo que usa el cargador único del arranque (2026-11-01), que
+                // comparten el arranque y la verificación en dos pasos: sueltos
+                // sumaban dos descargas iniciales. ⚠️ Sólo módulos SIN React:
+                // meter acá AppLoader o BrandLogo hizo depender este chunk de
+                // vendor-react (que depende de éste) y la app no arrancaba.
+                ["/src/lib/utils.ts", "/src/lib/brand.ts"]
                   .some(archivo => id.replaceAll("\\", "/").endsWith(archivo)),
               priority: 100,
               includeDependenciesRecursively: false,

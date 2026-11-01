@@ -44,7 +44,8 @@
     "drill:wallet-withdrawals": "node scripts/wallet-withdrawal-matrix.mjs",
     "certify:webhooks": "vite-node scripts/certificar-webhook-externo.ts",
     "check:conteos": "node scripts/verificar-conteos.mjs",
-    "check:enlaces": "node scripts/verificar-enlaces.mjs"
+    "check:enlaces": "node scripts/verificar-enlaces.mjs",
+    "check:arranque": "node scripts/humo-arranque.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "5.3.0",
