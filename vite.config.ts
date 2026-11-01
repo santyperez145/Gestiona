@@ -161,7 +161,12 @@ export default defineConfig(() => {
                 id.includes("vite/preload-helper") ||
                 esPaquete(id, "clsx", "tailwind-merge", "class-variance-authority") ||
                 // Shared, dependency-free recovery must not add a boot request.
-                id.replaceAll("\\", "/").endsWith("/src/lib/transientRead.ts"),
+                id.replaceAll("\\", "/").endsWith("/src/lib/transientRead.ts") ||
+                // El cargador único del arranque (2026-11-01) y lo que usa: lo
+                // comparten el arranque y la verificación en dos pasos, y
+                // sueltos sumaban dos descargas iniciales.
+                ["/src/lib/utils.ts", "/src/lib/brand.ts", "/src/components/shared/BrandLogo.tsx", "/src/components/shared/AppLoader.tsx"]
+                  .some(archivo => id.replaceAll("\\", "/").endsWith(archivo)),
               priority: 100,
               includeDependenciesRecursively: false,
             },

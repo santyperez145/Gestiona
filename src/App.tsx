@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { invitacionPendiente } from "@/lib/estudio";
 import ErrorBoundaryApp from "@/components/shared/ErrorBoundaryApp";
+import AppLoader from "@/components/shared/AppLoader";
 import { registrarError } from "@/lib/registroDeErrores";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -125,17 +126,6 @@ function ViewerGate() {
   );
 }
 
-function AppLoader({ label = 'Cargando Nerqia...' }: { label?: string }) {
-  return (
-    <div className="app-boot-shell min-h-screen flex items-center justify-center">
-      <div className="text-center px-6">
-        <BrandLogo decorative eager className="justify-center mb-5" markClassName="h-10 w-10" nameClassName="text-lg" />
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-muted-foreground text-sm font-medium tracking-tight">{label}</p>
-      </div>
-    </div>
-  );
-}
 
 /**
  * Superficie de PLATAFORMA — separada del tenant a propósito.
@@ -149,7 +139,7 @@ function PlatformRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { platformRole, loading: orgLoading, platformLoadError, refresh } = useOrg();
 
-  if (authLoading || orgLoading) return <AppLoader label="Verificando acceso de plataforma..." />;
+  if (authLoading || orgLoading) return <AppLoader />;
   if (!user) return <AuthPage />;
   if (platformLoadError) return <AccessLoadError onRetry={refresh} />;
   if (!platformRole) return <Navigate to="/" replace />;
@@ -202,7 +192,7 @@ function FinanceRoutes() {
   const { activeOrg, activeRole, platformRole, loading: orgLoading, loadError, platformLoadError, refresh } = useOrg();
   const { cargando: mfaPolicyLoading, requerido: orgRequiresMfa } = usePoliticaMfa(activeOrg?.id);
 
-  if (authLoading || orgLoading || mfaPolicyLoading) return <AppLoader label="Verificando acceso a Finance..." />;
+  if (authLoading || orgLoading || mfaPolicyLoading) return <AppLoader />;
   if (!user) return <AuthPage />;
   if (loadError || (!activeOrg && platformLoadError)) return <AccessLoadError onRetry={refresh} />;
   if (!activeOrg || !activeRole) {
@@ -242,7 +232,7 @@ function InfluencerMarketingRoutes() {
   const { activeOrg, activeRole, platformRole, loading: orgLoading, loadError, platformLoadError, refresh } = useOrg();
   const mfaPolicy = usePoliticaMfa(activeOrg?.id);
 
-  if (authLoading || orgLoading || mfaPolicy.cargando) return <AppLoader label="Verificando acceso a Influencers..." />;
+  if (authLoading || orgLoading || mfaPolicy.cargando) return <AppLoader />;
   if (!user) return <AuthPage />;
   if (loadError || (!activeOrg && platformLoadError)) return <AccessLoadError onRetry={refresh} />;
   if (!activeOrg || !activeRole) {
@@ -406,8 +396,28 @@ function ApplicationRoutes() {
 function OrganizationScope() {
   const { activeOrg } = useOrg();
   const client = useQueryClient();
-  const requestedScope = activeOrg?.id ?? "public";
+  /**
+   * ⚠️ Entrar no es cambiar de organización (2026-11-01). Al iniciar sesión la
+   * organización pasa de «ninguna» a la del usuario y eso se trataba como un
+   * cambio: «Cambiando organización…», caché borrada y la app entera montada
+   * de nuevo, con todas sus consultas repetidas. El dueño lo vio como cuatro
+   * recargas seguidas al entrar. La primera organización que se resuelve
+   * comparte el ámbito «inicial» con el estado sin organización; sólo pasar a
+   * OTRA organización (o salir y entrar con otra) limpia y remonta.
+   */
+  const primeraOrg = useRef<string | null>(null);
+  if (primeraOrg.current === null && activeOrg?.id) primeraOrg.current = activeOrg.id;
+  const ambitoDe = (orgId: string | undefined) => (!orgId || orgId === primeraOrg.current ? "inicial" : orgId);
+  const requestedScope = ambitoDe(activeOrg?.id);
   const [readyScope, setReadyScope] = useState(requestedScope);
+  // Al cerrar sesión no queda nada del usuario anterior en la caché, y el
+  // próximo que entre vuelve a ser «la primera organización».
+  const { user: sesion, loading: sesionCargando } = useAuth();
+  useEffect(() => {
+    if (sesionCargando || sesion || primeraOrg.current === null) return;
+    primeraOrg.current = null;
+    void client.cancelQueries().finally(() => client.removeQueries());
+  }, [client, sesion, sesionCargando]);
 
   // Scroll to top al cambiar de ruta (solo en PUSH navigation, no en POP)
   const location = useLocation();
@@ -508,7 +518,8 @@ const App = () => (
           <BrowserRouter>
             <PlatformSeoHead />
             <ActualizarAlNavegar />
-            <Suspense fallback={<PageLoader />}>
+            {/* Antes del panel no hay marco: el mismo cargador de arranque. */}
+            <Suspense fallback={<AppLoader />}>
               <OrganizationScope />
             </Suspense>
           </BrowserRouter>

@@ -15,6 +15,7 @@
  * está activo y el usuario es admin/owner **sin** ningún factor, se lo manda a
  * configurarlo antes de poder seguir.
  */
+import AppLoader from "@/components/shared/AppLoader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -235,13 +236,8 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
     await check();
   };
 
-  if (state === "checking") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  // El mismo cargador del arranque: otro distinto se veía como otra recarga.
+  if (state === "checking") return <AppLoader />;
 
   if (state === "ok") return <>{children}</>;
 

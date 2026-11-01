@@ -586,11 +586,23 @@ export async function addDebtPaymentDB(
 //
 // Ahora sólo lee. Si de verdad no hay fila, es un problema que hay que ver, no
 // uno que se tapa inventando la configuración.
+// Pedidos simultáneos de la misma configuración comparten la consulta
+// (2026-10-31): el barrido con datos midió `settings` 4 o 5 veces por
+// pantalla, todas en la misma carga. Sólo se comparte mientras está en vuelo:
+// una lectura posterior a un guardado siempre va a la base.
+const settingsEnVuelo = new Map<string, Promise<Record<string, any> | null>>();
+
 export async function getSettingsDB(userId: string, organizationId?: string) {
   const orgId = await orgIdFor(userId, organizationId);
-  const { data, error } = await supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle();
-  if (error) throw error;
-  return data ?? null;
+  const enVuelo = settingsEnVuelo.get(orgId);
+  if (enVuelo) return enVuelo;
+  const lectura = (async () => {
+    const { data, error } = await supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle();
+    if (error) throw error;
+    return data ?? null;
+  })().finally(() => settingsEnVuelo.delete(orgId));
+  settingsEnVuelo.set(orgId, lectura);
+  return lectura;
 }
 
 export async function saveSettingsDB(userId: string, settings: Record<string, any>) {

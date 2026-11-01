@@ -104,7 +104,41 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Pantalla de arranque (2026-11-01): la misma que AppLoader, dibujada antes
+      de que llegue JavaScript, así entrar al panel es una sola pantalla quieta
+      y no un blanco seguido de varios cargadores. Sólo para el panel con
+      sesión: en una tienda (o su dominio propio), la landing o una página
+      pública no se muestra nunca la marca Nerqia. React la reemplaza al montar.
+    -->
+    <div id="root"><div id="arranque" class="app-boot-shell min-h-screen flex items-center justify-center" style="display:none" role="status" aria-live="polite">
+      <div class="text-center px-6">
+        <span class="brand-logo inline-flex min-w-0 items-center gap-2.5 justify-center mb-5" aria-hidden="true">
+          <img src="/brand/nerqia-mark-64.webp" srcset="/brand/nerqia-mark-64.webp 64w, /brand/nerqia-mark-128.webp 128w" sizes="40px" alt="" width="128" height="128" class="brand-logo__mark h-10 w-10 shrink-0 object-contain" />
+          <span class="brand-logo__name truncate font-display font-semibold tracking-tight text-lg">Nerqia</span>
+        </span>
+        <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <p class="text-muted-foreground text-sm font-medium tracking-tight">Cargando Nerqia...</p>
+      </div>
+    </div></div>
+    <script>
+      (function () {
+        try {
+          var tema = localStorage.getItem("gestiona-theme");
+          var oscuro = tema === "dark" || (tema === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.add(oscuro ? "dark" : "light");
+          var host = location.hostname;
+          var deNerqia = /(^|\.)nerqia\.app$/.test(host) || host === "localhost" || host === "127.0.0.1" || /\.vercel\.app$/.test(host);
+          var publica = /^\/(tienda|pagar|catalogo|influencer|invitacion|invitacion-creador|aceptar-contrato)\//.test(location.pathname)
+            || /^\/(precios|terminos|privacidad|estado|login)\/?$/.test(location.pathname);
+          var conSesion = false;
+          for (var i = 0; i < localStorage.length; i++) {
+            if (/^sb-.+-auth-token$/.test(localStorage.key(i) || "")) { conSesion = true; break; }
+          }
+          if (deNerqia && !publica && conSesion) document.getElementById("arranque").style.display = "";
+        } catch (e) { /* sin almacenamiento: arranca como siempre */ }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
