@@ -1,4 +1,5 @@
 import RecorridoAltaFiscal from "@/components/afip/RecorridoAltaFiscal";
+import { Skeleton } from "@/components/ui/skeleton";
 import { recorridoAltaFiscal } from "@/lib/recorridoAltaFiscal";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -371,13 +372,23 @@ export default function AFIPPage() {
         }
       />
 
+      {/* Mientras carga, sólo el esqueleto (2026-10-31): la guía de alta y la
+          conexión aparecían arriba al terminar y empujaban la configuración
+          fiscal ya dibujada (CLS 0,59 medido en el barrido con datos). */}
+      {loading ? (
+        <div role="status" aria-label="Consultando estado fiscal" className="space-y-4">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+      ) : (<>
       {/* C14b — la guía de conexión va primero. Un comercio que no puede
           emitir no necesita ver estadísticas de comprobantes: necesita saber
           qué tocar para poder emitir. */}
       {pasosAlta && <RecorridoAltaFiscal pasos={pasosAlta} />}
 
       <div id="conectar-arca" className="scroll-mt-20">
-      {loading ? <p role="status" className="text-sm text-muted-foreground">Consultando estado fiscal…</p> : !connectionError && connection?.modo === "propio" ? (
+      {!connectionError && connection?.modo === "propio" ? (
         <ConectarCertificadoPropio orgId={orgId} estado={connection} canEdit={canEdit} onCambio={() => void load()} />
       ) : !connectionError && <ConectarAfip
         orgId={orgId}
@@ -411,7 +422,7 @@ export default function AFIPPage() {
         </div>
       </div>
 
-      {!loading && salud && <FiscalHealthPanel salud={salud} />}
+      {salud && <FiscalHealthPanel salud={salud} />}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="CAE autorizados" value={metrics.authorized} icon={CheckCircle2} color="success" />
@@ -480,6 +491,7 @@ export default function AFIPPage() {
           </div>
         )}
       </section>
+      </>)}
     </div>
   );
 }

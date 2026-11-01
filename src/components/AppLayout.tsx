@@ -368,6 +368,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             );
           })}
+          {/* Los otros productos de Nerqia, al final del menú (2026-10-31). En el
+              pie aparecían cuando llegaban los permisos y lo empujaban hacia
+              arriba: el barrido midió ese salto en 25 pantallas (CLS hasta 0,12). */}
+          <div className="mt-2 space-y-1 border-t border-sidebar-border/40 pt-2 empty:hidden">
+            {role === 'admin' && forModule('finance').canView && (
+              <Link
+                to="/finance"
+                title={effectiveCollapsed ? 'Nerqia Finance' : undefined}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
+                  effectiveCollapsed ? 'justify-center' : ''
+                } text-teal-600/80 hover:bg-teal-500/10 hover:text-teal-700 hover:border-teal-500/25 dark:text-teal-300/70 dark:hover:text-teal-200`}
+              >
+                <Receipt className="w-3.5 h-3.5 shrink-0" />
+                {!effectiveCollapsed && <span>Nerqia Finance</span>}
+              </Link>
+            )}
+            {role === 'admin' && forModule('influencers').canView && (
+              <Link to="/influencer-marketing" title={effectiveCollapsed ? 'Nerqia Influencers' : undefined}
+                className={`flex w-full items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-500/10 dark:text-amber-300 ${effectiveCollapsed ? 'justify-center' : ''}`}>
+                <Users className="h-3.5 w-3.5 shrink-0" />
+                {!effectiveCollapsed && <span>Nerqia Influencers</span>}
+              </Link>
+            )}
+            {isPlatformAdmin && (
+              <Link
+                to="/platform"
+                title={effectiveCollapsed ? 'Panel de plataforma' : undefined}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
+                  effectiveCollapsed ? 'justify-center' : ''
+                } text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border/60`}
+              >
+                <Crown className="w-3.5 h-3.5 shrink-0" />
+                {!effectiveCollapsed && <span>Panel de plataforma</span>}
+              </Link>
+            )}
+          </div>
         </nav>
 
         {/* ── Collapse toggle ──────────────────────────────────────── */}
@@ -385,37 +421,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <OrgSwitcher collapsed={effectiveCollapsed} />
           <NotificationBell collapsed={effectiveCollapsed} />
           <ThemeToggle collapsed={effectiveCollapsed} />
-          {role === 'admin' && forModule('finance').canView && (
-            <Link
-              to="/finance"
-              title={effectiveCollapsed ? 'Nerqia Finance' : undefined}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
-                effectiveCollapsed ? 'justify-center' : ''
-              } text-teal-600/80 hover:bg-teal-500/10 hover:text-teal-700 hover:border-teal-500/25 dark:text-teal-300/70 dark:hover:text-teal-200`}
-            >
-              <Receipt className="w-3.5 h-3.5 shrink-0" />
-              {!effectiveCollapsed && <span>Nerqia Finance</span>}
-            </Link>
-          )}
-          {role === 'admin' && forModule('influencers').canView && (
-            <Link to="/influencer-marketing" title={effectiveCollapsed ? 'Nerqia Influencers' : undefined}
-              className={`flex w-full items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-500/10 dark:text-amber-300 ${effectiveCollapsed ? 'justify-center' : ''}`}>
-              <Users className="h-3.5 w-3.5 shrink-0" />
-              {!effectiveCollapsed && <span>Nerqia Influencers</span>}
-            </Link>
-          )}
-          {isPlatformAdmin && (
-            <Link
-              to="/platform"
-              title={effectiveCollapsed ? 'Panel de plataforma' : undefined}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
-                effectiveCollapsed ? 'justify-center' : ''
-              } text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border/60`}
-            >
-              <Crown className="w-3.5 h-3.5 shrink-0" />
-              {!effectiveCollapsed && <span>Panel de plataforma</span>}
-            </Link>
-          )}
           {!effectiveCollapsed && (
             <div className="px-1 py-1">
               <p className="text-[11px] text-muted-foreground/70 truncate">{user?.email}</p>

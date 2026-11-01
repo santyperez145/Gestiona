@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { rutaDelAviso } from "@/lib/rutaDelAviso";
 import { Bell, Package, AlertTriangle, DollarSign, Info, Check, Trash2, ShoppingBag } from "lucide-react";
@@ -29,72 +30,62 @@ interface Notification {
   entity_id?: string | null;
 }
 
+/**
+ * Lista y total sin leer en una sola consulta compartida (2026-10-31). El
+ * barrido con datos midió 6 pedidos a `notifications` en cada pantalla: la
+ * campanita está dos veces (barra lateral y encabezado del teléfono) y cada
+ * una pedía la lista y dos veces el mismo contador. Con React Query las dos
+ * leen la misma entrada; el total sale del `count` de la misma consulta, que
+ * no respeta el límite de 30 (el contador no se queda clavado en 30).
+ */
+interface DatosCampanita { lista: Notification[]; sinLeer: number }
+const claveCampanita = (userId: string | undefined) => ["campanita", userId ?? ""] as const;
+
+async function leerCampanita(userId: string): Promise<DatosCampanita> {
+  const { data, count, error } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact' })
+    .eq('user_id', userId)
+    .eq('read', false)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (error) throw error;
+  return { lista: (data ?? []) as Notification[], sinLeer: count ?? 0 };
+}
+
 export default function NotificationBell({ collapsed }: { collapsed?: boolean }) {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const queryClient = useQueryClient();
+  const clave = claveCampanita(user?.id);
+  const { data, error: errorDeLectura } = useQuery({
+    queryKey: clave,
+    queryFn: () => leerCampanita(user!.id),
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+  // Sin esto, «no tengo permiso» y «no hay nada» se ven igual.
+  useEffect(() => {
+    if (errorDeLectura) console.error('No se pudieron leer las notificaciones', errorDeLectura);
+  }, [errorDeLectura]);
+  const notifications = data?.lista ?? [];
+  const unreadCount = data?.sinLeer ?? 0;
+  const actualizar = (cambio: (d: DatosCampanita) => DatosCampanita) =>
+    queryClient.setQueryData<DatosCampanita>(clave, d => cambio(d ?? { lista: [], sinLeer: 0 }));
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('read', false)
-      .order('created_at', { ascending: false })
-      .limit(30);
-    // Refetch unread count independently for accurate badge
-    const { count: unreadCountDb, error: countError } = await supabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('read', false);
-    if (!countError) {
-      setUnreadCount(unreadCountDb ?? 0);
-    }
-
-    if (error) {
-      // Sin esto, «no tengo permiso» y «no hay nada» se ven igual.
-      console.error('No se pudieron leer las notificaciones', error);
-      return;
-    }
-    if (data) setNotifications(data as Notification[]);
-
-    /**
-     * ⚠️ El contador se pide aparte, y no se cuenta sobre las 30 de arriba.
-     *
-     * Antes era `data.filter(n => !n.read).length` sobre una lista con
-     * `.limit(30)`, así que **el badge no podía pasar de 30** — y justo abajo
-     * hay un `unreadCount > 99 ? '99+'` que no se alcanzaba nunca.
-     *
-     * 📌 Medido el 2026-08-28: el dueño tenía 168 notificaciones sin leer y el
-     * badge decía 30. Un contador que se queda quieto deja de avisar, que es
-     * exactamente lo que un contador tiene que hacer.
-     */
-    const { count, error: errCount } = await supabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('read', false);
-
-    if (errCount) {
-      console.error('No se pudo contar las notificaciones sin leer', errCount);
-      return;
-    }
-    setUnreadCount(count ?? 0);
-  }, [user]);
-
-  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
-
-  // Realtime subscription
+  // Realtime: las dos campanitas reciben el mismo evento; sólo suma lo que
+  // todavía no estaba en la lista.
   useTopicEvent(topicUsuario(user?.id), 'notificacion', payload => {
     const nuevas = (payload.notificaciones as Notification[] | undefined) ?? [];
     if (!nuevas.length) return;
-    setNotifications(prev => [...nuevas, ...prev.filter(n => !nuevas.some(x => x.id === n.id))].slice(0, 30));
-    setUnreadCount(prev => prev + nuevas.length);
+    actualizar(d => {
+      const realmenteNuevas = nuevas.filter(n => !d.lista.some(x => x.id === n.id));
+      return {
+        lista: [...realmenteNuevas, ...d.lista].slice(0, 30),
+        sinLeer: d.sinLeer + realmenteNuevas.length,
+      };
+    });
   });
 
   const markAllRead = async () => {
@@ -107,8 +98,7 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
       toast.error('No se pudieron marcar como leídas. Probá de nuevo.');
       return;
     }
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    setUnreadCount(0);
+    actualizar(d => ({ lista: d.lista.map(n => ({ ...n, read: true })), sinLeer: 0 }));
   };
 
   const markOneRead = async (id: string) => {
@@ -117,8 +107,10 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
       console.error('[notificaciones] no se pudo marcar como leída:', error);
       return;
     }
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    actualizar(d => ({
+      lista: d.lista.map(n => n.id === id ? { ...n, read: true } : n),
+      sinLeer: d.lista.some(n => n.id === id && !n.read) ? Math.max(0, d.sinLeer - 1) : d.sinLeer,
+    }));
   };
 
   const clearAll = async () => {
@@ -129,8 +121,7 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
       toast.error('No se pudieron borrar las notificaciones. Probá de nuevo.');
       return;
     }
-    setNotifications([]);
-    setUnreadCount(0);
+    actualizar(() => ({ lista: [], sinLeer: 0 }));
   };
 
   const timeAgo = (date: string) => {

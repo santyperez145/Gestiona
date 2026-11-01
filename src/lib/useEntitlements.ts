@@ -1,5 +1,5 @@
 import { conRegistro } from "@/lib/registroDeErrores";
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
 
@@ -122,47 +122,42 @@ function noExiste(code: string | undefined): boolean {
   return code === '42883' || code === 'PGRST202' || code === '42P01' || code === 'PGRST205';
 }
 
+interface LecturaDeEntitlements {
+  sub: Subscription | null;
+  plan: Plan | null;
+  servidor: EntitlementsDeLaBase | null;
+}
+
+/**
+ * Una lectura por negocio, compartida (2026-10-31). El hook se usa en 11
+ * componentes y cada instancia hacía tres consultas en serie: el barrido con
+ * datos midió `subscriptions`, `plans` y `org_entitlements` dos veces por
+ * pantalla. Con React Query todos leen la misma entrada; la suscripción y la
+ * decisión del servidor se piden en paralelo.
+ */
+async function leerEntitlements(orgId: string, planDeLaOrg: string | null | undefined): Promise<LecturaDeEntitlements> {
+  const [{ data: subData }, { data: ent, error: entError }] = await Promise.all([
+    conRegistro(supabase.from('subscriptions').select('*').eq('org_id', orgId).maybeSingle()),
+    // La decisión la toma la base. Acá sólo se muestra.
+    supabase.rpc('org_entitlements', { p_org: orgId }),
+  ]);
+  if (entError && !noExiste(entError.code)) {
+    // No se traga: un fallo real tiene que verse. Igual se sigue —el corte
+    // de verdad lo hace el servidor, así que el navegador puede errar del
+    // lado generoso sin que eso habilite nada.
+    console.error('org_entitlements falló', entError);
+  }
+  const planId = (subData as Subscription | null)?.plan_id ?? planDeLaOrg ?? null;
+  let plan: Plan | null = null;
+  if (planId) {
+    const { data: p } = await conRegistro(supabase.from('plans').select('*').eq('id', planId).maybeSingle());
+    plan = p as Plan | null;
+  }
+  return { sub: subData as Subscription | null, plan, servidor: (ent as unknown as EntitlementsDeLaBase) ?? null };
+}
+
 export function useEntitlements(): Entitlements {
   const { activeOrg } = useOrg();
-  const [plan, setPlan] = useState<Plan | null>(null);
-  const [sub, setSub] = useState<Subscription | null>(null);
-  const [servidor, setServidor] = useState<EntitlementsDeLaBase | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = async () => {
-    if (!activeOrg) { setPlan(null); setSub(null); setServidor(null); setLoading(false); return; }
-    setLoading(true);
-    const { data: subData } = await conRegistro(supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('org_id', activeOrg.id)
-      .maybeSingle());
-    let planRow: Plan | null = null;
-    if (subData?.plan_id) {
-      const { data: p } = await conRegistro(supabase.from('plans').select('*').eq('id', subData.plan_id).maybeSingle());
-      planRow = p as Plan | null;
-    } else if (activeOrg.plan_id) {
-      const { data: p } = await conRegistro(supabase.from('plans').select('*').eq('id', activeOrg.plan_id).maybeSingle());
-      planRow = p as Plan | null;
-    }
-
-    // La decisión la toma la base. Acá sólo se muestra.
-    const { data: ent, error: entError } = await supabase
-      .rpc('org_entitlements', { p_org: activeOrg.id });
-    if (entError && !noExiste(entError.code)) {
-      // No se traga: un fallo real tiene que verse. Igual se sigue —el corte
-      // de verdad lo hace el servidor, así que el navegador puede errar del
-      // lado generoso sin que eso habilite nada.
-      console.error('org_entitlements falló', entError);
-    }
-    setServidor((ent as unknown as EntitlementsDeLaBase) ?? null);
-
-    setSub(subData as Subscription | null);
-    setPlan(planRow);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, [activeOrg?.id]);
 
   /**
    * ── Cuándo se vuelve a leer ───────────────────────────────────────────────
@@ -172,31 +167,27 @@ export function useEntitlements(): Entitlements {
    * no habilita nada. Lo que sí importa es **no dejar al comercio mirando un
    * cartel viejo en el momento en que acaba de pagar**.
    *
-   * Dos disparadores, los dos baratos:
-   *
-   * 1. Volver a la pestaña. Cubre el caso real: el comercio se va a
-   *    MercadoPago, paga, y vuelve. Sin esto, el banner le sigue diciendo
-   *    «estamos confirmando» hasta que recargue a mano.
+   * 1. Volver a la pestaña (`refetchOnWindowFocus`): el comercio se va a
+   *    MercadoPago, paga, y vuelve.
    * 2. Mientras la suscripción está **confirmándose** —`past_due` sin
    *    `current_period_end`, que es como nace— se relee cada 20 s. Es el único
-   *    estado transitorio que depende de que llegue un webhook, y dura
-   *    minutos. No se poletea nada más: un plan estable no cambia solo.
+   *    estado transitorio que depende de que llegue un webhook.
    */
-  const confirmando = sub?.status === 'past_due' && !sub?.current_period_end;
-
-  useEffect(() => {
-    const alVolver = () => { if (document.visibilityState === 'visible') load(); };
-    document.addEventListener('visibilitychange', alVolver);
-    return () => document.removeEventListener('visibilitychange', alVolver);
-    /* eslint-disable-next-line */
-  }, [activeOrg?.id]);
-
-  useEffect(() => {
-    if (!confirmando) return;
-    const t = setInterval(load, 20_000);
-    return () => clearInterval(t);
-    /* eslint-disable-next-line */
-  }, [confirmando, activeOrg?.id]);
+  const { data, isPending, refetch } = useQuery({
+    queryKey: ['entitlements', activeOrg?.id ?? '', activeOrg?.plan_id ?? ''],
+    queryFn: () => leerEntitlements(activeOrg!.id, activeOrg?.plan_id),
+    enabled: !!activeOrg,
+    staleTime: 60_000,
+    refetchOnWindowFocus: 'always',
+    refetchInterval: q => {
+      const s = q.state.data?.sub;
+      return s?.status === 'past_due' && !s?.current_period_end ? 20_000 : false;
+    },
+  });
+  const sub = activeOrg ? data?.sub ?? null : null;
+  const plan = activeOrg ? data?.plan ?? null : null;
+  const servidor = activeOrg ? data?.servidor ?? null : null;
+  const loading = activeOrg ? isPending : false;
 
   const isTrialing = sub?.status === 'trialing' && Boolean(sub.current_period_end && new Date(sub.current_period_end) > new Date());
 
@@ -281,6 +272,6 @@ export function useEntitlements(): Entitlements {
     iaCupoMensual: servidor?.ia_cupo_mensual ?? null,
     iaUsado: servidor?.ia_usado ?? 0,
     iaRestante: servidor === null ? null : (servidor.ia_restante ?? null),
-    refresh: load,
+    refresh: async () => { await refetch(); },
   };
 }

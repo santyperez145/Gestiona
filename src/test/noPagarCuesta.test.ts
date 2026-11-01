@@ -136,10 +136,12 @@ describe("el aviso dice qué pasó de verdad", () => {
     // ⚠️ Se exige el `addEventListener`, no la palabra: con `toContain` el
     // test seguía verde con el listener borrado, porque `removeEventListener`
     // también nombra el evento. Verificado sacándolo.
+    // 2026-10-31: el hook es una lectura compartida de React Query; su
+    // focusManager escucha `visibilitychange`. Se exige la opción, no la palabra.
     expect(ent, "el hook dejó de releer al volver a la pestaña")
-      .toMatch(/addEventListener\(\s*['"]visibilitychange['"]/);
+      .toMatch(/refetchOnWindowFocus:\s*'always'/);
     expect(ent, "dejó de reintentar mientras la suscripción se está confirmando")
-      .toMatch(/if \(!confirmando\) return;/);
+      .toMatch(/s\?\.status === 'past_due' && !s\?\.current_period_end \? 20_000 : false/);
   });
 
   it("⚠️ y Mi plan no contradice al banner en la misma pantalla", () => {

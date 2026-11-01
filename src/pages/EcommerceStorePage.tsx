@@ -1,4 +1,5 @@
 import BusquedasSinResultado from "@/components/ecommerce/BusquedasSinResultado";
+import { Skeleton } from "@/components/ui/skeleton";
 import VelocidadDeTuTienda from "@/components/ecommerce/VelocidadDeTuTienda";
 import VentaMayoristaPanel from "@/components/ecommerce/VentaMayoristaPanel";
 import PoliticaDeCambiosPanel from "@/components/ecommerce/PoliticaDeCambiosPanel";
@@ -1109,6 +1110,16 @@ export default function EcommerceStorePage() {
         onMakePrimary={() => { void makePrimaryStore(); }}
       />
 
+      {/* Mientras llega la tienda, sólo el esqueleto (2026-10-31): el
+          rendimiento, el aviso de medición y las pestañas aparecían arriba al
+          cargar y empujaban el resumen (CLS 0,13 medido en el barrido). */}
+      {commerceStores.loading && !store ? (
+        <div role="status" aria-label="Cargando la tienda" className="space-y-4">
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
+      ) : (<>
       {store?.id ? <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold">Rendimiento de la tienda</p>
@@ -2666,6 +2677,7 @@ export default function EcommerceStorePage() {
           )}
         </div>
       )}
+      </>)}
     </div>
   );
 }
