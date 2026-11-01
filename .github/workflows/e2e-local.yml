@@ -102,7 +102,12 @@ jobs:
             mcr.microsoft.com/playwright:v1.59.1-noble \
             npx playwright test --project=chromium --project=mobile \
               e2e/tienda.spec.ts e2e/tienda-accessibility.spec.ts e2e/store-order.spec.ts e2e/store-read-recovery.spec.ts \
-              e2e/checkout-multi-tab.spec.ts e2e/header.spec.ts e2e/pricing.spec.ts e2e/tienda-comprador.spec.ts
+              e2e/checkout-multi-tab.spec.ts e2e/header.spec.ts e2e/pricing.spec.ts e2e/tienda-comprador.spec.ts \
+              e2e/rendimiento-tienda.spec.ts
+
+      - name: Rendimiento de la tienda
+        if: always()
+        run: node scripts/resumen-rendimiento.mjs test-results/rendimiento-tienda.jsonl
 
       # Al final, porque cambia precios y stock del negocio de prueba.
       - name: E2E a escala (5.500 productos, como Famatina)
