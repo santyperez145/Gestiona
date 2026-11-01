@@ -54,11 +54,14 @@ export function Stars({
 }
 
 export default function ProductReviews({ productId }: { productId: string }) {
-  const { store, basePath: base } = useStore();
+  const { store, basePath: base, reviews: reseñasDeLaTienda } = useStore();
   const { customer } = useStoreAuth();
 
-  const [reviews, setReviews] = useState<StoreReview[]>([]);
-  const [cargando, setCargando] = useState(true);
+  // De entrada, las que ya trajo la carga de la tienda; se vuelven a pedir
+  // sólo después de publicar una (se pedían dos veces por ficha, 2026-11-01).
+  const [reviews, setReviews] = useState<StoreReview[]>(() =>
+    ((reseñasDeLaTienda ?? []) as unknown as StoreReview[]).filter(r => r.product_id === productId));
+  const [cargando, setCargando] = useState(false);
   const [permiso, setPermiso] = useState<{ can: boolean; reason?: string } | null>(null);
 
   const [abierto, setAbierto] = useState(false);
@@ -76,7 +79,9 @@ export default function ProductReviews({ productId }: { productId: string }) {
     setCargando(false);
   }, [store?.slug, productId]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    setReviews(((reseñasDeLaTienda ?? []) as unknown as StoreReview[]).filter(r => r.product_id === productId));
+  }, [reseñasDeLaTienda, productId]);
 
   // Se consulta sólo con sesión: sin cuenta la respuesta es siempre "login".
   useEffect(() => {

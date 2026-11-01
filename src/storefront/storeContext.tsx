@@ -205,6 +205,9 @@ interface Ctx {
   variantsByProduct: Record<string, StoreVariant[]>;
   /** Promedio y cantidad de reseñas publicadas, por producto. */
   reviewsByProduct: Record<string, { avg: number; count: number }>;
+  /** Las reseñas publicadas, tal como las trae la carga de la tienda: la ficha
+   *  las usa sin volver a pedirlas (se pedían dos veces, 2026-11-01). */
+  reviews: Array<Record<string, unknown>>;
   /** Páginas de contenido publicadas (sobre nosotros, devoluciones, …). */
   pages: StorePage[];
   /** Banners vigentes de la home, ya filtrados por fecha en el servidor. */
@@ -296,6 +299,7 @@ export function StoreProvider({
   const [reglasCantidad, setReglasCantidad] = useState<ReglaCantidad[]>([]);
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, StoreVariant[]>>({});
   const [reviewsByProduct, setReviewsByProduct] = useState<Record<string, { avg: number; count: number }>>({});
+  const [reviews, setReviews] = useState<Array<Record<string, unknown>>>([]);
   const [pages, setPages] = useState<StorePage[]>([]);
   const [banners, setBanners] = useState<StoreBanner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -460,6 +464,7 @@ export function StoreProvider({
       const rmap: Record<string, { avg: number; count: number }> = {};
       Object.entries(acum).forEach(([id, a]) => { rmap[id] = { avg: a.suma / a.n, count: a.n }; });
       setReviewsByProduct(rmap);
+      setReviews((rRes?.data ?? []) as Array<Record<string, unknown>>);
 
       setPages((gRes?.data ?? []) as unknown as StorePage[]);
       setBanners((bRes?.data ?? []) as unknown as StoreBanner[]);
@@ -636,7 +641,12 @@ export function StoreProvider({
   const [mayoristaTick, setMayoristaTick] = useState(0);
   const recargarMayorista = useCallback(() => setMayoristaTick(t => t + 1), []);
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange(() => setMayoristaTick(t => t + 1));
+    // Sólo entrar, salir o cambiar de usuario cambia lo mayorista. El evento
+    // inicial (llega apenas uno se suscribe) y la renovación del token pedían
+    // `get_store_mayorista` otra vez en cada página (medido 2026-11-01).
+    const { data } = supabase.auth.onAuthStateChange(evento => {
+      if (evento === "SIGNED_IN" || evento === "SIGNED_OUT" || evento === "USER_UPDATED") setMayoristaTick(t => t + 1);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
   useEffect(() => {
@@ -904,7 +914,7 @@ export function StoreProvider({
 
     return {
       basePath, mayorista, tramosMayoristas, recargarMayorista,
-      loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
+      loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, reviews, pages, banners, cart, categorias,
       addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf,
       cartSyncStatus, cartSyncNotice, cartToken, visitToken,
       cartRevealTick,
@@ -921,7 +931,7 @@ export function StoreProvider({
         : null,
       priceOf, fmt,
     };
-  }, [basePath, mayorista, tramosMayoristas, recargarMayorista, mayoristaAprobado, cotizados, loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cartGuardado, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, setCartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
+  }, [basePath, mayorista, tramosMayoristas, recargarMayorista, mayoristaAprobado, cotizados, loading, catalogoParcial, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, reviews, pages, banners, cartGuardado, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, setCartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

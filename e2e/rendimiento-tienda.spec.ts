@@ -37,7 +37,7 @@ test("rendimiento de la tienda en una visita en frío", async ({ browser }, test
     await page.addInitScript(() => {
       const w = window as unknown as { __marcaNerqia?: boolean };
       new MutationObserver(() => {
-        if (!w.__marcaNerqia && document.body?.textContent?.includes("Cargando Nerqia")) w.__marcaNerqia = true;
+        if (!w.__marcaNerqia && document.body?.innerText?.includes("Cargando Nerqia")) w.__marcaNerqia = true;
       }).observe(document, { childList: true, subtree: true, characterData: true });
     });
     const ruta = pagina.ruta();

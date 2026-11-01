@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 const html = readFileSync("index.html", "utf8");
 const app = readFileSync("src/App.tsx", "utf8");
 const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
-  .map(m => m[1]).find(s => s.includes('getElementById("arranque")')) ?? "";
+  .map(m => m[1]).find(s => s.includes('getElementById("plantilla-arranque")')) ?? "";
 
 function arrancar(opciones: { host: string; ruta: string; sesion: boolean; tema?: string }) {
   const almacen = new Map<string, string>();
@@ -17,18 +17,24 @@ function arrancar(opciones: { host: string; ruta: string; sesion: boolean; tema?
   if (opciones.tema) almacen.set("gestiona-theme", opciones.tema);
   const claves = [...almacen.keys()];
   const localStorage = { getItem: (k: string) => almacen.get(k) ?? null, key: (i: number) => claves[i] ?? null, get length() { return claves.length; } };
-  const arranque = { style: { display: "none" } };
+  let clonada = false;
   const clases: string[] = [];
-  const document = { getElementById: () => arranque, documentElement: { classList: { add: (c: string) => clases.push(c) } } };
+  const elementos: Record<string, unknown> = {
+    "plantilla-arranque": { content: { cloneNode: () => ({ pantalla: true }) } },
+    root: { appendChild: () => { clonada = true; } },
+  };
+  const document = { getElementById: (id: string) => elementos[id], documentElement: { classList: { add: (c: string) => clases.push(c) } } };
   const window = { matchMedia: () => ({ matches: false }) };
   new Function("location", "localStorage", "document", "window", script)({ hostname: opciones.host, pathname: opciones.ruta }, localStorage, document, window);
-  return { visible: arranque.style.display === "", clases };
+  return { visible: clonada, clases };
 }
 
 describe("una sola pantalla de carga al entrar", () => {
   it("el HTML trae la pantalla de arranque oculta, igual a AppLoader", () => {
     expect(script).not.toBe("");
-    expect(html).toContain('<div id="arranque" class="app-boot-shell min-h-screen flex items-center justify-center" style="display:none"');
+    // En un <template>: el HTML de una tienda no lleva la marca ni oculta.
+    expect(html).toContain('<div id="root"></div>');
+    expect(html).toContain('<template id="plantilla-arranque"><div id="arranque" class="app-boot-shell min-h-screen flex items-center justify-center"');
     expect(html).toContain("Cargando Nerqia...");
     expect(readFileSync("src/components/shared/AppLoader.tsx", "utf8")).toContain('label = "Cargando Nerqia..."');
   });

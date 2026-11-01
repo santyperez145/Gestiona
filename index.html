@@ -111,7 +111,10 @@
       sesión: en una tienda (o su dominio propio), la landing o una página
       pública no se muestra nunca la marca Nerqia. React la reemplaza al montar.
     -->
-    <div id="root"><div id="arranque" class="app-boot-shell min-h-screen flex items-center justify-center" style="display:none" role="status" aria-live="polite">
+    <div id="root"></div>
+    <!-- En un <template> no es parte de la página (ni de su texto) hasta que el
+         script lo clona: el HTML de una tienda no lleva la marca Nerqia. -->
+    <template id="plantilla-arranque"><div id="arranque" class="app-boot-shell min-h-screen flex items-center justify-center" role="status" aria-live="polite">
       <div class="text-center px-6">
         <span class="brand-logo inline-flex min-w-0 items-center gap-2.5 justify-center mb-5" aria-hidden="true">
           <img src="/brand/nerqia-mark-64.webp" srcset="/brand/nerqia-mark-64.webp 64w, /brand/nerqia-mark-128.webp 128w" sizes="40px" alt="" width="128" height="128" class="brand-logo__mark h-10 w-10 shrink-0 object-contain" />
@@ -120,7 +123,7 @@
         <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
         <p class="text-muted-foreground text-sm font-medium tracking-tight">Cargando Nerqia...</p>
       </div>
-    </div></div>
+    </div></template>
     <script>
       (function () {
         try {
@@ -136,7 +139,10 @@
           for (var i = 0; i < localStorage.length; i++) {
             if (/^sb-.+-auth-token$/.test(localStorage.key(i) || "")) { conSesion = true; break; }
           }
-          if (deNerqia && !publica && conSesion) document.getElementById("arranque").style.display = "";
+          if (deNerqia && !publica && conSesion) {
+            var plantilla = document.getElementById("plantilla-arranque");
+            document.getElementById("root").appendChild(plantilla.content.cloneNode(true));
+          }
         } catch (e) { /* sin almacenamiento: arranca como siempre */ }
       })();
     </script>
