@@ -1,0 +1,55 @@
+name: Humo de producción
+
+# Después de cada publicación de Vercel en producción, y una vez por hora:
+# abre nerqia.app en Chromium y falla si la landing, el login o precios no
+# montan. El 2026-11-01 un build roto quedó 51 minutos en producción con la
+# página en blanco: Vercel publica main sin esperar al CI y el control de
+# estado sólo miraba que el sitio respondiera 200 (una app en blanco responde
+# 200). Si falla, abre un issue que avisa por mail.
+on:
+  deployment_status:
+  schedule:
+    - cron: "41 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: humo-produccion
+  cancel-in-progress: false
+
+jobs:
+  humo:
+    name: La app monta en producción
+    if: >-
+      github.event_name != 'deployment_status' ||
+      (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.59.1-noble
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Dependencias
+        run: npm ci --no-audit --no-fund
+
+      - name: Abrir nerqia.app
+        run: node scripts/humo-arranque.mjs https://nerqia.app
+
+      - name: Avisar
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const titulo = "Producción en blanco: la app no monta en nerqia.app";
+            const { data: abiertos } = await github.rest.issues.listForRepo({ ...context.repo, state: "open", per_page: 50 });
+            const existente = abiertos.find(i => i.title === titulo);
+            const cuerpo = `El humo de producción falló (${context.eventName}, ${context.sha.slice(0, 8)}). ` +
+              `Detalle: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}. ` +
+              "Si fue una publicación, revertir el último commit en Vercel (Promote del deploy anterior) y corregir.";
+            if (existente) await github.rest.issues.createComment({ ...context.repo, issue_number: existente.number, body: cuerpo });
+            else await github.rest.issues.create({ ...context.repo, title: titulo, body: cuerpo });
