@@ -1,5 +1,5 @@
 -- Simulacro de 20261101000100 (concatenar sin BEGIN/COMMIT; termina en ROLLBACK).
--- Nerqia (organización emisora, CUIT 20-44648443-6 en monotributo) y dos
+-- Nerqia (organización emisora, CUIT 20-44648443-6, primero en monotributo) y dos
 -- comercios: uno responsable inscripto con CUIT y otro sin datos fiscales.
 --   1. Sin la facturación activa, el cobro queda «esperando emisor» y el pago
 --      se registra igual.
@@ -10,6 +10,8 @@
 --   5. Un comercio sin datos fiscales recibe factura a consumidor final.
 --   6. Un cobro rechazado no se factura.
 --   7. Un comercio no ve ni configura nada de esto; anon no llama.
+--   8. Con el emisor responsable inscripto: A al inscripto, B a consumidor
+--      final, el 21 % dentro de lo cobrado.
 DO $$
 DECLARE
   v_admin uuid; v_otro uuid; v_nerqia uuid; v_falsa uuid; v_c1 uuid; v_c2 uuid; v_plan uuid;
@@ -93,6 +95,24 @@ BEGIN
   END IF;
   v_ok := v_ok || '6 ';
 
+  -- 8. La condición del emisor puede ser cualquiera: responsable inscripto
+  --    factura A al comercio inscripto y B a consumidor final, con el 21 %
+  --    dentro del precio cobrado.
+  UPDATE public.afip_credentials SET tipo_emisor = 'responsable_inscripto' WHERE org_id = v_nerqia;
+  INSERT INTO public.saas_invoices (subscription_id, org_id, numero, monto, moneda, estado, periodo_desde, periodo_hasta, provider, mp_payment_id)
+  VALUES (v_s1, v_c1, 'ZZ-5', 19900, 'ARS', 'paid', '2027-01-01 12:00-03', '2027-02-01 12:00-03', 'mercadopago', 'zz-pago-5') RETURNING id INTO v_cobro4;
+  SELECT i.* INTO v_inv FROM public.invoices i JOIN public.facturas_de_suscripcion f ON f.invoice_id = i.id WHERE f.saas_invoice_id = v_cobro4;
+  IF v_inv.id IS NULL OR v_inv.tipo_comprobante <> 1 OR v_inv.total <> 19900 OR v_inv.tax_amount <> 3453.72 OR v_inv.subtotal <> 16446.28 THEN
+    RAISE EXCEPTION 'FALLA 8 (A): %', (SELECT row_to_json(f) FROM public.facturas_de_suscripcion f WHERE saas_invoice_id = v_cobro4);
+  END IF;
+  INSERT INTO public.saas_invoices (subscription_id, org_id, numero, monto, moneda, estado, periodo_desde, periodo_hasta, provider, mp_payment_id)
+  VALUES (v_s2, v_c2, 'ZZ-6', 34900, 'ARS', 'paid', '2027-01-05 12:00-03', '2027-02-05 12:00-03', 'mercadopago', 'zz-pago-6') RETURNING id INTO v_cobro4;
+  SELECT i.* INTO v_inv FROM public.invoices i JOIN public.facturas_de_suscripcion f ON f.invoice_id = i.id WHERE f.saas_invoice_id = v_cobro4;
+  IF v_inv.id IS NULL OR v_inv.tipo_comprobante <> 6 OR v_inv.total <> 34900 THEN
+    RAISE EXCEPTION 'FALLA 8 (B): %', (SELECT row_to_json(f) FROM public.facturas_de_suscripcion f WHERE saas_invoice_id = v_cobro4);
+  END IF;
+  v_ok := v_ok || '8 ';
+
   -- 7
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_otro, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
@@ -114,7 +134,7 @@ BEGIN
      OR EXISTS (SELECT 1 FROM public.audit_funciones_expuestas WHERE funcion LIKE '%suscripcion%' OR funcion LIKE 'platform_%facturacion%') THEN
     RAISE EXCEPTION 'FALLA 7: permisos';
   END IF;
-  v_ok := v_ok || '7';
+  v_ok := v_ok || '7 ';
 
   RAISE EXCEPTION 'OK %', v_ok;
 END $$;

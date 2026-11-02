@@ -3,17 +3,21 @@
 -- Mercado Pago cobra el plan del comercio y `suscripcion_registrar_pago` deja
 -- el cobro en `saas_invoices`, pero ningún comprobante fiscal salía: toda
 -- venta en Argentina lleva factura electrónica y `docs/LEGAL.md` lo marcaba
--- en naranja. Nerqia factura con el CUIT 20-44648443-6 en monotributo
--- (informado por el dueño el 2026-11-01): factura C de servicios.
+-- en naranja. Nerqia factura con el CUIT 20-44648443-6 (informado por el
+-- dueño el 2026-11-01, hoy en monotributo). La condición puede ser cualquiera:
+-- el tipo de comprobante sale de la del emisor y la del comercio (C si el
+-- emisor es monotributista o exento; A o B si es responsable inscripto, con
+-- el IVA incluido en el precio del plan).
 --
 -- Esta migración:
 -- · `platform_facturacion`: qué organización de la plataforma emite como
 --   Nerqia (su certificado y punto de venta de ARCA), activable desde
---   Plataforma. Se exige que su identidad fiscal sea ese CUIT en monotributo.
+--   Plataforma. Se exige que su identidad fiscal en ARCA sea ese CUIT, con
+--   cualquier condición declarada.
 -- · `facturas_de_suscripcion`: una por cobro, con su estado (emitida,
 --   esperando emisor, error), motivo e intentos.
 -- · `facturar_cobro_de_suscripcion(saas_invoice)`: factura C de servicios
---   (concepto 2) con el período del plan, al comercio con su CUIT y condición
+--   (concepto 2) con el período del plan y el tipo que corresponde, al comercio con su CUIT y condición
 --   si los tiene declarados, si no a consumidor final. Usa `crear_factura_manual`
 --   en nombre del dueño de la organización emisora (la misma validación,
 --   numeración y evento `factura.creada`, que el outbox autoriza en ARCA).
@@ -79,6 +83,8 @@ DECLARE
   v_claims text;
   v_r jsonb;
   v_motivo text;
+  v_alicuota numeric;
+  v_neto numeric;
 BEGIN
   SELECT * INTO v_cobro FROM public.saas_invoices WHERE id = p_saas_invoice;
   IF v_cobro.id IS NULL OR v_cobro.estado <> 'paid' OR coalesce(v_cobro.monto, 0) <= 0 THEN
@@ -95,8 +101,10 @@ BEGIN
   ELSE
     SELECT regexp_replace(coalesce(cuit, ''), '\D', '', 'g'), tipo_emisor INTO v_emisor_cuit, v_emisor_tipo
       FROM public.afip_credentials WHERE org_id = v_conf.org_emisora_id;
-    IF v_emisor_cuit IS DISTINCT FROM v_conf.cuit_esperado OR v_emisor_tipo NOT IN ('monotributo', 'monotributista') THEN
-      v_motivo := 'La organización emisora no tiene la identidad fiscal de Nerqia (CUIT ' || v_conf.cuit_esperado || ', monotributo).';
+    IF v_emisor_cuit IS DISTINCT FROM v_conf.cuit_esperado THEN
+      v_motivo := 'La organización emisora no tiene en ARCA el CUIT de Nerqia (' || v_conf.cuit_esperado || ').';
+    ELSIF v_emisor_tipo IS NULL OR v_emisor_tipo NOT IN ('responsable_inscripto', 'monotributo', 'monotributista', 'exento') THEN
+      v_motivo := 'La organización emisora no declaró su condición frente al IVA en ARCA.';
     END IF;
   END IF;
   IF v_motivo IS NOT NULL THEN
@@ -121,6 +129,15 @@ BEGIN
     IF length(v_cuit_cliente) <> 11 OR NOT public.cuit_valido(v_cuit_cliente) THEN v_cuit_cliente := NULL; END IF;
   END IF;
   SELECT p.name INTO v_plan FROM public.subscriptions sub JOIN public.plans p ON p.id = sub.plan_id WHERE sub.id = v_cobro.subscription_id;
+  -- El precio del plan es lo cobrado. Si el emisor discrimina IVA (responsable
+  -- inscripto), ese precio incluye el 21 %: neto + IVA = lo cobrado.
+  IF public.discrimina_iva(v_emisor_tipo) THEN
+    v_alicuota := 21;
+    v_neto := round(v_cobro.monto / 1.21, 2);
+  ELSE
+    v_alicuota := 0;
+    v_neto := round(v_cobro.monto, 2);
+  END IF;
   v_desde := (v_cobro.periodo_desde AT TIME ZONE 'America/Argentina/Buenos_Aires')::date;
   v_hasta := greatest((v_cobro.periodo_hasta AT TIME ZONE 'America/Argentina/Buenos_Aires')::date, v_desde);
 
@@ -136,8 +153,8 @@ BEGIN
                          'due_date', public.hoy_ar(), 'notes', 'Cobro de suscripción ' || coalesce(v_cobro.mp_payment_id, v_cobro.numero)),
       jsonb_build_array(jsonb_build_object(
         'description', 'Suscripción Nerqia' || coalesce(' — plan ' || v_plan, '') || ' — del ' || to_char(v_desde, 'DD/MM/YYYY') || ' al ' || to_char(v_hasta, 'DD/MM/YYYY'),
-        'quantity', 1, 'unit_price', round(v_cobro.monto, 2), 'tax_rate', 0)),
-      jsonb_build_object('enabled', true, 'receiver_condition', v_condicion, 'tax_pct', 0, 'concepto', '2',
+        'quantity', 1, 'unit_price', v_neto, 'tax_rate', v_alicuota)),
+      jsonb_build_object('enabled', true, 'receiver_condition', v_condicion, 'tax_pct', v_alicuota, 'concepto', '2',
                          'servicio_desde', v_desde, 'servicio_hasta', v_hasta));
     PERFORM set_config('request.jwt.claims', coalesce(v_claims, ''), true);
   EXCEPTION WHEN OTHERS THEN
@@ -288,8 +305,12 @@ BEGIN
     END IF;
     SELECT regexp_replace(coalesce(cuit, ''), '\D', '', 'g'), tipo_emisor INTO v_cuit, v_tipo
       FROM public.afip_credentials WHERE org_id = p_org_emisora;
-    IF p_activa AND (v_cuit IS DISTINCT FROM v_esperado OR v_tipo NOT IN ('monotributo', 'monotributista')) THEN
-      RAISE EXCEPTION 'Para activar, la organización emisora tiene que tener en ARCA el CUIT % en monotributo', v_esperado
+    IF p_activa AND v_cuit IS DISTINCT FROM v_esperado THEN
+      RAISE EXCEPTION 'Para activar, la organización emisora tiene que tener en ARCA el CUIT %', v_esperado
+        USING ERRCODE = '22023';
+    END IF;
+    IF p_activa AND (v_tipo IS NULL OR v_tipo NOT IN ('responsable_inscripto', 'monotributo', 'monotributista', 'exento')) THEN
+      RAISE EXCEPTION 'Para activar, declará en ARCA la condición frente al IVA de la organización emisora'
         USING ERRCODE = '22023';
     END IF;
   ELSIF p_activa THEN

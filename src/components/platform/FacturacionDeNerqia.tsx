@@ -1,8 +1,8 @@
 /**
  * «Facturación de Nerqia» (2026-11-01, migración 20261101000100): Nerqia le
- * factura al comercio cada cobro de su suscripción (RG 4291). Factura C de
- * servicios con el CUIT 20-44648443-6 en monotributo, desde la organización
- * de la plataforma que tenga ese certificado en ARCA. Acá se elige y activa
+ * factura al comercio cada cobro de su suscripción (RG 4291), con el CUIT
+ * 20-44648443-6 y el comprobante que corresponda a su condición frente al
+ * IVA, desde la organización de la plataforma que tenga ese certificado. Acá se elige y activa
  * el emisor, se ve el estado de cada factura y se reintenta lo pendiente.
  */
 import { useCallback, useEffect, useState } from "react";
@@ -88,8 +88,9 @@ export default function FacturacionDeNerqia() {
             <FileText className="h-4 w-4 text-primary" />Facturación de Nerqia a los comercios
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Cada cobro de una suscripción genera la factura C de servicios con el período del plan
-            {estado ? ` (CUIT ${formatearCuit(estado.cuit_esperado)}, monotributo)` : ""} y se autoriza en ARCA sola.
+            Cada cobro de una suscripción genera la factura de servicios con el período del plan
+            {estado ? ` (CUIT ${formatearCuit(estado.cuit_esperado)})` : ""}: C si el emisor es monotributista o exento, A o B si es
+            responsable inscripto (con el IVA dentro del precio). Se autoriza en ARCA sola.
           </p>
         </div>
         {estado && (
