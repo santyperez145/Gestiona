@@ -61,20 +61,18 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   const confirmacion = await request.get(enlace, { maxRedirects: 0 });
   expect([200, 301, 302, 303, 307]).toContain(confirmacion.status());
 
-  // 4. Entrar con el formulario de login y llegar al panel del negocio nuevo.
+  // 4. Entrar con el formulario de login: el negocio nuevo cae directo en el
+  // asistente de inicio, a pantalla completa (sin el menú del panel).
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Contraseña").fill(clave);
   await page.getByRole("button", { name: /Entrar a Nerqia/ }).click();
-  await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
-  await expect(
-    page.getByText(`${nombre} Workspace`).or(page.getByRole("button", { name: /ruta de activación/ })).first(),
-  ).toBeVisible({ timeout: 45_000 });
+  await expect(page).toHaveURL(/\/onboarding/, { timeout: 45_000 });
 
   // 5. El asistente de inicio (2026-11-02): nombre, rubro, color y canal. Es lo
   // primero que hace cada comercio y ningún E2E lo recorría con una cuenta nueva.
-  await page.goto("/onboarding");
   await expect(page.getByRole("heading", { name: "¿Cómo se llama tu negocio?" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("link", { name: "Tienda online" })).toHaveCount(0);
   await foto(page, "asistente-nombre");
   await sinBarrerasGraves(page, "asistente de inicio");
   await page.getByLabel("Nombre del negocio").fill(nombre);
