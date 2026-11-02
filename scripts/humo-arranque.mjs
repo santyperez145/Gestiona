@@ -75,8 +75,12 @@ async function main() {
     try {
       await pagina.goto(base + "/", { waitUntil: "commit" });
       await pagina.locator("#landing-previa h1").waitFor({ state: "visible", timeout: 2500 });
+      // Un toque antes de que arranque React no se pierde: se repite en la viva.
+      await pagina.locator("#landing-previa #landing-tab-gestion").click();
       await pagina.locator("#root [data-landing] h1").waitFor({ state: "visible", timeout: 20_000 });
       if (await pagina.locator("#landing-previa").count()) throw new Error("la previa quedó junto a la landing viva");
+      await pagina.locator('#root #landing-tab-gestion[aria-selected="true"]').waitFor({ timeout: 3000 })
+        .catch(() => { throw new Error("el toque en la previa no llegó a la landing viva"); });
       console.log("✓ / previa en HTML antes del JavaScript");
     } catch (e) {
       console.log(`✗ / previa — ${String(e.message ?? e).split("\n")[0]}`);

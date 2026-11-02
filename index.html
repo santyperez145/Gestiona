@@ -158,6 +158,13 @@
             // el mismo cuadro en que monta la landing viva (el observador corre
             // antes de pintar) o cualquier otra pantalla que no sea un cargador.
             raiz.style.display = "none";
+            // Un toque a un botón de la previa (el menú, una pestaña) todavía
+            // no tiene React: se recuerda cuál era y se repite en la viva.
+            var tocado = -1;
+            previa.addEventListener("click", function (evento) {
+              var boton = evento.target.closest && evento.target.closest("button");
+              if (boton) tocado = Array.prototype.indexOf.call(previa.querySelectorAll("button"), boton);
+            });
             var observador = new MutationObserver(function () {
               var viva = raiz.querySelector("[data-landing]");
               var cargando = raiz.querySelector(".app-boot-shell, .animate-spin");
@@ -165,6 +172,8 @@
               observador.disconnect();
               previa.remove();
               raiz.style.display = "";
+              var boton = viva && tocado >= 0 ? viva.querySelectorAll("button")[tocado] : null;
+              if (boton) setTimeout(function () { boton.click(); }, 0);
             });
             observador.observe(raiz, { childList: true, subtree: true });
           }

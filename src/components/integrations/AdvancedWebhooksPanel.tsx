@@ -559,7 +559,7 @@ export default function AdvancedWebhooksPanel() {
                         />
                       </>
                     )}
-                    <button onClick={() => { setExpandedId(isExpanded ? null : webhook.id); if (!isExpanded) loadDeliveries(webhook.id); }} className="text-muted-foreground/40">
+                    <button onClick={() => { setExpandedId(isExpanded ? null : webhook.id); if (!isExpanded) loadDeliveries(webhook.id); }} className="text-muted-foreground/40" aria-label={isExpanded ? "Ocultar entregas del webhook" : "Ver entregas del webhook"} aria-expanded={isExpanded}>
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                   </div>

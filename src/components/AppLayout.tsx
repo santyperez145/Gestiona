@@ -409,7 +409,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* ── Collapse toggle ──────────────────────────────────────── */}
         <div className="hidden lg:block px-2 py-1 border-t border-sidebar-border/40">
           <button
+            type="button"
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expandir menú lateral" : "Contraer menú lateral"}
+            aria-expanded={!collapsed}
             className="w-full flex items-center justify-center h-7 rounded-[6px] text-muted-foreground/40 hover:text-muted-foreground/80 hover:bg-sidebar-accent/50 transition-all duration-150"
           >
             {collapsed ? <ChevronsRight className="w-3.5 h-3.5" /> : <ChevronsLeft className="w-3.5 h-3.5" />}

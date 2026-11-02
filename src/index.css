@@ -3,6 +3,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Respaldos con las métricas de la fuente real (2026-11-02, @capsizecss):
+   mientras baja Inter o Plus Jakarta Sans el texto se dibuja en Arial con el
+   mismo ancho y alto, así el cambio de fuente no mueve la pantalla (era el
+   salto de 0,11 en Influencers). */
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial"), local("ArialMT");
+  ascent-override: 90.4365%;
+  descent-override: 22.518%;
+  line-gap-override: 0%;
+  size-adjust: 107.1194%;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans Fallback";
+  src: local("Arial"), local("ArialMT");
+  ascent-override: 98.8763%;
+  descent-override: 21.147%;
+  line-gap-override: 0%;
+  size-adjust: 104.9796%;
+}
+
 @layer base {
   /* ── :root = dark theme (fallback) ─────────────────────────────────────
      next-themes toggles "light" / "dark" on <html>. Light es el default de
@@ -54,8 +75,8 @@
     --sidebar-border: 240 6% 13%;
     --sidebar-ring: 230 87% 51%;
 
-    --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
-    --font-body:    'Inter', system-ui, sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif;
+    --font-body:    'Inter', 'Inter Fallback', system-ui, sans-serif;
     --font-mono:    'JetBrains Mono', ui-monospace, monospace;
 
     /* Acentos propios de Nerqia Commerce OS: calidez financiera y operación */

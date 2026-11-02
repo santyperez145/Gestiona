@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
-        body:    ["Inter", "system-ui", "sans-serif"],
+        display: ["Plus Jakarta Sans", "Plus Jakarta Sans Fallback", "system-ui", "sans-serif"],
+        body:    ["Inter", "Inter Fallback", "system-ui", "sans-serif"],
         mono:    ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       colors: {

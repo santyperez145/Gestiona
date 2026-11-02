@@ -360,7 +360,7 @@ export default function ProductBundlesPage() {
                     </div>
                   )}
 
-                  <button onClick={() => setExpandedId(isExpanded ? null : bundle.id)} className="text-muted-foreground/40 shrink-0">
+                  <button type="button" onClick={() => setExpandedId(isExpanded ? null : bundle.id)} className="text-muted-foreground/40 shrink-0" aria-label={isExpanded ? `Ocultar el contenido de ${bundle.name}` : `Ver el contenido de ${bundle.name}`} aria-expanded={isExpanded}>
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                 </div>
