@@ -103,13 +103,13 @@ BEGIN
   VALUES (v_s1, v_c1, 'ZZ-5', 19900, 'ARS', 'paid', '2027-01-01 12:00-03', '2027-02-01 12:00-03', 'mercadopago', 'zz-pago-5') RETURNING id INTO v_cobro4;
   SELECT i.* INTO v_inv FROM public.invoices i JOIN public.facturas_de_suscripcion f ON f.invoice_id = i.id WHERE f.saas_invoice_id = v_cobro4;
   IF v_inv.id IS NULL OR v_inv.tipo_comprobante <> 1 OR v_inv.total <> 19900 OR v_inv.tax_amount <> 3453.72 OR v_inv.subtotal <> 16446.28 THEN
-    RAISE EXCEPTION 'FALLA 8 (A): %', (SELECT row_to_json(f) FROM public.facturas_de_suscripcion f WHERE saas_invoice_id = v_cobro4);
+    RAISE EXCEPTION 'FALLA 8 (A): tipo % total % neto % iva % pct %', v_inv.tipo_comprobante, v_inv.total, v_inv.subtotal, v_inv.tax_amount, v_inv.tax_pct;
   END IF;
   INSERT INTO public.saas_invoices (subscription_id, org_id, numero, monto, moneda, estado, periodo_desde, periodo_hasta, provider, mp_payment_id)
   VALUES (v_s2, v_c2, 'ZZ-6', 34900, 'ARS', 'paid', '2027-01-05 12:00-03', '2027-02-05 12:00-03', 'mercadopago', 'zz-pago-6') RETURNING id INTO v_cobro4;
   SELECT i.* INTO v_inv FROM public.invoices i JOIN public.facturas_de_suscripcion f ON f.invoice_id = i.id WHERE f.saas_invoice_id = v_cobro4;
   IF v_inv.id IS NULL OR v_inv.tipo_comprobante <> 6 OR v_inv.total <> 34900 THEN
-    RAISE EXCEPTION 'FALLA 8 (B): %', (SELECT row_to_json(f) FROM public.facturas_de_suscripcion f WHERE saas_invoice_id = v_cobro4);
+    RAISE EXCEPTION 'FALLA 8 (B): tipo % total % neto % iva %', v_inv.tipo_comprobante, v_inv.total, v_inv.subtotal, v_inv.tax_amount;
   END IF;
   v_ok := v_ok || '8 ';
 
