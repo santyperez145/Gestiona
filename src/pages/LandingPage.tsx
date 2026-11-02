@@ -247,7 +247,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="landing-shell">
+    <div className="landing-shell" data-landing>
       <header className="landing-nav">
         <div className="landing-container landing-nav__inner">
           <Link to="/" className="landing-brand" aria-label="Nerqia inicio">

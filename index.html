@@ -124,6 +124,10 @@
         <p class="text-muted-foreground text-sm font-medium tracking-tight">Cargando Nerqia...</p>
       </div>
     </div></template>
+    <!-- La landing en HTML (2026-11-02): el build la renderiza acá
+         (scripts/landing-previa.mjs). Se muestra en «/» sin sesión mientras
+         baja el JavaScript y se saca cuando React monta la misma landing. -->
+    <template id="plantilla-landing"><!--landing-previa--></template>
     <script>
       (function () {
         try {
@@ -139,9 +143,30 @@
           for (var i = 0; i < localStorage.length; i++) {
             if (/^sb-.+-auth-token$/.test(localStorage.key(i) || "")) { conSesion = true; break; }
           }
+          var raiz = document.getElementById("root");
           if (deNerqia && !publica && conSesion) {
             var plantilla = document.getElementById("plantilla-arranque");
-            document.getElementById("root").appendChild(plantilla.content.cloneNode(true));
+            raiz.appendChild(plantilla.content.cloneNode(true));
+          }
+          var landing = document.getElementById("plantilla-landing");
+          if (deNerqia && !conSesion && location.pathname === "/" && landing.content.childElementCount) {
+            var previa = document.createElement("div");
+            previa.id = "landing-previa";
+            previa.appendChild(landing.content.cloneNode(true));
+            raiz.parentNode.insertBefore(previa, raiz);
+            // React arranca debajo, oculto; el cargador no se ve. Se cambia en
+            // el mismo cuadro en que monta la landing viva (el observador corre
+            // antes de pintar) o cualquier otra pantalla que no sea un cargador.
+            raiz.style.display = "none";
+            var observador = new MutationObserver(function () {
+              var viva = raiz.querySelector("[data-landing]");
+              var cargando = raiz.querySelector(".app-boot-shell, .animate-spin");
+              if (!viva && (cargando || !raiz.firstElementChild)) return;
+              observador.disconnect();
+              previa.remove();
+              raiz.style.display = "";
+            });
+            observador.observe(raiz, { childList: true, subtree: true });
           }
         } catch (e) { /* sin almacenamiento: arranca como siempre */ }
       })();

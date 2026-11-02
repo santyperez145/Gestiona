@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
 import { transformarPrecache } from "./scripts/precache-arranque.mjs";
+import { landingPrevia } from "./scripts/landing-previa.mjs";
 import { VitePWA } from "vite-plugin-pwa";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
@@ -40,12 +41,16 @@ export default defineConfig(() => {
   },
   plugins: [
     react(),
+    landingPrevia(__dirname),
     !nativeBuild && VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
       registerType: "autoUpdate",
-      injectRegister: "auto",
+      // Diferido (2026-11-02): con "auto" era un <script> que frenaba el
+      // pintado desde el <head>; en un celular terminaba a los 3 s (Lighthouse).
+      // Igual registra el service worker recién en `load`.
+      injectRegister: "script-defer",
       // 📌 `brand/nerqia-mark.png` figura dos veces en el manifiesto —una
       // por acá y otra por `globPatterns`— pero es **la misma URL con la
       // misma revisión**: el navegador la baja una sola vez. Vaciar esta lista

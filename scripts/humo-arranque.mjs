@@ -15,7 +15,9 @@ import { chromium } from "@playwright/test";
 
 const PUERTO = 4179;
 const rutas = [
-  { ruta: "/", espera: "h1" },
+  // La landing viva, dentro de #root: la previa en HTML (index.html) también
+  // tiene su h1 y se ve aunque React no monte.
+  { ruta: "/", espera: "#root [data-landing] h1" },
   { ruta: "/login", espera: "form" },
   { ruta: "/precios", espera: "h1" },
 ];
@@ -65,6 +67,21 @@ async function main() {
       }
       console.log(`${errores.length ? "✗" : "✓"} ${ruta}${errores.length ? ` — ${errores.slice(0, 3).join(" | ")}` : ""}`);
       fallas += errores.length ? 1 : 0;
+      await pagina.close();
+    }
+    // La previa: con el JavaScript demorado, el título ya se ve con el HTML.
+    const pagina = await navegador.newPage();
+    await pagina.route(/\/assets\/.*\.js$/, async r => { await new Promise(ok => setTimeout(ok, 3000)); await r.continue().catch(() => undefined); });
+    try {
+      await pagina.goto(base + "/", { waitUntil: "commit" });
+      await pagina.locator("#landing-previa h1").waitFor({ state: "visible", timeout: 2500 });
+      await pagina.locator("#root [data-landing] h1").waitFor({ state: "visible", timeout: 20_000 });
+      if (await pagina.locator("#landing-previa").count()) throw new Error("la previa quedó junto a la landing viva");
+      console.log("✓ / previa en HTML antes del JavaScript");
+    } catch (e) {
+      console.log(`✗ / previa — ${String(e.message ?? e).split("\n")[0]}`);
+      fallas += 1;
+    } finally {
       await pagina.close();
     }
   } finally {

@@ -1,6 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+// La previa en HTML (index.html) se ve antes que React y no responde a
+// clics: las pruebas interactúan con la landing viva, una vez que la reemplazó.
+async function abrirLanding(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await expect(page.locator('#root [data-landing]')).toBeVisible();
+  await expect(page.locator('#landing-previa')).toHaveCount(0);
+}
+
 const viewports = [
   { width: 360, height: 800 },
   { width: 768, height: 900 },
@@ -12,7 +20,7 @@ const viewports = [
 for (const viewport of viewports) {
   test(`landing a ${viewport.width}px: primera acción y continuidad sin desborde`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.goto('/');
+    await abrirLanding(page);
 
     await expect(page.getByRole('heading', {
       level: 1,
@@ -40,7 +48,7 @@ for (const viewport of viewports) {
 }
 
 test('las superficies cambian contenido y sostienen WCAG A/AA', async ({ page }) => {
-  await page.goto('/');
+  await abrirLanding(page);
   await expect(page.getByRole('tab', { name: 'Tienda online' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('tabpanel')).toContainText('Tu marca, tu dominio y una tienda preparada para vender.');
   await page.getByRole('tab', { name: 'Tienda online' }).press('ArrowRight');

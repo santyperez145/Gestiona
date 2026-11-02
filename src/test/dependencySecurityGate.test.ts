@@ -59,7 +59,10 @@ describe("dependencias sin alertas productivas conocidas", () => {
     expect(pkg.scripts["check:dependencies"]).toBe("node scripts/audit-dependencies.mjs");
     expect(dependencyAudit).toContain('["--omit=dev"]');
     // Cada excepción tiene su fecha de revisión: vencida, la puerta falla.
-    expect(dependencyAudit).toMatch(/url: "https:\/\/github\.com\/advisories\/GHSA-vfj7-8cjw-p6xm",\s+revisarAntesDe: "2026-11-13",/);
+    // GHSA-vfj7 (braces) lo retiró GitHub el 2026-10-23: salió, y una excepción
+    // que ya no corresponde también frena la puerta.
+    expect(dependencyAudit).not.toContain("GHSA-vfj7-8cjw-p6xm");
+    expect(dependencyAudit).toContain("if (sobrantes.length > 0) {");
     expect(dependencyAudit).toMatch(/url: "https:\/\/github\.com\/advisories\/GHSA-gcqx-w48m-w2h4",\s+revisarAntesDe: "2026-11-29",/);
     expect(dependencyAudit).toMatch(/url: "https:\/\/github\.com\/advisories\/GHSA-g3hv-75wg-m249",\s+revisarAntesDe: "2026-11-29",/);
     expect(dependencyAudit).toMatch(/url: "https:\/\/github\.com\/advisories\/GHSA-3g3m-2fjr-6pw4",\s+revisarAntesDe: "2026-11-29",/);

@@ -5,14 +5,6 @@ import { spawnSync } from "node:child_process";
 // Nunca entra uno de runtime (ésos frenan siempre, más abajo).
 const EXCEPCIONES = [
   {
-    // Revisada 2026-10-14: `braces` sigue sin versión corregida (la última es
-    // 3.0.3, de 2024-05). DoS por patrones anidados; acá sólo recibe los globs
-    // fijos de tailwind.config.ts y del watcher de Vite al compilar, nunca
-    // entrada de usuarios, y no viaja al bundle.
-    url: "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
-    revisarAntesDe: "2026-11-13",
-  },
-  {
     // Revisada 2026-10-30: `deepmerge` no tiene versión corregida (la última es
     // 4.3.1, de 2023-03, y el aviso la incluye). Prototype poisoning al
     // combinar objetos de afuera; acá lo usa @rollup/plugin-node-resolve dentro
@@ -109,6 +101,14 @@ if (names.length === 0) {
 const today = new Date().toISOString().slice(0, 10);
 const vencidas = EXCEPCIONES.filter((excepcion) => today >= excepcion.revisarAntesDe);
 const unexpected = names.filter((name) => !isOnlyAllowedAdvisory(name, vulnerabilities));
+// Una excepción cuyo aviso ya no aparece (retirado o corregido) se saca: si
+// quedara, taparía en silencio el día que el aviso vuelva con otro alcance.
+const vistos = new Set(Object.values(vulnerabilities).flatMap((v) => (v.via ?? []).map((s) => s?.url).filter(Boolean)));
+const sobrantes = EXCEPCIONES.filter((excepcion) => !vistos.has(excepcion.url));
+
+if (sobrantes.length > 0) {
+  throw new Error(`Excepciones sin aviso vigente, sacalas de scripts/audit-dependencies.mjs: ${sobrantes.map((e) => e.url).join(", ")}.`);
+}
 
 if (vencidas.length > 0 || unexpected.length > 0) {
   console.error(JSON.stringify(completeReport, null, 2));

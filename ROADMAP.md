@@ -178,7 +178,9 @@ sigue abierto como certificación operacional.
   Revisada 2026-10-14: sigue sin parche (última `braces` 3.0.3, de 2024-05); sólo
   recibe globs fijos del repo al compilar y no viaja al bundle. Próxima revisión
   antes del 2026-11-13. Para sacarla del todo hace falta Tailwind 4 (sin
-  chokidar/micromatch), que es una migración aparte.
+  chokidar/micromatch), que es una migración aparte. 2026-11-02: GitHub retiró
+  el aviso el 2026-10-23; la excepción salió y la puerta ahora falla si queda
+  una excepción cuyo aviso ya no aparece.
 - Integridad fiscal 2026-10-03: `FECompUltimoAutorizado` ya no convierte un
   rechazo SOAP o `CbteNro` ausente en cero. La carga de plataforma parsea el
   X.509, verifica CRT/KEY, CUIT y vigencia, cifra ambos secretos y expone sólo
