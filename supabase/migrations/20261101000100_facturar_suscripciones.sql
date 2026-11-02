@@ -85,6 +85,7 @@ DECLARE
   v_motivo text;
   v_alicuota numeric;
   v_neto numeric;
+  v_factura uuid;
 BEGIN
   SELECT * INTO v_cobro FROM public.saas_invoices WHERE id = p_saas_invoice;
   IF v_cobro.id IS NULL OR v_cobro.estado <> 'paid' OR coalesce(v_cobro.monto, 0) <= 0 THEN
@@ -156,6 +157,18 @@ BEGIN
         'quantity', 1, 'unit_price', v_neto, 'tax_rate', v_alicuota)),
       jsonb_build_object('enabled', true, 'receiver_condition', v_condicion, 'tax_pct', v_alicuota, 'concepto', '2',
                          'servicio_desde', v_desde, 'servicio_hasta', v_hasta));
+    -- Con IVA, el total tiene que ser exactamente lo cobrado. A veces ningún
+    -- neto en centavos da justo (34.900 / 1,21: 28.842,98 + 6.057,03 = 34.900,01):
+    -- el IVA es la diferencia, dentro del centavo de tolerancia que admite
+    -- ARCA y controla guard_fiscal_invoice_items. Igual que los pedidos online.
+    IF v_alicuota > 0 THEN
+      v_factura := (v_r->>'invoice_id')::uuid;
+      IF (SELECT round(total, 2) FROM public.invoices WHERE id = v_factura) <> round(v_cobro.monto, 2) THEN
+        UPDATE public.invoice_items SET tax_amount = round(v_cobro.monto - total, 2) WHERE invoice_id = v_factura;
+        UPDATE public.invoices SET tax_amount = round(v_cobro.monto - subtotal, 2), total = round(v_cobro.monto, 2) WHERE id = v_factura;
+        PERFORM public.invoice_iva_groups(v_factura);
+      END IF;
+    END IF;
     PERFORM set_config('request.jwt.claims', coalesce(v_claims, ''), true);
   EXCEPTION WHEN OTHERS THEN
     PERFORM set_config('request.jwt.claims', coalesce(v_claims, ''), true);

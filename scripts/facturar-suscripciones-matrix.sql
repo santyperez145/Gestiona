@@ -110,7 +110,8 @@ BEGIN
   INSERT INTO public.saas_invoices (subscription_id, org_id, numero, monto, moneda, estado, periodo_desde, periodo_hasta, provider, mp_payment_id)
   VALUES (v_s2, v_c2, 'ZZ-6', 34900, 'ARS', 'paid', '2027-01-05 12:00-03', '2027-02-05 12:00-03', 'mercadopago', 'zz-pago-6') RETURNING id INTO v_cobro4;
   SELECT i.* INTO v_inv FROM public.invoices i JOIN public.facturas_de_suscripcion f ON f.invoice_id = i.id WHERE f.saas_invoice_id = v_cobro4;
-  IF v_inv.id IS NULL OR v_inv.tipo_comprobante <> 6 OR v_inv.total <> 34900 THEN
+  -- 34.900 / 1,21 no da justo en centavos: el IVA absorbe el centavo (6.057,02).
+  IF v_inv.id IS NULL OR v_inv.tipo_comprobante <> 6 OR v_inv.total <> 34900 OR v_inv.subtotal <> 28842.98 OR v_inv.tax_amount <> 6057.02 THEN
     RAISE EXCEPTION 'FALLA 8 (B): tipo % total % neto % iva %', v_inv.tipo_comprobante, v_inv.total, v_inv.subtotal, v_inv.tax_amount;
   END IF;
   v_ok := v_ok || '8 ';
