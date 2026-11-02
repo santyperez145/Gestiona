@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { instalarMedicion, registrarMedicion } from "./rendimiento";
+import { PRESUPUESTO, instalarMedicion, registrarMedicion } from "./rendimiento";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
@@ -40,6 +40,8 @@ for (const ruta of rutasDelMenu()) {
     await expect(page.locator("h1").first(), `la pantalla no tiene título; consola: ${consola.slice(-4).join(" || ")}`).toBeVisible({ timeout: 20_000 });
     const fila = await registrarMedicion(page, { ruta: ruta.path, inicio, titulo: Date.now() - inicio, archivo: "rendimiento.jsonl" });
     testInfo.annotations.push({ type: "rendimiento", description: JSON.stringify(fila) });
+    expect.soft(fila.cls, `salto al cargar (CLS) — se mueve: ${fila.culpableCls ?? "?"}`).toBeLessThanOrEqual(PRESUPUESTO.panel.cls);
+    expect.soft(fila.consultas, `consultas a la base al cargar — más repetidas: ${fila.repetidas}`).toBeLessThanOrEqual(PRESUPUESTO.panel.consultas);
 
     for (const ancho of [1280, 390]) {
       await page.setViewportSize({ width: ancho, height: 900 });

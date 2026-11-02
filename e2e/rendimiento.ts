@@ -8,6 +8,17 @@ import type { Page } from "@playwright/test";
  * base (con las más repetidas). Cada medición queda en un .jsonl que
  * `scripts/resumen-rendimiento.mjs` publica como tabla en la corrida.
  */
+/**
+ * Presupuestos (2026-11-02), fijados con las mediciones reales y margen: el
+ * E2E falla si una pantalla empeora. Panel: el peor salto medido fue 0,115
+ * (influencers) y el máximo de consultas, 45 (inicio). Tienda: sin saltos,
+ * hasta 17 consultas y LCP ≈ 0,5 s; el techo de LCP es el umbral de Google.
+ */
+export const PRESUPUESTO = {
+  panel: { cls: 0.15, consultas: 50 },
+  tienda: { cls: 0.05, consultas: 20, lcp: 2500 },
+} as const;
+
 export async function instalarMedicion(page: Page) {
   await page.addInitScript(() => {
     const w = window as unknown as { __perf: { lcp: number; cls: number; largas: number; bloqueo: number; salto?: number; culpable?: string } };

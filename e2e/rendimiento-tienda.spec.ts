@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { exigirBackendReal } from "./backendReal";
-import { instalarMedicion, registrarMedicion } from "./rendimiento";
+import { PRESUPUESTO, instalarMedicion, registrarMedicion } from "./rendimiento";
 
 /**
  * Rendimiento de la tienda para el comprador (2026-11-01): la superficie que
@@ -11,6 +11,9 @@ import { instalarMedicion, registrarMedicion } from "./rendimiento";
  */
 exigirBackendReal();
 test.use({ serviceWorkers: "block" });
+// Los presupuestos se comparan en el entorno controlado del E2E local; contra
+// producción la red del runner haría variar los tiempos y daría falsos rojos.
+test.skip(process.env.E2E_LOCAL !== "true", "La medición de la tienda corre en el E2E local (E2E_LOCAL=true).");
 
 const SLUG = process.env.E2E_STORE_SLUG ?? "exentryimports";
 const tienda = (ruta = "") => `/tienda/${SLUG}${ruta}`;
@@ -49,7 +52,10 @@ test("rendimiento de la tienda en una visita en frío", async ({ browser }, test
     if (pagina.nombre === "portada") {
       ficha = new URL(await page.locator(`a[href*="/tienda/${SLUG}/producto/"]`).first().evaluate(a => (a as HTMLAnchorElement).href)).pathname;
     }
-    await registrarMedicion(page, { ruta: `${dispositivo} · ${pagina.nombre}`, inicio, titulo, archivo: "rendimiento-tienda.jsonl" });
+    const fila = await registrarMedicion(page, { ruta: `${dispositivo} · ${pagina.nombre}`, inicio, titulo, archivo: "rendimiento-tienda.jsonl" });
+    expect.soft(fila.cls, `${pagina.nombre}: salto al cargar — se mueve: ${fila.culpableCls ?? "?"}`).toBeLessThanOrEqual(PRESUPUESTO.tienda.cls);
+    expect.soft(fila.consultas, `${pagina.nombre}: consultas — más repetidas: ${fila.repetidas}`).toBeLessThanOrEqual(PRESUPUESTO.tienda.consultas);
+    expect.soft(fila.lcp, `${pagina.nombre}: contenido principal (LCP, ms)`).toBeLessThanOrEqual(PRESUPUESTO.tienda.lcp);
     expect(await page.evaluate(() => Boolean((window as unknown as { __marcaNerqia?: boolean }).__marcaNerqia)),
       `la tienda mostró «Cargando Nerqia» en ${pagina.nombre}`).toBe(false);
     await contexto.close();
