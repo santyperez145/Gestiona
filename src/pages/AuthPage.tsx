@@ -331,7 +331,7 @@ export default function AuthPage() {
                     <button type="button" onClick={() => changeMode('forgot')}>¿Olvidaste tu contraseña?</button>
                   </div>
                 )}
-                <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Nerqia' : role === 'creator' ? 'Crear mi cuenta de creador' : 'Crear mi workspace'} <ArrowRight /></Button>
+                <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Nerqia' : role === 'creator' ? 'Crear mi cuenta de creador' : 'Crear mi cuenta gratis'} <ArrowRight /></Button>
               </form>
               <p className="auth-channel-note" role="note">
                 El ingreso con código por WhatsApp todavía no está disponible.

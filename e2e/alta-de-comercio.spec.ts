@@ -38,7 +38,7 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await page.getByLabel("Nombre").fill(nombre);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Contraseña").fill(clave);
-  await page.getByRole("button", { name: /Crear mi workspace/ }).click();
+  await page.getByRole("button", { name: /Crear mi cuenta gratis/ }).click();
   await expect(page.getByText("Te enviamos un correo para confirmar tu cuenta.")).toBeVisible({ timeout: 30_000 });
 
   // 2. El mail de confirmación llega con nuestra plantilla y su enlace.

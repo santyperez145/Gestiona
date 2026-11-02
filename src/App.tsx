@@ -44,6 +44,7 @@ import LandingPage from "@/pages/LandingPage";
 // no abrieron. El Suspense raíz mantiene una sola transición de carga.
 const AppLayout = lazy(() => import("@/components/AppLayout"));
 const MfaGate = lazy(() => import("@/components/auth/MfaGate"));
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const ModuleGuard = lazy(() => import("@/components/auth/ModuleGuard"));
 const PlatformLayout = lazy(() => import("@/components/PlatformLayout"));
 const FinanceLayout = lazy(() => import("@/components/finance-product/FinanceLayout"));
@@ -302,6 +303,20 @@ function ProtectedRoutes() {
   // sobrescribir el blueprint y hasta sembrar una demo sobre datos reales.
   if (activeOrg && onboarded && onOnboardingRoute) {
     return <Navigate to="/" replace />;
+  }
+  // El asistente va a pantalla completa (2026-11-02): dentro del panel tenía
+  // al costado el menú, «Nueva venta» y el buscador, salidas antes de terminar
+  // de configurar el negocio (lo mostró el recorrido del primer día).
+  if (activeOrg && !onboarded && onOnboardingRoute) {
+    return (
+      <MfaGate isAdmin={isAdmin} orgRequiresMfa={orgRequiresMfa}>
+        <PermissionsProvider>
+          <Suspense fallback={<AppLoader />}>
+            <OnboardingPage />
+          </Suspense>
+        </PermissionsProvider>
+      </MfaGate>
+    );
   }
 
   return (

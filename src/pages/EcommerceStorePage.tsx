@@ -263,6 +263,7 @@ export default function EcommerceStorePage() {
   const [storeForm, setStoreForm] = useState(() => storeDraftInicial(undefined, GLOBAL_FULFILLMENT_LOCATION));
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [verConfiguracionCompleta, setVerConfiguracionCompleta] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
   // Señales de "¿puede vender?". Arrancan en el peor caso: mientras no se sepa,
   // es más honesto mostrar que falta algo que decir que todo está listo.
@@ -1022,6 +1023,8 @@ export default function EcommerceStorePage() {
     && !leadSettingsWithEmail && leadSettingsWithHours
     ? storeHoursLeadCopy()
     : null;
+  // Sólo los pasos que bloquean la venta; email y horario son sugerencias.
+  const pasoGuiado = Boolean(bankLead || pickupLead || legalLead);
   const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
     : null;
@@ -2106,7 +2109,15 @@ export default function EcommerceStorePage() {
               completo aparecía debajo con el nombre y el slug repetidos, más
               envíos, píxeles y un estado que contaba cero productos aunque
               hubiera. El recorrido del primer día lo mostró abrumador. */}
-          {!leadSettingsWithIdentity && (<>
+          {/* Con un paso guiado que bloquea la venta (CBU, retiro o legales)
+              pendiente se ve sólo ese paso: el formulario completo repetía los
+              mismos campos debajo (2026-11-02, recorrido del primer día). */}
+          {!leadSettingsWithIdentity && pasoGuiado && !verConfiguracionCompleta && (
+            <Button type="button" variant="outline" className="min-h-11 w-full" onClick={() => setVerConfiguracionCompleta(true)}>
+              Ver toda la configuración de la tienda
+            </Button>
+          )}
+          {!leadSettingsWithIdentity && (!pasoGuiado || verConfiguracionCompleta) && (<>
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>

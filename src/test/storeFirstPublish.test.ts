@@ -217,7 +217,7 @@ describe('la primera publicación empieza por el catálogo', () => {
     // El panel de Pay no puede colarse bajo el lead de identidad, y sin tienda
     // el formulario completo no aparece (2026-11-02: repetía nombre y slug).
     expect(STORE).toMatch(/!leadSettingsWithIdentity && !leadSettingsWithBank[^\n]*\n\s*<PaymentConnectionsPanel/);
-    expect(STORE).toContain('{!leadSettingsWithIdentity && (<>');
+    expect(STORE).toContain('{!leadSettingsWithIdentity && (!pasoGuiado || verConfiguracionCompleta) && (<>');
   });
 
   it('después de CBU y retiro, legales van antes de OAuth', () => {
