@@ -182,8 +182,8 @@ export default function ShippingZonesTab() {
           <div>
             <p className="font-medium text-sm">Todavía no tenés zonas de envío</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Sembramos las regiones de Argentina; el precio lo cargás por provincia
-              (como en Tiendanube). Sin precio, esa provincia no tiene envío a domicilio.
+              Ya están las regiones de Argentina; el precio lo cargás por provincia.
+              Sin precio, esa provincia no tiene envío a domicilio.
             </p>
           </div>
           <Button onClick={seedZones} disabled={saving}>

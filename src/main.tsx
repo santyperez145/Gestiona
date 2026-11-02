@@ -21,6 +21,7 @@ import { announceUpdateAvailable, navegoHaceInstantes, recargarPorVersionNueva, 
 import { isStaleBuildError } from "./lib/staleBuildRecovery";
 import { isNativeRuntime } from "./lib/nativeRuntime";
 import { registrarError } from "./lib/registroDeErrores";
+import { vincularEtiquetasSiempre } from "./lib/etiquetas";
 
 validateEnv();
 // Sentry pesa ≈60 % del archivo de arranque (medido 2026-10-31): se carga
@@ -68,6 +69,8 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 
 createRoot(document.getElementById("root")!).render(<App />);
+// Cada etiqueta suelta queda vinculada a su campo (ver lib/etiquetas.ts).
+vincularEtiquetasSiempre();
 
 // La app arrancó: la red de seguridad de index.html puede volver a recargar
 // si un despliegue futuro deja otra versión vieja en el service worker.

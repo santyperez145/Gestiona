@@ -1892,8 +1892,8 @@ export default function EcommerceStorePage() {
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
               <p className="text-sm font-semibold">Primero nombre y dirección</p>
               <p className="text-[13px] text-muted-foreground leading-snug">
-                Shopify y Tiendanube piden la identidad de la tienda antes del cobro.
-                Nerqia Pay puede esperar: sin slug no hay link ni páginas legales.
+                Sin nombre ni dirección no hay link para compartir ni páginas legales.
+                El cobro con Nerqia Pay puede esperar.
               </p>
               <div className="space-y-3">
                 <div>

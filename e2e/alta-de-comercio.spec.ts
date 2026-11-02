@@ -90,9 +90,48 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await editor.getByRole("button", { name: "Crear y publicar" }).click();
   await expect(editor).toBeHidden({ timeout: 30_000 });
 
-  await page.goto("/productos");
-  // La tabla en escritorio; la vista de tarjetas (celular) queda oculta.
-  await expect(page.getByText(producto).filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
+  // 7. La tienda (2026-11-02): lo que promete la landing, «creá tu tienda y
+  // vendé hoy». El asistente lleva a crearla; se sigue el camino guiado.
+  await expect(page).toHaveURL(/\/tienda-online/, { timeout: 30_000 });
+  const slug = `zz-alta-${sufijo}`;
+  await page.getByLabel("Nombre de la tienda").fill(`ZZ Tienda ${sufijo}`);
+  await page.getByLabel("Slug (URL)").fill(slug);
+  await sinBarrerasGraves(page, "crear la tienda");
+  await page.getByRole("button", { name: "Crear tienda" }).click();
+
+  // Cobro por transferencia: sin alias no hay primera venta.
+  await page.getByLabel("Titular").fill("ZZ Alta Prueba");
+  await page.getByLabel("Alias").fill(`zz.alta.${sufijo}`);
+  await page.getByRole("button", { name: "Guardar datos para transferir" }).click();
+
+  // Términos y privacidad: se generan con los datos del comercio y se publican.
+  await page.getByRole("button", { name: "Ir a Páginas" }).click();
+  await page.getByLabel("Razón social").fill(`ZZ Alta ${sufijo} SRL`);
+  await page.getByLabel("CUIT").fill("30-71234567-1");
+  await page.getByLabel("Domicilio comercial").fill("Av. Corrientes 1234, CABA");
+  await page.getByLabel("Email de contacto").fill(email);
+  await page.getByRole("button", { name: /^Generar/ }).click();
+  const revisar = page.getByRole("button", { name: /^Revisar / });
+  await expect(revisar.first()).toBeVisible({ timeout: 30_000 });
+  for (let i = 0; i < 2 && await revisar.count(); i++) {
+    await revisar.first().click();
+    await page.getByRole("button", { name: "Publicar", exact: true }).click();
+    await expect(page.getByText("Página publicada").first()).toBeVisible({ timeout: 15_000 });
+  }
+  await expect(revisar).toHaveCount(0, { timeout: 15_000 });
+
+  // Publicar la tienda desde el recorrido guiado.
+  await page.goto("/tienda-online?onboarding=1&goal=online");
+  await page.getByRole("button", { name: "Publicar la tienda" }).click();
+  await expect(page.getByRole("button", { name: "Publicar la tienda" })).toHaveCount(0, { timeout: 30_000 });
+
+  // 8. Un comprador sin sesión entra a la tienda y ve el producto.
+  const comprador = await page.context().browser()!.newContext({ baseURL: new URL(page.url()).origin });
+  const vidriera = await comprador.newPage();
+  await vidriera.goto(`/tienda/${slug}`);
+  // La tienda puede mostrar el nombre con otras mayúsculas.
+  await expect(vidriera.getByText(new RegExp(producto, "i")).filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
+  await comprador.close();
 });
 
 /** Sin infracciones críticas ni graves de WCAG A/AA en la pantalla actual. */

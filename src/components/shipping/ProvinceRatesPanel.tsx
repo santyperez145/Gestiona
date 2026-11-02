@@ -198,7 +198,7 @@ export default function ProvinceRatesPanel({ orgId, zonas, rates, onDone }: Prop
             Precio por provincia
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Como en Tiendanube: una fila por provincia. Vacío = sin envío a domicilio ahí.
+            Una fila por provincia. Vacío = sin envío a domicilio ahí.
             No se inventan precios; tipiá los tuyos.
           </p>
           <p className="text-[11px] text-muted-foreground mt-1">
