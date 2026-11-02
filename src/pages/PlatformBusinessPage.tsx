@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import FacturacionDeNerqia from "@/components/platform/FacturacionDeNerqia";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   SENALES, ordenarPorAtencion, resumirPlataforma, pesos, desdeUltimoCobro,
@@ -214,6 +215,8 @@ export default function PlatformBusinessPage() {
           </table>
         </div>
       )}
+
+      <FacturacionDeNerqia />
 
       <p className="text-xs text-muted-foreground">
         El GMV cuenta sólo cobros aprobados: un pago rechazado no es facturación. La

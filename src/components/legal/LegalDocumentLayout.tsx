@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PLATFORM_LEGAL } from "@/lib/platformLegal";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, type LucideIcon } from "lucide-react";
 import BrandLogo from "@/components/shared/BrandLogo";
@@ -65,11 +66,11 @@ export function LegalIdentityNotice() {
       <div className="flex gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
         <div>
-          <h2 className="text-sm font-semibold text-foreground">Identificación del prestador pendiente</h2>
+          <h2 className="text-sm font-semibold text-foreground">Identificación del prestador</h2>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Antes del lanzamiento comercial deben incorporarse la razón social, CUIT y domicilio del prestador,
-            junto con la revisión profesional de estos documentos. Nerqia no inventa esos datos ni presenta este
-            texto como una homologación legal.
+            CUIT {PLATFORM_LEGAL.providerCuit} · {PLATFORM_LEGAL.providerTaxCondition}. Antes del lanzamiento comercial
+            deben incorporarse la razón social y el domicilio del prestador, junto con la revisión profesional de estos
+            documentos. Nerqia no inventa esos datos ni presenta este texto como una homologación legal.
           </p>
         </div>
       </div>

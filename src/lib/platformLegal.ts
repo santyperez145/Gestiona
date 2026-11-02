@@ -11,6 +11,9 @@ export const PLATFORM_LEGAL = {
    * lanzamiento explícitamente bloqueado hasta que el titular los informe.
    */
   providerIdentityComplete: false,
+  /** Informado por el dueño el 2026-11-01: Nerqia factura con este CUIT en monotributo (factura C). */
+  providerCuit: "20-44648443-6",
+  providerTaxCondition: "Monotributo",
 } as const;
 
 export interface PlatformProcessorDisclosure {
