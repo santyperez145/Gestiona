@@ -91,7 +91,8 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await expect(editor).toBeHidden({ timeout: 30_000 });
 
   await page.goto("/productos");
-  await expect(page.getByText(producto).first()).toBeVisible({ timeout: 30_000 });
+  // La tabla en escritorio; la vista de tarjetas (celular) queda oculta.
+  await expect(page.getByText(producto).filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
 });
 
 /** Sin infracciones críticas ni graves de WCAG A/AA en la pantalla actual. */
