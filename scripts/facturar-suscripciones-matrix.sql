@@ -30,7 +30,7 @@ BEGIN
   INSERT INTO public.afip_credentials (org_id, cuit, punto_venta, environment, tipo_emisor, razon_social, domicilio)
   VALUES (v_nerqia, '20446484436', 3, 'homologacion', 'monotributo', 'ZZ Nerqia', 'ZZ 123'),
          (v_falsa, '20111111112', 1, 'homologacion', 'responsable_inscripto', 'ZZ Falsa', 'ZZ 1'),
-         (v_c1, '30712345675', 1, 'homologacion', 'responsable_inscripto', 'ZZ Comercio RI SRL', 'ZZ 2');
+         (v_c1, '30712345671', 1, 'homologacion', 'responsable_inscripto', 'ZZ Comercio RI SRL', 'ZZ 2');
   UPDATE public.settings SET business_name = 'ZZ Comercio RI SRL' WHERE org_id = v_c1;
   SELECT id INTO v_plan FROM public.plans ORDER BY sort_order NULLS LAST LIMIT 1;
   INSERT INTO public.subscriptions (org_id, plan_id, status) VALUES (v_c1, v_plan, 'active') RETURNING id INTO v_s1;
@@ -60,7 +60,9 @@ BEGIN
   SELECT i.* INTO v_inv FROM public.invoices i JOIN public.facturas_de_suscripcion f ON f.invoice_id = i.id WHERE f.saas_invoice_id = v_cobro1;
   IF v_inv.id IS NULL OR v_inv.org_id <> v_nerqia OR v_inv.tipo_comprobante <> 11 OR v_inv.concepto <> 2
      OR v_inv.servicio_desde <> DATE '2026-11-01' OR v_inv.servicio_hasta <> DATE '2026-12-01' OR v_inv.total <> 19900
-     OR regexp_replace(v_inv.customer_tax_id, '\D', '', 'g') <> '30712345675' OR v_inv.customer_name <> 'ZZ Comercio RI SRL'
+     -- IS DISTINCT FROM: con un CUIT nulo, «<>» da NULL y la condición no fallaba nunca.
+     OR regexp_replace(v_inv.customer_tax_id, '\D', '', 'g') IS DISTINCT FROM '30712345671' OR v_inv.customer_name <> 'ZZ Comercio RI SRL'
+     OR v_inv.condicion_iva_receptor IS DISTINCT FROM 1
      OR v_inv.afip_status <> 'pending'
      OR NOT EXISTS (SELECT 1 FROM public.domain_events e WHERE e.aggregate_id = v_inv.id AND e.event_type = 'factura.creada') THEN
     RAISE EXCEPTION 'FALLA 3: %', row_to_json(v_inv);
