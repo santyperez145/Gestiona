@@ -84,6 +84,16 @@ jobs:
             mcr.microsoft.com/playwright:v1.59.1-noble \
             npx playwright test --project=setup --project=panel --project=circuito --project=barrido-datos --project=alta
 
+      # Cada Playwright limpia test-results: la evidencia se sube antes del
+      # siguiente, o se pierde (pasó el 2026-11-02: la corrida no dejó nada).
+      - name: Evidencia de fallas (panel)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-local-panel-${{ github.run_attempt }}
+          path: test-results/**
+          if-no-files-found: ignore
+
       # Antes del próximo Playwright, que limpia test-results.
       - name: Rendimiento por pantalla
         if: always()
@@ -109,6 +119,16 @@ jobs:
         if: always()
         run: node scripts/resumen-rendimiento.mjs test-results/rendimiento-tienda.jsonl
 
+      # Cada Playwright limpia test-results: la evidencia se sube antes del
+      # siguiente, o se pierde (pasó el 2026-11-02: la corrida no dejó nada).
+      - name: Evidencia de fallas (tienda)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-local-tienda-${{ github.run_attempt }}
+          path: test-results/**
+          if-no-files-found: ignore
+
       # Al final, porque cambia precios y stock del negocio de prueba.
       - name: E2E a escala (5.500 productos, como Famatina)
         if: always()
@@ -116,11 +136,19 @@ jobs:
           node scripts/semilla-escala-local.mjs
           docker run --rm --network host --ipc=host             -v "$PWD:/w" -w /w             -e CI=true -e E2E_REQUIRE_AUTH=true -e E2E_LOCAL=true             -e VITE_SUPABASE_URL -e VITE_SUPABASE_PUBLISHABLE_KEY             -e E2E_USER -e E2E_PASSWORD -e E2E_STORE_SLUG             mcr.microsoft.com/playwright:v1.59.1-noble             npx playwright test --project=setup --project=escala
 
-      - name: Evidencia de fallas
+      - name: Recorrido del primer día en capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recorrido-primer-dia-${{ github.run_attempt }}
+          path: recorrido/**
+          if-no-files-found: ignore
+
+      - name: Evidencia de fallas (escala)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-local-${{ github.run_attempt }}
+          name: e2e-local-escala-${{ github.run_attempt }}
           path: test-results/**
           if-no-files-found: ignore
 

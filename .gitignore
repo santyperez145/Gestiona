@@ -60,3 +60,4 @@ e2e/.escala.json
 .vercel
 .env*
 *.tsbuildinfo
+recorrido/

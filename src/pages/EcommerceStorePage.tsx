@@ -1,3 +1,4 @@
+import CompartirTienda from "@/components/ecommerce/CompartirTienda";
 import BusquedasSinResultado from "@/components/ecommerce/BusquedasSinResultado";
 import { Skeleton } from "@/components/ui/skeleton";
 import VelocidadDeTuTienda from "@/components/ecommerce/VelocidadDeTuTienda";
@@ -1040,6 +1041,16 @@ export default function EcommerceStorePage() {
     if (signals.publishedProducts > 0) setJustCreatedStore(false);
   }, [signals.publishedProducts]);
 
+  // Del asistente sin tienda, directo al formulario (2026-11-02): el comercio
+  // ya eligió «Publicar mi tienda online»; pedirle otro clic en «Configurar y
+  // guardar» era un paso que no aportaba nada.
+  const saltoAlFormulario = useRef(false);
+  useEffect(() => {
+    if (saltoAlFormulario.current || !fromWizard || !storeMissing || tab !== "overview" || commerceStores.loading) return;
+    saltoAlFormulario.current = true;
+    void goToTab("settings");
+  }, [fromWizard, storeMissing, tab, commerceStores.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
       <PageHeader
@@ -1113,7 +1124,9 @@ export default function EcommerceStorePage() {
       {/* Mientras llega la tienda, sólo el esqueleto (2026-10-31): el
           rendimiento, el aviso de medición y las pestañas aparecían arriba al
           cargar y empujaban el resumen (CLS 0,13 medido en el barrido). */}
-      {commerceStores.loading && !store ? (
+      {/* Las métricas también (2026-11-02): llegaban después y empujaban las
+          pestañas y el resumen (CLS 0,163). Se espera su primera lectura. */}
+      {(commerceStores.loading && !store) || (store?.id && !performance && !performanceError) ? (
         <div role="status" aria-label="Cargando la tienda" className="space-y-4">
           <Skeleton className="h-10 w-full rounded-lg" />
           <Skeleton className="h-48 w-full rounded-xl" />
@@ -1247,20 +1260,10 @@ export default function EcommerceStorePage() {
             includedUrl={urlIncluida}
             onStateChange={(patch) => setStore((current: any) => current ? { ...current, ...patch } : current)}
           />
-          {shareIntent && urlPublica ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">{shareIntent.title}</p>
-                <p className="mt-0.5 text-[12px] text-muted-foreground leading-snug">
-                  {shareIntent.description}
-                </p>
-                <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">{urlPublica}</p>
-              </div>
-              <Button size="sm" className="min-h-11 shrink-0 gap-1.5" onClick={copiarEnlacePublico}>
-                <Copy className="w-3.5 h-3.5" />
-                {shareIntent.actionLabel}
-              </Button>
-            </div>
+          {/* Publicada y sin su primera venta (o con ?share=1): el kit para que
+              alguien abra el link. */}
+          {urlPublica && store?.is_active && (shareIntent || (!ordersLoading && !ordersError && orders.length === 0)) ? (
+            <CompartirTienda url={urlPublica} nombreTienda={store?.name ?? ""} destacado={readiness.canPublish} />
           ) : null}
           {storeMissing && (
             <WorkspaceState

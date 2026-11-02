@@ -24,9 +24,17 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   const nombre = `ZZ Alta ${sufijo}`;
   // Minúscula, mayúscula, número y símbolo, como pide passwordSecurity.ts.
   const clave = `Zz!2026-${sufijo}-Alta-${Math.random().toString(36).slice(2, 10)}`;
+  // El recorrido en capturas (2026-11-02): el CI las publica siempre como
+  // artefacto, para revisar la experiencia de un comercio nuevo paso a paso.
+  let paso = 0;
+  const foto = async (p: import("@playwright/test").Page, nombre: string) => {
+    paso += 1;
+    await p.screenshot({ path: `recorrido/${String(paso).padStart(2, "0")}-${nombre}.png`, fullPage: true }).catch(() => undefined);
+  };
 
   // 1. Registro desde la pantalla.
   await page.goto("/login?mode=register");
+  await foto(page, "registro");
   await page.getByLabel("Nombre").fill(nombre);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Contraseña").fill(clave);
@@ -67,15 +75,18 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   // primero que hace cada comercio y ningún E2E lo recorría con una cuenta nueva.
   await page.goto("/onboarding");
   await expect(page.getByRole("heading", { name: "¿Cómo se llama tu negocio?" })).toBeVisible({ timeout: 30_000 });
+  await foto(page, "asistente-nombre");
   await sinBarrerasGraves(page, "asistente de inicio");
   await page.getByLabel("Nombre del negocio").fill(nombre);
   await page.getByRole("button", { name: /Siguiente/ }).click();
   await expect(page.getByRole("heading", { name: "¿Qué vendés?" })).toBeVisible();
+  await foto(page, "asistente-rubro");
   await page.getByRole("group", { name: "Rubros" }).getByRole("button").first().click();
   await page.getByRole("button", { name: /Siguiente/ }).click();
   await expect(page.getByRole("heading", { name: "Color de marca" })).toBeVisible();
   await sinBarrerasGraves(page, "color de marca");
   await page.getByRole("button", { name: /Siguiente/ }).click();
+  await foto(page, "asistente-canal");
   await page.getByRole("button", { name: /Publicar mi tienda online/ }).click();
 
   // 6. El primer producto: el asistente abre la carga y se guarda con stock.
@@ -83,6 +94,7 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   const editor = page.getByRole("dialog", { name: "Nuevo producto" });
   await expect(editor).toBeVisible({ timeout: 30_000 });
   await sinBarrerasGraves(page, "primer producto");
+  await foto(page, "primer-producto");
   const producto = `ZZ PRIMERO ${sufijo.toUpperCase()}`;
   await editor.getByLabel("Nombre *").fill(producto);
   await editor.getByLabel("Precio de venta *").fill("12500");
@@ -94,18 +106,21 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   // vendé hoy». El asistente lleva a crearla; se sigue el camino guiado.
   await expect(page).toHaveURL(/\/tienda-online/, { timeout: 30_000 });
   const slug = `zz-alta-${sufijo}`;
+  await foto(page, "tienda-crear");
   await page.getByLabel("Nombre de la tienda").fill(`ZZ Tienda ${sufijo}`);
   await page.getByLabel("Slug (URL)").fill(slug);
   await sinBarrerasGraves(page, "crear la tienda");
   await page.getByRole("button", { name: "Crear tienda" }).click();
 
   // Cobro por transferencia: sin alias no hay primera venta.
+  await foto(page, "tienda-cobro");
   await page.getByLabel("Titular").fill("ZZ Alta Prueba");
   await page.getByLabel("Alias").fill(`zz.alta.${sufijo}`);
   await page.getByRole("button", { name: "Guardar datos para transferir" }).click();
 
   // Términos y privacidad: se generan con los datos del comercio y se publican.
   await page.getByRole("button", { name: "Ir a Páginas" }).click();
+  await foto(page, "tienda-legales");
   await page.getByLabel("Razón social").fill(`ZZ Alta ${sufijo} SRL`);
   await page.getByLabel("CUIT").fill("30-71234567-1");
   await page.getByLabel("Domicilio comercial").fill("Av. Corrientes 1234, CABA");
@@ -122,8 +137,16 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
 
   // Publicar la tienda desde el recorrido guiado.
   await page.goto("/tienda-online?onboarding=1&goal=online");
+  await foto(page, "tienda-publicar");
   await page.getByRole("button", { name: "Publicar la tienda" }).click();
   await expect(page.getByRole("button", { name: "Publicar la tienda" })).toHaveCount(0, { timeout: 30_000 });
+  // Publicada y sin ventas: el kit para conseguir la primera (link, WhatsApp, QR, cartel).
+  await expect(page.getByRole("heading", { name: /compartila|Compartí tu tienda/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("link", { name: /Mandar por WhatsApp/ })).toHaveAttribute("href", new RegExp(slug));
+  await foto(page, "tienda-publicada");
+  await page.goto("/");
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await foto(page, "panel-inicio");
 
   // 8. Un comprador sin sesión entra a la tienda y ve el producto.
   const comprador = await page.context().browser()!.newContext({ baseURL: new URL(page.url()).origin });
@@ -131,6 +154,9 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await vidriera.goto(`/tienda/${slug}`);
   // La tienda puede mostrar el nombre con otras mayúsculas.
   await expect(vidriera.getByText(new RegExp(producto, "i")).filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
+  await foto(vidriera, "comprador-tienda");
+  await vidriera.setViewportSize({ width: 390, height: 844 });
+  await foto(vidriera, "comprador-tienda-celular");
   await comprador.close();
 });
 
