@@ -140,6 +140,10 @@ export default function PLDashboardPage() {
   //    ventas. Si mañana entra un ingreso que no es una venta, aparece sin
   //    tocar esta pantalla. Ver 20260826000280.
   const [monthlyPL, setMonthlyPL] = useState<MonthlyPL[]>([]);
+  // La primera lectura del ledger también es parte de la carga (2026-11-02):
+  // llegaba después que los gastos y el aviso de ventas sin costo aparecía
+  // arriba de todo, empujando la pantalla (salto 0,168 en el barrido con datos).
+  const [ledgerListo, setLedgerListo] = useState(false);
 
   useEffect(() => {
     if (!activeOrg) return;
@@ -148,6 +152,7 @@ export default function PLDashboardPage() {
       .rpc("ledger_resultado_mensual", { p_org: activeOrg.id, p_meses: months })
       .then(({ data, error }) => {
         if (!vigente) return;
+        setLedgerListo(true);
         if (error) {
           // No se traga: un resultado que no se pudo leer no es un resultado
           // en cero. Ver la regla de `?? []` en CONTRIBUTING.md.
@@ -263,7 +268,7 @@ export default function PLDashboardPage() {
     ? { value: changePct(currentPL.netProfit, prevPL.netProfit) ?? 0, label: "vs mes ant." }
     : undefined;
 
-  if (loading) return (
+  if (loading || !ledgerListo) return (
     <div className="flex items-center justify-center min-h-[50vh]">
       <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>

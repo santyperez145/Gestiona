@@ -62,4 +62,42 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await expect(
     page.getByText(`${nombre} Workspace`).or(page.getByRole("button", { name: /ruta de activación/ })).first(),
   ).toBeVisible({ timeout: 45_000 });
+
+  // 5. El asistente de inicio (2026-11-02): nombre, rubro, color y canal. Es lo
+  // primero que hace cada comercio y ningún E2E lo recorría con una cuenta nueva.
+  await page.goto("/onboarding");
+  await expect(page.getByRole("heading", { name: "¿Cómo se llama tu negocio?" })).toBeVisible({ timeout: 30_000 });
+  await sinBarrerasGraves(page, "asistente de inicio");
+  await page.getByLabel("Nombre del negocio").fill(nombre);
+  await page.getByRole("button", { name: /Siguiente/ }).click();
+  await expect(page.getByRole("heading", { name: "¿Qué vendés?" })).toBeVisible();
+  await page.getByRole("group", { name: "Rubros" }).getByRole("button").first().click();
+  await page.getByRole("button", { name: /Siguiente/ }).click();
+  await expect(page.getByRole("heading", { name: "Color de marca" })).toBeVisible();
+  await sinBarrerasGraves(page, "color de marca");
+  await page.getByRole("button", { name: /Siguiente/ }).click();
+  await page.getByRole("button", { name: /Publicar mi tienda online/ }).click();
+
+  // 6. El primer producto: el asistente abre la carga y se guarda con stock.
+  await expect(page).toHaveURL(/\/productos\?onboarding=1&goal=online/, { timeout: 30_000 });
+  const editor = page.getByRole("dialog", { name: "Nuevo producto" });
+  await expect(editor).toBeVisible({ timeout: 30_000 });
+  await sinBarrerasGraves(page, "primer producto");
+  const producto = `ZZ PRIMERO ${sufijo.toUpperCase()}`;
+  await editor.getByLabel("Nombre *").fill(producto);
+  await editor.getByLabel("Precio de venta *").fill("12500");
+  await editor.getByLabel(/^Unidades/).fill("7");
+  await editor.getByRole("button", { name: "Crear y publicar" }).click();
+  await expect(editor).toBeHidden({ timeout: 30_000 });
+
+  await page.goto("/productos");
+  await expect(page.getByText(producto).first()).toBeVisible({ timeout: 30_000 });
 });
+
+/** Sin infracciones críticas ni graves de WCAG A/AA en la pantalla actual. */
+async function sinBarrerasGraves(page: import("@playwright/test").Page, pantalla: string) {
+  const { default: AxeBuilder } = await import("@axe-core/playwright");
+  const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  const graves = violations.filter(v => v.impact === "critical" || v.impact === "serious");
+  expect(graves.flatMap(v => v.nodes.map(n => `${v.id} ${n.target.join(" ")}`)), `barreras en ${pantalla}`).toEqual([]);
+}

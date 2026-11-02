@@ -6852,10 +6852,21 @@
       blanco dan 2:1 («Activo», «Pagado», montos en verde). En el tema claro
       se usa el tono 700 del mismo color. Va fuera de @layer para que no se
       purgue y después de las utilidades para que gane. */
+.text-muted-foreground\/30,
+.text-muted-foreground\/35,
+.text-muted-foreground\/40,
+.text-muted-foreground\/50,
+.text-muted-foreground\/55,
 .text-muted-foreground\/60,
 .text-muted-foreground\/70,
 .text-muted-foreground\/75,
 .text-muted-foreground\/80 { color: hsl(var(--muted-foreground)); }
+/* Desde /30 (2026-11-02): el asistente de inicio, lo primero que ve un
+   comercio nuevo, usaba /30…/55 para textos de 9 a 12 px. El azul con
+   opacidad, igual: en el tema claro va al azul de marca entero (6,5:1). */
+:root:not(.dark) .text-primary\/60,
+:root:not(.dark) .text-primary\/70,
+:root:not(.dark) .text-primary\/80 { color: hsl(var(--primary)); }
 
 .light .text-emerald-400 { color: rgb(4 120 87); }
 .light .text-green-400 { color: rgb(21 128 61); }

@@ -2711,8 +2711,9 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       {compactFirstProduct && (
         <div className="space-y-4">
           <div>
-            <label className="text-sm text-muted-foreground">Nombre *</label>
+            <label htmlFor="primer-producto-nombre" className="text-sm text-muted-foreground">Nombre *</label>
             <Input
+              id="primer-producto-nombre"
               value={name}
               onChange={e => setName(e.target.value.toUpperCase())}
               placeholder="Ej: Nombre del producto"
@@ -2721,8 +2722,9 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground">Precio de venta *</label>
+            <label htmlFor="primer-producto-precio" className="text-sm text-muted-foreground">Precio de venta *</label>
             <Input
+              id="primer-producto-precio"
               type="number"
               min="0"
               value={salePriceARS}
@@ -2732,14 +2734,14 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between gap-2">
-              <label className="text-sm text-muted-foreground">Unidades{manejaStock ? ' *' : ''}</label>
+              <label htmlFor="primer-producto-unidades" className="text-sm text-muted-foreground">Unidades{manejaStock ? ' *' : ''}</label>
               <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Switch checked={!manejaStock} onCheckedChange={v => { markDirty(); setManejaStock(!v); }} />
                 No lleva stock
               </label>
             </div>
             {manejaStock ? (
-              <Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" />
+              <Input id="primer-producto-unidades" type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" />
             ) : (
               <p className="rounded-[8px] border border-border/60 bg-muted/40 p-2 text-[11px] text-muted-foreground">
                 Se vende y se factura, pero no se descuenta nada.

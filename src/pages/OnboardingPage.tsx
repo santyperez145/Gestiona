@@ -230,10 +230,12 @@ export default function OnboardingPage() {
                   </Button>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Rubros">
                 {industries.map(r => (
                   <button
                     key={r.code}
+                    type="button"
+                    aria-pressed={rubroCode === r.code}
                     onClick={() => { setRubroCode(r.code); setColor(r.default_color); }}
                     className={[
                       'p-3 rounded-[8px] border text-[13px] font-medium transition-all duration-150 text-left',
@@ -285,6 +287,9 @@ export default function OnboardingPage() {
                 {colorPalette.map(c => (
                   <button
                     key={c}
+                    type="button"
+                    aria-label={`Color ${c}`}
+                    aria-pressed={color === c}
                     onClick={() => setColor(c)}
                     style={{ background: c }}
                     className={[
