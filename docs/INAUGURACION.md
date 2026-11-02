@@ -3,18 +3,19 @@
 **Estado:** vigente desde el 2026-10-31. **Owner:** Dirección (todas las posiciones).
 Baja el escalón «Producción restaurada y verificada» del [Plan de llegada](PLAN_DE_LLEGADA.md) a una secuencia con responsables, tiempos y cómo se verifica cada paso. Si este documento y el plan se contradicen, manda el plan.
 
-## 1. Semáforo (medido el 2026-10-31)
+## 1. Semáforo (medido el 2026-10-31, actualizado el 2026-11-02)
 
 | Frente | Estado | Qué falta |
 |---|---|---|
 | **Base de producción (Supabase)** | 🔴 Apagada: el proyecto figura `INACTIVE` por la factura impaga (aviso #29 abierto desde el 19/10). | Pagar. Es lo único que impide abrir. |
-| Sitio `nerqia.app` | 🟢 Responde (200). | — |
-| Código | 🟢 CI, simulacro de la base desde cero (47 matrices) y E2E local en verde: panel, circuito de gestión, barrido con datos y alta de un comercio nuevo. | — |
+| Sitio `nerqia.app` | 🟢 Monta en Chromium: `humo-produccion.yml` lo abre después de cada publicación y cada hora y abre un issue si queda en blanco (el 2026-11-01 un build roto quedó 51 min en blanco y el control anterior sólo miraba el 200). | — |
+| Código | 🟢 CI, simulacro de la base desde cero (48 matrices) y E2E local en verde: panel, circuito de gestión, barrido con datos, tienda y alta de un comercio nuevo. La puerta abre el build en Chromium antes de cada subida. | — |
 | Construido sin aplicar | 🟡 Las migraciones desde el 21/10 y las funciones que cambiaron desde entonces. | Un comando (paso 2). |
 | Alta de comercios | 🟢 Registro, mail de confirmación con nuestra plantilla, login y negocio creado, verificado de punta a punta contra la base local (`e2e/alta-de-comercio.spec.ts`). | Repetirlo en producción (paso 3). |
-| Cobro de la suscripción | 🟡 Construido con Mercado Pago (`mp-subscribe`, `cancel-subscription`, Mi plan con baja). Precios publicados: Starter $19.900, Pro $34.900, Business $69.900 por mes. | Un cobro real con tarjeta (paso 5). |
+| Cobro de la suscripción | 🟡 Construido con Mercado Pago (`mp-subscribe`, `cancel-subscription`, Mi plan con baja). Precios publicados: Starter $19.900, Pro $34.900, Business $69.900 por mes. Cada cobro genera la factura de Nerqia al comercio (CUIT 20-44648443-6; C, o A/B si fuera responsable inscripto), en Plataforma › Negocio. | Un cobro real con tarjeta (paso 5) y el certificado de ARCA de Nerqia (paso 4b). |
 | ARCA | 🟡 Certificado propio por comercio, factura completa, Libro IVA, caja fiscal y portal del contador construidos. | Certificado y primer CAE real (paso 4). |
-| Legal | 🟢 Términos y privacidad publicados; las tiendas muestran el botón de arrepentimiento (Res. 424/2020) en el encabezado y el pie; el plan se da de baja desde Mi plan. | — |
+| Legal | 🟡 Términos y privacidad publicados, con el CUIT y la condición de Nerqia; faltan razón social y domicilio del prestador; las tiendas muestran el botón de arrepentimiento (Res. 424/2020) en el encabezado y el pie; el plan se da de baja desde Mi plan. | Razón social y domicilio del prestador (dueño). |
+| Rendimiento | 🟢 Medido en cada corrida del E2E: las 70 pantallas del panel y la tienda (escritorio y teléfono), con presupuestos que fallan si algo empeora. Desde el 31/10: −19 % de consultas, un solo cargador al entrar y sin saltos en la tienda. Landing en celular: rendimiento 83, accesibilidad 100. | — |
 | Respaldo y monitoreo | 🟢 Respaldo diario por comercio, semáforo de Platform, auditoría de seguridad diaria y `estado-produccion.yml` cada 6 horas. | Tarjeta de respaldo y alertas de facturación (paso 1). |
 
 ## 2. Secuencia del día cero
