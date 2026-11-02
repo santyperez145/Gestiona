@@ -11,6 +11,7 @@
  *   send({ type: "product_updated", id: product.id });
  */
 import { useCallback, useEffect, useRef } from "react";
+import { ESTA_PESTANA, esDeEstaPestana } from "@/lib/broadcastSync";
 
 type Message = Record<string, unknown>;
 
@@ -29,6 +30,8 @@ export function useBroadcastChannel(
     channelRef.current = channel;
 
     channel.onmessage = (event: MessageEvent) => {
+      // Lo que mandó esta misma pestaña no es noticia de «otra pestaña».
+      if (esDeEstaPestana(event.data)) return;
       try {
         onMessageRef.current?.(event.data as Message);
       } catch { /* ignore */ }
@@ -41,7 +44,7 @@ export function useBroadcastChannel(
   }, [channelName]);
 
   const send = useCallback((msg: Message) => {
-    channelRef.current?.postMessage(msg);
+    channelRef.current?.postMessage({ ...msg, pestana: ESTA_PESTANA });
   }, []);
 
   const supported = typeof BroadcastChannel !== "undefined";

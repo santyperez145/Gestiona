@@ -214,11 +214,10 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(storeShouldSeedPagesOnCreate(false)).toBe(false);
     expect(STORE).toContain('storeShouldSeedPagesOnCreate');
     expect(STORE).toContain('seed_store_pages');
-    // El panel de Pay no puede colarse otra vez al pie del lead de identidad.
-    const identityLeadFoot = STORE.indexOf('Nerqia Pay puede esperar: primero guardá nombre y slug arriba.');
-    expect(identityLeadFoot).toBeGreaterThan(0);
-    const afterFoot = STORE.slice(identityLeadFoot, identityLeadFoot + 280);
-    expect(afterFoot).not.toContain('<PaymentConnectionsPanel');
+    // El panel de Pay no puede colarse bajo el lead de identidad, y sin tienda
+    // el formulario completo no aparece (2026-11-02: repetía nombre y slug).
+    expect(STORE).toMatch(/!leadSettingsWithIdentity && !leadSettingsWithBank[^\n]*\n\s*<PaymentConnectionsPanel/);
+    expect(STORE).toContain('{!leadSettingsWithIdentity && (<>');
   });
 
   it('después de CBU y retiro, legales van antes de OAuth', () => {

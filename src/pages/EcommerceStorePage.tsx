@@ -2102,6 +2102,11 @@ export default function EcommerceStorePage() {
           {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && !leadSettingsWithHours && (
             <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
           )}
+          {/* Sin tienda, sólo nombre y dirección (2026-11-02): el formulario
+              completo aparecía debajo con el nombre y el slug repetidos, más
+              envíos, píxeles y un estado que contaba cero productos aunque
+              hubiera. El recorrido del primer día lo mostró abrumador. */}
+          {!leadSettingsWithIdentity && (<>
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -2657,6 +2662,10 @@ export default function EcommerceStorePage() {
                 corta: no se publica una tienda que el comprador no puede
                 terminar (canPublish). */}
             <button
+              type="button"
+              role="switch"
+              aria-checked={!!storeForm.is_active}
+              aria-label="Tienda activa"
               onClick={() => setStoreForm(p => ({ ...p, is_active: !p.is_active }))}
               title={readiness.canPublish ? undefined : readinessSummary(readiness)}
               className={`w-10 h-5 rounded-full transition-all shrink-0 ${
@@ -2673,11 +2682,7 @@ export default function EcommerceStorePage() {
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
             Guardar Configuración
           </Button>
-          {leadSettingsWithIdentity && (
-            <p className="text-xs text-muted-foreground">
-              Nerqia Pay puede esperar: primero guardá nombre y slug arriba.
-            </p>
-          )}
+          </>)}
         </div>
       )}
       </>)}
