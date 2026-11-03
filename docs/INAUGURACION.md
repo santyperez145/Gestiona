@@ -3,7 +3,7 @@
 **Estado:** vigente desde el 2026-10-31. **Owner:** Dirección (todas las posiciones).
 Baja el escalón «Producción restaurada y verificada» del [Plan de llegada](PLAN_DE_LLEGADA.md) a una secuencia con responsables, tiempos y cómo se verifica cada paso. Si este documento y el plan se contradicen, manda el plan.
 
-## 1. Semáforo (medido el 2026-10-31, actualizado el 2026-11-02)
+## 1. Semáforo (medido el 2026-10-31, actualizado el 2026-11-03)
 
 | Frente | Estado | Qué falta |
 |---|---|---|
@@ -11,7 +11,7 @@ Baja el escalón «Producción restaurada y verificada» del [Plan de llegada](P
 | Sitio `nerqia.app` | 🟢 Monta en Chromium: `humo-produccion.yml` lo abre después de cada publicación y cada hora y abre un issue si queda en blanco (el 2026-11-01 un build roto quedó 51 min en blanco y el control anterior sólo miraba el 200). | — |
 | Código | 🟢 CI, simulacro de la base desde cero (48 matrices) y E2E local en verde: panel, circuito de gestión, barrido con datos, tienda y alta de un comercio nuevo. La puerta abre el build en Chromium antes de cada subida. | — |
 | Construido sin aplicar | 🟡 Las migraciones desde el 21/10 y las funciones que cambiaron desde entonces. | Un comando (paso 2). |
-| Alta de comercios | 🟢 Registro, mail de confirmación con nuestra plantilla, login y negocio creado, verificado de punta a punta contra la base local (`e2e/alta-de-comercio.spec.ts`), y desde el 02/11 también el asistente de inicio y el primer producto con stock, con WCAG A/AA en cada pantalla. | Repetirlo en producción (paso 3). |
+| Alta de comercios | 🟢 Registro, mail de confirmación con nuestra plantilla, login y negocio creado, verificado de punta a punta contra la base local (`e2e/alta-de-comercio.spec.ts`), y desde el 03/11 el primer día entero: asistente a pantalla completa, primer producto, tienda con su link, cobro por transferencia, retiro (o «No hago retiros»), términos y privacidad, publicación y un comprador sin sesión que ve el producto, con WCAG A/AA en cada pantalla, una captura por paso como artefacto del CI y la barra «Tu tienda: N de 6 pasos». La base impide publicar una tienda incompleta (`publicar-tienda-matrix.sql`). | Repetirlo en producción (paso 3). |
 | Cobro de la suscripción | 🟡 Construido con Mercado Pago (`mp-subscribe`, `cancel-subscription`, Mi plan con baja). Precios publicados: Starter $19.900, Pro $34.900, Business $69.900 por mes. Cada cobro genera la factura de Nerqia al comercio (CUIT 20-44648443-6; C, o A/B si fuera responsable inscripto), en Plataforma › Negocio. | Un cobro real con tarjeta (paso 5) y el certificado de ARCA de Nerqia (paso 4b). |
 | ARCA | 🟡 Certificado propio por comercio, factura completa, Libro IVA, caja fiscal y portal del contador construidos. | Certificado y primer CAE real (paso 4). |
 | Legal | 🟡 Términos y privacidad publicados, con el CUIT y la condición de Nerqia; faltan razón social y domicilio del prestador; las tiendas muestran el botón de arrepentimiento (Res. 424/2020) en el encabezado y el pie; el plan se da de baja desde Mi plan. | Razón social y domicilio del prestador (dueño). |
