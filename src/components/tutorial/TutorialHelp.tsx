@@ -40,8 +40,11 @@ export default function TutorialHelp({ ruta, inmersiva }: { ruta: RutaParaTutori
 
   // En las pantallas inmersivas (la caja) la oferta flotante tapaba el carrito
   // y el cobro en pantallas chicas: ahí el recorrido queda en el botón de ayuda.
+  // Tampoco durante el camino guiado del primer día (`?onboarding=1`): la
+  // oferta tapaba los botones de cada paso (recorrido del primer día,
+  // 2026-11-03). El recorrido sigue en el botón de ayuda.
   const ofrecer = !inmersiva && !!tutorial && !!progreso && !activo && !progreso.has(tutorial.id)
-    && ofertaCerrada !== tutorial.id && !params.get("tutorial");
+    && ofertaCerrada !== tutorial.id && !params.get("tutorial") && !params.get("onboarding");
 
   return <>
     {ofrecer && tutorial && <div role="status"

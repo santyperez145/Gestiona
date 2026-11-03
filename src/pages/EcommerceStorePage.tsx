@@ -1178,8 +1178,10 @@ export default function EcommerceStorePage() {
         </div>
       ) : null}
 
-      {/* KPIs: un $0 y un 0% no son analítica. Aparecen cuando hubo tráfico. */}
-      {performance ? (
+      {/* KPIs: un $0 y un 0% no son analítica. Aparecen cuando hubo tráfico
+          (2026-11-03: la condición miraba sólo que hubiera lectura y una
+          tienda recién creada mostraba cuatro ceros). */}
+      {performance && showPerformance ? (
       <div className="commerce-metric-ledger grid grid-cols-2 lg:grid-cols-4">
         {kpis.map(k => (
           <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} trend={k.trend ?? undefined} />

@@ -116,6 +116,12 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await page.getByLabel("Alias").fill(`zz.alta.${sufijo}`);
   await page.getByRole("button", { name: "Guardar datos para transferir" }).click();
 
+  // Retiro en tienda viene activo: sin dirección el pedido dice «te contactamos».
+  await page.getByLabel("Dirección de retiro").fill("Av. Corrientes 1234, CABA");
+  await page.getByLabel("Horario (opcional)").fill("Lun a vie 10 a 18");
+  await foto(page, "tienda-retiro");
+  await page.getByRole("button", { name: "Guardar dirección de retiro" }).click();
+
   // Términos y privacidad: se generan con los datos del comercio y se publican.
   await page.getByRole("button", { name: "Ir a Páginas" }).click();
   await foto(page, "tienda-legales");
