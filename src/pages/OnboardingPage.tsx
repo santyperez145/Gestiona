@@ -145,28 +145,33 @@ export default function OnboardingPage() {
         <BrandLogo eager className="mb-10 flex justify-center" markClassName="h-7 w-7" nameClassName="text-[15px] text-foreground/80" />
 
         {/* Step indicator */}
+        {/* 2026-11-03: los pasos pendientes iban al 30 % de opacidad y sin nombre
+            (la etiqueta salía sólo en el activo), así que no se sabía qué venía.
+            Ahora todos muestran su nombre desde sm, con `truncate` para que a
+            480px las cuatro etiquetas no se coman la línea `flex-1`. */}
         <div className="flex items-center gap-2 mb-8">
           {STEPS.map((label, i) => {
             const s = i + 1;
             const done = step > s;
             const active = step === s;
             return (
-              <div key={s} className="flex items-center gap-2 flex-1">
-                <div className="flex items-center gap-1.5 shrink-0">
+              <div key={s} className="flex items-center gap-2 flex-1 min-w-0" aria-current={active ? 'step' : undefined}>
+                <div className="flex items-center gap-1.5 min-w-0">
                   <div className={[
-                    'w-5 h-5 rounded-[4px] flex items-center justify-center text-[10px] font-bold transition-all',
-                    done ? 'bg-primary/20 text-primary' : active ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground/30',
+                    'w-5 h-5 shrink-0 rounded-[4px] flex items-center justify-center text-[10px] font-bold transition-all',
+                    done ? 'bg-primary/20 text-primary' : active ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground',
                   ].join(' ')}>
                     {done ? <Check className="w-3 h-3" /> : s}
                   </div>
-                  {active && (
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-primary/80 hidden sm:block">
-                      {label}
-                    </span>
-                  )}
+                  <span className={[
+                    'text-[10px] font-semibold uppercase tracking-[0.1em] hidden sm:block truncate',
+                    active ? 'text-primary' : 'text-muted-foreground',
+                  ].join(' ')}>
+                    {label}
+                  </span>
                 </div>
                 {s < STEPS.length && (
-                  <div className="flex-1 h-px bg-border/40" />
+                  <div className="flex-1 min-w-2 h-px bg-border/40" />
                 )}
               </div>
             );
@@ -183,11 +188,11 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 1 de 4</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary mb-1.5">Paso 1 de 4</p>
                 <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
                   ¿Cómo se llama tu negocio?
                 </h1>
-                <p className="text-[12px] text-muted-foreground/55 mt-1.5">
+                <p className="text-[12px] text-muted-foreground mt-1.5">
                   Lo podés cambiar después en Ajustes.
                 </p>
               </div>
@@ -212,14 +217,12 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 2 de 4</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary mb-1.5">Paso 2 de 4</p>
                 <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
                   ¿Qué vendés?
                 </h1>
-                <p className="text-[12px] text-muted-foreground/55 mt-1.5">
-                  Esto personaliza el sistema para tu rubro. Elegí uno para seguir:
-                  no venimos con ninguno puesto porque define cómo se estructura
-                  tu catálogo.
+                <p className="text-[12px] text-muted-foreground mt-1.5">
+                  Elegí el rubro más parecido: así tu catálogo arranca con los datos que usás.
                 </p>
               </div>
               {rubrosError && (
@@ -256,7 +259,7 @@ export default function OnboardingPage() {
                   <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
                     Vamos a crear {selectedProfileSummary.typeCount === 1 ? 'el tipo' : `${selectedProfileSummary.typeCount} tipos`} {selectedProfileSummary.typeNames.join(' y ')} con {selectedProfileSummary.attributeCount} atributos útiles: {selectedProfileSummary.attributeNames.join(', ')}.
                   </p>
-                  <p className="mt-1.5 text-[9px] leading-relaxed text-muted-foreground/70">
+                  <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
                     Es una estructura editable: no cambia precios, stock ni productos existentes.
                   </p>
                 </div>
@@ -274,11 +277,11 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 3 de 4</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary mb-1.5">Paso 3 de 4</p>
                 <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
                   Color de marca
                 </h1>
-                <p className="text-[12px] text-muted-foreground/55 mt-1.5">
+                <p className="text-[12px] text-muted-foreground mt-1.5">
                   Aparece en botones, alertas y el catálogo público.
                 </p>
               </div>
@@ -306,7 +309,7 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-2 p-3 rounded-[7px] border border-border/40 bg-muted/20">
                 <div className="w-6 h-6 rounded-[4px] shrink-0" style={{ background: color }} />
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/50">Vista previa del color</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Vista previa del color</p>
                   <p className="text-[12px] font-mono">{color}</p>
                 </div>
               </div>
@@ -326,11 +329,11 @@ export default function OnboardingPage() {
           {step === 4 && (
             <div className="space-y-5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 4 de 4</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary mb-1.5">Paso 4 de 4</p>
                 <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
                   Empezá por tu tienda
                 </h1>
-                <p className="text-[12px] text-muted-foreground/55 mt-1.5">
+                <p className="text-[12px] text-muted-foreground mt-1.5">
                   Publicá, cobrá y gestioná el mismo negocio. El mostrador queda a un paso si vendés en local.
                 </p>
               </div>
@@ -348,6 +351,10 @@ export default function OnboardingPage() {
                 </span>
               </button>
 
+              {/* 2026-11-03: el texto decía «POS», «ARCA» y «pasarela online», jerga que
+                  el comerciante no usa, y la demo hablaba de «no contar la organización
+                  como activada», una métrica interna. finish('pos') y finish('demo')
+                  quedan iguales: la instrumentación de activación depende de ellos. */}
               <button
                 type="button"
                 onClick={() => finish('pos')}
@@ -356,7 +363,7 @@ export default function OnboardingPage() {
               >
                 <span className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><MonitorSmartphone className="h-4 w-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Vender en mi local con POS</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Catálogo, stock, cobro en mostrador, ARCA y primera venta. Sin pedirte envío ni pasarela online.</span></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Vender en mi local</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Cobrá en el mostrador, controlá el stock y emití facturas.</span></span>
                   {savingDestination === 'pos' ? <span className="mt-2 text-[11px] text-muted-foreground">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground" />}
                 </span>
               </button>
@@ -369,7 +376,7 @@ export default function OnboardingPage() {
               >
                 <span className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/10 text-muted-foreground"><Sparkles className="h-4 w-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Todavía quiero explorar</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Cargamos datos de ejemplo, pero no contaremos la organización como activada hasta que elijas un canal y vendas.</span></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Todavía quiero explorar</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Te cargamos datos de ejemplo para que pruebes sin compromiso.</span></span>
                   {savingDestination === 'demo' ? <span className="mt-2 text-[11px] text-muted-foreground">Cargando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground" />}
                 </span>
               </button>
@@ -384,7 +391,7 @@ export default function OnboardingPage() {
           )}
         </div>
 
-        <p className="text-center text-[10px] text-muted-foreground/30 mt-6">
+        <p className="text-center text-[10px] text-muted-foreground mt-6">
           Nerqia · Creá tu tienda y gestioná el mismo negocio
         </p>
       </div>

@@ -23,6 +23,25 @@ describe("auth email OTP / magic link (SaaS)", () => {
     expect(page).toContain("verifyEmailOtp");
     expect(page).toMatch(/whatsapp_listo|WhatsApp todavía no está disponible/i);
     expect(page).not.toMatch(/signInWithOtp\(\s*\{\s*phone/i);
+    // 2026-11-03: el aviso de WhatsApp y el código de un solo uso aparecían
+    // también en el alta, donde no aplican.
+    expect(page).toMatch(/\{mode === 'login' && \(\s*<p className="auth-channel-note"/);
+    expect(page).toMatch(/mode === 'login'\s*\? 'Entrá de forma segura con tu email y contraseña, o con un código de un solo uso\.'/);
+  });
+
+  it("el registro habla en castellano y no saluda «de vuelta» al que entra por primera vez", () => {
+    const page = src("src/pages/AuthPage.tsx");
+    // 2026-11-03: «Commerce Operating System», «Finance» y «CRM genérico»
+    // eran jerga en inglés en la primera pantalla de una persona nueva.
+    expect(page).not.toContain("<Store /> Commerce Operating System");
+    expect(page).not.toContain("Commerce OS</span>");
+    expect(page).not.toContain("CRM genérico más");
+    expect(page).not.toContain("gestión y finance");
+    expect(page).not.toContain("toast.success('¡Bienvenido de vuelta!')");
+    expect(page).toContain("toast.success('¡Hola! Ya entraste a Nerqia.')");
+    // El E2E del alta usa estos textos tal cual.
+    expect(page).toContain("'Crear mi cuenta gratis'");
+    expect(page).toContain("'Entrar a Nerqia'");
   });
 
   it("docs de Google listan Redirect URLs para magic link y OAuth", () => {

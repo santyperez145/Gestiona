@@ -94,14 +94,17 @@ export default function AuthPage() {
           if (!otpCode.trim()) { toast.error('Ingresá el código del email'); setLoading(false); return; }
           await verifyEmailOtp(email, otpCode);
           navigate(destinoDespuesDelLogin(), { replace: true });
-          toast.success('¡Bienvenido de vuelta!');
+          toast.success('¡Hola! Ya entraste a Nerqia.');
         }
       } else if (mode === 'login') {
         await signIn(email, password);
         // Move immediately to ProtectedRoutes so MfaGate can request the code
         // in the same login flow instead of leaving the form visible.
         navigate(destinoDespuesDelLogin(), { replace: true });
-        toast.success('¡Bienvenido de vuelta!');
+        // 2026-11-03: decía «¡Bienvenido de vuelta!» también en el primer
+        // ingreso (después de confirmar el email), y destinoDespuesDelLogin()
+        // no distingue a la persona nueva. El texto sirve para los dos casos.
+        toast.success('¡Hola! Ya entraste a Nerqia.');
       } else {
         if (!name.trim()) { toast.error('Ingresá tu nombre'); setLoading(false); return; }
         const passwordError = passwordValidationMessage(password);
@@ -210,12 +213,14 @@ export default function AuthPage() {
       <aside className="auth-showcase">
         <div className="auth-showcase__top"><AuthBrand /><span className="auth-showcase__status"><i /> Tienda + operación</span></div>
         <div className="auth-showcase__content">
-          <p className="auth-eyebrow"><Store /> Commerce Operating System</p>
+          {/* 2026-11-03: el registro hablaba en inglés y en jerga de producto
+              («Commerce Operating System», «Finance», «CRM genérico»). */}
+          <p className="auth-eyebrow"><Store /> Tu tienda y tu negocio</p>
           <h1>Tu tienda online, <span>conectada de verdad.</span></h1>
-          <p className="auth-showcase__lead">Creá la vitrina, cobrá y despachá. Gestión y Finance explican stock y margen — sin ser un CRM genérico más.</p>
+          <p className="auth-showcase__lead">Creá tu tienda, cobrá y entregá. Tu stock y tus ganancias, siempre a la vista.</p>
           <div className="auth-showcase__items">{SHOWCASE_ITEMS.map(({ icon: Icon, title, description }) => <div className="auth-showcase__item" key={title}><span><Icon /></span><div><strong>{title}</strong><small>{description}</small></div><Check /></div>)}</div>
         </div>
-        <div className="auth-showcase__footer"><span>Nerqia · Commerce OS</span><span>Tienda primero</span></div>
+        <div className="auth-showcase__footer"><span>Nerqia</span><span>Tienda primero</span></div>
       </aside>
 
       <main className="auth-panel">
@@ -279,11 +284,17 @@ export default function AuthPage() {
                     <Button type="button" variant="outline" className="auth-google" onClick={handleGoogleLogin} disabled={loading}>
                       <span className="auth-google__g">G</span> Continuar con Google
                     </Button>
-                    <p className="auth-provider-hint">También podés entrar de forma segura con tu email, contraseña o un código de un solo uso.</p>
+                    <p className="auth-provider-hint">{mode === 'login'
+                      ? 'También podés entrar de forma segura con tu email, contraseña o un código de un solo uso.'
+                      : 'También podés crear tu cuenta con tu email y una contraseña.'}</p>
                     <div className="auth-divider"><span>o con email</span></div>
                   </>
                 ) : (
-                  <p className="auth-provider-hint">Entrá de forma segura con tu email y contraseña, o con un código de un solo uso.</p>
+                  // 2026-11-03: el código de un solo uso sólo sirve para entrar
+                  // (no crea cuentas); en el alta confundía.
+                  <p className="auth-provider-hint">{mode === 'login'
+                    ? 'Entrá de forma segura con tu email y contraseña, o con un código de un solo uso.'
+                    : 'Creá tu cuenta con tu email y una contraseña.'}</p>
                 )}
               </div>
               <div className="auth-tabs" role="tablist" aria-label="Acceso">
@@ -305,7 +316,7 @@ export default function AuthPage() {
                       >
                         <Store />
                         <strong>Soy negocio</strong>
-                        <span>Tienda online, gestión y finance</span>
+                        <span>Tienda online, stock y caja</span>
                       </button>
                       <button
                         type="button"
@@ -333,9 +344,13 @@ export default function AuthPage() {
                 )}
                 <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Nerqia' : role === 'creator' ? 'Crear mi cuenta de creador' : 'Crear mi cuenta gratis'} <ArrowRight /></Button>
               </form>
-              <p className="auth-channel-note" role="note">
-                El ingreso con código por WhatsApp todavía no está disponible.
-              </p>
+              {/* 2026-11-03: en el alta anunciaba algo que falta; el aviso sólo
+                  aclara el ingreso, así que va sólo en «Iniciar sesión». */}
+              {mode === 'login' && (
+                <p className="auth-channel-note" role="note">
+                  El ingreso con código por WhatsApp todavía no está disponible.
+                </p>
+              )}
               <p className="auth-legal">Al continuar aceptás los <Link to="/terminos">términos de uso</Link> y la <Link to="/privacidad">política de privacidad</Link>.</p>
             </>
           )}

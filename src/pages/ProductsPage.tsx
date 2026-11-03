@@ -2176,7 +2176,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   const [firstUseExpanded, setFirstUseExpanded] = useState(false);
   const creatingFirstProduct = Boolean(firstUse && !product);
   const compactFirstProduct = firstProductFormIsCompact(creatingFirstProduct, firstUseExpanded);
-  const firstUseExpand = firstProductExpandCopy();
+  const firstUseExpand = firstProductExpandCopy(handoffGoal);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const markDirty = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -2700,14 +2700,10 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-7 sm:py-7">
       {saveError && <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">{saveError}</p>}
-      {creatingFirstProduct && (
-        <div className="rounded-[10px] border border-primary/20 bg-primary/[0.05] p-3">
-          <p className="text-sm font-semibold">Para cobrar hace falta esto</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-            Nombre, precio de venta y unidades reales. El costo sirve para ver el margen; no traba la primera venta.
-          </p>
-        </div>
-      )}
+      {/* 2026-11-03: acá había un recuadro de «lo que hace falta para cobrar» que
+          repetía lo mismo que la descripción del diálogo y el pie: tres veces
+          «nombre, precio y unidades» en una pantalla de tres campos. La
+          descripción del diálogo (firstProductFormDescription) ya lo dice. */}
       {compactFirstProduct && (
         <div className="space-y-4">
           <div>
@@ -2723,14 +2719,21 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           </div>
           <div>
             <label htmlFor="primer-producto-precio" className="text-sm text-muted-foreground">Precio de venta *</label>
-            <Input
-              id="primer-producto-precio"
-              type="number"
-              min="0"
-              value={salePriceARS}
-              onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }}
-              className="bg-muted border-border"
-            />
+            {/* 2026-11-03: sin «$» ni ejemplo el campo no decía en qué moneda
+                iba el número (la ficha nació en USD). */}
+            <div className="relative">
+              <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+              <Input
+                id="primer-producto-precio"
+                type="number"
+                min="0"
+                inputMode="decimal"
+                placeholder="Ej: 12500"
+                value={salePriceARS}
+                onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }}
+                className="bg-muted border-border pl-7"
+              />
+            </div>
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between gap-2">
@@ -3856,7 +3859,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       <div className="z-20 shrink-0 border-t border-border/70 bg-card/95 px-4 py-3 backdrop-blur sm:flex sm:items-center sm:justify-between sm:px-7">
         <p className="mb-2 text-xs text-muted-foreground sm:mb-0">
           {creatingFirstProduct
-            ? 'Nombre, precio de venta y unidades. El costo puede esperar.'
+            ? 'El costo y la foto pueden esperar.'
             : 'El guardado actualiza la ficha canónica; el stock se asienta por Kardex.'}
         </p>
         <Button type="submit" disabled={saving || uploading || !canSave} className="w-full min-w-44 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 sm:w-auto">

@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Plus, Trash2, Loader2, ExternalLink, Save, ShieldCheck } from "lucide-react";
 import LegalPagesPanel from "./LegalPagesPanel";
 import {
+  esPlantillaSinCompletar,
+  SLUGS_LEGALES_OBLIGATORIOS,
   storeAnalyticsDisclosureBlock,
   storeAnalyticsDisclosureContentReady,
   storeAnalyticsDisclosureReady,
@@ -68,9 +70,21 @@ export default function StorePagesEditor({
       ? borrador.content
       : privacyPage?.content ?? null,
   );
+  // El aviso de medición sólo se ofrece sobre una política ya publicada, con
+  // texto propio y sin el bloque (2026-11-03). Antes salía apenas existía la
+  // política: en una tienda nueva, recién generada como borrador (el texto
+  // generado ya trae el bloque), mostraba un segundo «Revisar borrador» al
+  // lado del «Leer Política de privacidad» del panel legal para la misma
+  // página; y sobre la plantilla semilla proponía agregar el bloque a un texto
+  // que el panel está por reemplazar. Mientras la política sea borrador o
+  // plantilla, el panel legal es el único camino.
+  const mostrarAvisoMedicion = !!privacyPage
+    && privacyPage.status === "published"
+    && !esPlantillaSinCompletar(privacyPage.content)
+    && !analyticsDisclosurePublished;
 
-  const cargar = useCallback(async () => {
-    if (!orgId || !storeId) { setLoading(false); return; }
+  const cargar = useCallback(async (): Promise<PageRow[] | null> => {
+    if (!orgId || !storeId) { setLoading(false); return null; }
     setLoading(true);
     const { data, error } = await supabase
       .from("store_pages")
@@ -78,8 +92,10 @@ export default function StorePagesEditor({
       .eq("store_id", storeId)
       .order("sort_order");
     setLoading(false);
-    if (error) { toast.error("No se pudieron cargar las páginas"); return; }
-    setPages((data ?? []) as PageRow[]);
+    if (error) { toast.error("No se pudieron cargar las páginas"); return null; }
+    const filas = (data ?? []) as PageRow[];
+    setPages(filas);
+    return filas;
   }, [orgId, storeId]);
 
   useEffect(() => { cargar(); }, [cargar]);
@@ -190,7 +206,23 @@ export default function StorePagesEditor({
       storeId={storeId}
       existentes={pages.map(p => ({ slug: p.slug, title: p.title, content: p.content, status: p.status }))}
       onAplicado={async () => {
-        await cargar();
+        const filas = await cargar();
+        // Si la página abierta en el editor es una de las que el panel acaba
+        // de generar o publicar, se recarga de la base (2026-11-03). Antes
+        // quedaba la copia vieja: tras «Publicar términos y privacidad» el
+        // editor seguía ofreciendo «Publicar» y «Guardar borrador», y guardar
+        // despublicaba la página o pisaba el texto generado con la plantilla.
+        const abierta = borrador?.id ?? null;
+        if (filas && abierta && borrador
+          && (SLUGS_LEGALES_OBLIGATORIOS as readonly string[]).includes(borrador.slug)) {
+          const fresca = filas.find(p => p.id === abierta);
+          if (fresca) {
+            setBorrador(prev => (prev?.id === abierta ? { ...fresca } : prev));
+          } else {
+            setSeleccion(null);
+            setBorrador(null);
+          }
+        }
         onPagesChanged?.();
       }}
       onAbrirPagina={(slug) => {
@@ -199,7 +231,7 @@ export default function StorePagesEditor({
       }}
     />
 
-    {privacyPage && !analyticsDisclosurePublished && (
+    {mostrarAvisoMedicion && (
       <div className="border border-primary/25 bg-primary/[0.06] p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />

@@ -72,10 +72,34 @@ describe('primera ficha compacta', () => {
     expect(firstProductSubmitLabel({ firstUse: true, uploading: false, editing: false, goal: 'pos' }))
       .toBe('Crear y cobrar');
     expect(firstProductSubmitLabel({ firstUse: true, uploading: false, editing: false, goal: 'online' }))
-      .toBe('Crear y publicar');
+      .toBe('Guardar y seguir');
     expect(firstProductSubmitLabel({ firstUse: false, uploading: false, editing: false, goal: 'pos' }))
       .toBe('Crear producto');
     expect(firstProductExpandCopy().label).toMatch(/resto/);
+  });
+
+  it('el botón online no promete una tienda publicada', () => {
+    // 2026-11-03: después del primer producto todavía faltan pasos de la tienda.
+    const label = firstProductSubmitLabel({ firstUse: true, uploading: false, editing: false, goal: 'online' });
+    expect(label).not.toMatch(/publica/i);
+  });
+
+  it('la ayuda para expandir habla del canal elegido', () => {
+    const online = firstProductExpandCopy('online');
+    expect(online.label).toBe('Sumar foto, marca y el resto');
+    expect(online.hint).toBe('Una foto ayuda a vender; se puede sumar después.');
+    expect(online.hint).not.toMatch(/mostrador/);
+    expect(firstProductExpandCopy('pos').hint).toMatch(/mostrador/);
+    expect(firstProductExpandCopy(null).label).toBe('Cargar foto, marca y el resto');
+  });
+
+  it('la ficha compacta no repite tres veces lo obligatorio y el precio se lee en pesos', () => {
+    const products = readFileSync(resolve(__dirname, '../pages/ProductsPage.tsx'), 'utf8');
+    expect(products).toContain('firstProductExpandCopy(handoffGoal)');
+    expect(products).not.toContain('Para cobrar hace falta esto');
+    expect(products).not.toContain('Nombre, precio de venta y unidades. El costo puede esperar.');
+    expect(products).toContain('El costo y la foto pueden esperar.');
+    expect(products).toContain('placeholder="Ej: 12500"');
   });
 
   it('Productos usa la ficha compacta y no bloquea por atributos', () => {

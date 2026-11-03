@@ -97,7 +97,7 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await editor.getByLabel("Nombre *").fill(producto);
   await editor.getByLabel("Precio de venta *").fill("12500");
   await editor.getByLabel(/^Unidades/).fill("7");
-  await editor.getByRole("button", { name: "Crear y publicar" }).click();
+  await editor.getByRole("button", { name: "Guardar y seguir" }).click();
   await expect(editor).toBeHidden({ timeout: 30_000 });
 
   // 7. La tienda (2026-11-02): lo que promete la landing, «creá tu tienda y

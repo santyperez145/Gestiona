@@ -51,7 +51,18 @@ export function firstProductRequiresAttributes(firstUse: boolean): boolean {
   return !firstUse;
 }
 
-export function firstProductExpandCopy() {
+/**
+ * 2026-11-03: quien eligió tienda online leía «El mostrador no lo necesita
+ * para cobrar», una ayuda pensada para el POS. Para online la foto sí importa
+ * (es lo que ve el comprador), así que el enlace la nombra primero.
+ */
+export function firstProductExpandCopy(goal: 'pos' | 'online' | null = null) {
+  if (goal === 'online') {
+    return {
+      label: 'Sumar foto, marca y el resto',
+      hint: 'Una foto ayuda a vender; se puede sumar después.',
+    };
+  }
   return {
     label: 'Cargar foto, marca y el resto',
     hint: 'Se puede completar después. El mostrador no lo necesita para cobrar.',
@@ -67,6 +78,8 @@ export function firstProductSubmitLabel(input: {
   if (input.uploading) return 'Subiendo imagen...';
   if (input.editing) return 'Guardar cambios';
   if (input.firstUse && input.goal === 'pos') return 'Crear y cobrar';
-  if (input.firstUse && input.goal === 'online') return 'Crear y publicar';
+  // 2026-11-03: «Crear y publicar» daba a entender que la tienda quedaba en
+  // línea, pero todavía faltan pasos y el encabezado después dice «Inactiva».
+  if (input.firstUse && input.goal === 'online') return 'Guardar y seguir';
   return 'Crear producto';
 }
