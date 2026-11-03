@@ -30,7 +30,6 @@
  * publica el texto por el comercio: sigue siendo borrador.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -39,11 +38,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Scale, Loader2, Eye, Check, ArrowRight } from "lucide-react";
+import { validarCuit } from "@/lib/fiscalIdentity";
 import {
   datosFaltantes, etiquetaDeCampo, paginasLegalesPendientes, estadoPublicacionLegal,
   puedeSincronizarIdentidadFiscal, semillaLegalDelComercio, SLUGS_LEGALES_OBLIGATORIOS,
   type DatosDelComercio, type EmisorFiscal, type PaginaLegal,
 } from "@/lib/legalPages";
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface Props {
   storeId: string | null;
@@ -96,9 +98,14 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado, onAbr
   }, [orgId, storeId]);
 
   const faltan = useMemo(() => datosFaltantes(datos), [datos]);
+  // Un CUIT mal tipeado o un email incompleto quedaban publicados en los
+  // términos (2026-11-03): ahora se validan antes de generar.
+  const cuitInvalido = !!datos.cuit.trim() && !validarCuit(datos.cuit);
+  const emailInvalido = !!datos.emailContacto.trim() && !EMAIL.test(datos.emailContacto.trim());
+  const listoParaGenerar = faltan.length === 0 && !cuitInvalido && !emailInvalido;
   const pendientes = useMemo(
-    () => (faltan.length ? [] : paginasLegalesPendientes(datos, existentes)),
-    [faltan, datos, existentes],
+    () => (listoParaGenerar ? paginasLegalesPendientes(datos, existentes) : []),
+    [listoParaGenerar, datos, existentes],
   );
   const estadoPublicacion = useMemo(
     () => estadoPublicacionLegal(existentes),
@@ -108,13 +115,43 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado, onAbr
   // porque no quedaron duplicados en Ajustes: en ese punto la tarea real es
   // revisarlos y publicarlos. Los datos sólo se necesitan para generar o
   // reemplazar una página que falta o es plantilla.
+  //
+  // ⚠️ El formulario se muestra por `necesitaGenerar`, no por lo que falta:
+  // hasta el 2026-11-03 desaparecía al tipear la primera letra del último
+  // campo vacío y el comercio quedaba con «h» como email (Playwright llena de
+  // una vez y no lo veía).
   const necesitaGenerar = estadoPublicacion.faltantesOPlantilla > 0;
-  const faltanDatosParaGenerar = necesitaGenerar && faltan.length > 0;
-  const faltanFiscales = faltan.filter(c => c !== "emailContacto");
   const syncAfipAlGenerar = puedeSincronizarIdentidadFiscal(emisor, datos);
+  const borradoresLegales = SLUGS_LEGALES_OBLIGATORIOS
+    .map(slug => existentes.find(p => p.slug === slug))
+    .filter((p): p is NonNullable<typeof p> => !!p && p.status !== "published");
+  const [leido, setLeido] = useState(false);
+  const [publicando, setPublicando] = useState(false);
+
+  /**
+   * Publicar los dos textos de una vez (2026-11-03): eran unos ocho clics
+   * (abrir cada borrador en el editor, bajar, encontrar «Publicar»). Sigue
+   * siendo un acto del comercio: primero confirma que los leyó.
+   */
+  const publicarLegales = async () => {
+    if (!storeId || !leido || borradoresLegales.length === 0) return;
+    setPublicando(true);
+    const { error } = await supabase.from("store_pages")
+      .update({ status: "published" })
+      .eq("store_id", storeId)
+      .in("slug", borradoresLegales.map(p => p.slug));
+    setPublicando(false);
+    if (error) {
+      console.error("No se pudieron publicar las páginas legales", error);
+      toast.error("No se pudieron publicar las páginas. Reintentá.");
+      return;
+    }
+    toast.success(borradoresLegales.length === 1 ? "Página publicada" : "Términos y privacidad publicados");
+    onAplicado();
+  };
 
   const aplicar = async () => {
-    if (!orgId || !storeId || pendientes.length === 0) return;
+    if (!orgId || !storeId || !listoParaGenerar || pendientes.length === 0) return;
     setAplicando(true);
 
     // Se guardan como borrador, no publicadas. Es un texto legal generado: el
@@ -192,148 +229,136 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado, onAbr
     );
   }
 
+  const campos = [
+    ["razonSocial", "Razón social o tu nombre", "Ejemplo S.R.L. o Ana Pérez", null],
+    ["cuit", "CUIT", "30-71234567-1", cuitInvalido ? "El CUIT no es válido: revisá los 11 dígitos (el último es verificador)." : null],
+    ["domicilio", "Domicilio comercial", "Av. Corrientes 1234, CABA", null],
+    ["emailContacto", "Email de contacto", "hola@tutienda.com", emailInvalido ? "Revisá el email: falta la @ o el dominio." : null],
+  ] as const;
+
   return (
     <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 space-y-4">
       <div className="flex items-start gap-3">
-        <Scale className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <Scale className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
         <div className="space-y-1">
-          <p className="font-medium text-sm">Completar las páginas legales</p>
+          <p className="font-medium text-sm">Términos y privacidad de tu tienda</p>
           <p className="text-xs text-muted-foreground">
-            La política de privacidad es obligatoria por la Ley 25.326 apenas
-            recolectás un email, y los términos tienen que decir quién vende,
-            con CUIT y domicilio (Ley 24.240 art. 4). Se generan a partir de tus
-            datos y de lo que el sistema realmente hace con la información de
-            tus clientes — incluido que se aloja en Estados Unidos, que hay que
-            declararlo.
+            La ley pide que el comprador sepa quién le vende y qué se hace con sus
+            datos. Con estos cuatro datos armamos los dos textos; los leés y los
+            publicás.
           </p>
         </div>
       </div>
 
-      {faltanDatosParaGenerar ? (
+      {necesitaGenerar ? (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Falta {faltan.map(etiquetaDeCampo).join(", ")}. Sin eso el texto
-            saldría con huecos, que es lo que estamos arreglando.
-          </p>
-          {faltanFiscales.length > 0 && (
-            <div className="rounded-md border border-border/60 bg-background/80 px-3 py-2 text-xs text-muted-foreground space-y-2">
-              <p>
-                Razón social, CUIT y domicilio viven en Facturas (AFIP). Si ya
-                empezaste a conectar AFIP, conviene completarlos ahí: es la
-                misma identidad que sale en el comprobante.
-              </p>
-              <Button asChild size="sm" variant="outline" className="min-h-11 gap-1.5">
-                <Link to="/afip">
-                  Ir a AFIP
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </Button>
-            </div>
-          )}
           <div className="grid gap-3 sm:grid-cols-2">
-            {([
-              ["razonSocial", "Razón social", "Ejemplo S.R.L."],
-              ["cuit", "CUIT", "30-71234567-8"],
-              ["domicilio", "Domicilio comercial", "Av. Siempreviva 742, CABA"],
-              ["emailContacto", "Email de contacto", "hola@tutienda.com"],
-            ] as const).map(([campo, label, ph]) => (
+            {campos.map(([campo, label, ph, error]) => (
               <div key={campo} className="space-y-1.5">
                 <Label htmlFor={`legal-${campo}`} className="text-xs">{label}</Label>
                 <Input
                   id={`legal-${campo}`} value={datos[campo]} placeholder={ph}
+                  type={campo === "emailContacto" ? "email" : "text"}
+                  inputMode={campo === "cuit" ? "numeric" : undefined}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? `legal-${campo}-error` : undefined}
                   onChange={e => setDatos(d => ({ ...d, [campo]: e.target.value }))}
                 />
+                {error && <p id={`legal-${campo}-error`} className="text-[11px] text-destructive">{error}</p>}
               </div>
             ))}
           </div>
           {syncAfipAlGenerar && (
             <p className="text-[11px] text-muted-foreground">
-              Al generar, el domicilio y la razón social también quedan en AFIP
+              Al generar, el domicilio y la razón social también quedan en ARCA
               (mismo CUIT y punto de venta).
             </p>
           )}
-        </div>
-      ) : pendientes.length > 0 ? (
-        <div className="space-y-2">
-          {pendientes.map(p => (
-            <div key={p.slug} className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{p.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {p.motivo === "falta"
-                    ? "No existe todavía"
-                    : "Sigue siendo la plantilla sin completar"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Badge variant="outline" className="text-[10px]">
-                  {p.motivo === "falta" ? "nueva" : "reemplaza"}
-                </Badge>
-                <Button aria-label="Ver vista previa" title="Ver vista previa" size="sm" variant="ghost" onClick={() => setVerPrevia(p)}>
-                  <Eye className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-          ))}
 
-          {verPrevia && (
-            <div className="rounded-md border bg-background p-3">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-medium">{verPrevia.title}</p>
-                <Button size="sm" variant="ghost" onClick={() => setVerPrevia(null)}>Cerrar</Button>
-              </div>
-              <pre className="text-[11px] whitespace-pre-wrap max-h-72 overflow-y-auto text-muted-foreground">
-                {verPrevia.content}
-              </pre>
+          {pendientes.length > 0 && (
+            <div className="space-y-2">
+              {pendientes.map(p => (
+                <div key={p.slug} className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{p.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.motivo === "falta" ? "Se crea nueva" : "Reemplaza la plantilla sin completar"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-[10px]">
+                      {p.motivo === "falta" ? "nueva" : "reemplaza"}
+                    </Badge>
+                    <Button aria-label={`Ver el texto de ${p.title}`} title="Ver el texto" size="sm" variant="ghost" onClick={() => setVerPrevia(p)}>
+                      <Eye className="w-3.5 h-3.5" aria-hidden="true" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {verPrevia && (
+                <div className="rounded-md border bg-background p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium">{verPrevia.title}</p>
+                    <Button size="sm" variant="ghost" onClick={() => setVerPrevia(null)}>Cerrar</Button>
+                  </div>
+                  <pre className="text-[11px] whitespace-pre-wrap max-h-72 overflow-y-auto text-muted-foreground">
+                    {verPrevia.content}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
 
-          <Button onClick={aplicar} disabled={aplicando} size="sm" className="min-h-11">
+          <Button onClick={() => { void aplicar(); }} disabled={aplicando || !listoParaGenerar} size="sm" className="min-h-11">
             {aplicando ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
-            Generar {pendientes.length === 1 ? "la página" : `las ${pendientes.length} páginas`}
+            Generar los textos legales
           </Button>
-          <p className="text-[11px] text-muted-foreground">
-            Se crean como <strong>borrador</strong>: leelas antes de publicar.
-            Es un punto de partida sobre lo que el sistema hace, no
-            asesoramiento legal — conviene que lo revise un profesional.
-          </p>
+          {faltan.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              Falta {faltan.map(etiquetaDeCampo).join(", ")}.
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Las páginas ya están escritas. Abrí cada borrador, revisalo y
-            publicalo para que se vea en la tienda.
+            Los textos están listos. Leelos y publicalos para que se vean en la tienda.
           </p>
-          {onAbrirPagina && estadoPublicacion.borradores > 0 && (
+          {onAbrirPagina && borradoresLegales.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {SLUGS_LEGALES_OBLIGATORIOS.map(slug => {
-                const pagina = existentes.find(p => p.slug === slug);
-                if (!pagina || pagina.status === "published") return null;
-                return (
-                  <Button
-                    key={slug}
-                    size="sm"
-                    variant="outline"
-                    className="min-h-11 gap-1.5"
-                    onClick={() => onAbrirPagina(slug)}
-                  >
-                    Revisar {pagina.title || slug}
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Button>
-                );
-              })}
+              {borradoresLegales.map(pagina => (
+                <Button
+                  key={pagina.slug}
+                  size="sm"
+                  variant="outline"
+                  className="min-h-11 gap-1.5"
+                  onClick={() => onAbrirPagina(pagina.slug)}
+                >
+                  Leer {pagina.title || pagina.slug}
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </Button>
+              ))}
             </div>
+          )}
+          {borradoresLegales.length > 0 && (
+            <>
+              <label className="flex items-start gap-2 text-xs text-foreground">
+                <input type="checkbox" className="mt-0.5" checked={leido} onChange={e => setLeido(e.target.checked)} />
+                <span>Leí los textos y corresponden a cómo trabaja mi negocio.</span>
+              </label>
+              <Button onClick={() => { void publicarLegales(); }} disabled={!leido || publicando} size="sm" className="min-h-11">
+                {publicando ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
+                Publicar términos y privacidad
+              </Button>
+            </>
           )}
         </div>
       )}
 
-      {estadoPublicacion.borradores > 0 && (
-        <p className="text-xs text-amber-700 dark:text-amber-400">
-          {estadoPublicacion.borradores === 1
-            ? "Hay una página legal escrita pero en borrador. Abrila, revisala y marcala como publicada antes de activar la tienda."
-            : "Las páginas legales están escritas pero en borrador. Abrilas, revisalas y marcalas como publicadas antes de activar la tienda."}
-        </p>
-      )}
+      <p className="text-[11px] text-muted-foreground">
+        Es un punto de partida armado con lo que el sistema hace con los datos, no
+        asesoramiento legal: conviene que lo revise un profesional.
+      </p>
     </div>
   );
 }

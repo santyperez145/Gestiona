@@ -2667,7 +2667,7 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
           : firstUse && handoffGoal === 'pos'
             ? 'Producto listo para el mostrador. El POS ya puede cobrarlo.'
             : firstUse && handoffGoal === 'online'
-              ? 'Producto listo. El siguiente paso es publicarlo en Commerce.'
+              ? 'Producto listo. Ahora armamos tu tienda.'
               : 'Producto agregado',
         costNote && !product ? { description: costNote } : undefined,
       );

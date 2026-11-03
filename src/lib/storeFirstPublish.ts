@@ -71,12 +71,6 @@ export type StorePerformanceSnapshot = {
   snapshotAt: string;
 };
 
-export function storeWizardFinishCopy() {
-  return {
-    toast: 'Ruta online elegida. Cargá un producto con precio y stock; después publicás la tienda.',
-  };
-}
-
 export function storeShouldShowPerformanceChrome(input: {
   sessionCount: number;
   orderCount: number;
@@ -117,7 +111,7 @@ export function storeAfterCreateCopy() {
   return {
     title: 'Tienda creada. Ahora el catálogo',
     description:
-      'Ya hay vitrina con dirección. Cargá un producto con precio y stock; después publicás. Nerqia Pay puede esperar.',
+      'Ya hay vitrina con dirección. Cargá un producto con precio y stock; después publicás.',
     actionLabel: 'Cargar el primer producto',
     href: '/productos?onboarding=1&goal=online',
   };
@@ -143,7 +137,7 @@ export function storeBankLeadCopy() {
   return {
     title: 'Cargá CBU o alias para cobrar',
     description:
-      'Transferencia ya está marcada. Sin CBU ni alias el pedido dice «te vamos a escribir» y no hay primera venta sola. Nerqia Pay puede esperar.',
+      'Transferencia ya está marcada. Sin CBU ni alias el pedido dice «te vamos a escribir» y no hay primera venta sola.',
   };
 }
 
@@ -167,7 +161,7 @@ export function storePickupLeadCopy() {
   return {
     title: 'Decí dónde se retira',
     description:
-      'Retiro en tienda está activo. Sin dirección el pedido dice que vas a contactar al comprador. Nerqia Pay puede esperar.',
+      'Retiro en tienda está activo. Sin dirección el pedido dice que vas a contactar al comprador.',
   };
 }
 
@@ -199,7 +193,7 @@ export function storeLegalLeadCopy() {
   return {
     title: 'Completá y publicá términos y privacidad',
     description:
-      'Sin razón social, CUIT y páginas publicadas el comprador no sabe quién vende. Usá el generador en Páginas; Nerqia Pay puede esperar.',
+      'Sin razón social, CUIT y páginas publicadas el comprador no sabe quién vende. Usá el generador en Páginas: con cuatro datos quedan listos.',
     actionLabel: 'Ir a Páginas',
   };
 }
@@ -222,7 +216,7 @@ export function storeEmailLeadCopy() {
   return {
     title: 'Email para avisos de venta',
     description:
-      'Cuando alguien compre, el aviso tiene que llegar a una casilla que mirás. Si falta, cae al correo del dueño. Nerqia Pay puede esperar.',
+      'Cuando alguien compre, el aviso tiene que llegar a una casilla que mirás. Si falta, cae al correo del dueño.',
   };
 }
 
@@ -248,7 +242,7 @@ export function storeHoursLeadCopy() {
   return {
     title: 'Decí cuándo se retira',
     description:
-      'La dirección ya está. Sin horario el comprador no sabe cuándo pasar. Cargalo; no se inventa. Nerqia Pay puede esperar.',
+      'La dirección ya está. Sin horario el comprador no sabe cuándo pasar. Cargalo; no se inventa.',
   };
 }
 
@@ -300,13 +294,13 @@ export function storeAfterCatalogCopy(input: { canPublish: boolean }) {
     return {
       title: 'Listo para publicar',
       description:
-        'El catálogo está y transferencia ya cobra. Publicá para que el link funcione. Nerqia Pay puede esperar.',
+        'El catálogo está y transferencia ya cobra. Publicá para que el link funcione.',
     };
   }
   return {
     title: 'Ahora publicá la tienda',
     description:
-      'El catálogo ya está. Falta una dirección para compartir, una forma de entregar y quién vende. Transferencia ya cobra; Nerqia Pay puede esperar.',
+      'El catálogo ya está. Falta una dirección para compartir, una forma de entregar y quién vende. Transferencia ya cobra.',
   };
 }
 
@@ -765,4 +759,52 @@ export function storeShareIntentCopy() {
       'Copiá el link y mandalo por WhatsApp, Instagram o mail. La primera venta online empieza cuando alguien abre la tienda.',
     actionLabel: 'Copiar enlace',
   };
+}
+
+/**
+ * Del asistente sin tienda, directo al formulario (2026-11-02). Sólo cuando la
+ * lista de tiendas de la organización ya se leyó y está vacía: el 2026-11-03
+ * saltaba en el primer render, con la tienda todavía sin leer, y el comercio
+ * que volvía a Publicar caía en Pagos y envíos.
+ */
+export function storeShouldJumpToIdentityForm(input: {
+  fromWizard: boolean;
+  tab: string;
+  storesLoaded: boolean;
+  storesLoading: boolean;
+  storeCount: number;
+}): boolean {
+  return input.fromWizard && input.tab === 'overview'
+    && input.storesLoaded && !input.storesLoading && input.storeCount === 0;
+}
+
+export type PasoDelArmado = { id: string; label: string; done: boolean };
+
+/**
+ * Cuánto falta para publicar (2026-11-03). El asistente terminaba en «Paso 4
+ * de 4» y después venían seis pasos más, cada uno presentado como si fuera el
+ * último. Sale de las mismas reglas que deciden si se puede publicar
+ * (`evaluateStoreReadiness`), así no hay dos verdades.
+ */
+export function pasosDelArmado(input: {
+  storeExists: boolean;
+  storeActive: boolean;
+  /** Llegó del asistente después de cargar el primer producto. */
+  fromWizard: boolean;
+  checks: { id: string; done: boolean; severity: string }[];
+}): PasoDelArmado[] {
+  const check = (id: string) => input.checks.find(c => c.id === id);
+  const hecho = (id: string) => check(id)?.done ?? true;
+  // Sin tienda no hay señales: el catálogo se cuenta recién cuando existe.
+  const producto = input.storeExists ? hecho('products') : input.fromWizard;
+  const entregaPendiente = input.checks.some(c =>
+    ['pickup-address', 'shipping-rates', 'coverage'].includes(c.id) && c.severity === 'blocker' && !c.done);
+  return [
+    { id: 'producto', label: 'Producto', done: producto },
+    { id: 'link', label: 'Nombre y link', done: input.storeExists },
+    { id: 'cobro', label: 'Cobro', done: input.storeExists && hecho('payments') && hecho('bank-transfer') },
+    { id: 'entrega', label: 'Entrega', done: input.storeExists && !entregaPendiente },
+    { id: 'legales', label: 'Términos', done: input.storeExists && hecho('legal-pages') },
+    { id: 'publicar', label: 'Publicar', done: input.storeActive },
+  ];
 }

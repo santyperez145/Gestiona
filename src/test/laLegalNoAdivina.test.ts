@@ -34,9 +34,12 @@ describe("las páginas legales no adivinan quién vende", () => {
     expect(codigo).toContain("semillaLegalDelComercio");
   });
 
-  it("genera borrador, no publica", () => {
-    expect(soloCodigo(panel)).toContain('status: "draft"');
-    expect(soloCodigo(panel)).not.toMatch(/status:\s*"published"/);
+  it("genera borrador; publicar es un acto confirmado del comercio", () => {
+    const codigo = soloCodigo(panel);
+    expect(codigo).toContain('status: "draft"');
+    // Una sola escritura de «published», detrás de la confirmación de lectura.
+    expect(codigo.match(/status:\s*"published"/g) ?? []).toHaveLength(1);
+    expect(codigo).toContain("!leido");
   });
 
   it("si AFIP ya empezó, sincroniza razón y domicilio al generar", () => {
@@ -44,13 +47,13 @@ describe("las páginas legales no adivinan quién vende", () => {
     expect(codigo).toContain("puedeSincronizarIdentidadFiscal");
     expect(codigo).toContain("save_afip_config");
     expect(codigo).toContain("punto_venta");
-    expect(codigo).toContain('to="/afip"');
+    // Sin desvío a Facturas (2026-11-03): sacaba al comercio del camino guiado.
+    expect(codigo).not.toContain('to="/afip"');
   });
 
-  it("los borradores se abren en el editor, no se publican solos", () => {
+  it("los borradores se abren en el editor para leerlos", () => {
     const codigo = soloCodigo(panel);
     expect(codigo).toContain("onAbrirPagina");
-    expect(codigo).toContain("Revisar");
-    expect(codigo).not.toMatch(/status:\s*"published"/);
+    expect(codigo).toContain("Leer {pagina.title");
   });
 });

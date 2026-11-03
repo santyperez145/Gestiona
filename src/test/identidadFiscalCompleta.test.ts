@@ -47,9 +47,13 @@ describe("conectar AFIP pide el domicilio fiscal", () => {
     expect(codigo).not.toMatch(/configured\s*[:=][^\n]*domicilio/);
   });
 
-  it("las páginas legales siguen en borrador", () => {
+  it("las páginas legales se generan en borrador y sólo las publica el comercio", () => {
     const panel = soloCodigo(leer("src/components/ecommerce/LegalPagesPanel.tsx"));
     expect(panel).toContain('status: "draft"');
-    expect(panel).not.toMatch(/status:\s*"published"/);
+    // Desde 2026-11-03 se publican las dos de una vez, pero nunca solas: el
+    // comercio confirma que las leyó y recién ahí se habilita el botón.
+    expect(panel).toMatch(/if \(!storeId \|\| !leido \|\| borradoresLegales\.length === 0\) return;/);
+    expect(panel).toContain("disabled={!leido || publicando}");
+    expect(panel.match(/status:\s*"published"/g) ?? []).toHaveLength(1);
   });
 });

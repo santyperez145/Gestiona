@@ -34,6 +34,9 @@ export default function StoreWorkspacePicker({
   onMakePrimary,
 }: Props) {
   const selected = stores.find(store => store.id === selectedStoreId) ?? null;
+  // Sin tiendas, el formulario «Primero nombre y link» es el único camino
+  // (2026-11-03): este «+ Nueva tienda» competía con su «Crear tienda».
+  if (!loading && !error && !creating && stores.length === 0) return null;
 
   return (
     <section
@@ -93,7 +96,7 @@ export default function StoreWorkspacePicker({
           </Button>
         ) : null}
         {!creating && onCreate ? (
-          <Button type="button" size="sm" className="min-h-11 gap-1.5" onClick={onCreate}>
+          <Button type="button" variant="outline" size="sm" className="min-h-11 gap-1.5" onClick={onCreate}>
             <Plus className="h-4 w-4" />Nueva tienda
           </Button>
         ) : null}

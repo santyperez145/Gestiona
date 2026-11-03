@@ -106,7 +106,7 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   const slug = `zz-alta-${sufijo}`;
   await foto(page, "tienda-crear");
   await page.getByLabel("Nombre de la tienda").fill(`ZZ Tienda ${sufijo}`);
-  await page.getByLabel("Slug (URL)").fill(slug);
+  await page.getByLabel("Link de la tienda").fill(slug);
   await sinBarrerasGraves(page, "crear la tienda");
   await page.getByRole("button", { name: "Crear tienda" }).click();
 
@@ -125,19 +125,20 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   // Términos y privacidad: se generan con los datos del comercio y se publican.
   await page.getByRole("button", { name: "Ir a Páginas" }).click();
   await foto(page, "tienda-legales");
-  await page.getByLabel("Razón social").fill(`ZZ Alta ${sufijo} SRL`);
-  await page.getByLabel("CUIT").fill("30-71234567-1");
-  await page.getByLabel("Domicilio comercial").fill("Av. Corrientes 1234, CABA");
-  await page.getByLabel("Email de contacto").fill(email);
-  await page.getByRole("button", { name: /^Generar/ }).click();
-  const revisar = page.getByRole("button", { name: /^Revisar / });
-  await expect(revisar.first()).toBeVisible({ timeout: 30_000 });
-  for (let i = 0; i < 2 && await revisar.count(); i++) {
-    await revisar.first().click();
-    await page.getByRole("button", { name: "Publicar", exact: true }).click();
-    await expect(page.getByText("Página publicada").first()).toBeVisible({ timeout: 15_000 });
-  }
-  await expect(revisar).toHaveCount(0, { timeout: 15_000 });
+  // Se tipea letra por letra, como una persona: el formulario desaparecía al
+  // tipear la primera letra del último campo (2026-11-03) y fill() no lo veía.
+  await page.getByLabel("Razón social o tu nombre").pressSequentially(`ZZ Alta ${sufijo} SRL`);
+  await page.getByLabel("CUIT").pressSequentially("30-71234567-1");
+  await page.getByLabel("Domicilio comercial").pressSequentially("Av. Corrientes 1234, CABA");
+  await page.getByLabel("Email de contacto").pressSequentially(email);
+  await expect(page.getByLabel("Email de contacto")).toHaveValue(email);
+  await page.getByRole("button", { name: "Generar los textos legales" }).click();
+  // Se leen y se publican los dos de una vez (antes, unos ocho clics).
+  await expect(page.getByRole("button", { name: /^Leer / }).first()).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("checkbox", { name: /Leí los textos/ }).check();
+  await page.getByRole("button", { name: "Publicar términos y privacidad" }).click();
+  await expect(page.getByText("Términos y privacidad publicados").first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: /^Leer / })).toHaveCount(0, { timeout: 15_000 });
 
   // Publicar la tienda desde el recorrido guiado.
   await page.goto("/tienda-online?onboarding=1&goal=online");

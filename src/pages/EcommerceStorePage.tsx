@@ -1,4 +1,5 @@
 import CompartirTienda from "@/components/ecommerce/CompartirTienda";
+import PasosDeLaTienda from "@/components/ecommerce/PasosDeLaTienda";
 import BusquedasSinResultado from "@/components/ecommerce/BusquedasSinResultado";
 import { Skeleton } from "@/components/ui/skeleton";
 import VelocidadDeTuTienda from "@/components/ecommerce/VelocidadDeTuTienda";
@@ -73,6 +74,8 @@ import {
   storeAfterCreateCopy,
   urlPublicaDeTienda,
   urlDirectaDeTienda,
+  storeShouldJumpToIdentityForm,
+  pasosDelArmado,
   storeShareIntentActive,
   storeShareIntentCopy,
 } from "@/lib/storeFirstPublish";
@@ -256,11 +259,14 @@ export default function EcommerceStorePage() {
   const [store, setStore] = useState<any>(null);
   const [creatingStore, setCreatingStore] = useState(false);
   const storeFormBaselineRef = useRef("");
+  const storeIdRef = useRef<string | null>(null);
   /** Tras el primer Guardar: banner al catálogo mientras siguen en settings. */
   const [justCreatedStore, setJustCreatedStore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
   const [storeForm, setStoreForm] = useState(() => storeDraftInicial(undefined, GLOBAL_FULFILLMENT_LOCATION));
+  const storeFormRef = useRef(storeForm);
+  storeFormRef.current = storeForm;
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [verConfiguracionCompleta, setVerConfiguracionCompleta] = useState(false);
@@ -491,6 +497,20 @@ export default function EcommerceStorePage() {
   useEffect(() => {
     if (creatingStore) return;
     const selected = commerceStores.selectedStore;
+    // Misma tienda y el formulario con cambios sin guardar (2026-11-03): una
+    // recarga en vuelo pisaba lo que el comercio estaba escribiendo en el paso
+    // siguiente (la dirección de retiro, en una red lenta). Se conserva lo
+    // tipeado y sólo se suma lo que otra parte guardó y el formulario no tenía
+    // (el email de los legales).
+    const enEdicion = selected && selected.id === storeIdRef.current && storeFormBaselineRef.current !== ""
+      && JSON.stringify(storeFormRef.current) !== storeFormBaselineRef.current;
+    if (selected && enEdicion) {
+      setStore(selected);
+      const emailGuardado = selected.notification_email;
+      if (emailGuardado) setStoreForm(prev => (prev.notification_email ? prev : { ...prev, notification_email: emailGuardado }));
+      return;
+    }
+    storeIdRef.current = selected?.id ?? null;
     setStore(selected);
     const nextForm = selected
       ? storeFormDesdeFila(selected, GLOBAL_FULFILLMENT_LOCATION)
@@ -724,7 +744,7 @@ export default function EcommerceStorePage() {
       orgId,
     });
     if (!slug) {
-      toast.error("Elegí una dirección para la tienda.");
+      toast.error("Elegí el link de la tienda.");
       return;
     }
     const isActive = opts?.activate ? true : storeForm.is_active;
@@ -808,7 +828,7 @@ export default function EcommerceStorePage() {
       setLoading(false);
       console.error("No se pudo guardar la tienda", error);
       toast.error(esConflictoDeSlug(error)
-        ? "Esa dirección ya está en uso. Probá otra."
+        ? "Ese link ya lo usa otra tienda. Probá otro."
         : "No se pudo guardar la tienda.");
       return;
     }
@@ -1049,18 +1069,28 @@ export default function EcommerceStorePage() {
   // guardar» era un paso que no aportaba nada.
   const saltoAlFormulario = useRef(false);
   useEffect(() => {
-    if (saltoAlFormulario.current || !fromWizard || !storeMissing || tab !== "overview" || commerceStores.loading) return;
+    // La lista del hook, no `store`: hay un render en que las tiendas ya
+    // llegaron y `store` todavía no se copió, y el comercio que volvía a
+    // Publicar con su tienda creada caía en Pagos y envíos (E2E, 2026-11-03).
+    if (saltoAlFormulario.current) return;
+    if (!storeShouldJumpToIdentityForm({
+      fromWizard,
+      tab,
+      storesLoaded: commerceStores.loaded,
+      storesLoading: commerceStores.loading,
+      storeCount: commerceStores.stores.length,
+    })) return;
     saltoAlFormulario.current = true;
     void goToTab("settings");
-  }, [fromWizard, storeMissing, tab, commerceStores.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fromWizard, tab, commerceStores.loaded, commerceStores.loading, commerceStores.stores.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
       <PageHeader
         icon={ShoppingBag}
-        eyebrow="Commerce · Canal de venta"
+        eyebrow="Venta online"
         title="Tienda online"
-        description="Publicá la vitrina, cobrá y gestioná envíos. El núcleo del Commerce OS — no un panel genérico."
+        description="Publicá tu tienda, cobrá y despachá los pedidos con el mismo stock del local."
         actions={
           <div className="flex items-center flex-wrap gap-2">
             {/* Una tienda activa que no puede cobrar o no puede cotizar el envío
@@ -1082,7 +1112,9 @@ export default function EcommerceStorePage() {
                 readinessSummary: readinessSummary(readiness),
               })}
             </Badge>
-            {urlPublica && (
+            {/* Sólo publicada (2026-11-03): antes el link llevaba al comprador a
+                «Tienda no encontrada». */}
+            {urlPublica && store?.is_active && (
               <>
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(urlPublica, "_blank")}>
                   <ExternalLink className="w-3 h-3" />Ver tienda
@@ -1124,12 +1156,24 @@ export default function EcommerceStorePage() {
         onMakePrimary={() => { void makePrimaryStore(); }}
       />
 
+      {/* Cuánto falta para publicar, mientras la tienda no está publicada. Lee
+          la tienda del hook (no `store`, que se copia un render después) para
+          no aparecer y desaparecer en una tienda ya activa. */}
+      {commerceStores.loaded && !commerceStores.loading && !commerceStores.selectedStore?.is_active && !creatingStore ? (
+        <PasosDeLaTienda pasos={pasosDelArmado({
+          storeExists: Boolean(commerceStores.selectedStore),
+          storeActive: false,
+          fromWizard,
+          checks: readiness.checks,
+        })} />
+      ) : null}
+
       {/* Mientras llega la tienda, sólo el esqueleto (2026-10-31): el
           rendimiento, el aviso de medición y las pestañas aparecían arriba al
           cargar y empujaban el resumen (CLS 0,13 medido en el barrido). */}
       {/* Las métricas también (2026-11-02): llegaban después y empujaban las
           pestañas y el resumen (CLS 0,163). Se espera su primera lectura. */}
-      {(commerceStores.loading && !store) || (store?.id && !performance && !performanceError) ? (
+      {(commerceStores.loading && !store) || (tab === "overview" && store?.id && !performance && !performanceError) ? (
         <div role="status" aria-label="Cargando la tienda" className="space-y-4">
           <Skeleton className="h-10 w-full rounded-lg" />
           <Skeleton className="h-48 w-full rounded-xl" />
@@ -1147,7 +1191,9 @@ export default function EcommerceStorePage() {
         <DateRangeFilter label="Todo el historial" />
       </div> : null}
 
-      {store?.id && !store.first_party_analytics_enabled ? (
+      {/* La medición se ofrece con la tienda ya publicada (2026-11-03): durante
+          el armado era un aviso ámbar más arriba de cada paso. */}
+      {store?.id && store.is_active && !store.first_party_analytics_enabled ? (
         <div className="flex flex-col gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">La medición de visitas está pausada</p>
@@ -1248,7 +1294,12 @@ export default function EcommerceStorePage() {
         <StorePagesEditor
           storeId={store?.id ?? null}
           storeSlug={store?.slug ?? null}
-          onPagesChanged={reloadReadinessSignals}
+          onPagesChanged={() => {
+            void reloadReadinessSignals();
+            // Los legales guardan el email de avisos en la tienda: se relee
+            // para que el próximo «Guardar» no lo borre (2026-11-03).
+            if (store?.id) void commerceStores.reload(store.id);
+          }}
         />
       )}
 
@@ -1257,14 +1308,6 @@ export default function EcommerceStorePage() {
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="space-y-6">
-          <BusquedasSinResultado orgId={orgId} />
-          <VelocidadDeTuTienda orgId={orgId} />
-          <StoreDomainsPanel
-            orgId={orgId ?? ""}
-            store={store}
-            includedUrl={urlIncluida}
-            onStateChange={(patch) => setStore((current: any) => current ? { ...current, ...patch } : current)}
-          />
           {/* Publicada y sin su primera venta (o con ?share=1): el kit para que
               alguien abra el link. */}
           {urlPublica && store?.is_active && (shareIntent || (!ordersLoading && !ordersError && orders.length === 0)) ? (
@@ -1343,6 +1386,17 @@ export default function EcommerceStorePage() {
               ))}
             </div>
           )}
+          {/* Lo avanzado va después de lo que lleva a la primera venta
+              (2026-11-03): el botón de publicar quedaba debajo de la velocidad
+              y los dominios. */}
+          <BusquedasSinResultado orgId={orgId} />
+          <VelocidadDeTuTienda orgId={orgId} />
+          <StoreDomainsPanel
+            orgId={orgId ?? ""}
+            store={store}
+            includedUrl={urlIncluida}
+            onStateChange={(patch) => setStore((current: any) => current ? { ...current, ...patch } : current)}
+          />
           {leadWithPay && (
             <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
@@ -1898,10 +1952,10 @@ export default function EcommerceStorePage() {
           )}
           {leadSettingsWithIdentity && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
-              <p className="text-sm font-semibold">Primero nombre y dirección</p>
+              <p className="text-sm font-semibold">Primero nombre y link</p>
               <p className="text-[13px] text-muted-foreground leading-snug">
-                Sin nombre ni dirección no hay link para compartir ni páginas legales.
-                El cobro con Nerqia Pay puede esperar.
+                Con el nombre y el link ya tenés una dirección web para compartir.
+                Lo demás lo completás después, paso a paso.
               </p>
               <div className="space-y-3">
                 <div>
@@ -1913,7 +1967,7 @@ export default function EcommerceStorePage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Slug (URL)</label>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Link de la tienda</label>
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-muted-foreground shrink-0 truncate max-w-[45%]">
                       {typeof window !== "undefined" ? window.location.host : ""}/tienda/
@@ -1944,6 +1998,7 @@ export default function EcommerceStorePage() {
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
               <p className="text-sm font-semibold">{bankLead.title}</p>
               <p className="text-[13px] text-muted-foreground leading-snug">{bankLead.description}</p>
+              <p className="text-[12px] text-muted-foreground">Con el alias o el CBU/CVU alcanza; el comprador los ve al cerrar el pedido.</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div>
                   <Label className="text-xs text-muted-foreground">Titular</Label>
@@ -1964,7 +2019,7 @@ export default function EcommerceStorePage() {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">CBU</Label>
+                  <Label className="text-xs text-muted-foreground">CBU o CVU</Label>
                   <Input
                     value={bankForm.bank_cbu}
                     onChange={e => setBankForm(p => ({ ...p, bank_cbu: e.target.value }))}
@@ -1985,7 +2040,7 @@ export default function EcommerceStorePage() {
               </div>
               <Button
                 className="min-h-11 w-full sm:w-auto"
-                disabled={loading}
+                disabled={loading || (!bankForm.bank_alias.trim() && !bankForm.bank_cbu.trim())}
                 onClick={() => { void saveStore(); }}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -2191,7 +2246,7 @@ export default function EcommerceStorePage() {
                 <Input value={storeForm.name} onChange={e => setStoreForm(p => ({ ...p, name: e.target.value }))} className="h-9" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Slug (URL)</label>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Link de la tienda</label>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-muted-foreground shrink-0 truncate max-w-[45%]">{window.location.host}/tienda/</span>
                   <Input value={storeForm.slug} onChange={e => setStoreForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") }))} placeholder="mi-tienda" className="h-9" />

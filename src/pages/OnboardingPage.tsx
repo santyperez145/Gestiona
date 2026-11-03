@@ -16,7 +16,6 @@ import {
   summarizeBusinessProfile,
 } from '@/lib/businessProfile';
 import { firstProductPath } from '@/lib/activationHandoff';
-import { storeWizardFinishCopy } from '@/lib/storeFirstPublish';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 type FinishDestination = 'pos' | 'online' | 'dashboard' | 'demo';
@@ -111,7 +110,8 @@ export default function OnboardingPage() {
         toast.success('Ruta POS elegida. Ahora cargá tu primer producto y su stock real.');
         navigate('/productos?onboarding=1&goal=pos');
       } else if (destination === 'online') {
-        toast.success(storeWizardFinishCopy().toast);
+        // Sin aviso: el diálogo del primer producto ya dice lo mismo, y el
+        // aviso le tapaba el botón «Crear y publicar» (2026-11-03).
         navigate(firstProductPath('online'));
       } else if (destination === 'demo') {
         if (demoSeedFailed) {

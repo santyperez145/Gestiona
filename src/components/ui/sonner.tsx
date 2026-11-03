@@ -9,6 +9,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      // Arriba al centro y de a dos (2026-11-03): abajo a la derecha tapaban
+      // el botón principal de los diálogos y de cada paso guiado.
+      position="top-center"
+      visibleToasts={2}
       className="toaster group"
       toastOptions={{
         classNames: {

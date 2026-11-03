@@ -20,6 +20,10 @@ export function useCommerceStores(orgId: string | null, requestedId: string | nu
   const [stores, setStores] = useState<CommerceStore[]>([]);
   const [loading, setLoading] = useState(Boolean(orgId));
   const [error, setError] = useState<string | null>(null);
+  // De qué organización ya se leyó la lista (2026-11-03). `loading` arranca en
+  // falso mientras no hay organización y en el primer render con ella, y
+  // «no está cargando y no hay tiendas» no alcanza para concluir que no hay.
+  const [leidaPara, setLeidaPara] = useState<string | null>(null);
   const requestRef = useRef(0);
   const [persistedId, setPersistedId] = usePersistedState<string | null>(
     orgViewKey("commerce.store", orgId),
@@ -71,6 +75,7 @@ export function useCommerceStores(orgId: string | null, requestedId: string | nu
     }
     const next = (data ?? []) as CommerceStore[];
     setStores(next);
+    setLeidaPara(orgId);
     const nextId = chooseCommerceStoreId(next, preferredId ?? null, persistedIdRef.current);
     if (nextId !== persistedIdRef.current) setPersistedId(nextId);
   }, [orgId, setPersistedId]);
@@ -89,6 +94,8 @@ export function useCommerceStores(orgId: string | null, requestedId: string | nu
     selectedStoreId,
     selectStore: setPersistedId,
     loading,
+    /** Se leyó la lista de esta organización al menos una vez. */
+    loaded: Boolean(orgId) && leidaPara === orgId,
     error,
     reload,
   };

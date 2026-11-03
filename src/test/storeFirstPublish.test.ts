@@ -35,7 +35,6 @@ import {
   storeShouldLeadSettingsWithHours,
   storeHoursLeadCopy,
   storeAfterCreateCopy,
-  storeWizardFinishCopy,
   urlPublicaDeTienda,
   enlaceCanonicoDeVitrina,
   storeFirstSaleSharePath,
@@ -74,9 +73,9 @@ const DATE_RANGE = readFileSync(resolve(ROOT, 'src/components/shared/DateRangeFi
 describe('la primera publicación empieza por el catálogo', () => {
   it('el wizard online manda a Productos, no a un panel vacío', () => {
     expect(firstProductPath('online')).toBe('/productos?onboarding=1&goal=online');
-    expect(storeWizardFinishCopy().toast).toMatch(/producto/);
     expect(ONBOARDING).toContain("navigate(firstProductPath('online'))");
-    expect(ONBOARDING).toContain('storeWizardFinishCopy');
+    // Sin aviso al elegir la tienda: tapaba el botón del primer producto.
+    expect(ONBOARDING).not.toContain('storeWizardFinishCopy');
     expect(ONBOARDING).not.toContain("navigate('/tienda-online?onboarding=1&goal=online')");
     expect(PRODUCTS).toContain('firstProductFormDescription');
   });
@@ -145,10 +144,10 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('storeShouldLeadSettingsWithIdentity');
     expect(STORE).toContain('storeAfterCreateCopy');
     expect(STORE).toContain('Crear tienda');
-    expect(STORE).toContain('Primero nombre y dirección');
+    expect(STORE).toContain('Primero nombre y link');
     // Pay no es el primer hijo del tab cuando falta la fila.
     const settingsIdx = STORE.indexOf('tab === "settings"');
-    const identityIdx = STORE.indexOf('Primero nombre y dirección', settingsIdx);
+    const identityIdx = STORE.indexOf('Primero nombre y link', settingsIdx);
     const payIdx = STORE.indexOf('<PaymentConnectionsPanel', settingsIdx);
     expect(identityIdx).toBeGreaterThan(settingsIdx);
     expect(payIdx).toBeGreaterThan(identityIdx);
@@ -314,7 +313,10 @@ describe('la primera publicación empieza por el catálogo', () => {
     });
     expect(STORE).toContain('saveStore({ activate: true })');
     expect(STORE).toContain('reloadReadinessSignals');
-    expect(STORE).toContain('onPagesChanged={reloadReadinessSignals}');
+    // Al cambiar las páginas se recalcula el checklist y se relee la tienda
+    // (los legales guardan el email de avisos; 2026-11-03).
+    expect(STORE).toMatch(/onPagesChanged=\{\(\) => \{\s*void reloadReadinessSignals\(\);/);
+    expect(STORE).toContain('if (store?.id) void commerceStores.reload(store.id);');
     expect(STORE).toContain('onConnectionChange={reloadReadinessSignals}');
     // Toggle+guardar no puede saltarse el mismo gate que «Publicar».
     expect(STORE).toContain('if (isActive && !readiness.canPublish)');
