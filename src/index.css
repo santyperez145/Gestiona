@@ -6,10 +6,13 @@
 /* Respaldos con las métricas de la fuente real (2026-11-02, @capsizecss):
    mientras baja Inter o Plus Jakarta Sans el texto se dibuja en Arial con el
    mismo ancho y alto, así el cambio de fuente no mueve la pantalla (era el
-   salto de 0,11 en Influencers). */
+   salto de 0,11 en Influencers). Liberation Sans y Arimo tienen las mismas
+   medidas que Arial y son las que hay en Linux (2026-11-03): sin ellas el
+   respaldo caía a DejaVu, mucho más ancha, y Tienda online saltó 0,181 en el
+   barrido del CI. */
 @font-face {
   font-family: "Inter Fallback";
-  src: local("Arial"), local("ArialMT");
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans"), local("Arimo");
   ascent-override: 90.4365%;
   descent-override: 22.518%;
   line-gap-override: 0%;
@@ -17,7 +20,7 @@
 }
 @font-face {
   font-family: "Plus Jakarta Sans Fallback";
-  src: local("Arial"), local("ArialMT");
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans"), local("Arimo");
   ascent-override: 98.8763%;
   descent-override: 21.147%;
   line-gap-override: 0%;

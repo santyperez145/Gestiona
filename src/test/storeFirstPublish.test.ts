@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { firstProductPath } from '@/lib/activationHandoff';
 import { politicaDePrivacidad, storeAnalyticsDisclosureReady } from '@/lib/legalPages';
+import { evaluateStoreReadiness } from '@/lib/storeReadiness';
 import {
   storeAfterCatalogCopy,
   parseStorePerformanceSnapshot,
@@ -32,8 +33,6 @@ import {
   storeShouldLeadSettingsWithEmail,
   storeLegalLeadCopy,
   storeEmailLeadCopy,
-  storeShouldLeadSettingsWithHours,
-  storeHoursLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
   enlaceCanonicoDeVitrina,
@@ -254,37 +253,83 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(storeEmailLeadCopy().title).toMatch(/email|avisos/i);
     expect(STORE).toContain('storeShouldLeadSettingsWithEmail');
     expect(STORE).toContain('Guardar email de avisos');
-    expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && !leadSettingsWithHours');
+    expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && (');
   });
 
-  it('después del email, el horario de retiro va antes de OAuth', () => {
-    expect(storeShouldLeadSettingsWithHours({
-      storeId: null,
-      pickupEnabled: true,
-      addressReady: true,
-      hoursReady: false,
-    })).toBe(false);
-    expect(storeShouldLeadSettingsWithHours({
-      storeId: 'id',
-      pickupEnabled: true,
-      addressReady: false,
-      hoursReady: false,
-    })).toBe(false);
-    expect(storeShouldLeadSettingsWithHours({
-      storeId: 'id',
-      pickupEnabled: true,
-      addressReady: true,
-      hoursReady: false,
-    })).toBe(true);
-    expect(storeShouldLeadSettingsWithHours({
-      storeId: 'id',
-      pickupEnabled: true,
-      addressReady: true,
-      hoursReady: true,
-    })).toBe(false);
-    expect(storeHoursLeadCopy().title).toMatch(/cuándo|horario/i);
-    expect(STORE).toContain('storeShouldLeadSettingsWithHours');
-    expect(STORE).toContain('Guardar horario de retiro');
+  // 2026-11-03: el horario figuraba «(opcional)» en el paso de retiro y, si
+  // quedaba vacío, después de los legales aparecía otro paso entero que lo
+  // pedía igual. Ahora va en el mismo paso, con su aviso.
+  it('el horario va en el mismo paso que la dirección de retiro', () => {
+    const inicio = STORE.indexOf('{pickupLead && (');
+    const fin = STORE.indexOf('{legalLead && (', inicio);
+    expect(inicio).toBeGreaterThan(0);
+    const paso = STORE.slice(inicio, fin);
+    expect(paso).toContain('htmlFor="paso-retiro-horario"');
+    expect(paso).toContain('id="paso-retiro-horario"');
+    expect(paso).toContain('>Horario de retiro</Label>');
+    expect(paso).toContain('Sin horario el comprador no sabe cuándo pasar.');
+    expect(paso).toContain('Dirección de retiro');
+    expect(paso).toContain('Guardar dirección de retiro');
+    expect(STORE).not.toContain('Horario (opcional)');
+    expect(STORE).not.toContain('storeShouldLeadSettingsWithHours');
+    expect(STORE).not.toContain('Guardar horario de retiro');
+    expect(storePickupLeadCopy().description).toContain('No hago retiros');
+    expect(storePickupLeadCopy().description).not.toMatch(/está activo/);
+  });
+
+  // 2026-11-03: quien vende desde su casa no tenía cómo decir «no tengo local».
+  it('«No hago retiros» guarda envío fijo y deja publicar', () => {
+    const inicio = STORE.indexOf('{pickupLead && (');
+    const fin = STORE.indexOf('{legalLead && (', inicio);
+    const paso = STORE.slice(inicio, fin);
+    expect(paso).toContain('No hago retiros');
+    expect(paso).toContain('htmlFor="paso-retiro-envio-fijo"');
+    expect(paso).toMatch(/cambios: \{\s*pickup_enabled: false,\s*shipping_mode: "flat",\s*shipping_cost: storeForm\.shipping_cost,/);
+    // saveStore aplica esos cambios sin esperar al estado de React.
+    expect(STORE).toContain('const storeForm = opts?.cambios ? { ...storeFormRef.current, ...opts.cambios } : storeFormRef.current;');
+
+    const tienda = {
+      is_active: false,
+      slug: 'mi-tienda',
+      name: 'Mi Tienda',
+      payment_methods: ['transferencia'],
+      notification_email: 'ventas@ejemplo.com',
+    };
+    const base = {
+      publishedProducts: 1,
+      productsWithoutWeight: 1,
+      shippingZones: 0,
+      zonesWithRates: 0,
+      coveredProvinces: 0,
+      paymentConnected: false,
+      bankTransferReady: true,
+      legalPages: { missingOrTemplate: 0, drafts: 0 },
+    };
+    // Apagar sólo el retiro no alcanza: con zonas sin tarifas no hay entrega.
+    expect(evaluateStoreReadiness({
+      ...base,
+      store: { ...tienda, shipping_mode: 'zones', pickup_enabled: false, shipping_cost: 0 },
+    }).canPublish).toBe(false);
+    // Con envío fijo y un costo, sí.
+    const fijo = evaluateStoreReadiness({
+      ...base,
+      store: { ...tienda, shipping_mode: 'flat', pickup_enabled: false, shipping_cost: 3500 },
+    });
+    expect(fijo.blockers).toEqual([]);
+    expect(fijo.canPublish).toBe(true);
+  });
+
+  // 2026-11-03: el banner «Tienda creada» nunca se veía. El booleano se marcaba
+  // junto con la recarga de tiendas y el efecto de la tienda elegida lo apagaba.
+  it('el aviso de tienda recién creada no lo apaga el efecto de la tienda elegida', () => {
+    expect(STORE).not.toContain('setJustCreatedStore(false)');
+    expect(STORE).toContain('if (isCreatingStore && saved?.id) setJustCreatedStoreId(saved.id);');
+    expect(STORE).toContain('store?.id === justCreatedStoreId');
+    const inicio = STORE.indexOf('if (creatingStore) return;');
+    const fin = STORE.indexOf('}, [commerceStores.selectedStore, creatingStore, org]);', inicio);
+    expect(inicio).toBeGreaterThan(0);
+    expect(fin).toBeGreaterThan(inicio);
+    expect(STORE.slice(inicio, fin)).not.toContain('setJustCreatedStoreId');
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {
@@ -319,7 +364,16 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('if (store?.id) void commerceStores.reload(store.id);');
     expect(STORE).toContain('onConnectionChange={reloadReadinessSignals}');
     // Toggle+guardar no puede saltarse el mismo gate que «Publicar».
-    expect(STORE).toContain('if (isActive && !readiness.canPublish)');
+    // Evaluado sobre lo que de verdad se guarda: con los cambios de un paso
+    // aplicados («No hago retiros»), no con el estado viejo (2026-11-03).
+    expect(STORE).toContain('const listaParaPublicar = opts?.cambios ? readinessDe(storeForm) : readiness;');
+    expect(STORE).toContain('if (isActive && !listaParaPublicar.canPublish)');
+    // Los datos para transferir se guardan antes que la tienda: la base no deja
+    // publicar con transferencia sin CBU ni alias guardados.
+    const guardaBanco = STORE.indexOf('const { error: bankError } = await supabase.from("settings").update({');
+    expect(guardaBanco).toBeGreaterThan(0);
+    expect(guardaBanco).toBeLessThan(STORE.indexOf('let { data: saved, error } = await guardar(row);'));
+    expect(STORE).toContain('error.code === "23514"');
     expect(STORE).not.toContain('if (opts?.activate && !readiness.canPublish)');
   });
 
@@ -328,11 +382,28 @@ describe('la primera publicación empieza por el catálogo', () => {
       productsWithoutWeight: 4,
       legalMissingOrDraft: 2,
       shippingGaps: true,
+      pickupEnabled: false,
+      shippingQuotes: true,
     });
     expect(nudges.map((n) => n.id)).toEqual(['shipping', 'legal', 'weights']);
     expect(nudges[0].actionHref).toBe('/envios?tab=zonas');
     expect(nudges[2].actionHref).toBe('/productos?completar=pesos');
     expect(STORE).toContain('storePublishNudges');
+    // 2026-11-03: con retiro la compra no falla, y sin envío cotizado los
+    // pesos no importan. Tampoco se dice «checkout» al comercio.
+    const conRetiro = storePublishNudges({
+      productsWithoutWeight: 4,
+      legalMissingOrDraft: 0,
+      shippingGaps: true,
+      pickupEnabled: true,
+      shippingQuotes: false,
+    });
+    expect(conRetiro.map((n) => n.id)).toEqual(['shipping']);
+    expect(conRetiro[0].detail).not.toMatch(/falla/);
+    expect(conRetiro[0].detail).toMatch(/retirar/);
+    expect(nudges[0].detail).not.toMatch(/checkout/i);
+    expect(STORE).toContain('pickupEnabled: !!storeForm.pickup_enabled,');
+    expect(STORE).toContain('!storeMissing && !catalogHandoff && !afterCatalog && publishNudges.length > 0');
     expect(PRODUCTS).toContain('completar');
     expect(PRODUCTS).toContain('setPesosOpen(true)');
   });

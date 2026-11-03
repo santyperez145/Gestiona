@@ -118,7 +118,7 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
 
   // Retiro en tienda viene activo: sin dirección el pedido dice «te contactamos».
   await page.getByLabel("Dirección de retiro").fill("Av. Corrientes 1234, CABA");
-  await page.getByLabel("Horario (opcional)").fill("Lun a vie 10 a 18");
+  await page.getByLabel("Horario de retiro").fill("Lun a vie 10 a 18");
   await foto(page, "tienda-retiro");
   await page.getByRole("button", { name: "Guardar dirección de retiro" }).click();
 

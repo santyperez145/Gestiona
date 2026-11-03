@@ -69,8 +69,6 @@ import {
   storeShouldLeadSettingsWithEmail,
   storeLegalLeadCopy,
   storeEmailLeadCopy,
-  storeShouldLeadSettingsWithHours,
-  storeHoursLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
   urlDirectaDeTienda,
@@ -260,8 +258,16 @@ export default function EcommerceStorePage() {
   const [creatingStore, setCreatingStore] = useState(false);
   const storeFormBaselineRef = useRef("");
   const storeIdRef = useRef<string | null>(null);
-  /** Tras el primer Guardar: banner al catálogo mientras siguen en settings. */
-  const [justCreatedStore, setJustCreatedStore] = useState(false);
+  /**
+   * Tras el primer Guardar: banner al catálogo mientras siguen en settings.
+   * Es el id de la tienda creada y no un booleano (2026-11-03): el `true` se
+   * marcaba junto con la recarga de tiendas y el efecto de la tienda elegida lo
+   * volvía a `false` en el mismo commit, así que el banner nunca se veía. Con
+   * el id, cambiar de tienda lo oculta solo porque deja de coincidir.
+   */
+  const [justCreatedStoreId, setJustCreatedStoreId] = useState<string | null>(null);
+  /** El comercio eligió «No hago retiros» en el paso de retiro. */
+  const [sinRetiro, setSinRetiro] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
   const [storeForm, setStoreForm] = useState(() => storeDraftInicial(undefined, GLOBAL_FULFILLMENT_LOCATION));
@@ -518,11 +524,11 @@ export default function EcommerceStorePage() {
     setStoreForm(nextForm);
     storeFormBaselineRef.current = JSON.stringify(nextForm);
     setSelectedTheme(selected?.theme ?? nextForm.theme);
-    setJustCreatedStore(false);
   }, [commerceStores.selectedStore, creatingStore, org]);
 
   useEffect(() => {
     setCreatingStore(false);
+    setJustCreatedStoreId(null);
   }, [orgId]);
 
   useEffect(() => {
@@ -729,8 +735,20 @@ export default function EcommerceStorePage() {
     toast.success(enabled ? "Medición first-party activada" : "Medición first-party pausada");
   };
 
-  const saveStore = async (opts?: { activate?: boolean }) => {
+  const saveStore = async (opts?: {
+    activate?: boolean;
+    /**
+     * Campos que se guardan aunque el formulario todavía no los tenga
+     * (2026-11-03): «No hago retiros» apaga el retiro y pasa a envío fijo en
+     * el mismo clic. Si esperara al estado de React, el paso de retiro se
+     * cerraría antes de que el comercio cargara el costo.
+     */
+    cambios?: Partial<typeof storeFormRef.current>;
+  }) => {
     if (!orgId) return;
+    // A propósito tapa al `storeForm` del componente: así todo lo que sigue
+    // guarda el formulario con los cambios del paso aplicados.
+    const storeForm = opts?.cambios ? { ...storeFormRef.current, ...opts.cambios } : storeFormRef.current;
     const isCreatingStore = !store?.id;
     const name = storeForm.name.trim();
     if (!name) {
@@ -751,11 +769,31 @@ export default function EcommerceStorePage() {
     // Publicar (CTA o toggle+guardar) exige lo mismo: sin canPublish el
     // comprador no termina la compra. Shopify/Tiendanube no dejan ir live
     // con el cobro a medias.
-    if (isActive && !readiness.canPublish) {
-      toast.error(readinessSummary(readiness));
+    const listaParaPublicar = opts?.cambios ? readinessDe(storeForm) : readiness;
+    if (isActive && !listaParaPublicar.canPublish) {
+      toast.error(readinessSummary(listaParaPublicar));
       return;
     }
     setLoading(true);
+
+    // Los datos para transferir van antes que la tienda (2026-11-03): la base
+    // no deja publicar con transferencia sin CBU ni alias guardados, y si se
+    // tipeaba el alias y se publicaba en el mismo clic, rechazaba la tienda y
+    // el alias tampoco quedaba. Transferencia cobra con estos datos: si el
+    // medio está marcado y no se guardan, el pedido dice «te escribimos».
+    const publicando = isActive && !store?.is_active;
+    const { error: bankError } = await supabase.from("settings").update({
+      bank_cbu: bankForm.bank_cbu.trim() || null,
+      bank_alias: bankForm.bank_alias.trim() || null,
+      bank_name: bankForm.bank_name.trim() || null,
+      bank_holder: bankForm.bank_holder.trim() || null,
+    }).eq("org_id", orgId);
+    if (bankError && publicando) {
+      setLoading(false);
+      console.error("No se pudieron guardar los datos bancarios", bankError);
+      toast.error("No se pudieron guardar los datos para transferir, así que la tienda no se publicó. Reintentá.");
+      return;
+    }
     // Un borrador visual puede estar abierto mientras se editan pagos o
     // entrega. Guardar otra pestaña nunca debe publicarlo por accidente.
     const publishedDesign = store?.id ? {
@@ -827,20 +865,15 @@ export default function EcommerceStorePage() {
     if (error) {
       setLoading(false);
       console.error("No se pudo guardar la tienda", error);
+      // La base explica qué falta para publicar (23514, 2026-11-03): se
+      // muestra tal cual en vez de un «no se pudo» que no dice por qué.
       toast.error(esConflictoDeSlug(error)
         ? "Ese link ya lo usa otra tienda. Probá otro."
-        : "No se pudo guardar la tienda.");
+        : error.code === "23514" && error.message
+          ? error.message
+          : "No se pudo guardar la tienda.");
       return;
     }
-
-    // Transferencia cobra con estos datos: si el medio está marcado y no se
-    // guardan acá, el pedido del comprador sigue diciendo «te escribimos».
-    const { error: bankError } = await supabase.from("settings").update({
-      bank_cbu: bankForm.bank_cbu.trim() || null,
-      bank_alias: bankForm.bank_alias.trim() || null,
-      bank_name: bankForm.bank_name.trim() || null,
-      bank_holder: bankForm.bank_holder.trim() || null,
-    }).eq("org_id", orgId);
     setLoading(false);
     if (bankError) {
       console.error("No se pudieron guardar los datos bancarios", bankError);
@@ -869,8 +902,8 @@ export default function EcommerceStorePage() {
     setCreatingStore(false);
     commerceStores.selectStore(saved.id);
     writeStoreToUrl(saved.id);
+    if (isCreatingStore && saved?.id) setJustCreatedStoreId(saved.id);
     await commerceStores.reload(saved.id);
-    if (isCreatingStore) setJustCreatedStore(true);
 
     // Borradores legales al nacer: sin esto el checklist dice «faltan» hasta
     // que alguien abra Páginas y pulse Sembrar. No publica — el dueño firma.
@@ -888,27 +921,32 @@ export default function EcommerceStorePage() {
 
   // Se evalúa sobre el FORMULARIO y no sobre lo guardado: así el estado
   // reacciona mientras el comercio configura, sin tener que guardar para ver.
-  const readiness = useMemo(() => evaluateStoreReadiness({
+  // Una sola forma de evaluar la tienda (2026-11-03): saveStore la usa sobre
+  // el formulario con los cambios de un paso aplicados («No hago retiros»);
+  // con el estado de React todavía viejo, rechazaba una tienda ya publicable.
+  const readinessDe = (form: typeof storeForm) => evaluateStoreReadiness({
     store: {
-      is_active: storeForm.is_active,
-      slug: storeForm.slug || store?.slug || null,
-      name: storeForm.name,
+      is_active: form.is_active,
+      slug: form.slug || store?.slug || null,
+      name: form.name,
       logo_url: store?.logo_url ?? null,
-      description: storeForm.description || null,
-      meta_title: storeForm.meta_title || null,
-      payment_methods: storeForm.payment_methods,
-      shipping_mode: storeForm.shipping_mode,
-      pickup_enabled: storeForm.pickup_enabled,
-      pickup_address: storeForm.pickup_address || null,
-      pickup_instructions: storeForm.pickup_instructions || null,
-      shipping_cost: costoEnvioAlGuardar(storeForm.shipping_cost),
-      notification_email: storeForm.notification_email || null,
+      description: form.description || null,
+      meta_title: form.meta_title || null,
+      payment_methods: form.payment_methods,
+      shipping_mode: form.shipping_mode,
+      pickup_enabled: form.pickup_enabled,
+      pickup_address: form.pickup_address || null,
+      pickup_instructions: form.pickup_instructions || null,
+      shipping_cost: costoEnvioAlGuardar(form.shipping_cost),
+      notification_email: form.notification_email || null,
     },
     bankTransferReady: storeBankTransferReady(bankForm),
     bank_cbu: bankForm.bank_cbu,
     bank_alias: bankForm.bank_alias,
     ...signals,
-  }), [storeForm, store?.logo_url, store?.slug, signals, bankForm]);
+  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const readiness = useMemo(() => readinessDe(storeForm), [storeForm, store?.logo_url, store?.slug, signals, bankForm]);
 
   const storeMissing = storeShouldShowStoreMissingHandoff(store?.id)
     ? storeMissingCopy()
@@ -931,7 +969,9 @@ export default function EcommerceStorePage() {
     shippingGaps: readiness.checks.some(
       (c) => (c.id === "shipping-rates" || c.id === "coverage") && !c.done,
     ),
-  }), [signals, readiness.checks]);
+    pickupEnabled: !!storeForm.pickup_enabled,
+    shippingQuotes: storeForm.shipping_mode === "zones" && signals.zonesWithRates > 0,
+  }), [signals, readiness.checks, storeForm.pickup_enabled, storeForm.shipping_mode]);
 
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
@@ -1022,12 +1062,6 @@ export default function EcommerceStorePage() {
     storeId: store?.id,
     emailReady: Boolean(String(store?.notification_email ?? "").trim()),
   });
-  const leadSettingsWithHours = storeShouldLeadSettingsWithHours({
-    storeId: store?.id,
-    pickupEnabled: !!storeForm.pickup_enabled,
-    addressReady: Boolean(String(store?.pickup_address ?? "").trim()),
-    hoursReady: Boolean(String(store?.pickup_instructions ?? "").trim()),
-  });
   const bankLead = leadSettingsWithBank ? storeBankLeadCopy() : null;
   const pickupLead = !leadSettingsWithBank && leadSettingsWithPickup
     ? storePickupLeadCopy()
@@ -1039,13 +1073,13 @@ export default function EcommerceStorePage() {
     && leadSettingsWithEmail
     ? storeEmailLeadCopy()
     : null;
-  const hoursLead = !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal
-    && !leadSettingsWithEmail && leadSettingsWithHours
-    ? storeHoursLeadCopy()
-    : null;
-  // Sólo los pasos que bloquean la venta; email y horario son sugerencias.
+  // El horario va en el mismo paso que la dirección (2026-11-03): figuraba
+  // «(opcional)» y, si quedaba vacío, después de los legales aparecía otro paso
+  // entero que lo pedía igual. Sin horario sigue el aviso del estado de la
+  // tienda (`pickup-hours`), que no bloquea.
+  // Sólo los pasos que bloquean la venta; el email es una sugerencia.
   const pasoGuiado = Boolean(bankLead || pickupLead || legalLead);
-  const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
+  const afterCreate = justCreatedStoreId && store?.id === justCreatedStoreId && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
     : null;
   const shareIntent = storeShareIntentActive(searchParams.get("share")) && urlPublica
@@ -1061,8 +1095,14 @@ export default function EcommerceStorePage() {
   };
 
   useEffect(() => {
-    if (signals.publishedProducts > 0) setJustCreatedStore(false);
+    if (signals.publishedProducts > 0) setJustCreatedStoreId(null);
   }, [signals.publishedProducts]);
+
+  // Cerrado el paso de retiro (guardó la dirección o el envío fijo), la
+  // elección no queda colgada para la próxima vez que se active el retiro.
+  useEffect(() => {
+    if (!leadSettingsWithPickup) setSinRetiro(false);
+  }, [leadSettingsWithPickup]);
 
   // Del asistente sin tienda, directo al formulario (2026-11-02): el comercio
   // ya eligió «Publicar mi tienda online»; pedirle otro clic en «Configurar y
@@ -1363,7 +1403,10 @@ export default function EcommerceStorePage() {
             </div>
           )}
           {!storeMissing && !catalogHandoff ? <StoreReadinessPanel readiness={readiness} /> : null}
-          {!storeMissing && !catalogHandoff && publishNudges.length > 0 && (
+          {/* Con la primera publicación guiada en pantalla, el estado de la
+              tienda ya lista lo mismo en «Conviene resolver» (2026-11-03):
+              repetirlo junto al botón de publicar hacía dudar al comercio. */}
+          {!storeMissing && !catalogHandoff && !afterCatalog && publishNudges.length > 0 && (
             <div className="space-y-2">
               {publishNudges.map((n) => (
                 <div
@@ -2052,42 +2095,132 @@ export default function EcommerceStorePage() {
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
               <p className="text-sm font-semibold">{pickupLead.title}</p>
               <p className="text-[13px] text-muted-foreground leading-snug">{pickupLead.description}</p>
-              <div>
-                <Label className="text-xs text-muted-foreground">Dirección de retiro</Label>
-                <Input
-                  value={storeForm.pickup_address}
-                  onChange={e => setStoreForm(p => ({ ...p, pickup_address: e.target.value }))}
-                  placeholder="Calle, número, localidad"
-                  className="h-9 min-h-11 mt-1"
-                />
-              </div>
-              {retiroSugerido && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => setStoreForm(p => ({ ...p, pickup_address: retiroSugerido }))}
-                >
-                  Usar domicilio fiscal
-                </Button>
-              )}
-              <div>
-                <Label className="text-xs text-muted-foreground">Horario (opcional)</Label>
-                <Input
-                  value={storeForm.pickup_instructions}
-                  onChange={e => setStoreForm(p => ({ ...p, pickup_instructions: e.target.value }))}
-                  placeholder="Lun a vie 10–18"
-                  className="h-9 min-h-11 mt-1"
-                />
-              </div>
-              <Button
-                className="min-h-11 w-full sm:w-auto"
-                disabled={loading || !storeForm.pickup_address.trim()}
-                onClick={() => { void saveStore(); }}
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Guardar dirección de retiro
-              </Button>
+              {!sinRetiro ? (<>
+                <div>
+                  <Label htmlFor="paso-retiro-direccion" className="text-xs text-muted-foreground">Dirección de retiro</Label>
+                  <Input
+                    id="paso-retiro-direccion"
+                    value={storeForm.pickup_address}
+                    onChange={e => setStoreForm(p => ({ ...p, pickup_address: e.target.value }))}
+                    placeholder="Calle, número, localidad"
+                    className="h-9 min-h-11 mt-1"
+                  />
+                </div>
+                {retiroSugerido && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11"
+                    onClick={() => setStoreForm(p => ({ ...p, pickup_address: retiroSugerido }))}
+                  >
+                    Usar domicilio fiscal
+                  </Button>
+                )}
+                <div>
+                  <Label htmlFor="paso-retiro-horario" className="text-xs text-muted-foreground">Horario de retiro</Label>
+                  <Input
+                    id="paso-retiro-horario"
+                    value={storeForm.pickup_instructions}
+                    onChange={e => setStoreForm(p => ({ ...p, pickup_instructions: e.target.value }))}
+                    placeholder="Ej: lun a vie de 10 a 18"
+                    className="h-9 min-h-11 mt-1"
+                  />
+                  {!String(storeForm.pickup_instructions ?? "").trim() && (
+                    <p className="mt-1 text-[12px] text-muted-foreground">Sin horario el comprador no sabe cuándo pasar.</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loading || !storeForm.pickup_address.trim()}
+                    onClick={() => { void saveStore(); }}
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Guardar dirección de retiro
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loading}
+                    onClick={() => setSinRetiro(true)}
+                  >
+                    No hago retiros
+                  </Button>
+                </div>
+              </>) : storeForm.shipping_mode === "zones" && signals.zonesWithRates > 0 ? (<>
+                {/* Ya hay precios por provincia: alcanza con apagar el retiro. Pasar
+                    a envío fijo los reemplazaba en silencio por un solo precio. */}
+                <p className="text-[12px] text-muted-foreground">
+                  Tus compradores pagan el envío según los precios por provincia que ya cargaste.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loading}
+                    onClick={() => { void saveStore({ cambios: { pickup_enabled: false } }); }}
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Guardar sin retiro
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loading}
+                    onClick={() => setSinRetiro(false)}
+                  >
+                    Sí hago retiros
+                  </Button>
+                </div>
+              </>) : (<>
+                {/* Sin local (2026-11-03): apagar el retiro solo no alcanza. Con
+                    envío por zonas y sin tarifas la tienda no podría entregar y
+                    el estado bloquearía publicar; con envío fijo y un costo, sí. */}
+                <div>
+                  <Label htmlFor="paso-retiro-envio-fijo" className="text-xs text-muted-foreground">Costo de envío</Label>
+                  <Input
+                    id="paso-retiro-envio-fijo"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={storeForm.shipping_cost}
+                    onChange={e => setStoreForm(p => ({ ...p, shipping_cost: e.target.value }))}
+                    placeholder="Ej: 3500"
+                    className="h-9 min-h-11 mt-1"
+                  />
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    Es lo que paga cada comprador para recibir el pedido en su casa. Después podés cargar precios por provincia en Envíos.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loading || costoEnvioAlGuardar(storeForm.shipping_cost) <= 0}
+                    onClick={() => {
+                      void saveStore({
+                        cambios: {
+                          pickup_enabled: false,
+                          shipping_mode: "flat",
+                          shipping_cost: storeForm.shipping_cost,
+                        },
+                      });
+                    }}
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Guardar envío fijo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loading}
+                    onClick={() => setSinRetiro(false)}
+                  >
+                    Sí hago retiros
+                  </Button>
+                </div>
+              </>)}
             </div>
           )}
           {legalLead && (
@@ -2136,30 +2269,7 @@ export default function EcommerceStorePage() {
               </Button>
             </div>
           )}
-          {hoursLead && (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
-              <p className="text-sm font-semibold">{hoursLead.title}</p>
-              <p className="text-[13px] text-muted-foreground leading-snug">{hoursLead.description}</p>
-              <div>
-                <Label className="text-xs text-muted-foreground">Horario de retiro</Label>
-                <Input
-                  value={storeForm.pickup_instructions}
-                  onChange={e => setStoreForm(p => ({ ...p, pickup_instructions: e.target.value }))}
-                  placeholder="Lun a vie 10–18"
-                  className="h-9 min-h-11 mt-1"
-                />
-              </div>
-              <Button
-                className="min-h-11 w-full sm:w-auto"
-                disabled={loading || !storeForm.pickup_instructions.trim()}
-                onClick={() => { void saveStore(); }}
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Guardar horario de retiro
-              </Button>
-            </div>
-          )}
-          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && !leadSettingsWithHours && (
+          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && (
             <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
           )}
           {/* Sin tienda, sólo nombre y dirección (2026-11-02): el formulario

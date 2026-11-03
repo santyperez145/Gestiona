@@ -157,11 +157,17 @@ export function storeShouldLeadSettingsWithPickup(input: {
   return true;
 }
 
+/**
+ * 2026-11-03: decía «Retiro en tienda está activo» a quien nunca lo eligió (lo
+ * activa el borrador) y no avisaba que la dirección la ve el comprador. Quien
+ * vende desde su casa no tenía cómo decir «no tengo local»: ahora el mismo
+ * paso ofrece «No hago retiros» con un envío fijo.
+ */
 export function storePickupLeadCopy() {
   return {
-    title: 'Decí dónde se retira',
+    title: '¿Dónde retiran tus compradores?',
     description:
-      'Retiro en tienda está activo. Sin dirección el pedido dice que vas a contactar al comprador.',
+      'La dirección se la mostramos al comprador que elige retirar, en la compra y en la confirmación del pedido. Si no tenés local, elegí «No hago retiros» y cobrá un envío fijo.',
   };
 }
 
@@ -217,32 +223,6 @@ export function storeEmailLeadCopy() {
     title: 'Email para avisos de venta',
     description:
       'Cuando alguien compre, el aviso tiene que llegar a una casilla que mirás. Si falta, cae al correo del dueño.',
-  };
-}
-
-/**
- * Retiro con dirección pero sin horario: el pedido pagado no dice cuándo pasar.
- * Plataformas de comercio confirman lugar y horario. Va después de email (aviso de
- * venta) y antes de OAuth. No inventa el texto — el comercio lo carga.
- */
-export function storeShouldLeadSettingsWithHours(input: {
-  storeId: string | null | undefined;
-  pickupEnabled: boolean;
-  addressReady: boolean;
-  hoursReady: boolean;
-}): boolean {
-  if (!input.storeId) return false;
-  if (!input.pickupEnabled) return false;
-  if (!input.addressReady) return false;
-  if (input.hoursReady) return false;
-  return true;
-}
-
-export function storeHoursLeadCopy() {
-  return {
-    title: 'Decí cuándo se retira',
-    description:
-      'La dirección ya está. Sin horario el comprador no sabe cuándo pasar. Cargalo; no se inventa.',
   };
 }
 
@@ -316,18 +296,29 @@ export type StorePublishNudge = {
   actionHref: string;
 };
 
+/**
+ * 2026-11-03: junto a «Publicar la tienda» decía que la compra «falla afuera
+ * de tu zona» aunque el retiro estuviera activo (con retiro no falla: el
+ * comprador lo va a buscar), y pedía pesos a una tienda que no cotiza envíos.
+ * El comercio dudaba en publicar por avisos que no le impedían vender.
+ */
 export function storePublishNudges(input: {
   productsWithoutWeight: number;
   legalMissingOrDraft: number;
   shippingGaps: boolean;
+  /** Con retiro el comprador siempre tiene cómo recibir el pedido. */
+  pickupEnabled: boolean;
+  /** Hay envío a domicilio que se cotiza por peso (zonas con tarifas). */
+  shippingQuotes: boolean;
 }): StorePublishNudge[] {
   const out: StorePublishNudge[] = [];
   if (input.shippingGaps) {
     out.push({
       id: 'shipping',
       title: 'Completar el tarifario',
-      detail:
-        'Sin tarifas en casi todo el país el checkout parece andar y falla afuera de tu zona. Con retiro habilitado el comprador sólo puede ir a buscarlo.',
+      detail: input.pickupEnabled
+        ? 'Por ahora tus compradores pueden retirar en tu local. Si querés hacer envíos a domicilio, cargá los precios por provincia.'
+        : 'Sin precios por provincia el comprador no puede terminar la compra: cargá el envío a las provincias a las que llegás.',
       actionLabel: 'Precios por provincia',
       actionHref: '/envios?tab=zonas',
     });
@@ -342,7 +333,7 @@ export function storePublishNudges(input: {
       actionHref: '/tienda-online?tab=pages',
     });
   }
-  if (input.productsWithoutWeight > 0) {
+  if (input.productsWithoutWeight > 0 && input.shippingQuotes) {
     out.push({
       id: 'weights',
       title: 'Completar pesos',
