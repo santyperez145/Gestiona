@@ -15,9 +15,16 @@ export interface EstadoDeCobro {
   connected: boolean;
   /** Nombre de la cuenta, para mostrar cuál está enganchada. */
   nickname: string | null;
+  /**
+   * Puede cobrar de verdad (2026-11-03): cuenta conectada **y** el medio
+   * habilitado en Ajustes, el mismo criterio que `gestiona_pay_listo` en la
+   * base (la usan el checkout y el trigger de publicar). Con el medio apagado,
+   * el checklist de la tienda decía «se puede publicar» y la base lo rechazaba.
+   */
+  listoParaCobrar: boolean;
 }
 
-const SIN_CONEXION: EstadoDeCobro = { connected: false, nickname: null };
+const SIN_CONEXION: EstadoDeCobro = { connected: false, nickname: null, listoParaCobrar: false };
 
 /**
  * No se traga los errores: si la vista todavía no existe (migración sin
@@ -46,8 +53,21 @@ export async function fetchPaymentStatus(orgId: string): Promise<EstadoDeCobro> 
   }
 
   const fila = data as { connected?: boolean; nickname?: string | null } | null;
+  let listoParaCobrar = false;
+  if (fila?.connected) {
+    const { data: medio, error: errorMedio } = await supabase
+      .from('org_payment_providers')
+      .select('habilitado, conectado_at')
+      .eq('org_id', orgId)
+      .eq('provider', 'mercadopago')
+      .maybeSingle();
+    if (errorMedio) console.error('[cobros] error leyendo org_payment_providers:', errorMedio.message);
+    const m = medio as { habilitado?: boolean | null; conectado_at?: string | null } | null;
+    listoParaCobrar = !!m?.habilitado && !!m?.conectado_at;
+  }
   return {
     connected: !!fila?.connected,
     nickname: fila?.nickname ?? null,
+    listoParaCobrar,
   };
 }

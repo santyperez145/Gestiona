@@ -27,15 +27,22 @@ export async function instalarMedicion(page: Page) {
       new PerformanceObserver(l => { for (const e of l.getEntries()) w.__perf.lcp = e.startTime; })
         .observe({ type: "largest-contentful-paint", buffered: true });
       new PerformanceObserver(l => {
-        type Fuente = { node?: Node | null };
+        type Fuente = { node?: Node | null; previousRect?: DOMRectReadOnly; currentRect?: DOMRectReadOnly };
         for (const e of l.getEntries() as Array<PerformanceEntry & { hadRecentInput?: boolean; value?: number; sources?: Fuente[] }>) {
           if (e.hadRecentInput) continue;
           w.__perf.cls += e.value ?? 0;
-          // Qué se movió en el salto más grande, para saber qué corregir.
-          const nodo = e.sources?.find(s => s.node instanceof Element)?.node as Element | undefined;
+          // Qué se movió en el salto más grande, cuánto y cuándo (2026-11-03):
+          // con sólo el elemento, el salto de Influencers no se pudo explicar.
+          const fuente = e.sources?.find(s => s.node instanceof Element);
+          const nodo = fuente?.node as Element | undefined;
           if (nodo && (e.value ?? 0) > (w.__perf.salto ?? 0)) {
             w.__perf.salto = e.value ?? 0;
-            w.__perf.culpable = `${nodo.tagName.toLowerCase()}.${String(nodo.getAttribute("class") ?? "").slice(0, 60)} «${(nodo.textContent ?? "").trim().slice(0, 40)}»`;
+            const antes = fuente?.previousRect;
+            const despues = fuente?.currentRect;
+            const movimiento = antes && despues
+              ? ` y ${Math.round(antes.top)}→${Math.round(despues.top)}, alto ${Math.round(antes.height)}→${Math.round(despues.height)}, a los ${Math.round(e.startTime)} ms`
+              : "";
+            w.__perf.culpable = `${nodo.tagName.toLowerCase()}.${String(nodo.getAttribute("class") ?? "").slice(0, 60)} «${(nodo.textContent ?? "").trim().slice(0, 40)}»${movimiento}`;
           }
         }
       }).observe({ type: "layout-shift", buffered: true });

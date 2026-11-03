@@ -667,7 +667,8 @@ export default function EcommerceStorePage() {
         shippingZones: zonasList.length,
         zonesWithRates: zonasList.filter(z => conTarifa.has(z.id)).length,
         coveredProvinces: provincias.size,
-        paymentConnected: cobro.connected,
+        // El mismo criterio que la base al publicar (gestiona_pay_listo).
+        paymentConnected: cobro.listoParaCobrar,
         legalPages: {
           missingOrTemplate: estadoLegal.faltantesOPlantilla,
           drafts: estadoLegal.borradores,

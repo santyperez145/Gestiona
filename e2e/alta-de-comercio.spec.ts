@@ -18,7 +18,7 @@ const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 test.skip(!LOCAL, "El alta crea un usuario y un negocio: corre sólo contra la base local del E2E (E2E_LOCAL=true).");
 
 test("un comercio nuevo se registra, confirma su correo y entra a su panel", async ({ page, request }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(300_000);
   const sufijo = Date.now().toString(36);
   const email = `alta-${sufijo}@nerqia.test`;
   const nombre = `ZZ Alta ${sufijo}`;
@@ -162,7 +162,31 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await foto(vidriera, "comprador-tienda");
   await vidriera.setViewportSize({ width: 390, height: 844 });
   await foto(vidriera, "comprador-tienda-celular");
+
+  // 9. La primera venta (2026-11-03): el comprador compra por transferencia y
+  // retira en el local, ve a quién transferir, y el comercio recibe el pedido.
+  // Es la promesa de la landing completa: «creá tu tienda y vendé hoy».
+  await vidriera.getByText(new RegExp(producto, "i")).filter({ visible: true }).first().click();
+  await vidriera.getByTestId("product-add-to-cart").click();
+  await vidriera.goto(`/tienda/${slug}/checkout`);
+  await expect(vidriera.getByText("Retirás en tienda").first()).toBeVisible({ timeout: 30_000 });
+  await vidriera.getByLabel("Nombre y apellido *").fill("ZZ Primer Comprador");
+  await vidriera.getByLabel("Email *", { exact: true }).fill(`comprador-${sufijo}@nerqia.test`);
+  const transferencia = vidriera.getByLabel("Transferencia bancaria");
+  if (await transferencia.count()) await transferencia.check();
+  await foto(vidriera, "comprador-checkout");
+  const finalizar = vidriera.getByRole("button", { name: /Finalizar compra/ }).filter({ visible: true });
+  await expect(finalizar).toBeEnabled({ timeout: 20_000 });
+  await finalizar.click();
+  await expect(vidriera.getByRole("heading", { name: "¡Gracias por tu compra!" })).toBeVisible({ timeout: 30_000 });
+  // Sin el alias el pedido diría «te escribimos»: la primera venta no se cobra sola.
+  await expect(vidriera.getByText(`zz.alta.${sufijo}`).first()).toBeVisible({ timeout: 20_000 });
+  await foto(vidriera, "comprador-gracias");
   await comprador.close();
+
+  await page.goto("/pedidos-online");
+  await expect(page.getByText("ZZ Primer Comprador").filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
+  await foto(page, "comercio-primer-pedido");
 });
 
 /** Sin infracciones críticas ni graves de WCAG A/AA en la pantalla actual. */
