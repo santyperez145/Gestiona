@@ -17,14 +17,15 @@ const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 
 test.skip(!LOCAL, "El alta crea un usuario y un negocio: corre sólo contra la base local del E2E (E2E_LOCAL=true).");
 
-test("un comercio nuevo se registra, confirma su correo y entra a su panel", async ({ page, request }) => {
+test("un comercio nuevo se registra, confirma su correo y entra a su panel", async ({ page, request }, testInfo) => {
   test.setTimeout(300_000);
   // El recorrido en capturas (2026-11-02): el CI las publica siempre como
   // artefacto, para revisar la experiencia de un comercio nuevo paso a paso.
   let paso = 0;
   const foto = async (p: import("@playwright/test").Page, nombre: string) => {
     paso += 1;
-    await p.screenshot({ path: `recorrido/${String(paso).padStart(2, "0")}-${nombre}.png`, fullPage: true }).catch(() => undefined);
+    const prefijo = testInfo.project.name === "alta-celular" ? "celular-" : "";
+    await p.screenshot({ path: `recorrido/${prefijo}${String(paso).padStart(2, "0")}-${nombre}.png`, fullPage: true }).catch(() => undefined);
   };
 
   // 1 a 4. Registro, mail de confirmación, confirmar y entrar.

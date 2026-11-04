@@ -99,6 +99,15 @@ export default defineConfig({
       testMatch: "**/alta-de-comercio.spec.ts",
       use: { ...devices["Desktop Chrome"] },
     },
+    // El mismo primer día en un celular (2026-11-04): la mayoría de los
+    // comercios chicos arman y atienden su negocio desde el teléfono. Sólo el
+    // camino de la tienda online; la caja en celular tiene su propio cajón.
+    {
+      name: "alta-celular",
+      testMatch: "**/alta-de-comercio.spec.ts",
+      grep: /se registra, confirma su correo/,
+      use: { ...devices["Pixel 7"] },
+    },
     // Escala de Famatina (5.500 productos): un paso aparte del workflow, con
     // la semilla `scripts/semilla-escala-local.mjs` corrida antes.
     {
