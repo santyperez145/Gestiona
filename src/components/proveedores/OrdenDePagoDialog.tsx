@@ -22,6 +22,7 @@ import {
   type CalculoRetencion, type ImputacionForm, type MedioDePago, type MedioForm, type RetencionImpresa,
 } from "@/lib/ordenDePago";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 const ars = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 type Cheque = { id: string; check_number: string | null; bank_name: string | null; amount_ars: number; due_date: string; customer_name: string | null };
 export interface DeudaParaPagar { id: string; description: string; remaining_ars: number }
@@ -113,7 +114,7 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
     if (!orgId || !proveedor || errores.length) return;
     // La ventana se abre en el clic: después de esperar a la base, el navegador la bloquea.
     const ventana = window.open("", "_blank", "width=820,height=980");
-    ventana?.document.write(`<!doctype html><meta charset="utf-8"><title>Orden de pago</title><p style="font:14px Arial;padding:24px">Preparando la orden de pago…</p>`);
+    if (ventana) escribirParaImprimir(ventana, `<!doctype html><meta charset="utf-8"><title>Orden de pago</title><p style="font:14px Arial;padding:24px">Preparando la orden de pago…</p>`);
     setEmitiendo(true);
     const { data, error } = await supabase.rpc("emitir_orden_de_pago", {
       p_org: orgId, p_datos: ordenParaEnviar({ supplierId: proveedor.id, clave, notas, imputaciones, medios }) as unknown as Json,
@@ -130,7 +131,7 @@ export default function OrdenDePagoDialog({ open, onOpenChange, orgId, proveedor
     toast.success(`Orden de pago N.º ${r.numero} por ${ars(Number(r.total))} emitida${r.retenciones?.length ? ", con su certificado de retención" : ""}.`);
     if (ventana) {
       ventana.document.open();
-      ventana.document.write(ordenDePagoHtml({
+      escribirParaImprimir(ventana, ordenDePagoHtml({
         numero: r.numero, fecha: hoyAR(), proveedor: proveedor.nombre, proveedorCuit: proveedor.cuit ?? null, total: Number(r.total),
         retenciones: (r.retenciones ?? []).map(x => ({ jurisdiccion: x.jurisdiccion, certificado: Number(x.certificado), base: Number(x.base), alicuota: Number(x.alicuota), importe: Number(x.importe) })),
         notas: notas.trim() || null,

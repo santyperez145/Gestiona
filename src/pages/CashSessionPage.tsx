@@ -27,6 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { summarizePosCashSession } from "@/lib/posCashSession";
 
 import { plural } from "@/lib/plural";
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 // ── Export helpers ────────────────────────────────────────────────────────────
 function printCashReport(
   session: CashSession,
@@ -116,7 +117,7 @@ function printCashReport(
 
   const w = window.open("", "_blank");
   if (!w) { toast.error("Permitir popups para imprimir"); return; }
-  w.document.write(html);
+  escribirParaImprimir(w, html);
   w.document.close();
   w.focus();
   setTimeout(() => { w.print(); }, 300);

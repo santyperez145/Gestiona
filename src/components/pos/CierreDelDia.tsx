@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import CargaManualZ from "@/components/pos/CargaManualZ";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 const NOMBRE_ARCA: Record<number, string> = {
   1: "Factura A", 2: "Nota de Débito A", 3: "Nota de Crédito A", 6: "Factura B", 7: "Nota de Débito B", 8: "Nota de Crédito B",
   11: "Factura C", 12: "Nota de Débito C", 13: "Nota de Crédito C", 19: "Factura E", 20: "Nota de Débito E", 21: "Nota de Crédito E",
@@ -83,7 +84,7 @@ function imprimirInforme(titulo: string, subtitulo: string, comprobantes: Compro
     <td style="text-align:right">${formatARS(Number(c.total))}</td></tr>`).join("");
   const w = window.open("", "_blank");
   if (!w) { toast.error("Permití las ventanas emergentes para imprimir"); return; }
-  w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${titulo}</title>
+  escribirParaImprimir(w, `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${titulo}</title>
 <style>body{font-family:system-ui,sans-serif;margin:24px;color:#111;font-size:12px}h1{font-size:18px;margin:0}p{color:#555;margin:2px 0 14px}
 table{width:100%;border-collapse:collapse}th,td{padding:5px 6px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}
 th{background:#f3f4f6;font-size:10px;text-transform:uppercase}.tot{margin-top:14px;font-size:14px;font-weight:700}</style></head><body>

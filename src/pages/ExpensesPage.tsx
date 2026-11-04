@@ -47,6 +47,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import EmptyState from "@/components/shared/EmptyState";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 function ExpenseReceiptLink({
   reference,
   compact = false,
@@ -141,7 +142,7 @@ function printExpensesReport(expenses: any[], getCategoryLabel: (c: string) => s
   </body></html>`;
   const w = window.open('', '_blank');
   if (!w) return;
-  w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
+  escribirParaImprimir(w, html); w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
 }
 
 export default function ExpensesPage() {

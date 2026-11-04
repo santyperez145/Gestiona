@@ -34,6 +34,7 @@ import {
   ReceiptText, RefreshCw, RotateCcw, Search, ShieldCheck, Split,
 } from "lucide-react";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 type ReturnOperation = Database["public"]["Views"]["sales_return_operations"]["Row"];
 type ReturnRefund = Database["public"]["Tables"]["sales_return_refunds"]["Row"];
 type SaleSearchResult = Pick<Database["public"]["Tables"]["sales"]["Row"],
@@ -337,7 +338,7 @@ export default function DevolucionesPage() {
     </style></head><body><div class="eyebrow">Nerqia · operación interna</div><h1>Comprobante interno de devolución</h1><div class="muted">${escapeHtml(date)} · ID ${escapeHtml(operation.id ?? "—")}</div><div class="card"><div class="row"><span>Productos</span><strong>${escapeHtml(operation.product_names ?? "—")}</strong></div><div class="row"><span>Unidades</span><strong>${numeric(operation.units)}</strong></div><div class="row"><span>Motivo</span><strong>${escapeHtml(operation.reason ?? "—")}</strong></div><div class="row"><span>Estado</span><strong>${escapeHtml(salesReturnStatusLabel(operation.status))}</strong></div><div class="row"><span>Monto</span><strong class="total">${escapeHtml(formatARS(numeric(operation.refund_amount)))}</strong></div></div><div class="warning"><strong>No es una nota de crédito fiscal.</strong><br>No reemplaza un comprobante fiscal autorizado por ARCA. Si la venta tenía CAE, emití la nota de crédito desde Facturación.</div></body></html>`;
     const popup = window.open("", "_blank", "width=760,height=680");
     if (!popup) { toast.error("El navegador bloqueó la ventana de impresión"); return; }
-    popup.document.write(html); popup.document.close(); popup.focus(); popup.print();
+    escribirParaImprimir(popup, html); popup.document.close(); popup.focus(); popup.print();
   };
 
   const filtered = useMemo(() => operations.filter((operation) => {

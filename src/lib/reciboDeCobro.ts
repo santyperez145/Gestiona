@@ -13,6 +13,7 @@ import type { CobroCuentaCorriente } from "@/lib/supabaseStore";
 import { escapePrintHtml as esc } from "@/lib/saleReceipt";
 import { MEDIOS_DE_COBRO, MEDIO_SALDO_A_FAVOR } from "@/lib/cuentaCorriente";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 export interface ReciboDeCobro {
   numero: string;
   fecha: string;
@@ -108,7 +109,7 @@ export function textoDeRecibo(r: ReciboDeCobro): string {
 export function imprimirRecibo(r: ReciboDeCobro): void {
   const ventana = window.open("", "_blank", "width=620,height=760");
   if (!ventana) throw new Error("Permití las ventanas emergentes para imprimir el recibo.");
-  ventana.document.write(reciboHtml(r));
+  escribirParaImprimir(ventana, reciboHtml(r));
   ventana.document.close();
   ventana.focus();
   ventana.addEventListener("afterprint", () => ventana.close(), { once: true });

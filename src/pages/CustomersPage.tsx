@@ -58,6 +58,7 @@ import { findCustomerDuplicates, type DuplicateCluster } from "@/lib/customerDup
 import { plural } from "@/lib/plural";
 import CustomerFiscalFields from "@/components/customers/CustomerFiscalFields";
 import { columnasIdentidadFiscal, errorIdentidadFiscal, identidadFiscalDesde } from "@/lib/customerFiscal";
+import { escaparHtml, escribirParaImprimir } from "@/lib/impresionSegura";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -1231,7 +1232,7 @@ function exportCustomer360PDF(c: any, recentSales: any[], businessName: string) 
   const salesRows = recentSales.slice(0, 10).map(s => `
     <tr>
       <td>${fechaLocal(s.date).toLocaleDateString('es-AR')}</td>
-      <td>${s.product_name || '—'}</td>
+      <td>${escaparHtml(s.product_name || '—')}</td>
       <td>${s.quantity || 1}</td>
       <td>${fmt(Number(s.total_ars))}</td>
       <td>${fmt(Number(s.profit_ars))}</td>
@@ -1243,7 +1244,7 @@ function exportCustomer360PDF(c: any, recentSales: any[], businessName: string) 
   const healthColor = c.healthScore >= 80 ? '#eab308' : c.healthScore >= 60 ? '#22c55e' : c.healthScore >= 40 ? '#3b82f6' : c.healthScore >= 20 ? '#f97316' : '#ef4444';
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>Ficha — ${c.name}</title>
+<title>Ficha — ${escaparHtml(c.name)}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1a1a2e; padding: 24px; font-size: 12px; }
@@ -1273,14 +1274,14 @@ function exportCustomer360PDF(c: any, recentSales: any[], businessName: string) 
   @media print { body { padding: 0; } }
 </style></head><body>
 <div class="header">
-  <div><h1>${c.name}</h1><p style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">${businessName}</p></div>
+  <div><h1>${escaparHtml(c.name)}</h1><p style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">${escaparHtml(businessName)}</p></div>
   <div class="meta"><p>Ficha 360°</p><p>${today}</p></div>
 </div>
 <div class="subheader">
   <span class="badge" style="background:${segColor}20;color:${segColor};border:1px solid ${segColor}40">${c.segment || 'Sin segmento'}</span>
-  ${c.company ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">🏢 ${c.company}</span>` : ''}
-  ${c.email ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">✉ ${c.email}</span>` : ''}
-  ${c.phone ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">📞 ${c.phone}</span>` : ''}
+  ${c.company ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">🏢 ${escaparHtml(c.company)}</span>` : ''}
+  ${c.email ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">✉ ${escaparHtml(c.email)}</span>` : ''}
+  ${c.phone ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">📞 ${escaparHtml(c.phone)}</span>` : ''}
 </div>
 
 <div class="kpis">
@@ -1309,11 +1310,11 @@ ${recentSales.length > 0 ? `
   </table>
 </div>` : ''}
 
-<div class="footer">${businessName} · Ficha generada el ${today} · Uso interno</div>
+<div class="footer">${escaparHtml(businessName)} · Ficha generada el ${today} · Uso interno</div>
 </body></html>`;
 
   const w = window.open('', '_blank', 'width=900,height=700');
-  if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 600); }
+  if (w) { escribirParaImprimir(w, html); w.document.close(); setTimeout(() => w.print(), 600); }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1377,9 +1378,9 @@ function exportAccountStatementPDF(
     runningBalance += t.debit - t.credit;
     const balanceClass = runningBalance > 0 ? 'color:#ef4444' : runningBalance < 0 ? 'color:#16a34a' : '';
     return `<tr>
-      <td>${t.date}</td>
-      <td>${t.ref}</td>
-      <td>${t.desc}</td>
+      <td>${escaparHtml(t.date)}</td>
+      <td>${escaparHtml(t.ref)}</td>
+      <td>${escaparHtml(t.desc)}</td>
       <td style="text-align:right">${t.debit > 0 ? fmt(t.debit) : '—'}</td>
       <td style="text-align:right;color:#16a34a">${t.credit > 0 ? fmt(t.credit) : '—'}</td>
       <td style="text-align:right;font-weight:600;${balanceClass}">${fmt(runningBalance)}</td>
@@ -1391,7 +1392,7 @@ function exportAccountStatementPDF(
   const totalBalance = totalPurchased - totalPaid;
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>Estado de Cuenta — ${c.name}</title>
+<title>Estado de Cuenta — ${escaparHtml(c.name)}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1a1a2e; padding: 24px; font-size: 12px; }
@@ -1419,7 +1420,7 @@ function exportAccountStatementPDF(
 </style></head><body>
 <div class="header">
   <div class="header-left">
-    <h1>${businessName}</h1>
+    <h1>${escaparHtml(businessName)}</h1>
     <p>Sistema de Gestión · Generado el ${today}</p>
   </div>
   <div class="header-right">
@@ -1428,10 +1429,10 @@ function exportAccountStatementPDF(
   </div>
 </div>
 <div class="subheader">
-  <div class="sub-item"><div class="label">Cliente</div><div class="value">${c.name}</div></div>
-  ${c.company ? `<div class="sub-item"><div class="label">Empresa</div><div class="value">${c.company}</div></div>` : ''}
-  ${c.email ? `<div class="sub-item"><div class="label">Email</div><div class="value">${c.email}</div></div>` : ''}
-  ${c.phone ? `<div class="sub-item"><div class="label">Teléfono</div><div class="value">${c.phone}</div></div>` : ''}
+  <div class="sub-item"><div class="label">Cliente</div><div class="value">${escaparHtml(c.name)}</div></div>
+  ${c.company ? `<div class="sub-item"><div class="label">Empresa</div><div class="value">${escaparHtml(c.company)}</div></div>` : ''}
+  ${c.email ? `<div class="sub-item"><div class="label">Email</div><div class="value">${escaparHtml(c.email)}</div></div>` : ''}
+  ${c.phone ? `<div class="sub-item"><div class="label">Teléfono</div><div class="value">${escaparHtml(c.phone)}</div></div>` : ''}
 </div>
 
 <div class="summary-grid">
@@ -1474,12 +1475,12 @@ ${transactions.length > 0 ? `
 </table>` : '<p style="color:#9ca3af;font-size:12px">Sin movimientos registrados.</p>'}
 
 <div class="footer">
-  ${businessName} · Estado de cuenta al ${today} · Documento generado automáticamente · No requiere firma
+  ${escaparHtml(businessName)} · Estado de cuenta al ${today} · Documento generado automáticamente · No requiere firma
 </div>
 </body></html>`;
 
   const w = window.open('', '_blank', 'width=960,height=720');
-  if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 600); }
+  if (w) { escribirParaImprimir(w, html); w.document.close(); setTimeout(() => w.print(), 600); }
 }
 
 // ─────────────────────────────────────────────────────────────

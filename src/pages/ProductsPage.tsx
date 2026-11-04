@@ -107,6 +107,7 @@ import ProductPresentationsEditor from "@/components/products/ProductPresentatio
 import ProductSeoSection from "@/components/products/ProductSeoSection";
 import ProductPreventaSection from "@/components/products/ProductPreventaSection";
 import { camposDelRubro } from "@/lib/rubroCampos";
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
 
@@ -175,7 +176,7 @@ function exportPriceLabels(products: any[], businessName: string) {
 <div class="grid">${rows}</div>
 </body></html>`;
   const w = window.open('', '_blank', 'width=900,height=700');
-  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
+  if (w) { escribirParaImprimir(w, html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
 }
 
 function exportQRLabels(products: any[], businessName: string) {
@@ -217,7 +218,7 @@ function exportQRLabels(products: any[], businessName: string) {
 <div class="grid">${rows}</div>
 </body></html>`;
   const w = window.open('', '_blank', 'width=900,height=700');
-  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
+  if (w) { escribirParaImprimir(w, html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
 }
 
 function printAgingPDF(aged: { name: string; stock: number; daysSince: number; valueARS: number }[], businessName: string, exchangeRate: number) {
@@ -243,7 +244,7 @@ function printAgingPDF(aged: { name: string; stock: number; daysSince: number; v
   <tfoot><tr><td colspan="3">TOTAL</td><td style="text-align:right">U$S ${(totalValue / exchangeRate).toFixed(0)}</td><td></td></tr></tfoot>
   </table></body></html>`;
   const w = window.open('', '_blank');
-  if (w) { w.document.write(html); w.document.close(); w.print(); }
+  if (w) { escribirParaImprimir(w, html); w.document.close(); w.print(); }
 }
 
 function exportPriceListPDF(products: any[], businessName: string) {
@@ -291,7 +292,7 @@ function exportPriceListPDF(products: any[], businessName: string) {
 <div class="footer">Precios en pesos argentinos (ARS). Sujetos a cambios sin previo aviso.</div>
 </body></html>`;
   const w = window.open('', '_blank');
-  if (w) { w.document.write(html); w.document.close(); w.print(); }
+  if (w) { escribirParaImprimir(w, html); w.document.close(); w.print(); }
 }
 
 async function exportProductsXLSX(products: any[], settings: any) {

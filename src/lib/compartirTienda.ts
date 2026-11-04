@@ -50,6 +50,5 @@ export function cartelImprimible(input: { nombreTienda: string; url: string; qr:
   <img src="${input.qr}" alt="Código QR de la tienda">
   <p class="url">${url}</p>
 </main>
-<script>window.addEventListener("load", function () { window.print(); });</script>
 </body></html>`;
 }

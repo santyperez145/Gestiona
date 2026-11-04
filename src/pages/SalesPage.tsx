@@ -46,6 +46,7 @@ import DocumentosDeLaVenta from "@/components/sales/DocumentosDeLaVenta";
 
 import { plural } from "@/lib/plural";
 import ProductCombobox from "@/components/shared/ProductCombobox";
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 const PAGE_SIZE = 20;
 
 const PAYMENT_METHODS = [
@@ -774,7 +775,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
 </div>
 </body></html>`;
     const w = window.open("", "_blank", "width=440,height=660");
-    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 200); }
+    if (w) { escribirParaImprimir(w, html); w.document.close(); w.focus(); setTimeout(() => w.print(), 200); }
   };
 
   const exportSalesCSV = () => {
@@ -868,7 +869,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
 </table>
 </body></html>`;
     const w = window.open('', '_blank', 'width=800,height=600');
-    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 400); }
+    if (w) { escribirParaImprimir(w, html); w.document.close(); w.focus(); setTimeout(() => w.print(), 400); }
   };
 
   const unpaidPaged = paged.filter(s => !s.paid);

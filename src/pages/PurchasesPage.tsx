@@ -33,6 +33,7 @@ import {
   type Compra, type FacturaLeida, type FilaDeCompra,
 } from "@/lib/compras";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 /**
  * Compras (rearmada 2026-10-14, pedido del dueño: «además de lo visual, tienen
  * funciones totalmente legacy o incoherentes»). Lo que había:
@@ -199,7 +200,7 @@ export default function PurchasesPage() {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Compras</title><style>body{font-family:Arial,sans-serif;margin:20px;color:#111}h1{font-size:16px;margin:0}p{font-size:11px;color:#666}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{font-size:10px;padding:4px 6px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}th{background:#f6f6f6;color:#555}</style></head><body><h1>Compras · ${esc(activeOrg?.name ?? "")}</h1><p>${esc(periodo)} · ${filtradas.length} compras · ${esc(formatARS(totalPeriodo))}</p><table><thead><tr><th>Fecha</th><th>Comprobante</th><th>Proveedor</th><th>Productos</th><th style="text-align:right">Total</th><th>Pago</th></tr></thead><tbody>${filas}</tbody></table></body></html>`;
     const w = window.open("", "_blank");
     if (!w) { toast.error("El navegador bloqueó la ventana de impresión"); return; }
-    w.document.write(html);
+    escribirParaImprimir(w, html);
     w.document.close();
     setTimeout(() => w.print(), 300);
   };

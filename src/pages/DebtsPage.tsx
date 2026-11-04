@@ -28,6 +28,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import EmptyState from "@/components/shared/EmptyState";
 import { mensajeDeuda, plantillaDeuda } from "@/lib/waTemplates";
+import { escaparHtml, escribirParaImprimir } from "@/lib/impresionSegura";
 function waDebtLink(d: any, orgId?: string) {
   const msg = mensajeDeuda(plantillaDeuda(orgId), d.customer_name, formatARS(Number(d.remaining_ars)));
   return `https://wa.me/?text=${encodeURIComponent(msg)}`;
@@ -185,8 +186,8 @@ export default function DebtsPage() {
         const isOver = d.due_date && new Date(d.due_date + "T12:00:00") < new Date();
         const daysOver = d.due_date ? Math.ceil((new Date().getTime() - new Date(d.due_date + "T12:00:00").getTime()) / 86400000) : 0;
         return `<tr style="${isOver ? 'color:#ef4444;' : ''}">
-          <td>${d.customer_name || '—'}</td>
-          <td>${d.product_name || '—'}</td>
+          <td>${escaparHtml(d.customer_name || '—')}</td>
+          <td>${escaparHtml(d.product_name || '—')}</td>
           <td style="text-align:right">$${Number(d.amount_ars).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
           <td style="text-align:right;font-weight:bold">$${Number(d.remaining_ars).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
           <td>${d.date ? fechaLocal(d.date).toLocaleDateString("es-AR") : "—"}</td>
@@ -224,7 +225,7 @@ export default function DebtsPage() {
     </body></html>`;
     const w = window.open("", "_blank", "width=900,height=700");
     if (!w) return;
-    w.document.write(html);
+    escribirParaImprimir(w, html);
     w.document.close();
     w.focus();
     setTimeout(() => w.print(), 400);

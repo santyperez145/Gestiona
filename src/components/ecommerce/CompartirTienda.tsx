@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { archivoDelQr, cartelImprimible, enlaceWhatsApp, mensajeParaCompartir } from "@/lib/compartirTienda";
 
+import { escaparHtml, escribirParaImprimir } from "@/lib/impresionSegura";
 /**
  * Compartí tu tienda (2026-11-02): link, WhatsApp, QR y cartel para el
  * mostrador. Se ve mientras la tienda publicada no tiene su primera venta, que
@@ -61,8 +62,10 @@ export default function CompartirTienda({ url, nombreTienda, destacado = false }
     const imagen = await generarQr();
     if (!imagen) { ventana.close(); return; }
     ventana.document.open();
-    ventana.document.write(cartelImprimible({ nombreTienda, url, qr: imagen }));
-    ventana.document.close();
+    escribirParaImprimir(ventana, cartelImprimible({ nombreTienda, url, qr: imagen }));
+    // La ventana no corre scripts propios (impresionSegura): imprime el panel.
+    ventana.focus();
+    window.setTimeout(() => ventana.print(), 300);
   };
 
   return (

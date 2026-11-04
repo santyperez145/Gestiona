@@ -1,5 +1,6 @@
 import type { SaleTicketDetail } from "@/lib/saleTicketDetail";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 export function escapePrintHtml(value: unknown): string {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -50,7 +51,7 @@ export function buildSaleReceiptHtml(detail: SaleTicketDetail, businessName: str
 export function printSaleReceipt(detail: SaleTicketDetail, businessName: string): void {
   const popup = window.open("", "_blank", "width=420,height=680");
   if (!popup) throw new Error("Permití las ventanas emergentes para imprimir el ticket.");
-  popup.document.write(buildSaleReceiptHtml(detail, businessName));
+  escribirParaImprimir(popup, buildSaleReceiptHtml(detail, businessName));
   popup.document.close();
   popup.focus();
   popup.addEventListener("afterprint", () => popup.close(), { once: true });

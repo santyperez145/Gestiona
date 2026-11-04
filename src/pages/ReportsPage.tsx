@@ -35,6 +35,7 @@ import { plural } from "@/lib/plural";
 // Tema central de gráficos: la paleta vive acá para que Reports no hardcodee.
 import { chartColors, chartPalette, chartTooltipStyle } from "@/lib/chartTheme";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 function reportErrorMessage(cause: unknown, fallback: string) {
   if (cause instanceof Error && cause.message) return cause.message;
   if (typeof cause === "object" && cause && "message" in cause && typeof cause.message === "string") return cause.message;
@@ -61,7 +62,7 @@ function exportPDF(title: string, headers: string[], rows: string[][]) {
   const tableHtml = `<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">${style}</head><body><h1>${title}</h1><p>Generado: ${new Date().toLocaleDateString('es-AR')}</p>${tableHtml}<div class="footer">Sistema de Gestión</div></body></html>`;
   const w = window.open('', '_blank');
-  if (w) { w.document.write(html); w.document.close(); w.print(); }
+  if (w) { escribirParaImprimir(w, html); w.document.close(); w.print(); }
 }
 
 type PeriodKey = 'current_month' | 'last_month' | 'quarter' | 'year' | 'all';
@@ -1699,7 +1700,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
 <div class="disclaimer">Este reporte es orientativo. Consultá con tu contador para declaraciones oficiales ante AFIP. Sistema Nerqia.</div>
 </body></html>`;
             const w = window.open('', '_blank');
-            if (w) { w.document.write(html); w.document.close(); w.print(); }
+            if (w) { escribirParaImprimir(w, html); w.document.close(); w.print(); }
           }}>
             <FileDown className="w-3.5 h-3.5 mr-1.5" />PDF Contador
           </Button>
@@ -3185,7 +3186,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
 <body><h1>Comparativa de Períodos</h1><p>Generado: ${new Date().toLocaleDateString('es-AR')}</p>
 <table><thead><tr><th>Métrica</th><th>Período A<br/><small style="font-weight:400;color:#888">${labelA}</small></th><th>Período B<br/><small style="font-weight:400;color:#888">${labelB}</small></th><th>Variación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`;
           const w = window.open('', '_blank');
-          if (w) { w.document.write(html); w.document.close(); w.print(); }
+          if (w) { escribirParaImprimir(w, html); w.document.close(); w.print(); }
         }}>
           <FileDown className="w-3.5 h-3.5 mr-1.5" />Imprimir / PDF
         </Button>
@@ -3505,7 +3506,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
 </table>
 </body></html>`;
     const w = window.open('', '_blank', 'width=900,height=600');
-    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 500); }
+    if (w) { escribirParaImprimir(w, html); w.document.close(); w.focus(); setTimeout(() => w.print(), 500); }
   };
 
   return (

@@ -14,6 +14,7 @@ import { condicionIvaLabel, fechaFiscalArgentina, numeroFiscal } from "@/lib/arc
 import { formatearCuit, validarCuit, validarDni } from "@/lib/fiscalIdentity";
 import { csvCell } from "@/lib/csv";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 export type EstadoRemito = "emitido" | "entregado" | "anulado";
 
 export interface RemitoItem {
@@ -400,13 +401,13 @@ export function remitoHtml(r: Remito, emisor: EmisorDelRemito): string {
  */
 export function abrirVentanaDeRemito(): Window | null {
   const ventana = window.open("", "_blank", "width=820,height=980");
-  if (ventana) ventana.document.write(`<!doctype html><meta charset="utf-8"><title>Remito</title><p style="font:14px Arial;padding:24px">Preparando el remito…</p>`);
+  if (ventana) escribirParaImprimir(ventana, `<!doctype html><meta charset="utf-8"><title>Remito</title><p style="font:14px Arial;padding:24px">Preparando el remito…</p>`);
   return ventana;
 }
 
 export function imprimirEnVentana(ventana: Window, r: Remito, emisor: EmisorDelRemito): void {
   ventana.document.open();
-  ventana.document.write(remitoHtml(r, emisor));
+  escribirParaImprimir(ventana, remitoHtml(r, emisor));
   ventana.document.close();
   ventana.focus();
   ventana.addEventListener("afterprint", () => ventana.close(), { once: true });

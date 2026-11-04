@@ -38,6 +38,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import DespacharEnPartes from "@/components/ecommerce/DespacharEnPartes";
 import type { ParteDelPedido } from "@/lib/despachoEnPartes";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 export interface OrderForShipment {
   id: string;
   order_number: string;
@@ -226,7 +227,7 @@ export default function OrderShipmentDialog({
 
     const w = window.open("", "_blank", "width=420,height=620");
     if (!w) { toast.error("El navegador bloqueó la ventana de impresión"); return; }
-    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8">
+    escribirParaImprimir(w, `<!doctype html><html lang="es"><head><meta charset="utf-8">
 <title>Etiqueta ${esc(order.order_number)}</title>
 <style>
   @page { size: 10cm 15cm; margin: 6mm; }

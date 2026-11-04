@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Download, Printer } from "lucide-react";
 import { toast } from "sonner";
 
+import { escribirParaImprimir } from "@/lib/impresionSegura";
 interface BarcodeLabelProps {
   value: string;
   label?: string;
@@ -80,7 +81,7 @@ export default function BarcodeLabel({ value, label, format: initialFormat = "CO
     const displayLabel = label || currentValue;
     const w = window.open("", "_blank", "width=800,height=600");
     if (!w) { toast.error("Bloqueó ventana emergente"); return; }
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiqueta — ${displayLabel}</title>
+    escribirParaImprimir(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiqueta — ${displayLabel}</title>
 <style>
   @page { margin: 8mm; }
   body { font-family: Arial, sans-serif; display: flex; flex-wrap: wrap; gap: 6mm; padding: 4mm; background: #fff; }
@@ -170,7 +171,7 @@ export function BarcodePrintSheet({ products, onClose }: BarcodePrintSheetProps)
     const html = containerRef.current.innerHTML;
     const w = window.open("", "_blank");
     if (!w) { toast.error("Bloqueó ventana emergente"); return; }
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas de código de barras</title>
+    escribirParaImprimir(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas de código de barras</title>
 <style>
   @page { margin: 8mm; }
   body { font-family: Arial, sans-serif; margin: 0; background: #fff; }
