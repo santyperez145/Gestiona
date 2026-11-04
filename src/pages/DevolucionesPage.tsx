@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 
 import { escribirParaImprimir } from "@/lib/impresionSegura";
+import { csvCell } from "@/lib/csv";
 type ReturnOperation = Database["public"]["Views"]["sales_return_operations"]["Row"];
 type ReturnRefund = Database["public"]["Tables"]["sales_return_refunds"]["Row"];
 type SaleSearchResult = Pick<Database["public"]["Tables"]["sales"]["Row"],
@@ -357,7 +358,7 @@ export default function DevolucionesPage() {
     const rows = filtered.map((item) => [new Date(item.created_at ?? Date.now()).toLocaleString("es-AR"),
       item.id, item.product_names, item.units, item.refund_amount, item.completed_amount,
       item.pending_amount, salesReturnStatusLabel(item.status), item.reason]
-      .map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`).join(","));
+      .map(csvCell).join(","));
     const url = URL.createObjectURL(new Blob([`\ufeff${[headers.join(","), ...rows].join("\n")}`],
       { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a"); anchor.href = url;

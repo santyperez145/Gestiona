@@ -26,6 +26,7 @@ import CustomerSegmentsTab from "@/components/customers/CustomerSegmentsTab";
 import AILeadScoringWidget from "@/components/customers/AILeadScoringWidget";
 
 import { plural } from "@/lib/plural";
+import { csvCell } from "@/lib/csv";
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Sale {
   customer_id: string | null;
@@ -293,7 +294,9 @@ export default function SegmentosView() {
       c.name, c.email, SEGMENTS[c.segment].label,
       c.recencyDays, c.frequency, c.monetary, c.rScore, c.fScore, c.mScore,
     ]);
-    const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
+    // csvCell (2026-11-04): el nombre y el email los escribe el comprador; sin
+    // esto, una coma partía la fila y un «=…» se ejecutaba en Excel.
+    const csv = [headers, ...rows].map(r => r.map(csvCell).join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = "rfm_clientes.csv";

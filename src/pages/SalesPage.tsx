@@ -47,6 +47,7 @@ import DocumentosDeLaVenta from "@/components/sales/DocumentosDeLaVenta";
 import { plural } from "@/lib/plural";
 import ProductCombobox from "@/components/shared/ProductCombobox";
 import { escribirParaImprimir } from "@/lib/impresionSegura";
+import { csvCell } from "@/lib/csv";
 const PAGE_SIZE = 20;
 
 const PAYMENT_METHODS = [
@@ -782,9 +783,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${escapePrintHtml(
     const header = ['Fecha', 'Producto', 'Cliente', 'Vendedor', 'Cantidad', 'P.Unit (ARS)', 'Total (ARS)', 'Ganancia (ARS)', 'Ganancia (USD)', 'Método', 'Cobrado', 'Descuento', 'Facturado'];
     const rows = filtered.map(s => [
       s.date,
-      `"${(s.product_name || '').replace(/"/g, '""')}"`,
-      `"${(s.customer_name || '').replace(/"/g, '""')}"`,
-      `"${((s as any).seller_name || '').replace(/"/g, '""')}"`,
+      csvCell(s.product_name || ''),
+      csvCell(s.customer_name || ''),
+      csvCell((s as any).seller_name || ''),
       s.quantity,
       Number(s.unit_price_ars).toFixed(2),
       Number(s.total_ars).toFixed(2),

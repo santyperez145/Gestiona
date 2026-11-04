@@ -14,8 +14,6 @@ import { toCSV } from "@/lib/orgDataExport";
  */
 const PENDIENTES = new Set([
   "src/components/analytics/ResumenView.tsx",
-  "src/components/crm/SegmentosView.tsx",
-  "src/components/ecommerce/RecoveryLedger.tsx",
   "src/components/ecommerce/StoreOrdersPanel.tsx",
   "src/components/finance/BankReconciliationPanel.tsx",
   "src/components/inventory/ForecastView.tsx",
@@ -27,7 +25,6 @@ const PENDIENTES = new Set([
   "src/pages/AdminPage.tsx",
   "src/pages/BankReconciliationPage.tsx",
   "src/pages/CashSessionPage.tsx",
-  "src/pages/DevolucionesPage.tsx",
   "src/pages/ExpensesPage.tsx",
   "src/pages/FinancialMovementsPage.tsx",
   "src/pages/InventoryValuationPage.tsx",
@@ -38,7 +35,6 @@ const PENDIENTES = new Set([
   "src/pages/ProveedoresPage.tsx",
   "src/pages/PurchasesPage.tsx",
   "src/pages/RemitosPage.tsx",
-  "src/pages/SalesPage.tsx",
 ]);
 
 const HELPER = /csvCell|toCSV|@\/lib\/csv"|@\/lib\/orgDataExport/;

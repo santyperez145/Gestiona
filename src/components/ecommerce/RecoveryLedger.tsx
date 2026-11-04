@@ -15,6 +15,7 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 
+import { csvCell } from "@/lib/csv";
 type LedgerPeriod = "today" | "7d" | "30d" | "90d" | "custom";
 
 interface Props {
@@ -310,7 +311,7 @@ export default function RecoveryLedger({ orgId, storeId, storeSlug }: Props) {
                   e.converted_at || e.updated_at,
                 ]),
               ]
-                .map((r) => r.map((c) => `"${c}"`).join(","))
+                .map((r) => r.map(csvCell).join(","))
                 .join("\n");
               const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
               const url = URL.createObjectURL(blob);
