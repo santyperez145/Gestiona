@@ -131,6 +131,13 @@ async function main() {
        VALUES ($1, $2, 'ZZ Ferretería E2E', true, ARRAY['transferencia'], 'zones', 3500, true, 'Av. ZZ 123, CABA') RETURNING id`, [org.id, SLUG]);
     // Venta minorista y mayorista: la tienda recibe pedidos de cotización.
     await c.query(`UPDATE public.ecommerce_stores SET mayorista_modo = 'mixto' WHERE id = $1`, [tienda.id]);
+    // Un banner inactivo (2026-11-04): sin ninguno, «los banners piden imagen
+    // por archivo» se salteaba siempre y no verificaba nada. Inactivo, no
+    // cambia la vitrina que recorren los specs de la tienda.
+    await c.query(
+      `INSERT INTO public.store_banners (org_id, store_id, image_url, title, alt_text, sort_order, is_active)
+       VALUES ($1, $2, '/landing/storefront-aurea-800.webp', 'ZZ Banner E2E', 'Banner de prueba del E2E', 1, false)`,
+      [org.id, tienda.id]);
     // El comprador con cuenta: su ficha de cliente (la tienda lo reconoce por
     // el email) con saldo a favor, y un producto sólo para su recorrido, así
     // no le cambia el stock a lo que miran los otros specs.
