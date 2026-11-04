@@ -12,6 +12,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       // Arriba al centro y de a dos (2026-11-03): abajo a la derecha tapaban
       // el botón principal de los diálogos y de cada paso guiado.
       position="top-center"
+      // Debajo del encabezado (2026-11-04): arriba de todo tapaban el buscador
+      // de la caja, lo primero que se usa para vender.
+      offset="4.5rem"
+      mobileOffset="4.5rem"
       visibleToasts={2}
       className="toaster group"
       toastOptions={{

@@ -261,8 +261,10 @@ export default function SettingsPage() {
   const [savingPalette, setSavingPalette] = useState(false);
 
   // Payment method discounts
-  const [discountCash, setDiscountCash] = useState('10');
-  const [discountTransfer, setDiscountTransfer] = useState('5');
+  // Sin descuentos de fábrica (2026-11-04): con 10 % y 5 % de arranque, guardar
+  // Ajustes los dejaba puestos sin que el dueño los hubiera elegido.
+  const [discountCash, setDiscountCash] = useState('0');
+  const [discountTransfer, setDiscountTransfer] = useState('0');
   const [discountDebit, setDiscountDebit] = useState('0');
   const [discountCredit, setDiscountCredit] = useState('0');
   const [whatsappNumber, setWhatsappNumber] = useState('');
@@ -483,8 +485,8 @@ export default function SettingsPage() {
     setCatalogCard(s.catalog_card_color || 'hsl(var(--card))');
     setCatalogAccent(s.catalog_accent_color || s.primary_color || 'hsl(var(--primary))');
     setBrandPalettes(Array.isArray(s.brand_palettes) ? s.brand_palettes : []);
-    setDiscountCash(String(s.discount_cash_percent ?? 10));
-    setDiscountTransfer(String(s.discount_transfer_percent ?? 5));
+    setDiscountCash(String(s.discount_cash_percent ?? 0));
+    setDiscountTransfer(String(s.discount_transfer_percent ?? 0));
     setDiscountDebit(String(s.discount_debit_percent ?? 0));
     setDiscountCredit(String(s.discount_credit_percent ?? 0));
     setWhatsappNumber(s.whatsapp_number || '');

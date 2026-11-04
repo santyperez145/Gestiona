@@ -3233,7 +3233,7 @@ export default function POSPage() {
           {cart.length > 0 && (
             // 2026-11-03: «Guardar» usaba Undo2, el mismo ícono que «Devolver».
             <button type="button" onClick={saveCurrentOrder} className="text-xs text-muted-foreground hover:text-yellow-400 flex items-center gap-1" title="Guardar carrito para después">
-              <Bookmark className="w-3 h-3" aria-hidden="true" />Guardar <kbd className="hidden text-[9px] opacity-60 lg:inline">F7</kbd>
+              <Bookmark className="w-3 h-3" aria-hidden="true" />Guardar <kbd className="hidden text-[9px] lg:inline">F7</kbd>
             </button>
           )}
           {cart.length > 0 && (
@@ -3511,7 +3511,7 @@ export default function POSPage() {
         )}
         <div className="flex items-center gap-1.5">
           <Button type="button" size="sm" variant="outline" className="h-8 shrink-0 text-xs" data-tour="pos-cliente" onClick={() => setCustomerPickerOpen(true)}>
-            <User className="mr-1 h-3.5 w-3.5" />{posCustomer ? "Cambiar cliente" : "Elegir cliente"}<kbd className="ml-1 hidden text-[9px] opacity-60 lg:inline">F3</kbd>
+            <User className="mr-1 h-3.5 w-3.5" />{posCustomer ? "Cambiar cliente" : "Elegir cliente"}<kbd className="ml-1 hidden text-[9px] lg:inline">F3</kbd>
           </Button>
           {posCustomer ? (
             <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-xs">
@@ -3984,7 +3984,7 @@ export default function POSPage() {
           {submitting ? (
             <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />{payMethod === "qr" && !splitMode ? "Preparando QR..." : "Registrando..."}</>
           ) : (
-            <>{payMethod === "qr" && !splitMode ? <QrCode className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}{payMethod === "qr" && !splitMode ? "Generar QR y cobrar" : "Confirmar venta"} <span className="ml-auto hidden text-[10px] opacity-60 font-normal lg:inline">F9</span></>
+            <>{payMethod === "qr" && !splitMode ? <QrCode className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}{payMethod === "qr" && !splitMode ? "Generar QR y cobrar" : "Confirmar venta"} <span className="ml-auto hidden text-[10px] opacity-90 font-normal lg:inline">F9</span></>
           )}
         </Button>
       </div>
