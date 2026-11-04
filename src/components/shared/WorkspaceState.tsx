@@ -81,7 +81,12 @@ export default function WorkspaceState({
 
   if (kind === 'initial-loading') {
     return (
+      // Una key por rama (2026-11-03): con el mismo `div` en las dos, React
+      // reusaba el nodo y el esqueleto de 292 px «se movía» hasta volverse el
+      // texto del estado vacío; para el navegador era un salto (0,115 en
+      // Influencers). Un nodo nuevo no cuenta como salto.
       <div
+        key="cargando"
         data-workspace-state={kind}
         role="status"
         aria-live="polite"
@@ -122,6 +127,7 @@ export default function WorkspaceState({
 
   return (
     <div
+      key="estado"
       data-workspace-state={kind}
       role={role}
       aria-live={role === 'alert' ? 'assertive' : 'polite'}
