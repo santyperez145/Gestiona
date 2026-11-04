@@ -1088,6 +1088,8 @@ export default function EcommerceStorePage() {
     ? store
     : (commerceStores.selectedStore ?? (store?.id ? store : null));
   const signalsReady = Boolean(store?.id) && signalsStoreId === store?.id;
+  // Hasta tener señales y banco, el sello no afirma que falte algo.
+  const selloPuedeVender = signalsReady && bankLoaded ? readiness.canPublish : true;
   /**
    * La barra de pasos tilda con lo GUARDADO (2026-11-04): con el formulario,
    * «Entrega» quedaba lista mientras la dirección de retiro seguía sin guardar,
@@ -1330,19 +1332,23 @@ export default function EcommerceStorePage() {
             {/* Una tienda activa que no puede cobrar o no puede cotizar el envío
                 no está "Activa" en ningún sentido útil: se avisa acá, que es
                 donde se mira el estado. */}
+            {/* El estado espera a sus datos (2026-11-04): con las cuentas en cero
+                del primer segundo decía «Falta 1 cosa para poder vender», ese
+                texto largo bajaba de línea las acciones y al llegar los datos
+                todo subía (salto 0,183 en el barrido). */}
             <Badge className={
               !store?.id
                 ? "bg-muted/15 text-muted-foreground border-muted/20"
                 : !store?.is_active
                 ? "bg-muted/15 text-muted-foreground border-muted/20"
-                : readiness.canPublish
+                : selloPuedeVender
                   ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
                   : "bg-yellow-500/15 text-yellow-500 border-yellow-500/20"
             }>
               {storeStatusLabel({
                 storeExists: Boolean(store?.id),
                 isActive: Boolean(store?.is_active),
-                canPublish: readiness.canPublish,
+                canPublish: selloPuedeVender,
                 readinessSummary: readinessSummary(readiness),
               })}
             </Badge>
