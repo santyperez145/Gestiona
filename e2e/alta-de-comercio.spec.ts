@@ -151,6 +151,19 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await page.goto("/pedidos-online");
   await expect(page.getByText("ZZ Primer Comprador").filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
   await foto(page, "comercio-primer-pedido");
+
+  // 10. El comercio cierra la venta (2026-11-04): verifica la transferencia y
+  // lo marca cobrado, y cuando el comprador retira, lo marca retirado.
+  await page.getByRole("button", { name: /^Marcar cobrado/ }).filter({ visible: true }).first().click();
+  const confirmarCobro = page.getByRole("alertdialog");
+  await expect(confirmarCobro).toBeVisible({ timeout: 15_000 });
+  await confirmarCobro.getByRole("button", { name: /^Marcar cobrado/ }).click();
+  await expect(page.getByText(/marcado como cobrado/).first()).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /^Marcar retiro/ }).filter({ visible: true }).first().click();
+  const retiro = page.getByRole("dialog");
+  await retiro.getByRole("button", { name: "Marcar como retirado" }).click();
+  await expect(page.getByRole("button", { name: /^Marcar retiro/ }).filter({ visible: true })).toHaveCount(0, { timeout: 30_000 });
+  await foto(page, "comercio-pedido-cerrado");
 });
 
 /**
