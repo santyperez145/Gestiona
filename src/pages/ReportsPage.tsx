@@ -36,6 +36,7 @@ import { plural } from "@/lib/plural";
 import { chartColors, chartPalette, chartTooltipStyle } from "@/lib/chartTheme";
 
 import { escribirParaImprimir } from "@/lib/impresionSegura";
+import { csvCell } from "@/lib/csv";
 function reportErrorMessage(cause: unknown, fallback: string) {
   if (cause instanceof Error && cause.message) return cause.message;
   if (typeof cause === "object" && cause && "message" in cause && typeof cause.message === "string") return cause.message;
@@ -2373,7 +2374,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
       ["Producto", "Facturación ARS", "Ganancia ARS", "Margen %", "Unidades", "Transacciones"],
       ...filtered.map(r => [r.name, r.revenue.toFixed(2), r.profit.toFixed(2), r.margin.toFixed(1), r.units, r.transactions]),
     ];
-    const csv = csvRows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = csvRows.map(r => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

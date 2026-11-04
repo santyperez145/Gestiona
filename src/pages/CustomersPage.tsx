@@ -59,6 +59,7 @@ import { plural } from "@/lib/plural";
 import CustomerFiscalFields from "@/components/customers/CustomerFiscalFields";
 import { columnasIdentidadFiscal, errorIdentidadFiscal, identidadFiscalDesde } from "@/lib/customerFiscal";
 import { escaparHtml, escribirParaImprimir } from "@/lib/impresionSegura";
+import { csvCell } from "@/lib/csv";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -2127,7 +2128,7 @@ export default function CustomersPage() {
         (c.tags || []).join(", "),
       ]),
     ];
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = rows.map(r => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -2566,7 +2567,7 @@ export default function CustomersPage() {
                 const rows = topThisMonth.map((c, i) => {
                   const cData = customers.find((x: any) => x.name === c.name);
                   const isVip = cData?.segment === 'VIP' || cData?.segment === 'Premium';
-                  return `${i + 1},"${c.name}",${c.total.toFixed(2)},${c.count},${isVip ? 'Sí' : 'No'}`;
+                  return `${i + 1},${csvCell(c.name)},${c.total.toFixed(2)},${c.count},${isVip ? 'Sí' : 'No'}`;
                 });
                 const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -2769,7 +2770,7 @@ export default function CustomersPage() {
                         c.name, c.segment, c.rScore, c.fScore, c.mScore, c.rfmScore,
                         c.daysSinceLastPurchase < 999 ? c.daysSinceLastPurchase : '',
                         c.purchaseCount, c.totalSpent.toFixed(2),
-                      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+                      ].map(csvCell).join(','));
                       const csv = bom + [headers.join(','), ...rows].join('\n');
                       const a = document.createElement('a');
                       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

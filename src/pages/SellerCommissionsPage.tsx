@@ -23,6 +23,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import { csvCell } from "@/lib/csv";
 type SellerMember = {
   user_id: string;
   role: string;
@@ -268,7 +269,7 @@ export default function SellerCommissionsPage() {
             Number(p.commission_ars).toFixed(2),
             p.status === 'paid' ? 'Pagada' : 'Pendiente',
             p.paid_at ? fechaLocal(p.paid_at).toLocaleDateString('es-AR') : '',
-          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          ].map(csvCell).join(','));
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

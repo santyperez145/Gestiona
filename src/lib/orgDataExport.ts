@@ -41,7 +41,12 @@ export function toCSV(rows: Record<string, unknown>[]): string {
   const cols = [...new Set(rows.flatMap(r => Object.keys(r)))];
   const cell = (v: unknown): string => {
     if (v === null || v === undefined) return "";
-    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+    const crudo = typeof v === "object" ? JSON.stringify(v) : String(v);
+    // Sin fórmulas (2026-11-04): el respaldo incluye clientes con el nombre que
+    // escribió el comprador; un «=HYPERLINK(…)» se ejecutaba al abrirlo en
+    // Excel. Mismo criterio que csvCell. Los números negativos quedan como
+    // números: sólo se neutraliza texto.
+    const s = typeof v === "string" && /^[\s\p{Cc}]*[=+\-@]/u.test(crudo) ? `'${crudo}` : crudo;
     // Se entrecomilla si hay separador, comillas o saltos de línea.
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };

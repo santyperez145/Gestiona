@@ -71,6 +71,7 @@ import { plural } from "@/lib/plural";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { resultadoLote, type ResultadoLote } from "@/lib/loteFacturacion";
 import { esClaseA, esNotaDeCredito } from "../../supabase/functions/_shared/comprobantesArca";
+import { csvCell } from "@/lib/csv";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -1704,7 +1705,7 @@ export default function InvoicesPage() {
               inv.due_date ? fechaLocal(inv.due_date).toLocaleDateString('es-AR') : '',
               inv.cae || '',
               inv.paid_at ? fechaLocal(inv.paid_at).toLocaleDateString('es-AR') : '',
-            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+            ].map(csvCell).join(','));
             const csv = bom + [headers.join(','), ...rows].join('\n');
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

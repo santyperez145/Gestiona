@@ -21,6 +21,7 @@ import BusinessKPICard from "@/components/business/BusinessKPICard";
 import BusinessEmptyState from "@/components/business/BusinessEmptyState";
 import { useWebShare } from "@/hooks/useWebShare";
 
+import { csvCell } from "@/lib/csv";
 type Task = {
   id: string;
   title: string;
@@ -309,7 +310,7 @@ export default function TasksPage() {
               STATUS_CONFIG[t.status]?.label || t.status,
               t.due_date || '',
               t.completed_at ? fechaLocal(t.completed_at).toLocaleDateString('es-AR') : '',
-            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+            ].map(csvCell).join(','));
             const csv = bom + [headers.join(','), ...rows].join('\n');
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

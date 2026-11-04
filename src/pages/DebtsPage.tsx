@@ -29,6 +29,7 @@ import KPICard from "@/components/shared/KPICard";
 import EmptyState from "@/components/shared/EmptyState";
 import { mensajeDeuda, plantillaDeuda } from "@/lib/waTemplates";
 import { escaparHtml, escribirParaImprimir } from "@/lib/impresionSegura";
+import { csvCell } from "@/lib/csv";
 function waDebtLink(d: any, orgId?: string) {
   const msg = mensajeDeuda(plantillaDeuda(orgId), d.customer_name, formatARS(Number(d.remaining_ars)));
   return `https://wa.me/?text=${encodeURIComponent(msg)}`;
@@ -539,7 +540,7 @@ export default function DebtsPage() {
             Number(d.paid_ars).toFixed(2),
             Number(d.remaining_ars).toFixed(2),
             d.status === 'paid' ? 'Pagada' : d.status === 'partial' ? 'Parcial' : 'Pendiente',
-          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          ].map(csvCell).join(','));
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

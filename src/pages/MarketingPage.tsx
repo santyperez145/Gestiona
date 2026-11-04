@@ -32,6 +32,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
 import ProductCombobox from "@/components/shared/ProductCombobox";
+import { csvCell } from "@/lib/csv";
 export default function MarketingPage() {
   usePageTitle("Marketing");
   const { user } = useAuth();
@@ -257,7 +258,7 @@ export default function MarketingPage() {
                 p.ai_generated ? 'Sí' : 'No',
                 (p.hashtags || []).join(' '),
                 p.created_at ? p.created_at.slice(0, 10) : '',
-              ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+              ].map(csvCell).join(",")).join("\n");
               const blob = new Blob(["﻿" + header + rows], { type: "text/csv;charset=utf-8;" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a"); a.href = url; a.download = "publicaciones_marketing.csv"; a.click();

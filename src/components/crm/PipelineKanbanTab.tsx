@@ -39,6 +39,7 @@ import { formatARS } from "@/lib/supabaseStore";
 import KPICard from "@/components/shared/KPICard";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
+import { csvCell } from "@/lib/csv";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Stage = "lead" | "contactado" | "propuesta" | "negociacion" | "cerrado" | "perdido";
@@ -1235,7 +1236,7 @@ export default function PipelineKanbanTab() {
               d.expected_close || '',
               d.notes || '',
               d.created_at.slice(0, 10),
-            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+            ].map(csvCell).join(",")).join("\n");
             const blob = new Blob(["﻿" + header + rows], { type: "text/csv;charset=utf-8;" });
             const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "pipeline.csv"; a.click();
           }}>

@@ -20,6 +20,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
+import { csvCell } from "@/lib/csv";
 type Cheque = {
   id: string;
   type: "received" | "issued";
@@ -217,7 +218,7 @@ export default function ChequesPage() {
             c.due_date,
             STATUS_CONFIG[c.status]?.label || c.status,
             c.notes || '',
-          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          ].map(csvCell).join(','));
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

@@ -18,6 +18,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { plural } from "@/lib/plural";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { csvCell } from "@/lib/csv";
 type Installment = {
   id: string;
   sale_id: string;
@@ -212,7 +213,7 @@ export default function CuotasPage() {
             i.installment_number, Number(i.amount_ars).toFixed(2),
             i.due_date, i.paid ? 'Pagada' : 'Pendiente',
             i.paid_at ? fechaLocal(i.paid_at).toLocaleDateString('es-AR') : '',
-          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          ].map(csvCell).join(','));
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

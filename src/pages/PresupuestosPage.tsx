@@ -31,6 +31,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
+import { csvCell } from "@/lib/csv";
 /** `productId`: el producto del catálogo, para cobrarlo en la caja con stock real. */
 type QuoteItem = { description: string; qty: number; unitPrice: number; total: number; discountPct?: number; productId?: string | null; variantId?: string | null };
 type Quote = {
@@ -564,7 +565,7 @@ export default function PresupuestosPage() {
             q.valid_until ? fechaLocal(q.valid_until).toLocaleDateString('es-AR') : '',
             fechaLocal(q.created_at).toLocaleDateString('es-AR'),
             q.notes || '',
-          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          ].map(csvCell).join(','));
           const csv = bom + [headers.join(','), ...rows].join('\n');
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

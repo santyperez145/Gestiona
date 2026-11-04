@@ -16,6 +16,7 @@ import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBa
 import KPICard from "@/components/shared/KPICard";
 
 import { plural } from "@/lib/plural";
+import { csvCell } from "@/lib/csv";
 // ─── Tier system ──────────────────────────────────────────────────────────────
 
 const TIERS = [
@@ -491,7 +492,7 @@ export default function LoyaltyPointsTab() {
                   b.totalEarned,
                   b.totalRedeemed,
                   fechaLocal(b.lastActivity).toLocaleDateString('es-AR'),
-                ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+                ].map(csvCell).join(',');
               });
               const csv = bom + [headers.join(','), ...rows].join('\n');
               const a = document.createElement('a');
