@@ -166,7 +166,16 @@ describe('contrato visual transversal de Gestión', () => {
 
     expect(pos).toContain('pos-product-area min-w-0 flex-1');
     expect(pos).toContain('pos-product-grid grid gap-2');
-    expect(pos).toContain('pos-cart-panel flex h-full min-h-0 flex-col overflow-y-auto');
+    // 2026-11-03: el panel entero scrolleaba y «Confirmar venta» quedaba
+    // abajo de todo. Ahora scrollea sólo el medio; total y botón van en un pie fijo.
+    expect(pos).toContain('pos-cart-panel flex h-full min-h-0 flex-col overflow-hidden');
+    expect(pos).toContain('pos-cart-scroll min-h-0 flex-1 overflow-y-auto');
+    expect(pos).toContain('pos-cart-footer shrink-0');
+    const cartPanel = pos.slice(pos.indexOf('pos-cart-panel flex'), pos.indexOf('pos-cart-footer shrink-0'));
+    expect(cartPanel, 'el carrito no suma colchones vacíos debajo del cobro').not.toContain('pb-12');
+    const footer = pos.slice(pos.indexOf('pos-cart-footer shrink-0'));
+    expect(footer).toContain('pos-cart-total');
+    expect(footer).toContain('pos-confirm-sale');
     expect(pos).toContain('pos-confirm-sale');
     expect(pos).toContain('xl:hidden h-9 relative shrink-0');
     expect(pos).toContain('pos-cart-sidebar hidden w-80');

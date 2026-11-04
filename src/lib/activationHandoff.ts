@@ -50,7 +50,9 @@ export function firstProductEmptyCopy(goal: HandoffGoal | null) {
   if (goal === 'pos') {
     return {
       title: 'Cargá el primer producto del mostrador',
-      description: 'Nombre, precio de venta y stock real. Sin eso el POS no tiene qué cobrar.',
+      // 2026-11-03: decía «Sin eso el POS no tiene qué cobrar»; el asistente
+      // ya había sacado «POS» porque el comercio no usa esa palabra.
+      description: 'Nombre, precio y cuántas unidades tenés. Con eso ya podés cobrar.',
       actionLabel: 'Cargar el primer producto',
     };
   }

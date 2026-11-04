@@ -107,8 +107,10 @@ export default function OnboardingPage() {
 
       await refresh();
       if (destination === 'pos') {
-        toast.success('Ruta POS elegida. Ahora cargá tu primer producto y su stock real.');
-        navigate('/productos?onboarding=1&goal=pos');
+        // Sin aviso, igual que el camino online: decía «Ruta POS elegida», jerga
+        // que el asistente ya había sacado, repetía la descripción del diálogo
+        // y le tapaba el título «Nuevo producto» (2026-11-03).
+        navigate(firstProductPath('pos'));
       } else if (destination === 'online') {
         // Sin aviso: el diálogo del primer producto ya dice lo mismo, y el
         // aviso le tapaba el botón «Crear y publicar» (2026-11-03).

@@ -10,6 +10,7 @@ import {
   posHandoffPath,
   posProductIsOutOfStock,
   posProductIsSellable,
+  posStockBadge,
 } from '@/lib/posCatalog';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
@@ -30,6 +31,24 @@ describe('posProductIsSellable', () => {
   it('stock positivo o stock negativo permitido sí se cobran', () => {
     expect(posProductIsSellable({ stock: 3 })).toBe(true);
     expect(posProductIsSellable({ stock: 0, allow_negative_stock: true })).toBe(true);
+  });
+});
+
+describe('posStockBadge (2026-11-03)', () => {
+  it('lo que no lleva stock no se marca «Sin stock»: se puede cobrar', () => {
+    expect(posStockBadge({ stock: 0, maneja_stock: false })).toBeNull();
+    expect(posProductIsSellable({ stock: 0, maneja_stock: false })).toBe(true);
+  });
+
+  it('con control de stock, la etiqueta dice cuántas unidades quedan', () => {
+    expect(posStockBadge({ stock: 0 })).toEqual({ label: 'Sin stock', tone: 'out' });
+    expect(posStockBadge({ stock: 2, maneja_stock: true })).toEqual({ label: '2 u.', tone: 'low' });
+    expect(posStockBadge({ stock: 12 })).toEqual({ label: '12 u.', tone: 'ok' });
+  });
+
+  it('la grilla de la caja usa la etiqueta, no el stock crudo', () => {
+    expect(POS).toContain('const stockBadge = posStockBadge(prod);');
+    expect(POS).not.toContain('{prod.stock <= 0 ? "Sin stock"');
   });
 });
 

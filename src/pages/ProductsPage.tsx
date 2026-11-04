@@ -45,6 +45,7 @@ import {
   firstProductSubmitLabel,
   productCostWarning,
   validateProductDraft,
+  type ProductDraftField,
 } from "@/lib/productDraft";
 import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePriceSinPasero, calcAutoDiscountPrice } from "@/lib/pricing";
@@ -2032,6 +2033,13 @@ function ChipSelect({ items, selected, onToggle }: { items: TaxItem[]; selected:
   );
 }
 
+/** Ids de la ficha compacta: el error de `validateProductDraft` enfoca el campo. */
+const FIRST_PRODUCT_FIELD_IDS: Record<ProductDraftField, string> = {
+  name: 'primer-producto-nombre',
+  price: 'primer-producto-precio',
+  stock: 'primer-producto-unidades',
+};
+
 export function ProductForm({ product, settings, userId, orgId, aiEnabled = false, firstUse = false, handoffGoal = null, onDirtyChange, onSave }: {
   product: any;
   settings: any;
@@ -2177,6 +2185,10 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
   const creatingFirstProduct = Boolean(firstUse && !product);
   const compactFirstProduct = firstProductFormIsCompact(creatingFirstProduct, firstUseExpanded);
   const firstUseExpand = firstProductExpandCopy(handoffGoal);
+  // 2026-11-03: en la ficha compacta el error va al lado del campo y lo enfoca;
+  // antes era sólo un toast arriba, lejos del campo y de «Crear y cobrar».
+  const [draftError, setDraftError] = useState<{ field: ProductDraftField; msg: string } | null>(null);
+  const clearDraftError = (field: ProductDraftField) => setDraftError(prev => (prev?.field === field ? null : prev));
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const markDirty = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -2487,7 +2499,22 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
       stockRaw: showVariants ? String(variants.reduce((s, v) => s + (v.stock || 0), 0)) : stock,
       firstUse: firstUse && !product,
     });
-    if (!draft.ok) { toast.error(draft.error || 'No se pudo validar el producto'); return; }
+    if (!draft.ok) {
+      const msg = draft.error || 'No se pudo validar el producto';
+      // La ficha completa no tiene ids estables para estos campos: ahí sigue el
+      // toast. En la compacta el aviso va junto al campo y el foco lo lleva ahí.
+      const fieldId = compactFirstProduct && draft.field ? FIRST_PRODUCT_FIELD_IDS[draft.field] : null;
+      const input = fieldId ? document.getElementById(fieldId) : null;
+      if (draft.field && input) {
+        setDraftError({ field: draft.field, msg });
+        requestAnimationFrame(() => input.focus());
+      } else {
+        setDraftError(null);
+        toast.error(msg);
+      }
+      return;
+    }
+    setDraftError(null);
     if (firstProductRequiresAttributes(creatingFirstProduct)) {
       const missingAttribute = attributeDefinitions.find(definition => {
         if (!definition.required) return false;
@@ -2665,7 +2692,8 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
         product?.id
           ? 'Producto actualizado'
           : firstUse && handoffGoal === 'pos'
-            ? 'Producto listo para el mostrador. El POS ya puede cobrarlo.'
+            // 2026-11-03: decía «El POS ya puede cobrarlo»; el comercio dice «caja».
+            ? 'Listo. Ahora cobralo en la caja.'
             : firstUse && handoffGoal === 'online'
               ? 'Producto listo. Ahora armamos tu tienda.'
               : 'Producto agregado',
@@ -2711,11 +2739,14 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
             <Input
               id="primer-producto-nombre"
               value={name}
-              onChange={e => setName(e.target.value.toUpperCase())}
+              onChange={e => { setName(e.target.value.toUpperCase()); clearDraftError('name'); }}
               placeholder="Ej: Nombre del producto"
               className="bg-muted border-border uppercase"
               required
+              aria-invalid={draftError?.field === 'name' || undefined}
+              aria-describedby={draftError?.field === 'name' ? 'err-primer-nombre' : undefined}
             />
+            {draftError?.field === 'name' && <p id="err-primer-nombre" role="alert" className="mt-1 text-xs text-destructive">{draftError.msg}</p>}
           </div>
           <div>
             <label htmlFor="primer-producto-precio" className="text-sm text-muted-foreground">Precio de venta *</label>
@@ -2727,24 +2758,47 @@ export function ProductForm({ product, settings, userId, orgId, aiEnabled = fals
                 id="primer-producto-precio"
                 type="number"
                 min="0"
+                step="any"
                 inputMode="decimal"
                 placeholder="Ej: 12500"
                 value={salePriceARS}
-                onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }}
+                onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); clearDraftError('price'); }}
                 className="bg-muted border-border pl-7"
+                required
+                aria-invalid={draftError?.field === 'price' || undefined}
+                aria-describedby={draftError?.field === 'price' ? 'err-primer-precio' : undefined}
               />
             </div>
+            {draftError?.field === 'price' && <p id="err-primer-precio" role="alert" className="mt-1 text-xs text-destructive">{draftError.msg}</p>}
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between gap-2">
               <label htmlFor="primer-producto-unidades" className="text-sm text-muted-foreground">Unidades{manejaStock ? ' *' : ''}</label>
               <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Switch checked={!manejaStock} onCheckedChange={v => { markDirty(); setManejaStock(!v); }} />
+                <Switch checked={!manejaStock} onCheckedChange={v => { markDirty(); setManejaStock(!v); clearDraftError('stock'); }} />
                 No lleva stock
               </label>
             </div>
+            {/* 2026-11-03: sin `required` el navegador no avisaba y el campo vacío
+                no daba pista de por qué «Crear y cobrar» no avanzaba. Sin `step`
+                a propósito: al guardar el stock se lee entero (parseInt). */}
             {manejaStock ? (
-              <Input id="primer-producto-unidades" type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" />
+              <>
+                <Input
+                  id="primer-producto-unidades"
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="Ej: 10"
+                  value={stock}
+                  onChange={e => { setStock(e.target.value); clearDraftError('stock'); }}
+                  className="bg-muted border-border"
+                  required
+                  aria-invalid={draftError?.field === 'stock' || undefined}
+                  aria-describedby={draftError?.field === 'stock' ? 'err-primer-unidades' : undefined}
+                />
+                {draftError?.field === 'stock' && <p id="err-primer-unidades" role="alert" className="mt-1 text-xs text-destructive">{draftError.msg}</p>}
+              </>
             ) : (
               <p className="rounded-[8px] border border-border/60 bg-muted/40 p-2 text-[11px] text-muted-foreground">
                 Se vende y se factura, pero no se descuenta nada.

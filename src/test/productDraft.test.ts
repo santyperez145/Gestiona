@@ -54,6 +54,15 @@ describe('validateProductDraft', () => {
   it('después de la primera ficha, cero es una decisión explícita', () => {
     expect(validateProductDraft({ ...base, firstUse: false, stockRaw: '0' })).toEqual({ ok: true });
   });
+
+  it('dice qué campo marcar para que el error vaya al lado del campo', () => {
+    // 2026-11-03: el único aviso era un toast arriba, lejos del campo.
+    expect(validateProductDraft({ ...base, name: '  ' }).field).toBe('name');
+    expect(validateProductDraft({ ...base, salePrice: 0 }).field).toBe('price');
+    expect(validateProductDraft({ ...base, stockRaw: '' }).field).toBe('stock');
+    expect(validateProductDraft({ ...base, stockRaw: '0' }).field).toBe('stock');
+    expect(validateProductDraft(base).field).toBeUndefined();
+  });
 });
 
 describe('primera ficha compacta', () => {
@@ -110,5 +119,30 @@ describe('primera ficha compacta', () => {
     expect(products).toContain('compactFirstProduct');
     // P0.1.3: la ficha compacta no muestra el select, pero igual tipa al crear.
     expect(products).toContain('defaultProductTypeId');
+  });
+
+  it('precio y unidades son obligatorios y el error se marca junto al campo', () => {
+    // 2026-11-03: sin `required` ni aria-invalid, dejar Unidades vacío sólo
+    // mostraba un toast arriba y el comercio no sabía qué faltaba.
+    const products = readFileSync(resolve(__dirname, '../pages/ProductsPage.tsx'), 'utf8');
+    const precio = products.slice(products.indexOf('id="primer-producto-precio"'), products.indexOf('id="err-primer-precio"'));
+    expect(precio).toContain('required');
+    expect(precio).toContain('step="any"');
+    expect(precio).toContain("aria-describedby={draftError?.field === 'price' ? 'err-primer-precio' : undefined}");
+    const unidades = products.slice(products.indexOf('id="primer-producto-unidades"'), products.indexOf('id="err-primer-unidades"'));
+    expect(unidades).toContain('required');
+    expect(unidades).toContain("aria-invalid={draftError?.field === 'stock' || undefined}");
+    expect(unidades).toContain("aria-describedby={draftError?.field === 'stock' ? 'err-primer-unidades' : undefined}");
+    expect(products).toContain('FIRST_PRODUCT_FIELD_IDS[draft.field]');
+    expect(products).toContain('requestAnimationFrame(() => input.focus())');
+    // Las etiquetas que usa el E2E no cambian.
+    expect(products).toContain('>Nombre *</label>');
+    expect(products).toContain('>Precio de venta *</label>');
+  });
+
+  it('el aviso de producto creado no habla de «POS»', () => {
+    const products = readFileSync(resolve(__dirname, '../pages/ProductsPage.tsx'), 'utf8');
+    expect(products).not.toContain("'Producto listo para el mostrador. El POS ya puede cobrarlo.'");
+    expect(products).toContain("'Listo. Ahora cobralo en la caja.'");
   });
 });

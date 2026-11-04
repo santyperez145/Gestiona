@@ -41,6 +41,7 @@ import {
   posCatalogEmptyKind,
   posProductIsOutOfStock,
   posProductIsSellable,
+  posStockBadge,
 } from "@/lib/posCatalog";
 import {
   posPaymentAlreadyCollected,
@@ -68,7 +69,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard, Store, FileText,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard, Store, FileText, Bookmark, ChevronDown,
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
@@ -235,30 +236,39 @@ function PayMethodGrid({
   compact = false,
   allowQr = true,
   methods,
+  label = "Medio de pago",
 }: {
   value: PayMethod;
   onChange: (m: PayMethod) => void;
   compact?: boolean;
   allowQr?: boolean;
   methods?: typeof PAY_METHODS;
+  label?: string;
 }) {
   const list = (methods ?? PAY_METHODS).filter((method) => allowQr || method.value !== "qr");
+  // 2026-11-03: eran botones sueltos, sin grupo ni `aria-pressed`, con texto
+  // de 10 px. El elegido se notaba sólo por el color: un lector de pantalla
+  // no sabía cuál estaba marcado. El tilde también ayuda a quien no distingue
+  // bien los colores.
   return (
-    <div className={`pos-pay-method-grid grid gap-1 ${list.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+    <div role="group" aria-label={label} className={`pos-pay-method-grid grid gap-1 ${list.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
       {list.map((m) => {
         const Icon = m.icon;
         const active = value === m.value;
         return (
           <button
+            type="button"
             key={m.value}
+            aria-pressed={active}
             onClick={() => onChange(m.value)}
-            className={`pos-pay-method flex flex-col items-center gap-0.5 py-2 rounded-[8px] border text-[10px] font-medium transition-all ${
+            className={`pos-pay-method relative flex flex-col items-center gap-0.5 py-2 rounded-[8px] border text-xs font-medium transition-all ${
               active
                 ? "border-primary/60 bg-primary/10 text-primary"
                 : "border-border bg-card text-muted-foreground hover:border-primary/30"
             }`}
           >
-            <Icon className={`w-3.5 h-3.5 ${active ? "text-primary" : m.color}`} />
+            {active ? <Check className="absolute right-1 top-1 h-3 w-3" aria-hidden="true" /> : null}
+            <Icon className={`w-3.5 h-3.5 ${active ? "text-primary" : m.color}`} aria-hidden="true" />
             {m.label.split(" ")[0]}
           </button>
         );
@@ -320,6 +330,7 @@ function ReceiptModal({
   items, payMethod, splitMode, splitMethod1, splitMethod2, splitAmount1, splitAmount2,
   customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount, paymentMethodDiscountARS,
   note, saleId, transactionId, invoice, autoPrint, onFacturar, controlador, onControlador, onClose, onNewSale,
+  firstSale = false, offline = false,
 }: {
   items: CartItem[]; payMethod: PayMethod;
   splitMode: boolean; splitMethod1: PayMethod; splitMethod2: PayMethod;
@@ -337,6 +348,10 @@ function ReceiptModal({
   controlador?: EstadoControlador | null;
   onControlador?: () => Promise<void>;
   onClose: () => void; onNewSale: () => void;
+  /** La primera venta del asistente: se festeja y se ofrece volver al panel. */
+  firstSale?: boolean;
+  /** Guardada sin conexión: todavía no está en Ventas. */
+  offline?: boolean;
 }) {
   const [emitiendoControlador, setEmitiendoControlador] = useState(false);
   const change = !splitMode && payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
@@ -346,7 +361,7 @@ function ReceiptModal({
     splitMethod1,
     splitMethod2,
   });
-  const receiptCopy = posReceiptCopy(collected);
+  const receiptCopy = posReceiptCopy(collected, { first: firstSale, offline });
   const [emailTo, setEmailTo] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -754,6 +769,15 @@ ${paymentInfo}
             <p className="text-[10px] text-center text-muted-foreground">{arcaCopy.notFiscalTicket}</p>
           ) : null}
 
+          {/* 2026-11-03: después de la primera venta el recibo no decía qué
+              seguía. Volver al panel muestra el próximo paso del alta. */}
+          {firstSale ? (
+            <Button variant="outline" className="w-full gap-1.5" asChild>
+              {/* Sale del asistente antes de ir: si no, «Atrás» volvía a
+                  /caja?onboarding=1 y la segunda venta se festejaba como primera. */}
+              <Link to="/" replace onClick={onClose}>Volver al panel</Link>
+            </Button>
+          ) : null}
           <Button className="w-full gap-1.5" onClick={onNewSale}>
             <RotateCcw className="w-4 h-4" />Nueva venta
           </Button>
@@ -1113,6 +1137,8 @@ export default function POSPage() {
     transactionId?: string | null;
     invoice?: PosFacturaEstado | null;
     controlador?: EstadoControlador | null;
+    /** Guardada sin conexión: el recibo no puede decir que ya está en Ventas. */
+    offline?: boolean;
   } | null>(null);
   const [controllerConfig, setControllerConfig] = useState<ConfigControlador | null>(null);
   const [controllerDialogOpen, setControllerDialogOpen] = useState(false);
@@ -1164,6 +1190,8 @@ export default function POSPage() {
   const [turnoSales, setTurnoSales] = useState<Array<{ items: CartItem[]; total: number; method: string; customer: string; ts: number; saleIds: string[] }>>([]);
   const [showTurnoHistory, setShowTurnoHistory] = useState(false);
   const [showTurnoSummary, setShowTurnoSummary] = useState(false);
+  // «Más opciones» del primer ticket (nota, cupón, descuentos, ARCA, impresión).
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // ── Multi-store: location selector (persisted per org in localStorage) ──
   const posLocationKey = `gestiona.pos.location.${activeOrg?.id || 'default'}`;
@@ -1460,6 +1488,16 @@ export default function POSPage() {
     setPresupuestoCaja(null);
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete("presupuesto"); return n; }, { replace: true });
   }, [setSearchParams]);
+
+  // 2026-11-03: `?onboarding=1` quedaba en la URL después de la primera
+  // venta. La venta 2, 3 y las que vinieran seguían con el aviso «Tocá el
+  // producto y cobrá», los medios recortados y las opciones escondidas.
+  // Cerrado el primer recibo, la caja pasa a ser la de todos los días. El
+  // efecto del vendedor corre sólo al montar, así que no vuelve a aparecer.
+  const salirDelAsistente = useCallback(() => {
+    if (!fromWizard) return;
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete("onboarding"); n.delete("goal"); return n; }, { replace: true });
+  }, [fromWizard, setSearchParams]);
 
   const abrirCobroDeuda = async () => {
     if (!activeOrg || !posCustomer) return;
@@ -2859,7 +2897,7 @@ export default function POSPage() {
         if (wantArcaInvoice) toast.info(posArcaInvoiceCopy().offline);
         toast.success(`Venta guardada offline — se sincronizará al reconectar`);
         clearCart();
-        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote, saleId: txSaleIds[0] || null, transactionId: null, invoice: null });
+        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote, saleId: txSaleIds[0] || null, transactionId: null, invoice: null, offline: true });
       }
     } catch (e: any) {
       const message = String(e?.message ?? "");
@@ -2904,6 +2942,12 @@ export default function POSPage() {
     allowQr: true,
   });
   const payCaution = posPayMethodCaution(payMethod);
+  // Sin ventas a la vista (esta pestaña, el turno ni los últimos 90 días) no
+  // hay nada que devolver. Sólo se esconde en el asistente del primer ticket.
+  const ocultarDevolver = fromWizard
+    && turnoSales.length === 0
+    && !Number(cashSessionStatus?.ticket_count || 0)
+    && recSales.length === 0;
 
   const elegirMedio = (method: PayMethod) => {
     if (!visiblePayMethods.some(m => m.value === method)) { toast.info("Ese medio de pago no está disponible en esta caja"); return; }
@@ -2919,7 +2963,8 @@ export default function POSPage() {
     medio_3: () => elegirMedio("debito"),
     medio_4: () => elegirMedio("credito"),
     pantalla_completa: () => toggleFullscreen(),
-    cupon: () => couponInputRef.current?.focus(),
+    // En el primer ticket el cupón vive en «Más opciones»: F6 la abre antes de enfocar.
+    cupon: () => { if (fromWizard) setMoreOpen(true); requestAnimationFrame(() => couponInputRef.current?.focus()); },
     guardar_ticket: () => saveCurrentOrder(),
     tickets_guardados: () => setShowSavedOrders(true),
     cobrar: () => { if (cart.length > 0 && !confirmDisabledRef.current) confirmSale(); },
@@ -2941,10 +2986,235 @@ export default function POSPage() {
   // ─────────────────────────────────────────────────────────
   // Cart panel
   // ─────────────────────────────────────────────────────────
+  // 2026-11-03: «Confirmar venta» quedaba al final de un panel que scrolleaba
+  // entero, detrás de unos once controles y de tres `pb-12` anidados. En una
+  // notebook de 768 px o en el cajón del celular no se veía cómo cobrar: hasta
+  // los E2E tenían que scrollear para encontrarlo. Ahora el panel tiene tres
+  // partes: encabezado, una zona con scroll y un pie fijo con el total y el
+  // botón, que se ven siempre.
+  //
+  // En el primer ticket (asistente) lo que casi nunca se usa va detrás de
+  // «Más opciones». Fuera del asistente queda todo a la vista, como antes.
+  const noteField = (
+    <Input
+      placeholder="Nota interna (opcional)"
+      aria-label="Nota interna"
+      value={posNote}
+      onChange={(e) => setPosNote(e.target.value)}
+      className="h-8 text-sm bg-muted"
+      maxLength={200}
+    />
+  );
+
+  const couponField = (
+    <div className="space-y-1.5">
+      <div className="flex gap-1.5">
+        <div className="relative flex-1">
+          <Ticket className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
+          <Input
+            ref={couponInputRef}
+            placeholder="Código de cupón (F6)"
+            aria-label="Código de cupón"
+            value={couponCode}
+            onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); if (couponResult) setCouponResult(null); }}
+            className="h-8 text-sm bg-muted pl-8 uppercase"
+            onKeyDown={(e) => e.key === "Enter" && handleValidateCoupon()}
+          />
+        </div>
+        <Button
+          variant="outline" size="sm" className="h-8 px-3 text-xs shrink-0"
+          onClick={handleValidateCoupon}
+          disabled={!couponCode.trim() || validatingCoupon}
+        >
+          {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Aplicar"}
+        </Button>
+      </div>
+      {couponResult?.valid && (
+        <div className="flex items-center justify-between text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+          <span className="flex items-center gap-1.5">
+            <Tag className="w-3.5 h-3.5" />
+            {couponResult.coupon.code} — {couponResult.coupon.discount_type === "percentage"
+              ? `${couponResult.coupon.discount_value}% off`
+              : `${formatARS(couponResult.coupon.discount_value)} off`}
+          </span>
+          <button
+            type="button"
+            aria-label={`Quitar cupón ${couponResult.coupon.code}`}
+            onClick={() => { setCouponResult(null); setCouponCode(""); }}
+          >
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const discountField = (
+    <div className="space-y-1.5">
+      <button
+        type="button"
+        aria-expanded={showDiscount}
+        onClick={() => { setShowDiscount(!showDiscount); setDiscountValue(""); }}
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-[8px] border text-xs font-medium transition-all ${
+          showDiscount
+            ? "border-primary/40 bg-primary/5 text-primary"
+            : "border-border bg-card text-muted-foreground hover:border-primary/30"
+        }`}
+      >
+        <span className="flex items-center gap-1.5">
+          <Tag className="w-3.5 h-3.5" />
+          Descuento adicional
+        </span>
+        {showDiscount && globalDiscountARS > 0 && (
+          <span className="text-emerald-400 font-mono">-{formatARS(globalDiscountARS)}</span>
+        )}
+      </button>
+
+      {showDiscount && (
+        <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
+          {/* Type toggle */}
+          <div className="grid grid-cols-2 gap-1">
+            <button
+              type="button"
+              aria-pressed={discountType === "percent"}
+              onClick={() => { setDiscountType("percent"); setDiscountValue(""); }}
+              className={`flex items-center justify-center gap-1 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                discountType === "percent"
+                  ? "border-primary/60 bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground"
+              }`}
+            >
+              <Percent className="w-3 h-3" />Porcentaje
+            </button>
+            <button
+              type="button"
+              aria-pressed={discountType === "fixed"}
+              onClick={() => { setDiscountType("fixed"); setDiscountValue(""); }}
+              className={`flex items-center justify-center gap-1 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                discountType === "fixed"
+                  ? "border-primary/60 bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground"
+              }`}
+            >
+              <DollarSign className="w-3 h-3" />Monto fijo
+            </button>
+          </div>
+          <Input
+            type="number"
+            placeholder={discountType === "percent" ? "Ej: 10 (para 10%)" : "Monto en $"}
+            aria-label={discountType === "percent" ? "Porcentaje de descuento" : "Monto del descuento"}
+            value={discountValue}
+            onChange={(e) => setDiscountValue(e.target.value)}
+            className="h-8 text-sm bg-card"
+            min={0}
+            max={discountType === "percent" ? 100 : undefined}
+          />
+          {globalDiscountARS > 0 && (
+            <div className="text-xs text-center text-emerald-400 font-medium">
+              Descuento: -{formatARS(globalDiscountARS)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const categoryDiscountField = cart.length > 0 ? (() => {
+    const cats = [...new Set(cart.map(it => it.category).filter(Boolean))] as string[];
+    if (cats.length === 0) return null;
+    return (
+      <div className="space-y-1.5">
+        <button
+          type="button"
+          aria-expanded={showCatDiscount}
+          onClick={() => setShowCatDiscount(!showCatDiscount)}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-[8px] border text-xs font-medium transition-all ${
+            showCatDiscount || catDiscountARS > 0
+              ? 'border-primary/40 bg-primary/5 text-primary'
+              : 'border-border bg-card text-muted-foreground hover:border-primary/30'
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5" />
+            Desc. por categoría
+          </span>
+          {catDiscountARS > 0 && <span className="text-emerald-400 font-mono">-{formatARS(catDiscountARS)}</span>}
+        </button>
+        {showCatDiscount && (
+          <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
+            {cats.map(cat => (
+              <div key={cat} className="flex items-center gap-2">
+                <span className="text-xs flex-1 truncate capitalize">{cat.replace(/_/g, ' ')}</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    aria-label={`Descuento para ${cat.replace(/_/g, ' ')}`}
+                    value={categoryDiscounts[cat] || ''}
+                    onChange={e => saveCatDiscounts({ ...categoryDiscounts, [cat]: Math.min(100, Number(e.target.value) || 0) })}
+                    className="w-14 text-right text-xs border border-border rounded bg-card px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
+                    placeholder="0"
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+            ))}
+            <p className="text-[10px] text-muted-foreground">El % se aplica al precio de cada ítem de esa categoría.</p>
+          </div>
+        )}
+      </div>
+    );
+  })() : null;
+
+  const arcaToggle = (
+    <button
+      type="button"
+      onClick={() => setWantArcaInvoice((open) => !open)}
+      aria-pressed={wantArcaInvoice}
+      data-tour="pos-factura"
+      className={`w-full flex items-start gap-2 px-3 py-2 rounded-[8px] border text-left text-xs transition-all ${
+        wantArcaInvoice
+          ? "border-primary/40 bg-primary/5 text-foreground"
+          : "border-border bg-card text-muted-foreground hover:border-primary/30"
+      }`}
+    >
+      <FileText className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${wantArcaInvoice ? "text-primary" : ""}`} />
+      <span>
+        <span className="block font-medium text-foreground">{posArcaInvoiceCopy().checkboxLabel}</span>
+        <span className="block mt-0.5 leading-relaxed">{posArcaInvoiceCopy().hint}</span>
+      </span>
+    </button>
+  );
+
+  const printToggle = (
+    <button type="button" role="switch" aria-checked={autoPrintTicket}
+      onClick={toggleAutoPrint}
+      className="w-full flex items-start gap-2 px-3 py-2 rounded-lg border border-border bg-card text-left text-xs hover:border-primary/30">
+      <Printer className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
+      <span>
+        <span className="block font-medium">Imprimir ticket al cerrar la venta · {autoPrintTicket ? "Activado" : "Desactivado"}</span>
+        <span className="block mt-0.5 text-muted-foreground leading-relaxed">Abre el diálogo de impresión tras guardar y cobrar. Preferencia de este dispositivo; no reemplaza la factura ARCA.</span>
+      </span>
+    </button>
+  );
+
+  // Lo que está activo adentro de «Más opciones» se nombra en el resumen:
+  // un ticket que pide factura no puede quedar con la factura escondida.
+  const moreOptionsActive = [
+    wantArcaInvoice ? "Factura ARCA activada" : null,
+    couponResult?.valid ? "Cupón aplicado" : null,
+    globalDiscountARS > 0 || catDiscountARS > 0 ? "Descuento aplicado" : null,
+    posNote.trim() ? "Con nota" : null,
+    // Preferencia guardada en el equipo: si ya estaba activa, la primera venta
+    // abría el diálogo de impresión sin que se viera el interruptor.
+    autoPrintTicket ? "Imprime al cerrar" : null,
+  ].filter(Boolean) as string[];
+
   const cartPanel = (
-    <div className="pos-cart-panel flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain">
+    <div className="pos-cart-panel flex h-full min-h-0 flex-col overflow-hidden">
       {/* Cart header */}
-      <div className="pos-cart-header sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-border px-4 py-3 backdrop-blur">
+      <div className="pos-cart-header flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <ShoppingCart className="w-4 h-4 text-primary" />
           <span className="font-semibold text-sm">Carrito</span>
@@ -2956,17 +3226,18 @@ export default function POSPage() {
         </div>
         <div className="flex items-center gap-2">
           {savedOrders.length > 0 && (
-            <button onClick={() => setShowSavedOrders(true)} className="text-xs text-primary flex items-center gap-1 hover:opacity-80">
+            <button type="button" onClick={() => setShowSavedOrders(true)} className="text-xs text-primary flex items-center gap-1 hover:opacity-80">
               <Package className="w-3 h-3" />{savedOrders.length} guardado{savedOrders.length !== 1 ? "s" : ""}
             </button>
           )}
           {cart.length > 0 && (
-            <button onClick={saveCurrentOrder} className="text-xs text-muted-foreground hover:text-yellow-400 flex items-center gap-1" title="Guardar carrito para después">
-              <Undo2 className="w-3 h-3" />Guardar <kbd className="text-[9px] opacity-60">F7</kbd>
+            // 2026-11-03: «Guardar» usaba Undo2, el mismo ícono que «Devolver».
+            <button type="button" onClick={saveCurrentOrder} className="text-xs text-muted-foreground hover:text-yellow-400 flex items-center gap-1" title="Guardar carrito para después">
+              <Bookmark className="w-3 h-3" aria-hidden="true" />Guardar <kbd className="hidden text-[9px] opacity-60 lg:inline">F7</kbd>
             </button>
           )}
           {cart.length > 0 && (
-            <button onClick={clearCart} className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
+            <button type="button" onClick={clearCart} className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
               <Trash2 className="w-3 h-3" />Limpiar
             </button>
           )}
@@ -2984,12 +3255,13 @@ export default function POSPage() {
         </div>
       </div>
 
+      <div className="pos-cart-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
       {/* Saved orders panel */}
       {showSavedOrders && (
         <div className="border-b border-border bg-muted/20 px-4 py-3 space-y-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium">Pedidos guardados</span>
-            <button onClick={() => setShowSavedOrders(false)} className="text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5" /></button>
+            <button type="button" aria-label="Cerrar pedidos guardados" onClick={() => setShowSavedOrders(false)} className="text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5" aria-hidden="true" /></button>
           </div>
           {savedOrders.map(order => (
             <div key={order.id} className="flex items-center justify-between gap-2 bg-card rounded-lg px-3 py-2 text-xs">
@@ -2999,7 +3271,7 @@ export default function POSPage() {
               </div>
               <div className="flex gap-1">
                 <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => restoreOrder(order)}>Recuperar</Button>
-                <button onClick={() => deleteSavedOrder(order.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-3 h-3" /></button>
+                <button type="button" aria-label={`Borrar el pedido guardado ${order.label}`} onClick={() => deleteSavedOrder(order.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-3 h-3" aria-hidden="true" /></button>
               </div>
             </div>
           ))}
@@ -3050,6 +3322,7 @@ export default function POSPage() {
                             autoFocus
                             type="number"
                             min={0}
+                            aria-label={`Precio de ${it.name}`}
                             value={editingPriceVal}
                             onChange={e => setEditingPriceVal(e.target.value)}
                             onKeyDown={e => {
@@ -3059,21 +3332,28 @@ export default function POSPage() {
                             className="w-24 h-5 text-xs font-mono bg-background border border-primary/50 rounded px-1 outline-none focus:ring-1 focus:ring-primary/50"
                             placeholder={String(unitP)}
                           />
+                          {/* 2026-11-03: los botones de ícono del carrito no tenían
+                              nombre; un lector de pantalla decía «botón» y nada más. */}
                           <button
+                            type="button"
+                            aria-label="Aplicar precio"
                             onClick={() => applyPriceOverride(it.productId, editingPriceVal)}
                             className="text-primary hover:text-primary/80"
                           >
-                            <Check className="w-3 h-3" />
+                            <Check className="w-3 h-3" aria-hidden="true" />
                           </button>
                           <button
+                            type="button"
+                            aria-label="Cancelar cambio de precio"
                             onClick={() => setEditingPriceId(null)}
                             className="text-muted-foreground hover:text-foreground"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-3 h-3" aria-hidden="true" />
                           </button>
                         </div>
                       ) : (
                         <button
+                          type="button"
                           onClick={() => {
                             setEditingPriceId(it.productId);
                             setEditingPriceVal(String(hasCustom ? it.customPrice : unitP));
@@ -3089,8 +3369,14 @@ export default function POSPage() {
                       )}
                     </div>
                   </div>
-                  <button onClick={() => removeItem(it.productId)} className="text-muted-foreground hover:text-destructive shrink-0 mt-0.5">
-                    <X className="w-3.5 h-3.5" />
+                  {/* 40 px de área táctil; el margen negativo evita que la fila cambie de alto. */}
+                  <button
+                    type="button"
+                    aria-label={`Quitar ${it.name} del carrito`}
+                    onClick={() => removeItem(it.productId)}
+                    className="inline-flex h-10 w-10 -mr-2 -mt-2 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
@@ -3107,10 +3393,12 @@ export default function POSPage() {
                   */}
                   <div className="flex items-center gap-1">
                     <button
+                      type="button"
+                      aria-label={`Restar una unidad de ${it.name}`}
                       onClick={() => changeQty(it.productId, -1)}
                       className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center hover:bg-muted transition-colors"
                     >
-                      <Minus className="w-4 h-4" />
+                      <Minus className="w-4 h-4" aria-hidden="true" />
                     </button>
                     {it.unidad && it.unidad !== "unidad" ? (
                       <label className="flex items-center gap-1">
@@ -3130,17 +3418,20 @@ export default function POSPage() {
                       <span className="w-8 text-center text-sm font-bold">{it.quantity}</span>
                     )}
                     <button
+                      type="button"
+                      aria-label={`Sumar una unidad de ${it.name}`}
                       onClick={() => changeQty(it.productId, 1)}
                       disabled={it.quantity >= it.stock && it.stock > 0}
                       className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                   <div className="text-right">
                     <span className="font-semibold text-sm font-mono">{formatARS(unitP * it.quantity)}</span>
                     {hasCustom && (
                       <button
+                        type="button"
                         onClick={() => setCart(prev => prev.map(c => c.productId === it.productId ? { ...c, customPrice: null } : c))}
                         className="block text-[9px] text-muted-foreground hover:text-destructive ml-auto mt-0.5"
                         title="Restablecer precio original"
@@ -3158,22 +3449,26 @@ export default function POSPage() {
 
       {/* Customer + Payment */}
       <div className="px-4 py-3 border-t border-border space-y-3">
-        {/* Location selector — only when org has locations configured */}
+        {/* Location selector — only when org has locations configured.
+            2026-11-03: con una sola sucursal («Casa central», que se crea sola
+            al dar de alta) el selector no elige nada; sólo queda el turno. */}
         {locations.length > 0 ? (
           <div className="space-y-2">
-            <div className="relative">
-              <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-10" />
-              <Select value={selectedLocationId ?? undefined} onValueChange={selectLocation}>
-                <SelectTrigger className="h-8 w-full pl-8 text-sm" aria-label="Sucursal del punto de venta">
-                  <SelectValue placeholder="Elegir sucursal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((l) => (
-                    <SelectItem key={l.id} value={l.id}>{l.name}{l.is_main ? " (principal)" : ""}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {locations.length > 1 ? (
+              <div className="relative">
+                <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-10" />
+                <Select value={selectedLocationId ?? undefined} onValueChange={selectLocation}>
+                  <SelectTrigger className="h-8 w-full pl-8 text-sm" aria-label="Sucursal del punto de venta">
+                    <SelectValue placeholder="Elegir sucursal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>{l.name}{l.is_main ? " (principal)" : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             {selectedLocationId && (
               <Link
                 to={`/caja/turno?location=${selectedLocationId}`}
@@ -3216,7 +3511,7 @@ export default function POSPage() {
         )}
         <div className="flex items-center gap-1.5">
           <Button type="button" size="sm" variant="outline" className="h-8 shrink-0 text-xs" data-tour="pos-cliente" onClick={() => setCustomerPickerOpen(true)}>
-            <User className="mr-1 h-3.5 w-3.5" />{posCustomer ? "Cambiar cliente" : "Elegir cliente"}<kbd className="ml-1 text-[9px] opacity-60">F3</kbd>
+            <User className="mr-1 h-3.5 w-3.5" />{posCustomer ? "Cambiar cliente" : "Elegir cliente"}<kbd className="ml-1 hidden text-[9px] opacity-60 lg:inline">F3</kbd>
           </Button>
           {posCustomer ? (
             <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-xs">
@@ -3228,7 +3523,7 @@ export default function POSPage() {
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
-          ) : <span className="text-[11px] text-muted-foreground">Sin cliente: consumidor final</span>}
+          ) : <span className="text-[11px] text-muted-foreground">{fromWizard ? "Sin cliente (no hace falta)" : "Sin cliente: consumidor final"}</span>}
         </div>
         <PosCustomerPicker
           open={customerPickerOpen}
@@ -3240,34 +3535,42 @@ export default function POSPage() {
             setPosCustomer(selected); setCustomer(selected.name); setCustomerPickerOpen(false);
             // Un cliente con CUIT casi siempre pide factura: el ticket la pide.
             if (selected.tax_id) setWantArcaInvoice(true);
+            // En el primer ticket la factura vive en «Más opciones»: se abre para que se vea.
+            if (selected.tax_id) setMoreOpen(true);
           }}
         />
-        <div className="relative">
-          <Input
-            placeholder="Nombre en el ticket (opcional)"
-            value={customer}
-            onChange={(e) => { setCustomer(e.target.value); if (posCustomer && e.target.value !== posCustomer.name) setPosCustomer(null); }}
-            onFocus={() => setShowRecentCustomers(true)}
-            onBlur={() => setTimeout(() => setShowRecentCustomers(false), 150)}
-            className="h-8 text-sm bg-muted"
-          />
-          {showRecentCustomers && recentCustomers.filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase())).length > 0 && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border/60 rounded-lg shadow-lg overflow-hidden">
-              {recentCustomers
-                .filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase()))
-                .slice(0, 5)
-                .map(c => (
-                  <button
-                    key={c}
-                    onMouseDown={() => { setCustomer(c); setShowRecentCustomers(false); }}
-                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted transition-colors truncate"
-                  >
-                    {c}
-                  </button>
-                ))}
-            </div>
-          )}
-        </div>
+        {/* 2026-11-03: dos maneras de poner cliente antes de la primera venta
+            eran ruido. En el asistente queda sólo «Elegir cliente». */}
+        {!fromWizard ? (
+          <div className="relative">
+            <Input
+              placeholder="Nombre en el ticket (opcional)"
+              aria-label="Nombre en el ticket"
+              value={customer}
+              onChange={(e) => { setCustomer(e.target.value); if (posCustomer && e.target.value !== posCustomer.name) setPosCustomer(null); }}
+              onFocus={() => setShowRecentCustomers(true)}
+              onBlur={() => setTimeout(() => setShowRecentCustomers(false), 150)}
+              className="h-8 text-sm bg-muted"
+            />
+            {showRecentCustomers && recentCustomers.filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase())).length > 0 && (
+              <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border/60 rounded-lg shadow-lg overflow-hidden">
+                {recentCustomers
+                  .filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase()))
+                  .slice(0, 5)
+                  .map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onMouseDown={() => { setCustomer(c); setShowRecentCustomers(false); }}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted transition-colors truncate"
+                    >
+                      {c}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        ) : null}
         {vipLoading && <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Verificando nivel…</p>}
         {vipTier && !vipLoading && (
           <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium ${
@@ -3279,7 +3582,6 @@ export default function POSPage() {
             <span className="font-bold">{vipTier.pct}% desc. aplicado</span>
           </div>
         )}
-
         {presupuestoCaja && (
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-primary/10 border border-primary/30 text-primary" data-testid="pos-presupuesto">
             <FileText className="w-3.5 h-3.5 shrink-0" />
@@ -3394,22 +3696,17 @@ export default function POSPage() {
         })()}
 
         {/* Internal note */}
-        <Input
-          placeholder="Nota interna (opcional)"
-          value={posNote}
-          onChange={(e) => setPosNote(e.target.value)}
-          className="h-8 text-sm bg-muted"
-          maxLength={200}
-        />
+        {!fromWizard ? noteField : null}
 
         {/* Payment section */}
-        <div className="space-y-2 pb-12">
+        <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Método de pago</span>
             <div className="flex items-center gap-1">
               {fromWizard ? (
                 <button
                   type="button"
+                  aria-expanded={showAllPayMethods}
                   onClick={() => {
                     setPayMethodsExpanded((open) => {
                       const next = !open;
@@ -3427,6 +3724,8 @@ export default function POSPage() {
               ) : null}
               {showAllPayMethods ? (
                 <button
+                  type="button"
+                  aria-pressed={splitMode}
                   onClick={() => { setSplitMode(!splitMode); setSplitAmount1(""); }}
                   className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-all ${
                     splitMode
@@ -3463,7 +3762,7 @@ export default function POSPage() {
               )}
               {/* Cash calculator con atajos de billetes */}
               {payMethod === "efectivo" && (
-                <div className="space-y-2 pb-12">
+                <div className="space-y-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button
                       type="button"
@@ -3498,6 +3797,7 @@ export default function POSPage() {
                   <Input
                     type="number"
                     placeholder="Monto recibido ($)"
+                    aria-label="Monto recibido"
                     value={cashGiven}
                     onChange={(e) => setCashGiven(e.target.value)}
                     className="h-8 text-sm bg-muted"
@@ -3517,14 +3817,15 @@ export default function POSPage() {
             </>
           ) : (
             /* Split payment mode */
-            <div className="space-y-2 pb-12">
+            <div className="space-y-2">
               {/* Method 1 */}
               <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 1</span>
-                <PayMethodGrid value={splitMethod1} onChange={setSplitMethod1} allowQr={false} />
+                <PayMethodGrid value={splitMethod1} onChange={setSplitMethod1} allowQr={false} label="Primer medio de pago" />
                 <Input
                   type="number"
                   placeholder="Monto ($)"
+                  aria-label="Monto del primer medio"
                   value={splitAmount1}
                   onChange={(e) => setSplitAmount1(e.target.value)}
                   className="h-8 text-sm bg-card"
@@ -3533,7 +3834,7 @@ export default function POSPage() {
               {/* Method 2 */}
               <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 2</span>
-                <PayMethodGrid value={splitMethod2} onChange={setSplitMethod2} allowQr={false} />
+                <PayMethodGrid value={splitMethod2} onChange={setSplitMethod2} allowQr={false} label="Segundo medio de pago" />
                 <div className={`h-8 flex items-center px-3 rounded-lg border text-sm font-mono ${
                   splitAmt2 > 0 ? "bg-primary/10 border-primary/30 text-primary" : "bg-card border-border text-muted-foreground"
                 }`}>
@@ -3545,214 +3846,47 @@ export default function POSPage() {
                   {formatARS(splitAmt1)} + {formatARS(splitAmt2)} = {formatARS(cartTotal)}
                 </div>
               )}
+              {/* Vivía en el total; acá no le roba alto al pie fijo. */}
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                El cobro dividido conserva las ofertas del producto, pero no combina descuentos automáticos de dos medios.
+              </p>
             </div>
           )}
         </div>
 
-        {/* Coupon */}
-        <div className="space-y-1.5">
-          <div className="flex gap-1.5">
-            <div className="relative flex-1">
-              <Ticket className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                ref={couponInputRef}
-                placeholder="Código de cupón (F6)"
-                value={couponCode}
-                onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); if (couponResult) setCouponResult(null); }}
-                className="h-8 text-sm bg-muted pl-8 uppercase"
-                onKeyDown={(e) => e.key === "Enter" && handleValidateCoupon()}
-              />
-            </div>
-            <Button
-              variant="outline" size="sm" className="h-8 px-3 text-xs shrink-0"
-              onClick={handleValidateCoupon}
-              disabled={!couponCode.trim() || validatingCoupon}
-            >
-              {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Aplicar"}
-            </Button>
-          </div>
-          {couponResult?.valid && (
-            <div className="flex items-center justify-between text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/20">
-              <span className="flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5" />
-                {couponResult.coupon.code} — {couponResult.coupon.discount_type === "percentage"
-                  ? `${couponResult.coupon.discount_value}% off`
-                  : `${formatARS(couponResult.coupon.discount_value)} off`}
-              </span>
-              <button onClick={() => { setCouponResult(null); setCouponCode(""); }}>
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Global discount toggle */}
-        <div className="space-y-1.5">
-          <button
-            onClick={() => { setShowDiscount(!showDiscount); setDiscountValue(""); }}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-[8px] border text-xs font-medium transition-all ${
-              showDiscount
-                ? "border-primary/40 bg-primary/5 text-primary"
-                : "border-border bg-card text-muted-foreground hover:border-primary/30"
-            }`}
+        {fromWizard ? (
+          <details
+            open={moreOpen}
+            onToggle={(e) => setMoreOpen(e.currentTarget.open)}
+            className="pos-cart-more group rounded-[8px] border border-border"
           >
-            <span className="flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5" />
-              Descuento adicional
-            </span>
-            {showDiscount && globalDiscountARS > 0 && (
-              <span className="text-emerald-400 font-mono">-{formatARS(globalDiscountARS)}</span>
-            )}
-          </button>
-
-          {showDiscount && (
-            <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
-              {/* Type toggle */}
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  onClick={() => { setDiscountType("percent"); setDiscountValue(""); }}
-                  className={`flex items-center justify-center gap-1 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                    discountType === "percent"
-                      ? "border-primary/60 bg-primary/10 text-primary"
-                      : "border-border bg-card text-muted-foreground"
-                  }`}
-                >
-                  <Percent className="w-3 h-3" />Porcentaje
-                </button>
-                <button
-                  onClick={() => { setDiscountType("fixed"); setDiscountValue(""); }}
-                  className={`flex items-center justify-center gap-1 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                    discountType === "fixed"
-                      ? "border-primary/60 bg-primary/10 text-primary"
-                      : "border-border bg-card text-muted-foreground"
-                  }`}
-                >
-                  <DollarSign className="w-3 h-3" />Monto fijo
-                </button>
-              </div>
-              <Input
-                type="number"
-                placeholder={discountType === "percent" ? "Ej: 10 (para 10%)" : "Monto en $"}
-                value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value)}
-                className="h-8 text-sm bg-card"
-                min={0}
-                max={discountType === "percent" ? 100 : undefined}
-              />
-              {globalDiscountARS > 0 && (
-                <div className="text-xs text-center text-emerald-400 font-medium">
-                  Descuento: -{formatARS(globalDiscountARS)}
-                </div>
-              )}
+            <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+              <span>Más opciones{moreOptionsActive.length > 0 ? ` · ${moreOptionsActive.join(" · ")}` : ""}</span>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <div className="space-y-3 border-t border-border px-3 py-3">
+              {noteField}
+              {couponField}
+              {discountField}
+              {categoryDiscountField}
+              {arcaToggle}
+              {printToggle}
             </div>
-          )}
-        </div>
-
-        {/* Category discount panel */}
-        {cart.length > 0 && (() => {
-          const cats = [...new Set(cart.map(it => it.category).filter(Boolean))] as string[];
-          if (cats.length === 0) return null;
-          return (
-            <div className="space-y-1.5">
-              <button
-                onClick={() => setShowCatDiscount(!showCatDiscount)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-[8px] border text-xs font-medium transition-all ${
-                  showCatDiscount || catDiscountARS > 0
-                    ? 'border-primary/40 bg-primary/5 text-primary'
-                    : 'border-border bg-card text-muted-foreground hover:border-primary/30'
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5" />
-                  Desc. por categoría
-                </span>
-                {catDiscountARS > 0 && <span className="text-emerald-400 font-mono">-{formatARS(catDiscountARS)}</span>}
-              </button>
-              {showCatDiscount && (
-                <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
-                  {cats.map(cat => (
-                    <div key={cat} className="flex items-center gap-2">
-                      <span className="text-xs flex-1 truncate capitalize">{cat.replace(/_/g, ' ')}</span>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={categoryDiscounts[cat] || ''}
-                          onChange={e => saveCatDiscounts({ ...categoryDiscounts, [cat]: Math.min(100, Number(e.target.value) || 0) })}
-                          className="w-14 text-right text-xs border border-border rounded bg-card px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
-                          placeholder="0"
-                        />
-                        <span className="text-xs text-muted-foreground">%</span>
-                      </div>
-                    </div>
-                  ))}
-                  <p className="text-[10px] text-muted-foreground">El % se aplica al precio de cada ítem de esa categoría.</p>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* Total + confirm */}
-        <div className="pos-cart-total bg-primary/8 px-4 py-3 border border-primary/20 space-y-1">
-          {cartSubtotal !== cartTotal && (
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Subtotal</span>
-              <span className="font-mono">{formatARS(cartSubtotal)}</span>
-            </div>
-          )}
-          {paymentMethodDiscountARS > 0 && (
-            <div className="flex items-center justify-between text-xs text-emerald-500">
-              <span>Desc. {PAY_METHODS.find(m => m.value === effectivePayMethod)?.label} ({paymentDiscountPercent}%)</span>
-              <span className="font-mono">-{formatARS(paymentMethodDiscountARS)}</span>
-            </div>
-          )}
-          {catDiscountARS > 0 && (
-            <div className="flex items-center justify-between text-xs text-emerald-400">
-              <span>Desc. categoría</span>
-              <span className="font-mono">-{formatARS(catDiscountARS)}</span>
-            </div>
-          )}
-          {couponDiscount > 0 && (
-            <div className="flex items-center justify-between text-xs text-emerald-400">
-              <span>Descuento cupón</span>
-              <span className="font-mono">-{formatARS(couponDiscount)}</span>
-            </div>
-          )}
-          {globalDiscountARS > 0 && (
-            <div className="flex items-center justify-between text-xs text-emerald-400">
-              <span>Desc. adicional</span>
-              <span className="font-mono">-{formatARS(globalDiscountARS)}</span>
-            </div>
-          )}
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">Total</span>
-            <span className="text-xl font-display font-bold text-primary">{formatARS(cartTotal)}</span>
-          </div>
-          {splitMode && splitAmt1 > 0 && (
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
-              <span>{PAY_METHODS.find(m => m.value === splitMethod1)?.label}</span>
-              <span className="font-mono">{formatARS(splitAmt1)}</span>
-            </div>
-          )}
-          {splitMode && (
-            <p className="text-[10px] leading-relaxed text-muted-foreground pt-1">
-              El cobro dividido conserva las ofertas del producto, pero no combina descuentos automáticos de dos medios.
-            </p>
-          )}
-          {splitMode && splitAmt1 > 0 && (
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>{PAY_METHODS.find(m => m.value === splitMethod2)?.label}</span>
-              <span className="font-mono">{formatARS(splitAmt2)}</span>
-            </div>
-          )}
-        </div>
+          </details>
+        ) : (
+          <>
+            {couponField}
+            {discountField}
+            {categoryDiscountField}
+          </>
+        )}
 
         {/* Actividad local: ayuda a repetir/imprimir, pero no reemplaza la sesión server-side. */}
         {turnoSales.length > 0 && (
           <div className="border border-border rounded-[10px] overflow-hidden">
             <button
+              type="button"
+              aria-expanded={showTurnoHistory}
               onClick={() => setShowTurnoHistory(!showTurnoHistory)}
               className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/40 transition-colors"
             >
@@ -3764,7 +3898,7 @@ export default function POSPage() {
             </button>
             {showTurnoHistory && (
               <div className="divide-y divide-border max-h-48 overflow-y-auto">
-                {[...turnoSales].reverse().map((s, i) => (
+                {[...turnoSales].reverse().map((s) => (
                   <div key={s.ts} className="flex items-center justify-between px-3 py-2 text-xs gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium truncate">{s.items.map(it => it.name).join(', ')}</p>
@@ -3788,33 +3922,59 @@ export default function POSPage() {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={() => setWantArcaInvoice((open) => !open)}
-          aria-pressed={wantArcaInvoice}
-          data-tour="pos-factura"
-          className={`w-full flex items-start gap-2 px-3 py-2 rounded-[8px] border text-left text-xs transition-all ${
-            wantArcaInvoice
-              ? "border-primary/40 bg-primary/5 text-foreground"
-              : "border-border bg-card text-muted-foreground hover:border-primary/30"
-          }`}
-        >
-          <FileText className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${wantArcaInvoice ? "text-primary" : ""}`} />
-          <span>
-            <span className="block font-medium text-foreground">{posArcaInvoiceCopy().checkboxLabel}</span>
-            <span className="block mt-0.5 leading-relaxed">{posArcaInvoiceCopy().hint}</span>
-          </span>
-        </button>
+        {!fromWizard ? (
+          <>
+            {arcaToggle}
+            {printToggle}
+          </>
+        ) : null}
+      </div>
+      </div>
 
-        <button type="button" role="switch" aria-checked={autoPrintTicket}
-          onClick={toggleAutoPrint}
-          className="w-full flex items-start gap-2 px-3 py-2 rounded-lg border border-border bg-card text-left text-xs hover:border-primary/30">
-          <Printer className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
-          <span>
-            <span className="block font-medium">Imprimir ticket al cerrar la venta · {autoPrintTicket ? "Activado" : "Desactivado"}</span>
-            <span className="block mt-0.5 text-muted-foreground leading-relaxed">Abre el diálogo de impresión tras guardar y cobrar. Preferencia de este dispositivo; no reemplaza la factura ARCA.</span>
-          </span>
-        </button>
+      {/* Pie fijo: el total y el cobro se ven siempre, sin scrollear. */}
+      <div className="pos-cart-footer shrink-0 space-y-2 border-t border-border bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="pos-cart-total space-y-0.5">
+          {cartSubtotal !== cartTotal && (
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Subtotal</span>
+              <span className="font-mono">{formatARS(cartSubtotal)}</span>
+            </div>
+          )}
+          {paymentMethodDiscountARS > 0 && (
+            <div className="flex items-center justify-between text-[11px] text-emerald-500">
+              <span>Desc. {PAY_METHODS.find(m => m.value === effectivePayMethod)?.label} ({paymentDiscountPercent}%)</span>
+              <span className="font-mono">-{formatARS(paymentMethodDiscountARS)}</span>
+            </div>
+          )}
+          {catDiscountARS > 0 && (
+            <div className="flex items-center justify-between text-[11px] text-emerald-400">
+              <span>Desc. categoría</span>
+              <span className="font-mono">-{formatARS(catDiscountARS)}</span>
+            </div>
+          )}
+          {couponDiscount > 0 && (
+            <div className="flex items-center justify-between text-[11px] text-emerald-400">
+              <span>Descuento cupón</span>
+              <span className="font-mono">-{formatARS(couponDiscount)}</span>
+            </div>
+          )}
+          {globalDiscountARS > 0 && (
+            <div className="flex items-center justify-between text-[11px] text-emerald-400">
+              <span>Desc. adicional</span>
+              <span className="font-mono">-{formatARS(globalDiscountARS)}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">Total</span>
+            <span className="text-xl font-display font-bold text-primary">{formatARS(cartTotal)}</span>
+          </div>
+          {splitMode && splitAmt1 > 0 && (
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{PAY_METHODS.find(m => m.value === splitMethod1)?.label} + {PAY_METHODS.find(m => m.value === splitMethod2)?.label}</span>
+              <span className="font-mono">{formatARS(splitAmt1)} + {formatARS(splitAmt2)}</span>
+            </div>
+          )}
+        </div>
 
         <Button
           className="pos-confirm-sale w-full font-semibold h-11 text-base gap-2"
@@ -3824,13 +3984,12 @@ export default function POSPage() {
           {submitting ? (
             <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />{payMethod === "qr" && !splitMode ? "Preparando QR..." : "Registrando..."}</>
           ) : (
-            <>{payMethod === "qr" && !splitMode ? <QrCode className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}{payMethod === "qr" && !splitMode ? "Generar QR y cobrar" : "Confirmar venta"} <span className="ml-auto text-[10px] opacity-60 font-normal">F9</span></>
+            <>{payMethod === "qr" && !splitMode ? <QrCode className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}{payMethod === "qr" && !splitMode ? "Generar QR y cobrar" : "Confirmar venta"} <span className="ml-auto hidden text-[10px] opacity-60 font-normal lg:inline">F9</span></>
           )}
         </Button>
       </div>
     </div>
   );
-
   return (
     <>
       {/* La caja no lleva encabezado visible (es pantalla completa), pero el lector de pantalla necesita saber dónde está. */}
@@ -3842,11 +4001,18 @@ export default function POSPage() {
           <DialogContent size="sm">
             <DialogHeader>
               <DialogTitle className="truncate pr-6">{variantPickerProduct.name}</DialogTitle>
-              <DialogDescription>Seleccioná una variante con stock disponible.</DialogDescription>
+              <DialogDescription>
+                {variantPickerProduct.maneja_stock === false ? "Seleccioná una variante." : "Seleccioná una variante con stock disponible."}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-2 max-h-72 overflow-y-auto">
               {(variantsByProduct[variantPickerProduct.id] || []).map(v => {
-                const outOfStock = v.stock <= 0;
+                // 2026-11-03: un producto «No lleva stock» tiene sus variantes en 0
+                // a propósito. Era el mismo criterio que `posProductIsSellable` y
+                // `addToCart` (unlimitedStock): se cobra sin mirar unidades y no
+                // lleva la etiqueta roja.
+                const sinControl = variantPickerProduct.maneja_stock === false;
+                const outOfStock = !sinControl && v.stock <= 0;
                 const onlineReserved = Number(onlineReservations[reservationKey(variantPickerProduct.id, v.id)] ?? 0);
                 return (
                   <button
@@ -3864,13 +4030,15 @@ export default function POSPage() {
                         <p className="text-xs text-amber-500">{onlineReserved} u. reservada{onlineReserved === 1 ? "" : "s"} online</p>
                       )}
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-[5px] ${
-                      v.stock <= 0 ? 'bg-red-500/15 text-red-400' :
-                      v.stock <= 3 ? 'bg-yellow-500/15 text-yellow-400' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {v.stock <= 0 ? 'Sin stock' : `×${v.stock}`}
-                    </span>
+                    {sinControl ? null : (
+                      <span className={`text-xs px-2 py-0.5 rounded-[5px] ${
+                        v.stock <= 0 ? 'bg-red-500/15 text-red-400' :
+                        v.stock <= 3 ? 'bg-yellow-500/15 text-yellow-400' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {v.stock <= 0 ? 'Sin stock' : `${v.stock} u.`}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -3885,7 +4053,9 @@ export default function POSPage() {
                 onClick={() => addToCart(variantPickerProduct)}
                 className="w-full py-2.5 rounded-[10px] border border-dashed border-border hover:border-primary/40 hover:bg-muted/30 transition-colors text-xs text-muted-foreground"
               >
-                Sin variante específica (stock total: {variantPickerProduct.stock})
+                {variantPickerProduct.maneja_stock === false
+                  ? "Sin variante específica"
+                  : `Sin variante específica (stock total: ${variantPickerProduct.stock})`}
               </button>
             </div>
           </DialogContent>
@@ -4027,8 +4197,10 @@ export default function POSPage() {
             else if (invoice.ok && invoice.invoiceId) toast.info(posArcaInvoiceCopy().draft);
             else if (invoice.motivo) toast.warning(invoice.motivo);
           } : undefined}
-          onClose={() => setReceipt(null)}
-          onNewSale={() => { setReceipt(null); clearCart(); }}
+          firstSale={fromWizard && turnoSales.length <= 1 && recSales.length === 0}
+          offline={Boolean(receipt.offline)}
+          onClose={() => { setReceipt(null); salirDelAsistente(); }}
+          onNewSale={() => { setReceipt(null); clearCart(); salirDelAsistente(); }}
         />
       )}
 
@@ -4270,10 +4442,17 @@ export default function POSPage() {
               autoFocus
             />
           </div>
-          <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0 border-orange-500/40 text-orange-400 hover:bg-orange-500/10" onClick={() => setShowReturn(true)}>
-            <Undo2 className="w-4 h-4" />
-            <span className="sr-only xl:not-sr-only xl:whitespace-nowrap">Devolver</span>
-          </Button>
+          {/* 2026-11-03: «Devolver» era naranja, lo segundo más visible del
+              encabezado, y debajo de 1280 px quedaba sólo el ícono, que se
+              confunde con «deshacer». Un comercio que todavía no vendió no
+              tiene nada que devolver: en el asistente aparece recién con la
+              primera venta. Fuera del asistente sigue siempre a mano. */}
+          {!ocultarDevolver && (
+            <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0" title="Devolver una venta" onClick={() => setShowReturn(true)}>
+              <Undo2 className="w-4 h-4" aria-hidden="true" />
+              <span className="sr-only xl:not-sr-only xl:whitespace-nowrap">Devolver</span>
+            </Button>
+          )}
           <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0" onClick={() => scanning ? stopScan() : startScan()}>
             <QrCode className="w-4 h-4" />
             <span className="sr-only xl:not-sr-only xl:whitespace-nowrap">Escanear</span>
@@ -4500,6 +4679,7 @@ export default function POSPage() {
                   const displayPrice = posPriceForPayment(price, currentPrice, effectivePayMethod, settings, splitMode);
                   const showDisc = displayPrice + 0.01 < price;
                   const outOfStock = posProductIsOutOfStock(prod);
+                  const stockBadge = posStockBadge(prod);
 
                   return (
                     <button
@@ -4548,13 +4728,15 @@ export default function POSPage() {
                               <p className="text-[10px] line-through text-muted-foreground">{formatARS(price)}</p>
                             )}
                           </div>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-[5px] ${
-                            prod.stock <= 0 ? "bg-red-500/15 text-red-400" :
-                            prod.stock <= 3 ? "bg-yellow-500/15 text-yellow-400" :
-                            "bg-muted text-muted-foreground"
-                          }`}>
-                            {prod.stock <= 0 ? "Sin stock" : `×${prod.stock}`}
-                          </span>
+                          {stockBadge ? (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-[5px] ${
+                              stockBadge.tone === "out" ? "bg-red-500/15 text-red-400" :
+                              stockBadge.tone === "low" ? "bg-yellow-500/15 text-yellow-400" :
+                              "bg-muted text-muted-foreground"
+                            }`}>
+                              {stockBadge.label}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
 

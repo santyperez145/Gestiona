@@ -19,11 +19,6 @@ test.skip(!LOCAL, "El alta crea un usuario y un negocio: corre sólo contra la b
 
 test("un comercio nuevo se registra, confirma su correo y entra a su panel", async ({ page, request }) => {
   test.setTimeout(300_000);
-  const sufijo = Date.now().toString(36);
-  const email = `alta-${sufijo}@nerqia.test`;
-  const nombre = `ZZ Alta ${sufijo}`;
-  // Minúscula, mayúscula, número y símbolo, como pide passwordSecurity.ts.
-  const clave = `Zz!2026-${sufijo}-Alta-${Math.random().toString(36).slice(2, 10)}`;
   // El recorrido en capturas (2026-11-02): el CI las publica siempre como
   // artefacto, para revisar la experiencia de un comercio nuevo paso a paso.
   let paso = 0;
@@ -32,42 +27,8 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
     await p.screenshot({ path: `recorrido/${String(paso).padStart(2, "0")}-${nombre}.png`, fullPage: true }).catch(() => undefined);
   };
 
-  // 1. Registro desde la pantalla.
-  await page.goto("/login?mode=register");
-  await foto(page, "registro");
-  await page.getByLabel("Nombre").fill(nombre);
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Contraseña").fill(clave);
-  await page.getByRole("button", { name: /Crear mi cuenta gratis/ }).click();
-  await expect(page.getByText("Te enviamos un correo para confirmar tu cuenta.")).toBeVisible({ timeout: 30_000 });
-
-  // 2. El mail de confirmación llega con nuestra plantilla y su enlace.
-  let enlace = "";
-  let asunto = "";
-  await expect.poll(async () => {
-    const busqueda = await request.get(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`);
-    if (!busqueda.ok()) return "";
-    const { messages } = await busqueda.json() as { messages?: Array<{ ID: string; Subject?: string }> };
-    if (!messages?.length) return "";
-    asunto = messages[0].Subject ?? "";
-    const mensaje = await (await request.get(`${MAILPIT}/api/v1/message/${messages[0].ID}`)).json() as { HTML?: string; Text?: string };
-    const cuerpo = `${mensaje.HTML ?? ""}\n${mensaje.Text ?? ""}`;
-    enlace = (cuerpo.match(/https?:\/\/[^"'\s<>]+\/auth\/v1\/verify\?[^"'\s<>]+/)?.[0] ?? "").replace(/&amp;/g, "&");
-    return enlace;
-  }, { timeout: 45_000, message: "no llegó el mail de confirmación" }).not.toBe("");
-  expect(asunto).toContain("Confirmá tu correo");
-
-  // 3. Confirmar: el enlace valida la cuenta y redirige al sitio.
-  const confirmacion = await request.get(enlace, { maxRedirects: 0 });
-  expect([200, 301, 302, 303, 307]).toContain(confirmacion.status());
-
-  // 4. Entrar con el formulario de login: el negocio nuevo cae directo en el
-  // asistente de inicio, a pantalla completa (sin el menú del panel).
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Contraseña").fill(clave);
-  await page.getByRole("button", { name: /Entrar a Nerqia/ }).click();
-  await expect(page).toHaveURL(/\/onboarding/, { timeout: 45_000 });
+  // 1 a 4. Registro, mail de confirmación, confirmar y entrar.
+  const { sufijo, email, nombre } = await registrarYEntrar(page, request, "alta", foto);
 
   // 5. El asistente de inicio (2026-11-02): nombre, rubro, color y canal. Es lo
   // primero que hace cada comercio y ningún E2E lo recorría con una cuenta nueva.
@@ -188,6 +149,120 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await expect(page.getByText("ZZ Primer Comprador").filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
   await foto(page, "comercio-primer-pedido");
 });
+
+/**
+ * El otro camino del asistente (2026-11-03): «Vender en mi local». Primer
+ * producto, la caja y la primera venta en efectivo, con una cuenta nueva.
+ * Ningún E2E lo recorría: los de la caja usan un negocio sembrado.
+ */
+test("un comercio nuevo elige vender en el local y cobra su primera venta", async ({ page, request }) => {
+  test.setTimeout(300_000);
+  let paso = 0;
+  const foto = async (p: import("@playwright/test").Page, nombre: string) => {
+    paso += 1;
+    await p.screenshot({ path: `recorrido/mostrador-${String(paso).padStart(2, "0")}-${nombre}.png`, fullPage: true }).catch(() => undefined);
+  };
+  const { sufijo, nombre } = await registrarYEntrar(page, request, "local");
+
+  await expect(page.getByRole("heading", { name: "¿Cómo se llama tu negocio?" })).toBeVisible({ timeout: 30_000 });
+  await page.getByLabel("Nombre del negocio").fill(nombre);
+  await page.getByRole("button", { name: /Siguiente/ }).click();
+  await page.getByRole("group", { name: "Rubros" }).getByRole("button").first().click();
+  await page.getByRole("button", { name: /Siguiente/ }).click();
+  await expect(page.getByRole("heading", { name: "Color de marca" })).toBeVisible();
+  await page.getByRole("button", { name: /Siguiente/ }).click();
+  await page.getByRole("button", { name: /Vender en mi local/ }).click();
+
+  // El primer producto, con stock.
+  await expect(page).toHaveURL(/\/productos\?onboarding=1&goal=pos/, { timeout: 30_000 });
+  const editor = page.getByRole("dialog", { name: "Nuevo producto" });
+  await expect(editor).toBeVisible({ timeout: 30_000 });
+  const producto = `ZZ CAJA ${sufijo.toUpperCase()}`;
+  await editor.getByLabel("Nombre *").fill(producto);
+  await editor.getByLabel("Precio de venta *").fill("12500");
+  await editor.getByLabel(/^Unidades/).fill("7");
+  await editor.getByRole("button", { name: "Crear y cobrar" }).click();
+
+  // La caja: tocar el producto y cobrar en efectivo.
+  await expect(page).toHaveURL(/\/caja\?onboarding=1/, { timeout: 30_000 });
+  await expect(page.getByText("Tocá el producto y cobrá")).toBeVisible({ timeout: 30_000 });
+  await foto(page, "caja");
+  await page.locator(".pos-product-card", { hasText: producto }).click();
+  const carrito = page.locator(".pos-cart-sidebar");
+  await carrito.getByRole("group", { name: "Medio de pago" }).getByRole("button", { name: /Efectivo/ }).click();
+  await sinBarrerasGraves(page, "caja con el primer producto");
+  // El botón de cobrar se ve sin bajar: quedaba al final de un panel con scroll.
+  const confirmar = carrito.getByRole("button", { name: /Confirmar venta/ });
+  await expect(confirmar).toBeInViewport();
+  await foto(page, "caja-carrito");
+  await confirmar.click();
+  await expect(page.getByText("¡Primera venta hecha!").first()).toBeVisible({ timeout: 30_000 });
+  await foto(page, "caja-primera-venta");
+
+  // La segunda venta ya no es «la primera»: sale del modo asistente.
+  await page.getByRole("button", { name: /Nueva venta/ }).click();
+  await expect(page).not.toHaveURL(/onboarding=1/, { timeout: 15_000 });
+  await expect(page.locator(".pos-product-card", { hasText: producto }).getByText("6 u.")).toBeVisible({ timeout: 30_000 });
+
+  // La venta quedó en Ventas.
+  await page.goto("/ventas");
+  await expect(page.getByText(producto).filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
+});
+
+/**
+ * Registro por la pantalla, el mail de confirmación por Mailpit, confirmar y
+ * entrar con el formulario: deja la página en el asistente de inicio.
+ */
+async function registrarYEntrar(
+  page: import("@playwright/test").Page,
+  request: import("@playwright/test").APIRequestContext,
+  prefijo: string,
+  foto?: (p: import("@playwright/test").Page, nombre: string) => Promise<void>,
+) {
+  const sufijo = Date.now().toString(36);
+  const email = `${prefijo}-${sufijo}@nerqia.test`;
+  const nombre = `ZZ ${prefijo === "alta" ? "Alta" : "Local"} ${sufijo}`;
+  // Minúscula, mayúscula, número y símbolo, como pide passwordSecurity.ts.
+  const clave = `Zz!2026-${sufijo}-Alta-${Math.random().toString(36).slice(2, 10)}`;
+
+  // 1. Registro desde la pantalla.
+  await page.goto("/login?mode=register");
+  await foto?.(page, "registro");
+  await page.getByLabel("Nombre").fill(nombre);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Contraseña").fill(clave);
+  await page.getByRole("button", { name: /Crear mi cuenta gratis/ }).click();
+  await expect(page.getByText("Te enviamos un correo para confirmar tu cuenta.")).toBeVisible({ timeout: 30_000 });
+
+  // 2. El mail de confirmación llega con nuestra plantilla y su enlace.
+  let enlace = "";
+  let asunto = "";
+  await expect.poll(async () => {
+    const busqueda = await request.get(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`);
+    if (!busqueda.ok()) return "";
+    const { messages } = await busqueda.json() as { messages?: Array<{ ID: string; Subject?: string }> };
+    if (!messages?.length) return "";
+    asunto = messages[0].Subject ?? "";
+    const mensaje = await (await request.get(`${MAILPIT}/api/v1/message/${messages[0].ID}`)).json() as { HTML?: string; Text?: string };
+    const cuerpo = `${mensaje.HTML ?? ""}\n${mensaje.Text ?? ""}`;
+    enlace = (cuerpo.match(/https?:\/\/[^"'\s<>]+\/auth\/v1\/verify\?[^"'\s<>]+/)?.[0] ?? "").replace(/&amp;/g, "&");
+    return enlace;
+  }, { timeout: 45_000, message: "no llegó el mail de confirmación" }).not.toBe("");
+  expect(asunto).toContain("Confirmá tu correo");
+
+  // 3. Confirmar: el enlace valida la cuenta y redirige al sitio.
+  const confirmacion = await request.get(enlace, { maxRedirects: 0 });
+  expect([200, 301, 302, 303, 307]).toContain(confirmacion.status());
+
+  // 4. Entrar con el formulario de login: el negocio nuevo cae directo en el
+  // asistente de inicio, a pantalla completa (sin el menú del panel).
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Contraseña").fill(clave);
+  await page.getByRole("button", { name: /Entrar a Nerqia/ }).click();
+  await expect(page).toHaveURL(/\/onboarding/, { timeout: 45_000 });
+  return { sufijo, email, nombre };
+}
 
 /** Sin infracciones críticas ni graves de WCAG A/AA en la pantalla actual. */
 async function sinBarrerasGraves(page: import("@playwright/test").Page, pantalla: string) {

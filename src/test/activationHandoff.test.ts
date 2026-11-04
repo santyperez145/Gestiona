@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   commerceHandoffPath,
   firstProductEmptyCopy,
@@ -57,6 +59,17 @@ describe('copy del primer producto', () => {
     expect(firstProductEmptyCopy(null).title).toBe('Todavía no hay productos');
     expect(firstProductFormDescription('online')).toMatch(/mismo catálogo/);
     expect(firstProductFormDescription('pos')).toMatch(/mostrador/);
+  });
+
+  it('el camino del local no habla de «POS» ni repite el diálogo con un toast', () => {
+    // 2026-11-03: «Ruta POS elegida» tapaba el título «Nuevo producto» y
+    // repetía su descripción; el camino online ya había sacado el suyo.
+    const pos = firstProductEmptyCopy('pos');
+    expect(`${pos.title} ${pos.description} ${pos.actionLabel}`).not.toMatch(/\bPOS\b/);
+    expect(firstProductFormDescription('pos')).not.toMatch(/\bPOS\b/);
+    const onboarding = readFileSync(resolve(__dirname, '../pages/OnboardingPage.tsx'), 'utf8');
+    expect(onboarding).not.toContain("toast.success('Ruta POS");
+    expect(onboarding).toContain("navigate(firstProductPath('pos'))");
   });
 
   it('la tienda sin catálogo manda a cargar producto, no a publicar vacío', () => {

@@ -30,8 +30,25 @@ export const POS_CLOSED_SHIFT_TOPBAR = 'Caja cerrada';
 export const POS_FIRST_SALE_BANNER = {
   title: 'Tocá el producto y cobrá',
   description:
-    'Efectivo o transferencia. El turno se puede abrir después: sirve para conciliar el efectivo, no para vender.',
+    'Efectivo, transferencia o débito. El turno se puede abrir después: sirve para conciliar el efectivo, no para vender.',
 };
+
+export type PosStockBadge = { label: string; tone: 'out' | 'low' | 'ok' };
+
+/**
+ * La etiqueta de unidades de la tarjeta de la caja.
+ *
+ * 2026-11-03: un producto «No lleva stock» se guarda con stock 0 y la tarjeta
+ * le ponía la etiqueta roja «Sin stock», aunque `posProductIsSellable` lo deja
+ * cobrar. El comerciante creía que no podía vender justo el producto que
+ * acababa de cargar. Sin control de stock no hay unidades que mostrar.
+ */
+export function posStockBadge(p: PosStockFlags): PosStockBadge | null {
+  if (p.maneja_stock === false) return null;
+  const stock = Number(p.stock) || 0;
+  if (stock <= 0) return { label: 'Sin stock', tone: 'out' };
+  return { label: `${stock} u.`, tone: stock <= 3 ? 'low' : 'ok' };
+}
 
 export function posProductIsSellable(p: PosStockFlags): boolean {
   // Un producto archivado (p. ej. un duplicado unificado) no se vende.

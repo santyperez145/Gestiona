@@ -16,20 +16,28 @@ export interface ProductDraftInput {
   firstUse: boolean;
 }
 
-export function validateProductDraft(input: ProductDraftInput): { ok: boolean; error?: string } {
-  if (!input.name.trim()) return { ok: false, error: 'El nombre es obligatorio' };
+/**
+ * 2026-11-03: el único aviso de un campo faltante era un toast arriba, lejos
+ * del campo y del botón; el comercio que dejaba Unidades vacío no entendía por
+ * qué no avanzaba. `field` dice qué campo marcar para que el error vaya al lado.
+ */
+export type ProductDraftField = 'name' | 'price' | 'stock';
+
+export function validateProductDraft(input: ProductDraftInput): { ok: boolean; error?: string; field?: ProductDraftField } {
+  if (!input.name.trim()) return { ok: false, error: 'El nombre es obligatorio', field: 'name' };
   if (!(input.salePrice > 0)) {
-    return { ok: false, error: 'El precio de venta tiene que ser mayor a 0. Sin eso no hay nada que cobrar.' };
+    return { ok: false, error: 'El precio de venta tiene que ser mayor a 0. Sin eso no hay nada que cobrar.', field: 'price' };
   }
   if (input.manejaStock) {
     const parsed = Number(input.stockRaw.trim().replace(',', '.'));
     if (input.stockRaw.trim() === '' || !Number.isFinite(parsed) || parsed < 0 || Math.round(parsed * 1000) / 1000 !== parsed) {
-      return { ok: false, error: 'Indicá cuántas unidades hay, o marcá que no lleva stock.' };
+      return { ok: false, error: 'Indicá cuántas unidades hay, o marcá que no lleva stock.', field: 'stock' };
     }
     if (input.firstUse && parsed === 0) {
       return {
         ok: false,
         error: 'Sin unidades el mostrador no puede cobrar. Cargá el stock real o marcá que no lleva stock.',
+        field: 'stock',
       };
     }
   }

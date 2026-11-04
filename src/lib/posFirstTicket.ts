@@ -12,14 +12,20 @@
  *    segundo comercio que eligió mostrador cobra en `/caja`.
  * 4. Siete medios al mismo nivel. QR pide Mercado Pago, fiado no cobra y
  *    mayorista no es un cobro. En la primera visita sólo se muestran
- *    efectivo y transferencia; el resto queda detrás de «Más medios».
+ *    efectivo, transferencia y débito; el resto queda detrás de «Más medios».
+ *
+ * 2026-11-03: débito estaba escondido detrás de «Más medios». Un local con
+ * posnet cobra con tarjeta desde el primer día y no encontraba cómo. Débito
+ * cierra el ticket igual que efectivo: no pide Mercado Pago ni deja deuda.
+ * El recibo además decía «El turno no hace falta para que cuente», jerga que
+ * nadie había explicado, y la primera venta no se festejaba.
  */
 
 import { posHandoffPath } from '@/lib/activationHandoff';
 
 export type PosPayMethod = 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'qr' | 'mayorista' | 'fiado' | string;
 
-export const POS_FIRST_TICKET_METHODS = ['efectivo', 'transferencia'] as const;
+export const POS_FIRST_TICKET_METHODS = ['efectivo', 'transferencia', 'debito'] as const;
 
 export type PosFirstTicketMethod = (typeof POS_FIRST_TICKET_METHODS)[number];
 
@@ -55,9 +61,9 @@ export function posVisiblePayMethods<T extends { value: string }>(
 
 export function posFirstTicketPayCopy() {
   return {
-    hint: 'Efectivo o transferencia cierran el ticket. QR, fiado y el resto están un clic más atrás.',
+    hint: 'Efectivo, transferencia o débito cierran el ticket. Crédito, QR y fiado están en «Más medios».',
     expandLabel: 'Más medios',
-    collapseLabel: 'Sólo efectivo y transferencia',
+    collapseLabel: 'Sólo efectivo, transferencia y débito',
   };
 }
 
@@ -85,11 +91,17 @@ export function posPaymentAlreadyCollected(input: {
   return input.payMethod !== 'fiado';
 }
 
-export function posReceiptCopy(collected: boolean) {
+/**
+ * 2026-11-03: `first` festeja la primera venta del asistente y `offline` no
+ * promete que ya está en Ventas cuando todavía espera la conexión.
+ */
+export function posReceiptCopy(collected: boolean, opts?: { offline?: boolean; first?: boolean }) {
   if (collected) {
     return {
-      title: 'Venta cobrada',
-      description: 'El ticket quedó en Ventas. El turno no hace falta para que cuente.',
+      title: opts?.first ? '¡Primera venta hecha!' : 'Venta cobrada',
+      description: opts?.offline
+        ? 'Quedó guardada en este dispositivo y pasa a Ventas cuando vuelva la conexión.'
+        : 'Quedó guardada en Ventas.',
     };
   }
   return {
@@ -119,7 +131,7 @@ export function salesListEmptyCopy(kind: SalesListEmptyKind) {
     return {
       workspaceKind: 'empty-first-use' as const,
       title: 'Todavía no hay un ticket',
-      description: 'La primera venta se cobra en el mostrador. Efectivo o transferencia alcanzan; no hace falta cliente ni factura.',
+      description: 'La primera venta se cobra en el mostrador. Efectivo, transferencia o débito alcanzan; no hace falta cliente ni factura.',
       actionLabel: 'Cobrar en el POS',
       href: posHandoffPath(),
     };
