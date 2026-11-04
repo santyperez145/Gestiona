@@ -255,6 +255,13 @@ export default function StoreCheckout() {
   // cuando la tienda lo ofrece. Para cualquier entrega a domicilio los campos
   // son obligatorios: una orden que no se puede despachar no es una venta.
   const requiereDomicilio = requiereDireccionDeEntrega(opcion, !!store?.pickup_enabled);
+  // 2026-11-04: la insignia prometía rapidez fija, aun en tiendas que
+  // sólo ofrecen retiro y sin ningún plazo cargado. Ahora dice lo que la
+  // tienda ofrece de verdad según la cotización (y nunca «rápido»).
+  const hayDomicilioCotizado = opciones.some(o => o.carrier !== "retiro");
+  const insigniaEntrega = hayDomicilioCotizado
+    ? (opciones.some(o => o.carrier === "retiro") ? "Retiro o envío a domicilio" : "Envío a domicilio")
+    : (store?.pickup_enabled ? "Retiro en tienda" : "Envío a domicilio");
 
   // ── Validación del cupón ────────────────────────────────────────────────
   // Va acá abajo porque necesita el envío ya cotizado: desde A5 un cupón puede
@@ -712,11 +719,13 @@ export default function StoreCheckout() {
         Comprás como invitado. La cuenta es opcional si querés seguir el pedido más fácil.
       </p>
 
-      {/* Trust Signals en Header */}
+      {/* Trust Signals en Header. 2026-11-04: prometían un pago «seguro» y
+          prometían un envío rápido, cosas que con transferencia o retiro no
+          eran ciertas. */}
       <div className="flex flex-wrap gap-4 text-xs mb-8" style={{ color: "hsl(var(--st-muted))" }}>
         <span className="flex items-center gap-1">
           <Lock className="w-3 h-3" />
-          Pago seguro SSL
+          Conexión segura
         </span>
         <span className="flex items-center gap-1">
           <Tag className="w-3 h-3" />
@@ -724,7 +733,7 @@ export default function StoreCheckout() {
         </span>
         <span className="flex items-center gap-1">
           <Truck className="w-3 h-3" />
-          Envío rápido
+          {insigniaEntrega}
         </span>
       </div>
 
@@ -1190,18 +1199,23 @@ export default function StoreCheckout() {
           </button>
 
           <p className="text-[11px] text-center" style={{ color: "hsl(var(--st-muted))" }}>
-            Antes de confirmar, revisamos disponibilidad y total final para que tu compra salga correcta.
+            {/* 2026-11-04: decía que se revisaba el total antes de confirmar,
+                y eso contradecía «Precios finales» de arriba. */}
+            Antes de confirmar, revisamos que haya stock.
           </p>
 
           {/* Sellos de seguridad y confianza */}
           <div className="pt-3 border-t space-y-2 text-xs" style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-muted))" }}>
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Checkout 100% protegido con cifrado SSL bancario</span>
+              {/* 2026-11-04: prometía un checkout «100% protegido» con
+                  cifrado de banco; con transferencia el pago lo hace el comprador en
+                  su banco, así que se dice sólo lo cierto: la conexión. */}
+              <span>Conexión cifrada (HTTPS)</span>
             </div>
             <div className="flex items-center gap-2">
               <Lock className="w-4 h-4 text-primary shrink-0" />
-              <span>Datos personales y de pago protegidos</span>
+              <span>Tus datos se usan sólo para este pedido</span>
             </div>
           </div>
         </aside>

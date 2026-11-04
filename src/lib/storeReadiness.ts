@@ -200,17 +200,27 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
 
   if (mode === 'zones') {
     const canQuote = input.zonesWithRates > 0;
+    // Sólo retiro (2026-11-04): toda tienda nace con 6 zonas sin tarifa que
+    // siembra la base, y a quien sólo hace retiro el estado le decía «el
+    // checkout no puede cotizar» como algo por resolver. Con retiro el
+    // comprador ya tiene cómo recibir: el envío a domicilio es una mejora.
+    const soloRetiro = pickup && !canQuote;
     checks.push({
       id: 'shipping-rates',
-      title: 'Cargar tarifas de envío',
-      detail: input.shippingZones === 0
-        ? 'La tienda cotiza por zona pero no hay ninguna zona creada: el checkout no va a poder calcular el envío.'
-        : !canQuote
-          ? `Hay ${input.shippingZones} ${input.shippingZones === 1 ? 'zona' : 'zonas'} sin ninguna tarifa cargada: el checkout no puede cotizar.`
-          : `${input.zonesWithRates} de ${input.shippingZones} zonas con tarifas.`,
+      title: soloRetiro ? 'Sumar envío a domicilio' : 'Cargar tarifas de envío',
+      detail: soloRetiro
+        ? input.shippingZones === 0
+          ? 'Por ahora vendés con retiro en tu local. Para ofrecer envío a domicilio, creá las zonas y cargales precio.'
+          : `Por ahora vendés con retiro en tu local. Para ofrecer envío a domicilio, cargá precios en tus ${input.shippingZones} ${input.shippingZones === 1 ? 'zona' : 'zonas'}.`
+        : input.shippingZones === 0
+          ? 'La tienda cotiza por zona pero no hay ninguna zona creada: el checkout no va a poder calcular el envío.'
+          : !canQuote
+            ? `Hay ${input.shippingZones} ${input.shippingZones === 1 ? 'zona' : 'zonas'} sin ninguna tarifa cargada: el checkout no puede cotizar.`
+            : `${input.zonesWithRates} de ${input.shippingZones} zonas con tarifas.`,
       // Con retiro en tienda habilitado el comprador todavía tiene una salida,
-      // así que no impide vender: molesta, no bloquea.
-      severity: pickup ? 'warning' : 'blocker',
+      // así que no impide vender: si no hay ninguna tarifa es una mejora, y si
+      // hay alguna molesta (ya se ofrece envío y puede fallar), no bloquea.
+      severity: soloRetiro ? 'suggestion' : pickup ? 'warning' : 'blocker',
       done: canQuote,
       actionLabel: input.shippingZones === 0 ? 'Crear zonas' : 'Precios por provincia',
       actionHref: '/envios?tab=zonas',
@@ -236,7 +246,10 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
       });
     }
 
-    if (input.productsWithoutWeight > 0) {
+    // El peso sólo se usa para cotizar (2026-11-04): sin ninguna zona con
+    // tarifa no hay envío que pueda salir mal cobrado, y a una tienda de sólo
+    // retiro se le pedía igual. Mismo criterio que `storePublishNudges`.
+    if (canQuote && input.productsWithoutWeight > 0) {
       checks.push({
         id: 'weights',
         title: 'Cargar el peso de los productos',

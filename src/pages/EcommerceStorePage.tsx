@@ -51,6 +51,7 @@ import {
   storeTrafficChannelLabel,
   storeTrafficChannelTone,
   storePublishCta,
+  storeAvisoTransferenciaSinWhatsApp,
   storePublishNudges,
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
@@ -74,8 +75,10 @@ import {
   urlDirectaDeTienda,
   storeShouldJumpToIdentityForm,
   pasosDelArmado,
+  avisoDePasoGuardado,
   storeShareIntentActive,
   storeShareIntentCopy,
+  storeDebeEscribirBanco,
 } from "@/lib/storeFirstPublish";
 import type { StorePerformanceSnapshot } from "@/lib/storeFirstPublish";
 import { countPendingStockAlerts } from "@/lib/stockAlerts";
@@ -89,7 +92,7 @@ import {
   sugerirDireccionDeRetiro,
   sugerirEmailDeAvisos,
 } from "@/lib/storeDraft";
-import { socialLinksParaGuardar } from "@/lib/storeSocial";
+import { hrefWhatsApp, socialLinksParaGuardar } from "@/lib/storeSocial";
 import {
   HOME_SECTION_LABELS,
   HOME_SECTIONS_WITH_LIMIT,
@@ -201,6 +204,17 @@ function isStoreTab(value: string | null): value is StoreTab {
   return value !== null && (STORE_TAB_IDS as readonly string[]).includes(value);
 }
 
+/** Todos los avisos de guardar la tienda comparten lugar: el nuevo reemplaza al anterior. */
+const TOAST_GUARDADO = "tienda-guardada";
+/** Para evaluar lo guardado: el estado del banco sale sólo de `bankPersistedReady`. */
+const BANCO_SIN_TIPEAR = { bank_cbu: "", bank_alias: "" };
+/**
+ * `socialLinksParaGuardar` descarta un número que no puede armar un `wa.me`
+ * (2026-11-04): sin avisar, el comercio creía tener WhatsApp y el comprador
+ * no veía el botón. Se dice antes de guardar.
+ */
+const AYUDA_WHATSAPP_INVALIDO = "Ese número no sirve para WhatsApp: ponelo con código de país y área, sin el 0 ni el 15. Por ejemplo, 5491123456789.";
+
 /** «2», «2,5» o vacío → número de unidades reservadas (0 si no es válido). */
 function reservaLocalAlGuardar(texto: string): number {
   const n = Number(String(texto ?? "").replace(",", "."));
@@ -291,6 +305,15 @@ export default function EcommerceStorePage() {
     legalPages: { missingOrTemplate: 2, drafts: 0 },
     analyticsDisclosureReady: false,
   });
+  /**
+   * De qué tienda son las señales (2026-11-04). Recién creada la tienda, el
+   * peor caso de arriba (0 productos) se leía como dato: el paso de cobro abría
+   * con «Cargar el primer producto» a quien ya lo había cargado. Mientras no
+   * coincida con la tienda en pantalla, lo que depende del surtido no se dibuja.
+   */
+  const [signalsStoreId, setSignalsStoreId] = useState<string | null>(null);
+  const [signalsError, setSignalsError] = useState(false);
+  const currentStoreIdRef = useRef<string | null>(null);
 
   const themeEditorConfig = useMemo(
     () => storeThemeConfigFromEditor(selectedTheme, storeForm),
@@ -322,6 +345,17 @@ export default function EcommerceStorePage() {
   });
   /** Lead de CBU usa lo persistido: el form en vivo no puede esconder el Guardar. */
   const [bankPersistedReady, setBankPersistedReady] = useState(false);
+  /**
+   * Si ya se leyó el banco guardado (2026-11-04). La barra tilda «Cobro» con
+   * `bankPersistedReady`, que arranca en false: si las señales llegaban antes
+   * que `settings`, «Cobro» aparecía pendiente a quien ya tenía alias y se
+   * tildaba un momento después. Y si la lectura fallaba, quedaba pendiente
+   * para siempre sin avisar.
+   */
+  const [bankLoaded, setBankLoaded] = useState(false);
+  const [bankLoadError, setBankLoadError] = useState(false);
+  const bankLoadedRef = useRef(false);
+  bankLoadedRef.current = bankLoaded;
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [performance, setPerformance] = useState<StorePerformanceSnapshot | null>(null);
   const [performanceError, setPerformanceError] = useState<string | null>(null);
@@ -568,26 +602,6 @@ export default function EcommerceStorePage() {
         setDomicilioFiscal(String(data?.domicilio ?? "").trim() || null);
       });
 
-    supabase.from("settings")
-      .select("bank_cbu, bank_alias, bank_name, bank_holder")
-      .eq("org_id", orgId)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("No se pudieron leer los datos bancarios de la tienda", error);
-          return;
-        }
-        if (!data) return;
-        const next = {
-          bank_cbu: data.bank_cbu || "",
-          bank_alias: data.bank_alias || "",
-          bank_name: data.bank_name || "",
-          bank_holder: data.bank_holder || "",
-        };
-        setBankForm(next);
-        setBankPersistedReady(storeBankTransferReady(next));
-      });
-
     void loadOrders();
 
     const loadStockAlerts = () => {
@@ -630,20 +644,75 @@ export default function EcommerceStorePage() {
   // Las señales viven en otras pestañas (Páginas, Pay, Productos). Si sólo se
   // leyeran al montar, publicar legales o conectar MP dejaba el checklist
   // mintiendo hasta un F5.
+  // El banco guardado, con su propio estado de carga (2026-11-04): la barra de
+  // pasos espera esta lectura igual que las señales, y si falla se avisa con
+  // «Reintentar» en vez de dejar «Cobro» pendiente sin explicación.
+  const bankRequestRef = useRef(0);
+  /**
+   * A qué comercio pertenece lo que hay en `bankForm` (2026-11-04). Al cambiar
+   * de comercio el formulario seguía con el CBU y el alias del anterior: si la
+   * lectura del nuevo fallaba o tardaba y se guardaba, `bancoTipeado` daba true
+   * y el CBU de A quedaba en los `settings` de B (los compradores de B le
+   * transferían a A). Ahora se vacía al cambiar de comercio y `saveStore` no
+   * escribe el banco si esta marca no coincide con el comercio actual.
+   */
+  const bankFormOrgRef = useRef<string | null>(null);
+  const loadBankSettings = useCallback(async () => {
+    const request = ++bankRequestRef.current;
+    setBankLoaded(false);
+    setBankLoadError(false);
+    // Sólo al cambiar de comercio: un «Reintentar» del mismo no borra lo tipeado.
+    if (bankFormOrgRef.current !== (orgId ?? null)) {
+      setBankForm({ bank_cbu: "", bank_alias: "", bank_name: "", bank_holder: "" });
+      setBankPersistedReady(false);
+      bankFormOrgRef.current = orgId ?? null;
+    }
+    if (!orgId) return;
+    const { data, error } = await supabase.from("settings")
+      .select("bank_cbu, bank_alias, bank_name, bank_holder")
+      .eq("org_id", orgId)
+      .maybeSingle();
+    // Una respuesta de otro comercio (o de un reintento viejo) no pisa la actual.
+    if (request !== bankRequestRef.current) return;
+    if (error) {
+      console.error("No se pudieron leer los datos bancarios de la tienda", error);
+      setBankLoadError(true);
+      return;
+    }
+    const next = {
+      bank_cbu: data?.bank_cbu || "",
+      bank_alias: data?.bank_alias || "",
+      bank_name: data?.bank_name || "",
+      bank_holder: data?.bank_holder || "",
+    };
+    setBankForm(next);
+    setBankPersistedReady(storeBankTransferReady(next));
+    setBankLoaded(true);
+  }, [orgId]);
+
+  useEffect(() => {
+    void loadBankSettings();
+  }, [loadBankSettings]);
+
+  currentStoreIdRef.current = store?.id ?? null;
   const reloadReadinessSignals = useCallback(async () => {
     if (!orgId || !store?.id) return;
+    const storeId = store.id;
+    setSignalsError(false);
     try {
       const [assortment, zonas, tarifas, paginas, cobro] = await Promise.all([
-        supabase.rpc("get_store_assortment_summary", { p_store_id: store.id }),
+        supabase.rpc("get_store_assortment_summary", { p_store_id: storeId }),
         supabase.from("shipping_zones").select("id, provinces")
           .eq("org_id", orgId).eq("is_active", true),
         supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
         supabase.from("store_pages").select("slug, content, status")
           .eq("org_id", orgId)
-          .eq("store_id", store.id)
+          .eq("store_id", storeId)
           .in("slug", ["politica-de-privacidad", "terminos-y-condiciones"]),
         fetchPaymentStatus(orgId),
       ]);
+      // Una respuesta de la tienda anterior no pisa a la que está en pantalla.
+      if (currentStoreIdRef.current !== storeId) return;
       if (assortment.error) throw assortment.error;
       if (zonas.error) throw zonas.error;
       if (tarifas.error) throw tarifas.error;
@@ -675,8 +744,13 @@ export default function EcommerceStorePage() {
         },
         analyticsDisclosureReady,
       });
+      setSignalsStoreId(storeId);
+      setSignalsError(false);
     } catch (err) {
       console.error("No se pudieron releer las señales de la tienda", err);
+      // Sin señales de esta tienda no se adivina (2026-11-04): se avisa y se
+      // ofrece reintentar en vez de dejar el esqueleto para siempre.
+      if (currentStoreIdRef.current === storeId) setSignalsError(true);
     }
   }, [orgId, store?.id]);
 
@@ -733,7 +807,8 @@ export default function EcommerceStorePage() {
       ...current,
       first_party_analytics_enabled: enabled,
     } : current);
-    toast.success(enabled ? "Medición first-party activada" : "Medición first-party pausada");
+    // Sin jerga (2026-11-04): decía «first-party» a un comercio.
+    toast.success(enabled ? "Medición de visitas activada" : "Medición de visitas pausada");
   };
 
   const saveStore = async (opts?: {
@@ -745,6 +820,11 @@ export default function EcommerceStorePage() {
      * cerraría antes de que el comercio cargara el costo.
      */
     cambios?: Partial<typeof storeFormRef.current>;
+    /**
+     * Qué se guardó y qué sigue (2026-11-04): cada paso guiado mostraba el
+     * mismo aviso genérico de «tienda guardada» y se apilaban dos iguales.
+     */
+    mensaje?: string;
   }) => {
     if (!orgId) return;
     // A propósito tapa al `storeForm` del componente: así todo lo que sigue
@@ -753,7 +833,7 @@ export default function EcommerceStorePage() {
     const isCreatingStore = !store?.id;
     const name = storeForm.name.trim();
     if (!name) {
-      toast.error("Poné el nombre de la tienda.");
+      toast.error("Poné el nombre de la tienda.", { id: TOAST_GUARDADO });
       return;
     }
     const slug = slugCandidatoDeTienda({
@@ -763,7 +843,7 @@ export default function EcommerceStorePage() {
       orgId,
     });
     if (!slug) {
-      toast.error("Elegí el link de la tienda.");
+      toast.error("Elegí el link de la tienda.", { id: TOAST_GUARDADO });
       return;
     }
     const isActive = opts?.activate ? true : storeForm.is_active;
@@ -772,7 +852,7 @@ export default function EcommerceStorePage() {
     // con el cobro a medias.
     const listaParaPublicar = opts?.cambios ? readinessDe(storeForm) : readiness;
     if (isActive && !listaParaPublicar.canPublish) {
-      toast.error(readinessSummary(listaParaPublicar));
+      toast.error(readinessSummary(listaParaPublicar), { id: TOAST_GUARDADO });
       return;
     }
     setLoading(true);
@@ -783,16 +863,29 @@ export default function EcommerceStorePage() {
     // el alias tampoco quedaba. Transferencia cobra con estos datos: si el
     // medio está marcado y no se guardan, el pedido dice «te escribimos».
     const publicando = isActive && !store?.is_active;
-    const { error: bankError } = await supabase.from("settings").update({
-      bank_cbu: bankForm.bank_cbu.trim() || null,
-      bank_alias: bankForm.bank_alias.trim() || null,
-      bank_name: bankForm.bank_name.trim() || null,
-      bank_holder: bankForm.bank_holder.trim() || null,
-    }).eq("org_id", orgId);
+    // Sin haber leído el banco guardado (2026-11-04), el formulario vacío no es
+    // «borrar el alias»: escribirlo dejaba en null el CBU que ya estaba. Sólo
+    // se escribe si se leyó o si el comercio tipeó algo.
+    // El formulario tiene que ser de este comercio (2026-11-04): nunca se
+    // escribe en B el CBU que quedó cargado de A.
+    const escribirBanco = storeDebeEscribirBanco({
+      orgId,
+      formOrgId: bankFormOrgRef.current,
+      bancoLeido: bankLoadedRef.current,
+      form: bankForm,
+    });
+    const { error: bankError } = escribirBanco
+      ? await supabase.from("settings").update({
+        bank_cbu: bankForm.bank_cbu.trim() || null,
+        bank_alias: bankForm.bank_alias.trim() || null,
+        bank_name: bankForm.bank_name.trim() || null,
+        bank_holder: bankForm.bank_holder.trim() || null,
+      }).eq("org_id", orgId)
+      : { error: null };
     if (bankError && publicando) {
       setLoading(false);
       console.error("No se pudieron guardar los datos bancarios", bankError);
-      toast.error("No se pudieron guardar los datos para transferir, así que la tienda no se publicó. Reintentá.");
+      toast.error("No se pudieron guardar los datos para transferir, así que la tienda no se publicó. Reintentá.", { id: TOAST_GUARDADO });
       return;
     }
     // Un borrador visual puede estar abierto mientras se editan pagos o
@@ -872,13 +965,13 @@ export default function EcommerceStorePage() {
         ? "Ese link ya lo usa otra tienda. Probá otro."
         : error.code === "23514" && error.message
           ? error.message
-          : "No se pudo guardar la tienda.");
+          : "No se pudo guardar la tienda.", { id: TOAST_GUARDADO });
       return;
     }
     setLoading(false);
     if (bankError) {
       console.error("No se pudieron guardar los datos bancarios", bankError);
-      toast.error("La tienda se guardó, pero no los datos para transferir. Reintentá.");
+      toast.error("La tienda se guardó, pero no los datos para transferir. Reintentá.", { id: TOAST_GUARDADO });
       // Igual conservamos el id: sin él Páginas/Banners siguen muertos.
       if (saved) {
         setStore(saved);
@@ -892,14 +985,44 @@ export default function EcommerceStorePage() {
       }
       return;
     }
-    toast.success(opts?.activate ? "La tienda está publicada" : "Tienda guardada correctamente");
+    // Un solo aviso por guardado (2026-11-04): el `id` fijo reemplaza al
+    // anterior en vez de apilarlo, y el texto dice qué se guardó.
+    // El «qué sigue» sale de la fila recién guardada, con las señales de esta
+    // misma tienda; si todavía no llegaron, sólo se dice qué se guardó.
+    const pasosTrasGuardar = opts?.mensaje && saved && !saved.is_active && signalsStoreId === saved.id
+      ? pasosDelArmado({
+        storeExists: true,
+        storeActive: false,
+        fromWizard,
+        checks: readinessDe(
+          storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION),
+          storeBankTransferReady(bankForm),
+          BANCO_SIN_TIPEAR,
+        ).checks,
+      })
+      : null;
+    toast.success(
+      opts?.activate
+        ? "La tienda está publicada"
+        : opts?.mensaje
+          ? avisoDePasoGuardado(opts.mensaje, pasosTrasGuardar)
+          // Recién creada no hubo «cambios» (2026-11-04): se dice lo que pasó.
+          : isCreatingStore ? "Tienda creada" : "Cambios guardados",
+      { id: TOAST_GUARDADO },
+    );
     // El upsert sin select dejaba store sin id: legales y banners pedían
     // «Creá la tienda» con toast de guardado (medido sesión 145).
     setStore(saved);
     const nextForm = storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION);
     setStoreForm(nextForm);
     storeFormBaselineRef.current = JSON.stringify(nextForm);
-    setBankPersistedReady(storeBankTransferReady(bankForm));
+    // Lo que se escribió es lo guardado: el banco queda leído (2026-11-04).
+    if (escribirBanco) {
+      bankRequestRef.current++; // una lectura en vuelo traería lo de antes de guardar
+      setBankPersistedReady(storeBankTransferReady(bankForm));
+      setBankLoaded(true);
+      setBankLoadError(false);
+    }
     setCreatingStore(false);
     commerceStores.selectStore(saved.id);
     writeStoreToUrl(saved.id);
@@ -925,7 +1048,14 @@ export default function EcommerceStorePage() {
   // Una sola forma de evaluar la tienda (2026-11-03): saveStore la usa sobre
   // el formulario con los cambios de un paso aplicados («No hago retiros»);
   // con el estado de React todavía viejo, rechazaba una tienda ya publicable.
-  const readinessDe = (form: typeof storeForm) => evaluateStoreReadiness({
+  // El banco también se elige (2026-11-04): la barra de pasos evalúa lo
+  // guardado y pasa `bankPersistedReady` con CBU y alias vacíos, para que lo
+  // tipeado en el formulario no tilde «Cobro» antes de guardar.
+  const readinessDe = (
+    form: typeof storeForm,
+    bankReady: boolean = storeBankTransferReady(bankForm),
+    bank: { bank_cbu: string; bank_alias: string } = bankForm,
+  ) => evaluateStoreReadiness({
     store: {
       is_active: form.is_active,
       slug: form.slug || store?.slug || null,
@@ -941,34 +1071,71 @@ export default function EcommerceStorePage() {
       shipping_cost: costoEnvioAlGuardar(form.shipping_cost),
       notification_email: form.notification_email || null,
     },
-    bankTransferReady: storeBankTransferReady(bankForm),
-    bank_cbu: bankForm.bank_cbu,
-    bank_alias: bankForm.bank_alias,
+    bankTransferReady: bankReady,
+    bank_cbu: bank.bank_cbu,
+    bank_alias: bank.bank_alias,
     ...signals,
   });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const readiness = useMemo(() => readinessDe(storeForm), [storeForm, store?.logo_url, store?.slug, signals, bankForm]);
 
+  /**
+   * La tienda guardada (2026-11-04). `store` se copia del hook un render
+   * después, pero también recibe la fila apenas se guarda: con la misma
+   * tienda es la más fresca; si cambió de tienda, manda la del hook.
+   */
+  const filaGuardada = store?.id && store.id === commerceStores.selectedStore?.id
+    ? store
+    : (commerceStores.selectedStore ?? (store?.id ? store : null));
+  const signalsReady = Boolean(store?.id) && signalsStoreId === store?.id;
+  /**
+   * La barra de pasos tilda con lo GUARDADO (2026-11-04): con el formulario,
+   * «Entrega» quedaba lista mientras la dirección de retiro seguía sin guardar,
+   * y el comercio se iba creyendo que el paso estaba hecho. El estado en vivo
+   * y la validación antes de publicar siguen sobre el formulario (`readiness`).
+   */
+  const readinessGuardada = useMemo(
+    () => filaGuardada
+      ? readinessDe(storeFormDesdeFila(filaGuardada, GLOBAL_FULFILLMENT_LOCATION), bankPersistedReady, BANCO_SIN_TIPEAR)
+      : readiness,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filaGuardada, bankPersistedReady, signals, readiness],
+  );
+  const pasosGuardados = pasosDelArmado({
+    storeExists: Boolean(filaGuardada?.id),
+    storeActive: Boolean(filaGuardada?.is_active),
+    fromWizard,
+    checks: readinessGuardada.checks,
+  });
+
   const storeMissing = storeShouldShowStoreMissingHandoff(store?.id)
     ? storeMissingCopy()
     : null;
-  const catalogHandoff = !storeMissing && storeShouldShowCatalogHandoff(signals.publishedProducts)
+  // Con señales de esta tienda (2026-11-04): el 0 inicial no es «sin catálogo».
+  const catalogHandoff = !storeMissing && signalsReady && storeShouldShowCatalogHandoff(signals.publishedProducts)
     ? storeHandoffCopy()
     : null;
-  const afterCatalog = !storeMissing && storeShouldShowAfterCatalog({
-    fromWizard,
+  const afterCatalog = !storeMissing && signalsReady && storeShouldShowAfterCatalog({
     publishedProducts: signals.publishedProducts,
-    storeActive: !!storeForm.is_active,
+    storeActive: !!filaGuardada?.is_active,
   })
     ? storeAfterCatalogCopy({ canPublish: readiness.canPublish })
     : null;
   const publishCta = afterCatalog ? storePublishCta({ canPublish: readiness.canPublish }) : null;
+  const avisoSinWhatsApp = afterCatalog && filaGuardada
+    ? storeAvisoTransferenciaSinWhatsApp({
+      paymentMethods: filaGuardada.payment_methods,
+      socialLinks: filaGuardada.social_links,
+    })
+    : null;
   const publishNudges = useMemo(() => storePublishNudges({
     productsWithoutWeight: signals.productsWithoutWeight,
     legalMissingOrDraft:
       signals.legalPages.missingOrTemplate + signals.legalPages.drafts,
+    // Una mejora no es un hueco (2026-11-04): con sólo retiro el estado ya
+    // ofrece el envío a domicilio como «Mejora», y acá se repetía como pendiente.
     shippingGaps: readiness.checks.some(
-      (c) => (c.id === "shipping-rates" || c.id === "coverage") && !c.done,
+      (c) => (c.id === "shipping-rates" || c.id === "coverage") && !c.done && c.severity !== "suggestion",
     ),
     pickupEnabled: !!storeForm.pickup_enabled,
     shippingQuotes: storeForm.shipping_mode === "zones" && signals.zonesWithRates > 0,
@@ -1018,6 +1185,7 @@ export default function EcommerceStorePage() {
       domicilioFiscal,
     })
     : null;
+  const whatsappInvalido = storeForm.whatsapp.trim() !== "" && !hrefWhatsApp(storeForm.whatsapp);
   const emailAvisosSugerido = sugerirEmailDeAvisos({
     notificationEmail: storeForm.notification_email,
     sessionEmail: user?.email,
@@ -1080,12 +1248,37 @@ export default function EcommerceStorePage() {
   // tienda (`pickup-hours`), que no bloquea.
   // Sólo los pasos que bloquean la venta; el email es una sugerencia.
   const pasoGuiado = Boolean(bankLead || pickupLead || legalLead);
-  const afterCreate = justCreatedStoreId && store?.id === justCreatedStoreId && signals.publishedProducts === 0
+  const afterCreate = signalsReady && justCreatedStoreId && store?.id === justCreatedStoreId && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
     : null;
   const shareIntent = storeShareIntentActive(searchParams.get("share")) && urlPublica
     ? storeShareIntentCopy()
     : null;
+
+  // El último paso de la barra lleva al botón de publicar (2026-11-04).
+  // Lleva a un bloque de otra pestaña y le pasa el foco (2026-11-04): sólo con
+  // el scroll, quien usa teclado o lector de pantalla no se enteraba de nada y
+  // el siguiente Tab recorría la página entera desde la barra.
+  const irAlBloque = (destino: StoreTab, id: string, foco: string) => {
+    void (async () => {
+      await goToTab(destino);
+      // La pestaña se dibuja unos cuadros después: se busca el bloque un rato.
+      let intentos = 0;
+      const buscar = () => {
+        const bloque = document.getElementById(id);
+        if (bloque) {
+          bloque.scrollIntoView({ behavior: "smooth", block: "center" });
+          const objetivo = bloque.matches(foco) ? bloque : bloque.querySelector<HTMLElement>(foco);
+          (objetivo ?? bloque).focus({ preventScroll: true });
+        } else if (++intentos < 30) window.requestAnimationFrame(buscar);
+      };
+      window.requestAnimationFrame(buscar);
+    })();
+  };
+  // Con el aviso de WhatsApp arriba, «el primer botón» era «Agregar WhatsApp»
+  // (2026-11-04): se apunta a la fila de publicar.
+  const irAPublicar = () => irAlBloque("overview", "publicar-tienda", "[data-publicar-accion] button:not([disabled])");
+  const irAlWhatsApp = () => irAlBloque("settings", "tienda-whatsapp", "input");
 
   const copiarEnlacePublico = () => {
     if (!urlPublica) return;
@@ -1200,13 +1393,42 @@ export default function EcommerceStorePage() {
       {/* Cuánto falta para publicar, mientras la tienda no está publicada. Lee
           la tienda del hook (no `store`, que se copia un render después) para
           no aparecer y desaparecer en una tienda ya activa. */}
-      {commerceStores.loaded && !commerceStores.loading && !commerceStores.selectedStore?.is_active && !creatingStore ? (
-        <PasosDeLaTienda pasos={pasosDelArmado({
-          storeExists: Boolean(commerceStores.selectedStore),
-          storeActive: false,
-          fromWizard,
-          checks: readiness.checks,
-        })} />
+      {/* Tilda con lo guardado, no con lo que se está tipeando (2026-11-04).
+          Tampoco desaparece mientras se relee la lista tras guardar: con la
+          tienda ya en mano se queda, y hasta tener las señales de ESTA tienda
+          muestra un esqueleto del mismo alto en vez de pasos mal tildados. */}
+      {commerceStores.loaded && (!commerceStores.loading || Boolean(filaGuardada?.id)) && !filaGuardada?.is_active && !creatingStore ? (
+        // También espera el banco guardado (2026-11-04): sin él, «Cobro»
+        // aparecía pendiente un momento a quien ya tenía alias.
+        filaGuardada?.id && !(signalsReady && bankLoaded) ? (
+          signalsError || bankLoadError ? (
+            <div role="alert" className="flex flex-col gap-2 rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between sm:p-4">
+              <span>No pudimos leer cuánto le falta a tu tienda.</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="min-h-11 shrink-0"
+                onClick={() => {
+                  // Se relee lo que falló; lo que ya llegó no se vuelve a pedir.
+                  if (signalsError || !signalsReady) void reloadReadinessSignals();
+                  if (bankLoadError || !bankLoaded) void loadBankSettings();
+                }}
+              >
+                Reintentar
+              </Button>
+            </div>
+          ) : (
+            <div role="status" aria-label="Cargando los pasos de la tienda">
+              <Skeleton className="h-[98px] w-full rounded-xl sm:h-[78px]" />
+            </div>
+          )
+        ) : (
+          <PasosDeLaTienda
+            pasos={pasosGuardados}
+            onPublicar={afterCatalog ? irAPublicar : undefined}
+          />
+        )
       ) : null}
 
       {/* Mientras llega la tienda, sólo el esqueleto (2026-10-31): el
@@ -1221,7 +1443,11 @@ export default function EcommerceStorePage() {
           <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       ) : (<>
-      {store?.id ? <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      {/* Sin métricas no hay encabezado (2026-11-04): en una tienda nueva
+          quedaba «Rendimiento de la tienda · Todo el historial» con el filtro y
+          nada abajo, empujando los pasos. Con un rango elegido se queda, aunque
+          ese rango venga vacío, para poder cambiarlo. */}
+      {store?.id && (showPerformance || performanceFrom || performanceTo || performanceError) ? <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold">Rendimiento de la tienda</p>
           <p className="text-xs text-muted-foreground">
@@ -1231,39 +1457,6 @@ export default function EcommerceStorePage() {
         </div>
         <DateRangeFilter label="Todo el historial" />
       </div> : null}
-
-      {/* La medición se ofrece con la tienda ya publicada (2026-11-03): durante
-          el armado era un aviso ámbar más arriba de cada paso. */}
-      {store?.id && store.is_active && !store.first_party_analytics_enabled ? (
-        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 sm:flex-row sm:items-center">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">La medición de visitas está pausada</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              La tienda sigue vendiendo. Para medir canal y conversión, primero publicá una política que informe la señal mínima y después confirmala como owner o admin.
-            </p>
-          </div>
-          {role === "owner" || role === "admin" ? (
-            signals.analyticsDisclosureReady ? (
-              <Button
-                type="button"
-                size="sm"
-                className="min-h-11 shrink-0"
-                disabled={analyticsBusy}
-                onClick={() => void updateFirstPartyAnalytics(true)}
-              >
-                {analyticsBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Activar medición
-              </Button>
-            ) : (
-              <Button type="button" size="sm" variant="outline" className="min-h-11 shrink-0" onClick={() => goToTab("pages")}>
-                Actualizar privacidad
-              </Button>
-            )
-          ) : (
-            <p className="text-xs text-muted-foreground">Pedile a un owner o admin que la active.</p>
-          )}
-        </div>
-      ) : null}
 
       {/* KPIs: un $0 y un 0% no son analítica. Aparecen cuando hubo tráfico
           (2026-11-03: la condición miraba sólo que hubiera lectura y una
@@ -1354,6 +1547,43 @@ export default function EcommerceStorePage() {
           {urlPublica && store?.is_active && (shareIntent || (!ordersLoading && !ordersError && orders.length === 0)) ? (
             <CompartirTienda url={urlPublica} nombreTienda={store?.name ?? ""} destacado={readiness.canPublish} />
           ) : null}
+          {/* La medición se ofrece con la tienda ya publicada (2026-11-03) y
+              después del kit para compartir, en tono neutro (2026-11-04): era
+              una franja ámbar en jerga («señal mínima», «owner o admin») arriba
+              del kit, y parecía un problema justo al salir a compartir. */}
+          {store?.id && store.is_active && !store.first_party_analytics_enabled ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">¿Querés saber cuánta gente entra a tu tienda?</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {signals.analyticsDisclosureReady
+                    ? "Activá la medición de visitas y vas a ver de dónde llegan y cuántos compran. La tienda vende igual sin esto."
+                    : "Para medir visitas, primero agregá a tu Política de privacidad qué datos se miden. La tienda vende igual sin esto."}
+                </p>
+              </div>
+              {role === "owner" || role === "admin" ? (
+                signals.analyticsDisclosureReady ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="min-h-11 shrink-0"
+                    disabled={analyticsBusy}
+                    onClick={() => void updateFirstPartyAnalytics(true)}
+                  >
+                    {analyticsBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Activar medición
+                  </Button>
+                ) : (
+                  <Button type="button" size="sm" variant="outline" className="min-h-11 shrink-0" onClick={() => goToTab("pages")}>
+                    Actualizar privacidad
+                  </Button>
+                )
+              ) : (
+                <p className="text-xs text-muted-foreground">Pedile al dueño o a un administrador que la active.</p>
+              )}
+            </div>
+          ) : null}
           {storeMissing && (
             <WorkspaceState
               kind="empty-first-use"
@@ -1375,12 +1605,27 @@ export default function EcommerceStorePage() {
             />
           )}
           {afterCatalog && (
-            <div className="rounded-xl border border-border/40 bg-card p-4 sm:p-5">
+            <div id="publicar-tienda" tabIndex={-1} className="rounded-xl border border-border/40 bg-card p-4 outline-none sm:p-5">
               <p className="text-sm font-semibold">{afterCatalog.title}</p>
               <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
                 {afterCatalog.description}
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              {/* No bloquea (2026-11-04): con transferencia y sin WhatsApp el
+                  comprador no tiene a quién mandar el comprobante. */}
+              {avisoSinWhatsApp && (
+                <div className="mt-3 flex flex-col gap-2 rounded-lg border border-border/50 bg-muted/20 p-3 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium">{avisoSinWhatsApp.title}</p>
+                    <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{avisoSinWhatsApp.detail}</p>
+                  </div>
+                  <Button type="button" size="sm" variant="outline" className="min-h-11 shrink-0" onClick={irAlWhatsApp}>
+                    {avisoSinWhatsApp.actionLabel}
+                  </Button>
+                </div>
+              )}
+              {/* La fila de publicar tiene marca propia (2026-11-04): el foco
+                  de «ir a publicar» va acá y no al «Agregar WhatsApp» de arriba. */}
+              <div data-publicar-accion className="mt-3 flex flex-wrap gap-2">
                 {publishCta?.kind === "activate" ? (
                   <Button
                     size="sm"
@@ -1403,11 +1648,26 @@ export default function EcommerceStorePage() {
               </div>
             </div>
           )}
-          {!storeMissing && !catalogHandoff ? <StoreReadinessPanel readiness={readiness} /> : null}
+          {/* Con las señales de esta tienda (2026-11-04): antes el panel decía
+              «Publicar al menos un producto» con el 0 inicial. */}
+          {!storeMissing && !signalsReady && !signalsError ? (
+            <div role="status" aria-label="Cargando el estado de la tienda">
+              <Skeleton className="h-48 w-full rounded-xl" />
+            </div>
+          ) : !storeMissing && !signalsReady && filaGuardada?.is_active ? (
+            // Publicada no hay barra de pasos: el aviso con reintento va acá.
+            <div role="alert" className="flex flex-col gap-2 rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between sm:p-4">
+              <span>No pudimos leer el estado de tu tienda.</span>
+              <Button type="button" size="sm" variant="outline" className="min-h-11 shrink-0" onClick={() => { void reloadReadinessSignals(); }}>
+                Reintentar
+              </Button>
+            </div>
+          ) : null}
+          {!storeMissing && signalsReady && !catalogHandoff ? <StoreReadinessPanel readiness={readiness} /> : null}
           {/* Con la primera publicación guiada en pantalla, el estado de la
               tienda ya lista lo mismo en «Conviene resolver» (2026-11-03):
               repetirlo junto al botón de publicar hacía dudar al comercio. */}
-          {!storeMissing && !catalogHandoff && !afterCatalog && publishNudges.length > 0 && (
+          {!storeMissing && signalsReady && !catalogHandoff && !afterCatalog && publishNudges.length > 0 && (
             <div className="space-y-2">
               {publishNudges.map((n) => (
                 <div
@@ -2081,11 +2341,36 @@ export default function EcommerceStorePage() {
                     className="h-9 min-h-11 mt-1"
                   />
                 </div>
+                {/* Opcional (2026-11-04): sin WhatsApp, el comprador que
+                    transfirió no tiene a quién mandar el comprobante. Se guarda
+                    en `social_links` igual que el WhatsApp de Diseño. */}
+                <div className="sm:col-span-2">
+                  <Label htmlFor="paso-cobro-whatsapp" className="text-xs text-muted-foreground">
+                    WhatsApp para que te escriban los compradores (opcional)
+                  </Label>
+                  <Input
+                    id="paso-cobro-whatsapp"
+                    value={storeForm.whatsapp}
+                    onChange={e => setStoreForm(p => ({ ...p, whatsapp: e.target.value }))}
+                    placeholder="5491123456789"
+                    className="h-9 min-h-11 mt-1"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    aria-invalid={whatsappInvalido || undefined}
+                    aria-describedby="paso-cobro-whatsapp-ayuda"
+                  />
+                  <p id="paso-cobro-whatsapp-ayuda" className={`mt-1 text-[11px] ${whatsappInvalido ? "text-destructive" : "text-muted-foreground"}`}>
+                    {whatsappInvalido
+                      ? AYUDA_WHATSAPP_INVALIDO
+                      : "Después de transferir, el comprador te manda el comprobante a este número."}
+                  </p>
+                </div>
               </div>
               <Button
                 className="min-h-11 w-full sm:w-auto"
-                disabled={loading || (!bankForm.bank_alias.trim() && !bankForm.bank_cbu.trim())}
-                onClick={() => { void saveStore(); }}
+                // Un WhatsApp mal escrito se descartaría al guardar sin avisar.
+                disabled={loading || whatsappInvalido || (!bankForm.bank_alias.trim() && !bankForm.bank_cbu.trim())}
+                onClick={() => { void saveStore({ mensaje: "Datos para transferir guardados" }); }}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Guardar datos para transferir
@@ -2134,7 +2419,7 @@ export default function EcommerceStorePage() {
                   <Button
                     className="min-h-11 w-full sm:w-auto"
                     disabled={loading || !storeForm.pickup_address.trim()}
-                    onClick={() => { void saveStore(); }}
+                    onClick={() => { void saveStore({ mensaje: "Retiro guardado" }); }}
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     Guardar dirección de retiro
@@ -2159,7 +2444,7 @@ export default function EcommerceStorePage() {
                   <Button
                     className="min-h-11 w-full sm:w-auto"
                     disabled={loading}
-                    onClick={() => { void saveStore({ cambios: { pickup_enabled: false } }); }}
+                    onClick={() => { void saveStore({ cambios: { pickup_enabled: false }, mensaje: "Listo, sin retiros" }); }}
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     Guardar sin retiro
@@ -2205,6 +2490,7 @@ export default function EcommerceStorePage() {
                           shipping_mode: "flat",
                           shipping_cost: storeForm.shipping_cost,
                         },
+                        mensaje: "Envío fijo guardado",
                       });
                     }}
                   >
@@ -2263,7 +2549,7 @@ export default function EcommerceStorePage() {
               <Button
                 className="min-h-11 w-full sm:w-auto"
                 disabled={loading || !String(storeForm.notification_email ?? "").trim()}
-                onClick={() => { void saveStore(); }}
+                onClick={() => { void saveStore({ mensaje: "Email de avisos guardado" }); }}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Guardar email de avisos
@@ -2372,18 +2658,23 @@ export default function EcommerceStorePage() {
                   className="h-9"
                 />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">WhatsApp</label>
+              <div id="tienda-whatsapp">
+                <label htmlFor="tienda-whatsapp-numero" className="text-xs text-muted-foreground mb-1.5 block">WhatsApp</label>
                 <Input
+                  id="tienda-whatsapp-numero"
                   value={storeForm.whatsapp}
                   onChange={e => setStoreForm(p => ({ ...p, whatsapp: e.target.value }))}
                   placeholder="54911… con código de país"
                   className="h-9 min-h-11"
                   inputMode="tel"
                   autoComplete="tel"
+                  aria-invalid={whatsappInvalido || undefined}
+                  aria-describedby="tienda-whatsapp-ayuda"
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  El comprador lo ve en la tienda. No es el número del digest interno.
+                <p id="tienda-whatsapp-ayuda" className={`text-[10px] mt-1 ${whatsappInvalido ? "text-destructive" : "text-muted-foreground"}`}>
+                  {whatsappInvalido
+                    ? AYUDA_WHATSAPP_INVALIDO
+                    : "El comprador lo ve en la tienda y ahí te manda el comprobante de la transferencia. No es el número del resumen diario."}
                 </p>
               </div>
               <div>

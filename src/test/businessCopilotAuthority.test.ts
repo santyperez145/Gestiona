@@ -61,6 +61,13 @@ describe("Business Copilot conserva autoridad, privacidad y costo en el servidor
   it("muestra fallos recuperables en vez de ocultarlos", () => {
     expect(pulse).toContain("setError(cause instanceof Error");
     expect(pulse).toContain("Reintentar");
+    // 2026-11-04: la corrida automática al montar no pinta un error que nadie
+    // pidió (caja roja en un comercio nuevo); lo deja en la consola. El error
+    // con «Reintentar» queda para el pedido explícito con el botón.
+    expect(pulse).toContain('console.warn("daily_pulse automático falló", cause)');
+    expect(pulse.indexOf("if (!force) {\n        console.warn")).toBeGreaterThan(-1);
+    expect(pulse.indexOf("if (!force) {\n        console.warn"))
+      .toBeLessThan(pulse.indexOf("setError(cause instanceof Error"));
     expect(briefing).toContain("setError(cause instanceof Error");
     expect(briefing).toContain("Reintentar");
   });

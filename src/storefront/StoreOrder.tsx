@@ -20,13 +20,14 @@ import {
 import { canRetryStorePayment, isStorePaymentReversed } from "@/lib/storeOrderPayment";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
 import {
-  etiquetaCostoEntrega, etiquetaDireccionEntrega, etiquetaWhatsAppPedido,
-  introPagoRevertido, introPedidoPagado, textoWhatsAppPedido,
+  canalComprobante, contactoDeLaTienda, enlaceMailComprobante, enlaceMailPedido,
+  enlaceWhatsAppPedido, etiquetaCostoEntrega, etiquetaDireccionEntrega, etiquetaWhatsAppPedido,
+  importeParaCopiar, importeVisibleTransferencia, introPagoRevertido, introPedidoPagado, introPedidoSinPagar, textoWhatsAppPedido,
 } from "@/lib/storeOrderBuyerCopy";
 import { esMedioGestionaPay } from "@/lib/gestionaPay";
 import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
 import { useStoreTrackingRuntimeReady } from "./trackingConsent";
-import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy, RefreshCw } from "lucide-react";
+import { CheckCircle2, Loader2, MessageCircle, Mail, Instagram, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy, RefreshCw } from "lucide-react";
 import { checkoutAttemptStorage, clearStoreCheckoutAttemptForOrder } from "@/lib/storeCheckoutAttempt";
 import { textoPreventa } from "@/lib/preventa";
 
@@ -35,8 +36,13 @@ type CargaPedido =
   | { ok: true; row: Order | null }
   | { ok: false };
 
-function CopyField({ label, value }: { label: string; value: string }) {
+function CopyField({ label, value, copyValue }: { label: string; value: string; copyValue?: string }) {
   const [copied, setCopied] = useState(false);
+  // 2026-11-04: el tilde de «copiado» salía aunque el portapapeles fallara
+  // (no se esperaba la promesa). Si falla, se selecciona el valor y se pide
+  // copiarlo a mano.
+  const [failed, setFailed] = useState(false);
+  const textRef = useRef<HTMLSpanElement>(null);
   return (
     <div
       className="flex items-center justify-between gap-2 px-3 py-2.5 min-h-11"
@@ -44,16 +50,36 @@ function CopyField({ label, value }: { label: string; value: string }) {
     >
       <span className="text-xs shrink-0" style={{ color: "hsl(var(--st-muted))" }}>{label}</span>
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className="text-sm font-mono truncate" style={{ color: "hsl(var(--st-text))" }}>{value}</span>
+        <span ref={textRef} className="text-sm font-mono truncate" style={{ color: "hsl(var(--st-text))" }}>{value}</span>
+        <span className="text-xs shrink-0" aria-live="polite" style={{ color: "hsl(var(--st-muted))" }}>
+          {failed ? "Copialo a mano" : ""}
+        </span>
         <button
           type="button"
           className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
           style={{ color: "hsl(var(--st-muted))" }}
           aria-label={`Copiar ${label}`}
-          onClick={() => {
-            void navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+          onClick={async () => {
+            const text = copyValue ?? value;
+            try {
+              if (!navigator.clipboard?.writeText) throw new Error("sin portapapeles");
+              await navigator.clipboard.writeText(text);
+              setFailed(false);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            } catch {
+              const el = textRef.current;
+              if (el) {
+                const r = document.createRange();
+                r.selectNodeContents(el);
+                const sel = window.getSelection();
+                sel?.removeAllRanges();
+                sel?.addRange(r);
+              }
+              setCopied(false);
+              setFailed(true);
+              setTimeout(() => setFailed(false), 4000);
+            }
           }}
         >
           {copied
@@ -425,7 +451,7 @@ function StoreOrderContent() {
     recargarSaldo();
     await cargar();
   };
-  const waTexto = encodeURIComponent(textoWhatsAppPedido({
+  const waTexto = textoWhatsAppPedido({
     orderNumber: order.order_number,
     totalFmt: fmt(Number(order.total)),
     esRetiro,
@@ -433,7 +459,24 @@ function StoreOrderContent() {
     pagoRevertido,
     transferenciaPendiente,
     chargedBack: order.payment_status === "charged_back",
-  }));
+  });
+  // 2026-11-04: el botón abría WhatsApp sin número (wa.me/?text=). Ahora va
+  // al número que cargó el comercio; sin número, no hay botón.
+  const waPedido = enlaceWhatsAppPedido(store?.social_links, waTexto);
+  // 2026-11-04: sin WhatsApp se prometía que el comercio iba a escribir al
+  // comprador y que el comprobante se mandaba contestando el mail. Nada
+  // hace que el comercio escriba y el mail del pedido no tiene reply_to al
+  // comercio. Ahora: WhatsApp, o el mail del comercio (mailto con el número
+  // de pedido en el asunto), o guardar el comprobante sin promesas.
+  const contacto = contactoDeLaTienda(store?.social_links);
+  const canal = canalComprobante(contacto);
+  const mailComprobante = enlaceMailComprobante(contacto.email, order.order_number);
+  const mailContacto = transferenciaPendiente
+    ? mailComprobante
+    : enlaceMailPedido(contacto.email, order.order_number);
+  const hayContacto = Boolean(contacto.whatsapp || contacto.email || contacto.instagram);
+  // 2026-11-04: misma condición que muestra el bloque de pago online de abajo.
+  const pagoOnlineEnPagina = puedeReintentarPago && esMedioGestionaPay(order.payment_method);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -471,10 +514,10 @@ function StoreOrderContent() {
           {pagado
             ? <>{introPedidoPagado(esRetiro)} Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
             : pagoRevertido
-              ? <>{introPagoRevertido(esRetiro)} Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar los próximos pasos.</>
+              ? <>{introPagoRevertido(esRetiro)} {hayContacto ? "Para coordinar los próximos pasos, escribile al comercio (contacto abajo)." : "Guardá este número de pedido para coordinar los próximos pasos con el comercio."} Los avisos del pedido te llegan a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
               : transferenciaPendiente
                 ? <>{saldoAplicado > 0 ? `Transferí ${fmt(aPagar)} a la cuenta de abajo (el resto lo pagaste con tu saldo a favor).` : "Transferí el total a la cuenta de abajo."} Cuando acredite, te avisamos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
-                : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
+                : <>{introPedidoSinPagar({ pagoOnline: pagoOnlineEnPagina, hayContacto, confirmando: pagoEnProceso })} Los avisos del pedido te llegan a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>}
         </p>
         {accesoError && (
           <p className="text-xs text-red-600 mt-3" role="alert">
@@ -496,14 +539,31 @@ function StoreOrderContent() {
           style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
         >
           <p className="text-sm font-medium">Datos para transferir</p>
-          <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
-            Usá el importe exacto del pedido. El comercio confirma cuando ve el crédito.
-          </p>
+          {/* 2026-11-04: sólo decía «Usá el importe exacto…»: no pedía el
+              comprobante ni decía adónde mandarlo. Sin plazo de reserva: ese
+              dato no existe en la base y no se inventa. */}
+          <ol className="text-xs list-decimal pl-4 space-y-1" style={{ color: "hsl(var(--st-muted))" }}>
+            <li>Transferí {importeVisibleTransferencia(aPagar, store?.currency)} a la cuenta de abajo.</li>
+            <li>En el concepto o la referencia poné <strong style={{ color: "hsl(var(--st-text))" }}>{order.order_number}</strong>.</li>
+            <li>
+              {canal === "whatsapp" && waPedido
+                ? "Mandale el comprobante al comercio por WhatsApp (botón de abajo)."
+                : canal === "email" && mailComprobante
+                  ? <>Mandale el comprobante a <a href={mailComprobante} className="underline font-medium" style={{ color: "hsl(var(--st-link))" }}>{contacto.email}</a> con el número de pedido en el asunto.</>
+                  : "Guardá el comprobante. Si el comercio te lo pide, se lo mandás."}
+            </li>
+            <li>Cuando el comercio vea el crédito, te avisamos por mail.</li>
+          </ol>
           {order.bank_holder && <CopyField label="Titular" value={order.bank_holder} />}
           {order.bank_name && <CopyField label="Banco" value={order.bank_name} />}
           {order.bank_cbu && <CopyField label="CBU" value={order.bank_cbu} />}
           {order.bank_alias && <CopyField label="Alias" value={order.bank_alias} />}
-          <CopyField label="Importe" value={fmt(aPagar)} />
+          <CopyField
+            label="Importe"
+            value={importeVisibleTransferencia(aPagar, store?.currency)}
+            copyValue={importeParaCopiar(aPagar)}
+          />
+          <CopyField label="Referencia" value={order.order_number} />
         </div>
       )}
 
@@ -672,17 +732,59 @@ function StoreOrderContent() {
         )}
       </div>
 
-      <OrderTracking orderNumber={order.order_number} email={order.customer_email} esRetiro={esRetiro} />
+      <OrderTracking
+        orderNumber={order.order_number}
+        email={order.customer_email}
+        esRetiro={esRetiro}
+        pagoPendiente={transferenciaPendiente}
+      />
+
+      {/* 2026-11-04: <section> con nombre = landmark; un <div> con aria-label
+          no lo anuncia ningún lector de pantalla. */}
+      {hayContacto && (
+        <section
+          className="mt-6 border p-4 space-y-2 text-sm"
+          style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+          aria-label="Contacto del comercio"
+        >
+          <p className="font-medium">Contacto de {store?.name ?? "la tienda"}</p>
+          <ul className="space-y-1.5">
+            {contacto.whatsapp && (
+              <li>
+                <a href={contacto.whatsapp} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline" style={{ color: "hsl(var(--st-link))" }}>
+                  <MessageCircle className="w-4 h-4 shrink-0" /> WhatsApp +{contacto.whatsapp.replace("https://wa.me/", "")}
+                </a>
+              </li>
+            )}
+            {contacto.email && (
+              <li>
+                <a href={mailContacto ?? undefined} className="inline-flex items-center gap-2 underline break-all" style={{ color: "hsl(var(--st-link))" }}>
+                  <Mail className="w-4 h-4 shrink-0" /> {contacto.email}
+                </a>
+              </li>
+            )}
+            {contacto.instagram && (
+              <li>
+                <a href={contacto.instagram} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline" style={{ color: "hsl(var(--st-link))" }}>
+                  <Instagram className="w-4 h-4 shrink-0" /> Instagram
+                </a>
+              </li>
+            )}
+          </ul>
+        </section>
+      )}
 
       <div className="mt-6 flex flex-col sm:flex-row gap-2">
-        <a
-          href={`https://wa.me/?text=${waTexto}`}
-          target="_blank" rel="noopener noreferrer"
-          className="flex-1 py-2.5 text-center text-sm font-medium inline-flex items-center justify-center gap-2"
-          style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-        >
-          <MessageCircle className="w-4 h-4" /> {etiquetaWhatsAppPedido(pagado)}
-        </a>
+        {waPedido && (
+          <a
+            href={waPedido}
+            target="_blank" rel="noopener noreferrer"
+            className="flex-1 py-2.5 text-center text-sm font-medium inline-flex items-center justify-center gap-2"
+            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+          >
+            <MessageCircle className="w-4 h-4" /> {etiquetaWhatsAppPedido(pagado)}
+          </a>
+        )}
         <Link
           to={`${base}/productos`}
           className="flex-1 py-2.5 text-center text-sm font-medium border"

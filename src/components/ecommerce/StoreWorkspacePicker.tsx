@@ -20,6 +20,8 @@ type Props = {
   onCreate?: () => void;
   onCancelCreate?: () => void;
   onMakePrimary?: () => void;
+  /** Con una sola tienda y sin «Nueva tienda», no ocupa lugar (Pedidos). */
+  compactWhenSingle?: boolean;
 };
 
 export default function StoreWorkspacePicker({
@@ -32,11 +34,19 @@ export default function StoreWorkspacePicker({
   onCreate,
   onCancelCreate,
   onMakePrimary,
+  compactWhenSingle = false,
 }: Props) {
   const selected = stores.find(store => store.id === selectedStoreId) ?? null;
   // Sin tiendas, el formulario «Primero nombre y link» es el único camino
   // (2026-11-03): este «+ Nueva tienda» competía con su «Crear tienda».
   if (!loading && !error && !creating && stores.length === 0) return null;
+  // 2026-11-04: en Pedidos, un selector con una única tienda empujaba el primer
+  // pedido debajo del pliegue sin dar ninguna opción.
+  if (compactWhenSingle && !loading && !error && !creating && !onCreate && stores.length === 1) return null;
+  // Con una tienda, la frase abstracta sobre productos y stock no ayudaba (2026-11-04).
+  const descripcion = error ?? (stores.length > 1
+    ? `${stores.length} tiendas comparten productos y stock; diseño, pedidos y dominio quedan separados.`
+    : null);
 
   return (
     <section
@@ -56,11 +66,7 @@ export default function StoreWorkspacePicker({
               </Badge>
             ) : null}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {error ?? (stores.length > 1
-              ? `${stores.length} tiendas comparten productos y stock; diseño, pedidos y dominio quedan separados.`
-              : "Productos y stock pertenecen al negocio; esta tienda define su experiencia de venta.")}
-          </p>
+          {descripcion ? <p className="text-xs text-muted-foreground">{descripcion}</p> : null}
         </div>
       </div>
 

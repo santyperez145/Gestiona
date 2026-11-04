@@ -213,7 +213,9 @@ export default function StoreHome() {
         <h1 className="sr-only">{store?.name ?? "Tienda online"}</h1>
       )}
       {layout.sections.map((s) => bloque(s.id))}
-    <CodigoPersonalizado layout={layout} />
+      {/* 2026-11-04: acá se montaba otra vez CodigoPersonalizado fuera del
+          map, que duplicaba el bloque en toda portada. El bloque ya sale
+          por su lugar en layout.sections. */}
     </div>
   );
 }
@@ -246,7 +248,11 @@ function Hero({
         />
       )}
       {bannerUrl && <div className="storefront-hero__scrim absolute inset-0" aria-hidden="true" />}
-      <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24 lg:py-28">
+      {/* 2026-11-04: en el celular (390px) el título y «Hoy en la tienda»
+          quedaban en fila: la regla de index.css para <640px pasa a flex
+          sin flex-direction, y el nombre y el botón se partían en dos
+          renglones. max-sm:flex-col los apila (utilities le gana a components). */}
+      <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24 lg:py-28 max-sm:flex-col">
         <div className="storefront-hero__copy">
           {logoUrl ? (
             <img
@@ -266,7 +272,7 @@ function Hero({
           )}
           <Link
             to={`${base}/productos`}
-            className="storefront-hero__cta inline-flex min-h-12 items-center gap-2 mt-8 px-7 py-3.5 font-semibold transition-opacity hover:opacity-90"
+            className="storefront-hero__cta inline-flex min-h-12 max-w-full whitespace-nowrap items-center gap-2 mt-8 px-7 py-3.5 font-semibold transition-opacity hover:opacity-90"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             Explorar catálogo <ArrowRight className="w-4 h-4" />
@@ -274,7 +280,8 @@ function Hero({
         </div>
         <div className="storefront-hero__aside">
           <p className="storefront-hero__aside-eyebrow">Hoy en la tienda</p>
-          <div className="storefront-hero__aside-stat"><strong>{disponibles}</strong><span>productos disponibles</span></div>
+          {/* 2026-11-04: decía «1 productos disponibles». */}
+          <div className="storefront-hero__aside-stat"><strong>{disponibles}</strong><span>{disponibles === 1 ? "producto disponible" : "productos disponibles"}</span></div>
           <dl className="storefront-hero__aside-facts">
             <div>
               <dt><Truck className="w-3.5 h-3.5" aria-hidden="true" /> Envío</dt>
@@ -304,9 +311,14 @@ function TrustBar({
   const tituloEnvio = cobertura
     ? ((freeShippingAbove ?? 0) > 0 ? `Envío gratis desde ${fmt(Number(freeShippingAbove))}` : cobertura)
     : (pickupEnabled ? "Retiro en tienda" : "Envío a coordinar");
+  // 2026-11-04: el detalle decía «El domicilio se cotiza en el checkout, no
+  // se promete el país», que se leía como nota interna. Ahora depende de si
+  // hay retiro, sin inventar cobertura.
   const detalleEnvio = cobertura
     ? cobertura
-    : "El domicilio se cotiza en el checkout, no se promete el país";
+    : (pickupEnabled
+        ? "Retirás sin costo; el envío a domicilio se cotiza al finalizar la compra"
+        : "Te cotizamos el envío al finalizar la compra");
   return (
     <section className="storefront-trust-bar border-b" style={{ borderColor: "hsl(var(--st-border))" }}>
       <div className={`storefront-trust-bar__inner max-w-6xl mx-auto px-4 py-4 grid grid-cols-1 gap-0 text-sm ${descuentoPago ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>

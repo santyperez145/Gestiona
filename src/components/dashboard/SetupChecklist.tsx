@@ -68,10 +68,15 @@ export default function SetupChecklist({
     );
   }
 
+  const nextItem = readiness.next;
+  // 2026-11-04: el hito destacado en «Siguiente paso verificable» se repetía
+  // justo debajo, en la lista de pendientes. Se lo saca de la lista salvo
+  // cuando falta elegir canal, porque ahí la caja destacada no se muestra.
   const visibleItems = showAll
     ? readiness.milestones
-    : readiness.milestones.filter(item => !item.done).slice(0, 4);
-  const nextItem = readiness.next;
+    : readiness.milestones
+      .filter(item => !item.done && (readiness.needsGoalChoice || item.id !== nextItem?.id))
+      .slice(0, 4);
   const goalLabel = activationGoalLabel(readiness.selectedGoal);
 
   return (

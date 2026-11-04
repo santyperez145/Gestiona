@@ -178,14 +178,46 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
     expect(idsDe(r.warnings)).toContain('coverage');
   });
 
-  it('con retiro en tienda, la falta de tarifas molesta pero no bloquea', () => {
+  it('con retiro en tienda y sin tarifas, el envío a domicilio es una mejora, no un pendiente', () => {
     const r = evaluateStoreReadiness(tiendaLista({
       store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123', pickup_instructions: 'Lun a vie 10-18' },
       zonesWithRates: 0,
     }));
     expect(idsDe(r.blockers)).not.toContain('shipping-rates');
-    expect(idsDe(r.warnings)).toContain('shipping-rates');
+    expect(idsDe(r.warnings)).not.toContain('shipping-rates');
+    expect(r.checks.find(c => c.id === 'shipping-rates')?.severity).toBe('suggestion');
     expect(r.canPublish).toBe(true);
+  });
+
+  // 2026-11-04: la base siembra 6 zonas sin tarifa en toda tienda nueva, y a
+  // quien sólo hace retiro el estado le pedía tarifas y pesos.
+  it('sólo retiro, 6 zonas sembradas sin tarifa y 1 producto sin peso: ni tarifas ni pesos pendientes', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123', pickup_instructions: 'Lun a vie 10-18' },
+      shippingZones: 6,
+      zonesWithRates: 0,
+      coveredProvinces: 0,
+      productsWithoutWeight: 1,
+    }));
+    expect(idsDe(r.checks)).not.toContain('weights');
+    expect(idsDe(r.checks)).not.toContain('coverage');
+    const tarifas = r.checks.find(c => c.id === 'shipping-rates')!;
+    expect(tarifas.severity).toBe('suggestion');
+    expect(tarifas.detail).toMatch(/retiro en tu local/);
+    expect(tarifas.detail).not.toMatch(/no puede cotizar/);
+    expect(r.warnings).toHaveLength(0);
+    expect(readinessSummary(r)).toBe('Lista para vender');
+  });
+
+  it('con retiro y alguna tarifa cargada, los huecos de envío siguen siendo aviso', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123', pickup_instructions: 'Lun a vie 10-18' },
+      zonesWithRates: 1,
+      coveredProvinces: 1,
+      productsWithoutWeight: 2,
+    }));
+    expect(idsDe(r.warnings)).toContain('coverage');
+    expect(idsDe(r.warnings)).toContain('weights');
   });
 
   it('retiro sin dirección no se presenta como listo', () => {

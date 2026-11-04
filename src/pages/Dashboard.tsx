@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
 import { countFulfillmentPulse } from "@/lib/storeOrderQueue";
+import { storeFirstSaleSharePath } from "@/lib/storeFirstPublish";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
 import { ChevronDown, Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles, ScanLine, ShoppingCart } from "lucide-react";
 import MetricCard from "@/components/shared/MetricCard";
@@ -1468,6 +1469,9 @@ export default function Dashboard() {
       weekIncome, weekExpensesAmt, weekPurchasesAmt, weekNetCashFlow,
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
+      // Antes de los filtros de fecha, sucursal y categoría: dice si el
+      // comercio vendió alguna vez, no si vendió en lo filtrado.
+      historicalSalesCount: allSalesRaw.length,
     };
   }, [rawData, filterCat, dateFrom, inRange, locationStockMap, storeId]);
 
@@ -1625,6 +1629,23 @@ export default function Dashboard() {
     window.history.replaceState(window.history.state, "", nextUrl);
   };
 
+  // 2026-11-04: un comercio que nunca vendió veía el inicio lleno de $0,00
+  // (encabezado, «Ventas del mes», indicadores) antes que lo que lleva a
+  // vender. Cuenta cualquier venta: histórica, online pagada o la de hoy en vivo.
+  const sinVentasAun = stats.historicalSalesCount === 0
+    && !(activationSignals?.online_orders_total)
+    && !(liveTodaySales?.count);
+
+  const tiendaOnlineElegida = activationReadiness?.effectiveGoal === "online";
+  const tiendaPublicada = activationSignals?.online_channel_ready === true;
+  const sinPedidosOnline = Number(activationSignals?.online_orders_total || 0) === 0
+    && orderPulse.despachar + orderPulse.retirar === 0;
+  const tarjetaTienda = tiendaOnlineElegida && tiendaPublicada && sinPedidosOnline
+    ? { label: "Compartí tu tienda", icon: Share2, path: storeFirstSaleSharePath(true), color: "success" as const, description: "Link, WhatsApp y QR" }
+    : tiendaOnlineElegida && !tiendaPublicada
+      ? { label: "Publicar la tienda", icon: ShoppingBag, path: storeFirstSaleSharePath(false), color: "success" as const, description: "Te falta poco para vender online" }
+      : { label: "Tienda Online", icon: ShoppingBag, path: "/tienda-online", color: "success" as const, description: tiendaPublicada ? "Administrar tienda" : "Publicar y operar" };
+
   const dashboardViewTabs = DASHBOARD_SECTIONS.map(section => ({
     ...section,
     count: section.id === "dashboard-overview" ? "Ahora"
@@ -1692,6 +1713,9 @@ export default function Dashboard() {
       )}
 
       {/* Encabezado operativo: lectura rapida, filtros y acceso a Commerce. */}
+      {/* 2026-11-04: un comercio sin ventas veía «Ventas de hoy $0,00 / Pedidos
+          de hoy 0 / Clientes 0» en el encabezado: sin ventas la franja no se
+          muestra (el encabezado ya la oculta si `liveStats` no llega). */}
       <CommerceDashboardHeader
         icon={ShoppingBag}
         title="Inicio"
@@ -1702,7 +1726,7 @@ export default function Dashboard() {
             : 'Ventas, stock y caja. La tienda online queda a un clic cuando el canal esté listo.')
           : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
         storeLink={activationReadiness?.effectiveGoal === 'online' ? "/tienda-online" : undefined}
-        liveStats={{
+        liveStats={sinVentasAun ? undefined : {
           todaySales: formatARS(liveTodaySales?.total ?? 0),
           orderCount: liveTodaySales?.count ?? 0,
           periodCustomers: stats?.uniqueCustomers ?? 0,
@@ -1817,15 +1841,18 @@ export default function Dashboard() {
           porDespachar={orderPulse.despachar}
           porRetirar={orderPulse.retirar}
           pendientesDePago={orderPulse.pendientesPago}
+          sinVentas={sinVentasAun}
         />
       )}
 
-      {/* Business Core: la primera lectura queda junto al foco operativo. */}
-      <DashboardKPIsSection
+      {/* Business Core: la primera lectura queda junto al foco operativo.
+          2026-11-04: sin ninguna venta los cuatro indicadores eran $0,00 y
+          empujaban hacia abajo las acciones que llevan a vender. */}
+      {!sinVentasAun && <DashboardKPIsSection
         kpiCards={kpiCards}
         liveTodaySales={liveTodaySales}
         lastWeekSameDaySales={lastWeekSameDaySales}
-      />
+      />}
 
       {          /* Quick Actions — contextuales al estado del negocio.
           Foco / Pulse prioriza ≤5 acciones; aquí las ordenamos por
@@ -1853,19 +1880,16 @@ export default function Dashboard() {
             color: "primary" as const,
             description: "Registrar venta",
           },
-          {
-            label: "Tienda Online",
-            icon: ShoppingBag,
-            path: "/tienda-online",
-            color: "success" as const,
-            description: activationReadiness?.effectiveGoal === "online" ? "Ver tienda publicada" : "Publicar y operar",
-          },
+          // 2026-11-04: la tarjeta prometía ver la tienda publicada pero llevaba al
+          // panel de administración, no a la vidriera, y no había un acceso a
+          // compartir el link, que es lo que trae la primera venta.
+          tarjetaTienda,
           {
             label: "Inventario",
             icon: Package,
             path: "/productos",
             color: "secondary" as const,
-            description: `${stats.totalProducts} productos · ${stats.lowStock + stats.outOfStock} en alerta`,
+            description: `${stats.totalProducts} ${stats.totalProducts === 1 ? "producto" : "productos"} · ${stats.lowStock + stats.outOfStock} en alerta`,
           },
           {
             label: "Reportes",
@@ -1967,7 +1991,9 @@ export default function Dashboard() {
         {/* AI Proactive Suggestions */}
         {activeOrg && !entitlementsLoading && canUseAI && <AIProactiveWidget
           orgId={activeOrg.id}
-          hasBusinessData={stats.products.length > 0 || stats.rawSales.length > 0}
+          // 2026-11-04: con un producto y ninguna venta no hay pulso que
+          // analizar; antes se disparaba igual y gastaba crédito de IA.
+          hasBusinessData={stats.historicalSalesCount > 0}
         />}
       </Suspense>
 

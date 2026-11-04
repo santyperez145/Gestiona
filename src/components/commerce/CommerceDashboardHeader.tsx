@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ExternalLink, Image, Package, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Store, Image, Package, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -85,9 +85,13 @@ export default function CommerceDashboardHeader({
             <div className="flex flex-wrap items-center gap-2">{actions}</div>
             {storeLink && (
               <Button asChild size="sm" className="self-start xl:self-end">
+                {/* 2026-11-04: `storeLink` es una ruta interna del panel
+                    (/tienda-online). Antes invitaba a abrir la tienda con el ícono de
+                    enlace externo y prometía la vidriera; ahora dice lo que
+                    hace y usa el ícono de tienda. */}
                 <Link to={storeLink}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Abrir tienda
+                  <Store className="mr-2 h-4 w-4" />
+                  Administrar tienda
                 </Link>
               </Button>
             )}

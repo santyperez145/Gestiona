@@ -32,6 +32,7 @@ import { useOrg } from "@/lib/orgContext";
 import EmitirRemitoDialog, { type VentaParaRemito } from "@/components/remitos/EmitirRemitoDialog";
 import { canFulfillStoreOrder, isStorePaymentReversed } from "@/lib/storeOrderPayment";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
+import { enlaceAvisoDeRetiro } from "@/lib/colaDePedidosOnline";
 import { Truck, Printer, Loader2, Check, PackageCheck, Home, Store, FileText } from "lucide-react";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import DespacharEnPartes from "@/components/ecommerce/DespacharEnPartes";
@@ -167,9 +168,11 @@ export default function OrderShipmentDialog({
 
   /** El estado queda primero en la base; un problema de correo jamás deshace
       un despacho verdadero. La Function registra cada resultado y no vuelve a
-      mandar el mismo evento si se reintenta este botón. */
-  const avisarEstado = async (event: "shipped" | "delivered" | `parte_${number}`) => {
-    if (!order || !canEditEcommerce) return;
+      mandar el mismo evento si se reintenta este botón.
+      2026-11-04: devuelve si el aviso salió, para que ningún toast de éxito
+      afirme un aviso que no llegó. */
+  const avisarEstado = async (event: "shipped" | "delivered" | `parte_${number}`): Promise<boolean> => {
+    if (!order || !canEditEcommerce) return false;
     const { data, error } = await supabase.functions.invoke("store-order-status-email", {
       body: { orderId: order.id, event },
     });
@@ -177,8 +180,15 @@ export default function OrderShipmentDialog({
       ? await mensajeDeEdgeFunction(error, data)
       : "";
     if (message) {
+      console.error(`store-order-status-email / ${event}:`, error ?? message);
       toast.warning(`El estado se actualizó, pero no pudimos avisar por email: ${message}`);
+      return false;
     }
+    // 2026-11-04: `inProgress` quiere decir que otro envío del mismo evento
+    // tomó el email y todavía no terminó; puede fallar, así que el toast no
+    // afirma que salió. `duplicate` sí cuenta: ese email ya se mandó.
+    if ((data as { inProgress?: boolean } | null)?.inProgress) return false;
+    return true;
   };
 
   const avanzarEstado = async (status: "shipped" | "delivered") => {
@@ -190,10 +200,14 @@ export default function OrderShipmentDialog({
     });
     setActualizandoEstado(null);
     if (error) { toast.error(error.message.replace(/^.*?:\s*/, "")); return; }
-    await avisarEstado(status);
-    toast.success(status === "shipped" ? "Marcado en camino." : (
-      esPedidoRetiro(order) ? "Pedido marcado como retirado." : "Pedido marcado como entregado."
-    ));
+    // 2026-11-04: un retiro no pasa por 'shipped' (la base lo rechaza); el
+    // aviso de «ya podés retirar» va por WhatsApp o teléfono, sin cambiar estado.
+    // El éxito sólo nombra el email si salió; si no, ya hay un aviso de por qué.
+    const avisado = await avisarEstado(status);
+    const base = status === "shipped"
+      ? "Marcado en camino."
+      : (esPedidoRetiro(order) ? "Pedido marcado como retirado." : "Pedido marcado como entregado.");
+    toast.success(avisado ? `${base} Le avisamos al comprador por email.` : base);
     cargar();
     onDone();
   };
@@ -265,6 +279,9 @@ export default function OrderShipmentDialog({
     : entrega?.status === "in_transit" || entrega?.status === "out_for_delivery";
   const entregada = entrega?.status === "delivered" || order.fulfillment_status === "delivered";
   const yaDespachada = !!entrega?.external_tracking || enCamino || entregada;
+  // 2026-11-04: el retiro no tenía forma de avisarle al comprador que ya puede
+  // pasar. Es un atajo que no cambia el estado: la base no tiene paso de «listo».
+  const avisoWhatsApp = retiro && !entregada ? enlaceAvisoDeRetiro(order) : null;
 
   // El remito lleva las líneas de la venta que creó el pago del pedido.
   const abrirRemito = async () => {
@@ -305,7 +322,21 @@ export default function OrderShipmentDialog({
               <p className="text-xs text-muted-foreground mb-1">Retiro en tienda</p>
               <p className="font-medium">{order.customer_name}</p>
               {order.customer_phone ? (
-                <p className="text-muted-foreground text-xs mt-0.5">Tel. {order.customer_phone}</p>
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <a className="inline-flex min-h-11 items-center underline-offset-2 hover:underline" href={`tel:${order.customer_phone}`}>
+                    Tel. {order.customer_phone}
+                  </a>
+                  {avisoWhatsApp ? (
+                    <a
+                      className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-2 hover:underline"
+                      href={avisoWhatsApp}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Avisarle por WhatsApp que ya puede retirar
+                    </a>
+                  ) : null}
+                </p>
               ) : null}
             </div>
             {entregada && (
@@ -376,7 +407,7 @@ export default function OrderShipmentDialog({
             {!(yaPreparada && yaDespachada) && order.fulfillment_status !== "delivered" && (
               <DespacharEnPartes orderId={order.id} renglones={order.items} carrierInicial={carrier} partes={partes}
                 puedeDespachar={canEditEcommerce && order.fulfillment_status !== "shipped" && !salioCompleto}
-                onDespachada={r => { if (r.completo) setSalioCompleto(true); void cargar(); onDone(); }} avisar={e => avisarEstado(e as `parte_${number}`)} />
+                onDespachada={r => { if (r.completo) setSalioCompleto(true); void cargar(); onDone(); }} avisar={async e => { await avisarEstado(e as `parte_${number}`); }} />
             )}
 
             {yaDespachada && (
@@ -392,7 +423,7 @@ export default function OrderShipmentDialog({
           {canEditEcommerce && retiro && !cargando && !sinPagar && !entregada && (
             <Button
               className="gap-1.5 text-xs"
-              disabled={actualizandoEstado === "delivered"}
+              disabled={actualizandoEstado !== null}
               onClick={() => avanzarEstado("delivered")}
             >
               {actualizandoEstado === "delivered" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Store className="w-3 h-3" />}

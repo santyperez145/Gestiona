@@ -42,6 +42,7 @@ import {
   storeShareIntentCopy,
   storeTrafficChannelLabel,
   enlaceInfluencerConRef,
+  storeAvisoTransferenciaSinWhatsApp,
 } from '@/lib/storeFirstPublish';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
@@ -340,12 +341,21 @@ describe('la primera publicación empieza por el catálogo', () => {
   });
 
   it('después del primer producto el overview habla de publicar, no de Pay', () => {
+    // Sin asistente (2026-11-04): el comercio que entra desde el menú o
+    // recarga también tiene que ver «Publicar la tienda».
     expect(storeShouldShowAfterCatalog({
-      fromWizard: true, publishedProducts: 1, storeActive: false,
+      publishedProducts: 1, storeActive: false,
     })).toBe(true);
     expect(storeShouldShowAfterCatalog({
-      fromWizard: true, publishedProducts: 1, storeActive: true,
+      publishedProducts: 1, storeActive: true,
     })).toBe(false);
+    expect(storeShouldShowAfterCatalog({
+      publishedProducts: 0, storeActive: false,
+    })).toBe(false);
+    const llamada = STORE.slice(STORE.indexOf('storeShouldShowAfterCatalog({'), STORE.indexOf('storeAfterCatalogCopy({ canPublish'));
+    expect(llamada).not.toContain('fromWizard');
+    // Lo guardado, no el interruptor del formulario sin guardar.
+    expect(llamada).toContain('storeActive: !!filaGuardada?.is_active');
     expect(storeAfterCatalogCopy({ canPublish: false }).title).toMatch(/publicá/i);
     expect(storeAfterCatalogCopy({ canPublish: true }).title).toMatch(/Listo/);
     expect(STORE).toContain('storeAfterCatalogCopy');
@@ -370,7 +380,10 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('if (isActive && !listaParaPublicar.canPublish)');
     // Los datos para transferir se guardan antes que la tienda: la base no deja
     // publicar con transferencia sin CBU ni alias guardados.
-    const guardaBanco = STORE.indexOf('const { error: bankError } = await supabase.from("settings").update({');
+    // Desde 2026-11-04 sólo se escribe si el banco guardado ya se leyó o si se
+    // tipeó algo: el formulario vacío sin leer no borra el CBU guardado.
+    // Y sólo si el formulario es de este comercio (storeDebeEscribirBanco).
+    const guardaBanco = STORE.indexOf('const { error: bankError } = escribirBanco\n      ? await supabase.from("settings").update({');
     expect(guardaBanco).toBeGreaterThan(0);
     expect(guardaBanco).toBeLessThan(STORE.indexOf('let { data: saved, error } = await guardar(row);'));
     expect(STORE).toContain('error.code === "23514"');
@@ -403,7 +416,8 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(conRetiro[0].detail).toMatch(/retirar/);
     expect(nudges[0].detail).not.toMatch(/checkout/i);
     expect(STORE).toContain('pickupEnabled: !!storeForm.pickup_enabled,');
-    expect(STORE).toContain('!storeMissing && !catalogHandoff && !afterCatalog && publishNudges.length > 0');
+    // Con las señales de esta tienda (2026-11-04): el 0 inicial no es dato.
+    expect(STORE).toContain('!storeMissing && signalsReady && !catalogHandoff && !afterCatalog && publishNudges.length > 0');
     expect(PRODUCTS).toContain('completar');
     expect(PRODUCTS).toContain('setPesosOpen(true)');
   });
@@ -524,6 +538,9 @@ describe('el embudo no inventa un checkout', () => {
     expect(STORE).toContain('Facturación paga');
     expect(STORE).toContain('Conversión medible');
     expect(STORE).toContain('storeShouldShowPerformanceChrome');
+    // El encabezado «Rendimiento de la tienda» con su filtro tampoco se dibuja
+    // vacío en una tienda nueva (2026-11-04).
+    expect(STORE).toContain('{store?.id && (showPerformance || performanceFrom || performanceTo || performanceError) ? <div');
     expect(STORE).toContain('storeShouldLeadWithPay');
     expect(STORE).toContain('StoreReadinessPanel');
     expect(STORE).not.toMatch(/\*\s*0\.37/);
@@ -598,7 +615,15 @@ describe('el embudo no inventa un checkout', () => {
     expect(ANALYTICS_DISCLOSURE_SQL).toContain('public.store_analytics_disclosure_ready');
     expect(ANALYTICS_DISCLOSURE_SQL).toContain("v_role NOT IN ('owner', 'admin')");
     expect(ANALYTICS_DISCLOSURE_SQL).toContain("'store.analytics.enable'");
-    expect(STORE).toContain('La medición de visitas está pausada');
+    // Neutro y después del kit para compartir (2026-11-04): el aviso ámbar en
+    // jerga arriba del kit parecía un problema justo al publicar.
+    expect(STORE).toContain('¿Querés saber cuánta gente entra a tu tienda?');
+    expect(STORE).not.toContain('La medición de visitas está pausada');
+    expect(STORE).not.toContain('como owner o admin');
+    const kit = STORE.indexOf('<CompartirTienda');
+    const medicion = STORE.indexOf('¿Querés saber cuánta gente entra a tu tienda?');
+    expect(kit).toBeGreaterThan(0);
+    expect(medicion).toBeGreaterThan(kit);
     expect(STORE).toContain('Confirmo y activar');
   });
 });
@@ -642,18 +667,18 @@ describe('el enlace de la tienda se puede copiar', () => {
     expect(STORE).toContain('Copiar enlace');
   });
 
-  it('Foco «Compartí el enlace» aterriza en overview con share accionable', () => {
+  it('Foco «Compartí el link» aterriza en overview con share accionable', () => {
     expect(storeFirstSaleSharePath(true)).toBe('/tienda-online?tab=overview&share=1');
     expect(storeFirstSaleSharePath(false)).toBe('/tienda-online');
     expect(storeShareIntentActive('1')).toBe(true);
     expect(storeShareIntentActive(null)).toBe(false);
-    expect(storeShareIntentCopy().actionLabel).toBe('Copiar enlace');
+    expect(storeShareIntentCopy().actionLabel).toBe('Copiar el link');
     expect(STORE).toContain('storeShareIntentActive');
     expect(ORDERS_PAGE).toContain('publicStoreUrl={urlPublica}');
   });
 
   it('Pedidos vacíos ofrecen copiar el link cuando hay URL pública', () => {
-    expect(storeOrdersEmptyShareCopy(true).actionLabel).toBe('Copiar enlace de la tienda');
+    expect(storeOrdersEmptyShareCopy(true).actionLabel).toBe('Copiar el link de la tienda');
     expect(storeOrdersEmptyShareCopy(false).actionLabel).toBeUndefined();
   });
 
@@ -671,5 +696,37 @@ describe('el enlace de la tienda se puede copiar', () => {
       storeActive: false,
       referralCode: 'ANA10',
     })).toBe('https://app.example/catalogo/user-1?ref=ANA10');
+  });
+});
+
+// 2026-11-04 (#13 del comprador): con transferencia y sin WhatsApp, el
+// comprador no tenía a quién mandar el comprobante.
+describe('transferencia sin WhatsApp', () => {
+  it('avisa sólo si se ofrece transferencia y no hay WhatsApp válido guardado', () => {
+    expect(storeAvisoTransferenciaSinWhatsApp({ paymentMethods: ['transferencia'], socialLinks: {} }))
+      .toMatchObject({ actionLabel: 'Agregar WhatsApp' });
+    expect(storeAvisoTransferenciaSinWhatsApp({ paymentMethods: ['transferencia'], socialLinks: null })).not.toBeNull();
+    // Un número que no arma `wa.me` no cuenta como WhatsApp.
+    expect(storeAvisoTransferenciaSinWhatsApp({ paymentMethods: ['transferencia'], socialLinks: { whatsapp: '15-1234' } })).not.toBeNull();
+    expect(storeAvisoTransferenciaSinWhatsApp({ paymentMethods: ['transferencia'], socialLinks: { whatsapp: 'https://wa.me/5491123456789' } })).toBeNull();
+    expect(storeAvisoTransferenciaSinWhatsApp({ paymentMethods: ['mercadopago', 'efectivo'], socialLinks: {} })).toBeNull();
+    expect(storeAvisoTransferenciaSinWhatsApp({ paymentMethods: null, socialLinks: {} })).toBeNull();
+  });
+
+  it('no bloquea la publicación: el texto lo dice', () => {
+    const aviso = storeAvisoTransferenciaSinWhatsApp({ paymentMethods: ['transferencia'], socialLinks: {} });
+    expect(aviso?.detail).toContain('Podés publicar igual');
+  });
+
+  it('la página lo muestra en el bloque de publicar, con lo guardado, y el paso de cobro pide el WhatsApp', () => {
+    expect(STORE).toContain('paymentMethods: filaGuardada.payment_methods,');
+    expect(STORE).toContain('socialLinks: filaGuardada.social_links,');
+    expect(STORE).toContain('{avisoSinWhatsApp && (');
+    expect(STORE).toContain('WhatsApp para que te escriban los compradores (opcional)');
+    expect(STORE).toContain('id="paso-cobro-whatsapp"');
+    // Se guarda en `social_links` como el WhatsApp de Diseño.
+    expect(STORE).toMatch(/social_links: socialLinksParaGuardar\(\{\s*whatsapp: storeForm\.whatsapp,/);
+    // El aviso no condiciona el botón de publicar.
+    expect(STORE).not.toMatch(/disabled=\{[^}]*avisoSinWhatsApp/);
   });
 });

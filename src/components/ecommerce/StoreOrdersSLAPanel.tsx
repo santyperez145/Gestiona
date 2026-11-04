@@ -2,6 +2,9 @@ import React from "react";
 import { Clock, AlertTriangle, CheckCircle2, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// 2026-11-04: la pestaña pasó de «SLA» a «Tiempos de entrega» y el panel seguía
+// con la jerga vieja en inglés; ahora usa las mismas palabras.
+
 export interface OrderRow {
   id: string;
   orderNumber: string;
@@ -33,17 +36,17 @@ export default function StoreOrdersSLAPanel({
   return (
     <section
       data-section="store-orders-sla"
-      aria-label="Panel de SLA de pedidos de tienda"
+      aria-label="Tiempos de entrega de los pedidos de la tienda"
       className="mb-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm"
     >
       <header className="flex items-center gap-3 px-5 py-4 border-b border-border bg-gradient-to-r from-card to-muted/20">
         <Package className="h-5 w-5 text-primary shrink-0" aria-hidden />
         <div className="min-w-0">
           <h2 className="text-sm font-bold tracking-tight truncate">
-            SLA de pedidos — {storeName || "tu tienda"}
+            Tiempos de entrega — {storeName || "tu tienda"}
           </h2>
           <p className="text-[11px] text-muted-foreground truncate">
-            Estado operativo del pipeline pedido → pago → fulfillment. Datos reales del sistema.
+            Cuánto tarda cada pedido desde que entra hasta que lo entregás.
           </p>
         </div>
       </header>
@@ -52,7 +55,7 @@ export default function StoreOrdersSLAPanel({
       <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-4 sm:divide-y-0 sm:divide-x">
         <MetricPill label="Total hoy" value={metrics.totalToday} color="text-foreground" />
         <MetricPill label="Pendiente" value={metrics.pending} color="text-yellow-500" />
-        <MetricPill label="Atrasados (SLA)" value={metrics.overdue} color="text-red-500" />
+        <MetricPill label="Atrasados" value={metrics.overdue} color="text-red-500" />
         <MetricPill label="Acciones disponibles" value={metrics.actionsAvailable} color="text-emerald-400" />
       </div>
 
@@ -64,8 +67,8 @@ export default function StoreOrdersSLAPanel({
               <th className="text-left px-4 py-2.5">Pedido</th>
               <th className="text-left px-4 py-2.5">Cliente</th>
               <th className="text-right px-4 py-2.5">Total</th>
-              <th className="text-left px-4 py-2.5">Estado fulfillment</th>
-              <th className="text-left px-4 py-2.5">Estado SLA</th>
+              <th className="text-left px-4 py-2.5">Entrega</th>
+              <th className="text-left px-4 py-2.5">Estado</th>
               <th className="text-left px-4 py-2.5">Acción pendiente</th>
             </tr>
           </thead>
@@ -73,7 +76,7 @@ export default function StoreOrdersSLAPanel({
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-xs text-muted-foreground">
-                  Sin pedidos hoy. Publicá o registrá una venta para ver el pipeline.
+                  Sin pedidos hoy. Cuando entre uno, vas a ver acá cuánto tarda.
                 </td>
               </tr>
             ) : (

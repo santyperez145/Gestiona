@@ -12,6 +12,8 @@
  */
 
 import { hostedStoreUrl } from '@/lib/storefrontHost';
+import { parseStoreSocial } from '@/lib/storeSocial';
+import { storeOffersBankTransfer } from '@/lib/storeTransfer';
 
 export type StoreFunnelStep = {
   label: string;
@@ -260,13 +262,17 @@ export function storeShouldShowCatalogHandoff(publishedProducts: number): boolea
   return Number(publishedProducts) <= 0;
 }
 
-/** El recorte de primera publicación no aplica a una vitrina ya activa. */
+/**
+ * El recorte de primera publicación no aplica a una vitrina ya activa.
+ * No depende del asistente (2026-11-04): sólo aparecía con `?onboarding=1`, y
+ * el comercio que entraba desde el menú, recargaba o volvía otro día veía la
+ * pestaña Publicar sin ningún botón para publicar.
+ */
 export function storeShouldShowAfterCatalog(input: {
-  fromWizard: boolean;
   publishedProducts: number;
   storeActive: boolean;
 }): boolean {
-  return input.fromWizard && input.publishedProducts > 0 && !input.storeActive;
+  return input.publishedProducts > 0 && !input.storeActive;
 }
 
 export function storeAfterCatalogCopy(input: { canPublish: boolean }) {
@@ -354,6 +360,47 @@ export function storePublishCta(input: { canPublish: boolean }): {
     return { kind: 'activate', label: 'Publicar la tienda' };
   }
   return { kind: 'complete', label: 'Pagos y envíos' };
+}
+
+/**
+ * Transferencia sin WhatsApp (2026-11-04). Después de transferir, el comprador
+ * tiene que mandar el comprobante; sin un WhatsApp guardado en la tienda la
+ * página de gracias no tiene a quién mandarlo. No bloquea la publicación: es
+ * un aviso junto al botón de publicar. Lee lo GUARDADO (`social_links` y los
+ * medios de la fila): lo tipeado sin guardar todavía no le llega al comprador.
+ */
+export function storeAvisoTransferenciaSinWhatsApp(input: {
+  paymentMethods: Array<string | null | undefined> | null | undefined;
+  socialLinks: unknown;
+}): { title: string; detail: string; actionLabel: string } | null {
+  if (!storeOffersBankTransfer(input.paymentMethods)) return null;
+  if (parseStoreSocial(input.socialLinks).whatsapp) return null;
+  return {
+    title: 'Sumá un WhatsApp para los comprobantes',
+    detail:
+      'Ofrecés transferencia y la tienda no tiene WhatsApp: después de pagar, el comprador no tiene dónde mandarte el comprobante. Podés publicar igual.',
+    actionLabel: 'Agregar WhatsApp',
+  };
+}
+
+/**
+ * Si guardar la tienda escribe los datos para transferir (2026-11-04). Es
+ * plata: un CBU en el comercio equivocado hace que los compradores le
+ * transfieran a otro.
+ * - El formulario tiene que ser de ESTE comercio (`formOrgId === orgId`): al
+ *   cambiar de comercio quedaba el CBU del anterior y se escribía en el nuevo.
+ * - Sin haber leído lo guardado, el formulario vacío no es «borrar el alias»:
+ *   sólo se escribe si se leyó o si el comercio tipeó algo.
+ */
+export function storeDebeEscribirBanco(input: {
+  orgId: string | null | undefined;
+  formOrgId: string | null | undefined;
+  bancoLeido: boolean;
+  form: Record<string, string>;
+}): boolean {
+  if (!input.orgId || input.formOrgId !== input.orgId) return false;
+  if (input.bancoLeido) return true;
+  return Object.values(input.form).some(v => v.trim() !== '');
 }
 
 /** Quien llegó a un paso del embudo pasó por los anteriores (datos medidos desde fechas distintas). */
@@ -726,8 +773,8 @@ export function storeOrdersEmptyShareCopy(hasPublicUrl: boolean) {
     return {
       title: 'Todavía no hay pedidos',
       description:
-        'La cola se llena cuando alguien compra. Compartí el enlace de la tienda para traer el primer comprador.',
-      actionLabel: 'Copiar enlace de la tienda',
+        'La cola se llena cuando alguien compra. Compartí el link de la tienda para traer el primer comprador.',
+      actionLabel: 'Copiar el link de la tienda',
     };
   }
   return {
@@ -745,10 +792,10 @@ export function storeShareIntentActive(shareParam: string | null | undefined): b
 
 export function storeShareIntentCopy() {
   return {
-    title: 'Compartí el enlace de tu tienda',
+    title: 'Compartí el link de tu tienda',
     description:
       'Copiá el link y mandalo por WhatsApp, Instagram o mail. La primera venta online empieza cuando alguien abre la tienda.',
-    actionLabel: 'Copiar enlace',
+    actionLabel: 'Copiar el link',
   };
 }
 
@@ -770,6 +817,28 @@ export function storeShouldJumpToIdentityForm(input: {
 }
 
 export type PasoDelArmado = { id: string; label: string; done: boolean };
+
+const QUE_SIGUE: Record<string, string> = {
+  producto: 'cargá un producto',
+  link: 'elegí el nombre y el link',
+  cobro: 'decí cómo cobrás',
+  entrega: 'decí cómo entregás',
+  legales: 'publicá términos y privacidad',
+};
+
+/**
+ * El aviso de cada paso guiado (2026-11-04): todos decían «Tienda guardada
+ * correctamente», se apilaban iguales y ninguno decía qué seguía. El «qué
+ * sigue» sale de la misma barra de pasos, así no queda escrito a mano y
+ * desactualizado si cambia el orden.
+ */
+export function avisoDePasoGuardado(guardado: string, pasos: PasoDelArmado[] | null): string {
+  if (!pasos) return guardado;
+  const pendiente = pasos.find(p => !p.done && p.id !== 'publicar');
+  if (pendiente) return `${guardado}. Ahora: ${QUE_SIGUE[pendiente.id] ?? pendiente.label.toLowerCase()}`;
+  if (pasos.some(p => p.id === 'publicar' && !p.done)) return `${guardado}. Ya podés publicar la tienda`;
+  return guardado;
+}
 
 /**
  * Cuánto falta para publicar (2026-11-03). El asistente terminaba en «Paso 4

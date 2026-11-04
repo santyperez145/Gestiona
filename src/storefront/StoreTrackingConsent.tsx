@@ -40,7 +40,10 @@ export default function StoreTrackingConsent({ enabled }: { enabled: boolean }) 
           <p className="mt-1 text-xs leading-relaxed" style={{ color: "hsl(var(--st-muted))" }}>
             Las funciones esenciales mantienen el carrito y el pedido. Si aceptás medición,
             esta tienda también activa Meta, Google Analytics o TikTok para entender campañas.
-            Nerqia no agrega tu nombre, email ni dirección a esos eventos.
+            {/* 2026-11-04: nombraba a Nerqia, una marca que el comprador de la
+                tienda no conoce. La garantía es la misma: los eventos no llevan
+                sus datos personales. */}
+            Esos eventos no llevan tu nombre, email ni dirección.
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button

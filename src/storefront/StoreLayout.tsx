@@ -12,7 +12,7 @@ import { useStore } from "./storeContext";
 import {
   menuDeCategorias, arbolDeCategorias, nombreDeCategoria,
 } from "@/lib/storeCategories";
-import { menuEfectivo, menuConSubmenus } from "@/lib/storeMenu";
+import { destinoDe, menuEfectivo, menuConSubmenus, type LinkMenu } from "@/lib/storeMenu";
 import { sugerenciasParaElCarrito, TEXTO_MOTIVO } from "@/lib/crossSell";
 import SearchBox from "./SearchBox";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
@@ -185,7 +185,18 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       categorias,
       products.map(p => p.category).filter(Boolean) as string[],
     );
-    const items = menuEfectivo(store?.nav_links, { base, categorias: cats });
+    const menu = menuEfectivo(store?.nav_links, { base, categorias: cats });
+    // 2026-11-04: el menú automático siempre traía «Ofertas», aunque la
+    // tienda no tuviera ningún producto en oferta: llevaba a un listado
+    // vacío. Mismo criterio que la fila de ofertas de la portada (con stock
+    // y precio por debajo del de lista). Si el comercio armó su menú y puso
+    // «Ofertas» a mano, se respeta.
+    const menuPropio = (Array.isArray(store?.nav_links) ? (store.nav_links as LinkMenu[]) : [])
+      .some(l => destinoDe(l, base) !== null);
+    const hayOfertas = products.some((p: any) => Number(p.stock) > 0 && priceOf(p) < Number(p.sale_price_ars));
+    const items = menuPropio || hayOfertas
+      ? menu
+      : menu.filter(m => m.to !== `${base}/productos?oferta=1`);
 
     // Las hijas de cada categoría, para el despliegue. Sólo las que tienen
     // algo: una subcategoría vacía en el desplegable es un callejón sin salida
@@ -200,7 +211,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       }
     }
     return menuConSubmenus(items, hijas, base);
-  }, [products, categorias, base, store?.nav_links]);
+  }, [products, categorias, base, store?.nav_links, priceOf]);
 
   // "Completá tu compra". Se recalcula con el carrito: al agregar una, la
   // siguiente ya sabe que esa está adentro y que el faltante para el envío
@@ -535,7 +546,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         </div>
         {/* ── Newsletter footer ─────────────────────────────── */}
         {store?.slug && (
-          <div className="storefront-newsletter">
+          // 2026-11-04: el envoltorio no tenía contenedor ni margen y el bloque
+          // quedaba pegado al borde izquierdo. Se alinea con las columnas del
+          // pie (max-w-6xl mx-auto px-4). StoreNewsletter ya pone su propia
+          // clase storefront-newsletter en la raíz.
+          <div className="max-w-6xl mx-auto px-4 pb-8">
             <StoreNewsletter slug={store.slug} base={base} privacidad={(pages ?? []).some(pg => pg.slug === "politica-de-privacidad")} />
           </div>
         )}

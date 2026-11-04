@@ -116,6 +116,13 @@ export interface DatosFoco {
   /** Zonas activas sin tarifa — Completar tarifario. */
   zonasSinTarifa?: number;
   /**
+   * Zonas activas con al menos una tarifa. `0` = la tienda no cotiza envíos,
+   * así que los pesos no cambian ningún precio. `undefined` = no se midió.
+   */
+  zonasConTarifa?: number;
+  /** La tienda tiene el retiro en el local activo. `undefined` = no se midió. */
+  retiroActivo?: boolean;
+  /**
    * Zonas activas, con o sin tarifa.
    * `0` con tienda publicada: el seed no corrió o las borraron — Completar
    * tarifario no aparece (no hay filas que contar).
@@ -245,7 +252,8 @@ function pendientePrimeraVenta(online: boolean, publicada: boolean): Pendiente {
     return {
       id: "primera-venta",
       texto: "Todavía no hay una venta online",
-      accion: publicada ? "Compartí el enlace" : "Abrir Commerce",
+      // 2026-11-04: la misma frase que el hito de la ruta, «Compartí el link».
+      accion: publicada ? "Compartí el link" : "Abrir Commerce",
       destino: storeFirstSaleSharePath(publicada),
       urgencia: "atencion",
     };
@@ -499,9 +507,24 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
     });
   }
 
+  // 2026-11-04: toda tienda nace con 6 zonas sin tarifa (las siembra un
+  // trigger), así que una tienda recién publicada que sólo hace retiro veía
+  // «6 zonas de envío sin tarifa» y «1 producto sin peso», y como la lista ya
+  // no quedaba vacía nunca aparecía la primera venta. Con la tienda publicada
+  // y sin venta del canal, la primera venta va siempre; el tarifario no se
+  // pide a quien vende con retiro y todavía no cargó ninguna tarifa, y los
+  // pesos no se piden cuando ninguna zona cotiza (sin medir, se piden).
+  const onlineDelFoco = canalDeVentaDelFoco(d.onboardingGoal) === "online";
+  const sinVentaDelCanal = d.nuncaVendio
+    || (onlineDelFoco && d.ordenesOnlinePagas === 0);
+  if (sinVentaDelCanal && d.tiendaPublicada === true) {
+    lista.push(pendientePrimeraVenta(onlineDelFoco, true));
+  }
+  const soloRetiro = d.retiroActivo === true && (d.zonasConTarifa ?? 0) === 0;
+
   // ATM Commerce: sin tarifas el checkout parece funcionar (retiro) pero no
   // vende envío; sin pesos cotiza de más y abandona el carrito.
-  if ((d.zonasSinTarifa ?? 0) > 0) {
+  if (!soloRetiro && (d.zonasSinTarifa ?? 0) > 0) {
     const n = d.zonasSinTarifa!;
     lista.push({
       id: "tarifario",
@@ -511,7 +534,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       urgencia: "atencion",
     });
   }
-  if ((d.productosSinPeso ?? 0) > 0) {
+  if (d.zonasConTarifa !== 0 && (d.productosSinPeso ?? 0) > 0) {
     const n = d.productosSinPeso!;
     lista.push({
       id: "pesos",
@@ -536,12 +559,14 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
 
   // Comercio nuevo: sin ruido operativo, el foco es la primera venta y el
   // conteo que deja el stock creíble. Sólo cuando la lista quedó vacía.
-  if (lista.length === 0) {
-    const online = canalDeVentaDelFoco(d.onboardingGoal) === "online";
-    const sinVentaDelCanal = d.nuncaVendio
-      || (online && d.ordenesOnlinePagas === 0);
-    if (sinVentaDelCanal) {
-      lista.push(pendientePrimeraVenta(online, d.tiendaPublicada === true));
+  // 2026-11-04: «vacía» quiere decir «sin nada más que la primera venta». Con
+  // la tienda publicada la primera venta ya entró más arriba, y mirar
+  // `lista.length === 0` hacía perder la toma física al comercio nuevo. Por
+  // eso acá se mira que no esté repetida antes de agregarla.
+  const soloPrimeraVenta = lista.every(x => x.id === "primera-venta");
+  if (soloPrimeraVenta) {
+    if (sinVentaDelCanal && !lista.some(x => x.id === "primera-venta")) {
+      lista.push(pendientePrimeraVenta(onlineDelFoco, d.tiendaPublicada === true));
     }
     if (d.sinConteoFisico) {
       lista.push({

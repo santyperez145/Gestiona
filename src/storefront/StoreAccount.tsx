@@ -180,8 +180,10 @@ export default function StoreAccount() {
               : modo === "login" ? "Iniciá sesión" : "Creá tu cuenta"}
           </h1>
           <p className="text-sm mt-2 leading-relaxed" style={{ color: "hsl(var(--st-muted))" }}>
+            {/* 2026-11-04: decía que la cuenta no era un «workspace» de la
+                plataforma, con jerga y la marca de la plataforma en la tienda del comercio, que el comprador no conoce. */}
             {modo === "otp"
-              ? "Enlace mágico o código. Las cuentas nuevas se marcan como comprador de la tienda, no como workspace Nerqia."
+              ? "Te mandamos un enlace o un código a tu email para entrar, sin contraseña."
               : "Para ver tus pedidos y comprar más rápido la próxima vez."}
           </p>
         </div>

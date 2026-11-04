@@ -11,6 +11,17 @@ import SupervisorApprovalDialog, { esRechazoPorAutorizacion, porcentajeDelRechaz
 import { emitirTicketEnControlador } from "@/lib/fiscalPrinter/service";
 import { leerConfigControlador, type ConfigControlador } from "@/lib/fiscalPrinter/transport";
 import { accionDeTecla, ATAJOS_POS, medioSiguiente, type AccionPos } from "@/lib/posShortcuts";
+import {
+  atajoBloqueadoPorDialogo,
+  cobrarUnaSolaVez,
+  cobroBloqueado,
+  cerrarCobroQrAcreditado,
+  contextoParaReanudarQr,
+  crearCandadoDeCobro,
+  hayDialogoModalAbierto,
+  marcarVentasPropias,
+  VIGENCIA_MARCA_QR_MS,
+} from "@/lib/posCobroUnico";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull } from "@/lib/exchangeRate";
 import { seVendeBajoCosto } from "@/lib/guardianDeMargen";
@@ -69,7 +80,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard, Store, FileText, Bookmark, ChevronDown,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard, Store, FileText, Bookmark, ChevronDown,
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
@@ -179,6 +190,17 @@ const partesDeClave = (clave: string) => {
 };
 
 type PayMethod = "efectivo" | "transferencia" | "debito" | "credito" | "qr" | "mayorista" | "fiado";
+
+/** Cómo se cobró, tal como estaba en el carrito al cerrar la venta. */
+interface ReciboPago {
+  payMethod: PayMethod;
+  splitMode: boolean;
+  splitMethod1: PayMethod;
+  splitMethod2: PayMethod;
+  splitAmount1: number;
+  splitAmount2: number;
+  customer: string;
+}
 
 /** Estado del comprobante del ticket en el controlador fiscal de la caja. */
 type EstadoControlador = { estado: "emitido" | "error" | "pendiente"; tipo?: string; numero?: string; motivo?: string; yaEmitido?: boolean };
@@ -1139,7 +1161,22 @@ export default function POSPage() {
     controlador?: EstadoControlador | null;
     /** Guardada sin conexión: el recibo no puede decir que ya está en Ventas. */
     offline?: boolean;
+    /**
+     * 2026-11-04: el recibo leía medio de pago y cliente del carrito vivo. Al
+     * vaciar el carrito apenas cierra la venta (para que F9 no la repita), el
+     * recibo habría pasado a decir «Efectivo» y sin cliente. Se congela acá.
+     */
+    pago: ReciboPago;
   } | null>(null);
+  // Candado sincrónico del cobro y espejo del recibo: F9 y el botón los leen
+  // sin esperar a que React vuelva a pintar (ver posCobroUnico).
+  const candadoCobroRef = useRef(crearCandadoDeCobro());
+  // 2026-11-04: ciclo del cobro QR. Se toma al pedir el QR y se suelta cuando
+  // la venta quedó registrada o el QR se canceló; cubre el tramo en que el
+  // diálogo ya se cerró pero el carrito todavía no se vació.
+  const cicloQrRef = useRef(crearCandadoDeCobro());
+  const reciboAbiertoRef = useRef(false);
+  reciboAbiertoRef.current = receipt !== null;
   const [controllerConfig, setControllerConfig] = useState<ConfigControlador | null>(null);
   const [controllerDialogOpen, setControllerDialogOpen] = useState(false);
   // Autorización del encargado para descuentos sobre el máximo de la caja.
@@ -1169,16 +1206,10 @@ export default function POSPage() {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
 
-  // POS-specific light/dark theme (independent of global app theme)
-  const posThemeKey = `gestiona.pos.theme.${activeOrg?.id || 'default'}`;
-  const [posTheme, setPosTheme] = useState<'dark' | 'light'>(() =>
-    (localStorage.getItem(`gestiona.pos.theme.${activeOrg?.id || 'default'}`) as 'dark' | 'light') || 'dark'
-  );
-  const togglePosTheme = () => {
-    const next = posTheme === 'dark' ? 'light' : 'dark';
-    setPosTheme(next);
-    localStorage.setItem(posThemeKey, next);
-  };
+  // 2026-11-04: la caja tenía un tema propio que arrancaba en «oscuro» aunque
+  // la app estuviera en claro: mostraba un sol con «Cambiar a modo claro» y, al
+  // tocarlo, el modo «claro» pasaba todo el texto a gris. Se quitó: la caja usa
+  // el tema global («Tema oscuro» de la barra lateral), sin estado paralelo.
 
   // Seller on shift (localStorage per org)
   const sellerKey = `gestiona.pos.seller.${activeOrg?.id || 'default'}`;
@@ -1564,6 +1595,9 @@ export default function POSPage() {
       const tag = (e.target as HTMLElement)?.tagName;
       const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable;
       const accion = accionDeTecla(e, inInput);
+      // 2026-11-04: F9 cobraba aunque el recibo estuviera abierto y repetía la
+      // venta. Con un diálogo modal en pantalla no corren los atajos del ticket.
+      if (accion && atajoBloqueadoPorDialogo(accion, hayDialogoModalAbierto(document))) return;
       const handler = accion ? shortcutActions.current[accion] : undefined;
       if (!handler) return;
       e.preventDefault();
@@ -1844,6 +1878,12 @@ export default function POSPage() {
   // catálogo/categoría, y la búsqueda se difiere para no frenar el tipeo.
   const sellable = useMemo(() => products.filter((p) => posProductIsSellable(p)), [products]);
   const sellableCount = sellable.length;
+  // 2026-11-04: el aviso «Listo. Ahora cobralo en la caja» de Productos seguía
+  // en pantalla y tapaba «Tocá el producto y cobrá» justo en el primer cobro.
+  // Cuando aparece el cartel guía, ese aviso ya cumplió y se cierra.
+  useEffect(() => {
+    if (fromWizard && sellableCount > 0 && !loadingProds) toast.dismiss("first-product-handoff");
+  }, [fromWizard, sellableCount, loadingProds]);
   const categoryList = useMemo(
     () => (cat === "all" ? sellable : sellable.filter((p) => p.category === cat)),
     [sellable, cat],
@@ -2267,6 +2307,16 @@ export default function POSPage() {
     setDiscountValue("");
   };
 
+  const reciboPagoActual = (): ReciboPago => ({
+    payMethod,
+    splitMode,
+    splitMethod1,
+    splitMethod2,
+    splitAmount1: splitAmt1,
+    splitAmount2: splitAmt2,
+    customer,
+  });
+
   const finishOnlineSaleUi = async (
     soldItems: CartItem[],
     saleIds: string[],
@@ -2320,6 +2370,9 @@ export default function POSPage() {
     await loadCashSessionStatus();
 
     if (customer.trim()) saveRecentCustomer(customer.trim());
+    // El eco en tiempo real de esta misma venta no tiene que volver a avisar.
+    marcarVentasPropias(saleIds);
+    reciboAbiertoRef.current = true;
     setReceipt({
       items: soldItems,
       total: registeredTotal,
@@ -2332,8 +2385,11 @@ export default function POSPage() {
       transactionId: extras?.transactionId ?? null,
       invoice: extras?.invoice ?? null,
       controlador: extras?.controlador ?? null,
+      pago: reciboPagoActual(),
     });
-    toast.success(`Venta de ${formatARS(registeredTotal)} ${methodLabel === "QR Mercado Pago" ? "acreditada" : "registrada"}`);
+    // 2026-11-04: acá iba un toast «Venta de $ … registrada» que, sumado al
+    // eco en tiempo real, tapaba el título del recibo. El recibo ya confirma
+    // la venta; queda sólo la vibración.
     vibrateSuccess();
 
     const turnoCount = turnoSales.length + 1;
@@ -2350,6 +2406,10 @@ export default function POSPage() {
       ts: Date.now(),
       saleIds,
     }]);
+    // 2026-11-04: el camino online no vaciaba el carrito y F9 (o «Confirmar
+    // venta») repetía la venta detrás del recibo: doble ingreso y doble
+    // descuento de stock. Todo lo de arriba ya usó los valores capturados.
+    clearCart();
   };
 
   const acknowledgeQrSession = async (sessionId: string): Promise<boolean> => {
@@ -2366,9 +2426,11 @@ export default function POSPage() {
   const finalizeQrSale = async (checkout: QrCheckoutContext, session: PosQrSession) => {
     if (!user || qrCompletedRef.current.has(session.session_id)) return;
     qrCompletedRef.current.add(session.session_id);
-    setQrCheckout(null);
 
     if (checkout.recovered) {
+      // 2026-11-04: un QR recuperado no cierra el diálogo de un QR en vivo
+      // (su ciclo quedaría tomado sin diálogo y la caja no podría cobrar).
+      setQrCheckout((previous) => (previous && !previous.recovered ? previous : null));
       // El ticket, pago y stock ya cerraron en servidor. No se reutiliza el
       // carrito que el cajero pudo haber empezado después de volver a Caja.
       try {
@@ -2386,28 +2448,34 @@ export default function POSPage() {
       return;
     }
 
-    const auditResults = await Promise.allSettled(checkout.transactionLines.map((line) =>
-      logAudit(user.id, "create", "sale", String(line.id), {
-        product: line.product_name,
-        total: line.total_ars,
-        method: "qr:mercadopago",
-        source: "pos",
-        provider_order_id: session.provider_order_id,
-      })
-    ));
-    auditResults.forEach((result) => {
-      if (result.status === "rejected") console.error("[POS QR] No se pudo guardar auditoría:", result.reason);
-    });
-    const providerItems = session.items ?? [];
-    const soldItems = checkout.soldItems.map((item, index) => ({
-      ...item,
-      price: Number(providerItems[index]?.unit_price ?? item.price),
-    }));
-    await finishOnlineSaleUi(soldItems, checkout.saleIds, "QR Mercado Pago", Number(session.amount), {
-      transactionId: session.sale_transaction_id ?? null,
-      invoice: session.invoice_requested !== undefined ? posQrFiscalResult(session) : wantArcaInvoice && session.sale_transaction_id
-        ? await emitirFacturaDelTicket(session.sale_transaction_id)
-        : null,
+    // 2026-11-04: el diálogo se cierra con el ciclo QR todavía tomado; recién
+    // se suelta cuando la venta quedó registrada y el carrito vacío. Antes, en
+    // el tramo de auditoría + factura + refresco, F9 armaba un segundo QR con
+    // el mismo carrito (doble cobro).
+    await cerrarCobroQrAcreditado(cicloQrRef.current, () => setQrCheckout(null), async () => {
+      const auditResults = await Promise.allSettled(checkout.transactionLines.map((line) =>
+        logAudit(user.id, "create", "sale", String(line.id), {
+          product: line.product_name,
+          total: line.total_ars,
+          method: "qr:mercadopago",
+          source: "pos",
+          provider_order_id: session.provider_order_id,
+        })
+      ));
+      auditResults.forEach((result) => {
+        if (result.status === "rejected") console.error("[POS QR] No se pudo guardar auditoría:", result.reason);
+      });
+      const providerItems = session.items ?? [];
+      const soldItems = checkout.soldItems.map((item, index) => ({
+        ...item,
+        price: Number(providerItems[index]?.unit_price ?? item.price),
+      }));
+      await finishOnlineSaleUi(soldItems, checkout.saleIds, "QR Mercado Pago", Number(session.amount), {
+        transactionId: session.sale_transaction_id ?? null,
+        invoice: session.invoice_requested !== undefined ? posQrFiscalResult(session) : wantArcaInvoice && session.sale_transaction_id
+          ? await emitirFacturaDelTicket(session.sale_transaction_id)
+          : null,
+      });
     });
     if (await acknowledgeQrSession(session.session_id)) {
       setQrRecoverySessions((previous) => previous.filter((item) => item.session_id !== session.session_id));
@@ -2416,6 +2484,13 @@ export default function POSPage() {
 
   const requestQrOrder = async (checkout: QrCheckoutContext) => {
     if (!activeOrg) return;
+    // 2026-11-04: desde acá hasta registrar la venta o cancelar el QR, no se
+    // cobra otra vez el mismo carrito. Un reintento sigue dentro del mismo ciclo.
+    cicloQrRef.current.tomar();
+    // 2026-11-04 (#29): el servidor inserta la venta al acreditarse el pago y
+    // el aviso en vivo llega antes de que la caja cierre: los ids se marcan
+    // ya, con una vigencia que cubre la espera del QR (el sondeo la renueva).
+    marcarVentasPropias(checkout.saleIds, VIGENCIA_MARCA_QR_MS);
     const preparing = { ...checkout, phase: "preparing" as const, error: null };
     setQrCheckout(preparing);
     const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
@@ -2455,17 +2530,26 @@ export default function POSPage() {
     setQrCheckout(next);
   };
 
-  const resumeRecoveredQr = async (session: PosQrSession) => {
+  // 2026-11-04: `delCicloEnVivo` es el QR en vivo que se vuelve a consultar
+  // (revisión manual). Sigue en vivo: su cierre suelta el ciclo y, si se
+  // acreditó, muestra el recibo y vacía el carrito.
+  const resumeRecoveredQr = async (session: PosQrSession, delCicloEnVivo?: QrCheckoutContext) => {
     const checkout: QrCheckoutContext = {
-      clientKey: "",
-      transactionLines: [],
-      soldItems: [],
-      saleIds: [],
+      ...contextoParaReanudarQr<QrCheckoutContext>(delCicloEnVivo, {
+        clientKey: "",
+        transactionLines: [],
+        soldItems: [],
+        saleIds: [],
+        session,
+        phase: "preparing",
+        error: null,
+        recovered: true,
+      }),
       session,
       phase: "preparing",
       error: null,
-      recovered: true,
     };
+    if (!checkout.recovered) marcarVentasPropias(checkout.saleIds, VIGENCIA_MARCA_QR_MS);
     setQrCheckout(checkout);
     const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
       body: { action: "resume", sessionId: session.session_id },
@@ -2492,7 +2576,7 @@ export default function POSPage() {
 
   const retryQrOrder = async (checkout: QrCheckoutContext) => {
     if (checkout.session?.state === "manual_review") {
-      await resumeRecoveredQr(checkout.session);
+      await resumeRecoveredQr(checkout.session, checkout);
       return;
     }
     if (checkout.recovered && checkout.session) {
@@ -2540,17 +2624,27 @@ export default function POSPage() {
     await requestQrOrder(checkout);
   };
 
+  // 2026-11-04: cerrar el QR sin venta suelta su ciclo: el carrito sigue y se
+  // puede cobrar de nuevo (otro medio u otro QR). Un QR recuperado no tomó el
+  // ciclo de esta caja, así que no lo suelta. El QR en vivo que se volvió a
+  // consultar desde la revisión manual sigue en vivo (contextoParaReanudarQr)
+  // y sí lo suelta.
+  const cerrarQrSinVenta = (checkout: QrCheckoutContext) => {
+    setQrCheckout(null);
+    if (!checkout.recovered) cicloQrRef.current.soltar();
+  };
+
   const cancelQrCheckout = async (chooseAnother = false) => {
     if (!qrCheckout) return;
     const checkout = qrCheckout;
     const sessionId = checkout.session?.session_id;
     if (checkout.session?.state === "manual_review") {
-      setQrCheckout(null);
+      cerrarQrSinVenta(checkout);
       toast.warning("Cobro pendiente de revisión: verificá Mercado Pago antes de volver a cobrar");
       return;
     }
     if (!sessionId) {
-      setQrCheckout(null);
+      cerrarQrSinVenta(checkout);
       if (chooseAnother && !checkout.recovered) setPayMethod("transferencia");
       return;
     }
@@ -2569,7 +2663,7 @@ export default function POSPage() {
       setQrCheckout({ ...checkout, session: session ?? checkout.session, phase: "error", error: message });
       return;
     }
-    setQrCheckout(null);
+    cerrarQrSinVenta(checkout);
     setQrRecoverySessions((previous) => previous.filter((item) => item.session_id !== sessionId));
     if (chooseAnother && !checkout.recovered) setPayMethod("transferencia");
     toast.info("Cobro QR cancelado; no se registró la venta");
@@ -2597,6 +2691,8 @@ export default function POSPage() {
         } else if (POS_QR_TERMINAL_STATES.has(session.state)) {
           setQrCheckout({ ...checkout, session, phase: "error", error: posQrFailureCopy(session) });
         } else {
+          // 2026-11-04 (#29): mientras el QR espera, la marca no vence.
+          marcarVentasPropias(checkout.saleIds, VIGENCIA_MARCA_QR_MS);
           setQrCheckout({ ...checkout, session, phase: "pending", error: null });
         }
       } finally {
@@ -2694,7 +2790,23 @@ export default function POSPage() {
   };
 
   // ── Confirm sale ──
+  // 2026-11-04: confirmSale no tenía guarda propia y una segunda tecla F9 (o un
+  // segundo clic) creaba otra venta igual. Ahora pasa por un candado
+  // sincrónico y no corre con el recibo o un cobro QR abiertos.
   const confirmSale = async () => {
+    await cobrarUnaSolaVez(
+      candadoCobroRef.current,
+      () => !cobroBloqueado({
+        renglones: cart.length,
+        registrando: submitting,
+        reciboAbierto: reciboAbiertoRef.current,
+        cobroQrAbierto: qrCheckout !== null || cicloQrRef.current.tomado,
+      }),
+      registrarVenta,
+    );
+  };
+
+  const registrarVenta = async () => {
     if (!user || !activeOrg || !cart.length) return;
 
     const reservationConflicts = cart.filter((item) => {
@@ -2836,6 +2948,9 @@ export default function POSPage() {
       }
 
       if (isOnline) {
+        // 2026-11-04 (#29): el aviso en vivo sale del trigger al insertar y
+        // llega antes de que termine este cobro: los ids se marcan antes.
+        marcarVentasPropias(txSaleIds);
         const saleResult = await addSalesDB(transactionLines, "pos");
         const transactionId = posSaleTransactionId(saleResult);
         const auditResults = await Promise.allSettled(transactionLines.map((saleData) =>
@@ -2896,8 +3011,10 @@ export default function POSPage() {
       if (!isOnline) {
         if (wantArcaInvoice) toast.info(posArcaInvoiceCopy().offline);
         toast.success(`Venta guardada offline — se sincronizará al reconectar`);
+        const pago = reciboPagoActual();
         clearCart();
-        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote, saleId: txSaleIds[0] || null, transactionId: null, invoice: null, offline: true });
+        reciboAbiertoRef.current = true;
+        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote, saleId: txSaleIds[0] || null, transactionId: null, invoice: null, offline: true, pago });
       }
     } catch (e: any) {
       const message = String(e?.message ?? "");
@@ -2918,14 +3035,32 @@ export default function POSPage() {
   // Se espeja en un ref porque el listener de teclado (F9) se registra antes
   // de que esta const exista; leer la const desde el array de deps tiraba
   // ReferenceError y rompía el render del POS.
+  // 2026-11-04: con el recibo o el cobro QR abiertos el botón seguía activo.
   const confirmDisabled =
     cart.length === 0 ||
     submitting ||
+    receipt !== null ||
+    qrCheckout !== null ||
+    cicloQrRef.current.tomado ||
     (!isOnline && !!offlineStorageError) ||
     (!splitMode && payMethod === "qr" && !isOnline) ||
     (splitMode && splitAmt1 <= 0) ||
     (!splitMode && payMethod === "efectivo" && cashGiven !== "" && Number(cashGiven) < cartTotal);
   confirmDisabledRef.current = confirmDisabled;
+
+  // Billetes que conviene ofrecer para pagar en efectivo: los que superan el total.
+  const billetesSugeridos = (() => {
+    const sugeridos: number[] = [];
+    const denominaciones = [1000, 2000, 5000, 10000, 20000];
+    for (const d of denominaciones) {
+      if (d > cartTotal) sugeridos.push(d);
+    }
+    if (cartTotal > 20000) {
+      sugeridos.push(Math.ceil(cartTotal / 10000) * 10000);
+      sugeridos.push(Math.ceil(cartTotal / 20000) * 20000);
+    }
+    return Array.from(new Set(sugeridos)).filter(n => n > cartTotal).sort((a, b) => a - b).slice(0, 3);
+  })();
 
   const firstTicketPay = posFirstTicketPayCopy();
   const showAllPayMethods = posShowAllPayMethods({
@@ -3760,59 +3895,18 @@ export default function POSPage() {
                   {!isOnline && <p className="mt-1 font-semibold text-destructive">Necesitás conexión para usar QR.</p>}
                 </div>
               )}
-              {/* Cash calculator con atajos de billetes */}
+              {/* 2026-11-04: los billetes y el vuelto quedaban debajo del pie
+                  fijo, sin señal de scroll: se cobraba sin ver el vuelto. Ahora
+                  viven en el pie (pos-cash-quick); acá queda el monto exacto. */}
               {payMethod === "efectivo" && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setCashGiven(String(cartTotal))}
-                      className="px-2.5 py-1 text-xs font-semibold rounded-md border border-border bg-muted/50 hover:bg-muted active:scale-95 transition-all text-foreground"
-                    >
-                      Exacto ({formatARS(cartTotal)})
-                    </button>
-                    {(() => {
-                      const sugeridos: number[] = [];
-                      const denominaciones = [1000, 2000, 5000, 10000, 20000];
-                      for (const d of denominaciones) {
-                        if (d > cartTotal) sugeridos.push(d);
-                      }
-                      if (cartTotal > 20000) {
-                        sugeridos.push(Math.ceil(cartTotal / 10000) * 10000);
-                        sugeridos.push(Math.ceil(cartTotal / 20000) * 20000);
-                      }
-                      const unicos = Array.from(new Set(sugeridos)).filter(n => n > cartTotal).sort((a, b) => a - b).slice(0, 3);
-                      return unicos.map(billete => (
-                        <button
-                          key={billete}
-                          type="button"
-                          onClick={() => setCashGiven(String(billete))}
-                          className="px-2.5 py-1 text-xs font-mono font-medium rounded-md border border-border bg-background hover:bg-muted active:scale-95 transition-all"
-                        >
-                          {formatARS(billete)}
-                        </button>
-                      ));
-                    })()}
-                  </div>
-                  <Input
-                    type="number"
-                    placeholder="Monto recibido ($)"
-                    aria-label="Monto recibido"
-                    value={cashGiven}
-                    onChange={(e) => setCashGiven(e.target.value)}
-                    className="h-8 text-sm bg-muted"
-                  />
-                  {Number(cashGiven) > 0 && (
-                    <div className={`text-xs text-center font-semibold px-2 py-1 rounded-lg ${
-                      Number(cashGiven) >= cartTotal ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-                    }`}>
-                      {Number(cashGiven) >= cartTotal
-                        ? `Cambio: ${formatARS(Number(cashGiven) - cartTotal)}`
-                        : `Faltan: ${formatARS(cartTotal - Number(cashGiven))}`
-                      }
-                    </div>
-                  )}
-                </div>
+                <Input
+                  type="number"
+                  placeholder="Monto recibido ($)"
+                  aria-label="Monto recibido"
+                  value={cashGiven}
+                  onChange={(e) => setCashGiven(e.target.value)}
+                  className="h-8 text-sm bg-muted"
+                />
               )}
             </>
           ) : (
@@ -3892,7 +3986,7 @@ export default function POSPage() {
             >
               <span className="flex items-center gap-1.5">
                 <RotateCcw className="w-3 h-3" />
-                Ventas de esta pestaña ({turnoSales.length})
+                Ventas recientes ({turnoSales.length})
               </span>
               <ChevronUp className={`w-3 h-3 transition-transform ${showTurnoHistory ? '' : 'rotate-180'}`} />
             </button>
@@ -3975,6 +4069,40 @@ export default function POSPage() {
             </div>
           )}
         </div>
+
+        {!splitMode && payMethod === "efectivo" && cartTotal > 0 && (
+          <div className="pos-cash-quick space-y-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setCashGiven(String(cartTotal))}
+                className="px-2 py-1 text-xs font-semibold rounded-md border border-border bg-muted/50 hover:bg-muted active:scale-95 transition-all text-foreground"
+              >
+                Exacto ({formatARS(cartTotal)})
+              </button>
+              {billetesSugeridos.map(billete => (
+                <button
+                  key={billete}
+                  type="button"
+                  onClick={() => setCashGiven(String(billete))}
+                  className="px-2 py-1 text-xs font-mono font-medium rounded-md border border-border bg-background hover:bg-muted active:scale-95 transition-all"
+                >
+                  {formatARS(billete)}
+                </button>
+              ))}
+            </div>
+            {Number(cashGiven) > 0 && (
+              <div role="status" className={`text-xs text-center font-semibold px-2 py-1 rounded-lg ${
+                Number(cashGiven) >= cartTotal ? "bg-green-500/10 text-green-600 dark:text-green-400" : "bg-red-500/10 text-destructive"
+              }`}>
+                {Number(cashGiven) >= cartTotal
+                  ? `Vuelto: ${formatARS(Number(cashGiven) - cartTotal)}`
+                  : `Faltan: ${formatARS(cartTotal - Number(cashGiven))}`
+                }
+              </div>
+            )}
+          </div>
+        )}
 
         <Button
           className="pos-confirm-sale w-full font-semibold h-11 text-base gap-2"
@@ -4075,7 +4203,7 @@ export default function POSPage() {
       <Dialog open={showTurnoSummary} onOpenChange={setShowTurnoSummary}>
           <DialogContent size="md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Actividad de esta pestaña</DialogTitle>
+              <DialogTitle className="flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Ventas recientes</DialogTitle>
               <DialogDescription>Atajo local desde que abriste Caja. El turno conciliable por sucursal se gestiona aparte y no se borra desde acá.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -4164,13 +4292,13 @@ export default function POSPage() {
       {receipt && (
         <ReceiptModal
           items={receipt.items}
-          payMethod={payMethod}
-          splitMode={splitMode}
-          splitMethod1={splitMethod1}
-          splitMethod2={splitMethod2}
-          splitAmount1={splitAmt1}
-          splitAmount2={splitAmt2}
-          customer={customer}
+          payMethod={receipt.pago.payMethod}
+          splitMode={receipt.pago.splitMode}
+          splitMethod1={receipt.pago.splitMethod1}
+          splitMethod2={receipt.pago.splitMethod2}
+          splitAmount1={receipt.pago.splitAmount1}
+          splitAmount2={receipt.pago.splitAmount2}
+          customer={receipt.pago.customer}
           total={receipt.total}
           cashGiven={receipt.cash}
           businessName={config.businessName || "Nerqia"}
@@ -4263,7 +4391,7 @@ export default function POSPage() {
       <div
         data-testid="pos-root"
         data-org-id={activeOrg?.id}
-        className={`pos-workspace relative flex h-full min-h-0 flex-col overflow-hidden ${posTheme === 'light' ? 'bg-white text-muted-foreground [&_.bg-card]:bg-muted [&_.bg-muted]:bg-muted [&_.border-border]:border-border [&_.text-muted-foreground]:text-muted-foreground [&_.text-foreground]:text-muted-foreground' : ''}`}
+        className="pos-workspace relative flex h-full min-h-0 flex-col overflow-hidden"
       >
         {/* Offline / sync banner */}
         {!isOnline && (
@@ -4423,10 +4551,15 @@ export default function POSPage() {
             </Link>
           )}
           {turnoSales.length > 0 && (
-            <button onClick={() => setShowTurnoSummary(true)}
-              className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-primary bg-primary/10 border border-primary/20 rounded-lg px-2 py-1 hover:bg-primary/20 transition-colors font-medium">
+            // 2026-11-04: «Esta pestaña · 1» hablaba de la pestaña del navegador,
+            // que el comercio no reconoce, y a 1280 px apretaba el buscador hasta
+            // «Buscar produc». Se muestra sólo con pantalla ancha (el turno ya
+            // cuenta los tickets) y con un nombre que se entiende.
+            <button type="button" onClick={() => setShowTurnoSummary(true)}
+              title="Ventas que hiciste desde que abriste esta pantalla"
+              className="hidden 2xl:flex items-center gap-1.5 shrink-0 text-xs text-primary bg-primary/10 border border-primary/20 rounded-lg px-2 py-1 hover:bg-primary/20 transition-colors font-medium">
               <BarChart2 className="w-3 h-3" />
-              Esta pestaña · {turnoSales.length}
+              Recién vendidas · {turnoSales.length}
             </button>
           )}
           <div className="pos-search min-w-0 flex-1 relative">
@@ -4456,9 +4589,6 @@ export default function POSPage() {
           <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0" onClick={() => scanning ? stopScan() : startScan()}>
             <QrCode className="w-4 h-4" />
             <span className="sr-only xl:not-sr-only xl:whitespace-nowrap">Escanear</span>
-          </Button>
-          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0" onClick={togglePosTheme} title={posTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}>
-            {posTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
           </Button>
           {voiceSupported && (
             <Button size="sm" variant="ghost"

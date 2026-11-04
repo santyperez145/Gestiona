@@ -15,6 +15,8 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useHasPermission } from "@/lib/usePermissions";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { esPedidoACuentaCorriente } from "@/lib/storeOrderPayment";
+import { dialogoMarcarCobrado } from "@/lib/colaDePedidosOnline";
+import { leerSaldoAplicado } from "@/components/ecommerce/useSaldoAplicado";
 import type { StoreOrderQueuePage } from "@/lib/storeOrderQueuePage";
 import {
   findStoreOrderForInspect,
@@ -103,15 +105,32 @@ export default function StoreOrdersWorkspace({
     await onReload();
   };
 
-  const confirmarPagoManual = async (order: { id: string; order_number: string; payment_method?: string | null }) => {
+  const confirmarPagoManual = async (order: {
+    id: string;
+    order_number: string;
+    payment_method?: string | null;
+    total?: number | string | null;
+    customer_name?: string | null;
+  }) => {
     if (esPedidoACuentaCorriente(order.payment_method)) { await aprobarACuentaCorriente(order); return; }
-    const medio = order.payment_method === "efectivo" ? "efectivo" : "transferencia";
+    // 2026-11-04: el diálogo no decía cuánto ni de quién, y con saldo a favor
+    // el importe a verificar era menor que el total de la fila. El saldo se lee
+    // acá porque la cola todavía no trae la columna.
+    // Mientras se lee, el botón queda ocupado: un segundo toque no abre otro diálogo.
+    setConfirmingPaid(true);
+    const saldo = await leerSaldoAplicado(order.id);
+    setConfirmingPaid(false);
+    const textos = dialogoMarcarCobrado({
+      orderNumber: order.order_number,
+      paymentMethod: order.payment_method,
+      total: order.total,
+      customerName: order.customer_name,
+      saldoAplicado: saldo,
+    });
     if (!(await ask({
       title: "¿Marcar como cobrado?",
-      description: medio === "efectivo"
-        ? `Confirmás que recibiste el pago en efectivo del pedido ${order.order_number}. Se acredita la venta y se puede despachar.`
-        : `Confirmás que viste la transferencia del pedido ${order.order_number}. Se acredita la venta y se puede despachar.`,
-      confirmText: "Marcar cobrado",
+      description: textos.description,
+      confirmText: textos.confirmText,
     }))) return;
     setConfirmingPaid(true);
     const { data, error } = await supabase.rpc("confirmar_pago_manual_tienda", {
@@ -181,9 +200,10 @@ export default function StoreOrdersWorkspace({
     const action = status === "shipped" ? "marcar en camino" : "marcar entregados o retirados";
     if (!(await ask({
       title: `¿${action[0].toUpperCase()}${action.slice(1)}?`,
-      description: `${candidates} de ${selectedOrders.length} pedidos tienen una transición compatible. ${
-        skippedByShape > 0 ? `${skippedByShape} no aplican y quedarán sin cambios. ` : ""
-      }La base vuelve a validar pago, preparación, tenant y estado antes de cambiar cada fila.`,
+      // 2026-11-04: decía «transición compatible» y «tenant» a un comercio no técnico.
+      description: `${candidates} de ${selectedOrders.length} pedidos se pueden cambiar. ${
+        skippedByShape > 0 ? `${skippedByShape} no se pueden cambiar y quedan como están. ` : ""
+      }Antes de cambiar cada pedido revisamos que esté pago y en el estado correcto.`,
       confirmText: status === "shipped" ? "Marcar en camino" : "Confirmar entrega",
     }))) return false;
 

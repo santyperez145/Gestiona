@@ -43,9 +43,19 @@ export default function TutorialHelp({ ruta, inmersiva }: { ruta: RutaParaTutori
   // Tampoco durante el camino guiado del primer día (`?onboarding=1`): la
   // oferta tapaba los botones de cada paso (recorrido del primer día,
   // 2026-11-03). El recorrido sigue en el botón de ayuda.
-  const ofrecer = !inmersiva && !!tutorial && !!progreso && !activo && !progreso.has(tutorial.id)
-    && ofertaCerrada !== tutorial.id && !params.get("tutorial") && !params.get("onboarding");
+  // 2026-11-04: la bienvenida flotante aparecía en el inicio justo después de
+  // publicar la tienda y tapaba el botón del «Siguiente paso verificable» y el
+  // selector Tienda/POS. El primer día ya lo guía la ruta de activación: la
+  // bienvenida queda en el botón de ayuda y en la Academia, nunca flotando.
+  const ofrecer = !inmersiva && !!tutorial && tutorial.id !== "bienvenida" && !!progreso && !activo
+    && !progreso.has(tutorial.id) && ofertaCerrada !== tutorial.id
+    && !params.get("tutorial") && !params.get("onboarding");
 
+  // 2026-11-04: la oferta queda en `bottom-20 right-4`, encima del botón de
+  // ayuda y no al lado. Pegada abajo (`bottom-4`) tapaba la barra «Cambios sin
+  // guardar» de Ajustes y las barras de selección de Productos y Ventas, que
+  // viven fijas al pie. Lo que tapaba el inicio era la bienvenida, y esa ya no
+  // flota (ver `ofrecer`).
   return <>
     {ofrecer && tutorial && <div role="status"
       className="fixed bottom-20 right-4 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-[12px] border border-border bg-card p-3 shadow-lg">

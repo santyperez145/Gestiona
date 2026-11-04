@@ -25,9 +25,6 @@ import {
   parseStoreOrderMedio,
   parseStoreOrderSort,
   parseStoreOrderView,
-  storeOrderFulfillmentLabel,
-  storeOrderFulfillmentTone,
-  storeOrderFulfillmentActionLabel,
   esPedidoRetiro,
   preventaDelPedido,
   storeOrdersCsvFilename,
@@ -46,6 +43,15 @@ import {
   storeOrderPaymentTone,
 } from "@/lib/storeOrderPayment";
 import { storeOrdersEmptyShareCopy } from "@/lib/storeFirstPublish";
+import {
+  accionDeEntregaDeLaFila,
+  cantidadDePedidos,
+  estadoDeEntregaVisible,
+  pistaDeCobroManual,
+  tonoDeEntregaVisible,
+  totalDelPedido,
+  vistaVisible,
+} from "@/lib/colaDePedidosOnline";
 import { toast } from "sonner";
 import type { StoreOrderQueuePage } from "@/lib/storeOrderQueuePage";
 import { Banknote, Download, Eye, Loader2, PackageCheck, RefreshCw, Search, Store, Truck, X } from "lucide-react";
@@ -143,6 +149,12 @@ export default function StoreOrdersPanel({
   const deliveredCandidates = countBulkFulfillmentCandidates(selectedOrders, "delivered");
   const allScopeSelected = selectionScope.length > 0 && selectionScope.every(order => selectedIds.has(order.id));
   const someScopeSelected = selectionScope.some(order => selectedIds.has(order.id));
+  // 2026-11-04: con pocos pedidos, el primero por cobrar quedaba debajo del
+  // pliegue a 1280×720. La franja lo trae arriba con el mismo handler de la fila.
+  const porCobrar = onConfirmPaid && !loading && !error && (queuePage?.store_total ?? 0) <= 3
+    ? visible.filter(order => canConfirmManualStorePayment(order))
+    : [];
+  const primeroPorCobrar = porCobrar[0];
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -205,6 +217,31 @@ export default function StoreOrdersPanel({
 
   return (
     <div className="commerce-orders-queue space-y-4">
+      {primeroPorCobrar && (
+        <div
+          className="flex flex-col gap-3 border border-amber-500/30 bg-amber-500/5 p-4 sm:flex-row sm:items-center sm:justify-between"
+          role="status"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">
+              Tenés {cantidadDePedidos(porCobrar.length)} esperando el cobro
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {primeroPorCobrar.order_number} · {primeroPorCobrar.customer_name} · {totalDelPedido(primeroPorCobrar.total)}
+              {pistaDeCobroManual(primeroPorCobrar) ? ` · ${pistaDeCobroManual(primeroPorCobrar)}` : ""}
+            </p>
+          </div>
+          <Button
+            className="min-h-11 shrink-0 gap-1.5"
+            disabled={confirmingPaid || bulkBusy}
+            aria-label={`${storeOrderManualPayActionLabel(primeroPorCobrar)} ${primeroPorCobrar.order_number}`}
+            onClick={() => onConfirmPaid?.(primeroPorCobrar)}
+          >
+            {confirmingPaid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
+            {storeOrderManualPayActionLabel(primeroPorCobrar)}
+          </Button>
+        </div>
+      )}
       <div className="commerce-orders-toolbar">
         <div className="relative min-w-0 flex-1 sm:min-w-[240px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -261,11 +298,12 @@ export default function StoreOrdersPanel({
       </div>
 
       <div className="commerce-orders-views flex flex-wrap gap-1.5" role="group" aria-label="Vistas de la cola">
-        {STORE_ORDER_VIEWS.filter(v => v.id !== "preventa" || view === "preventa" || (counts?.preventa ?? 0) > 0).map(v => {
-          // «Con preventa» aparece sólo cuando hay pedidos con preventa.
+        {STORE_ORDER_VIEWS.filter(v => vistaVisible(v.id, { view, loading, error, counts })).map(v => {
+          // 2026-11-04: sólo las vistas con pedidos (más Todas, Pendientes de
+          // pago y la abierta); nueve vistas en 0 tapaban el primer pedido.
           const slaHours = queuePage?.sla_hours;
           const tooltip = v.id === "atrasados" && slaHours
-            ? `Pedidos pagados sin despachar hace más de ${slaHours} horas (SLA configurado para la tienda)`
+            ? `Pedidos pagados sin despachar hace más de ${slaHours} horas (plazo configurado para la tienda)`
             : undefined;
           return (
             <button
@@ -348,7 +386,7 @@ export default function StoreOrdersPanel({
       ) : (
         <>
           {totalPages <= 1 ? <p className="text-xs text-muted-foreground" role="status">
-            {queuePage?.total} pedidos
+            {cantidadDePedidos(queuePage?.total)}
           </p> : <DataPagination
             page={currentPage - 1} totalPages={totalPages} onPageChange={page => setPage(page + 1)}
             totalItems={queuePage?.total} pageSize={queuePage?.page_size} itemLabel="pedidos" disabled={bulkBusy}
@@ -481,6 +519,8 @@ function OrderRow({
   const canShip = canFulfillStoreOrder(o.payment_status);
   const canConfirmPaid = Boolean(onConfirmPaid) && canConfirmManualStorePayment(o);
   const payLabel = storeOrderManualPayActionLabel(o);
+  // 2026-11-04: «Pendiente de pago» solo no decía que el comercio tenía que verificar la transferencia.
+  const hint = onConfirmPaid ? pistaDeCobroManual(o) : "";
   const bulkSelectable = isStoreOrderBulkSelectable(o);
   return (
     <tr
@@ -508,10 +548,11 @@ function OrderRow({
         <Badge className={`text-xs ${storeOrderPaymentTone(o.payment_status)}`}>
           {storeOrderPaymentLabel(o.payment_status)}
         </Badge>
+        {hint && <p className="mt-1 max-w-[180px] text-[11px] leading-snug text-muted-foreground">{hint}</p>}
       </td>
       <td className="px-4 py-3">
-        <Badge className={`text-xs ${storeOrderFulfillmentTone(o.fulfillment_status)}`}>
-          {storeOrderFulfillmentLabel(o.fulfillment_status, o)}
+        <Badge className={`text-xs ${tonoDeEntregaVisible(o.fulfillment_status, o)}`}>
+          {estadoDeEntregaVisible(o.fulfillment_status, o)}
         </Badge>
         <MarcaPreventa order={o} />
         {o.tracking_number && (
@@ -520,26 +561,27 @@ function OrderRow({
       </td>
       <td className="px-4 py-3 text-xs text-muted-foreground">{fechaPedido(o.created_at)}</td>
       <td className="sticky right-0 bg-card px-4 py-3">
-        <div className="flex flex-wrap items-center gap-1">
+        {/* 2026-11-04: los botones de la fila medían 28 px; el resto de la pantalla, 44. */}
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
             variant="outline"
-            className="h-7 gap-1.5 px-2 text-xs"
+            className="min-h-11 gap-1.5 px-3 text-xs"
             aria-label={`Ver detalle de ${o.order_number}`}
             onClick={e => { e.stopPropagation(); onInspect(o); }}
           >
-            <Eye className="h-3 w-3" />
+            <Eye className="h-4 w-4" />
             Detalle
           </Button>
           {canConfirmPaid ? (
             <Button
               size="sm"
-              className="h-7 gap-1.5 px-2 text-xs"
+              className="min-h-11 gap-1.5 px-3 text-xs"
               disabled={confirmingPaid || bulkBusy}
               aria-label={`${payLabel} ${o.order_number}`}
               onClick={e => { e.stopPropagation(); onConfirmPaid?.(o); }}
             >
-              {confirmingPaid ? <Loader2 className="h-3 w-3 animate-spin" /> : <Banknote className="h-3 w-3" />}
+              {confirmingPaid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
               {payLabel}
             </Button>
           ) : null}
@@ -547,11 +589,11 @@ function OrderRow({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 gap-1.5 px-2 text-xs"
+              className="min-h-11 gap-1.5 px-3 text-xs"
               onClick={e => { e.stopPropagation(); onPrepare(o); }}
             >
-              {esPedidoRetiro(o) ? <Store className="h-3 w-3" /> : <Truck className="h-3 w-3" />}
-              {storeOrderFulfillmentActionLabel(o)}
+              {esPedidoRetiro(o) ? <Store className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
+              {accionDeEntregaDeLaFila(o)}
             </Button>
           ) : null}
         </div>
@@ -575,6 +617,8 @@ function OrderCard({
   const canShip = canFulfillStoreOrder(o.payment_status);
   const canConfirmPaid = Boolean(onConfirmPaid) && canConfirmManualStorePayment(o);
   const payLabel = storeOrderManualPayActionLabel(o);
+  // 2026-11-04: «Pendiente de pago» solo no decía que el comercio tenía que verificar la transferencia.
+  const hint = onConfirmPaid ? pistaDeCobroManual(o) : "";
   const bulkSelectable = isStoreOrderBulkSelectable(o);
   return (
     <div className={`commerce-orders-card border p-4 ${selected || bulkSelected ? "is-selected" : ""}`}>
@@ -600,12 +644,13 @@ function OrderCard({
         <Badge className={`text-xs ${storeOrderPaymentTone(o.payment_status)}`}>
           {storeOrderPaymentLabel(o.payment_status)}
         </Badge>
-        <Badge className={`text-xs ${storeOrderFulfillmentTone(o.fulfillment_status)}`}>
-          {storeOrderFulfillmentLabel(o.fulfillment_status, o)}
+        <Badge className={`text-xs ${tonoDeEntregaVisible(o.fulfillment_status, o)}`}>
+          {estadoDeEntregaVisible(o.fulfillment_status, o)}
         </Badge>
         <MarcaPreventa order={o} />
         <span className="text-xs text-muted-foreground">{fechaPedido(o.created_at)}</span>
       </div>
+      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
       {o.tracking_number && (
         <p className="mt-2 font-mono text-[11px] text-muted-foreground">{o.tracking_number}</p>
       )}
@@ -640,7 +685,7 @@ function OrderCard({
             onClick={() => onPrepare(o)}
           >
             {esPedidoRetiro(o) ? <Store className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
-            {storeOrderFulfillmentActionLabel(o) || (o.tracking_number ? "Ver envío" : "Preparar envío")}
+            {accionDeEntregaDeLaFila(o) || (o.tracking_number ? "Ver envío" : "Preparar envío")}
           </Button>
         )}
       </div>

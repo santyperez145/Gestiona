@@ -1,26 +1,28 @@
-import { useStore } from "./storeContext";
 import type { StorefrontLayout } from "@/lib/storeHomeLayout";
 
+/**
+ * Bloque «Código personalizado» de la portada.
+ *
+ * 2026-11-04: se veía en la portada de TODA tienda, dos veces, con el texto
+ * de ayuda del editor (en tuteo, sobre pegar HTML y scripts) y una caja vacía. Era un
+ * esqueleto: el layout nunca guardó contenido para este bloque, y el bloque
+ * viene prendido por defecto (storeHomeLayout marca todas las secciones con
+ * enabled:true). Al comprador le parecía una tienda rota o insegura.
+ *
+ * Regla: al comprador sólo le llega contenido que cargó el comercio. Hoy no
+ * existe ese campo en HomeSection, así que el bloque no muestra nada. Cuando
+ * se sume un `html` saneado al layout, se renderiza acá con el sanitizador,
+ * sin título ni descripción fijos.
+ */
 export default function CodigoPersonalizado({ layout }: { layout: StorefrontLayout }) {
-  const seccion = layout.sections.find((s) => s.id === "codigo");
+  const seccion = layout.sections.find((s) => s.id === "codigo") as
+    | (StorefrontLayout["sections"][number] & { html?: unknown })
+    | undefined;
   if (!seccion || !seccion.enabled) return null;
-  return (
-    <section
-      className="storefront-codigo relative overflow-hidden py-12"
-      style={{ borderBottom: "1px solid hsl(var(--st-border))" }}
-    >
-      <div className="max-w-3xl mx-auto px-4">
-        <h2 className="font-semibold mb-6 text-center">Código personalizado</h2>
-        <p className="text-sm text-center mb-8" style={{ color: "hsl(var(--st-muted))" }}>
-          Agrega HTML, CSS o JavaScript personalizado. Los scripts peligrosos son eliminados automáticamente.
-        </p>
-        <div className="rounded-lg p-6 mb-8" style={{ border: "1px solid hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}>
-          <pre className="text-xs font-mono whitespace-pre-wrap max-h-96 overflow-y-auto" style={{ color: "hsl(var(--st-muted))" }}>
-            {/* Bloque de código personalizado (patrón de inyección segura) */}
-            {/* Aquí iría el contenido HTML/CSS/JS guardado en el layout */}
-          </pre>
-        </div>
-      </div>
-    </section>
-  );
+  const html = typeof seccion.html === "string" ? seccion.html.trim() : "";
+  // Sin contenido cargado (siempre, hasta que exista el campo): nada.
+  if (!html) return null;
+  // Todavía no hay sanitizador conectado a este bloque: aunque llegara un
+  // `html` crudo, no se inyecta. Mejor no mostrar que mostrar algo inseguro.
+  return null;
 }

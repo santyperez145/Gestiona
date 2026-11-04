@@ -127,6 +127,55 @@ describe('evaluateActivationReadiness', () => {
     expect(pos.milestones.find(item => item.id === 'sale')?.done).toBe(false);
   });
 
+  // 2026-11-04: con la tienda recién publicada el «siguiente paso» era ARCA y
+  // la primera venta mandaba a una lista de órdenes vacía.
+  it('con la tienda publicada, el siguiente paso es compartir el link y no ARCA', () => {
+    const result = evaluateActivationReadiness(ready({
+      onboarding_goal: 'online',
+      fiscal_status: 'falta_datos_fiscales',
+      fiscal_ready: false,
+      online_orders_total: 0,
+    }));
+    const sale = result.milestones.find(item => item.id === 'sale');
+
+    expect(result.next?.id).toBe('sale');
+    expect(result.next?.href).toBe('/tienda-online?tab=overview&share=1');
+    expect(sale?.actionLabel).toBe('Compartí el link');
+    // ARCA sigue en la ruta y sigue impidiendo darla por completa.
+    expect(result.milestones.find(item => item.id === 'fiscal')?.done).toBe(false);
+    expect(result.complete).toBe(false);
+  });
+
+  it('ARCA es el siguiente paso sólo cuando es lo único que falta', () => {
+    const result = evaluateActivationReadiness(ready({
+      onboarding_goal: 'online', fiscal_status: 'falta_datos_fiscales', fiscal_ready: false,
+    }));
+
+    expect(result.next?.id).toBe('fiscal');
+  });
+
+  it('con órdenes online, la primera venta lleva a las órdenes', () => {
+    const result = evaluateActivationReadiness(ready({ onboarding_goal: 'online', online_orders_total: 2 }));
+    const sale = result.milestones.find(item => item.id === 'sale');
+
+    expect(sale?.href).toBe('/pedidos-online');
+    expect(sale?.actionLabel).toBe('Ver órdenes');
+  });
+
+  it('sin tienda publicada, la primera venta no promete compartir un link que no existe', () => {
+    const result = evaluateActivationReadiness(ready({
+      onboarding_goal: 'online', online_channel_ready: false, online_orders_total: 0,
+    }));
+    const sale = result.milestones.find(item => item.id === 'sale');
+
+    expect(sale?.href).toBe('/tienda-online');
+    expect(sale?.actionLabel).toBe('Publicar tienda');
+    // 2026-11-04: el texto pide lo mismo que el botón, no una orden imposible.
+    expect(sale?.detail).toMatch(/^Publicá la tienda/);
+    expect(sale?.detail).not.toContain('orden real');
+    expect(result.next?.id).toBe('channel');
+  });
+
   it('un comercio que no eligió canal no está en POS por default', () => {
     const result = evaluateActivationReadiness(ready({ onboarding_goal: null }));
 

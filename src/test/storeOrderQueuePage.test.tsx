@@ -165,6 +165,6 @@ describe("interaccion de la cola", () => {
     render(<Provider><MemoryRouter initialEntries={["/pedidos-online?q=nadie"]}><QueueHarness /></MemoryRouter></Provider>);
     expect(await screen.findByText("Ningún pedido coincide")).toBeVisible();
     expect(screen.getByRole("button", { name: "CSV de esta página" })).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Copiar enlace de la tienda" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copiar el link de la tienda" })).not.toBeInTheDocument();
   });
 });

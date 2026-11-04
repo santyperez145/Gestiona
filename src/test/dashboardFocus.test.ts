@@ -134,7 +134,19 @@ describe("construirPendientes", () => {
     });
     expect(p[0].id).toBe("primera-venta");
     expect(p[0].destino).toBe("/tienda-online?tab=overview&share=1");
-    expect(p[0].accion).toBe("Compartí el enlace");
+    expect(p[0].accion).toBe("Compartí el link");
+  });
+
+  // 2026-11-04: con la tienda publicada la primera venta entra antes, y mirar
+  // «lista vacía» al final hacía perder la toma física del comercio nuevo.
+  it("tienda publicada sin ventas: primera venta una sola vez y la toma física", () => {
+    const p = construirPendientes({
+      ...VACIO, onboardingGoal: "online", tiendaPublicada: true,
+      nuncaVendio: true, sinConteoFisico: true,
+    });
+    expect(p.map((x) => x.id)).toEqual(["primera-venta", "toma-fisica"]);
+    expect(p.filter((x) => x.id === "primera-venta")).toHaveLength(1);
+    expect(p[1].destino).toBe("/kardex");
   });
 
   it("con pendientes operativos no tapa con CTAs de onboarding", () => {
@@ -219,6 +231,56 @@ describe("construirPendientes", () => {
     expect(pesos.id).toBe("pesos");
     expect(pesos.destino).toBe("/productos?completar=pesos");
     expect(pesos.accion).toBe("Completar pesos");
+  });
+
+  // 2026-11-04: la tienda recién publicada que sólo hace retiro veía «6 zonas
+  // de envío sin tarifa» y «1 producto sin peso», y nunca la primera venta.
+  it("tienda publicada con retiro y sin tarifas: la cola pide la primera venta, no el tarifario", () => {
+    const p = construirPendientes({
+      ...VACIO,
+      onboardingGoal: "online",
+      tiendaPublicada: true,
+      nuncaVendio: true,
+      ordenesOnlinePagas: 0,
+      retiroActivo: true,
+      zonasActivas: 6,
+      zonasSinTarifa: 6,
+      zonasConTarifa: 0,
+      productosSinPeso: 1,
+    });
+    const ids = p.map((x) => x.id);
+    expect(ids).toContain("primera-venta");
+    expect(ids).not.toContain("tarifario");
+    expect(ids).not.toContain("pesos");
+    expect(p.find((x) => x.id === "primera-venta")).toMatchObject({
+      accion: "Compartí el link",
+      destino: "/tienda-online?tab=overview&share=1",
+    });
+  });
+
+  it("la primera venta convive con otros pendientes y no se duplica", () => {
+    const p = construirPendientes({
+      ...VACIO,
+      onboardingGoal: "online",
+      tiendaPublicada: true,
+      nuncaVendio: true,
+      ordenesOnlinePagas: 0,
+      sinStock: 1,
+    });
+    expect(p.filter((x) => x.id === "primera-venta")).toHaveLength(1);
+    expect(p.map((x) => x.id)).toContain("sin-stock");
+  });
+
+  it("con alguna zona con tarifa, el tarifario y los pesos se siguen pidiendo", () => {
+    const ids = construirPendientes({
+      ...VACIO,
+      retiroActivo: true,
+      zonasActivas: 6,
+      zonasSinTarifa: 5,
+      zonasConTarifa: 1,
+      productosSinPeso: 1,
+    }).map((x) => x.id);
+    expect(ids).toEqual(expect.arrayContaining(["tarifario", "pesos"]));
   });
 
   it("tienda publicada sin zonas: Precios por provincia no alcanza", () => {

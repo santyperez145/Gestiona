@@ -18,6 +18,15 @@ function parseBullets(text: string): string[] {
     .slice(0, 5);
 }
 
+/**
+ * 2026-11-04: lo que contesta la función de análisis (503, `code: "ia_no_configurada"`)
+ * cuando la plataforma todavía no tiene la IA configurada. `llamarIA` sólo
+ * devuelve el mensaje, así que se reconoce por el texto; una prueba exige que
+ * sea el mismo que escribe la función. No es una falla del comercio ni algo
+ * que pueda arreglar reintentando: la tarjeta no aparece, ni pedida a mano.
+ */
+const IA_NO_CONFIGURADA = "El asistente no está disponible en este momento. Probá más tarde.";
+
 const CACHE_KEY = (orgId: string) => `gestiona.ai.pulse.v2.${orgId}`;
 const CACHE_TTL_MS = 1000 * 60 * 60 * 8; // 8 horas
 
@@ -27,6 +36,7 @@ export default function AIProactiveWidget({ orgId, hasBusinessData }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
   const [lastRun, setLastRun] = useState<Date | null>(null);
+  const [noConfigurada, setNoConfigurada] = useState(false);
 
   const run = useCallback(async (force = false) => {
     if (loading) return;
@@ -62,6 +72,20 @@ export default function AIProactiveWidget({ orgId, hasBusinessData }: Props) {
         localStorage.setItem(CACHE_KEY(orgId), JSON.stringify({ bullets: parsed, ts: Date.now() }));
       }
     } catch (cause) {
+      if (cause instanceof Error && cause.message === IA_NO_CONFIGURADA) {
+        console.info("daily_pulse: la IA no está configurada en la plataforma");
+        setNoConfigurada(true);
+        return;
+      }
+      // 2026-11-04: un comercio nuevo veía una caja roja «El asistente no está
+      // disponible» que nadie había pedido: la corrida automática al montar
+      // dejaba el error a la vista. Ahora la falla automática queda en la
+      // consola (llamarIA ya registra el detalle) y la tarjeta no aparece; el
+      // error se muestra, con «Reintentar», sólo si lo pidieron con el botón.
+      if (!force) {
+        console.warn("daily_pulse automático falló", cause);
+        return;
+      }
       setError(cause instanceof Error ? cause.message : "No pudimos generar las prioridades del día.");
     } finally {
       setLoading(false);
@@ -73,6 +97,10 @@ export default function AIProactiveWidget({ orgId, hasBusinessData }: Props) {
   }, [orgId, hasBusinessData]);
 
   if (!hasBusinessData) return null;
+  // Sin IA configurada en la plataforma no hay nada que ofrecer ni reintentar.
+  if (noConfigurada && !bullets.length) return null;
+  // Sin sugerencias, sin carga y sin un error pedido, no hay nada que mostrar.
+  if (!loading && !bullets.length && !error) return null;
 
   return (
     <div className="mb-5 bg-card border border-primary/20 rounded-xl shadow-card overflow-hidden">
@@ -98,15 +126,19 @@ export default function AIProactiveWidget({ orgId, hasBusinessData }: Props) {
         </div>
         </button>
         <div className="ml-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); run(true); }}
-            className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Regenerar sugerencias"
-            disabled={loading}
-          >
-            <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
-          </button>
+          {/* 2026-11-04: sin IA configurada, regenerar no puede traer nada nuevo:
+              el botón se va y abajo queda dicho que son las últimas. */}
+          {!noConfigurada && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); run(true); }}
+              className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Regenerar sugerencias"
+              disabled={loading}
+            >
+              <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+            </button>
+          )}
           {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
         </div>
       </div>
@@ -150,6 +182,11 @@ export default function AIProactiveWidget({ orgId, hasBusinessData }: Props) {
                 </li>
               ))}
             </ul>
+          )}
+          {noConfigurada && bullets.length > 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Las sugerencias nuevas todavía no están disponibles; te dejamos las últimas.
+            </p>
           )}
         </div>
       )}

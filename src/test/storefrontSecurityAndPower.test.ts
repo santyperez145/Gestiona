@@ -36,7 +36,11 @@ describe("potenciación de tiendas online y seguridad HTTPS/SSL", () => {
 
   it("la ficha de producto y el checkout exhiben badges verídicos de compra segura y cifrado SSL", () => {
     expect(storeProduct).toContain("Compra protegida y cifrada con SSL");
-    expect(storeCheckout).toContain("Checkout 100% protegido con cifrado SSL bancario");
+    // 2026-11-04: el checkout prometía «SSL bancario» y «Envío rápido» aun con
+    // transferencia y retiro. Se dice sólo lo cierto: la conexión cifrada.
+    expect(storeCheckout).toContain("Conexión cifrada (HTTPS)");
+    expect(storeCheckout).not.toContain("SSL bancario");
+    expect(storeCheckout).not.toContain("Envío rápido");
     expect(storeCheckout).toContain("ShieldCheck");
   });
 });

@@ -16,10 +16,14 @@ import {
 } from "@/lib/storeOrderDetail";
 import {
   esPedidoRetiro,
-  storeOrderFulfillmentActionLabel,
-  storeOrderFulfillmentLabel,
-  storeOrderFulfillmentTone,
 } from "@/lib/storeOrderQueue";
+import {
+  accionDeEntregaDeLaFila,
+  estadoDeEntregaVisible,
+  montoACobrar,
+  textoDeCobroDeLaFicha,
+  tonoDeEntregaVisible,
+} from "@/lib/colaDePedidosOnline";
 import {
   canConfirmManualStorePayment,
   canFulfillStoreOrder,
@@ -67,7 +71,12 @@ export default function StoreOrderInspector({
   // Saldo a favor aplicado por el comprador (20261030001400): el comercio
   // cobra sólo lo que resta.
   const saldoAplicado = useSaldoAplicado(order?.id, `${order?.payment_status}|${order?.fulfillment_status}`);
-  const aCobrar = order ? Math.max(0, Math.round((Number(order.total) - saldoAplicado) * 100) / 100) : 0;
+  const aCobrar = order ? montoACobrar(order.total, saldoAplicado) : 0;
+  // 2026-11-04: la ficha afirmaba siempre que el checkout ya había cobrado el
+  // total, también en una transferencia que el comercio todavía no vio entrar.
+  const cobro = order
+    ? textoDeCobroDeLaFicha({ ...order, aCobrar })
+    : { texto: "", pendiente: false };
 
   return (
     <Sheet open={open} onOpenChange={next => { if (!next) onClose(); }}>
@@ -91,8 +100,8 @@ export default function StoreOrderInspector({
                 <Badge className={`text-xs ${storeOrderPaymentTone(detail.order.payment_status)}`}>
                   {storeOrderPaymentLabel(detail.order.payment_status)}
                 </Badge>
-                <Badge className={`text-xs ${storeOrderFulfillmentTone(detail.order.fulfillment_status)}`}>
-                  {storeOrderFulfillmentLabel(detail.order.fulfillment_status, detail.order)}
+                <Badge className={`text-xs ${tonoDeEntregaVisible(detail.order.fulfillment_status, detail.order)}`}>
+                  {estadoDeEntregaVisible(detail.order.fulfillment_status, detail.order)}
                 </Badge>
               </div>
               <SheetTitle>Pedido {detail.order.order_number}</SheetTitle>
@@ -129,8 +138,8 @@ export default function StoreOrderInspector({
                       </p>
                     </div>
                   </div>
-                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                    El total lo cobró el checkout. El margen canónico (costo, comisión, envío real e IVA) está abajo cuando la venta ya está asentada.
+                  <p className={`mt-2 text-[11px] leading-relaxed ${cobro.pendiente ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>
+                    {cobro.texto}
                   </p>
                 </section>
 
@@ -158,8 +167,9 @@ export default function StoreOrderInspector({
                       </dd>
                     </div>
                     <div className="sm:col-span-2">
-                      <dt className="text-[11px] text-muted-foreground">Envío a</dt>
-                      <dd>{detail.address.texto || "Retiro o sin dirección cargada"}</dd>
+                      {/* 2026-11-04: un retiro conocido se mostraba como si pudiera faltar la dirección. */}
+                      <dt className="text-[11px] text-muted-foreground">{esPedidoRetiro(detail.order) ? "Entrega" : "Envío a"}</dt>
+                      <dd>{esPedidoRetiro(detail.order) ? "Retira en el local" : (detail.address.texto || "Sin dirección cargada")}</dd>
                     </div>
                   </dl>
                 </section>
@@ -291,7 +301,7 @@ export default function StoreOrderInspector({
               {canShip && (
                 <Button className="min-h-11 gap-1.5" onClick={() => onPrepare(detail.order)} disabled={confirmingPaid}>
                   {esPedidoRetiro(detail.order) ? <Store className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
-                  {storeOrderFulfillmentActionLabel(detail.order) || (detail.order.tracking_number ? "Ver envío" : "Preparar envío")}
+                  {accionDeEntregaDeLaFila(detail.order) || (detail.order.tracking_number ? "Ver envío" : "Preparar envío")}
                 </Button>
               )}
             </div>

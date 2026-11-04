@@ -419,7 +419,15 @@ serve(async (req) => {
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
       console.error("ANTHROPIC_API_KEY no está configurada en el entorno");
-      throw new Error("El asistente no está disponible en este momento. Probá más tarde.");
+      // 2026-11-04: antes se tiraba un error y salía como 500 genérico; ahora
+      // es un 503 con `code` para que el panel lo reconozca y no lo muestre
+      // como una falla (lo mismo que hace extract-receipt).
+      return new Response(JSON.stringify({
+        error: "El asistente no está disponible en este momento. Probá más tarde.",
+        code: "ia_no_configurada",
+      }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // El rubro sale de `settings.industry_code`, leído acá con el JWT del

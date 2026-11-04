@@ -101,8 +101,11 @@ test("un comercio nuevo se registra, confirma su correo y entra a su panel", asy
   await expect(page.getByText("Términos y privacidad publicados").first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: /^Leer / })).toHaveCount(0, { timeout: 15_000 });
 
-  // Publicar la tienda desde el recorrido guiado.
-  await page.goto("/tienda-online?onboarding=1&goal=online");
+  // Publicar entrando desde el menú, sin el recorrido guiado (2026-11-04): el
+  // botón sólo aparecía con ?onboarding=1 y quien volvía otro día no tenía
+  // cómo publicar.
+  await page.goto("/tienda-online");
+  await expect(page.getByRole("button", { name: "Publicar la tienda" })).toBeVisible({ timeout: 30_000 });
   await foto(page, "tienda-publicar");
   await page.getByRole("button", { name: "Publicar la tienda" }).click();
   await expect(page.getByRole("button", { name: "Publicar la tienda" })).toHaveCount(0, { timeout: 30_000 });

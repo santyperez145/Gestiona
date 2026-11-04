@@ -11,6 +11,12 @@ describe("textoMediosHero", () => {
     expect(textoMediosHero(["transferencia"])).toMatch(/transferencia/i);
     expect(textoMediosHero(["transferencia", "gestiona_pay"])).toMatch(/ o /);
   });
+
+  it("va con mayúscula inicial: es un valor suelto, no parte de una frase", () => {
+    expect(textoMediosHero(["transferencia"])).toBe("Transferencia");
+    expect(textoMediosHero(["efectivo", "transferencia"])).toBe("Efectivo o transferencia");
+    expect(textoMediosHero(["saldo_a_favor"])).toBe("Tu saldo a favor");
+  });
 });
 
 describe("storeHomeShowsCommerceChrome", () => {

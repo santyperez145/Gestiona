@@ -67,7 +67,12 @@ describe("saldo a favor parcial en los pedidos online", () => {
 
   it("el checkout, la página del pedido y el panel lo muestran", () => {
     expect(readFileSync("src/storefront/StoreCheckout.tsx", "utf8")).toContain('supabase.rpc("aplicar_saldo_a_pedido" as never');
-    expect(readFileSync("src/storefront/StoreOrder.tsx", "utf8")).toContain('<CopyField label="Importe" value={fmt(aPagar)} />');
+    // 2026-11-04: el importe de la transferencia se muestra con centavos si
+    // los hay y se copia sin signo ni puntos; sigue siendo lo que resta
+    // después del saldo (aPagar), no el total.
+    const pedido = readFileSync("src/storefront/StoreOrder.tsx", "utf8");
+    expect(pedido).toContain("value={importeVisibleTransferencia(aPagar, store?.currency)}");
+    expect(pedido).toContain("copyValue={importeParaCopiar(aPagar)}");
     const ficha = readFileSync("src/components/ecommerce/StoreOrderInspector.tsx", "utf8");
     expect(ficha).toContain("Marcar como cobrado (${formatARS(aCobrar)})");
     expect(ficha).toContain('detail.order.payment_status === "charged_back" && (');

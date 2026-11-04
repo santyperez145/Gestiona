@@ -1,4 +1,5 @@
 import { firstProductPath } from '@/lib/activationHandoff';
+import { storeFirstSaleSharePath } from '@/lib/storeFirstPublish';
 
 export type ActivationGoal = 'pos' | 'online' | 'explore';
 export type EffectiveActivationGoal = Exclude<ActivationGoal, 'explore'>;
@@ -88,6 +89,7 @@ export function evaluateActivationReadiness(signals: ActivationReadinessSignals)
   const fiscal = fiscalDetail(signals.fiscal_status);
   const catalogCount = Number(signals.catalog_products_count || 0);
   const stockCount = Number(signals.sellable_stock_products_count || 0);
+  const onlineOrders = Number(signals.online_orders_total || 0);
 
   const milestones: ActivationMilestone[] = [
     {
@@ -181,17 +183,29 @@ export function evaluateActivationReadiness(signals: ActivationReadinessSignals)
       detail: !routeChosen
         ? 'La primera venta se atribuye al canal que elijas.'
         : online
-          ? Number(signals.online_orders_total || 0) > 0
+          ? onlineOrders > 0
             ? 'Ya existe una orden online con pago acreditado.'
-            : 'Hacé y cobrá una orden real para cerrar la activación.'
+            : signals.online_channel_ready
+              ? 'Mandá el link de tu tienda por WhatsApp o Instagram: la primera venta llega cuando alguien lo abre.'
+              // 2026-11-04: sin publicar no hay orden posible; el texto pide
+              // lo mismo que el botón, publicar.
+              : 'Publicá la tienda para que te puedan comprar: la primera venta llega cuando alguien abre el link.'
           : Number(signals.pos_sales_total || 0) > 0
             ? 'Ya existe una venta registrada desde el POS.'
             : 'Registrá una venta real desde el POS para cerrar la activación.',
       done: routeChosen && (online
-        ? Number(signals.online_orders_total || 0) > 0
+        ? onlineOrders > 0
         : Number(signals.pos_sales_total || 0) > 0),
-      href: online ? '/pedidos-online' : '/caja',
-      actionLabel: online ? 'Ver órdenes' : 'Registrar venta',
+      // 2026-11-04: con la tienda recién publicada y sin órdenes, el hito
+      // mandaba a «Ver órdenes», una lista vacía. Lo que trae la primera venta
+      // es compartir el link, así que el botón lleva ahí hasta que entre una.
+      // La frase es la misma del Foco del día: «Compartí el link», en voseo.
+      href: online
+        ? (onlineOrders > 0 ? '/pedidos-online' : storeFirstSaleSharePath(Boolean(signals.online_channel_ready)))
+        : '/caja',
+      actionLabel: online
+        ? (onlineOrders > 0 ? 'Ver órdenes' : signals.online_channel_ready ? 'Compartí el link' : 'Publicar tienda')
+        : 'Registrar venta',
       owner: 'merchant',
     },
   ];
@@ -209,7 +223,13 @@ export function evaluateActivationReadiness(signals: ActivationReadinessSignals)
     total,
     progress: Math.round((doneCount / total) * 100),
     complete,
-    next: milestones.find(milestone => !milestone.done) || null,
+    // 2026-11-04: el trámite fiscal (ARCA) quedaba como «siguiente paso» con
+    // la tienda recién publicada y tapaba la primera venta. Se mantiene en la
+    // lista y en `complete`, pero sólo es el siguiente paso cuando es lo único
+    // que falta.
+    next: milestones.find(milestone => !milestone.done && milestone.id !== 'fiscal')
+      ?? milestones.find(milestone => !milestone.done)
+      ?? null,
   };
 }
 

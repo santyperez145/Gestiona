@@ -145,7 +145,7 @@ export default function StoreOrdersPage() {
     <div className="workspace-page workspace-orders space-y-6">
       <PageHeader
         icon={ShoppingBag}
-        eyebrow="Commerce · Cola"
+        eyebrow="Tienda online"
         title="Pedidos"
         actions={
           <Button variant="outline" size="sm" className="min-h-11 gap-1.5" asChild>
@@ -163,6 +163,7 @@ export default function StoreOrdersPage() {
         loading={commerceStores.loading}
         error={commerceStores.error}
         onSelect={selectStore}
+        compactWhenSingle
       />
 
       <WorkspaceViewTabs
@@ -178,7 +179,8 @@ export default function StoreOrdersPage() {
           },
           {
             id: "sla",
-            label: "SLA",
+            // 2026-11-04: «SLA» es jerga; el id sigue siendo `sla` por `?cola=sla`.
+            label: "Tiempos de entrega",
             icon: Clock,
             count: slaMetrics.overdue > 0 ? slaMetrics.overdue : undefined,
           },

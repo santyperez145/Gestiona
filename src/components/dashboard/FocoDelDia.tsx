@@ -68,6 +68,11 @@ interface Props {
   porRetirar?: number;
   /** Cobros pendientes accionables — del Dashboard, no duplicar queries. */
   pendientesDePago?: number;
+  /**
+   * El comercio todavía no registró ninguna venta en ningún canal. Sin ventas
+   * el «Ventas del mes» en $0,00 sólo empuja hacia abajo lo que lleva a vender.
+   */
+  sinVentas?: boolean;
 }
 
 export default function FocoDelDia(p: Props) {
@@ -87,6 +92,8 @@ export default function FocoDelDia(p: Props) {
   const [productosSinPeso, setProductosSinPeso] = useState(0);
   const [zonasSinTarifa, setZonasSinTarifa] = useState(0);
   const [zonasActivas, setZonasActivas] = useState(0);
+  const [zonasConTarifa, setZonasConTarifa] = useState<number | undefined>(undefined);
+  const [retiroActivo, setRetiroActivo] = useState<boolean | undefined>(undefined);
   const [retiroSinHorario, setRetiroSinHorario] = useState(false);
   const [importacionSinTerminar, setImportacionSinTerminar] = useState<ImportacionSinTerminar | null>(null);
 
@@ -313,8 +320,12 @@ export default function FocoDelDia(p: Props) {
       }
       const filas = zonas.data ?? [];
       const conTarifa = new Set((tarifas.data ?? []).map(r => r.zone_id));
+      const sinTarifa = filas.filter(z => !conTarifa.has(z.id)).length;
       setZonasActivas(filas.length);
-      setZonasSinTarifa(filas.filter(z => !conTarifa.has(z.id)).length);
+      setZonasSinTarifa(sinTarifa);
+      // 2026-11-04: sin ninguna zona con tarifa la tienda no cotiza envíos; el
+      // Foco ya no pide tarifario ni pesos a quien vende con retiro.
+      setZonasConTarifa(filas.length - sinTarifa);
     });
     return () => { cancelado = true; };
   }, [p.orgId]);
@@ -333,6 +344,7 @@ export default function FocoDelDia(p: Props) {
           return;
         }
         if (cancelado) return;
+        setRetiroActivo((data ?? []).length > 0);
         setRetiroSinHorario((data ?? []).some(row => {
           const dir = String(row.pickup_address ?? "").trim();
           const horario = String(row.pickup_instructions ?? "").trim();
@@ -362,6 +374,8 @@ export default function FocoDelDia(p: Props) {
     productosSinPeso,
     zonasSinTarifa,
     zonasActivas,
+    zonasConTarifa,
+    retiroActivo,
     onboardingGoal: p.onboardingGoal,
     tiendaPublicada: p.tiendaPublicada,
     productosConStock: p.productosConStock,
@@ -383,7 +397,10 @@ export default function FocoDelDia(p: Props) {
   return (
     <section className="commerce-home-foco mb-6 grid gap-4 lg:grid-cols-3">
       {/* ── Cómo viene el mes ────────────────────────────────────────────── */}
-      <div className="commerce-home-foco__pulse design-surface relative overflow-hidden p-5 lg:col-span-1">
+      {/* 2026-11-04: un comercio sin ventas veía «Ventas del mes $0,00» y
+          «Ganancia neta $0,00» antes que la cola; sin ventas, la cola ocupa
+          todo el ancho y lo primero que se ve es qué hacer para vender. */}
+      {!p.sinVentas && <div className="commerce-home-foco__pulse design-surface relative overflow-hidden p-5 lg:col-span-1">
         <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary font-display">
           Ventas del mes
@@ -410,10 +427,10 @@ export default function FocoDelDia(p: Props) {
             </span>
           </span>
         </div>
-      </div>
+      </div>}
 
       {/* ── Para hacer ahora ─────────────────────────────────────────────── */}
-      <div className="commerce-home-foco__queue design-surface p-5 lg:col-span-2">
+      <div className={`commerce-home-foco__queue design-surface p-5 ${p.sinVentas ? "lg:col-span-3" : "lg:col-span-2"}`}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider font-display">
             Cola de la tienda

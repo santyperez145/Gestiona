@@ -71,7 +71,11 @@ test("presupuesto → caja → remito → factura → cobro, con la operación c
   await page.getByRole("button", { name: /Confirmar venta/ }).first().click();
   const confirmar = page.getByRole("alertdialog").getByRole("button", { name: "Confirmar venta" });
   if (await confirmar.isVisible().catch(() => false)) await confirmar.click();
-  await expect(page.getByText(/Venta de \$\s?1\.200,00 registrada/).first()).toBeVisible({ timeout: 30_000 });
+  // El recibo es la confirmación (2026-11-04): el aviso «Venta de $… registrada»
+  // se sacó porque tapaba el recibo y repetía lo mismo.
+  const recibo = page.getByRole("dialog", { name: /Venta a cuenta|Venta cobrada/ });
+  await expect(recibo).toBeVisible({ timeout: 30_000 });
+  await expect(recibo.getByText(/1\.200,00/).first()).toBeVisible();
 
   // 4. Remito de lo vendido, desde la venta.
   await page.goto("/ventas");

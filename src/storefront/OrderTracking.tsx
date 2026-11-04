@@ -10,17 +10,17 @@
  * carrier/shipping_service de la orden; el padre puede pasar `esRetiro` si
  * ya lo sabe (gracias) para no esperar al round-trip.
  */
-import { fechaLocal } from "@/lib/fechaAR";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { carrierLabel } from "@/lib/carriers";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
 import {
-  indicePasoSeguimiento, pasosSeguimiento,
+  PASO_ESPERANDO_PAGO, fechaSeguimiento, indicePasoSeguimiento, pasosSeguimiento,
 } from "@/lib/storeOrderBuyerCopy";
 import {
   AlertTriangle,
   Check,
+  Clock,
   ExternalLink,
   Home,
   Loader2,
@@ -56,11 +56,12 @@ interface EnvioParcial {
   productos?: Array<{ nombre?: string | null; cantidad?: number | string | null }>;
 }
 
-const fecha = (iso?: string | null) =>
-  iso ? fechaLocal(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "long" }) : null;
+// 2026-11-04: la fecha salía «04-noviembre» (ver fechaSeguimiento).
+const fecha = fechaSeguimiento;
 
 const ICONOS: Record<string, typeof Check> = {
   pending: Check,
+  [PASO_ESPERANDO_PAGO]: Clock,
   processing: Package,
   shipped: Truck,
   delivered: Home,
@@ -68,18 +69,24 @@ const ICONOS: Record<string, typeof Check> = {
 
 const ICONOS_RETIRO: Record<string, typeof Check> = {
   pending: Check,
+  [PASO_ESPERANDO_PAGO]: Clock,
   processing: Package,
   shipped: Store,
   delivered: Home,
 };
 
 export default function OrderTracking({
-  orderNumber, email, esRetiro: esRetiroProp,
+  orderNumber, email, esRetiro: esRetiroProp, pagoPendiente = false,
 }: {
   orderNumber: string;
   email: string;
   /** Si el padre ya sabe (gracias). Si no, se deduce del RPC. */
   esRetiro?: boolean;
+  /**
+   * Transferencia todavía sin acreditar: suma el paso «Esperando tu
+   * transferencia», que depende del comprador (2026-11-04).
+   */
+  pagoPendiente?: boolean;
 }) {
   const [t, setT] = useState<Tracking | null>(null);
   const [estado, setEstado] = useState<"loading" | "ready" | "error">("loading");
@@ -165,9 +172,9 @@ export default function OrderTracking({
   }
 
   const esRetiro = esRetiroProp ?? esPedidoRetiro(t);
-  const pasos = pasosSeguimiento(esRetiro);
+  const pasos = pasosSeguimiento(esRetiro, pagoPendiente);
   const iconos = esRetiro ? ICONOS_RETIRO : ICONOS;
-  const actual = indicePasoSeguimiento(t.fulfillment_status, esRetiro);
+  const actual = indicePasoSeguimiento(t.fulfillment_status, esRetiro, pagoPendiente);
   const hechos = actual + 1;
 
   return (
@@ -182,7 +189,10 @@ export default function OrderTracking({
 
       <ol className="space-y-3">
         {pasos.map((paso, i) => {
-          const hecho = i < hechos;
+          // La espera de la transferencia nunca figura como hecha: es el
+          // paso actual y se marca con el borde de acento.
+          const esEspera = paso.id === PASO_ESPERANDO_PAGO;
+          const hecho = esEspera ? false : i < hechos;
           const Icono = iconos[paso.id] ?? Check;
           const cuando = paso.id === "shipped" ? fecha(t.picked_up_at)
             : paso.id === "delivered" ? fecha(t.delivered_at)
@@ -193,14 +203,18 @@ export default function OrderTracking({
               <span
                 className="w-7 h-7 rounded-full grid place-items-center shrink-0"
                 style={{
-                  background: hecho ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
-                  color: hecho ? "hsl(var(--st-accent-fg))" : "hsl(var(--st-muted))",
+                  background: hecho ? "hsl(var(--st-accent))" : esEspera ? "hsl(var(--st-surface))" : "hsl(var(--st-border))",
+                  color: hecho ? "hsl(var(--st-accent-fg))" : esEspera ? "hsl(var(--st-accent))" : "hsl(var(--st-muted))",
+                  border: esEspera ? "2px solid hsl(var(--st-accent))" : undefined,
                 }}
               >
                 <Icono className="w-3.5 h-3.5" />
               </span>
-              <div className="pt-0.5">
-                <p className="text-sm" style={{ opacity: hecho ? 1 : 0.5 }}>{paso.label}</p>
+              <div className="pt-0.5" aria-current={esEspera ? "step" : undefined}>
+                <p className="text-sm" style={{ opacity: hecho || esEspera ? 1 : 0.5 }}>{paso.label}</p>
+                {esEspera && (
+                  <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Cuando acredite, te avisamos.</p>
+                )}
                 {hecho && cuando && (
                   <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>{cuando}</p>
                 )}
