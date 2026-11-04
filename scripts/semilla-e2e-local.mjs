@@ -131,6 +131,16 @@ async function main() {
        VALUES ($1, $2, 'ZZ Ferretería E2E', true, ARRAY['transferencia'], 'zones', 3500, true, 'Av. ZZ 123, CABA') RETURNING id`, [org.id, SLUG]);
     // Venta minorista y mayorista: la tienda recibe pedidos de cotización.
     await c.query(`UPDATE public.ecommerce_stores SET mayorista_modo = 'mixto' WHERE id = $1`, [tienda.id]);
+    // Términos y privacidad publicados (2026-11-04): una tienda real ya no se
+    // publica sin ellos (la base lo exige), y sin páginas «el pie lleva a las
+    // páginas de la tienda» se salteaba en escritorio y en celular.
+    const legal = "Vende ZZ Ferretería E2E SRL, CUIT 30-71234567-1, Av. ZZ 123, CABA. Los datos del pedido se usan sólo para entregarlo y facturarlo.";
+    await c.query(
+      `INSERT INTO public.store_pages (org_id, store_id, slug, title, content, status, show_in_footer)
+       VALUES ($1, $2, 'politica-de-privacidad', 'Política de privacidad', $3, 'published', true),
+              ($1, $2, 'terminos-y-condiciones', 'Términos y condiciones', $3, 'published', true)
+       ON CONFLICT (store_id, slug) DO UPDATE SET content = EXCLUDED.content, status = 'published', show_in_footer = true`,
+      [org.id, tienda.id, legal]);
     // Un banner inactivo (2026-11-04): sin ninguno, «los banners piden imagen
     // por archivo» se salteaba siempre y no verificaba nada. Inactivo, no
     // cambia la vitrina que recorren los specs de la tienda.
