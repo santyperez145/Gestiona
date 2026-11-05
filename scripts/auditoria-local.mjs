@@ -47,11 +47,12 @@ export const CONSULTAS = {
      GROUP BY c.relname ORDER BY 1`,
 };
 
-// Sólo informe (2026-11-05), hasta revisar cada hallazgo: una vista definer
-// legible salta RLS al leer, salvo que filtre por auth.uid() adentro; una
-// función definer sin search_path fijo se puede secuestrar con objetos
-// propios en otro esquema.
-export const INFORME = {
+// Desde 2026-11-05 (20261105000300): una vista definer legible salta RLS al
+// leer, salvo que filtre por sesión adentro o esté marcada @publica/@revisada
+// (ADR 006); una función definer sin search_path fijo se puede secuestrar con
+// objetos propios en otro esquema. Fuera de CONSULTAS porque
+// restaurar-produccion exige aquéllas antes de aplicar las migraciones.
+export const SOLO_LOCAL = {
   vistasLegibles: `
     SELECT c.relname AS objeto, string_agg(DISTINCT g.grantee, ', ') AS permisos
       FROM pg_class c
@@ -60,7 +61,8 @@ export const INFORME = {
      WHERE c.relkind IN ('v', 'm')
        AND NOT coalesce((SELECT bool_or(o = 'security_invoker=true' OR o = 'security_invoker=on') FROM unnest(c.reloptions) o), false)
        AND g.grantee IN ('anon', 'authenticated') AND g.privilege_type = 'SELECT'
-       AND pg_get_viewdef(c.oid) !~* 'auth\\.uid\\(\\)|has_permission|is_org_member|is_platform_admin'
+       AND pg_get_viewdef(c.oid) !~* '(auth\\.uid|is_org_member|has_org_role|has_permission|is_platform_admin|has_platform_role|current_setting|user_org_ids)'
+       AND coalesce(obj_description(c.oid, 'pg_class'), '') !~ '^@(publica|revisada):'
      GROUP BY c.relname ORDER BY 1`,
   definerSinSearchPath: `
     SELECT p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' AS objeto,
@@ -77,8 +79,8 @@ const TITULOS = {
   vistasEscribibles: "Vistas definer que anon/authenticated pueden escribir",
   tablasSinRls: "Tablas sin RLS con permisos para anon/authenticated",
   truncate: "Tablas con TRUNCATE para anon/authenticated",
-  vistasLegibles: "Informe — vistas definer legibles sin filtro de sesión",
-  definerSinSearchPath: "Informe — funciones definer sin search_path fijo",
+  vistasLegibles: "Vistas definer legibles sin filtro de sesión ni marca",
+  definerSinSearchPath: "Funciones definer sin search_path fijo",
 };
 
 async function main() {
@@ -94,8 +96,9 @@ async function main() {
       console.log(`\n${TITULOS[clave]}: ${rows.length}`);
       for (const r of rows) console.log(`  - ${r.objeto} (${r.permisos})`);
     }
-    for (const [clave, sql] of Object.entries(INFORME)) {
+    for (const [clave, sql] of Object.entries(SOLO_LOCAL)) {
       const { rows } = await db.query(sql);
+      total += rows.length;
       console.log(`\n${TITULOS[clave]}: ${rows.length}`);
       for (const r of rows) console.log(`  - ${r.objeto} (${r.permisos})`);
     }
