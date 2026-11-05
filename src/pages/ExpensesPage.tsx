@@ -49,6 +49,7 @@ import EmptyState from "@/components/shared/EmptyState";
 
 import { escribirParaImprimir } from "@/lib/impresionSegura";
 import { csvCell } from "@/lib/csv";
+import { useEntitlements } from "@/lib/useEntitlements";
 function ExpenseReceiptLink({
   reference,
   compact = false,
@@ -1265,6 +1266,9 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const receiptCamRef = useRef<HTMLInputElement>(null);
   const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [sugeridaPorIA, setSugeridaPorIA] = useState(false);
+  const { canUseAI } = useEntitlements();
+  const consultadasIA = useRef(new Set<string>());
   const [scannerOpen, setScannerOpen] = useState(false);
 
   // Load org locations for the optional location dropdown
@@ -1286,17 +1290,42 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
       });
   }, [activeOrg?.id, editItem]);
 
-  // Auto-suggest category when description or vendor changes (debounced 400ms)
+  // Sugerencia de categoría al escribir: primero palabras clave (instantáneo y
+  // gratis); si no encuentran nada y el plan incluye IA, una consulta por
+  // descripción a finance-auto-categorize, que sólo puede elegir entre las
+  // categorías del negocio.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (editItem) return; // Don't auto-suggest when editing
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    let vigente = true;
     debounceRef.current = setTimeout(() => {
       const inferred = inferExpenseCategory(description, vendor);
-      setSuggestedCategory(inferred !== category ? inferred : null);
-    }, 400);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [description, vendor, category, editItem]);
+      if (inferred && categories.some(c => c.value === inferred)) {
+        setSugeridaPorIA(false);
+        setSuggestedCategory(inferred !== category ? inferred : null);
+        return;
+      }
+      setSuggestedCategory(null);
+      const texto = `${description} ${vendor}`.trim();
+      const clave = texto.toLowerCase();
+      if (!canUseAI || !activeOrg?.id || texto.length < 4 || consultadasIA.current.has(clave)) return;
+      consultadasIA.current.add(clave);
+      void supabase.functions.invoke('finance-auto-categorize', {
+        headers: { 'x-org-id': activeOrg.id },
+        body: { description: texto, amount: Number(amount) || 0, categorias: categories.map(({ value, label }) => ({ value, label })) },
+      }).then(({ data, error }) => {
+        // Es una sugerencia: si la IA no responde, el formulario sigue igual y
+        // el error queda en Plataforma › Errores, sin molestar al usuario.
+        if (error) { registrarError(error); return; }
+        const sugerida = (data as { categoria?: string | null } | null)?.categoria;
+        if (!vigente || !sugerida || sugerida === category) return;
+        setSugeridaPorIA(true);
+        setSuggestedCategory(sugerida);
+      });
+    }, 900);
+    return () => { vigente = false; if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [description, vendor, category, editItem, canUseAI, activeOrg?.id, categories, amount]);
 
   const handleReceiptFile = (file: File) => {
     if (!file) return;
@@ -1471,7 +1500,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
               className="mt-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
             >
               <Sparkles className="w-3 h-3" />
-              IA sugiere: <span className="font-bold">{cat.label}</span>
+              {sugeridaPorIA ? 'IA sugiere' : 'Sugerido'}: <span className="font-bold">{cat.label}</span>
               <span className="opacity-60 ml-1">— Clic para aplicar</span>
             </button>
           );
