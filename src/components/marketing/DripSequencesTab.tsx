@@ -105,6 +105,11 @@ const STEP_TEMPLATES: Record<TriggerEvent, { subject: string; body_html: string 
 
 const EMPTY_STEP = (): SequenceStep => ({ day_offset: 3, subject: "", body_html: "", step_order: 1 });
 
+// Vista previa del cuerpo como texto: el HTML lo escribe cualquier miembro y
+// no se inyecta en el panel (DOMParser no ejecuta scripts ni handlers).
+const textoDeHtml = (html: string) =>
+  (new DOMParser().parseFromString(html, "text/html").body.textContent ?? "").replace(/\s+/g, " ").trim();
+
 // ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
@@ -483,9 +488,9 @@ export default function DripSequencesTab() {
                                 <span className="text-xs font-medium">{step.subject}</span>
                                 <span className="text-[10px] text-muted-foreground">· Día {step.day_offset}</span>
                               </div>
-                              <p className="text-[10px] text-muted-foreground truncate" dangerouslySetInnerHTML={{
-                                __html: step.body_html.replace(/<[^>]+>/g, " ").slice(0, 80) + "..."
-                              }} />
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {textoDeHtml(step.body_html).slice(0, 80)}...
+                              </p>
                             </div>
                           </div>
                         ))}

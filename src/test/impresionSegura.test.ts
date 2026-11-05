@@ -59,4 +59,11 @@ describe("ventanas de impresión seguras", () => {
     const deudas = readFileSync("src/pages/DebtsPage.tsx", "utf8");
     expect(deudas).toContain("${escaparHtml(d.customer_name || '—')}");
   });
+
+  it("nadie inyecta HTML crudo en la app (dangerouslySetInnerHTML)", () => {
+    const crudos = archivos("src")
+      .filter(f => !/[\\/]test[\\/]/.test(f))
+      .filter(f => /dangerouslySetInnerHTML\s*=/.test(readFileSync(f, "utf8")));
+    expect(crudos, "renderizar como texto o pasar por miniMarkdown").toEqual([]);
+  });
 });
