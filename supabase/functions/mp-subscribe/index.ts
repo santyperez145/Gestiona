@@ -27,6 +27,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { tokenDeLaPlataforma } from "../_shared/mpPlataforma.ts";
 import { getAuthedUser } from "../_shared/requireUser.ts";
+import { origenDeVueltaPermitido } from "../_shared/origenDeVuelta.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -119,9 +120,13 @@ Deno.serve(async (req) => {
   const { data: org } = await admin
     .from("organizations").select("name").eq("id", orgId).maybeSingle();
 
-  const backUrl = String(body.back_url ?? "").startsWith("http")
-    ? String(body.back_url)
-    : `${url.replace(".supabase.co", "")}/suscripcion`;
+  // La vuelta es siempre /mi-plan de un origen propio; un back_url ajeno se
+  // ignora (origenDeVuelta.ts).
+  const basePublica = Deno.env.get("PUBLIC_BASE_URL") ?? "https://nerqia.app";
+  const origen = origenDeVueltaPermitido(body.back_url, { basePublica })
+    ?? origenDeVueltaPermitido(basePublica, { basePublica })
+    ?? "https://nerqia.app";
+  const backUrl = `${origen}/mi-plan`;
 
   // `external_reference` es lo que ata la suscripción de MercadoPago con la
   // nuestra cuando llega el webhook.

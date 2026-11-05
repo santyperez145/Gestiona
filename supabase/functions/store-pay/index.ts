@@ -9,6 +9,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { getMpCredentials } from "../_shared/mpToken.ts";
+import { origenDeVueltaPermitido } from "../_shared/origenDeVuelta.ts";
 import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
 import { acreditarPagoDePedido, montoACobrar, saldoAplicadoDe } from "../_shared/saldoDelPedido.ts";
 import {
@@ -29,7 +30,10 @@ const json = (body: unknown, status = 200) =>
   });
 
 type StoreOrderContext = {
-  store: { id: string; org_id: string; name: string; slug: string; is_active: boolean };
+  store: {
+    id: string; org_id: string; name: string; slug: string; is_active: boolean;
+    custom_domain: string | null; custom_domain_status: string | null;
+  };
   order: {
     id: string;
     order_number: string;
@@ -100,7 +104,7 @@ async function getStoreOrder(
 
   const { data: store } = await admin
     .from("ecommerce_stores")
-    .select("id, org_id, name, slug, is_active")
+    .select("id, org_id, name, slug, is_active, custom_domain, custom_domain_status")
     .ilike("slug", slug)
     .maybeSingle();
   if (!store?.is_active) return { response: json({ error: "Tienda no encontrada" }, 404) };
@@ -198,7 +202,11 @@ async function createRedirectPreference(
     console.error("store-pay: comisión de plataforma supera el total", { orgId: store.org_id, cobrar: order.cobrar, marketplaceFee });
     return json({ error: "La comisión calculada no es válida" }, 500);
   }
-  const base = safeReturnBase(returnUrl) ?? safeReturnBase(Deno.env.get("PUBLIC_BASE_URL"));
+  const basePublica = Deno.env.get("PUBLIC_BASE_URL") ?? null;
+  const base = origenDeVueltaPermitido(returnUrl, {
+    basePublica,
+    dominioPropio: store.custom_domain_status === "active" ? store.custom_domain : null,
+  }) ?? safeReturnBase(basePublica);
   const backUrl = base
     ? `${base}/tienda/${encodeURIComponent(store.slug)}/orden/${encodeURIComponent(order.order_number)}`
     : null;
