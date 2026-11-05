@@ -36,6 +36,7 @@ import {
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { hoyAR } from "@/lib/fechaAR";
 import { useEntitlements } from "@/lib/useEntitlements";
+import { lectorDeCodigos } from "@/lib/lectorDeCodigos";
 
 // La cámara de zona carga sólo al abrirla.
 const ConteoPorZona = lazy(() => import("@/components/inventory/ConteoPorZona"));
@@ -45,45 +46,76 @@ const ConteoPorZona = lazy(() => import("@/components/inventory/ConteoPorZona"))
 /** Una lectura del mismo código dentro de esta ventana es la misma etiqueta todavía enfocada. */
 export const REPETICION_DEL_MISMO_CODIGO_MS = 1500;
 
+/** Cada cuánto se mira el video buscando códigos (~7 por segundo). */
+const INTERVALO_DE_LECTURA_MS = 140;
+
 function useBarcodeScanner(onDetected: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<any>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const activo = useRef(false);
   const [scanning, setScanning] = useState(false);
   // El lector queda abierto entre lecturas: el callback se lee de una ref para
   // usar siempre el estado actual, no el del momento en que se abrió la cámara.
   const onDetectedRef = useRef(onDetected);
   onDetectedRef.current = onDetected;
-  const ultima = useRef<{ code: string; at: number } | null>(null);
+  const ultimas = useRef(new Map<string, number>());
 
   const stop = useCallback(() => {
-    readerRef.current?.reset();
-    readerRef.current = null;
+    activo.current = false;
     setScanning(false);
-    if (videoRef.current?.srcObject) {
-      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
-      videoRef.current.srcObject = null;
-    }
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
+
+  useEffect(() => stop, [stop]);
 
   const start = useCallback(async () => {
     try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      readerRef.current = reader;
       setScanning(true);
-      await reader.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
-        if (!result) return;
-        const code = result.getText().trim();
-        const ahora = Date.now();
-        if (ultima.current && ultima.current.code === code && ahora - ultima.current.at < REPETICION_DEL_MISMO_CODIGO_MS) return;
-        ultima.current = { code, at: ahora };
-        onDetectedRef.current(code);
-      });
+      activo.current = true;
+      // Lector nativo o ZXing-C++ en WebAssembly (lectorDeCodigos): el mismo
+      // en Android, iPhone y escritorio.
+      const [lector, stream] = await Promise.all([
+        lectorDeCodigos(),
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        }),
+      ]);
+      if (!activo.current) { stream.getTracks().forEach(t => t.stop()); return; }
+      streamRef.current = stream;
+      // El video del overlay aparece con `scanning`: se espera a que esté.
+      for (let i = 0; i < 20 && !videoRef.current; i++) await new Promise(r => setTimeout(r, 25));
+      const video = videoRef.current;
+      if (!video) { stop(); return; }
+      video.srcObject = stream;
+      await video.play().catch(() => undefined);
+
+      const leer = async () => {
+        if (!activo.current) return;
+        if (video.readyState >= 2) {
+          try {
+            for (const c of await lector.detect(video)) {
+              const code = c.rawValue.trim();
+              const ahora = Date.now();
+              // La misma etiqueta todavía enfocada no se cuenta dos veces.
+              if (!code || ahora - (ultimas.current.get(code) ?? 0) < REPETICION_DEL_MISMO_CODIGO_MS) continue;
+              ultimas.current.set(code, ahora);
+              onDetectedRef.current(code);
+            }
+          } catch {
+            // Un cuadro que no se pudo leer no corta el escaneo.
+          }
+        }
+        if (activo.current) setTimeout(() => { void leer(); }, INTERVALO_DE_LECTURA_MS);
+      };
+      void leer();
     } catch {
-      setScanning(false);
+      stop();
       toast.error("No pudimos abrir la cámara. Revisá el permiso del navegador.");
     }
-  }, []);
+  }, [stop]);
 
   return { videoRef, scanning, start, stop };
 }

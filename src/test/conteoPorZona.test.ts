@@ -18,9 +18,10 @@ describe("varios códigos en una foto", () => {
     expect([...m]).toEqual([["a", 2], ["b", 1]]);
   });
 
-  it("usa el detector nativo (todos los códigos) y cae a ZXing donde no existe", () => {
-    expect(componente).toContain("BarcodeDetector");
-    expect(componente).toContain("decodeFromCanvas(canvas)");
+  it("lee todos los códigos de la foto con el lector único (nativo o ZXing-C++ en WebAssembly)", () => {
+    expect(componente).toContain("const lector = await lectorDeCodigos();");
+    expect(componente).toContain("await lector.detect(canvas)");
+    expect(componente).not.toContain("decodeFromCanvas");
   });
 });
 

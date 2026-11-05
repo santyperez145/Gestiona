@@ -33,8 +33,18 @@ describe("escaneo de la toma física", () => {
 
   it("la cámara queda abierta entre lecturas y no cuenta dos veces la misma etiqueta", () => {
     expect(pantalla).not.toMatch(/onDetected\(result\.getText\(\)\); stop\(\)/);
-    expect(pantalla).toContain("ahora - ultima.current.at < REPETICION_DEL_MISMO_CODIGO_MS");
+    expect(pantalla).toContain("ahora - (ultimas.current.get(code) ?? 0) < REPETICION_DEL_MISMO_CODIGO_MS");
     expect(pantalla).toContain("avisarLectura(true)");
+    expect(pantalla).toContain("lectorDeCodigos()");
+  });
+
+  it("el lector es el mismo en todos los navegadores y su wasm se sirve desde el sitio", () => {
+    const lector = readFileSync("src/lib/lectorDeCodigos.ts", "utf8");
+    expect(lector).toContain('import lectorWasm from "zxing-wasm/reader/zxing_reader.wasm?url";');
+    expect(lector).toContain('path.endsWith(".wasm") ? lectorWasm : prefix + path');
+    expect(lector).toContain('await import("barcode-detector/ponyfill")');
+    const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+    expect(pkg.dependencies["barcode-detector"]).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
 

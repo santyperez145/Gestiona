@@ -3,8 +3,8 @@
  * todo lo que se ve de una vez.
  *
  *  1. Códigos de barras: se congela la imagen y se leen TODOS los códigos
- *     visibles (BarcodeDetector nativo; donde no existe, ZXing lee uno). Cada
- *     código es una unidad: es exacto y no necesita internet.
+ *     visibles, en cualquier navegador (lectorDeCodigos: nativo o ZXing-C++ en
+ *     WebAssembly). Cada código es una unidad: es exacto y no necesita IA.
  *  2. IA (plan con IA): para lo que no muestra el código, Claude identifica el
  *     producto y marca un punto en cada unidad. La persona toca la foto para
  *     agregar o sacar puntos; el total son los puntos. La IA propone, la
@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { registrarError } from "@/lib/registroDeErrores";
+import { lectorDeCodigos } from "@/lib/lectorDeCodigos";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,8 +43,6 @@ export function puntoEnLaFoto(clientX: number, clientY: number, rect: { left: nu
   };
 }
 
-type DetectorNativo = { detect: (fuente: CanvasImageSource) => Promise<Array<{ rawValue: string; boundingBox: DOMRectReadOnly }>> };
-
 export default function ConteoPorZona({
   productos, candidatos, canUseAI, orgId, onSumar, onCerrar,
 }: {
@@ -59,7 +58,6 @@ export default function ConteoPorZona({
   const streamRef = useRef<MediaStream | null>(null);
   const [foto, setFoto] = useState<{ url: string; base64: string; ancho: number; alto: number } | null>(null);
   const [lecturas, setLecturas] = useState<Lectura[]>([]);
-  const [lectorMultiple, setLectorMultiple] = useState(true);
   const [analizando, setAnalizando] = useState(false);
   const [productoIA, setProductoIA] = useState<string>("");
   const [puntos, setPuntos] = useState<Punto[]>([]);
@@ -113,27 +111,20 @@ export default function ConteoPorZona({
       setPuntos([]); setNotaIA("");
       apagarCamara();
 
+      // Todos los códigos de la foto, en cualquier navegador (nativo o
+      // ZXing-C++ en WebAssembly).
       const encontradas: Lectura[] = [];
-      const Nativo = (window as unknown as { BarcodeDetector?: new () => DetectorNativo }).BarcodeDetector;
-      if (Nativo) {
-        setLectorMultiple(true);
-        const codigos = await new Nativo().detect(canvas);
-        for (const c of codigos) {
+      try {
+        const lector = await lectorDeCodigos();
+        for (const c of await lector.detect(canvas)) {
           const codigo = c.rawValue.trim();
           const b = c.boundingBox;
           encontradas.push({ codigo, productoId: porCodigo.get(codigo) ?? null, caja: { x: b.x, y: b.y, w: b.width, h: b.height } });
         }
-      } else {
-        // Sin detector nativo (Safari): ZXing lee un código por foto.
-        setLectorMultiple(false);
-        try {
-          const { BrowserMultiFormatReader } = await import("@zxing/browser");
-          const r = new BrowserMultiFormatReader().decodeFromCanvas(canvas);
-          const codigo = r.getText().trim();
-          encontradas.push({ codigo, productoId: porCodigo.get(codigo) ?? null, caja: null });
-        } catch {
-          // Ningún código en la foto: queda la IA.
-        }
+      } catch (error) {
+        // Sin lector la zona igual se puede contar con IA.
+        registrarError(error);
+        toast.error("No pudimos leer los códigos de esta foto. Probá contar con IA.");
       }
       setLecturas(encontradas);
       const primero = encontradas.find(l => l.productoId)?.productoId;
@@ -256,9 +247,6 @@ export default function ConteoPorZona({
             {/* 1. Códigos leídos */}
             <section className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2 text-white">
               <p className="text-sm font-medium">Códigos de barras en la foto</p>
-              {!lectorMultiple && (
-                <p className="text-xs text-white/60">Este navegador lee un código por foto. En Chrome de Android se leen todos a la vez.</p>
-              )}
               {grupos.length === 0 && desconocidos === 0 && <p className="text-sm text-white/60">No se ve ningún código. Probá contar con IA o acercate.</p>}
               {grupos.map(([id, n]) => (
                 <div key={id} className="flex items-center justify-between text-sm">

@@ -25,6 +25,8 @@ describe("la política del sitio no deja correr código inyectado", () => {
     expect(scriptSrc).not.toBe("");
     expect(scriptSrc).not.toContain("'unsafe-inline'");
     expect(scriptSrc).not.toContain("'unsafe-eval'");
+    // Sólo WebAssembly (el lector de códigos con ZXing-C++): no habilita eval de JS.
+    expect(scriptSrc).toContain("'wasm-unsafe-eval'");
   });
 
   it("cada script inline de index.html está autorizado por su hash", () => {
