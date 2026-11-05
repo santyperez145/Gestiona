@@ -72,16 +72,16 @@ BEGIN
            CASE WHEN it.dif < 0 AND mv.ultima_compra IS NOT NULL AND mv.ultima_compra >= it.cuando - interval '15 days'
                      AND mv.ultima_compra_cant >= abs(it.dif)
                 THEN format('La última compra (%s) sumó %s: revisá que haya llegado completa.',
-                            to_char(mv.ultima_compra AT TIME ZONE 'America/Argentina/Buenos_Aires', 'DD/MM'), mv.ultima_compra_cant) END,
+                            to_char(mv.ultima_compra AT TIME ZONE 'America/Argentina/Buenos_Aires', 'DD/MM'), trim_scale(mv.ultima_compra_cant)) END,
            CASE WHEN it.dif < 0 AND mv.vendidas >= GREATEST(abs(it.dif) * 3, 10)
-                THEN format('Vende mucho (%s en 60 días): puede haber ventas sin registrar en la caja.', mv.vendidas) END,
+                THEN format('Vende mucho (%s en 60 días): puede haber ventas sin registrar en la caja.', trim_scale(mv.vendidas)) END,
            CASE WHEN it.dif < 0 AND mv.transferidas > 0
-                THEN format('Salieron %s por transferencia: revisá que la otra sucursal los haya recibido.', mv.transferidas) END,
+                THEN format('Salieron %s por transferencia: revisá que la otra sucursal los haya recibido.', trim_scale(mv.transferidas)) END,
            CASE WHEN it.dif < 0 AND mv.movimientos = 0
                 THEN 'Sin movimientos registrados en 60 días: posible rotura, vencimiento o robo.' END,
            -- Sobrantes
            CASE WHEN it.dif > 0 AND mv.devueltas > 0
-                THEN format('Hubo %s devoluciones de clientes: pueden haber vuelto al estante sin cargarse.', mv.devueltas) END,
+                THEN format('Hubo %s devoluciones de clientes: pueden haber vuelto al estante sin cargarse.', trim_scale(mv.devueltas)) END,
            CASE WHEN it.dif > 0 AND mv.compradas = 0
                 THEN 'No hay compras registradas en 60 días: puede haber mercadería que entró sin cargar la compra.' END,
            CASE WHEN it.dif > 0 AND mv.ventas > 0

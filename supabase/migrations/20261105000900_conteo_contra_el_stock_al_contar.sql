@@ -86,7 +86,7 @@ BEGIN
         p_product_name=>r.name, p_variant_name=>NULL,
         p_movement_type=>'count_adjustment', p_quantity=>v_ajuste,
         p_reference_type=>'stock_count', p_reference_id=>p_count_id,
-        p_notes=>format('Conteo físico: esperado %s, había %s al contar, contado %s', r.expected, v_al_contar, r.counted),
+        p_notes=>format('Conteo físico: esperado %s, había %s al contar, contado %s', trim_scale(r.expected), trim_scale(v_al_contar), trim_scale(r.counted)),
         p_created_by=>v_user, p_location_id=>v_loc
       );
       v_ajustados := v_ajustados + 1;
