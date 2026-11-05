@@ -140,6 +140,15 @@ export function productoDelCodigo<T extends { product: { barcode?: string | null
     ?? null;
 }
 
+/**
+ * Una diferencia que conviene recontar antes de ajustar: 3 unidades o más y
+ * al menos el 20 % de lo esperado (contar 0 de algo que debería estar, también).
+ */
+export function esDiferenciaGrande(contado: number, esperado: number): boolean {
+  const diferencia = Math.abs(contado - esperado);
+  return diferencia >= Math.max(3, Math.ceil(Math.abs(esperado) * 0.2));
+}
+
 /** El escaneo cuenta desde cero: la primera lectura de un producto es 1 (× el multiplicador). */
 export function contadoTrasEscanear(actual: string, multiplicador: number): string {
   const base = actual === "" ? 0 : Number(actual) || 0;
@@ -250,6 +259,9 @@ export default function StockCountTab() {
   const [ciclico, setCiclico] = useState<Array<{ product_id: string; nombre: string; clase: string; motivo: string }> | null>(null);
   const [soloCiclico, setSoloCiclico] = useState(false);
   const idsCiclico = useMemo(() => new Set((ciclico ?? []).map(c => c.product_id)), [ciclico]);
+  /** Reconteo: los productos con diferencias grandes, antes de ajustar. */
+  const [reconteo, setReconteo] = useState<Set<string> | null>(null);
+  const reconfirmados = useRef(new Set<string>());
   const { canUseAI } = useEntitlements();
   const ultimaLectura = useRef<{ id: string; antes: string } | null>(null);
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
@@ -506,6 +518,7 @@ export default function StockCountTab() {
     const q = search.toLowerCase();
     return rows
       .filter(r =>
+        (!reconteo || reconteo.has(r.product.id)) &&
         (!soloCiclico || idsCiclico.has(r.product.id)) &&
         (catFilter === "all" || r.product.category === catFilter) &&
         (!q || r.product.name.toLowerCase().includes(q))
@@ -522,7 +535,7 @@ export default function StockCountTab() {
         if (typeof av === "string") return sortDir === "asc" ? av.localeCompare(bv as string, "es") : (bv as string).localeCompare(av, "es");
         return sortDir === "asc" ? (av as number) - (bv as number) : (bv as number) - (av as number);
       });
-  }, [rows, search, catFilter, sortKey, sortDir, aCiegas, soloCiclico, idsCiclico]);
+  }, [rows, search, catFilter, sortKey, sortDir, aCiegas, soloCiclico, idsCiclico, reconteo]);
 
   const contadosDelDia = useMemo(
     () => rows.filter(r => idsCiclico.has(r.product.id) && r.counted !== "").length,
@@ -567,6 +580,24 @@ export default function StockCountTab() {
     if (countedRows.length === 0) { toast.info("Contá al menos un producto antes de cerrar"); return; }
     const invalido = countedRows.find(r => !Number.isFinite(Number(r.counted)) || Number(r.counted) < 0);
     if (invalido) { toast.error(`Revisá lo contado de ${invalido.product.name}: tiene que ser 0 o más.`); return; }
+    // Las diferencias grandes casi siempre son errores de conteo: se ofrece
+    // recontarlas antes de ajustar (una sola vez por producto).
+    const grandes = countedRows.filter(r => !reconfirmados.current.has(r.product.id) && esDiferenciaGrande(Number(r.counted), r.product.stock));
+    if (grandes.length > 0) {
+      grandes.forEach(r => reconfirmados.current.add(r.product.id));
+      if (await ask({
+        title: `${grandes.length} producto${grandes.length !== 1 ? "s" : ""} con diferencias grandes`,
+        description: "Antes de ajustar el stock conviene volver a contarlos: la mayoría de las diferencias grandes son errores de conteo.",
+        confirmText: "Recontar ahora",
+        cancelText: "Cerrar igual",
+        variant: "default",
+      })) {
+        setReconteo(new Set(grandes.map(r => r.product.id)));
+        setSoloCiclico(false);
+        toast.info("Volvé a contar estos productos y corregí lo que haga falta. Después cerrá la toma.");
+        return;
+      }
+    }
     if (!(await ask({
       title: "¿Cerrar toma física?",
       description: `Se registrarán ${changed.length} ajuste(s) auditado(s) sobre ${countedRows.length} producto(s) contado(s).`,
@@ -590,6 +621,8 @@ export default function StockCountTab() {
       pendiente.current = null;
       conteoIdRef.current = null;
       setConteoAbierto(false);
+      setReconteo(null);
+      reconfirmados.current.clear();
       clearStockCountDraft(activeOrg!.id);
       setDraftNotice(null);
       await load();
@@ -744,6 +777,17 @@ export default function StockCountTab() {
           </Button>
         </div>
       </div>
+
+      {reconteo && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm" role="status">
+          <span className="flex-1 min-w-[16rem]">
+            Reconteo: {reconteo.size} producto{reconteo.size !== 1 ? "s" : ""} con diferencias grandes. Contalos de nuevo y corregí lo que haga falta.
+          </span>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setReconteo(null)}>
+            Listo, ver todo
+          </Button>
+        </div>
+      )}
 
       {/* Conteo cíclico: un poco todos los días, más seguido lo que más importa */}
       {!loading && ciclico && (

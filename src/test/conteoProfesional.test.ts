@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { contadoTrasEscanear, productoDelCodigo } from "@/components/inventory/StockCountTab";
+import { contadoTrasEscanear, esDiferenciaGrande, productoDelCodigo } from "@/components/inventory/StockCountTab";
 
 /**
  * Toma física profesional (2026-11-05). Antes: el escaneo sumaba al stock del
@@ -58,6 +58,15 @@ describe("el conteo vive en la base desde el primer producto", () => {
     const sql = readFileSync("supabase/migrations/20261106000100_conteo_ciclico.sql", "utf8");
     expect(sql).toContain("CASE k.clase WHEN 'A' THEN 7 WHEN 'B' THEN 30 ELSE 90 END AS periodo");
     expect(sql).toContain("public.has_permission(p_org_id, 'inventory', 'view')");
+  });
+
+  it("ofrece recontar las diferencias grandes antes de ajustar, una vez por producto", () => {
+    expect(esDiferenciaGrande(11, 10)).toBe(false); // una de más: se ajusta
+    expect(esDiferenciaGrande(7, 10)).toBe(true);   // 3 y 30 %
+    expect(esDiferenciaGrande(90, 100)).toBe(false); // 10 %
+    expect(esDiferenciaGrande(0, 5)).toBe(true);     // no se encontró nada
+    expect(pantalla).toContain('confirmText: "Recontar ahora"');
+    expect(pantalla).toContain("!reconfirmados.current.has(r.product.id)");
   });
 
   it("se cuenta a ciegas por defecto", () => {
