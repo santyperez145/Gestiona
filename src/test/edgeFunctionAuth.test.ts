@@ -51,7 +51,6 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   'avisos-por-correo': 'cron: manda por mail los avisos ya marcados',
   'campaign-chat-dispatcher': 'cron: despacha la cola consentida del chat marca↔creador',
   // Webhooks: los llama un tercero que firma el request
-  'stripe-webhook': 'webhook firmado',
   'mercadopago-webhook': 'webhook firmado',
   'resend-webhook': 'webhook firmado',
   'meli-webhook': 'webhook: revalida la orden oficial con OAuth del vendedor',

@@ -43,7 +43,6 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'placeholder-key' }}
-          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
           VITE_TIENDANUBE_APP_ID: ${{ secrets.VITE_TIENDANUBE_APP_ID || '0' }}
           VITE_APP_VERSION: ${{ github.sha }}
           # Source maps a Sentry: solo se suben si estos secrets existen.

@@ -21,7 +21,6 @@ $PROJECT_REF = "hummeopatkniwkyrrhwc"
 # de todo lo que llega del cliente (storefront).
 $noJwt = @(
     # Webhooks de terceros — validan firma
-    "stripe-webhook",
     "mercadopago-webhook",
     "resend-webhook",
     "meli-webhook",

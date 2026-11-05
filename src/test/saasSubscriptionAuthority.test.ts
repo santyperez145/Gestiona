@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -9,7 +9,6 @@ describe('autoridad de suscripciones SaaS', () => {
   const subscribe = read('supabase/functions/mp-subscribe/index.ts');
   const cancel = read('supabase/functions/cancel-subscription/index.ts');
   const webhook = read('supabase/functions/mercadopago-webhook/index.ts');
-  const portal = read('supabase/functions/create-billing-portal/index.ts');
 
   it('alta y baja validan identidad y rol del lado servidor', () => {
     expect(subscribe).toContain('getAuthedUser(req)');
@@ -26,8 +25,8 @@ describe('autoridad de suscripciones SaaS', () => {
     expect(subscribe).not.toContain('status: "active"');
   });
 
-  it('el portal Stripe duplicado está retirado', () => {
-    expect(portal).toContain('BILLING_PORTAL_RETIRED');
-    expect(portal).not.toContain('STRIPE_SECRET_KEY');
+  it('no queda ningún camino de Stripe', () => {
+    expect(existsSync(resolve(ROOT, 'supabase/functions/create-billing-portal'))).toBe(false);
+    expect(existsSync(resolve(ROOT, 'supabase/functions/stripe-webhook'))).toBe(false);
   });
 });

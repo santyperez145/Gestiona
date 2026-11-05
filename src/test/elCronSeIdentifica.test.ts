@@ -52,9 +52,6 @@ const PUBLICAS: Record<string, string> = {
     "Transporte backend a backend: rechaza cualquier pedido con Origin, exige el " +
     "secreto del proxy propio (X-Nerqia-Trust-Proxy) y valida la sesión con " +
     "auth.getUser; nunca toma claims del cuerpo.",
-  "stripe-webhook":
-    "Retirado: responde 410 sin leer secretos ni tocar la base. Los cobros " +
-    "llegan por mercadopago-webhook.",
   "mercadopago-webhook":
     "Webhook de un tercero: lo llama MercadoPago. Valida firma HMAC y secreto. " +
     "Su firma dejó de validar una vez y toda compra quedaba pagada de un lado " +

@@ -19,7 +19,7 @@ function sinJwtBash(): Set<string> {
 
 function sinJwtPowerShell(): Set<string> {
   const ps = leer('scripts/deploy-functions.ps1');
-  const ini = ps.indexOf('"stripe-webhook"');
+  const ini = ps.indexOf('$noJwt = @(');
   return new Set([...ps.slice(ini, ps.indexOf('\n)', ini)).matchAll(/"([a-z0-9-]+)"/g)].map(m => m[1]));
 }
 
