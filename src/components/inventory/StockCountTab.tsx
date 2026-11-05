@@ -14,7 +14,7 @@
  *    entre lecturas, suena y vibra, y sólo acepta códigos exactos.
  *  - Se cuenta a ciegas por defecto: ver el stock del sistema sesga al que cuenta.
  */
-import { memo, useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { lazy, memo, Suspense, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { csvCell } from "@/lib/csv";
@@ -30,10 +30,14 @@ import { toast } from "sonner";
 import {
   CheckCircle2, RefreshCw,
   Loader2, Download, Search, ChevronUp, ChevronDown,
-  PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap, Eye, EyeOff, Undo2, CloudOff, Cloud,
+  PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap, Eye, EyeOff, Undo2, CloudOff, Cloud, Camera,
 } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { hoyAR } from "@/lib/fechaAR";
+import { useEntitlements } from "@/lib/useEntitlements";
+
+// La cámara de zona carga sólo al abrirla.
+const ConteoPorZona = lazy(() => import("@/components/inventory/ConteoPorZona"));
 
 // ─── Barcode scanner hook ─────────────────────────────────────────────────────
 
@@ -241,6 +245,8 @@ export default function StockCountTab() {
   /** A ciegas: no se muestra lo que el sistema cree tener mientras se cuenta. */
   const [aCiegas, setACiegas] = useState(true);
   const [multiplicador, setMultiplicador] = useState(1);
+  const [zonaAbierta, setZonaAbierta] = useState(false);
+  const { canUseAI } = useEntitlements();
   const ultimaLectura = useRef<{ id: string; antes: string } | null>(null);
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
 
@@ -520,6 +526,13 @@ export default function StockCountTab() {
     marcar(id);
   }, [marcar]);
 
+  /** Lo contado en una zona se suma a lo que ya tenía el producto (desde cero). */
+  const sumarDeZona = useCallback((id: string, unidades: number) => {
+    setRows(prev => prev.map(r => r.product.id === id ? { ...r, counted: contadoTrasEscanear(r.counted, unidades) } : r));
+    marcar(id);
+    setScanCount(n => n + unidades);
+  }, [marcar]);
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir(key === "diff" ? "asc" : "asc"); }
@@ -688,6 +701,16 @@ export default function StockCountTab() {
             )}
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setZonaAbierta(true)}
+            disabled={loading || scannerOpen}
+            className="gap-1 border-primary/40 text-primary hover:bg-primary/10"
+          >
+            <Camera className="w-4 h-4" />
+            Contar zona
+          </Button>
+          <Button
             size="sm"
             disabled={countedCount === 0 || saving}
             onClick={handleConfirm}
@@ -822,6 +845,20 @@ export default function StockCountTab() {
           Presioná <kbd className="px-1 py-0.5 rounded border border-border text-xs">Enter</kbd> en cada campo para pasar al siguiente.
           El stock cambia recién al cerrar la toma.
         </p>
+      )}
+
+      {/* ── Conteo por zona: varios códigos a la vez e IA ─────────────────── */}
+      {zonaAbierta && activeOrg && (
+        <Suspense fallback={null}>
+          <ConteoPorZona
+            productos={rows.map(r => r.product)}
+            candidatos={filtered.slice(0, 80).map(r => r.product)}
+            canUseAI={canUseAI}
+            orgId={activeOrg.id}
+            onSumar={sumarDeZona}
+            onCerrar={() => setZonaAbierta(false)}
+          />
+        </Suspense>
       )}
 
       {/* ── Scanner overlay ───────────────────────────────────────────────── */}

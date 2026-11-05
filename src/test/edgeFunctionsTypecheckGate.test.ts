@@ -28,7 +28,8 @@ describe("guardia de tipos de Edge Functions", () => {
     // 89 al 2026-10-22: `arca-caea`, la contingencia CAEA.
     // 90 al 2026-10-22: `arca-fex`, la factura de exportación E.
     // 86 al 2026-11-05: salen los tres restos de Stripe y mercadopago-payment-methods.
-    expect(count).toBe(86);
+    // 87 al 2026-11-05: `conteo-visual`, el conteo por zona con IA.
+    expect(count).toBe(87);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

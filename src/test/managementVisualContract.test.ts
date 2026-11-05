@@ -266,6 +266,7 @@ describe('contrato visual transversal de Gestión', () => {
       .toEqual({
         'components/AppLayout.tsx': 1, // backdrop del rail mobile, no modal
         'components/inventory/StockCountTab.tsx': 1, // cámara fullscreen
+        'components/inventory/ConteoPorZona.tsx': 1, // cámara fullscreen del conteo por zona
         'pages/POSPage.tsx': 1, // cámara fullscreen del POS
         'components/tutorial/TutorialOverlay.tsx': 2, // spotlight del recorrido: tiene que dejar ver el elemento real que explica
       });
