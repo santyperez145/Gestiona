@@ -246,6 +246,10 @@ export default function StockCountTab() {
   const [aCiegas, setACiegas] = useState(true);
   const [multiplicador, setMultiplicador] = useState(1);
   const [zonaAbierta, setZonaAbierta] = useState(false);
+  /** Conteo cíclico (20261106000100): la lista corta de hoy. */
+  const [ciclico, setCiclico] = useState<Array<{ product_id: string; nombre: string; clase: string; motivo: string }> | null>(null);
+  const [soloCiclico, setSoloCiclico] = useState(false);
+  const idsCiclico = useMemo(() => new Set((ciclico ?? []).map(c => c.product_id)), [ciclico]);
   const { canUseAI } = useEntitlements();
   const ultimaLectura = useRef<{ id: string; antes: string } | null>(null);
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
@@ -441,6 +445,19 @@ export default function StockCountTab() {
         return { product: p, counted: "" };
       });
       setRows(fresh);
+
+      // La lista del conteo cíclico. Si la base todavía no tiene la función,
+      // la tarjeta no aparece; cualquier otro error queda registrado.
+      const { data: deHoy, error: errCiclico } = await supabase.rpc("productos_para_conteo_ciclico" as never, {
+        p_org_id: activeOrg.id, p_cantidad: 15,
+      } as never);
+      if (errCiclico) {
+        if (!isMissingFunction(errCiclico)) registrarError(errCiclico);
+        setCiclico(null);
+      } else {
+        setCiclico((deHoy ?? []) as Array<{ product_id: string; nombre: string; clase: string; motivo: string }>);
+      }
+
       if (retomados > 0) {
         const cuando = draft ? new Date(draft.saved_at).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "antes";
         setDraftNotice(`Retomamos tu conteo de ${cuando}: ${retomados} producto(s) con lo que ya habías contado.`);
@@ -489,6 +506,7 @@ export default function StockCountTab() {
     const q = search.toLowerCase();
     return rows
       .filter(r =>
+        (!soloCiclico || idsCiclico.has(r.product.id)) &&
         (catFilter === "all" || r.product.category === catFilter) &&
         (!q || r.product.name.toLowerCase().includes(q))
       )
@@ -504,7 +522,12 @@ export default function StockCountTab() {
         if (typeof av === "string") return sortDir === "asc" ? av.localeCompare(bv as string, "es") : (bv as string).localeCompare(av, "es");
         return sortDir === "asc" ? (av as number) - (bv as number) : (bv as number) - (av as number);
       });
-  }, [rows, search, catFilter, sortKey, sortDir, aCiegas]);
+  }, [rows, search, catFilter, sortKey, sortDir, aCiegas, soloCiclico, idsCiclico]);
+
+  const contadosDelDia = useMemo(
+    () => rows.filter(r => idsCiclico.has(r.product.id) && r.counted !== "").length,
+    [rows, idsCiclico],
+  );
 
   const stats = useMemo(() => {
     let counted = 0, surplus = 0, shortage = 0, missing = 0, totalDiffCost = 0;
@@ -721,6 +744,41 @@ export default function StockCountTab() {
           </Button>
         </div>
       </div>
+
+      {/* Conteo cíclico: un poco todos los días, más seguido lo que más importa */}
+      {!loading && ciclico && (
+        <section className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3" aria-label="Conteo del día">
+          {ciclico.length === 0 ? (
+            <p className="text-sm text-foreground/90 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              Conteo del día al día: no hay productos que toque volver a contar hoy.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex-1 min-w-[14rem]">
+                  <p className="text-sm font-medium">Conteo del día: {ciclico.length} producto{ciclico.length !== 1 ? "s" : ""} · unos {Math.max(2, Math.round(ciclico.length / 3))} minutos</p>
+                  <p className="text-xs text-muted-foreground">
+                    Contando un poco cada día, el stock no miente y nunca hace falta cerrar para inventariar.
+                    {contadosDelDia > 0 && <> Llevás {contadosDelDia} de {ciclico.length}.</>}
+                  </p>
+                </div>
+                <Button size="sm" variant={soloCiclico ? "outline" : "default"} onClick={() => setSoloCiclico(v => !v)}>
+                  {soloCiclico ? "Ver todo el catálogo" : "Contar estos"}
+                </Button>
+              </div>
+              <ul className="flex flex-wrap gap-1.5">
+                {ciclico.map(c => (
+                  <li key={c.product_id} title={c.motivo}
+                    className="rounded-full border border-border bg-card px-2.5 py-1 text-xs">
+                    <span className="font-semibold text-primary mr-1">{c.clase}</span>{c.nombre}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
 
       {/* Estado del guardado en la base */}
       {!loading && (conteoAbierto || countedCount > 0) && (

@@ -51,6 +51,15 @@ describe("el conteo vive en la base desde el primer producto", () => {
     expect(cierre).toContain("Lo contado quedó guardado");
   });
 
+  it("propone el conteo cíclico del día y deja contar sólo esa lista", () => {
+    expect(pantalla).toContain('supabase.rpc("productos_para_conteo_ciclico" as never');
+    expect(pantalla).toContain("(!soloCiclico || idsCiclico.has(r.product.id))");
+    expect(pantalla).toContain("if (!isMissingFunction(errCiclico)) registrarError(errCiclico);");
+    const sql = readFileSync("supabase/migrations/20261106000100_conteo_ciclico.sql", "utf8");
+    expect(sql).toContain("CASE k.clase WHEN 'A' THEN 7 WHEN 'B' THEN 30 ELSE 90 END AS periodo");
+    expect(sql).toContain("public.has_permission(p_org_id, 'inventory', 'view')");
+  });
+
   it("se cuenta a ciegas por defecto", () => {
     expect(pantalla).toContain("const [aCiegas, setACiegas] = useState(true);");
     expect(pantalla).toContain('aCiegas ? <span className="text-muted-foreground/60">•••</span> : row.product.stock');

@@ -87,6 +87,7 @@ export const MATRICES = {
   '20261105000700': 'scripts/funciones-expuestas-sin-uso-matrix.sql',
   '20261105000800': 'scripts/staff-con-segundo-factor-matrix.sql',
   '20261105000900': 'scripts/conteo-stock-al-contar-matrix.sql',
+  '20261106000100': 'scripts/conteo-ciclico-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';
