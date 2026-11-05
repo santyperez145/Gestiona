@@ -75,7 +75,21 @@ export const SOLO_LOCAL = {
      ORDER BY 1`,
 };
 
+// Sólo informe (2026-11-05): funciones privilegiadas que anon puede llamar.
+// No es un hallazgo en sí (la tienda las necesita y cada una tiene contrato),
+// pero la lista se cruza con el código para retirar las que nadie usa.
+export const INFORME = {
+  definerParaAnon: `
+    SELECT p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' AS objeto, 'anon' AS permisos
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace AND n.nspname = 'public'
+     WHERE p.prosecdef AND p.prorettype <> 'trigger'::regtype
+       AND has_function_privilege('anon', p.oid, 'EXECUTE')
+     ORDER BY 1`,
+};
+
 const TITULOS = {
+  definerParaAnon: "Informe — funciones definer ejecutables por anon",
   vistasEscribibles: "Vistas definer que anon/authenticated pueden escribir",
   tablasSinRls: "Tablas sin RLS con permisos para anon/authenticated",
   truncate: "Tablas con TRUNCATE para anon/authenticated",
@@ -101,6 +115,11 @@ async function main() {
       total += rows.length;
       console.log(`\n${TITULOS[clave]}: ${rows.length}`);
       for (const r of rows) console.log(`  - ${r.objeto} (${r.permisos})`);
+    }
+    for (const [clave, sql] of Object.entries(INFORME)) {
+      const { rows } = await db.query(sql);
+      console.log(`\n${TITULOS[clave]}: ${rows.length}`);
+      for (const r of rows) console.log(`  - ${r.objeto}`);
     }
   } finally {
     await db.end();
