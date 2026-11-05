@@ -76,6 +76,15 @@ describe("el conteo vive en la base desde el primer producto", () => {
     expect(pantalla).toContain("Contando en equipo: {personasContando} personas");
   });
 
+  it("al cerrar explica por qué faltó o sobró cada producto", () => {
+    expect(pantalla).toContain('supabase.rpc("explicar_diferencias_de_conteo" as never');
+    expect(pantalla).toContain("<DialogTitle>Por qué faltó o sobró</DialogTitle>");
+    const sql = readFileSync("supabase/migrations/20261106000200_explicar_diferencias_de_conteo.sql", "utf8");
+    // Un movimiento sin referencia también cuenta (NOT (NULL = …) lo dejaba afuera).
+    expect(sql).toContain("m.reference_type IS DISTINCT FROM 'stock_count'");
+    expect(sql).toContain("public.has_permission(v_org, 'inventory', 'view')");
+  });
+
   it("se cuenta a ciegas por defecto", () => {
     expect(pantalla).toContain("const [aCiegas, setACiegas] = useState(true);");
     expect(pantalla).toContain('aCiegas ? <span className="text-muted-foreground/60">•••</span> : row.product.stock');

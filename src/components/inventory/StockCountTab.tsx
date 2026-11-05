@@ -25,6 +25,7 @@ import { clearStockCountDraft, loadStockCountDraft, saveStockCountDraft } from "
 import { registrarError } from "@/lib/registroDeErrores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import {
@@ -262,6 +263,8 @@ export default function StockCountTab() {
   /** Reconteo: los productos con diferencias grandes, antes de ajustar. */
   const [reconteo, setReconteo] = useState<Set<string> | null>(null);
   const reconfirmados = useRef(new Set<string>());
+  /** Por qué faltó o sobró, al cerrar (20261106000200). */
+  const [resumenCierre, setResumenCierre] = useState<Array<{ product_id: string; nombre: string; diferencia: number; valor: number; pistas: string[] }> | null>(null);
   const { canUseAI } = useEntitlements();
   const ultimaLectura = useRef<{ id: string; antes: string } | null>(null);
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
@@ -658,6 +661,16 @@ export default function StockCountTab() {
       const { data: closed, error: closeError } = await supabase.rpc("cerrar_conteo", { p_count_id: countId });
       if (closeError) throw closeError;
 
+      // Por qué faltó o sobró cada producto. Si la base todavía no tiene la
+      // función, el cierre sigue igual sin el resumen.
+      const { data: motivos, error: errMotivos } = await supabase.rpc("explicar_diferencias_de_conteo" as never, { p_count_id: countId } as never);
+      if (errMotivos) {
+        if (!isMissingFunction(errMotivos)) registrarError(errMotivos);
+      } else {
+        const lista = (Array.isArray(motivos) ? motivos : []) as Array<{ product_id: string; nombre: string; diferencia: number; valor: number; pistas: string[] }>;
+        if (lista.length > 0) setResumenCierre(lista);
+      }
+
       const closePayload = closed as { productos_ajustados?: unknown; sin_contar?: unknown } | null;
       const adjusted = typeof closePayload?.productos_ajustados === "number" ? closePayload.productos_ajustados : changed.length;
       const uncounted = typeof closePayload?.sin_contar === "number" ? closePayload.sin_contar : rows.length - countedRows.length;
@@ -996,6 +1009,51 @@ export default function StockCountTab() {
           El stock cambia recién al cerrar la toma.
         </p>
       )}
+
+      {/* ── Por qué faltó o sobró ──────────────────────────────────────────── */}
+      <Dialog open={!!resumenCierre} onOpenChange={abierto => { if (!abierto) setResumenCierre(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Por qué faltó o sobró</DialogTitle>
+          </DialogHeader>
+          {resumenCierre && (() => {
+            const faltante = resumenCierre.filter(r => r.valor < 0).reduce((s, r) => s + Number(r.valor), 0);
+            const sobrante = resumenCierre.filter(r => r.valor > 0).reduce((s, r) => s + Number(r.valor), 0);
+            const pesos = (n: number) => `$ ${Math.abs(n).toLocaleString("es-AR", { maximumFractionDigits: 0 })}`;
+            return (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Faltante a costo: <span className="font-semibold text-red-500">{pesos(faltante)}</span> ·
+                  Sobrante: <span className="font-semibold text-emerald-600">{pesos(sobrante)}</span>.
+                  Pistas cruzando los movimientos de los 60 días previos a contar.
+                </p>
+                <ul className="space-y-3">
+                  {resumenCierre.slice(0, 20).map(r => (
+                    <li key={r.product_id} className="rounded-lg border border-border p-3">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="font-medium">{r.nombre}</span>
+                        <span className={`font-mono text-sm ${Number(r.diferencia) < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                          {Number(r.diferencia) > 0 ? "+" : ""}{Number(r.diferencia)} · {pesos(Number(r.valor))}
+                        </span>
+                      </div>
+                      {r.pistas.length > 0 ? (
+                        <ul className="mt-1.5 list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
+                          {r.pistas.map((p, i) => <li key={i}>{p}</li>)}
+                        </ul>
+                      ) : (
+                        <p className="mt-1.5 text-sm text-muted-foreground">Sin una causa clara en los movimientos: vale la pena recontarlo la próxima vez.</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {resumenCierre.length > 20 && (
+                  <p className="text-xs text-muted-foreground">Y {resumenCierre.length - 20} más con diferencias menores (están en el Kardex).</p>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Conteo por zona: varios códigos a la vez e IA ─────────────────── */}
       {zonaAbierta && activeOrg && (
