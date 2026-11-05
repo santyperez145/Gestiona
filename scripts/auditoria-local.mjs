@@ -47,10 +47,38 @@ export const CONSULTAS = {
      GROUP BY c.relname ORDER BY 1`,
 };
 
+// Sólo informe (2026-11-05), hasta revisar cada hallazgo: una vista definer
+// legible salta RLS al leer, salvo que filtre por auth.uid() adentro; una
+// función definer sin search_path fijo se puede secuestrar con objetos
+// propios en otro esquema.
+export const INFORME = {
+  vistasLegibles: `
+    SELECT c.relname AS objeto, string_agg(DISTINCT g.grantee, ', ') AS permisos
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+      JOIN information_schema.role_table_grants g ON g.table_schema = 'public' AND g.table_name = c.relname
+     WHERE c.relkind IN ('v', 'm')
+       AND NOT coalesce((SELECT bool_or(o = 'security_invoker=true' OR o = 'security_invoker=on') FROM unnest(c.reloptions) o), false)
+       AND g.grantee IN ('anon', 'authenticated') AND g.privilege_type = 'SELECT'
+       AND pg_get_viewdef(c.oid) !~* 'auth\\.uid\\(\\)|has_permission|is_org_member|is_platform_admin'
+     GROUP BY c.relname ORDER BY 1`,
+  definerSinSearchPath: `
+    SELECT p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' AS objeto,
+           CASE WHEN has_function_privilege('anon', p.oid, 'EXECUTE') THEN 'anon' ELSE 'authenticated' END AS permisos
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace AND n.nspname = 'public'
+     WHERE p.prosecdef
+       AND NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, '{}')) cfg WHERE cfg LIKE 'search_path=%')
+       AND (has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+     ORDER BY 1`,
+};
+
 const TITULOS = {
   vistasEscribibles: "Vistas definer que anon/authenticated pueden escribir",
   tablasSinRls: "Tablas sin RLS con permisos para anon/authenticated",
   truncate: "Tablas con TRUNCATE para anon/authenticated",
+  vistasLegibles: "Informe — vistas definer legibles sin filtro de sesión",
+  definerSinSearchPath: "Informe — funciones definer sin search_path fijo",
 };
 
 async function main() {
@@ -63,6 +91,11 @@ async function main() {
     for (const [clave, sql] of Object.entries(CONSULTAS)) {
       const { rows } = await db.query(sql);
       total += rows.length;
+      console.log(`\n${TITULOS[clave]}: ${rows.length}`);
+      for (const r of rows) console.log(`  - ${r.objeto} (${r.permisos})`);
+    }
+    for (const [clave, sql] of Object.entries(INFORME)) {
+      const { rows } = await db.query(sql);
       console.log(`\n${TITULOS[clave]}: ${rows.length}`);
       for (const r of rows) console.log(`  - ${r.objeto} (${r.permisos})`);
     }
