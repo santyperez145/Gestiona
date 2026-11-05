@@ -272,6 +272,10 @@ export default function StockCountTab() {
   const sucios = useRef(new Set<string>());
   const [sincronizacion, setSincronizacion] = useState<"al_dia" | "guardando" | "error">("al_dia");
   const registrando = useRef<Promise<void> | null>(null);
+  /** Conteo en equipo: hasta dónde se trajo lo contado por otros y quiénes cuentan. */
+  const ultimoTraido = useRef<string | null>(null);
+  const [personasContando, setPersonasContando] = useState(0);
+  const quienes = useRef(new Set<string>());
 
   const marcar = useCallback((id: string) => { sucios.current.add(id); }, []);
 
@@ -430,23 +434,28 @@ export default function StockCountTab() {
       setConteoAbierto(Boolean(abierto));
       if (abierto) {
         const esperado = new Map<string, number>();
+        quienes.current.clear();
+        ultimoTraido.current = null;
         for (let desde = 0; ; desde += TANDA) {
           const { data: items, error: itemsError } = await supabase
             .from("stock_count_items")
-            .select("product_id,expected,counted")
+            .select("product_id,expected,counted,counted_at,counted_by")
             .eq("count_id", abierto)
             .order("product_id")
             .range(desde, desde + TANDA - 1);
           if (itemsError) throw itemsError;
-          for (const it of (items ?? []) as Array<{ product_id: string; expected: number; counted: number | null }>) {
+          for (const it of (items ?? []) as Array<{ product_id: string; expected: number; counted: number | null; counted_at: string | null; counted_by: string | null }>) {
             esperado.set(it.product_id, Number(it.expected));
             if (it.counted !== null) deLaBase.set(it.product_id, String(it.counted));
+            if (it.counted_by) quienes.current.add(it.counted_by);
+            if (it.counted_at && (!ultimoTraido.current || it.counted_at > ultimoTraido.current)) ultimoTraido.current = it.counted_at;
           }
           if ((items ?? []).length < TANDA) break;
         }
         // Sólo los productos del conteo: uno creado después no tiene esperado.
         productos = productos.filter(p => esperado.has(p.id)).map(p => ({ ...p, stock: esperado.get(p.id)! }));
       }
+      setPersonasContando(quienes.current.size);
 
       let retomados = 0;
       const fresh: CountRow[] = productos.map(p => {
@@ -506,6 +515,40 @@ export default function StockCountTab() {
   useEffect(() => () => {
     if (pendiente.current) saveStockCountDraft(pendiente.current.orgId, pendiente.current.rows);
   }, []);
+
+  // Conteo en equipo: cada 15 segundos se trae lo que contaron otros equipos
+  // en el mismo conteo. Lo que este equipo todavía no guardó no se pisa.
+  useEffect(() => {
+    if (!conteoAbierto || loading) return;
+    let vivo = true;
+    const traer = async () => {
+      const countId = conteoIdRef.current;
+      if (!countId || document.hidden) return;
+      let consulta = supabase
+        .from("stock_count_items")
+        .select("product_id,counted,counted_at,counted_by")
+        .eq("count_id", countId)
+        .not("counted", "is", null)
+        .order("counted_at", { ascending: true })
+        .limit(TANDA);
+      if (ultimoTraido.current) consulta = consulta.gt("counted_at", ultimoTraido.current);
+      const { data, error } = await consulta;
+      if (!vivo) return;
+      if (error) { registrarError(error); return; }
+      const nuevos = (data ?? []) as Array<{ product_id: string; counted: number; counted_at: string; counted_by: string | null }>;
+      if (nuevos.length === 0) return;
+      ultimoTraido.current = nuevos[nuevos.length - 1].counted_at;
+      for (const it of nuevos) if (it.counted_by) quienes.current.add(it.counted_by);
+      setPersonasContando(quienes.current.size);
+      const porId = new Map(nuevos.map(it => [it.product_id, String(it.counted)]));
+      setRows(prev => prev.map(r => {
+        const remoto = porId.get(r.product.id);
+        return remoto !== undefined && !sucios.current.has(r.product.id) && remoto !== r.counted ? { ...r, counted: remoto } : r;
+      }));
+    };
+    const id = window.setInterval(() => { void traer(); }, 15_000);
+    return () => { vivo = false; window.clearInterval(id); };
+  }, [conteoAbierto, loading]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
@@ -833,6 +876,11 @@ export default function StockCountTab() {
             <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Guardando lo contado…</>
           ) : (
             <><Cloud className="w-3.5 h-3.5 text-emerald-500" /> Lo contado está guardado. Podés seguir desde otro equipo.</>
+          )}
+          {personasContando > 1 && (
+            <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium">
+              Contando en equipo: {personasContando} personas
+            </span>
           )}
           {conteoAbierto && (
             <Button variant="ghost" size="sm" className="h-7 text-xs ml-auto" onClick={() => { void descartarToma(); }} disabled={saving}>

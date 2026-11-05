@@ -69,6 +69,13 @@ describe("el conteo vive en la base desde el primer producto", () => {
     expect(pantalla).toContain("!reconfirmados.current.has(r.product.id)");
   });
 
+  it("en equipo: trae lo contado por otros cada 15 s sin pisar lo que falta guardar", () => {
+    expect(pantalla).toContain('.gt("counted_at", ultimoTraido.current)');
+    expect(pantalla).toContain("!sucios.current.has(r.product.id)");
+    expect(pantalla).toContain("15_000");
+    expect(pantalla).toContain("Contando en equipo: {personasContando} personas");
+  });
+
   it("se cuenta a ciegas por defecto", () => {
     expect(pantalla).toContain("const [aCiegas, setACiegas] = useState(true);");
     expect(pantalla).toContain('aCiegas ? <span className="text-muted-foreground/60">•••</span> : row.product.stock');
