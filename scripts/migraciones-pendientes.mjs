@@ -83,6 +83,7 @@ export const MATRICES = {
   '20261105000300': 'scripts/cierre-auditoria-matrix.sql',
   '20261105000400': 'scripts/pedido-directo-con-limite-matrix.sql',
   '20261105000500': 'scripts/limites-en-lo-publico-matrix.sql',
+  '20261105000600': 'scripts/tablas-sin-uso-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';
