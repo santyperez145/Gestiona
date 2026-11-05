@@ -36,6 +36,7 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { plural } from "@/lib/plural";
+import { csvCell } from "@/lib/csv";
 // StoreFilter scopes sales/expenses to the selected sucursal via `location_id`.
 // Rows with null location_id only appear under "todas" (no store selected).
 
@@ -520,7 +521,7 @@ export default function ResumenView() {
       m.net.toFixed(2),
       m.units,
     ]);
-    const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+    const csv = BOM + [headers, ...rows].map(r => r.map(csvCell).join(";")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1288,7 +1289,7 @@ export default function ResumenView() {
                       const rows = (derived.catSummary as Array<{ cat: string; revenue: number; profit: number; units: number; margin: number }>).map(r => [
                         r.cat, r.revenue.toFixed(2), r.profit.toFixed(2), r.margin.toFixed(2), r.units,
                       ]);
-                      const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+                      const csv = BOM + [headers, ...rows].map(r => r.map(csvCell).join(";")).join("\n");
                       const a = document.createElement("a");
                       a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
                       a.download = `rentabilidad-categorias-${currentYear}.csv`;
@@ -1611,7 +1612,7 @@ export default function ResumenView() {
                         const rows = derived.channelTrendData.map((r: any) =>
                           headers.map(h => r[h] ?? 0)
                         );
-                        const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
+                        const csv = [headers, ...rows].map(r => r.map(csvCell).join(",")).join("\n");
                         const a = document.createElement("a");
                         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
                         a.download = `canales-venta-${new Date().getFullYear()}.csv`;
@@ -1744,7 +1745,7 @@ export default function ResumenView() {
                 s.name, s.count, s.revenue.toFixed(2), s.profit.toFixed(2),
                 s.avgTicket.toFixed(2), s.margin.toFixed(2),
               ]);
-              const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+              const csv = BOM + [headers, ...rows].map(r => r.map(csvCell).join(";")).join("\n");
               const a = document.createElement("a");
               a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
               a.download = `vendedores-${sellerPeriod}-${currentYear}.csv`;
@@ -1916,7 +1917,7 @@ export default function ResumenView() {
               const BOM = "";
               const headers = ["Categoría", "Total ARS", "% del total"];
               const rows = catData.map(r => [r.cat, r.val.toFixed(2), totalExp > 0 ? ((r.val / totalExp) * 100).toFixed(2) : "0"]);
-              const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+              const csv = BOM + [headers, ...rows].map(r => r.map(csvCell).join(";")).join("\n");
               const a = document.createElement("a");
               a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
               a.download = `gastos-categorias-${yr}.csv`;

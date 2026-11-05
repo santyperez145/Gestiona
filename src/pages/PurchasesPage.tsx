@@ -34,6 +34,7 @@ import {
 } from "@/lib/compras";
 
 import { escribirParaImprimir } from "@/lib/impresionSegura";
+import { csvCell } from "@/lib/csv";
 /**
  * Compras (rearmada 2026-10-14, pedido del dueño: «además de lo visual, tienen
  * funciones totalmente legacy o incoherentes»). Lo que había:
@@ -177,7 +178,7 @@ export default function PurchasesPage() {
   };
 
   const exportarCSV = () => {
-    const celda = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const celda = csvCell;
     const encabezado = ["Fecha", "Comprobante", "Orden", "Proveedor", "Producto", "Cantidad", "Total ARS", "Total USD", "Pago"];
     const filas = filtradas.flatMap(c => c.renglones.map(r => [
       c.fecha, c.comprobante ?? "", c.orden?.numero ?? "", c.proveedor ?? "", r.product_name, r.quantity,

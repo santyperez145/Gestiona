@@ -46,7 +46,7 @@ export function toCSV(rows: Record<string, unknown>[]): string {
     // escribió el comprador; un «=HYPERLINK(…)» se ejecutaba al abrirlo en
     // Excel. Mismo criterio que csvCell. Los números negativos quedan como
     // números: sólo se neutraliza texto.
-    const s = typeof v === "string" && /^[\s\p{Cc}]*[=+\-@]/u.test(crudo) ? `'${crudo}` : crudo;
+    const s = typeof v === "string" && !/^[-+]?\d+(?:[.,]\d+)*$/.test(crudo.trim()) && /^[\s\p{Cc}]*[=+\-@]/u.test(crudo) ? `'${crudo}` : crudo;
     // Se entrecomilla si hay separador, comillas o saltos de línea.
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };

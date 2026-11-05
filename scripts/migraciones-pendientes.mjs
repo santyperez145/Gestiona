@@ -78,6 +78,7 @@ export const MATRICES = {
   '20261101000100': 'scripts/facturar-suscripciones-matrix.sql',
   '20261103000100': 'scripts/publicar-tienda-matrix.sql',
   '20261104000100': 'scripts/sin-descuentos-de-fabrica-matrix.sql',
+  '20261105000100': 'scripts/csv-contable-sin-formulas-matrix.sql',
 };
 
 const DIR = 'supabase/migrations';

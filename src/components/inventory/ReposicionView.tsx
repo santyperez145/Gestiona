@@ -39,6 +39,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 
 import { plural } from "@/lib/plural";
+import { csvCell } from "@/lib/csv";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Product {
@@ -369,7 +370,7 @@ export default function ReposicionView() {
         i.daysUntilStockout === 999 ? "Sin ventas" : i.daysUntilStockout,
         qty,
         (qty * i.product.costo).toFixed(2),
-      ].join(",");
+      ].map(csvCell).join(",");
     });
     const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

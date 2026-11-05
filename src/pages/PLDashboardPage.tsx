@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { csvCell } from "@/lib/csv";
 // StoreFilter scopes sales/expenses to the selected sucursal via `location_id`.
 // Purchases carry no location_id, so they are not scoped by store.
 
@@ -245,7 +246,7 @@ export default function PLDashboardPage() {
     const rows = [
       ["Mes", "Ingresos", "Costo de lo vendido", "Ganancia bruta", "Margen bruto %", "Gastos", "Ganancia neta", "Margen neto %"],
       ...monthlyPL.map(m => [m.label, m.revenue, m.cogs, m.grossProfit, `${m.grossMargin}%`, m.expenses, m.netProfit, `${m.netMargin}%`]),
-    ].map(r => r.join(",")).join("\n");
+    ].map(r => r.map(csvCell).join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([rows], { type: "text/csv" }));
     a.download = "pyg.csv";

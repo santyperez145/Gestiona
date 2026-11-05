@@ -12,33 +12,13 @@ import { toCSV } from "@/lib/orgDataExport";
  * PENDIENTES es deuda conocida: archivos que arman su CSV a mano. La lista
  * sólo puede achicarse; un archivo nuevo que genere CSV sin el helper falla.
  */
-const PENDIENTES = new Set([
-  "src/components/analytics/ResumenView.tsx",
-  "src/components/ecommerce/StoreOrdersPanel.tsx",
-  "src/components/finance/BankReconciliationPanel.tsx",
-  "src/components/inventory/ForecastView.tsx",
-  "src/components/inventory/ReposicionView.tsx",
-  "src/components/products/ProductsExcelImport.tsx",
-  "src/components/shared/IdentityHealthPanel.tsx",
-  "src/hooks/useFileSystemAccess.ts",
-  "src/lib/financeExport.ts",
-  "src/pages/AdminPage.tsx",
-  "src/pages/BankReconciliationPage.tsx",
-  "src/pages/CashSessionPage.tsx",
-  "src/pages/ExpensesPage.tsx",
-  "src/pages/FinancialMovementsPage.tsx",
-  "src/pages/InventoryValuationPage.tsx",
-  "src/pages/KardexPage.tsx",
-  "src/pages/PlatformAdminPage.tsx",
-  "src/pages/PLDashboardPage.tsx",
-  "src/pages/PriceListsPage.tsx",
-  "src/pages/ProveedoresPage.tsx",
-  "src/pages/PurchasesPage.tsx",
-  "src/pages/RemitosPage.tsx",
-]);
+const PENDIENTES = new Set<string>([]);
 
-const HELPER = /csvCell|toCSV|@\/lib\/csv"|@\/lib\/orgDataExport/;
-const GENERA_CSV = /text\/csv|\.csv[`"']/;
+// Las librerías que ya arman sus celdas con csvCell cuentan como helper;
+// finance_export_batch_csv las arma en la base con csv_celda (20261105000100).
+const HELPER = /csvCell|toCSV|@\/lib\/csv"|@\/lib\/orgDataExport|buildStoreOrdersCsv|remitosCsv|inventoryCapitalCsv|buildIdentityReviewCsv|finance_export_batch_csv/;
+// Genera un CSV quien arma un archivo text/csv para bajar (importar uno no).
+const GENERA_CSV = /type:\s*["'`]text\/csv/;
 
 const archivos = (dir: string): string[] =>
   readdirSync(dir).flatMap(nombre => {
@@ -54,6 +34,8 @@ describe("CSV sin fórmulas", () => {
     }
     // Un número negativo sigue siendo un número.
     expect(toCSV([{ saldo: -150 }]).split("\r\n")[1]).toBe("-150");
+    expect(csvCell("-150.00")).toBe('"-150.00"');
+    expect(toCSV([{ saldo: "-1.234,50" }]).split("\r\n")[1]).toBe('"-1.234,50"');
   });
 
   it("ningún archivo nuevo arma CSV sin el helper", () => {

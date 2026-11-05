@@ -39,6 +39,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
+import { csvCell } from "@/lib/csv";
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Movement = {
   id: string;
@@ -90,11 +91,11 @@ function downloadCSV(movements: Movement[]) {
     fechaLocal(m.happened_at).toLocaleDateString("es-AR"),
     esIngreso(m) ? "Ingreso" : "Egreso",
     SOURCE_LABELS[m.source_type] ?? m.source_type,
-    `"${m.description.replace(/"/g, '""')}"`,
-    `"${(m.counterparty ?? "").replace(/"/g, '""')}"`,
+    m.description,
+    m.counterparty ?? "",
     nombreDelMedio(m.payment_method),
     esIngreso(m) ? m.amount_ars : -m.amount_ars,
-  ].join(",")).join("\n");
+  ].map(csvCell).join(",")).join("\n");
   const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

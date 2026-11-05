@@ -34,6 +34,7 @@ import SupportWorkspace from "@/components/support/SupportWorkspace";
 
 import { plural } from "@/lib/plural";
 import { roleLabel } from "@/lib/roleLabels";
+import { csvCell } from "@/lib/csv";
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface OrgRow {
@@ -566,10 +567,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     ]);
     const csv = [
       headers.join(','),
-      ...rows.map(r => r.map(c => {
-        const s = String(c);
-        return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
-      }).join(',')),
+      ...rows.map(r => r.map(csvCell).join(',')),
     ].join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);

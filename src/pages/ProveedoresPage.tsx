@@ -34,6 +34,7 @@ import { isMissingColumn } from "@/lib/publicDataSource";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 import { plural } from "@/lib/plural";
+import { csvCell } from "@/lib/csv";
 type Supplier = {
   id: string;
   name: string;
@@ -408,7 +409,7 @@ export default function ProveedoresPage() {
       String(pendingBySupplier[s.id] || 0),
       s.active ? 'Sí' : 'No',
     ]);
-    const csv = bom + [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = bom + [header, ...rows].map(r => r.map(csvCell).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

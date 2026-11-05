@@ -33,6 +33,7 @@ import StockCountTab from "@/components/inventory/StockCountTab";
 import StockReservationsTab from "@/components/inventory/StockReservationsTab";
 
 import ProductCombobox from "@/components/shared/ProductCombobox";
+import { csvCell } from "@/lib/csv";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type MovementType =
@@ -306,7 +307,7 @@ export default function KardexPage() {
       m.actor_name ?? "Sistema o historial previo",
       m.notes ?? "",
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map(r => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

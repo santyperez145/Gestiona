@@ -28,6 +28,7 @@ import { summarizePosCashSession } from "@/lib/posCashSession";
 
 import { plural } from "@/lib/plural";
 import { escribirParaImprimir } from "@/lib/impresionSegura";
+import { csvCell } from "@/lib/csv";
 // ── Export helpers ────────────────────────────────────────────────────────────
 function printCashReport(
   session: CashSession,
@@ -139,7 +140,7 @@ function exportCashCSV(session: CashSession, entries: CashEntry[], orgName: stri
       String(Number(e.amount_ars)),
     ]),
   ];
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const csv = rows.map(r => r.map(csvCell).join(",")).join("\n");
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

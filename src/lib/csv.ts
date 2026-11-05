@@ -14,6 +14,10 @@ export function csvCell(value: unknown): string {
   const text = String(value ?? "").replace(/\r?\n/g, " ");
   // Excel and Sheets interpret values beginning with these characters as
   // formulas. An internal export must remain data when someone opens it.
-  const safe = /^[\s\p{Cc}]*[=+\-@]/u.test(text) ? `'${text}` : text;
+  // Un número (también negativo: «-150.00» de un toFixed) sigue siendo un
+  // número; prefijarlo lo volvía texto y rompía las columnas de montos
+  // (2026-11-05). «-1+2» o «+1+1» no son números: se neutralizan.
+  const esNumero = typeof value === "number" || /^[-+]?\d+(?:[.,]\d+)*$/.test(text.trim());
+  const safe = !esNumero && /^[\s\p{Cc}]*[=+\-@]/u.test(text) ? `'${text}` : text;
   return `"${safe.replace(/"/g, '""')}"`;
 }

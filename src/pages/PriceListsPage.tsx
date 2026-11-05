@@ -50,6 +50,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
 
 import ProductCombobox from "@/components/shared/ProductCombobox";
+import { csvCell } from "@/lib/csv";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PriceList {
@@ -445,7 +446,7 @@ export default function PriceListsPage() {
   const exportCSV = () => {
     const rows = [["Lista", "Moneda", "Descuento", "Aplica a", "Activa"],
       ...lists.map(l => [l.name, l.currency, discountLabel(l), l.applies_to, l.is_active ? "Sí" : "No"])];
-    const csv = rows.map(r => r.join(",")).join("\n");
+    const csv = rows.map(r => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "listas-precios.csv"; a.click();
   };

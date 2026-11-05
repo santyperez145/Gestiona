@@ -48,6 +48,7 @@ import KPICard from "@/components/shared/KPICard";
 import EmptyState from "@/components/shared/EmptyState";
 
 import { escribirParaImprimir } from "@/lib/impresionSegura";
+import { csvCell } from "@/lib/csv";
 function ExpenseReceiptLink({
   reference,
   compact = false,
@@ -100,15 +101,16 @@ function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => str
   const header = ['Fecha', 'Descripción', 'Proveedor', 'Categoría', 'Centro de costo', 'Medio de pago', 'Monto (ARS)', 'Recurrente'];
   const rows = expenses.map(e => [
     e.date,
-    `"${(e.description || '').replace(/"/g, '""')}"`,
-    `"${(e.vendor || '').replace(/"/g, '""')}"`,
+    e.description || '',
+    e.vendor || '',
     getCategoryLabel(e.category),
-    `"${(e.cost_center || '').replace(/"/g, '""')}"`,
-    `"${(e.payment_method || '').replace(/"/g, '""')}"`,
+    e.cost_center || '',
+    e.payment_method || '',
     Number(e.amount_ars).toFixed(2),
     e.recurring ? 'Sí' : 'No',
   ]);
-  const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+  // csvCell (2026-11-05): escapa y neutraliza fórmulas en cada celda.
+  const csv = [header.join(','), ...rows.map(r => r.map(csvCell).join(','))].join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `gastos_${hoyAR()}.csv`; a.click();

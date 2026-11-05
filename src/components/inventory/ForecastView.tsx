@@ -47,6 +47,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
 
+import { csvCell } from "@/lib/csv";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Product {
@@ -322,7 +323,7 @@ export default function ForecastView() {
         VELOCITY_CONFIG[f.velocity].label, f.reorderPoint, f.urgency,
       ]),
     ];
-    const csv = rows.map(r => r.join(",")).join("\n");
+    const csv = rows.map(r => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "forecast-inventario.csv"; a.click();
   };

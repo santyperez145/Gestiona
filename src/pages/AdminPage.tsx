@@ -31,6 +31,7 @@ import ActivityFeedTab from "@/components/admin/ActivityFeedTab";
 import PermissionsTab from "@/components/admin/PermissionsTab";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
+import { csvCell } from "@/lib/csv";
 const CHART_COLORS = [
   'hsl(var(--primary))',
   'hsl(150 60% 40%)',
@@ -616,7 +617,7 @@ function SystemAuditLogTab() {
       l.user_email ?? "", l.action, l.entity_type,
       l.entity_label ?? "", l.severity, l.ip_address ?? ""
     ]);
-    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map(r => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `audit_${filterFrom}_${filterTo}.csv`; a.click();
