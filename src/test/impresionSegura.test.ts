@@ -66,4 +66,10 @@ describe("ventanas de impresión seguras", () => {
       .filter(f => /dangerouslySetInnerHTML\s*=/.test(readFileSync(f, "utf8")));
     expect(crudos, "renderizar como texto o pasar por miniMarkdown").toEqual([]);
   });
+
+  it("el «Seguirlo» de la tienda sólo enlaza http(s)", () => {
+    const fuente = readFileSync("src/storefront/OrderTracking.tsx", "utf8");
+    expect(fuente.match(/href=\{[^}]*tracking_url\}/g)?.length).toBe(2);
+    expect(fuente.match(/tracking_url && esUrlSegura\([^)]*tracking_url\) &&/g)?.length).toBe(2);
+  });
 });

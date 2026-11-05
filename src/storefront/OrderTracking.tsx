@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { carrierLabel } from "@/lib/carriers";
+import { esUrlSegura } from "@/lib/storeMenu";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
 import {
   PASO_ESPERANDO_PAGO, fechaSeguimiento, indicePasoSeguimiento, pasosSeguimiento,
@@ -240,7 +241,7 @@ export default function OrderTracking({
               {envio.tracking && (
                 <p className="text-xs mt-0.5">
                   {carrierLabel(envio.carrier)} · <span className="font-mono">{envio.tracking}</span>
-                  {envio.tracking_url && (
+                  {envio.tracking_url && esUrlSegura(envio.tracking_url) && (
                     <a href={envio.tracking_url} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 ml-2 hover:underline" style={{ color: "hsl(var(--st-link))" }}>
                       Seguirlo <ExternalLink className="w-3 h-3" />
@@ -259,7 +260,7 @@ export default function OrderTracking({
             {carrierLabel(t.carrier)}
           </p>
           <p className="font-mono font-medium mt-0.5">{t.tracking_number}</p>
-          {t.tracking_url && (
+          {t.tracking_url && esUrlSegura(t.tracking_url) && (
             <a
               href={t.tracking_url} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs mt-1.5 hover:underline"
