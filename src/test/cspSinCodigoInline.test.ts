@@ -38,4 +38,33 @@ describe("la política del sitio no deja correr código inyectado", () => {
     const autorizados = scriptSrc.match(/'sha256-[^']+'/g) ?? [];
     expect(autorizados.sort()).toEqual([...inlineEjecutables].sort());
   });
+
+  it("nadie embebe el sitio ni le cambia el destino a un formulario", () => {
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("form-action 'self'");
+    expect(csp).toContain("object-src 'none'");
+    const cabeceras = vercel.headers.flatMap(h => h.headers);
+    expect(cabeceras.find(h => h.key === "Cross-Origin-Opener-Policy")?.value).toBe("same-origin-allow-popups");
+  });
+});
+
+/**
+ * Permisos del navegador (2026-11-05). La política decía `camera=()`,
+ * `microphone=()` y `geolocation=()`: bloqueaba también a nuestro propio
+ * origen, así que en producción no andaban el escáner del POS, el conteo de
+ * stock, los comandos de voz ni la ubicación del cobro con QR. Cada permiso
+ * que el código usa tiene que estar habilitado para `self`.
+ */
+describe("la política de permisos deja usar lo que la app usa", () => {
+  const permisos = vercel.headers.flatMap(h => h.headers).find(h => h.key === "Permissions-Policy")?.value ?? "";
+  const fuentes = ["src/hooks/useBarcodeScan.ts", "src/components/shared/BarcodeScanModal.tsx", "src/pages/POSPage.tsx",
+    "src/hooks/useSpeechRecognition.ts", "src/components/pos/PosQrCheckoutDialog.tsx"].map(f => readFileSync(f, "utf8")).join("\n");
+  it.each([
+    ["camera", /getUserMedia|facingMode|BarcodeDetector/],
+    ["microphone", /SpeechRecognition/],
+    ["geolocation", /navigator\.geolocation/],
+  ])("%s habilitado para el propio sitio si el código lo usa", (permiso, uso) => {
+    expect(uso.test(fuentes), `ya no se usa ${permiso}: ajustar la prueba`).toBe(true);
+    expect(permisos).toContain(`${permiso}=(self)`);
+  });
 });
