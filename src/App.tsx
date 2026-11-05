@@ -149,7 +149,7 @@ function PlatformRoutes() {
     // 2FA sin excepciones para el staff de plataforma: desde acá se leen todos
     // los tenants y se borran organizaciones. Es la cuenta más valiosa del
     // sistema para un atacante, así que no depende de la config de ninguna org.
-    <MfaGate isAdmin orgRequiresMfa>
+    <MfaGate isAdmin orgRequiresMfa permitirRecordar={false}>
     <PlatformLayout>
       <Suspense fallback={<PageLoader />}>
         <Routes>

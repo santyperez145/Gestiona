@@ -6,6 +6,7 @@
 //          suspendOrg, reactivateOrg, getAdminLogs, getOrgActivity
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { validatePlanUpdates } from "../_shared/planUpdates.ts";
+import { MENSAJE_SIN_SEGUNDO_FACTOR, sesionConSegundoFactor } from "../_shared/staffConSegundoFactor.ts";
 
 const ALLOWED_ORIGINS = [
   "https://nerqia.app",
@@ -85,6 +86,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!pa) return json({ error: "Acceso denegado" }, 403);
+    if (!sesionConSegundoFactor(req, user.id)) {
+      return json({ error: MENSAJE_SIN_SEGUNDO_FACTOR, code: "staff_sin_segundo_factor" }, 403);
+    }
 
     const body = await req.json();
     const { action } = body;

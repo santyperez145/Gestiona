@@ -35,13 +35,19 @@ interface Props {
   isAdmin: boolean;
   /** true si la org exige 2FA a sus admins */
   orgRequiresMfa: boolean;
+  /**
+   * false para el staff de plataforma (2026-11-05): un dispositivo recordado
+   * deja la sesión en AAL1 y la base ya no la acepta como staff. Se pide el
+   * código en cada sesión.
+   */
+  permitirRecordar?: boolean;
   children: React.ReactNode;
 }
 
 /** Esperas entre reintentos de la verificación ante un error pasajero. */
 export const ESPERAS_DE_REINTENTO_MS = [700, 2_000, 5_000];
 
-export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
+export default function MfaGate({ isAdmin, orgRequiresMfa, permitirRecordar = true, children }: Props) {
   const [state, setState] = useState<GateState>("checking");
   const [code, setCode] = useState("");
   const [factorId, setFactorId] = useState<string | null>(null);
@@ -84,7 +90,7 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
         { isAdmin, orgRequiresMfa },
       );
       let rememberedUntil: string | null = null;
-      if (decision === "needs_code" && canRememberDevice()) {
+      if (decision === "needs_code" && permitirRecordar && canRememberDevice()) {
         try {
           const remembered = await trustedDeviceCommand("redeem");
           if (requestId !== generation.current) return;
@@ -242,7 +248,7 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   if (state === "ok") return <>{children}</>;
 
   const signOut = () => supabase.auth.signOut();
-  const rememberControl = canRememberDevice() ? (
+  const rememberControl = permitirRecordar && canRememberDevice() ? (
     <div className="space-y-1.5">
       <label className="flex items-start gap-2 text-sm cursor-pointer">
         <Checkbox checked={remember} onCheckedChange={value => setRemember(value === true)} disabled={verifying} className="mt-0.5" />

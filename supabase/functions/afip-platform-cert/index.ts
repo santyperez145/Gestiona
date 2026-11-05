@@ -20,6 +20,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireUser } from "../_shared/requireUser.ts";
+import { MENSAJE_SIN_SEGUNDO_FACTOR, sesionConSegundoFactor } from "../_shared/staffConSegundoFactor.ts";
 import { requireEnv } from "../_shared/env.ts";
 import { esPem, ERROR_CERT, ERROR_CLAVE } from "../_shared/pem.ts";
 import { cifrarSecreto, descifrarSecreto } from "../_shared/secretos.ts";
@@ -65,6 +66,9 @@ Deno.serve(async (req) => {
       return json({ error: "No se pudo verificar el permiso" }, 500);
     }
     if (!esAdmin) return json({ error: "Solo el staff de plataforma puede tocar este certificado" }, 403);
+    if (!sesionConSegundoFactor(req, user.id)) {
+      return json({ error: MENSAJE_SIN_SEGUNDO_FACTOR, code: "staff_sin_segundo_factor" }, 403);
+    }
 
     const body = await req.json().catch(() => ({}));
     const { action, certificate, privateKey, cuit, razonSocial, environment } = body;

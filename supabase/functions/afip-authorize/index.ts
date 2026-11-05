@@ -28,6 +28,7 @@ import {
   extraerXml as extractXml,
 } from "../_shared/wsaaRespuesta.ts";
 import { esLlamadaDeCron } from "../_shared/cronAuth.ts";
+import { sesionConSegundoFactor } from "../_shared/staffConSegundoFactor.ts";
 import { pedirTicketWsaa } from "../_shared/wsaaLogin.ts";
 import {
   validarEventoFiscalOutbox,
@@ -307,7 +308,9 @@ Deno.serve(async (req) => {
           .from("platform_admins").select("user_id,role")
           .eq("user_id", actorId).maybeSingle(),
       ]);
-      const platformAdmin = platformStaff?.role === "superadmin" ? platformStaff : null;
+      // El staff sin segundo factor no actúa como staff (20261105000800).
+      const platformAdmin = platformStaff?.role === "superadmin" && actorId && sesionConSegundoFactor(req, actorId)
+        ? platformStaff : null;
       if (!membership && !platformAdmin) {
         return err("No tenés permiso para verificar esta conexión fiscal", 403);
       }

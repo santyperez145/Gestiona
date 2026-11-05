@@ -13,13 +13,14 @@ let staff: string | null;
 let platformCuit: string;
 let context: { data: unknown; error: unknown }, resolveFailure: boolean, providerFailure: string | null;
 let pointFailure: boolean;
+let conSegundoFactor: boolean;
 const rpc = vi.fn(), provider = vi.fn(), reads: string[] = [];
 const cred = { cuit: "20123456786", punto_venta: 12, tipo_emisor: "responsable_inscripto", environment: "homologacion",
   modo: "delegado", certificate: "ZZ unused", private_key: "ZZ unused", conexion_version: 7,
   ta_token: "ZZ test TA", ta_sign: "ZZ test sign", ta_expires_at: "2099-01-01T00:00:00Z" };
 beforeEach(() => {
   authenticated = true; member = true; allowed = true; staff = null; platformCuit = cred.cuit; context = { data: { ok: true }, error: null };
-  resolveFailure = false; providerFailure = null; pointFailure = false; reads.length = 0;
+  resolveFailure = false; providerFailure = null; pointFailure = false; conSegundoFactor = true; reads.length = 0;
   rpc.mockReset().mockImplementation(async (name: string) => name === "has_permission" ? { data: allowed, error: null } : context);
   provider.mockReset().mockImplementation(async () => {
     if (providerFailure) throw new Error(providerFailure);
@@ -29,12 +30,12 @@ beforeEach(() => {
     from: (table: string) => { reads.push(table); const query = { select: () => query, eq: () => query, in: () => query,
       maybeSingle: async () => ({ data: table === "memberships" ? member ? { role: "owner" } : null
         : table === "platform_admins" ? staff ? { user_id: "zz-actor", role: staff } : null : { cuit: platformCuit }, error: null }) }; return query; } };
-  new Function("createClient", "Deno", "resolverCredencialesAfip", "esLlamadaDeCron", "ArcaReadError", "assertEnabledPoint", "puntosHabilitadosCae", "leerUltimoAutorizadoWsfe", "fetch", "console", executable)(
+  new Function("createClient", "Deno", "resolverCredencialesAfip", "esLlamadaDeCron", "ArcaReadError", "assertEnabledPoint", "puntosHabilitadosCae", "leerUltimoAutorizadoWsfe", "fetch", "console", "sesionConSegundoFactor", executable)(
     () => admin, { env: { get: () => "ZZ test environment" }, serve: (serve: typeof handler) => { handler = serve; } },
     async () => resolveFailure ? { error: "ZZ secret database error" } : { cred }, () => false, ReadError,
     () => { if (pointFailure) throw new ReadError("point_not_enabled", "Punto de venta no habilitado"); },
     () => (pointFailure ? [3] : [12]),
-    () => 0, provider, { error: vi.fn() },
+    () => 0, provider, { error: vi.fn() }, () => conSegundoFactor,
   );
 });
 const request = () => new Request("https://example.invalid/arca", { method: "POST", headers: { Authorization: "Bearer ZZ test" },
@@ -71,6 +72,10 @@ describe("actual ARCA verification handler with controlled dependencies", () => 
     const data = await (await handler(request())).json(); expect(data.ok).toBe(true);
     expect(rpc).toHaveBeenCalledWith("afip_confirmar_contexto", expect.objectContaining({ p_revisor: "zz-actor" }));
     expect(reads).not.toContain("invoices");
+  });
+  it("does not treat Platform staff as staff without the second factor (aal1)", async () => {
+    member = false; allowed = false; staff = "superadmin"; conSegundoFactor = false;
+    expect((await handler(request())).status).toBe(403); expect(provider).not.toHaveBeenCalled();
   });
   it.each(["support", "finance"])("does not grant fiscal review to Platform %s", async role => {
     member = false; allowed = false; staff = role;
