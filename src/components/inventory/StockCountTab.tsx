@@ -3,6 +3,16 @@
  * Rendered as the "Toma Física" tab inside KardexPage (/kardex).
  *
  * Physical-count / stock-adjustment workflow with barcode scanning.
+ *
+ * Desde 2026-11-05:
+ *  - El conteo se abre en la base con el primer producto contado (ahí se
+ *    congela lo esperado) y cada producto se registra a medida que se cuenta,
+ *    con su hora: el cierre ajusta contra el stock de ese momento
+ *    (20261105000900). Antes se abría y registraba todo recién al cerrar, y una
+ *    venta hecha mientras se contaba volvía como sobrante.
+ *  - El escáner cuenta desde cero (sumaba al stock del sistema), queda abierto
+ *    entre lecturas, suena y vibra, y sólo acepta códigos exactos.
+ *  - Se cuenta a ciegas por defecto: ver el stock del sistema sesga al que cuenta.
  */
 import { memo, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
@@ -12,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchOrgProducts } from "@/lib/supabaseStore";
 import { isMissingFunction } from "@/lib/publicDataSource";
 import { clearStockCountDraft, loadStockCountDraft, saveStockCountDraft } from "@/lib/stockCountDraft";
+import { registrarError } from "@/lib/registroDeErrores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import KPICard from "@/components/shared/KPICard";
@@ -19,29 +30,25 @@ import { toast } from "sonner";
 import {
   CheckCircle2, RefreshCw,
   Loader2, Download, Search, ChevronUp, ChevronDown,
-  PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap,
+  PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap, Eye, EyeOff, Undo2, CloudOff, Cloud,
 } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { hoyAR } from "@/lib/fechaAR";
 
 // ─── Barcode scanner hook ─────────────────────────────────────────────────────
 
+/** Una lectura del mismo código dentro de esta ventana es la misma etiqueta todavía enfocada. */
+export const REPETICION_DEL_MISMO_CODIGO_MS = 1500;
+
 function useBarcodeScanner(onDetected: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<any>(null);
   const [scanning, setScanning] = useState(false);
-
-  const start = useCallback(async () => {
-    try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      readerRef.current = reader;
-      setScanning(true);
-      await reader.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
-        if (result) { onDetected(result.getText()); stop(); }
-      });
-    } catch { setScanning(false); }
-  }, [onDetected]);
+  // El lector queda abierto entre lecturas: el callback se lee de una ref para
+  // usar siempre el estado actual, no el del momento en que se abrió la cámara.
+  const onDetectedRef = useRef(onDetected);
+  onDetectedRef.current = onDetected;
+  const ultima = useRef<{ code: string; at: number } | null>(null);
 
   const stop = useCallback(() => {
     readerRef.current?.reset();
@@ -53,7 +60,47 @@ function useBarcodeScanner(onDetected: (code: string) => void) {
     }
   }, []);
 
+  const start = useCallback(async () => {
+    try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const reader = new BrowserMultiFormatReader();
+      readerRef.current = reader;
+      setScanning(true);
+      await reader.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
+        if (!result) return;
+        const code = result.getText().trim();
+        const ahora = Date.now();
+        if (ultima.current && ultima.current.code === code && ahora - ultima.current.at < REPETICION_DEL_MISMO_CODIGO_MS) return;
+        ultima.current = { code, at: ahora };
+        onDetectedRef.current(code);
+      });
+    } catch {
+      setScanning(false);
+      toast.error("No pudimos abrir la cámara. Revisá el permiso del navegador.");
+    }
+  }, []);
+
   return { videoRef, scanning, start, stop };
+}
+
+/** Un pitido corto (y vibración en el teléfono): se cuenta sin mirar la pantalla. */
+function avisarLectura(ok: boolean) {
+  try {
+    navigator.vibrate?.(ok ? 40 : [60, 60, 60]);
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = ok ? 1320 : 220;
+    gain.gain.value = 0.08;
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + (ok ? 0.08 : 0.25));
+    osc.onended = () => { void ctx.close(); };
+  } catch {
+    // Sin audio o vibración el conteo sigue igual.
+  }
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -62,6 +109,7 @@ interface Product {
   id: string;
   name: string;
   category: string;
+  /** Con un conteo abierto, lo esperado congelado al abrirlo. */
   stock: number;
   cost_usd: number;
   image_url?: string | null;
@@ -76,24 +124,43 @@ interface CountRow {
 
 type SortKey = "name" | "diff" | "system";
 
+/** Lo leído por el escáner, para el código exacto del producto. */
+export function productoDelCodigo<T extends { product: { barcode?: string | null; sku?: string | null; name: string } }>(
+  rows: T[], code: string,
+): T | null {
+  const c = code.trim();
+  if (!c) return null;
+  return rows.find(r => r.product.barcode === c)
+    ?? rows.find(r => r.product.sku === c)
+    ?? rows.find(r => r.product.name.trim().toLowerCase() === c.toLowerCase())
+    ?? null;
+}
+
+/** El escaneo cuenta desde cero: la primera lectura de un producto es 1 (× el multiplicador). */
+export function contadoTrasEscanear(actual: string, multiplicador: number): string {
+  const base = actual === "" ? 0 : Number(actual) || 0;
+  return String(base + multiplicador);
+}
+
 // ─── Renglón ──────────────────────────────────────────────────────────────────
 
 // Memorizado: con un catálogo de 5.500 productos, cada tecla redibujaba los
 // 5.500 renglones con su campo. Así se redibuja sólo el que cambió.
 const FilaConteo = memo(function FilaConteo({
-  row, idx, categoria, isHighlighted, rowRefs, inputRefs, onCount, onEnter,
+  row, idx, categoria, isHighlighted, aCiegas, rowRefs, inputRefs, onCount, onEnter,
 }: {
   row: CountRow;
   idx: number;
   categoria: string;
   isHighlighted: boolean;
+  aCiegas: boolean;
   rowRefs: React.MutableRefObject<Record<string, HTMLTableRowElement | null>>;
   inputRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
   onCount: (id: string, value: string) => void;
   onEnter: (idx: number) => void;
 }) {
   const counted = row.counted !== "" ? Number(row.counted) : null;
-  const diff = counted !== null ? counted - row.product.stock : null;
+  const diff = !aCiegas && counted !== null ? counted - row.product.stock : null;
   const diffColor = diff === null
     ? ""
     : diff > 0
@@ -117,7 +184,7 @@ const FilaConteo = memo(function FilaConteo({
       <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell">
         {categoria}
       </td>
-      <td className="px-3 py-2.5 text-right font-mono">{row.product.stock}</td>
+      <td className="px-3 py-2.5 text-right font-mono">{aCiegas ? <span className="text-muted-foreground/60">•••</span> : row.product.stock}</td>
       <td className="px-3 py-2.5 text-right">
         <Input
           ref={el => { inputRefs.current[row.product.id] = el; }}
@@ -145,6 +212,8 @@ const FilaConteo = memo(function FilaConteo({
 
 // ─── Tab ──────────────────────────────────────────────────────────────────────
 
+const TANDA = 1000;
+
 export default function StockCountTab() {
   const { activeOrg } = useOrg();
   const { ask, dialog } = useConfirmDialog();
@@ -156,6 +225,8 @@ export default function StockCountTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rows, setRows] = useState<CountRow[]>([]);
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -167,49 +238,153 @@ export default function StockCountTab() {
   const [scanCount, setScanCount] = useState(0);
   /** Borrador recuperado tras recarga/corte: muestra banner para retomar. */
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
+  /** A ciegas: no se muestra lo que el sistema cree tener mientras se cuenta. */
+  const [aCiegas, setACiegas] = useState(true);
+  const [multiplicador, setMultiplicador] = useState(1);
+  const ultimaLectura = useRef<{ id: string; antes: string } | null>(null);
+  const [puedeDeshacer, setPuedeDeshacer] = useState(false);
 
-  // Barcode scan handler: find product by barcode/sku/name, increment its count
+  // Conteo abierto en la base y lo que falta registrar en él.
+  const conteoIdRef = useRef<string | null>(null);
+  const [conteoAbierto, setConteoAbierto] = useState(false);
+  const sucios = useRef(new Set<string>());
+  const [sincronizacion, setSincronizacion] = useState<"al_dia" | "guardando" | "error">("al_dia");
+  const registrando = useRef<Promise<void> | null>(null);
+
+  const marcar = useCallback((id: string) => { sucios.current.add(id); }, []);
+
+  // Barcode scan handler: código exacto (barras, SKU o nombre), cuenta desde cero.
   const handleBarcodeScan = useCallback((code: string) => {
-    const found = rows.find(r =>
-      r.product.barcode === code ||
-      r.product.sku === code ||
-      r.product.name.toLowerCase() === code.toLowerCase()
-    );
+    const found = productoDelCodigo(rowsRef.current, code);
     if (!found) {
-      // Try partial match by name
-      const partial = rows.find(r => r.product.name.toLowerCase().includes(code.toLowerCase()));
-      if (!partial) { toast.error(`Código "${code}" no encontrado`); return; }
-      const id = partial.product.id;
-      setRows(prev => prev.map(r => r.product.id === id
-        ? { ...r, counted: String((r.counted === '' ? r.product.stock : Number(r.counted)) + 1) }
-        : r
-      ));
-      setHighlightedId(id);
-      setScanCount(n => n + 1);
-      setTimeout(() => {
-        rowRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        inputRefs.current[id]?.focus();
-        setHighlightedId(null);
-      }, 150);
-      toast.success(`${partial.product.name} +1`);
+      avisarLectura(false);
+      toast.error(`Código "${code}" no encontrado`);
       return;
     }
     const id = found.product.id;
-    setRows(prev => prev.map(r => r.product.id === id
-      ? { ...r, counted: String((r.counted === '' ? r.product.stock : Number(r.counted)) + 1) }
-      : r
-    ));
+    ultimaLectura.current = { id, antes: found.counted };
+    setPuedeDeshacer(true);
+    const nuevo = contadoTrasEscanear(found.counted, multiplicador);
+    setRows(prev => prev.map(r => r.product.id === id ? { ...r, counted: nuevo } : r));
+    marcar(id);
+    avisarLectura(true);
     setHighlightedId(id);
     setScanCount(n => n + 1);
     setTimeout(() => {
       rowRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      inputRefs.current[id]?.focus();
       setHighlightedId(null);
     }, 150);
-    toast.success(`${found.product.name} +1`);
-  }, [rows]);
+    toast.success(`${found.product.name}: ${nuevo}`, { id: "lectura-conteo" });
+  }, [marcar, multiplicador]);
+
+  const deshacerLectura = () => {
+    const ultima = ultimaLectura.current;
+    if (!ultima) return;
+    setRows(prev => prev.map(r => r.product.id === ultima.id ? { ...r, counted: ultima.antes } : r));
+    if (ultima.antes !== "") marcar(ultima.id);
+    ultimaLectura.current = null;
+    setPuedeDeshacer(false);
+    setScanCount(n => Math.max(0, n - 1));
+  };
 
   const { videoRef: scanVideoRef, scanning: scannerOpen, start: startScan, stop: stopScan } = useBarcodeScanner(handleBarcodeScan);
+
+  // ── Conteo en la base ─────────────────────────────────────────────────────
+
+  /** El conteo abierto de la organización (alcance total), si hay uno. */
+  const buscarConteoAbierto = async (orgId: string): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from("stock_counts")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("status", "abierto")
+      .is("location_id", null)
+      .order("opened_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) { registrarError(error); return null; }
+    return (data as { id?: string } | null)?.id ?? null;
+  };
+
+  /** Abre el conteo con el primer producto contado: ahí se congela lo esperado. */
+  const asegurarConteo = async (): Promise<string> => {
+    if (conteoIdRef.current) return conteoIdRef.current;
+    const { data: opened, error: openError } = await supabase.rpc("abrir_conteo", {
+      p_org_id: activeOrg!.id,
+      p_location_id: null,
+      p_notes: `Toma física ${new Date().toLocaleDateString("es-AR")}`,
+      p_solo_con_stock: false,
+    });
+    if (openError) {
+      // Otro dispositivo lo abrió recién: se suma a ese.
+      const existente = await buscarConteoAbierto(activeOrg!.id);
+      if (!existente) throw openError;
+      conteoIdRef.current = existente;
+    } else {
+      const payload = opened as { conteo_id?: unknown } | null;
+      const id = typeof payload?.conteo_id === "string" ? payload.conteo_id : null;
+      if (!id) throw new Error("La base no devolvió el identificador del conteo");
+      conteoIdRef.current = id;
+    }
+    setConteoAbierto(true);
+    return conteoIdRef.current!;
+  };
+
+  /**
+   * Registra en la base lo contado que todavía no está. En tandas de 1.000
+   * (20261023000500): de a uno eran 5.500 llamadas con el catálogo de Famatina.
+   * Un producto que cambió mientras viajaba la tanda queda pendiente.
+   */
+  const registrarPendientes = useCallback(async (): Promise<void> => {
+    if (registrando.current) { await registrando.current; }
+    const ids = [...sucios.current];
+    if (ids.length === 0 || !activeOrg) return;
+    const porId = new Map(rowsRef.current.map(r => [r.product.id, r.counted]));
+    const valido = (v: string) => v !== "" && Number.isFinite(Number(v)) && Number(v) >= 0;
+    const enviados = ids
+      .map(id => ({ id, valor: porId.get(id) ?? "" }))
+      .filter(x => valido(x.valor));
+    // Lo borrado o inválido (un negativo tipeado) no viaja ni queda pendiente.
+    for (const id of ids) if (!valido(porId.get(id) ?? "")) sucios.current.delete(id);
+    if (enviados.length === 0) return;
+
+    const trabajo = (async () => {
+      setSincronizacion("guardando");
+      try {
+        const countId = await asegurarConteo();
+        let porTandas = true;
+        for (let i = 0; porTandas && i < enviados.length; i += TANDA) {
+          const tanda = enviados.slice(i, i + TANDA);
+          const { error } = await supabase.rpc("registrar_conteo_lote" as never, {
+            p_count_id: countId,
+            p_items: tanda.map(x => ({ product_id: x.id, cantidad: Number(x.valor) })),
+          } as never);
+          if (error && i === 0 && isMissingFunction(error)) porTandas = false;
+          else if (error) throw error;
+          else for (const x of tanda) if ((rowsRef.current.find(r => r.product.id === x.id)?.counted ?? "") === x.valor) sucios.current.delete(x.id);
+        }
+        // Sin la migración: de a un producto, como antes.
+        if (!porTandas) {
+          for (const x of enviados) {
+            const { error } = await supabase.rpc("registrar_conteo", {
+              p_count_id: countId,
+              p_product_id: x.id,
+              p_cantidad: Number(x.valor),
+            });
+            if (error) throw error;
+            if ((rowsRef.current.find(r => r.product.id === x.id)?.counted ?? "") === x.valor) sucios.current.delete(x.id);
+          }
+        }
+        setSincronizacion(sucios.current.size ? "guardando" : "al_dia");
+      } catch (error) {
+        setSincronizacion("error");
+        throw error;
+      }
+    })();
+    registrando.current = trabajo;
+    try { await trabajo; } finally { if (registrando.current === trabajo) registrando.current = null; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOrg]);
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -220,26 +395,53 @@ export default function StockCountTab() {
       // El conteo físico tiene que listar todo el catálogo, no los primeros 1.000.
       const { data, error } = await fetchOrgProducts(activeOrg.id, "id,name,category,stock,cost_usd,image_url,barcode,sku");
       if (error) throw error;
-      const fresh: CountRow[] = ((data || []) as Product[]).map(p => ({ product: p, counted: "" }));
-      // Retomar el borrador local si hay uno: lo contado sobrevive a
-      // recargas y cortes. Sólo aplica a productos que siguen existiendo.
+      let productos = (data || []) as Product[];
       const draft = loadStockCountDraft(activeOrg.id);
-      if (draft && draft.rows.length > 0) {
-        const byId = new Map(draft.rows.map(row => [row.product_id, row.counted]));
-        const restablecido = fresh.filter(row => byId.has(row.product.id)).length;
-        if (restablecido > 0) {
-          setRows(fresh.map(row => {
-            const counted = byId.get(row.product.id);
-            return counted !== undefined ? { ...row, counted } : row;
-          }));
-          const cuando = new Date(draft.saved_at).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-          setDraftNotice(`Retomamos tu conteo de ${cuando}: ${restablecido} producto(s) con lo que ya habías contado.`);
-          return;
+      const delBorrador = new Map((draft?.rows ?? []).map(row => [row.product_id, row.counted]));
+      const deLaBase = new Map<string, string>();
+      sucios.current.clear();
+
+      // Un conteo abierto (en este u otro dispositivo) se retoma: lo esperado es
+      // lo congelado al abrirlo y lo contado viene de la base.
+      const abierto = await buscarConteoAbierto(activeOrg.id);
+      conteoIdRef.current = abierto;
+      setConteoAbierto(Boolean(abierto));
+      if (abierto) {
+        const esperado = new Map<string, number>();
+        for (let desde = 0; ; desde += TANDA) {
+          const { data: items, error: itemsError } = await supabase
+            .from("stock_count_items")
+            .select("product_id,expected,counted")
+            .eq("count_id", abierto)
+            .order("product_id")
+            .range(desde, desde + TANDA - 1);
+          if (itemsError) throw itemsError;
+          for (const it of (items ?? []) as Array<{ product_id: string; expected: number; counted: number | null }>) {
+            esperado.set(it.product_id, Number(it.expected));
+            if (it.counted !== null) deLaBase.set(it.product_id, String(it.counted));
+          }
+          if ((items ?? []).length < TANDA) break;
         }
+        // Sólo los productos del conteo: uno creado después no tiene esperado.
+        productos = productos.filter(p => esperado.has(p.id)).map(p => ({ ...p, stock: esperado.get(p.id)! }));
       }
+
+      let retomados = 0;
+      const fresh: CountRow[] = productos.map(p => {
+        const local = delBorrador.get(p.id);
+        const remoto = deLaBase.get(p.id);
+        if (local !== undefined && local !== "" && local !== remoto) { sucios.current.add(p.id); retomados++; return { product: p, counted: local }; }
+        if (remoto !== undefined) { retomados++; return { product: p, counted: remoto }; }
+        return { product: p, counted: "" };
+      });
       setRows(fresh);
-      setDraftNotice(null);
-      setConfirmedAt(null);
+      if (retomados > 0) {
+        const cuando = draft ? new Date(draft.saved_at).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "antes";
+        setDraftNotice(`Retomamos tu conteo de ${cuando}: ${retomados} producto(s) con lo que ya habías contado.`);
+      } else {
+        setDraftNotice(null);
+        setConfirmedAt(null);
+      }
     } catch {
       toast.error("Error al cargar productos");
     } finally {
@@ -251,7 +453,8 @@ export default function StockCountTab() {
 
   // Persistir el progreso local: cada cambio de campo guarda el borrador.
   // Con medio segundo de espera: serializar 5.500 renglones en cada tecla
-  // trababa el campo. Al desmontar se graba lo pendiente.
+  // trababa el campo. Al desmontar se graba lo pendiente. Lo contado además
+  // se registra en la base cada un segundo y medio.
   const pendiente = useRef<{ orgId: string; rows: CountRow[] } | null>(null);
   useEffect(() => {
     if (loading || !activeOrg) return;
@@ -260,8 +463,11 @@ export default function StockCountTab() {
       if (pendiente.current) saveStockCountDraft(pendiente.current.orgId, pendiente.current.rows);
       pendiente.current = null;
     }, 500);
-    return () => clearTimeout(t);
-  }, [rows, loading, activeOrg]);
+    const r = setTimeout(() => {
+      if (sucios.current.size && !saving) registrarPendientes().catch(error => registrarError(error));
+    }, 1500);
+    return () => { clearTimeout(t); clearTimeout(r); };
+  }, [rows, loading, activeOrg, registrarPendientes, saving]);
   useEffect(() => () => {
     if (pendiente.current) saveStockCountDraft(pendiente.current.orgId, pendiente.current.rows);
   }, []);
@@ -282,7 +488,7 @@ export default function StockCountTab() {
       )
       .sort((a, b) => {
         let av: number | string, bv: number | string;
-        if (sortKey === "name") { av = a.product.name; bv = b.product.name; }
+        if (sortKey === "name" || aCiegas) { av = a.product.name; bv = b.product.name; }
         else if (sortKey === "system") { av = a.product.stock; bv = b.product.stock; }
         else {
           const aCount = a.counted !== "" ? Number(a.counted) : a.product.stock;
@@ -292,7 +498,7 @@ export default function StockCountTab() {
         if (typeof av === "string") return sortDir === "asc" ? av.localeCompare(bv as string, "es") : (bv as string).localeCompare(av, "es");
         return sortDir === "asc" ? (av as number) - (bv as number) : (bv as number) - (av as number);
       });
-  }, [rows, search, catFilter, sortKey, sortDir]);
+  }, [rows, search, catFilter, sortKey, sortDir, aCiegas]);
 
   const stats = useMemo(() => {
     let counted = 0, surplus = 0, shortage = 0, missing = 0, totalDiffCost = 0;
@@ -311,7 +517,8 @@ export default function StockCountTab() {
 
   const setCount = useCallback((id: string, value: string) => {
     setRows(prev => prev.map(r => r.product.id === id ? { ...r, counted: value } : r));
-  }, []);
+    marcar(id);
+  }, [marcar]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -322,6 +529,8 @@ export default function StockCountTab() {
     const countedRows = rows.filter(r => r.counted !== "");
     const changed = countedRows.filter(r => Number(r.counted) !== r.product.stock);
     if (countedRows.length === 0) { toast.info("Contá al menos un producto antes de cerrar"); return; }
+    const invalido = countedRows.find(r => !Number.isFinite(Number(r.counted)) || Number(r.counted) < 0);
+    if (invalido) { toast.error(`Revisá lo contado de ${invalido.product.name}: tiene que ser 0 o más.`); return; }
     if (!(await ask({
       title: "¿Cerrar toma física?",
       description: `Se registrarán ${changed.length} ajuste(s) auditado(s) sobre ${countedRows.length} producto(s) contado(s).`,
@@ -329,40 +538,12 @@ export default function StockCountTab() {
       variant: "destructive",
     }))) return;
     setSaving(true);
-    let countId: string | null = null;
     try {
-      const { data: opened, error: openError } = await supabase.rpc("abrir_conteo", {
-        p_org_id: activeOrg!.id,
-        p_location_id: null,
-        p_notes: `Toma física ${new Date().toLocaleDateString("es-AR")}`,
-        p_solo_con_stock: false,
-      });
-      if (openError) throw openError;
-
-      const openedPayload = opened as { conteo_id?: unknown } | null;
-      countId = typeof openedPayload?.conteo_id === "string" ? openedPayload.conteo_id : null;
-      if (!countId) throw new Error("La base no devolvió el identificador del conteo");
-
-      // En tandas de 1.000 (20261023000500): de a uno eran 5.500 llamadas con
-      // el catálogo de Famatina, y un corte a la mitad cancelaba la toma.
-      let porTandas = true;
-      for (let i = 0; porTandas && i < countedRows.length; i += 1000) {
-        const tanda = countedRows.slice(i, i + 1000).map(r => ({ product_id: r.product.id, cantidad: Number(r.counted) }));
-        const { error } = await supabase.rpc("registrar_conteo_lote" as never, { p_count_id: countId, p_items: tanda } as never);
-        if (error && i === 0 && isMissingFunction(error)) porTandas = false;
-        else if (error) throw error;
-      }
-      // Sin la migración: de a un producto, como antes.
-      if (!porTandas) {
-        for (const row of countedRows) {
-          const { error } = await supabase.rpc("registrar_conteo", {
-            p_count_id: countId,
-            p_product_id: row.product.id,
-            p_cantidad: Number(row.counted),
-          });
-          if (error) throw error;
-        }
-      }
+      // Todo lo contado tiene que estar en la base antes de cerrar.
+      for (const id of countedRows.map(r => r.product.id)) if (!conteoIdRef.current) sucios.current.add(id);
+      for (let vuelta = 0; vuelta < 5 && (vuelta === 0 || sucios.current.size > 0); vuelta++) await registrarPendientes();
+      if (sucios.current.size > 0) throw new Error("No se pudo guardar todo lo contado. Reintentá el cierre.");
+      const countId = await asegurarConteo();
 
       const { data: closed, error: closeError } = await supabase.rpc("cerrar_conteo", { p_count_id: countId });
       if (closeError) throw closeError;
@@ -371,17 +552,43 @@ export default function StockCountTab() {
       const adjusted = typeof closePayload?.productos_ajustados === "number" ? closePayload.productos_ajustados : changed.length;
       const uncounted = typeof closePayload?.sin_contar === "number" ? closePayload.sin_contar : rows.length - countedRows.length;
       pendiente.current = null;
+      conteoIdRef.current = null;
+      setConteoAbierto(false);
       clearStockCountDraft(activeOrg!.id);
       setDraftNotice(null);
       await load();
       setConfirmedAt(new Date().toLocaleString("es-AR"));
       toast.success(`Toma cerrada: ${adjusted} ajustes auditados${uncounted ? `, ${uncounted} sin contar` : ""}`);
     } catch (error) {
-      if (countId) await supabase.rpc("cancelar_conteo", { p_count_id: countId });
-      toast.error(error instanceof Error ? error.message : "Error al cerrar la toma física");
+      // El conteo NO se cancela: lo contado está en la base y se puede
+      // reintentar el cierre (antes un error tiraba horas de conteo).
+      toast.error(error instanceof Error ? error.message : "Error al cerrar la toma física. Lo contado quedó guardado: reintentá.");
     } finally {
       setSaving(false);
     }
+  };
+
+  /** Descarta la toma: cancela el conteo abierto y borra lo contado. */
+  const descartarToma = async () => {
+    if (!(await ask({
+      title: "¿Descartar la toma?",
+      description: "Se borra lo contado y el stock no cambia.",
+      confirmText: "Descartar",
+      variant: "destructive",
+    }))) return;
+    if (conteoIdRef.current) {
+      const { error } = await supabase.rpc("cancelar_conteo", { p_count_id: conteoIdRef.current });
+      if (error) { toast.error("No se pudo descartar la toma. Reintentá."); return; }
+    }
+    conteoIdRef.current = null;
+    setConteoAbierto(false);
+    sucios.current.clear();
+    pendiente.current = null;
+    clearStockCountDraft(activeOrg?.id);
+    setScanCount(0);
+    setDraftNotice(null);
+    toast.info("Toma descartada: arranca desde cero.");
+    await load();
   };
 
   const exportCSV = () => {
@@ -427,7 +634,7 @@ export default function StockCountTab() {
       {dialog}
     <div className="space-y-6 pb-12">
       <p className="text-sm text-muted-foreground">
-        Ingresá el stock real de cada producto. Confirmá para actualizar las diferencias.
+        Contá lo que hay en el local, escaneando o escribiendo la cantidad. Lo contado se guarda solo; el stock cambia recién al cerrar la toma.
       </p>
 
       {/* Controls */}
@@ -455,6 +662,10 @@ export default function StockCountTab() {
           ))}
         </div>
         <div className="flex gap-2 ml-auto flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setACiegas(v => !v)} disabled={loading}>
+            {aCiegas ? <Eye className="w-4 h-4 mr-1" /> : <EyeOff className="w-4 h-4 mr-1" />}
+            {aCiegas ? "Ver diferencias" : "Contar a ciegas"}
+          </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={loading}>
             <Download className="w-4 h-4 mr-1" /> CSV
           </Button>
@@ -488,16 +699,34 @@ export default function StockCountTab() {
         </div>
       </div>
 
+      {/* Estado del guardado en la base */}
+      {!loading && (conteoAbierto || countedCount > 0) && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" role="status">
+          {sincronizacion === "error" ? (
+            <><CloudOff className="w-3.5 h-3.5 text-destructive" /> Sin conexión: lo contado queda en este equipo y se guarda cuando vuelva.</>
+          ) : sincronizacion === "guardando" ? (
+            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Guardando lo contado…</>
+          ) : (
+            <><Cloud className="w-3.5 h-3.5 text-emerald-500" /> Lo contado está guardado. Podés seguir desde otro equipo.</>
+          )}
+          {conteoAbierto && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs ml-auto" onClick={() => { void descartarToma(); }} disabled={saving}>
+              Descartar toma
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Stats strip */}
       {!loading && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <KPICard label="Contados" value={stats.counted} icon={CheckCircle2} color="success" />
           <KPICard label="Sin contar" value={stats.missing} icon={Minus} color="primary" />
-          <KPICard label="Sobrantes" value={stats.surplus} icon={TrendingUp} color="success" />
-          <KPICard label="Faltantes" value={stats.shortage} icon={TrendingDown} color="destructive" />
+          <KPICard label="Sobrantes" value={aCiegas ? "—" : stats.surplus} icon={TrendingUp} color="success" />
+          <KPICard label="Faltantes" value={aCiegas ? "—" : stats.shortage} icon={TrendingDown} color="destructive" />
           <KPICard
             label="Impacto costo neto"
-            value={`${stats.totalDiffCost >= 0 ? "+" : ""}${stats.totalDiffCost.toFixed(0)} USD`}
+            value={aCiegas ? "—" : `${stats.totalDiffCost >= 0 ? "+" : ""}${stats.totalDiffCost.toFixed(0)} USD`}
             icon={stats.totalDiffCost < 0 ? TrendingDown : TrendingUp}
             color={stats.totalDiffCost < 0 ? "destructive" : "success"}
           />
@@ -520,14 +749,7 @@ export default function StockCountTab() {
             variant="outline"
             size="sm"
             className="h-7 text-xs"
-            onClick={() => {
-              pendiente.current = null;
-              clearStockCountDraft(activeOrg?.id);
-              setRows(prev => prev.map(r => ({ ...r, counted: "" })));
-              setScanCount(0);
-              setDraftNotice(null);
-              toast.info("Borrador descartado: la toma arranca desde cero.");
-            }}
+            onClick={() => { void descartarToma(); }}
           >
             Descartar y empezar de nuevo
           </Button>
@@ -582,6 +804,7 @@ export default function StockCountTab() {
                   idx={idx}
                   categoria={nombreCategoria(row.product.category)}
                   isHighlighted={highlightedId === row.product.id}
+                  aCiegas={aCiegas}
                   rowRefs={rowRefs}
                   inputRefs={inputRefs}
                   onCount={setCount}
@@ -597,13 +820,13 @@ export default function StockCountTab() {
       {!loading && (
         <p className="text-xs text-muted-foreground text-center">
           Presioná <kbd className="px-1 py-0.5 rounded border border-border text-xs">Enter</kbd> en cada campo para pasar al siguiente.
-          Los cambios no se aplican hasta confirmar.
+          El stock cambia recién al cerrar la toma.
         </p>
       )}
 
       {/* ── Scanner overlay ───────────────────────────────────────────────── */}
       {scannerOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center gap-4">
+        <div className="fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center gap-4 px-4">
           <div className="relative w-full max-w-sm rounded-2xl overflow-hidden border-2 border-primary/60 shadow-2xl">
             <video ref={scanVideoRef} className="w-full aspect-video object-cover" autoPlay playsInline muted />
             {/* Animated scan line */}
@@ -619,16 +842,34 @@ export default function StockCountTab() {
               <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-primary rounded-br-md" />
             </div>
           </div>
-          <p className="text-white/70 text-sm flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary animate-pulse" />
-            Apuntá la cámara al código de barras
+          <p className="text-white/70 text-sm flex items-center gap-2 text-center">
+            <Zap className="w-4 h-4 text-primary animate-pulse shrink-0" />
+            Pasá los productos uno por uno: cada lectura suma {multiplicador === 1 ? "una unidad" : `${multiplicador} unidades`}.
           </p>
+          <div className="flex items-center gap-1.5" role="group" aria-label="Unidades por lectura">
+            {[1, 6, 12, 24].map(n => (
+              <Button
+                key={n}
+                size="sm"
+                variant={multiplicador === n ? "default" : "outline"}
+                className={multiplicador === n ? "h-9 min-w-11" : "h-9 min-w-11 border-white/30 text-white hover:bg-white/10"}
+                onClick={() => setMultiplicador(n)}
+              >
+                ×{n}
+              </Button>
+            ))}
+          </div>
           {scanCount > 0 && (
-            <p className="text-primary font-semibold text-sm">{scanCount} ítem{scanCount !== 1 ? "s" : ""} escaneado{scanCount !== 1 ? "s" : ""}</p>
+            <p className="text-primary font-semibold text-sm">{scanCount} lectura{scanCount !== 1 ? "s" : ""}</p>
           )}
-          <Button variant="outline" onClick={stopScan} className="border-white/30 text-white hover:bg-white/10">
-            Cancelar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={deshacerLectura} disabled={!puedeDeshacer} className="border-white/30 text-white hover:bg-white/10">
+              <Undo2 className="w-4 h-4 mr-1" /> Deshacer la última
+            </Button>
+            <Button onClick={stopScan}>
+              Listo
+            </Button>
+          </div>
         </div>
       )}
 

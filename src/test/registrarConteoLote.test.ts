@@ -14,7 +14,8 @@ describe("toma física en tandas", () => {
 
   it("la pantalla manda tandas de 1.000 y sólo vuelve a de a uno si falta la migración", () => {
     expect(pantalla).toContain('supabase.rpc("registrar_conteo_lote" as never');
-    expect(pantalla).toContain("countedRows.slice(i, i + 1000)");
+    expect(pantalla).toContain("const TANDA = 1000;");
+    expect(pantalla).toContain("enviados.slice(i, i + TANDA)");
     expect(pantalla).toContain("if (error && i === 0 && isMissingFunction(error)) porTandas = false;");
   });
 });

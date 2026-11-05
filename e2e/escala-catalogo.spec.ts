@@ -69,6 +69,8 @@ test("una toma física de 5.500 se cuenta sin trabas y se cierra en tandas", asy
   await page.getByRole("tab", { name: "Toma Física" }).click();
   await expect(page.getByText(/Retomamos tu conteo .*: 5500 producto/)).toBeVisible({ timeout: 90_000 });
   console.log(`Toma física: 5.500 renglones listos en ${((Date.now() - desde) / 1000).toFixed(1)} s`);
+  // Se cuenta a ciegas por defecto (2026-11-05); para medir la diferencia se muestra.
+  await page.getByRole("button", { name: "Ver diferencias" }).click();
 
   // Una tecla en un renglón no tiene que esperar a los otros 5.499. Se mide
   // adentro de la página: un localizador por rol sobre 5.500 filas mide a
