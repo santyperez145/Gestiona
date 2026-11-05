@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Camera, Loader2, RotateCcw, Sparkles, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-export type ProductoContable = { id: string; name: string; barcode?: string | null; sku?: string | null };
+export type ProductoContable = { id: string; name: string; barcode?: string | null; sku?: string | null; image_url?: string | null };
 
 type Lectura = { codigo: string; productoId: string | null; caja: { x: number; y: number; w: number; h: number } | null };
 type Punto = { x: number; y: number };
@@ -159,7 +159,8 @@ export default function ConteoPorZona({
         headers: { "x-org-id": orgId },
         body: {
           imagen: foto.base64, ancho: foto.ancho, alto: foto.alto,
-          candidatos: opcionesIA.map(p => ({ id: p.id, nombre: p.name })),
+          // La foto de catálogo ayuda a reconocer el producto (la función sólo acepta las de nuestro storage).
+          candidatos: opcionesIA.map(p => ({ id: p.id, nombre: p.name, imagen: p.image_url ?? undefined })),
           producto_id: productoIA || null,
         },
       });

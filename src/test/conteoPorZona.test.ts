@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { puntoEnLaFoto, unidadesPorProducto } from "@/components/inventory/ConteoPorZona";
-import { candidatosValidos, puntosValidos } from "../../supabase/functions/_shared/conteoVisual";
+import { candidatosValidos, imagenDeReferenciaValida, puntosValidos } from "../../supabase/functions/_shared/conteoVisual";
 
 /**
  * Conteo por zona (2026-11-05): se apunta a un estante y se cuentan de una vez
@@ -36,6 +36,19 @@ describe("conteo visual con IA", () => {
       .toEqual([{ id: UUID, nombre: "Yerba" }]);
     expect(puntosValidos([{ x: 10.4, y: 5 }, { x: -1, y: 5 }, { x: 10, y: 5 }, { x: 99, y: 9999 }, { x: "a", y: 1 }], 100, 100))
       .toEqual([{ x: 10, y: 5 }]);
+  });
+
+  it("usa fotos de catálogo como referencia, sólo de nuestro storage público", () => {
+    const base = "https://abc.supabase.co";
+    const propia = `${base}/storage/v1/object/public/product-images/zz.jpg`;
+    expect(imagenDeReferenciaValida(propia, base)).toBe(propia);
+    for (const ajena of ["https://evil.example/zz.jpg", `${base}/storage/v1/object/sign/privado/zz.jpg`,
+      "http://abc.supabase.co/storage/v1/object/public/zz.jpg", "https://user:pw@abc.supabase.co/storage/v1/object/public/zz.jpg", 42]) {
+      expect(imagenDeReferenciaValida(ajena, base), String(ajena)).toBeNull();
+    }
+    expect(candidatosValidos([{ id: UUID, nombre: "Yerba", imagen: "https://evil.example/x.jpg" }], base)).toEqual([{ id: UUID, nombre: "Yerba" }]);
+    expect(funcion).toContain(".slice(0, MAX_REFERENCIAS)");
+    expect(funcion).toContain('source: { type: "url", url: c.imagen }');
   });
 
   it("restringe la respuesta a los candidatos, usa el Opus vigente con respaldo y no guarda la foto", () => {
