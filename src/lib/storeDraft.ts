@@ -161,6 +161,21 @@ export function esConflictoDeSlug(error: { code?: string | null; message?: strin
   return msg.includes("ecommerce_stores_slug") || msg.includes("duplicate key");
 }
 
+/**
+ * El formulario después de guardar (2026-11-05): lo guardado, salvo los campos
+ * que el comercio cambió mientras el guardado estaba en vuelo. El asistente
+ * muestra el paso siguiente apenas se toca «Guardar»; con red lenta la
+ * respuesta llegaba cuando ya había escrito la dirección de retiro y la
+ * borraba (E2E de alta, 05/11).
+ */
+export function formularioTrasGuardar<T extends object>(guardado: T, alEmpezar: T, actual: T): T {
+  const salida = { ...guardado };
+  for (const clave of Object.keys(actual) as Array<keyof T>) {
+    if (JSON.stringify(actual[clave]) !== JSON.stringify(alEmpezar[clave])) salida[clave] = actual[clave];
+  }
+  return salida;
+}
+
 export function storeDraftInicial(
   org?: StoreOrgSeed,
   fulfillmentGlobal = "__stock_global__",

@@ -91,6 +91,7 @@ import {
   storeFormDesdeFila,
   sugerirDireccionDeRetiro,
   sugerirEmailDeAvisos,
+  formularioTrasGuardar,
 } from "@/lib/storeDraft";
 import { hrefWhatsApp, socialLinksParaGuardar } from "@/lib/storeSocial";
 import {
@@ -830,6 +831,8 @@ export default function EcommerceStorePage() {
     // A propósito tapa al `storeForm` del componente: así todo lo que sigue
     // guarda el formulario con los cambios del paso aplicados.
     const storeForm = opts?.cambios ? { ...storeFormRef.current, ...opts.cambios } : storeFormRef.current;
+    // Lo que el comercio escriba mientras se guarda no se pisa con la respuesta.
+    const formAlEmpezar = storeFormRef.current;
     const isCreatingStore = !store?.id;
     const name = storeForm.name.trim();
     if (!name) {
@@ -976,7 +979,7 @@ export default function EcommerceStorePage() {
       if (saved) {
         setStore(saved);
         const nextForm = storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION);
-        setStoreForm(nextForm);
+        setStoreForm(formularioTrasGuardar(nextForm, formAlEmpezar, storeFormRef.current));
         storeFormBaselineRef.current = JSON.stringify(nextForm);
         setCreatingStore(false);
         commerceStores.selectStore(saved.id);
@@ -1014,7 +1017,7 @@ export default function EcommerceStorePage() {
     // «Creá la tienda» con toast de guardado (medido sesión 145).
     setStore(saved);
     const nextForm = storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION);
-    setStoreForm(nextForm);
+    setStoreForm(formularioTrasGuardar(nextForm, formAlEmpezar, storeFormRef.current));
     storeFormBaselineRef.current = JSON.stringify(nextForm);
     // Lo que se escribió es lo guardado: el banco queda leído (2026-11-04).
     if (escribirBanco) {

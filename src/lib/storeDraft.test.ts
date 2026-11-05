@@ -13,6 +13,7 @@ import {
   storeFormDesdeFila,
   sugerirDireccionDeRetiro,
   sugerirEmailDeAvisos,
+  formularioTrasGuardar,
 } from "@/lib/storeDraft";
 
 describe("la tienda no nace con la identidad de Exentry", () => {
@@ -157,5 +158,26 @@ describe("la tienda no nace con la identidad de Exentry", () => {
     expect(esConflictoDeSlug({ code: "23505" })).toBe(true);
     expect(esConflictoDeSlug({ message: "duplicate key value violates unique constraint" })).toBe(true);
     expect(esConflictoDeSlug({ code: "42501", message: "permission denied" })).toBe(false);
+  });
+});
+
+describe("guardar un paso no borra lo que se escribe en el siguiente", () => {
+  it("conserva lo tipeado durante el guardado y toma lo demás de lo guardado", () => {
+    const alEmpezar = { name: "ZZ", pickup_address: "", pickup_instructions: "", bank_alias: "zz.alias" };
+    const actual = { ...alEmpezar, pickup_address: "Av. Corrientes 1234, CABA" };
+    const guardado = { name: "ZZ", pickup_address: "", pickup_instructions: "", bank_alias: "ZZ.ALIAS" };
+    expect(formularioTrasGuardar(guardado, alEmpezar, actual)).toEqual({
+      name: "ZZ", pickup_address: "Av. Corrientes 1234, CABA", pickup_instructions: "", bank_alias: "ZZ.ALIAS",
+    });
+  });
+
+  it("sin cambios en vuelo, queda exactamente lo guardado", () => {
+    const form = { name: "ZZ", tags: ["a"] };
+    expect(formularioTrasGuardar({ name: "ZZ Tienda", tags: ["a", "b"] }, form, { ...form })).toEqual({ name: "ZZ Tienda", tags: ["a", "b"] });
+  });
+
+  it("la página de la tienda lo usa en los dos puntos donde guarda", () => {
+    const pagina = readFileSync(resolve(process.cwd(), "src/pages/EcommerceStorePage.tsx"), "utf8");
+    expect(pagina.split("setStoreForm(formularioTrasGuardar(nextForm, formAlEmpezar, storeFormRef.current))").length - 1).toBe(2);
   });
 });
