@@ -100,3 +100,34 @@ test("una toma física de 5.500 se cuenta sin trabas y se cierra en tandas", asy
   await expect(page.getByText(/Toma cerrada: 2751 ajustes auditados/)).toBeVisible({ timeout: 120_000 });
   console.log(`Toma física: cerrada en ${((Date.now() - cierre) / 1000).toFixed(1)} s`);
 });
+
+test("conteo del día, reconteo de una diferencia grande y por qué faltó", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto("/kardex");
+  await cerrarAvisos(page);
+  await page.getByRole("tab", { name: "Toma Física" }).click();
+
+  // Los 5.500 se contaron hoy en la toma anterior: el conteo cíclico no pide nada.
+  await expect(page.getByText(/Conteo del día al día/)).toBeVisible({ timeout: 90_000 });
+
+  // Un 0 donde había 10 u 11 es una diferencia grande: se ofrece recontar.
+  await page.getByLabel("Contado de ZZ Escala 0002").fill("0");
+  await page.getByRole("button", { name: /Cerrar toma \(1\)/ }).click();
+  const aviso = page.getByRole("alertdialog");
+  await expect(aviso.getByText("1 producto con diferencias grandes")).toBeVisible();
+  await aviso.getByRole("button", { name: "Recontar ahora" }).click();
+  await expect(page.getByText(/Reconteo: 1 producto con diferencias grandes/)).toBeVisible();
+  await expect(page.getByLabel("Contado de ZZ Escala 0003")).toHaveCount(0);
+
+  // Recontado: faltan unidades de verdad.
+  await page.getByLabel("Contado de ZZ Escala 0002").fill("6");
+  await page.getByRole("button", { name: "Listo, ver todo" }).click();
+  await page.getByRole("button", { name: /Cerrar toma \(1\)/ }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Cerrar toma" }).click();
+
+  // El cierre explica el faltante con los movimientos del producto.
+  const porque = page.getByRole("dialog", { name: "Por qué faltó o sobró" });
+  await expect(porque).toBeVisible({ timeout: 60_000 });
+  await expect(porque.getByText("ZZ Escala 0002")).toBeVisible();
+  await expect(porque.getByText(/Sin movimientos registrados en 60 días/)).toBeVisible();
+});
