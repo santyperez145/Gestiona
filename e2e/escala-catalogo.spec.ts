@@ -107,8 +107,16 @@ test("conteo del día, reconteo de una diferencia grande y por qué faltó", asy
   await cerrarAvisos(page);
   await page.getByRole("tab", { name: "Toma Física" }).click();
 
-  // Los 5.500 se contaron hoy en la toma anterior: el conteo cíclico no pide nada.
-  await expect(page.getByText(/Conteo del día al día/)).toBeVisible({ timeout: 90_000 });
+  // Los 5.500 se contaron hoy en la toma anterior: el conteo cíclico no los
+  // pide; sí los productos del negocio que nunca se contaron.
+  const delDia = page.getByRole("region", { name: "Conteo del día" });
+  await expect(delDia).toBeVisible({ timeout: 90_000 });
+  await expect(delDia.getByRole("listitem", { name: "Nunca se contó" }).first()).toBeVisible();
+  await expect(delDia.getByText(/ZZ Escala/)).toHaveCount(0);
+  // «Contar estos» deja sólo esa lista; los de escala desaparecen.
+  await delDia.getByRole("button", { name: "Contar estos" }).click();
+  await expect(page.getByLabel("Contado de ZZ Escala 0002")).toHaveCount(0);
+  await delDia.getByRole("button", { name: "Ver todo el catálogo" }).click();
 
   // Un 0 donde había 10 u 11 es una diferencia grande: se ofrece recontar.
   await page.getByLabel("Contado de ZZ Escala 0002").fill("0");
