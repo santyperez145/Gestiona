@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { puntoEnLaFoto, unidadesPorProducto } from "@/components/inventory/ConteoPorZona";
+import { partesDeLaFoto, puntoEnLaFoto, unidadesPorProducto, unirPuntos } from "@/components/inventory/ConteoPorZona";
 import { candidatosValidos, imagenDeReferenciaValida, puntosValidos } from "../../supabase/functions/_shared/conteoVisual";
 
 /**
@@ -36,6 +36,23 @@ describe("conteo visual con IA", () => {
       .toEqual([{ id: UUID, nombre: "Yerba" }]);
     expect(puntosValidos([{ x: 10.4, y: 5 }, { x: -1, y: 5 }, { x: 10, y: 5 }, { x: 99, y: 9999 }, { x: "a", y: 1 }], 100, 100))
       .toEqual([{ x: 10, y: 5 }]);
+  });
+
+  it("estante lleno: 4 partes superpuestas que cubren toda la foto", () => {
+    const partes = partesDeLaFoto(2000, 1000);
+    expect(partes).toHaveLength(4);
+    // Cubren toda la foto y se superponen en el centro (10 %).
+    expect(Math.min(...partes.map(p => p.x))).toBe(0);
+    expect(Math.max(...partes.map(p => p.x + p.ancho))).toBe(2000);
+    expect(Math.max(...partes.map(p => p.y + p.alto))).toBe(1000);
+    expect(partes[0]).toEqual({ x: 0, y: 0, ancho: 1100, alto: 550 });
+    expect(partes[3]).toEqual({ x: 900, y: 450, ancho: 1100, alto: 550 });
+  });
+
+  it("al unir las partes, una unidad de la zona superpuesta cuenta una sola vez", () => {
+    const izquierda = [{ x: 100, y: 100 }, { x: 950, y: 300 }];   // la segunda está en la superposición
+    const derecha = [{ x: 955, y: 302 }, { x: 1500, y: 300 }];     // la misma unidad, vista desde la otra parte
+    expect(unirPuntos([izquierda, derecha], 40)).toEqual([{ x: 100, y: 100 }, { x: 950, y: 300 }, { x: 1500, y: 300 }]);
   });
 
   it("usa fotos de catálogo como referencia, sólo de nuestro storage público", () => {

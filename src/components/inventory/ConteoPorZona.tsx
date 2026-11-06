@@ -35,6 +35,41 @@ export function unidadesPorProducto(lecturas: Array<{ productoId: string | null 
   return salida;
 }
 
+/** A partir de cuántas unidades conviene contar en partes: los modelos de visión se saltean unidades en estantes llenos. */
+export const UNIDADES_PARA_CONTAR_EN_PARTES = 30;
+
+export type Parte = { x: number; y: number; ancho: number; alto: number };
+
+/** Cuadrícula de 2×2 con superposición, para que ninguna unidad quede cortada en un borde. */
+export function partesDeLaFoto(ancho: number, alto: number, superposicion = 0.1): Parte[] {
+  const extraX = Math.round(ancho * superposicion / 2);
+  const extraY = Math.round(alto * superposicion / 2);
+  const mitadX = Math.round(ancho / 2);
+  const mitadY = Math.round(alto / 2);
+  const partes: Parte[] = [];
+  for (const [x0, x1] of [[0, mitadX + extraX], [mitadX - extraX, ancho]]) {
+    for (const [y0, y1] of [[0, mitadY + extraY], [mitadY - extraY, alto]]) {
+      partes.push({ x: x0, y: y0, ancho: x1 - x0, alto: y1 - y0 });
+    }
+  }
+  return partes;
+}
+
+/**
+ * Une los puntos de cada parte (ya en coordenadas de la foto entera). Una
+ * unidad en la zona superpuesta aparece en dos partes: dos puntos más cerca
+ * que `radio` son la misma unidad.
+ */
+export function unirPuntos(grupos: Punto[][], radio: number): Punto[] {
+  const salida: Punto[] = [];
+  for (const grupo of grupos) {
+    for (const p of grupo) {
+      if (!salida.some(q => Math.hypot(q.x - p.x, q.y - p.y) <= radio)) salida.push(p);
+    }
+  }
+  return salida;
+}
+
 /** El punto de la foto (en píxeles de la imagen) donde se tocó la pantalla. */
 export function puntoEnLaFoto(clientX: number, clientY: number, rect: { left: number; top: number; width: number; height: number }, ancho: number, alto: number): Punto {
   return {
@@ -63,6 +98,8 @@ export default function ConteoPorZona({
   const [puntos, setPuntos] = useState<Punto[]>([]);
   const [notaIA, setNotaIA] = useState("");
   const [consultandoIA, setConsultandoIA] = useState(false);
+  /** La foto en resolución completa, para cortar las partes. */
+  const lienzoRef = useRef<HTMLCanvasElement | null>(null);
 
   const porCodigo = useMemo(() => {
     const m = new Map<string, string>();
@@ -106,6 +143,7 @@ export default function ConteoPorZona({
       const canvas = document.createElement("canvas");
       canvas.width = ancho; canvas.height = alto;
       canvas.getContext("2d")!.drawImage(video, 0, 0, ancho, alto);
+      lienzoRef.current = canvas;
       const url = canvas.toDataURL("image/jpeg", 0.85);
       setFoto({ url, base64: url.slice(url.indexOf(",") + 1), ancho, alto });
       setPuntos([]); setNotaIA("");
@@ -151,30 +189,64 @@ export default function ConteoPorZona({
     return salida;
   }, [grupos, candidatos, productos]);
 
+  /** Una consulta a conteo-visual. Devuelve null si falló (ya avisado). */
+  const consultarIA = async (imagen: string, ancho: number, alto: number, productoId: string | null) => {
+    const { data, error } = await supabase.functions.invoke("conteo-visual", {
+      headers: { "x-org-id": orgId },
+      body: {
+        imagen, ancho, alto,
+        // La foto de catálogo ayuda a reconocer el producto (la función sólo acepta las de nuestro storage).
+        candidatos: opcionesIA.map(p => ({ id: p.id, nombre: p.name, imagen: p.image_url ?? undefined })),
+        producto_id: productoId,
+      },
+    });
+    if (error || (data as { error?: string } | null)?.error) {
+      const mensaje = await mensajeDeEdgeFunction(error, data);
+      if (error) registrarError(error);
+      toast.error(mensaje || "No pudimos contar la foto con IA.");
+      return null;
+    }
+    return data as { producto_id: string | null; unidades: Punto[]; nota?: string };
+  };
+
   const contarConIA = async () => {
     if (!foto) return;
     setConsultandoIA(true);
     try {
-      const { data, error } = await supabase.functions.invoke("conteo-visual", {
-        headers: { "x-org-id": orgId },
-        body: {
-          imagen: foto.base64, ancho: foto.ancho, alto: foto.alto,
-          // La foto de catálogo ayuda a reconocer el producto (la función sólo acepta las de nuestro storage).
-          candidatos: opcionesIA.map(p => ({ id: p.id, nombre: p.name, imagen: p.image_url ?? undefined })),
-          producto_id: productoIA || null,
-        },
-      });
-      if (error || (data as { error?: string } | null)?.error) {
-        const mensaje = await mensajeDeEdgeFunction(error, data);
-        if (error) registrarError(error);
-        toast.error(mensaje || "No pudimos contar la foto con IA.");
-        return;
-      }
-      const r = data as { producto_id: string | null; unidades: Punto[]; nota?: string };
+      const r = await consultarIA(foto.base64, foto.ancho, foto.alto, productoIA || null);
+      if (!r) return;
       if (r.producto_id) setProductoIA(r.producto_id);
       setPuntos(r.unidades ?? []);
       setNotaIA(r.nota ?? "");
       if (!r.producto_id) toast.info("La IA no reconoció ninguno de estos productos. Elegí cuál es y volvé a probar.");
+    } finally {
+      setConsultandoIA(false);
+    }
+  };
+
+  /**
+   * Estante lleno: la foto se cuenta en 4 partes superpuestas, en paralelo, y
+   * se unen los puntos sin repetir los de las zonas superpuestas.
+   */
+  const contarEnPartes = async () => {
+    const lienzo = lienzoRef.current;
+    if (!foto || !lienzo || !productoIA) return;
+    setConsultandoIA(true);
+    try {
+      const partes = partesDeLaFoto(foto.ancho, foto.alto);
+      const resultados = await Promise.all(partes.map(async parte => {
+        const c = document.createElement("canvas");
+        c.width = parte.ancho; c.height = parte.alto;
+        c.getContext("2d")!.drawImage(lienzo, parte.x, parte.y, parte.ancho, parte.alto, 0, 0, parte.ancho, parte.alto);
+        const url = c.toDataURL("image/jpeg", 0.9);
+        const r = await consultarIA(url.slice(url.indexOf(",") + 1), parte.ancho, parte.alto, productoIA);
+        return r ? (r.unidades ?? []).map(p => ({ x: p.x + parte.x, y: p.y + parte.y })) : null;
+      }));
+      if (resultados.some(r => r === null)) return;
+      const radio = Math.max(foto.ancho, foto.alto) * 0.02;
+      const unidos = unirPuntos(resultados as Punto[][], radio);
+      setPuntos(unidos);
+      setNotaIA(`Contado en 4 partes: ${unidos.length} unidades.`);
     } finally {
       setConsultandoIA(false);
     }
@@ -290,6 +362,12 @@ export default function ConteoPorZona({
                       Tocá la foto para agregar una unidad que falte; tocá un punto para sacarlo.
                       {notaIA && <> · {notaIA}</>}
                     </p>
+                  )}
+                  {productoIA && puntos.length >= UNIDADES_PARA_CONTAR_EN_PARTES && !notaIA.startsWith("Contado en 4 partes") && (
+                    <Button variant="outline" className="w-full min-h-11 border-white/30 text-white hover:bg-white/10" onClick={() => { void contarEnPartes(); }} disabled={consultandoIA}>
+                      {consultandoIA ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                      Estante lleno: contar en 4 partes (más preciso)
+                    </Button>
                   )}
                   {productoIA && puntos.length > 0 && (
                     <Button className="w-full min-h-11" onClick={sumarPuntos}>
