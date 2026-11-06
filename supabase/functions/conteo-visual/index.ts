@@ -14,10 +14,11 @@
  */
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 import {
-  candidatosValidos, LADO_MAXIMO, MAX_IMAGEN_BASE64, MAX_REFERENCIAS, puntosValidos,
+  candidatosValidos, CONTEOS_VISUALES_POR_HORA, LADO_MAXIMO, MAX_IMAGEN_BASE64, MAX_REFERENCIAS, puntosValidos,
 } from "../_shared/conteoVisual.ts";
 
 const corsHeaders = {
@@ -60,6 +61,25 @@ serve(async (req) => {
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) return json({ error: "El conteo con IA no está disponible ahora." }, 503);
+
+  // Límite por persona y hora (2026-11-06): el cupo del plan cuenta acciones,
+  // y una foto con Opus cuesta decenas de veces una categorización. Si no se
+  // puede verificar, no se llama a la IA: el costo no queda sin techo.
+  const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+  const { data: permitido, error: errLimite } = await admin.rpc("rate_limit_consumir", {
+    p_bucket: "conteo_visual",
+    p_sujeto: `usuario:${auth.user.id}`,
+    p_max: CONTEOS_VISUALES_POR_HORA,
+    p_ventana: "1 hour",
+  });
+  if (errLimite) {
+    console.error("conteo-visual límite:", errLimite.message);
+    return json({ error: "No pudimos verificar tu uso. Probá de nuevo en un momento." }, 503);
+  }
+  if (permitido !== true) {
+    return json({ error: `Llegaste a ${CONTEOS_VISUALES_POR_HORA} conteos con IA en la última hora. Seguí con el escáner y probá más tarde.`, code: "limite_conteo_visual" }, 429);
+  }
+
   const client = new Anthropic({ apiKey });
 
   const ids = candidatos.map(c => c.id);

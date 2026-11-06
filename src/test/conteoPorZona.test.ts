@@ -77,6 +77,14 @@ describe("conteo visual con IA", () => {
     expect(funcion).not.toMatch(/temperature|top_p|top_k|storage|\.from\(/);
   });
 
+  it("limita los conteos con IA por persona y hora, y sin poder verificarlo no llama a la IA", () => {
+    const limite = funcion.indexOf('admin.rpc("rate_limit_consumir"');
+    expect(limite).toBeGreaterThan(0);
+    expect(limite).toBeLessThan(funcion.indexOf("const client = new Anthropic"));
+    expect(funcion).toContain("p_sujeto: `usuario:${auth.user.id}`");
+    expect(funcion).toContain("if (permitido !== true)");
+  });
+
   it("exige sesión y plan con IA, y la persona confirma los puntos antes de sumar", () => {
     expect(funcion).toContain("requireUser(req, corsHeaders)");
     expect(funcion).toContain('exigirBeneficio(req, orgId, "ia", corsHeaders)');

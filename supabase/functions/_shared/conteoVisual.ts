@@ -5,6 +5,8 @@ export const MAX_IMAGEN_BASE64 = 4_000_000;
 export const MAX_CANDIDATOS = 80;
 export const MAX_UNIDADES = 300;
 export const LADO_MAXIMO = 2576;
+/** Conteos con IA por persona y hora (contar en 4 partes usa 4). */
+export const CONTEOS_VISUALES_POR_HORA = 60;
 
 export type Candidato = { id: string; nombre: string; imagen?: string };
 export type Punto = { x: number; y: number };
