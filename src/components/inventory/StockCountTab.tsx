@@ -551,6 +551,18 @@ export default function StockCountTab() {
     if (pendiente.current) saveStockCountDraft(pendiente.current.orgId, pendiente.current.rows);
   }, []);
 
+  // Sin conexión: lo pendiente se reintenta al volver internet y cada 20
+  // segundos, aunque nadie toque la pantalla.
+  useEffect(() => {
+    if (loading) return;
+    const reintentar = () => {
+      if (sucios.current.size && !saving) registrarPendientes().catch(error => registrarError(error));
+    };
+    window.addEventListener("online", reintentar);
+    const id = window.setInterval(() => { if (sincronizacion === "error") reintentar(); }, 20_000);
+    return () => { window.removeEventListener("online", reintentar); window.clearInterval(id); };
+  }, [loading, saving, sincronizacion, registrarPendientes]);
+
   // Conteo en equipo: cada 15 segundos se trae lo que contaron otros equipos
   // en el mismo conteo. Lo que este equipo todavía no guardó no se pisa.
   useEffect(() => {

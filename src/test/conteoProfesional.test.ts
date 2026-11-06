@@ -95,6 +95,11 @@ describe("el conteo vive en la base desde el primer producto", () => {
     expect(sql).toContain("public.has_permission(v_org, 'inventory', 'view')");
   });
 
+  it("sin conexión, lo pendiente se reintenta solo al volver internet", () => {
+    expect(pantalla).toContain('window.addEventListener("online", reintentar);');
+    expect(pantalla).toContain('if (sincronizacion === "error") reintentar();');
+  });
+
   it("se cuenta a ciegas por defecto", () => {
     expect(pantalla).toContain("const [aCiegas, setACiegas] = useState(true);");
     expect(pantalla).toContain('aCiegas ? <span className="text-muted-foreground/60">•••</span> : row.product.stock');
